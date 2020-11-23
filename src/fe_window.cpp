@@ -549,7 +549,6 @@ bool FeWindow::run()
 		{
 			sf::Event ev;
 
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 ))
 			while (pollEvent(ev))
 			{
 				if ( ev.type == sf::Event::Closed )
@@ -560,34 +559,6 @@ bool FeWindow::run()
 			has_focus = hasFocus() || m_blackout.hasFocus();
 #else
 			has_focus = hasFocus();
-#endif
-
-#else
-			//
-			// flakey pre-SFML 2.2 implementation
-			// to be removed if SFML 2.0/2.1 support is ever dropped
-			//
-			while (pollEvent(ev))
-			{
-				if ( ev.type == sf::Event::GainedFocus )
-				{
-					if ( !has_focus )
-						FeDebug() << "Gained focus at "
-							<< timer.getElapsedTime().asMilliseconds() << "ms" << std::endl;
-
-					has_focus = true;
-				}
-				else if ( ev.type == sf::Event::LostFocus )
-				{
-					if ( has_focus )
-						FeDebug() << "Lost focus at "
-							<< timer.getElapsedTime().asMilliseconds() << "ms" << std::endl;
-
-					has_focus = false;
-				}
-				else if ( ev.type == sf::Event::Closed )
-					return false;
-			}
 #endif
 
 			if (( timer.getElapsedTime() >= sf::seconds( nbm_wait ) )

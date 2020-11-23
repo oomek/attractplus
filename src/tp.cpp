@@ -24,9 +24,6 @@
 #include <iostream>
 #include <cmath>
 
-// included for SFML_VERSION_INT macros
-#include "fe_util.hpp"
-
 FeTextPrimative::FeTextPrimative( )
 	: m_texts( 1, sf::Text() ),
 	m_align( Centre ),
@@ -73,22 +70,13 @@ FeTextPrimative::FeTextPrimative( const FeTextPrimative &c )
 
 void FeTextPrimative::setColor( const sf::Color &c )
 {
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ) )
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setFillColor( c );
-#else
-	for ( unsigned int i=0; i < m_texts.size(); i++ )
-		m_texts[i].setColor( c );
-#endif
 }
 
 const sf::Color &FeTextPrimative::getColor() const
 {
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ) )
 	return m_texts[0].getFillColor();
-#else
-	return m_texts[0].getColor();
-#endif
 }
 
 void FeTextPrimative::setBgColor( const sf::Color &c )
@@ -439,23 +427,15 @@ unsigned int FeTextPrimative::getGlyphSize() const
 
 void FeTextPrimative::setCharacterSpacing( float factor )
 {
-// setLetterSpacing() only available as of SFML 2.5
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 5, 0 ))
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setLetterSpacing( factor );
 
 	m_needs_pos_set = true;
-#endif
 }
 
 float FeTextPrimative::getCharacterSpacing() const
 {
-// getLetterSpacing() only available as of SFML 2.5
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 5, 0 ))
 	return m_texts[0].getLetterSpacing();
-#else
-	return 1.f;
-#endif
 }
 
 void FeTextPrimative::setLineSpacing( float factor )

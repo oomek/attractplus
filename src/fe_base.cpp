@@ -38,11 +38,11 @@ extern "C"
 #include "nowide/fstream.hpp"
 #include "nowide/iostream.hpp"
 
-#define FE_NAME_D			"Attract-Mode"
+#define FE_NAME_D			"Attract-Mode Plus"
 
 const char *FE_NAME			= FE_NAME_D;
 const char *FE_COPYRIGHT		= FE_NAME_D " " FE_VERSION_D \
-	" Copyright (c) 2013-2018 Andrew Mickelson";
+	" Copyright (c) 2013-2020 Andrew Mickelson & Radek Dutkiewicz";
 const char *FE_VERSION 			= FE_VERSION_D;
 
 const char *FE_WHITESPACE=" \t\r";
@@ -140,9 +140,7 @@ void fe_print_version()
 	FeLog() << FE_NAME << " " << FE_VERSION << " ("
 		<< get_OS_string()
 		<< ", SFML " << SFML_VERSION_MAJOR << '.' << SFML_VERSION_MINOR
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 ) )
 		<< "." << SFML_VERSION_PATCH
-#endif
 #ifdef USE_FONTCONFIG
 		<< " +FontConfig"
 #endif

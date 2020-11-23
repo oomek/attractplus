@@ -530,10 +530,7 @@ bool FeTextureContainer::try_to_load(
 	{
 		m_texture.update( data );
 		il.release_entry( &m_entry ); // don't need entry any more
-
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ))
 		if ( m_mipmap ) m_texture.generateMipmap();
-#endif
 		m_texture.setSmooth( m_smooth );
 	}
 
@@ -709,9 +706,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( il.check_loaded( m_entry ) )
 		{
 			m_texture.update( m_entry->get_data() );
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ))
 			if ( m_mipmap ) m_texture.generateMipmap();
-#endif
 			m_texture.setSmooth( m_smooth );
 
 			il.release_entry( &m_entry );
@@ -768,9 +763,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( m_movie->tick() )
 		{
 			m_frame_displayed=true;
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ))
 			if ( m_mipmap ) m_texture.generateMipmap();
-#endif
 			return true;
 		}
 	}
@@ -1038,9 +1031,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ))
 	if ( m_mipmap && !m_movie) m_texture.generateMipmap();
-#endif
 }
 
 bool FeTextureContainer::get_mipmap() const

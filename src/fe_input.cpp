@@ -30,19 +30,14 @@
 #include <set>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/System/Vector2.hpp>
-
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 )) // touch support sfml >= 2.2
 #include <SFML/Window/Touch.hpp>
-#endif
 
 namespace
 {
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 )) // touch support sfml >= 2.2
 	// globals to track when last touch event "began"
 	//
 	sf::Event g_last_touch;
 	bool g_touch_moved=false;
-#endif
 
 	static std::vector< int > g_joyfemap( sf::Joystick::Count, 0 );
 
@@ -64,11 +59,6 @@ namespace
 
 	void joy_raw_map_init( const std::vector < std::pair < int, std::string > > &joy_config )
 	{
-//
-// sf::Joystick::getIdentification() only available if SFML version is >= 2.2
-//
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 ))
-
 		size_t i=0;
 		std::vector < std::pair < int, std::string > >::iterator itr;
 		std::vector < std::pair < int, std::string  > > wl = joy_config;
@@ -129,10 +119,6 @@ namespace
 			FeDebug() << "ID: " << i << " => Joy" << g_joyfemap[i] << "("
 				<< sf::Joystick::getIdentification(i).name.toAnsiString()
 				<< ")" << std::endl;
-#else // sfml < 2.2
-		for ( size_t i=0; i< sf::Joystick::Count; i++ )
-			g_joyfemap[i] = i;
-#endif
 	}
 };
 
@@ -430,7 +416,6 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 			m_type = Mouse;
 			break;
 
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 )) // touch support sfml >= 2.2
 		case sf::Event::TouchMoved:
 			{
 				const int THRESH = 100;
@@ -476,7 +461,6 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 				m_type = Touch;
 			}
 			break;
-#endif
 
 		default:
 			break;
@@ -636,10 +620,8 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 		default: return false; // mouse moves and wheels are not supported
 		}
 	}
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 )) // touch support sfml >= 2.2
 	else if ( m_type == Touch )
 		return sf::Touch::isDown( 0 );
-#endif
 	else // Joysticks
 	{
 		sf::Joystick::update();
@@ -720,7 +702,6 @@ int FeInputSingle::get_current_pos() const
 
 std::string FeInputSingle::get_joy_name() const
 {
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 ))
 	if ( m_type >= Joystick0 )
 	{
 		int raw_id = joymap2raw( m_type - Joystick0 );
@@ -728,7 +709,6 @@ std::string FeInputSingle::get_joy_name() const
 		if ( sf::Joystick::isConnected( raw_id ) )
 			return sf::Joystick::getIdentification( raw_id ).name.toAnsiString();
 	}
-#endif
 	return "";
 }
 
@@ -1182,7 +1162,6 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		}
 		break;
 
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 )) // touch support sfml >= 2.2
 	case sf::Event::TouchEnded:
 		{
 			m_tracked_keys.insert( index );
@@ -1194,7 +1173,6 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 			return LAST_COMMAND;
 		}
 		break;
-#endif
 
 	default:
 		break;

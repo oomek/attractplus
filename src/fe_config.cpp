@@ -1547,10 +1547,6 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 	ctx.fe_settings.get_resource( "Default", default_str );
 	values.push_back( default_str ); // we assume this is the first entry in the vector
 
-	//
-	// sf::Joystick::getIdentification() only available if SFML version is >= 2.2
-	//
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 ))
 	for ( size_t i=0; i < sf::Joystick::Count; i++ )
 	{
 		if ( sf::Joystick::isConnected( i ) )
@@ -1564,7 +1560,6 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 			}
 		}
 	}
-#endif
 
 	std::vector < std::pair < int, std::string > >::iterator itr;
 	std::vector < std::pair < int, std::string > > &joy_config = ctx.fe_settings.get_joy_config();

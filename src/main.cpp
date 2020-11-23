@@ -624,14 +624,10 @@ int main(int argc, char *argv[])
 										"screen", ".png", filename );
 
 						sf::RenderWindow &w = window.get_win();
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 4, 0 ) )
 						sf::Texture texture;
 						texture.create( w.getSize().x, w.getSize().y );
 						texture.update( w );
 						sf::Image sshot_img = texture.copyToImage();
-#else
-						sf::Image sshot_img = w.capture();
-#endif
 						sshot_img.saveToFile( filename );
 					}
 					break;
@@ -1038,7 +1034,6 @@ int main(int argc, char *argv[])
 			}
 		}
 
-#if ( SFML_VERSION_INT >= FE_VERSION_INT( 2, 2, 0 ) )
 		//
 		// Log any unexpected loss of window focus
 		//
@@ -1052,7 +1047,6 @@ int main(int argc, char *argv[])
 		}
 		else
 			has_focus = window.hasFocus();
-#endif
 
 		if ( feVM.on_tick() )
 			redraw=true;
