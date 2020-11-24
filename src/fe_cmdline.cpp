@@ -27,12 +27,8 @@
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Window/Context.hpp>
 
-#ifdef USE_GLES
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-#else
 #include <SFML/OpenGL.hpp>
-#endif
+#define GL_SHADING_LANGUAGE_VERSION    0x8B8C
 
 void process_args( int argc, char *argv[],
 			std::string &config_path,
@@ -275,7 +271,8 @@ void process_args( int argc, char *argv[],
 
 			FeLog() << "OpenGL " << glGetString( GL_VERSION ) << std::endl
 				<< " - vendor  : " << glGetString( GL_VENDOR ) << std::endl
-				<< " - renderer: " << glGetString( GL_RENDERER ) << std::endl << std::endl;
+				<< " - renderer: " << glGetString( GL_RENDERER ) << std::endl
+				<< " - shader  : " << glGetString( GL_SHADING_LANGUAGE_VERSION ) << std::endl << std::endl;
 
 			if ( sf::Shader::isAvailable() )
 				FeLog() << "Shaders are available." << std::endl;

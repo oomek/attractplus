@@ -147,9 +147,6 @@ void fe_print_version()
 #ifdef USE_XINERAMA
 		<< " +Xinerama"
 #endif
-#ifdef USE_GLES
-		<< " +GLES"
-#endif
 #ifndef NO_SWF
 		<< " +SWF"
 #endif

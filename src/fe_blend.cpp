@@ -84,9 +84,6 @@ sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
 
 sf::Shader* FeBlend::get_default_shader( int blend_mode )
 {
-	if ( !sf::Shader::isAvailable() )
-		return NULL;
-
 	switch( blend_mode )
 	{
 		case FeBlend::Alpha:

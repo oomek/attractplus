@@ -33,12 +33,7 @@
 #include "gameswf/gameswf_freetype.h"
 #endif
 
-#ifdef USE_GLES
-#include <GLES/gl.h>
-#include <GLES/glext.h>
-#else
 #include <SFML/OpenGL.hpp>
-#endif
 
 #include <iostream>
 
@@ -67,11 +62,7 @@ namespace
 		{
 			FeDebug() << "Initializing game_swf renderer" << std::endl;
 
-#ifdef USE_GLES
-			swf_render = gameswf::create_render_handler_ogles();
-#else
 			swf_render = gameswf::create_render_handler_ogl();
-#endif
 
 			gameswf::set_render_handler( swf_render );
 			swf_render->open();
@@ -104,10 +95,6 @@ namespace
 			glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
 
 			glMatrixMode( GL_PROJECTION );
-
-#ifndef USE_GLES
-			glOrtho( -1.f, 1.f, 1.f, -1.f, -1, 1 );
-#endif
 
 			glMatrixMode( GL_MODELVIEW );
 			glLoadIdentity();

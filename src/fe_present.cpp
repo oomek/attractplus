@@ -46,10 +46,6 @@
 #include <X11/extensions/Xinerama.h>
 #endif
 
-#ifdef USE_BCM
-#include <bcm_host.h>
-#endif
-
 #ifdef USE_DRM
 #include <unistd.h>
 #include <fcntl.h>
@@ -235,13 +231,6 @@ void FePresent::init_monitors()
 	}
 	else
 		m_refresh_rate = refresh_rate;
-#endif
-
-#if defined(USE_BCM)
-	bcm_host_init();
-	TV_DISPLAY_STATE_T tvstate;
-	if ( vc_tv_get_display_state( &tvstate ) == 0 )
-		m_refresh_rate = tvstate.display.hdmi.frame_rate;
 #endif
 
 #if defined(USE_DRM)
@@ -575,8 +564,7 @@ FeImage *FePresent::add_surface( int w, int h, FePresentableParent &p )
 	//
 	FeImage *new_image = new FeImage( p, new_surface, 0, 0, w, h );
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
-	if ( sf::Shader::isAvailable() )
-		new_image->set_blend_mode( FeBlend::Premultiplied );
+	new_image->set_blend_mode( FeBlend::Premultiplied );
 
 	new_image->texture_changed();
 

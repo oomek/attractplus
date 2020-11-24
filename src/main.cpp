@@ -109,6 +109,12 @@ int main(int argc, char *argv[])
 	fe_print_version();
 	FeLog() << std::endl;
 
+	if ( !sf::Shader::isAvailable() )
+	{
+		FeLog() << "Error, Attract-Mode Plus requires shader support."  << std::endl;
+		return 1;
+	}
+
 #ifdef SFML_SYSTEM_WINDOWS
 	// Detect an nvidia card and if it's found create an nvidia profile
 	// for Attract Mode with optimizations

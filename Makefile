@@ -23,9 +23,6 @@
 #
 # BUILD CONFIGURATION OPTIONS:
 #
-# Uncomment next line to build GLES version (embedded systems)
-#USE_GLES=1
-#
 # Uncomment the next line to build the DRM/KMS version (alternative to X11)
 #USE_DRM=1
 #
@@ -199,18 +196,15 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    _OBJ += fe_util_osx.o
    LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo
   else
-   ifeq ($(USE_GLES),1)
+   ifeq ($(USE_DRM),1)
    else
-    ifeq ($(USE_DRM),1)
-    else
-     #
-     # Test for Xlib and Xinerama...
-     #
-     ifeq ($(shell $(PKG_CONFIG) --exists x11 && echo "1" || echo "0"), 1)
-      USE_XLIB=1
-      ifeq ($(shell $(PKG_CONFIG) --exists xinerama && echo "1" || echo "0"), 1)
-       USE_XINERAMA=1
-      endif
+    #
+    # Test for Xlib and Xinerama...
+    #
+    ifeq ($(shell $(PKG_CONFIG) --exists x11 && echo "1" || echo "0"), 1)
+     USE_XLIB=1
+     ifeq ($(shell $(PKG_CONFIG) --exists xinerama && echo "1" || echo "0"), 1)
+      USE_XINERAMA=1
      endif
     endif
    endif
@@ -250,12 +244,7 @@ ifneq ($(NO_SWF),1)
  ifneq ($(FE_WINDOWS_COMPILE),1)
   ifneq ($(FE_MACOSX_COMPILE),1)
    CFLAGS += -Wl,--export-dynamic
-   ifeq ($(USE_GLES),1)
-    GLES_LIB ?= -lGLESv1_CM
-    LIBS += -ldl $(GLES_LIB)
-   else
-    LIBS += -ldl -lGL
-   endif
+   LIBS += -ldl -lGL
    TEMP_LIBS += freetype2
    CFLAGS += $(shell $(PKG_CONFIG) --cflags --silence-errors freetype2)
   endif
@@ -319,26 +308,6 @@ ifeq ($(FE_DEBUG),1)
  FE_FLAGS += -DFE_DEBUG
 else
  CFLAGS += -O$(OPTIMIZE) -DNDEBUG
-endif
-
-ifeq ($(USE_GLES),1)
- FE_FLAGS += -DUSE_GLES
-
- #
- # Hack for Raspberry Pi includes...
- #
- ifneq ($(USE_VC4),1)
-  ifneq ("$(wildcard /opt/vc/include/bcm_host.h)","")
-   CFLAGS += -I/opt/vc/include -L/opt/vc/lib
-   ifneq ("$(wildcard /opt/vc/lib/libbrcmGLESv2.so)","")
-    FE_FLAGS += -DUSE_BCM
-    GLES_LIB := -lbrcmGLESv2
-    LIBS += -lbcm_host
-   else
-    GLES_LIB := -lGLESv2
-   endif
-  endif
- endif
 endif
 
 ifeq ($(USE_MMAL),1)
@@ -717,18 +686,14 @@ GAMESWFOBJS= \
 	$(GAMESWF_OBJ_DIR)/gameswf_value.o        \
 	$(GAMESWF_OBJ_DIR)/gameswf_video_impl.o   \
 	$(GAMESWF_OBJ_DIR)/gameswf_mutex.o   \
-	$(GAMESWF_OBJ_DIR)/gameswf_sound_handler_openal.o
+	$(GAMESWF_OBJ_DIR)/gameswf_sound_handler_openal.o   \
+	$(GAMESWF_OBJ_DIR)/gameswf_render_handler_ogl.o
+
 
 ifeq ($(FE_MACOSX_COMPILE),1)
 	GAMESWFOBJS += $(GAMESWF_OBJ_DIR)/gameswf_fontlib.o
 else
 	GAMESWFOBJS += $(GAMESWF_OBJ_DIR)/gameswf_freetype.o
-endif
-
-ifeq ($(USE_GLES),1)
-	GAMESWFOBJS += $(GAMESWF_OBJ_DIR)/gameswf_render_handler_ogles.o
-else
-	GAMESWFOBJS += $(GAMESWF_OBJ_DIR)/gameswf_render_handler_ogl.o
 endif
 
 $(OBJ_DIR)/libgameswf.a: $(GAMESWFOBJS) | $(GAMESWF_OBJ_DIR) $(GSBASE_OBJ_DIR)
