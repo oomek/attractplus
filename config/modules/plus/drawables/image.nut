@@ -1,0 +1,1 @@
+::print("Drawable Image Loaded\n")
