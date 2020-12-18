@@ -11,7 +11,7 @@ class PLUS
 
 	constructor( caller )
 	{
-		CALLBACKS = []
+		CALLBACKS = {}
 		OBJECTS.push( caller )
 	}
 
@@ -29,9 +29,6 @@ class PLUS
 			FE.do_nut( FE.module_dir + FNC_DIR + f )
 
 		::fe.add_ticks_callback( this, "tick" );
-
-		// foreach ( n, f in FUNCTIONS )
-		// 	print( n + "\n" )
 	}
 
 	function tick( ttime ) { foreach ( o in OBJECTS ) foreach ( cb in o.CALLBACKS ) cb( o, ttime ) }
@@ -41,10 +38,13 @@ class PLUS
 class PlusBaseImageWrapper extends PLUS
 {
 	object = null
+	functions = null
 
 	constructor( caller )
 	{
 		::print("PlusBaseImageWrapper\n")
+
+		functions = {}
 
 		// fe.Image functions wrappers
 		caller.getclass().newmember( "set_rgb", function(...){ local a = vargv
@@ -70,27 +70,18 @@ class PlusBaseImageWrapper extends PLUS
 
 		foreach ( name, func in FUNCTIONS )
 		{
-			::print( "NAME: " + name +"\n" )
 			caller.getclass().newmember( "add_" + name, function(...)
-				{
-					local a = vargv
-					if ( a.len() == 0 )
-					{
-						// This is where I'm stuck atm.
-						// The goal is to have independent onAdd() and onTick() calls
-						// for each added extension with object.add_...
-						// Currently when I assign 2 extensions to an object
-						// the las one is called twice.
-						// Chceck the log of the example "Plus Wrapper" layout
-						func.onAdd( object, vargv )
-						CALLBACKS.push( func.onTick )
-						::print( "CALLBACK: " + name + " " + CALLBACKS.len() +"\n" )
-					}
-					else
-						throw func + "() Wrong number of arguments."
-				})
-
-			// OBJECTS.push(func.onTick)
+			{
+				foreach ( name, func in this.getclass() )
+					if ( typeof func == "function" )
+						if ( ::callee() == func )
+						{
+							local func_name = name.slice(4)
+							functions[func_name] <- FUNCTIONS[func_name].instance()
+							if ( !functions[func_name].onAdd( object, vargv ) ) throw "Wrong number of arguments."
+							if ( !(func_name in CALLBACKS )) CALLBACKS[func_name] <- ( functions[func_name].onTick )
+						}
+			})
 		}
 	}
 

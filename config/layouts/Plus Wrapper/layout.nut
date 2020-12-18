@@ -45,8 +45,9 @@ simg3.set_pos(40,40,200,100)
 
 img1.set_rgb(0,0,0)
 
-// Troubles start here the img1 should have purple tint
+// Troubles start here the img1 should have purple tint, SOLVED
 img1.add_fx1()
+img1.add_fx2()
 img1.add_fx2()
 
 
@@ -58,3 +59,18 @@ function on_transition( ttype, var, ttime )
 	}
 }
 fe.add_transition_callback( "on_transition" )
+
+
+// local timer_interval = 10000 // 10 seconds
+// local ttime_old = 0
+
+// function timer_tick( ttime )
+// {
+//   if ( ttime - ttime_old > timer_interval )
+//   {
+//     // do your fe.plugin_command_bg() here
+//     ttime_old = ttime
+//   }
+// }
+
+// fe.add_ticks_callback( "timer_tick" )

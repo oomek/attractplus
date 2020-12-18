@@ -1,16 +1,17 @@
 ::print( "Function FX1 Loaded\n" )
 
-PLUS.FUNCTIONS.fx1 <-
+class PLUS.FUNCTIONS["fx1"]
 {
-	function onAdd( object, ... )
+	function onAdd( object, args )
 	{
-		::print( "Function FX1 Add\n" )
+		if ( args.len() > 0 ) return false
 		object.red = 255
+		return true
 	}
 
 	function onTick ( object, ttime )
 	{
-		// object.red += 10
-		// if ( object.red > 255 ) object.red = 0
+		object.red += 10
+		if ( object.red > 255 ) object.red = 0
 	}
 }
