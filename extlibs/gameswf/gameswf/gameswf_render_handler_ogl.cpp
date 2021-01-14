@@ -120,30 +120,9 @@ typedef void (APIENTRY* PFNGLUSEPROGRAMPROC) (GLuint program);
 PFNGLUSEPROGRAMPROC glUseProgram = 0;
 #endif  // TU_USE_SDL
 
-static GLint s_num_compressed_format = 0;
 void create_texture(int format, int w, int h, void* data, int level)
 {
 	int internal_format = format;
-	if (s_num_compressed_format > 0)
-	{
-		switch (format)
-		{
-			default:
-				break;
-			case GL_RGB :
-				internal_format = GL_COMPRESSED_RGB_ARB;
-				break;
-			case GL_RGBA :
-				internal_format = GL_COMPRESSED_RGBA_ARB;
-				break;
-			case GL_ALPHA :
-				internal_format = GL_COMPRESSED_ALPHA_ARB;
-				break;
-			case GL_LUMINANCE :
-				internal_format = GL_COMPRESSED_LUMINANCE_ARB;
-				break;
-		}
-	}
 	glTexImage2D(GL_TEXTURE_2D, level, internal_format, w, h, 0, format, GL_UNSIGNED_BYTE, data);
 }
 
@@ -682,7 +661,6 @@ struct render_handler_ogl : public gameswf::render_handler
 		glUniform1i = (PFNGLUNIFORM1IPROC) SDL_GL_GetProcAddress("glUniform1i");
 		glUseProgram = (PFNGLUSEPROGRAMPROC) SDL_GL_GetProcAddress("glUseProgram");
 #endif
-		glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS_ARB, &s_num_compressed_format);
 	}
 
 	void set_antialiased(bool enable)
@@ -1031,11 +1009,11 @@ struct render_handler_ogl : public gameswf::render_handler
 		{
 			// Draw a big quad.
 			apply_color(background_color);
-			glBegin(GL_QUADS);
+			glBegin(GL_TRIANGLE_STRIP);
 			glVertex2f(x0, y0);
+			glVertex2f(x0, y1);
 			glVertex2f(x1, y0);
 			glVertex2f(x1, y1);
-			glVertex2f(x0, y1);
 			glEnd();
 		}
 
@@ -1253,11 +1231,11 @@ struct render_handler_ogl : public gameswf::render_handler
 		// is in.
 		glBlendFunc(GL_ZERO, GL_SRC_COLOR);
 		glColor4f(1, 1, 1, 0);
-		glBegin(GL_QUADS);
+		glBegin(GL_TRIANGLE_STRIP);
 		glVertex2f(0, 0);
+		glVertex2f(0, 100000);
 		glVertex2f(100000, 0);
 		glVertex2f(100000, 100000);
-		glVertex2f(0, 100000);
 		glEnd();
 
 		// Set mode for drawing alpha mask.
@@ -1289,11 +1267,11 @@ struct render_handler_ogl : public gameswf::render_handler
 		//
 		// @@ TODO see note above about filling bounding box only.
 		glBlendFunc(GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA);
-		glBegin(GL_QUADS);
+		glBegin(GL_TRIANGLE_STRIP);
 		glVertex2f(0, 0);
+		glVertex2f(0, 100000);
 		glVertex2f(100000, 0);
 		glVertex2f(100000, 100000);
-		glVertex2f(0, 100000);
 		glEnd();
 
 // xxxxx ??? Hm, is our mask still intact, or did we just erase it?
@@ -1508,11 +1486,11 @@ struct render_handler_ogl : public gameswf::render_handler
 		glStencilOp(GL_KEEP, GL_KEEP, GL_DECR); 
 
 		// draw the quad to fill stencil buffer
-		glBegin(GL_QUADS);
+		glBegin(GL_TRIANGLE_STRIP);
 		glVertex2f(0, 0);
+		glVertex2f(0, m_display_height);
 		glVertex2f(m_display_width, 0);
 		glVertex2f(m_display_width, m_display_height);
-		glVertex2f(0, m_display_height);
 		glEnd();
 
 		end_submit_mask();
@@ -1575,16 +1553,16 @@ void	hardware_resample(int bytes_per_pixel, int src_width, int src_height, uint8
 		glOrtho(0, dst_width, 0, dst_height, 0.9, 1.1);
 		glColor3f(1, 1, 1);
 		glNormal3f(0, 0, 1);
-		glBegin(GL_QUADS);
+		glBegin(GL_TRIANGLE_STRIP);
 		{
 			glTexCoord2f(0, (float) src_height / dst_height);
-			glVertex3f(0, 0, -1);
-			glTexCoord2f( (float) src_width / dst_width, (float) src_height / dst_height);
-			glVertex3f((float) dst_width, 0, -1);
-			glTexCoord2f( (float) src_width / dst_width, 0);
-			glVertex3f((float) dst_width, (float) dst_height, -1);
 			glTexCoord2f(0, 0);
+			glTexCoord2f( (float) src_width / dst_width, (float) src_height / dst_height);
+			glTexCoord2f( (float) src_width / dst_width, 0);
+			glVertex3f(0, 0, -1);
 			glVertex3f(0, (float) dst_height, -1);
+			glVertex3f((float) dst_width, 0, -1);
+			glVertex3f((float) dst_width, (float) dst_height, -1);
 		}
 		glEnd();
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, out_format, 0,0, dst_width, dst_height, 0);

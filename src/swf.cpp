@@ -252,7 +252,7 @@ bool FeSwf::do_frame( bool is_tick )
 		m_imp->root->display();
 	}
 
-	m_texture.display();
+	// m_texture.display();
 	swf_context->setActive( false );
 
 	return ( m_imp->root != NULL );
