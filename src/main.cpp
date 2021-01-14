@@ -376,10 +376,15 @@ int main(int argc, char *argv[])
 					break;
 
 				case sf::Event::GainedFocus:
-				case sf::Event::Resized:
 					redraw = true;
 					break;
 
+				case sf::Event::Resized:
+        			window.get_win().setView( sf::View( sf::FloatRect( 0, 0, ev.size.width, ev.size.height )));
+					feVM.init_monitors();
+					feVM.load_layout();
+					redraw = true;
+					break;
 
 				case sf::Event::JoystickMoved:
 					if ( c != FeInputMap::LAST_COMMAND )
