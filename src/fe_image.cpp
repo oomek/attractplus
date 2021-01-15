@@ -1180,7 +1180,12 @@ FeImage::FeImage( FePresentableParent &p,
 	m_tex( tc ),
 	m_pos( x, y ),
 	m_size( w, h ),
+	m_rotation ( 0.0 ),
 	m_origin( 0.f, 0.f ),
+	m_anchor( 0.f, 0.f ),
+	m_rotation_origin( 0.f, 0.f ),
+	m_anchor_type( TopLeft ),
+	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false )
 {
@@ -1195,7 +1200,12 @@ FeImage::FeImage( FeImage *o )
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
+	m_rotation( o->m_rotation ),
 	m_origin( o->m_origin ),
+	m_anchor( o->m_anchor ),
+	m_rotation_origin( o->m_rotation_origin ),
+	m_anchor_type( o->m_anchor_type ),
+	m_rotation_origin_type( o->m_rotation_origin_type ),
 	m_blend_mode( o->m_blend_mode ),
 	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio )
 {
@@ -1235,6 +1245,42 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 		sf::IntRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
 
 	scale();
+}
+
+sf::Vector2f FeImage::alignTypeToVector( int type )
+{
+	switch( type )
+	{
+		case Left:
+			return sf::Vector2f( 0.0f, 0.5f );
+
+		case Centre:
+			return sf::Vector2f( 0.5f, 0.5f );
+
+		case Right:
+			return sf::Vector2f( 1.0f, 0.5f );
+
+		case Top:
+			return sf::Vector2f( 0.5f, 0.0f );
+
+		case Bottom:
+			return sf::Vector2f( 0.5f, 1.0f );
+
+		case TopLeft:
+			return sf::Vector2f( 0.0f, 0.0f );
+
+		case TopRight:
+			return sf::Vector2f( 1.0f, 0.0f );
+
+		case BottomLeft:
+			return sf::Vector2f( 0.0f, 1.0f );
+
+		case BottomRight:
+			return sf::Vector2f( 1.0f, 1.0f );
+
+		default:
+			return sf::Vector2f( 0.0f, 0.0f );
+	}
 }
 
 int FeImage::getIndexOffset() const
@@ -1357,8 +1403,11 @@ void FeImage::scale()
 	if ( scale )
 		m_sprite.setScale( sf::Vector2f( scale_x, scale_y ) );
 
+	final_pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * m_size.x, ( m_rotation_origin.y -  m_anchor.y ) * m_size.y );
+
 	m_sprite.setPosition( final_pos );
-	m_sprite.setOrigin( m_origin.x / scale_x, m_origin.y / scale_y );
+	m_sprite.setRotation( m_rotation );
+	m_sprite.setOrigin(( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y );
 }
 
 const sf::Vector2f &FeImage::getPosition() const
@@ -1393,14 +1442,14 @@ void FeImage::setPosition( const sf::Vector2f &p )
 
 float FeImage::getRotation() const
 {
-	return m_sprite.getRotation();
+	return m_rotation;
 }
 
 void FeImage::setRotation( float r )
 {
-	if ( r != m_sprite.getRotation() )
+	if ( r != m_rotation )
 	{
-		m_sprite.setRotation( r );
+		m_rotation = r;
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -1535,6 +1584,16 @@ float FeImage::get_origin_y() const
 	return m_origin.y;
 }
 
+int FeImage::get_anchor_type() const
+{
+	return (FeImage::Alignment)m_anchor_type;
+}
+
+int FeImage::get_rotation_origin_type() const
+{
+	return (FeImage::Alignment)m_rotation_origin_type;
+}
+
 int FeImage::get_skew_x() const
 {
 	return m_sprite.getSkewX();
@@ -1574,6 +1633,39 @@ void FeImage::set_origin_y( float y )
 		FePresent::script_flag_redraw();
 	}
 }
+
+void FeImage::set_anchor( float x, float y )
+{
+	if ( x != m_anchor.x || y != m_anchor.y )
+	{
+		m_anchor = sf::Vector2f( x, y );
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_anchor_type( int t )
+{
+	m_anchor_type = (FeImage::Alignment)t;
+	m_anchor = alignTypeToVector( t );
+}
+
+void FeImage::set_rotation_origin( float x, float y )
+{
+	if ( x != m_rotation_origin.x || y != m_rotation_origin.y )
+	{
+		m_rotation_origin = sf::Vector2f( x, y );
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_rotation_origin_type( int t )
+{
+	m_rotation_origin_type = (FeImage::Alignment)t;
+	m_rotation_origin = alignTypeToVector( t );
+}
+
 void FeImage::set_skew_x( int x )
 {
 	if ( x != m_sprite.getSkewX() )

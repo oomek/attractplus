@@ -256,21 +256,20 @@ private:
 
 class FeImage : public sf::Drawable, public FeBasePresentable
 {
-protected:
-	FeBaseTextureContainer *m_tex;
-	FeSprite m_sprite;
-	sf::Vector2f m_pos;
-	sf::Vector2f m_size;
-	sf::Vector2f m_origin;
-	FeBlend::Mode m_blend_mode;
-	bool m_preserve_aspect_ratio;
-
-	void scale();
-
-	// Override from base class:
-	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-
 public:
+	enum Alignment
+	{
+		Left,
+		Centre,
+		Right,
+		Top,
+		Bottom,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight
+	};
+
 	FeImage( FePresentableParent &p, FeBaseTextureContainer *,
 		float x, float y, float w, float h );
 
@@ -322,6 +321,8 @@ public:
 
 	float get_origin_x() const;
 	float get_origin_y() const;
+	int get_anchor_type() const;
+	int get_rotation_origin_type() const;
 	int get_skew_x() const;
 	int get_skew_y() const;
 	int get_pinch_x() const ;
@@ -342,6 +343,10 @@ public:
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
+	void set_anchor( float x, float y );
+	void set_anchor_type( int t );
+	void set_rotation_origin( float x, float y );
+	void set_rotation_origin_type( int t );
 	void set_skew_x( int x );
 	void set_skew_y( int y );
 	void set_pinch_x( int x );
@@ -376,6 +381,26 @@ public:
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);
 	FeImage *add_surface(int, int);
+
+protected:
+	FeBaseTextureContainer *m_tex;
+	FeSprite m_sprite;
+	sf::Vector2f m_pos;
+	sf::Vector2f m_size;
+	sf::Vector2f m_origin;
+	sf::Vector2f m_rotation_origin;
+	sf::Vector2f m_anchor;
+	float m_rotation;
+	FeImage::Alignment m_anchor_type;
+	FeImage::Alignment m_rotation_origin_type;
+	FeBlend::Mode m_blend_mode;
+	bool m_preserve_aspect_ratio;
+
+	void scale();
+	sf::Vector2f alignTypeToVector( int a );
+
+	// Override from base class:
+	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };
 
 #endif
