@@ -119,11 +119,11 @@ public:
 	int get_nesting_level();
 	void set_nesting_level( int );
 
-	FeImage *add_image(const char *,int, int, int, int);
-	FeImage *add_image(const char *, int, int);
+	FeImage *add_image(const char *,float, float, float, float);
+	FeImage *add_image(const char *, float, float);
 	FeImage *add_image(const char *);
-	FeImage *add_artwork(const char *,int, int, int, int);
-	FeImage *add_artwork(const char *, int, int);
+	FeImage *add_artwork(const char *,float, float, float, float);
+	FeImage *add_artwork(const char *, float, float);
 	FeImage *add_artwork(const char *);
 	FeImage *add_clone(FeImage *);
 	FeText *add_text(const char *,int, int, int, int);

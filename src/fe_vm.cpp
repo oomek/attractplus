@@ -765,11 +765,11 @@ bool FeVM::on_new_layout()
 		//
 		// Surface-specific functionality:
 		//
-		.Overload<FeImage * (FeImage::*)(const char *, int, int, int, int)>(_SC("add_image"), &FeImage::add_image)
-		.Overload<FeImage * (FeImage::*)(const char *, int, int)>(_SC("add_image"), &FeImage::add_image)
+		.Overload<FeImage * (FeImage::*)(const char *, float, float, float, float)>(_SC("add_image"), &FeImage::add_image)
+		.Overload<FeImage * (FeImage::*)(const char *, float, float)>(_SC("add_image"), &FeImage::add_image)
 		.Overload<FeImage * (FeImage::*)(const char *)>(_SC("add_image"), &FeImage::add_image)
-		.Overload<FeImage * (FeImage::*)(const char *, int, int, int, int)>(_SC("add_artwork"), &FeImage::add_artwork)
-		.Overload<FeImage * (FeImage::*)(const char *, int, int)>(_SC("add_artwork"), &FeImage::add_artwork)
+		.Overload<FeImage * (FeImage::*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FeImage::add_artwork)
+		.Overload<FeImage * (FeImage::*)(const char *, float, float)>(_SC("add_artwork"), &FeImage::add_artwork)
 		.Overload<FeImage * (FeImage::*)(const char *)>(_SC("add_artwork"), &FeImage::add_artwork)
 		.Prop( _SC("clear"), &FeImage::get_clear, &FeImage::set_clear )
 		.Prop( _SC("repeat"), &FeImage::get_repeat, &FeImage::set_repeat )
@@ -925,11 +925,11 @@ bool FeVM::on_new_layout()
 	);
 
 	fe.Bind( _SC("PresentableParent"), Class <FePresentableParent, NoConstructor>()
-		.Overload<FeImage * (FePresentableParent::*)(const char *, int, int, int, int)>(_SC("add_image"), &FePresentableParent::add_image)
-		.Overload<FeImage * (FePresentableParent::*)(const char *, int, int)>(_SC("add_image"), &FePresentableParent::add_image)
+		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float, float, float)>(_SC("add_image"), &FePresentableParent::add_image)
+		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_image"), &FePresentableParent::add_image)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_image"), &FePresentableParent::add_image)
-		.Overload<FeImage * (FePresentableParent::*)(const char *, int, int, int, int)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
-		.Overload<FeImage * (FePresentableParent::*)(const char *, int, int)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
+		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
+		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Func( _SC("add_clone"), &FePresentableParent::add_clone )
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
@@ -956,12 +956,12 @@ bool FeVM::on_new_layout()
 	//
 	// Define functions that get exposed to Squirrel
 	//
-	fe.Overload<FeImage* (*)(const char *, int, int, int, int)>(_SC("add_image"), &FeVM::cb_add_image);
-	fe.Overload<FeImage* (*)(const char *, int, int)>(_SC("add_image"), &FeVM::cb_add_image);
+	fe.Overload<FeImage* (*)(const char *, float, float, float, float)>(_SC("add_image"), &FeVM::cb_add_image);
+	fe.Overload<FeImage* (*)(const char *, float, float)>(_SC("add_image"), &FeVM::cb_add_image);
 	fe.Overload<FeImage* (*)(const char *)>(_SC("add_image"), &FeVM::cb_add_image);
 
-	fe.Overload<FeImage* (*)(const char *, int, int, int, int)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
-	fe.Overload<FeImage* (*)(const char *, int, int)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
+	fe.Overload<FeImage* (*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
+	fe.Overload<FeImage* (*)(const char *, float, float)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
 	fe.Overload<FeImage* (*)(const char *)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
 
 	fe.Func<FeImage* (*)(FeImage *)>(_SC("add_clone"), &FeVM::cb_add_clone);
@@ -2021,7 +2021,7 @@ bool FeVM::setup_wizard()
 	return true;
 }
 
-FeImage* FeVM::cb_add_image(const char *n, int x, int y, int w, int h )
+FeImage* FeVM::cb_add_image(const char *n, float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -2037,7 +2037,7 @@ FeImage* FeVM::cb_add_image(const char *n, int x, int y, int w, int h )
 	return ret;
 }
 
-FeImage* FeVM::cb_add_image(const char *n, int x, int y )
+FeImage* FeVM::cb_add_image(const char *n, float x, float y )
 {
 	return cb_add_image( n, x, y, 0, 0 );
 }
@@ -2047,7 +2047,7 @@ FeImage* FeVM::cb_add_image(const char *n )
 	return cb_add_image( n, 0, 0, 0, 0 );
 }
 
-FeImage* FeVM::cb_add_artwork(const char *n, int x, int y, int w, int h )
+FeImage* FeVM::cb_add_artwork(const char *n, float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -2063,7 +2063,7 @@ FeImage* FeVM::cb_add_artwork(const char *n, int x, int y, int w, int h )
 	return ret;
 }
 
-FeImage* FeVM::cb_add_artwork(const char *n, int x, int y )
+FeImage* FeVM::cb_add_artwork(const char *n, float x, float y )
 {
 	return cb_add_artwork( n, x, y, 0, 0 );
 }

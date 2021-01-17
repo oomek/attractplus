@@ -234,7 +234,7 @@ void FePresentableParent::set_nesting_level( int p )
 	m_nesting_level = p;
 }
 
-FeImage *FePresentableParent::add_image(const char *n, int x, int y, int w, int h)
+FeImage *FePresentableParent::add_image(const char *n, float x, float y, float w, float h)
 {
 	FePresent *fep = FePresent::script_get_fep();
 
@@ -244,7 +244,7 @@ FeImage *FePresentableParent::add_image(const char *n, int x, int y, int w, int 
 	return NULL;
 }
 
-FeImage *FePresentableParent::add_image(const char *n, int x, int y )
+FeImage *FePresentableParent::add_image(const char *n, float x, float y )
 {
 	return add_image( n, x, y, 0, 0 );
 }
@@ -254,7 +254,7 @@ FeImage *FePresentableParent::add_image(const char *n )
 	return add_image( n, 0, 0, 0, 0 );
 }
 
-FeImage *FePresentableParent::add_artwork(const char *l, int x, int y, int w, int h )
+FeImage *FePresentableParent::add_artwork(const char *l, float x, float y, float w, float h )
 {
 	FePresent *fep = FePresent::script_get_fep();
 
@@ -264,7 +264,7 @@ FeImage *FePresentableParent::add_artwork(const char *l, int x, int y, int w, in
 	return NULL;
 }
 
-FeImage *FePresentableParent::add_artwork(const char *l, int x, int y)
+FeImage *FePresentableParent::add_artwork(const char *l, float x, float y)
 {
 	return add_artwork( l, x, y, 0, 0 );
 }

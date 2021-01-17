@@ -104,7 +104,7 @@ public :
     /// \see setTexture, setTextureRect
     ///
     ////////////////////////////////////////////////////////////
-    FeSprite(const sf::Texture& texture, const sf::IntRect& rectangle);
+    FeSprite(const sf::Texture& texture, const sf::FloatRect& rectangle);
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the source texture of the sprite
@@ -139,7 +139,7 @@ public :
     /// \see getTextureRect, setTexture
     ///
     ////////////////////////////////////////////////////////////
-    void setTextureRect(const sf::IntRect& rectangle);
+    void setTextureRect(const sf::FloatRect& rectangle);
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the global color of the sprite
@@ -178,7 +178,7 @@ public :
     /// \see setTextureRect
     ///
     ////////////////////////////////////////////////////////////
-    const sf::IntRect& getTextureRect() const;
+    const sf::FloatRect& getTextureRect() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the global color of the sprite
@@ -202,21 +202,7 @@ public :
     /// \return Local bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    sf::FloatRect getLocalBounds() const;
-
-    ////////////////////////////////////////////////////////////
-    /// \brief Get the global bounding rectangle of the entity
-    ///
-    /// The returned rectangle is in global coordinates, which means
-    /// that it takes in account the transformations (translation,
-    /// rotation, scale, ...) that are applied to the entity.
-    /// In other words, this function returns the bounds of the
-    /// sprite in the global 2D world's coordinate system.
-    ///
-    /// \return Global bounding rectangle of the entity
-    ///
-    ////////////////////////////////////////////////////////////
-    sf::FloatRect getGlobalBounds() const;
+    sf::IntRect getLocalBounds() const;
 
 	float getSkewX() const;
 	float getSkewY() const;
@@ -256,7 +242,7 @@ private :
     ////////////////////////////////////////////////////////////
 	sf::VertexArray m_vertices;
 	const sf::Texture* m_texture;     ///< Texture of the sprite
-	sf::IntRect        m_textureRect; ///< Rectangle defining the area of the source texture to display
+	sf::FloatRect m_textureRect;      ///< Rectangle defining the area of the source texture to display
 	sf::Vector2f m_pinch;
 	sf::Vector2f m_skew;
 };

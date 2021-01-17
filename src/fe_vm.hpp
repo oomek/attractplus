@@ -179,11 +179,11 @@ public:
 	//
 	// Script callback functions
 	//
-	static FeImage *cb_add_image(const char *,int, int, int, int);
-	static FeImage *cb_add_image(const char *, int, int);
+	static FeImage *cb_add_image(const char *,float, float, float, float);
+	static FeImage *cb_add_image(const char *, float, float);
 	static FeImage *cb_add_image(const char *);
-	static FeImage *cb_add_artwork(const char *,int, int, int, int);
-	static FeImage *cb_add_artwork(const char *, int, int);
+	static FeImage *cb_add_artwork(const char *,float, float, float, float);
+	static FeImage *cb_add_artwork(const char *, float, float);
 	static FeImage *cb_add_artwork(const char *);
 	static FeImage *cb_add_clone(FeImage *);
 	static FeText *cb_add_text(const char *,int, int, int, int);

@@ -491,10 +491,10 @@ void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 
 FeImage *FePresent::add_image( bool is_artwork,
 		const std::string &n,
-		int x,
-		int y,
-		int w,
-		int h,
+		float x,
+		float y,
+		float w,
+		float h,
 		FePresentableParent &p )
 {
 	FeTextureContainer *new_tex = new FeTextureContainer( is_artwork, n );
@@ -703,14 +703,14 @@ FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const
 	return sh;
 }
 
-int FePresent::get_layout_width() const
+float FePresent::get_layout_width() const
 {
-	return m_layoutSize.x;
+	return (float)m_layoutSize.x;
 }
 
-int FePresent::get_layout_height() const
+float FePresent::get_layout_height() const
 {
-	return m_layoutSize.y;
+	return (float)m_layoutSize.y;
 }
 
 float FePresent::get_layout_scale_x() const
@@ -723,7 +723,7 @@ float FePresent::get_layout_scale_y() const
 	return m_layoutScale.y;
 }
 
-void FePresent::set_layout_width( int w )
+void FePresent::set_layout_width( float w )
 {
 	if ( w != m_layoutSize.x )
 	{
@@ -733,7 +733,7 @@ void FePresent::set_layout_width( int w )
 	}
 }
 
-void FePresent::set_layout_height( int h )
+void FePresent::set_layout_height( float h )
 {
 	if ( h != m_layoutSize.y )
 	{

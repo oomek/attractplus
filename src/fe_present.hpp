@@ -166,15 +166,15 @@ protected:
 	//
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 
-	FeImage *add_image(bool a, const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
+	FeImage *add_image(bool a, const std::string &n, float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_clone(FeImage *, FePresentableParent &p);
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeImage *add_surface(int w, int h, FePresentableParent &p);
 	FeSound *add_sound(const char *n, bool reuse);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
-	int get_layout_width() const;
-	int get_layout_height() const;
+	float get_layout_width() const;
+	float get_layout_height() const;
 	int get_base_rotation() const;
 	int get_toggle_rotation() const;
 	const char *get_display_name() const;
@@ -193,8 +193,8 @@ protected:
 
 	void set_selection_index( int );
 	const char *get_layout_font() const;
-	void set_layout_width( int );
-	void set_layout_height( int );
+	void set_layout_width( float );
+	void set_layout_height( float );
 	void set_base_rotation( int );
 	void set_toggle_rotation( int );
 	void set_layout_font( const char * );

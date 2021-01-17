@@ -1242,7 +1242,7 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 
 	//  reset texture rect now to the one reported by the new texture object
 	m_sprite.setTextureRect(
-		sf::IntRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
+		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
 
 	scale();
 }
@@ -1341,7 +1341,7 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 void FeImage::scale()
 {
-	sf::IntRect texture_rect = m_sprite.getTextureRect();
+	sf::FloatRect texture_rect = m_sprite.getTextureRect();
 	float ratio = m_tex->get_sample_aspect_ratio();
 
 	if (( texture_rect.width == 0 ) || ( texture_rect.height == 0 ))
@@ -1474,12 +1474,12 @@ const sf::Vector2u FeImage::getTextureSize() const
 	return m_tex->get_texture().getSize();
 }
 
-const sf::IntRect &FeImage::getTextureRect() const
+const sf::FloatRect &FeImage::getTextureRect() const
 {
 	return m_sprite.getTextureRect();
 }
 
-void FeImage::setTextureRect( const sf::IntRect &r )
+void FeImage::setTextureRect( const sf::FloatRect &r )
 {
 	if ( r != m_sprite.getTextureRect() )
 	{
@@ -1712,22 +1712,22 @@ int FeImage::get_texture_height() const
 	return getTextureSize().y;
 }
 
-int FeImage::get_subimg_x() const
+float FeImage::get_subimg_x() const
 {
 	return getTextureRect().left;
 }
 
-int FeImage::get_subimg_y() const
+float FeImage::get_subimg_y() const
 {
 	return getTextureRect().top;
 }
 
-int FeImage::get_subimg_width() const
+float FeImage::get_subimg_width() const
 {
 	return getTextureRect().width;
 }
 
-int FeImage::get_subimg_height() const
+float FeImage::get_subimg_height() const
 {
 	return getTextureRect().height;
 }
@@ -1742,30 +1742,30 @@ bool FeImage::get_preserve_aspect_ratio() const
 	return m_preserve_aspect_ratio;
 }
 
-void FeImage::set_subimg_x( int x )
+void FeImage::set_subimg_x( float x )
 {
-	sf::IntRect r = getTextureRect();
+	sf::FloatRect r = getTextureRect();
 	r.left=x;
 	setTextureRect( r );
 }
 
-void FeImage::set_subimg_y( int y )
+void FeImage::set_subimg_y( float y )
 {
-	sf::IntRect r = getTextureRect();
+	sf::FloatRect r = getTextureRect();
 	r.top=y;
 	setTextureRect( r );
 }
 
-void FeImage::set_subimg_width( int w )
+void FeImage::set_subimg_width( float w )
 {
-	sf::IntRect r = getTextureRect();
+	sf::FloatRect r = getTextureRect();
 	r.width=w;
 	setTextureRect( r );
 }
 
-void FeImage::set_subimg_height( int h )
+void FeImage::set_subimg_height( float h )
 {
-	sf::IntRect r = getTextureRect();
+	sf::FloatRect r = getTextureRect();
 	r.height=h;
 	setTextureRect( r );
 }
@@ -1837,7 +1837,7 @@ void FeImage::set_blend_mode( int b )
 	m_blend_mode = (FeBlend::Mode)b;
 }
 
-FeImage *FeImage::add_image(const char *n, int x, int y, int w, int h)
+FeImage *FeImage::add_image(const char *n, float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
@@ -1846,7 +1846,7 @@ FeImage *FeImage::add_image(const char *n, int x, int y, int w, int h)
 	return NULL;
 }
 
-FeImage *FeImage::add_image(const char *n, int x, int y )
+FeImage *FeImage::add_image(const char *n, float x, float y )
 {
 	return add_image( n, x, y, 0, 0 );
 }
@@ -1856,7 +1856,7 @@ FeImage *FeImage::add_image(const char *n )
 	return add_image( n, 0, 0, 0, 0 );
 }
 
-FeImage *FeImage::add_artwork(const char *l, int x, int y, int w, int h )
+FeImage *FeImage::add_artwork(const char *l, float x, float y, float w, float h )
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
@@ -1865,7 +1865,7 @@ FeImage *FeImage::add_artwork(const char *l, int x, int y, int w, int h )
 	return NULL;
 }
 
-FeImage *FeImage::add_artwork(const char *l, int x, int y)
+FeImage *FeImage::add_artwork(const char *l, float x, float y)
 {
 	return add_artwork( l, x, y, 0, 0 );
 }

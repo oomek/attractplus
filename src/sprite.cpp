@@ -58,7 +58,7 @@
 #include "sprite.hpp"
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
-#include <cstdlib>
+#include <cmath>
 
 
 ////////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@ m_skew( 0.f, 0.f )
 
 
 ////////////////////////////////////////////////////////////
-FeSprite::FeSprite(const sf::Texture& texture, const sf::IntRect& rectangle) :
+FeSprite::FeSprite(const sf::Texture& texture, const sf::FloatRect& rectangle) :
 m_vertices( sf::TrianglesStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
@@ -101,8 +101,8 @@ m_skew( 0.f, 0.f )
 void FeSprite::setTexture(const sf::Texture& texture, bool resetRect)
 {
     // Recompute the texture area if requested, or if there was no valid texture & rect before
-    if (resetRect || (!m_texture && (m_textureRect == sf::IntRect())))
-        setTextureRect(sf::IntRect(0, 0, texture.getSize().x, texture.getSize().y));
+    if (resetRect || (!m_texture && (m_textureRect == sf::FloatRect())))
+        setTextureRect(sf::FloatRect(0, 0, texture.getSize().x, texture.getSize().y));
 
     // Assign the new texture
     m_texture = &texture;
@@ -110,7 +110,7 @@ void FeSprite::setTexture(const sf::Texture& texture, bool resetRect)
 
 
 ////////////////////////////////////////////////////////////
-void FeSprite::setTextureRect(const sf::IntRect& rectangle)
+void FeSprite::setTextureRect(const sf::FloatRect& rectangle)
 {
     if (rectangle != m_textureRect)
     {
@@ -137,7 +137,7 @@ const sf::Texture* FeSprite::getTexture() const
 
 
 ////////////////////////////////////////////////////////////
-const sf::IntRect& FeSprite::getTextureRect() const
+const sf::FloatRect& FeSprite::getTextureRect() const
 {
     return m_textureRect;
 }
@@ -151,19 +151,12 @@ const sf::Color& FeSprite::getColor() const
 
 
 ////////////////////////////////////////////////////////////
-sf::FloatRect FeSprite::getLocalBounds() const
+sf::IntRect FeSprite::getLocalBounds() const
 {
-    float width = static_cast<float>(std::abs(m_textureRect.width));
-    float height = static_cast<float>(std::abs(m_textureRect.height));
+    float width = std::abs(m_textureRect.width);
+    float height = std::abs(m_textureRect.height);
 
-    return sf::FloatRect(0.f, 0.f, width, height);
-}
-
-
-////////////////////////////////////////////////////////////
-sf::FloatRect FeSprite::getGlobalBounds() const
-{
-	return getTransform().transformRect(getLocalBounds());
+    return sf::IntRect(0.f, 0.f, width, height);
 }
 
 ////////////////////////////////////////////////////////////
@@ -242,15 +235,15 @@ void FeSprite::setScale( const sf::Vector2f &s )
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
 {
-	sf::FloatRect bounds = getLocalBounds();
+	sf::IntRect bounds = getLocalBounds();
 
 	//
 	// Compute some values that we will use for applying the
 	// texture coordinates.
 	//
-	float left   = static_cast<float>(m_textureRect.left);
+	float left   = m_textureRect.left;
 	float right  = left + m_textureRect.width;
-	float top    = static_cast<float>(m_textureRect.top);
+	float top    = m_textureRect.top;
 	float bottom = top + m_textureRect.height;
 	sf::Color vert_colour = m_vertices[0].color;
 
@@ -312,7 +305,7 @@ void FeSprite::updateGeometry()
 		//
 		// Now do the texture coordinates
 		//
-		float tws = (float)m_textureRect.width / SLICES;
+		float tws = m_textureRect.width / (float)SLICES;
 
 		m_vertices[0].texCoords = sf::Vector2f(left, top );
 		m_vertices[1].texCoords = sf::Vector2f(left, bottom );

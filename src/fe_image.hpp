@@ -293,8 +293,8 @@ public:
 	int getFilterOffset() const;
 	void setFilterOffset(int);
 	const sf::Vector2u getTextureSize() const;
-	const sf::IntRect &getTextureRect() const;
-	void setTextureRect( const sf::IntRect &);
+	const sf::FloatRect &getTextureRect() const;
+	void setTextureRect( const sf::FloatRect &);
 	int getVideoFlags() const;
 	void setVideoFlags( int f );
 	bool getVideoPlaying() const;
@@ -329,10 +329,10 @@ public:
 	int get_pinch_y() const;
 	int get_texture_width() const;
 	int get_texture_height() const;
-	int get_subimg_x() const;
-	int get_subimg_y() const;
-	int get_subimg_width() const;
-	int get_subimg_height() const;
+	float get_subimg_x() const;
+	float get_subimg_y() const;
+	float get_subimg_width() const;
+	float get_subimg_height() const;
 	float get_sample_aspect_ratio() const;
 	bool get_preserve_aspect_ratio() const;
 	bool get_mipmap() const;
@@ -351,10 +351,10 @@ public:
 	void set_skew_y( int y );
 	void set_pinch_x( int x );
 	void set_pinch_y( int y );
-	void set_subimg_x( int x );
-	void set_subimg_y( int y );
-	void set_subimg_width( int w );
-	void set_subimg_height( int h );
+	void set_subimg_x( float x );
+	void set_subimg_y( float y );
+	void set_subimg_width( float w );
+	void set_subimg_height( float h );
 	void set_preserve_aspect_ratio( bool p );
 	void set_mipmap( bool m );
 	void set_smooth( bool );
@@ -371,11 +371,11 @@ public:
 	//
 	// Callback functions for use with surface objects
 	//
-	FeImage *add_image(const char *,int, int, int, int);
-	FeImage *add_image(const char *, int, int);
+	FeImage *add_image(const char *,float, float, float, float);
+	FeImage *add_image(const char *, float, float);
 	FeImage *add_image(const char *);
-	FeImage *add_artwork(const char *,int, int, int, int);
-	FeImage *add_artwork(const char *, int, int);
+	FeImage *add_artwork(const char *,float, float, float, float);
+	FeImage *add_artwork(const char *, float, float);
 	FeImage *add_artwork(const char *);
 	FeImage *add_clone(FeImage *);
 	FeText *add_text(const char *,int, int, int, int);
