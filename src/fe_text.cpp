@@ -396,7 +396,7 @@ void FeText::set_align(int a)
 {
 	if ( a != m_draw_text.getAlignment() )
 	{
-		m_draw_text.setAlignment( (FeTextPrimative::Alignment)a);
+		m_draw_text.setAlignment( (FeTextPrimitive::Alignment)a);
 		FePresent::script_do_update( this );
 	}
 }

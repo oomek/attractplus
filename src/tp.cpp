@@ -24,7 +24,7 @@
 #include <iostream>
 #include <cmath>
 
-FeTextPrimative::FeTextPrimative( )
+FeTextPrimitive::FeTextPrimitive( )
 	: m_texts( 1, sf::Text() ),
 	m_align( Centre ),
 	m_first_line( -1 ),
@@ -36,7 +36,7 @@ FeTextPrimative::FeTextPrimative( )
 	setBgColor( sf::Color::Transparent );
 }
 
-FeTextPrimative::FeTextPrimative(
+FeTextPrimitive::FeTextPrimitive(
 			const sf::Font *font,
 			const sf::Color &colour,
 			const sf::Color &bgcolour,
@@ -57,7 +57,7 @@ FeTextPrimative::FeTextPrimative(
 	setCharacterSize( charactersize );
 }
 
-FeTextPrimative::FeTextPrimative( const FeTextPrimative &c )
+FeTextPrimitive::FeTextPrimitive( const FeTextPrimitive &c )
 	: m_bgRect( c.m_bgRect ),
 	m_texts( c.m_texts ),
 	m_align( c.m_align ),
@@ -68,28 +68,28 @@ FeTextPrimative::FeTextPrimative( const FeTextPrimative &c )
 {
 }
 
-void FeTextPrimative::setColor( const sf::Color &c )
+void FeTextPrimitive::setColor( const sf::Color &c )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setFillColor( c );
 }
 
-const sf::Color &FeTextPrimative::getColor() const
+const sf::Color &FeTextPrimitive::getColor() const
 {
 	return m_texts[0].getFillColor();
 }
 
-void FeTextPrimative::setBgColor( const sf::Color &c )
+void FeTextPrimitive::setBgColor( const sf::Color &c )
 {
 	m_bgRect.setFillColor( c );
 }
 
-const sf::Color &FeTextPrimative::getBgColor() const
+const sf::Color &FeTextPrimitive::getBgColor() const
 {
 	return m_bgRect.getFillColor();
 }
 
-void FeTextPrimative::fit_string(
+void FeTextPrimitive::fit_string(
 			const std::basic_string<sf::Uint32> &s,
 			int &position,
 			int &first_char,
@@ -205,7 +205,7 @@ void FeTextPrimative::fit_string(
 	position = i;
 }
 
-void FeTextPrimative::setString( const std::string &t )
+void FeTextPrimitive::setString( const std::string &t )
 {
 	//
 	// UTF-8 character encoding is assumed.
@@ -222,7 +222,7 @@ void FeTextPrimative::setString( const std::string &t )
 	setString( tmp );
 }
 
-sf::Vector2f FeTextPrimative::setString(
+sf::Vector2f FeTextPrimitive::setString(
 			const std::basic_string<sf::Uint32> &t,
 			int position )
 {
@@ -317,7 +317,7 @@ sf::Vector2f FeTextPrimative::setString(
 		return sf::Vector2f( 0, 0 );
 }
 
-void FeTextPrimative::set_positions() const
+void FeTextPrimitive::set_positions() const
 {
 	float charSize = m_texts[0].getCharacterSize() * m_texts[0].getScale().y;
 	float spacing = charSize;
@@ -375,7 +375,7 @@ void FeTextPrimative::set_positions() const
 	m_needs_pos_set = false;
 }
 
-int FeTextPrimative::getActualWidth()
+int FeTextPrimitive::getActualWidth()
 {
 	float w = 0;
 
@@ -391,7 +391,7 @@ int FeTextPrimative::getActualWidth()
 	return (int)w;
 }
 
-void FeTextPrimative::setFont( const sf::Font &font )
+void FeTextPrimitive::setFont( const sf::Font &font )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setFont( font );
@@ -399,12 +399,12 @@ void FeTextPrimative::setFont( const sf::Font &font )
 	m_needs_pos_set = true;
 }
 
-const sf::Font *FeTextPrimative::getFont() const
+const sf::Font *FeTextPrimitive::getFont() const
 {
 	return m_texts[0].getFont();
 }
 
-void FeTextPrimative::setCharacterSize( unsigned int size )
+void FeTextPrimitive::setCharacterSize( unsigned int size )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setCharacterSize( size );
@@ -412,12 +412,12 @@ void FeTextPrimative::setCharacterSize( unsigned int size )
 	m_needs_pos_set = true;
 }
 
-unsigned int FeTextPrimative::getCharacterSize() const
+unsigned int FeTextPrimitive::getCharacterSize() const
 {
 	return ceilf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y );
 }
 
-unsigned int FeTextPrimative::getGlyphSize() const
+unsigned int FeTextPrimitive::getGlyphSize() const
 {
 	const sf::Font *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
@@ -425,7 +425,7 @@ unsigned int FeTextPrimative::getGlyphSize() const
 	return floorf(glyph->bounds.height * m_texts[0].getScale().y);
 }
 
-void FeTextPrimative::setCharacterSpacing( float factor )
+void FeTextPrimitive::setCharacterSpacing( float factor )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setLetterSpacing( factor );
@@ -433,123 +433,123 @@ void FeTextPrimative::setCharacterSpacing( float factor )
 	m_needs_pos_set = true;
 }
 
-float FeTextPrimative::getCharacterSpacing() const
+float FeTextPrimitive::getCharacterSpacing() const
 {
 	return m_texts[0].getLetterSpacing();
 }
 
-void FeTextPrimative::setLineSpacing( float factor )
+void FeTextPrimitive::setLineSpacing( float factor )
 {
 	m_line_spacing = ( factor > 0.0 ) ? factor : 0.0;
 	m_needs_pos_set = true;
 }
 
-float FeTextPrimative::getLineSpacing() const
+float FeTextPrimitive::getLineSpacing() const
 {
 	return m_line_spacing;
 }
 
-int FeTextPrimative::getLineSpacingFactored( const sf::Font *font, int charsize ) const
+int FeTextPrimitive::getLineSpacingFactored( const sf::Font *font, int charsize ) const
 {
 	return std::max( 1, (int)ceilf( font->getLineSpacing( charsize ) * m_line_spacing ));
 }
 
-const sf::Vector2f &FeTextPrimative::getPosition() const
+const sf::Vector2f &FeTextPrimitive::getPosition() const
 {
 	return m_bgRect.getPosition();
 }
 
-const sf::Vector2f &FeTextPrimative::getSize() const
+const sf::Vector2f &FeTextPrimitive::getSize() const
 {
 	return m_bgRect.getSize();
 }
 
-void FeTextPrimative::setPosition( const sf::Vector2f &p )
+void FeTextPrimitive::setPosition( const sf::Vector2f &p )
 {
 	m_bgRect.setPosition( p );
 	m_needs_pos_set = true;
 }
 
-void FeTextPrimative::setSize( const sf::Vector2f &s )
+void FeTextPrimitive::setSize( const sf::Vector2f &s )
 {
 	m_bgRect.setSize( s );
 	m_needs_pos_set = true;
 }
 
-void FeTextPrimative::setAlignment( Alignment a )
+void FeTextPrimitive::setAlignment( Alignment a )
 {
 	m_align = a;
 	m_needs_pos_set = true;
 }
 
-FeTextPrimative::Alignment FeTextPrimative::getAlignment() const
+FeTextPrimitive::Alignment FeTextPrimitive::getAlignment() const
 {
 	return m_align;
 }
 
-void FeTextPrimative::setStyle( int s )
+void FeTextPrimitive::setStyle( int s )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setStyle( s );
 }
 
-void FeTextPrimative::setOutlineColor( const sf::Color &c )
+void FeTextPrimitive::setOutlineColor( const sf::Color &c )
 {
 	m_bgRect.setOutlineColor( c );
 }
 
-void FeTextPrimative::setOutlineThickness( int i )
+void FeTextPrimitive::setOutlineThickness( int i )
 {
 	m_bgRect.setOutlineThickness( i );
 }
 
-void FeTextPrimative::setRotation( float r )
+void FeTextPrimitive::setRotation( float r )
 {
 	m_bgRect.setRotation( r );
 	m_needs_pos_set = true;
 }
 
-float FeTextPrimative::getRotation() const
+float FeTextPrimitive::getRotation() const
 {
 	return m_bgRect.getRotation();
 }
 
-int FeTextPrimative::getStyle() const
+int FeTextPrimitive::getStyle() const
 {
 	return m_texts[0].getStyle();
 }
 
-void FeTextPrimative::setFirstLineHint( int line )
+void FeTextPrimitive::setFirstLineHint( int line )
 {
 	m_first_line = ( line < 0 ) ? 0 : line;
 }
 
-void FeTextPrimative::setWordWrap( bool wrap )
+void FeTextPrimitive::setWordWrap( bool wrap )
 {
 	m_first_line = wrap ? 0 : -1;
 }
 
-void FeTextPrimative::setNoMargin( bool nomargin )
+void FeTextPrimitive::setNoMargin( bool nomargin )
 {
 	m_margin = nomargin ? 0 : -1;
 }
 
-bool FeTextPrimative::getNoMargin()
+bool FeTextPrimitive::getNoMargin()
 {
 	return ( m_margin < 0 ) ? false : true;
 }
 
-void FeTextPrimative::setMargin( int margin )
+void FeTextPrimitive::setMargin( int margin )
 {
 	m_margin = ( margin < 0 ) ? -1 : margin;
 }
 
-int FeTextPrimative::getMargin()
+int FeTextPrimitive::getMargin()
 {
 	return m_margin;
 }
 
-void FeTextPrimative::setTextScale( const sf::Vector2f &s )
+void FeTextPrimitive::setTextScale( const sf::Vector2f &s )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setScale( s );
@@ -557,17 +557,17 @@ void FeTextPrimative::setTextScale( const sf::Vector2f &s )
 	m_needs_pos_set = true;
 }
 
-const sf::Vector2f &FeTextPrimative::getTextScale() const
+const sf::Vector2f &FeTextPrimitive::getTextScale() const
 {
 		return m_texts[0].getScale();
 }
 
-int FeTextPrimative::getFirstLineHint() const
+int FeTextPrimitive::getFirstLineHint() const
 {
 	return m_first_line;
 }
 
-const char *FeTextPrimative::getStringWrapped()
+const char *FeTextPrimitive::getStringWrapped()
 {
 	static std::string str;
 	str.clear();
@@ -580,7 +580,7 @@ const char *FeTextPrimative::getStringWrapped()
 	return str.c_str();
 }
 
-void FeTextPrimative::draw( sf::RenderTarget &target, sf::RenderStates states ) const
+void FeTextPrimitive::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 {
 	if ( m_needs_pos_set )
 		set_positions();

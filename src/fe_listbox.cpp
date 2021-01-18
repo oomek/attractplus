@@ -56,7 +56,7 @@ FeListBox::FeListBox(
 		unsigned int charactersize,
 		int rows )
 	: FeBasePresentable( p ),
-	m_base_text( font, colour, bgcolour, charactersize, FeTextPrimative::Centre ),
+	m_base_text( font, colour, bgcolour, charactersize, FeTextPrimitive::Centre ),
 	m_selColour( selcolour ),
 	m_selBg( selbgcolour ),
 	m_selStyle( sf::Text::Regular ),
@@ -139,7 +139,7 @@ void FeListBox::init_dimensions()
 
 	for ( int i=0; i< m_rows; i++ )
 	{
-		FeTextPrimative t( m_base_text );
+		FeTextPrimitive t( m_base_text );
 		if ( i == m_rows / 2 )
 		{
 			t.setColor( m_selColour );
@@ -234,7 +234,7 @@ void FeListBox::setTextScale( const sf::Vector2f &scale )
 		m_texts[i].setTextScale( scale );
 }
 
-FeTextPrimative *FeListBox::setEditMode( bool e, sf::Color c )
+FeTextPrimitive *FeListBox::setEditMode( bool e, sf::Color c )
 {
 	if ( m_texts.size() > 0 )
 	{
@@ -395,7 +395,7 @@ void FeListBox::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 			states.shader = sh;
 	}
 
-	for ( std::vector<FeTextPrimative>::const_iterator itl=m_texts.begin();
+	for ( std::vector<FeTextPrimitive>::const_iterator itl=m_texts.begin();
 				itl != m_texts.end(); ++itl )
 		target.draw( (*itl), states );
 }
@@ -611,10 +611,10 @@ void FeListBox::set_align(int a)
 	if ( a == m_base_text.getAlignment() )
 		return;
 
-	m_base_text.setAlignment( (FeTextPrimative::Alignment)a);
+	m_base_text.setAlignment( (FeTextPrimitive::Alignment)a);
 
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
-		m_texts[i].setAlignment( (FeTextPrimative::Alignment)a );
+		m_texts[i].setAlignment( (FeTextPrimitive::Alignment)a );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();

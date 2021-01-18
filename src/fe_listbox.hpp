@@ -74,7 +74,7 @@ public:
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
 
-	FeTextPrimative *setEditMode( bool, sf::Color );
+	FeTextPrimitive *setEditMode( bool, sf::Color );
 
 	void setRotation( float );
 
@@ -156,9 +156,9 @@ private:
 
 	void internalSetText( const int index );
 
-	FeTextPrimative m_base_text;
+	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_displayList;
-	std::vector<FeTextPrimative> m_texts;
+	std::vector<FeTextPrimitive> m_texts;
 	std::string m_font_name;
 	std::string m_format_string;
 	sf::Color m_selColour;

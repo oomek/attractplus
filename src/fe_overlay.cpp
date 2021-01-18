@@ -240,7 +240,7 @@ void FeOverlay::splash_message( const std::string &msg,
 	bg.setOutlineColor( m_textColour );
 	bg.setOutlineThickness( -2 );
 
-	FeTextPrimative message(
+	FeTextPrimitive message(
 		m_fePresent.get_font(),
 		m_textColour,
 		sf::Color::Transparent,
@@ -256,13 +256,13 @@ void FeOverlay::splash_message( const std::string &msg,
 
 	message.setString( msg_str );
 
-	FeTextPrimative extra(
+	FeTextPrimitive extra(
 		m_fePresent.get_font(),
 		m_textColour,
 		sf::Color::Transparent,
 		char_size/2 );
 
-	extra.setAlignment( FeTextPrimative::Left );
+	extra.setAlignment( FeTextPrimitive::Left );
 	extra.setPosition( 2, size.y - char_size/2 + 2 );
 	extra.setSize( size.x - 4, char_size/2 );
 	extra.setTextScale( text_scale );
@@ -377,7 +377,7 @@ int FeOverlay::common_list_dialog(
 		bg.setOutlineThickness( -2 );
 		draw_list.push_back( &bg );
 
-		FeTextPrimative heading( m_fePresent.get_font(), m_selColour,
+		FeTextPrimitive heading( m_fePresent.get_font(), m_selColour,
 			sf::Color::Transparent, char_size );
 		heading.setSize( size.x, size.y / 8 );
 		heading.setOutlineColor( m_textColour );
@@ -481,7 +481,7 @@ int FeOverlay::languages_dialog()
 	bg.setOutlineThickness( -2 );
 	draw_list.push_back( &bg );
 
-	FeTextPrimative heading( m_fePresent.get_font(), m_selColour, sf::Color::Transparent, char_size );
+	FeTextPrimitive heading( m_fePresent.get_font(), m_selColour, sf::Color::Transparent, char_size );
 	heading.setSize( size.x, size.y / 8 );
 	heading.setOutlineColor( m_textColour );
 	heading.setOutlineThickness( -2 );
@@ -678,7 +678,7 @@ int FeOverlay::common_basic_dialog(
 		bg.setOutlineColor( m_textColour );
 		bg.setOutlineThickness( -2 );
 
-		FeTextPrimative message(
+		FeTextPrimitive message(
 			m_fePresent.get_font(),
 			m_textColour,
 			sf::Color::Transparent,
@@ -738,11 +738,11 @@ bool FeOverlay::edit_dialog(
 	int char_size;
 	get_common( size, text_scale, char_size );
 
-	FeTextPrimative message( m_fePresent.get_font(), m_textColour,
+	FeTextPrimitive message( m_fePresent.get_font(), m_textColour,
 		m_bgColour, char_size );
 	message.setWordWrap( true );
 
-	FeTextPrimative tp( m_fePresent.get_font(), m_textColour,
+	FeTextPrimitive tp( m_fePresent.get_font(), m_textColour,
 		m_bgColour, char_size );
 
 	float slice = size.y / 3;
@@ -787,7 +787,7 @@ void FeOverlay::input_map_dialog(
 	int char_size;
 	get_common( s, text_scale, char_size );
 
-	FeTextPrimative message( m_fePresent.get_font(), m_textColour,
+	FeTextPrimitive message( m_fePresent.get_font(), m_textColour,
 		m_bgColour, char_size );
 	message.setWordWrap( true );
 	message.setTextScale( text_scale );
@@ -1054,7 +1054,7 @@ int FeOverlay::display_config_dialog(
 	bg.setOutlineThickness( -2 );
 	draw_list.push_back( &bg );
 
-	FeTextPrimative heading( font, m_selColour, sf::Color::Transparent, char_size / 2 );
+	FeTextPrimitive heading( font, m_selColour, sf::Color::Transparent, char_size / 2 );
 	heading.setSize( size.x, slice );
 	heading.setOutlineColor( m_textColour );
 	heading.setOutlineThickness( -2 );
@@ -1111,7 +1111,7 @@ int FeOverlay::display_config_dialog(
 		draw_list.push_back( &vdialog );
 	}
 
-	FeTextPrimative footer( font,
+	FeTextPrimitive footer( font,
 		m_textColour,
 		sf::Color::Transparent,
 		char_size / 3 );
@@ -1243,7 +1243,7 @@ int FeOverlay::display_config_dialog(
 			// event loop
 			//
 			sdialog.setSelColor( m_textColour );
-			FeTextPrimative *tp = vdialog.setEditMode( true, m_selColour );
+			FeTextPrimitive *tp = vdialog.setEditMode( true, m_selColour );
 
 			if ( tp == NULL )
 				continue;
@@ -1635,7 +1635,7 @@ int get_char_idx( unsigned char c )
 };
 
 bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
-			std::basic_string<sf::Uint32> &str, FeTextPrimative *tp )
+			std::basic_string<sf::Uint32> &str, FeTextPrimitive *tp )
 {
 	sf::Clock cursor_timer;
 	const sf::Transform &t = m_fePresent.get_transform();

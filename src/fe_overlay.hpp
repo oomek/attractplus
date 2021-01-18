@@ -30,7 +30,7 @@
 class FeSettings;
 class FeInputMapEntry;
 class FeBaseConfigMenu;
-class FeTextPrimative;
+class FeTextPrimitive;
 
 class FeEventLoopCtx;
 
@@ -64,7 +64,7 @@ private:
 	bool event_loop( FeEventLoopCtx & );
 
 	bool edit_loop( std::vector<sf::Drawable *> draw_list,
-			std::basic_string<sf::Uint32> &str, FeTextPrimative *lb );
+			std::basic_string<sf::Uint32> &str, FeTextPrimitive *lb );
 
 public:
 	FeOverlay( FeWindow &wnd,

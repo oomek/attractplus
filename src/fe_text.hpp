@@ -110,7 +110,7 @@ private:
 	FeText( const FeText & );
 	FeText &operator=( const FeText & );
 
-	FeTextPrimative m_draw_text;
+	FeTextPrimitive m_draw_text;
 	std::string m_string;
 	std::string m_font_name;
 	int m_index_offset;

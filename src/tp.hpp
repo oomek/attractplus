@@ -20,13 +20,13 @@
  *
  */
 
-#ifndef TEXT_PRIMATIVE_HPP
-#define TEXT_PRIMATIVE_HPP
+#ifndef TEXT_Primitive_HPP
+#define TEXT_Primitive_HPP
 
 #include <SFML/Graphics.hpp>
 #include <vector>
 
-class FeTextPrimative : public sf::Drawable
+class FeTextPrimitive : public sf::Drawable
 {
 public:
 	enum Alignment {
@@ -38,15 +38,15 @@ public:
 		Middle=32
 	};
 
-	FeTextPrimative();
+	FeTextPrimitive();
 
-	FeTextPrimative( const sf::Font *font,
+	FeTextPrimitive( const sf::Font *font,
 			const sf::Color &colour,
 			const sf::Color &bgcolour,
 			unsigned int charactersize,
 			Alignment align=Centre );
 
-	FeTextPrimative( const FeTextPrimative & );
+	FeTextPrimitive( const FeTextPrimitive & );
 
 	void setColor( const sf::Color & );
 	void setBgColor( const sf::Color & );
