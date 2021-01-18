@@ -20,7 +20,7 @@
  *
  */
 
-
+#include "attract_icon.hpp"
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
@@ -334,6 +334,10 @@ void FeWindow::initial_create()
 	m_window->setKeyRepeatEnabled(false);
 	m_window->setMouseCursorVisible(false);
 	m_window->setJoystickThreshold( 1.0 );
+
+	sf::Image icon;
+	icon.loadFromMemory( attract_icon, sizeof( attract_icon ));
+	m_window->setIcon( icon.getSize().y, icon.getSize().y, icon.getPixelsPtr() );
 
 	// We need to clear and display here before calling setSize and setPosition
 	// to avoid a white window flash on launching Attract Mode.
