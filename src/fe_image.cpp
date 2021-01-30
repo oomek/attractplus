@@ -1647,7 +1647,8 @@ void FeImage::set_anchor( float x, float y )
 void FeImage::set_anchor_type( int t )
 {
 	m_anchor_type = (FeImage::Alignment)t;
-	m_anchor = alignTypeToVector( t );
+	sf::Vector2f a = alignTypeToVector( t );
+	set_anchor( a.x, a.y );
 }
 
 void FeImage::set_rotation_origin( float x, float y )
@@ -1663,7 +1664,8 @@ void FeImage::set_rotation_origin( float x, float y )
 void FeImage::set_rotation_origin_type( int t )
 {
 	m_rotation_origin_type = (FeImage::Alignment)t;
-	m_rotation_origin = alignTypeToVector( t );
+	sf::Vector2f o = alignTypeToVector( t );
+	set_rotation_origin( o.x, o.y );
 }
 
 void FeImage::set_skew_x( int x )
