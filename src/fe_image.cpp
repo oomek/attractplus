@@ -1904,6 +1904,15 @@ FeListBox *FeImage::add_listbox(int x, int y, int w, int h)
 	return NULL;
 }
 
+FeRectangle *FeImage::add_rectangle(float x, float y, float w, float h)
+{
+	FePresentableParent *p = m_tex->get_presentable_parent();
+	if ( p )
+		return p->add_rectangle( x, y, w, h );
+
+	return NULL;
+}
+
 FeImage *FeImage::add_surface(int w, int h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();

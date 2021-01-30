@@ -54,7 +54,24 @@ void FeBasePresentable::on_new_list( FeSettings * )
 
 void FeBasePresentable::set_scale_factor( float, float )
 {
+}
 
+int FeBasePresentable::getIndexOffset() const
+{
+	return 0;
+}
+
+void FeBasePresentable::setIndexOffset( int io )
+{
+}
+
+int FeBasePresentable::getFilterOffset() const
+{
+	return 0;
+}
+
+void FeBasePresentable::setFilterOffset( int io )
+{
 }
 
 float FeBasePresentable::get_x() const
@@ -300,6 +317,16 @@ FeListBox *FePresentableParent::add_listbox(int x, int y, int w, int h)
 
 	if ( fep )
 		return fep->add_listbox( x, y, w, h, *this );
+
+	return NULL;
+}
+
+FeRectangle *FePresentableParent::add_rectangle(float x, float y, float w, float h)
+{
+	FePresent *fep = FePresent::script_get_fep();
+
+	if ( fep )
+		return fep->add_rectangle( x, y, w, h, *this );
 
 	return NULL;
 }

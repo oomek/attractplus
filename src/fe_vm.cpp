@@ -25,6 +25,7 @@
 #include "fe_present.hpp"
 #include "fe_text.hpp"
 #include "fe_listbox.hpp"
+#include "fe_rectangle.hpp"
 #include "fe_image.hpp"
 #include "fe_shader.hpp"
 #include "fe_config.hpp"
@@ -776,6 +777,7 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_clone"), &FeImage::add_clone )
 		.Func( _SC("add_text"), &FeImage::add_text )
 		.Func( _SC("add_listbox"), &FeImage::add_listbox )
+		.Func( _SC("add_rectangle"), &FeImage::add_rectangle )
 		.Func( _SC("add_surface"), &FeImage::add_surface )
 	);
 
@@ -837,6 +839,23 @@ bool FeVM::on_new_layout()
 		.Func( _SC("set_bg_rgb"), &FeListBox::set_bg_rgb )
 		.Func( _SC("set_sel_rgb"), &FeListBox::set_sel_rgb )
 		.Func( _SC("set_selbg_rgb"), &FeListBox::set_selbg_rgb )
+	);
+
+	fe.Bind( _SC("Rectangle"), DerivedClass<FeRectangle, FeBasePresentable, NoConstructor>()
+		.Prop(_SC("origin_x"), &FeRectangle::get_origin_x, &FeRectangle::set_origin_x )
+		.Prop(_SC("origin_y"), &FeRectangle::get_origin_y, &FeRectangle::set_origin_y )
+		.Prop(_SC("anchor"), &FeRectangle::get_anchor_type, &FeRectangle::set_anchor_type )
+		.Prop(_SC("origin"), &FeRectangle::get_rotation_origin_type, &FeRectangle::set_rotation_origin_type )
+		.Prop(_SC("outline"), &FeRectangle::get_outline, &FeRectangle::set_outline )
+		.Prop(_SC("outline_red"), &FeRectangle::get_olr, &FeRectangle::set_olr )
+		.Prop(_SC("outline_green"), &FeRectangle::get_olg, &FeRectangle::set_olg )
+		.Prop(_SC("outline_blue"), &FeRectangle::get_olb, &FeRectangle::set_olb )
+		.Prop(_SC("outline_alpha"), &FeRectangle::get_ola, &FeRectangle::set_ola )
+		.Prop(_SC("blend_mode"), &FeRectangle::get_blend_mode, &FeRectangle::set_blend_mode )
+		.Func(_SC("set_outline_rgb"), &FeRectangle::set_olrgb )
+		.Func(_SC("set_anchor"), &FeRectangle::set_anchor )
+		.Func(_SC("set_origin"), &FeRectangle::set_rotation_origin )
+
 	);
 
 	fe.Bind( _SC("LayoutGlobals"), Class <FePresent, NoConstructor>()
@@ -934,6 +953,7 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_clone"), &FePresentableParent::add_clone )
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
+		.Func( _SC("add_rectangle"), &FePresentableParent::add_rectangle )
 		.Func( _SC("add_surface"), &FePresentableParent::add_surface )
 	);
 
@@ -968,6 +988,7 @@ bool FeVM::on_new_layout()
 
 	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
 	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
+	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
 	fe.Func<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
@@ -2113,6 +2134,22 @@ FeListBox* FeVM::cb_add_listbox(int x, int y, int w, int h )
 	FeListBox *ret = fev->add_listbox( x, y, w, h, fev->m_mon[0] );
 
 	// Add the listbox to the "fe.obj" array in Squirrel
+	//
+	Sqrat::Object fe ( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
+	obj.SetInstance( obj.GetSize(), ret );
+
+	return ret;
+}
+
+FeRectangle* FeVM::cb_add_rectangle( float x, float y, float w, float h )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	FeRectangle *ret = fev->add_rectangle( x, y, w, h, fev->m_mon[0] );
+
+	// Add the rectangle to the "fe.obj" array in Squirrel
 	//
 	Sqrat::Object fe ( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );

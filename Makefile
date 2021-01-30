@@ -134,6 +134,7 @@ _DEP =\
 	tp.hpp \
 	fe_text.hpp \
 	fe_listbox.hpp \
+	fe_rectangle.hpp \
 	fe_vm.hpp \
 	fe_blend.hpp \
 	path_cache.hpp \
@@ -167,6 +168,7 @@ _OBJ =\
 	tp.o \
 	fe_text.o \
 	fe_listbox.o \
+	fe_rectangle.o \
 	fe_vm.o \
 	fe_blend.o \
 	zip.o \

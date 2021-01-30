@@ -34,6 +34,7 @@ class FeImage;
 class FeBaseTextureContainer;
 class FeText;
 class FeListBox;
+class FeRectangle;
 class FeFontContainer;
 class FeSurfaceTextureContainer;
 class FePresentableParent;
@@ -170,6 +171,7 @@ protected:
 	FeImage *add_clone(FeImage *, FePresentableParent &p);
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
+	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_surface(int w, int h, FePresentableParent &p);
 	FeSound *add_sound(const char *n, bool reuse);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);

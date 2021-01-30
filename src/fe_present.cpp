@@ -25,6 +25,7 @@
 #include "fe_image.hpp"
 #include "fe_text.hpp"
 #include "fe_listbox.hpp"
+#include "fe_rectangle.hpp"
 #include "fe_input.hpp"
 #include "fe_file.hpp"
 #include "fe_blend.hpp"
@@ -551,6 +552,17 @@ FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
 	m_listBox = new_lb;
 	p.elements.push_back( new_lb );
 	return new_lb;
+}
+
+FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
+		FePresentableParent &p )
+{
+	FeRectangle *new_rc = new FeRectangle( p, x, y, w, h );
+	new_rc->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+
+	flag_redraw();
+	p.elements.push_back( new_rc );
+	return new_rc;
 }
 
 FeImage *FePresent::add_surface( int w, int h, FePresentableParent &p )

@@ -34,6 +34,7 @@ class FeSwf;
 class FeImage;
 class FeText;
 class FeListBox;
+class FeRectangle;
 class FeTextureContainer;
 class FeImageLoaderEntry;
 
@@ -380,6 +381,7 @@ public:
 	FeImage *add_clone(FeImage *);
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);
+	FeRectangle *add_rectangle(float, float, float, float);
 	FeImage *add_surface(int, int);
 
 protected:
@@ -387,6 +389,7 @@ protected:
 	FeSprite m_sprite;
 	sf::Vector2f m_pos;
 	sf::Vector2f m_size;
+	sf::Vector2f m_scale;
 	sf::Vector2f m_origin;
 	sf::Vector2f m_rotation_origin;
 	sf::Vector2f m_anchor;

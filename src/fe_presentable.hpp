@@ -61,10 +61,10 @@ public:
 	virtual void setRotation( float )=0;
 	virtual const sf::Color &getColor() const=0;
 	virtual void setColor( const sf::Color & )=0;
-	virtual int getIndexOffset() const=0;
-	virtual void setIndexOffset( int io )=0;
-	virtual int getFilterOffset() const=0;
-	virtual void setFilterOffset( int io )=0;
+	virtual int getIndexOffset() const;
+	virtual void setIndexOffset( int io );
+	virtual int getFilterOffset() const;
+	virtual void setFilterOffset( int io );
 
 	//
 	// Accessor functions used in scripting implementation
@@ -106,6 +106,7 @@ public:
 class FeImage;
 class FeText;
 class FeListBox;
+class FeRectangle;
 
 class FePresentableParent
 {
@@ -128,6 +129,7 @@ public:
 	FeImage *add_clone(FeImage *);
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);
+	FeRectangle *add_rectangle(float, float, float, float);
 	FeImage *add_surface(int, int);
 };
 
