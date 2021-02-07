@@ -33,7 +33,7 @@ class UserConfig
 }
 
 // any signal will cause intro mode to exit
-function end_mode()
+function exit()
 {
     fe.signal("select");
 }
@@ -49,6 +49,7 @@ local ar = null;
 local layout_aspect = "default";
 local vid = null;
 local Aspect = [ "16x9", "4x3", "9x16", "3x4" ];
+local exit_intro = false;
 
 screen_width = ScreenWidth;
 screen_height = ScreenHeight;
@@ -56,8 +57,7 @@ screen_height = ScreenHeight;
 switch (config["play_intro"])
 {
     case "No":
-        return end_mode();
-        break;
+        exit_intro = true;
     case "Yes":
     default:
         switch (config["layout_rotation"])
@@ -111,7 +111,7 @@ switch (config["play_intro"])
 
         if (vid.file_name.len() == 0)
         {
-            return end_mode();
+            exit_intro = true;
         }
         fe.add_ticks_callback("intro_tick");
         break;
@@ -121,9 +121,7 @@ function intro_tick(ttime)
 {
     // check if the video has stopped yet
     //
-    if (vid.video_playing == false)
-    {
-        end_mode();
-    }
+    if (exit_intro == true) exit();
+    if (vid.video_playing == false) exit();
     return false;
 }
