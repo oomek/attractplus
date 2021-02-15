@@ -1221,8 +1221,12 @@ bool FeDisplayEditMenu::on_option_select(
 		if ( ctx.confirm_dialog( "Delete display '$1'?", display->get_info( FeDisplayInfo::Name ) ) == false )
 			return false;
 
-		ctx.fe_settings.delete_display( m_index );
-		ctx.save_req=true;
+		ctx.save_req=false;
+		// Reload another layout if we deleted the current one
+		if ( ctx.fe_settings.delete_display( m_index ))
+		{
+			FeVM::cb_signal( "reload" );
+		}
 	}
 
 	return true;

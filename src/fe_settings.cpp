@@ -3162,19 +3162,44 @@ void FeSettings::get_layouts_list( std::vector<std::string> &layouts ) const
 	}
 }
 
-void FeSettings::delete_display( int index )
+bool FeSettings::delete_display( int index )
 {
 	if ( ( index < 0 ) || ( index >= (int)m_displays.size() ))
-		return;
+		return false;
 
 	std::vector<FeDisplayInfo>::iterator itr=m_displays.begin() + index;
 	m_displays.erase( itr );
 
-	if ( m_current_display >= index )
+	// Return true to reload another display if we deleted the current one
+	if ( m_current_display == index )
+	{
+		m_current_display--;
+
+		if ( m_current_display < 0 )
+			m_current_display=0;
+		
+		if ( (int)m_displays.size() < 1 )
+			m_current_display = -1;
+
+		set_display( m_current_display );
+		save();
+
+		return true;
+	}
+
+	if ( m_current_display > index )
 		m_current_display--;
 
 	if ( m_current_display < 0 )
 		m_current_display=0;
+
+	if ( (int)m_displays.size() < 1 )
+		m_current_display = -1;
+
+	construct_display_maps();
+	save();
+
+	return false;
 }
 
 void FeSettings::get_current_display_filter_names(

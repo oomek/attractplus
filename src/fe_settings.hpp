@@ -565,7 +565,7 @@ public:
 
 	FeDisplayInfo *get_display( int index );
 	FeDisplayInfo *create_display( const std::string &n );
-	void delete_display( int index );
+	bool delete_display( int index );
 
 	void create_filter( FeDisplayInfo &l, const std::string &name ) const;
 
