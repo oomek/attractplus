@@ -266,13 +266,13 @@ void FeWindow::initial_create()
 	// which seems to be the cause of this issue.  This is actually the same behaviour that earlier
 	// versions of Attract-Mode had (first by design, then by accident).
 	//
-	if ( m_win_mode == FeSettings::Default )
-	{
-		wpos.x -= 1;
-		wpos.y -= 1;
-		vm.width += 2;
-		vm.height += 2;
-	}
+	// if ( m_win_mode == FeSettings::Default )
+	// {
+		// wpos.x -= 1;
+		// wpos.y -= 1;
+		// vm.width += 2;
+		// vm.height += 2;
+	// }
 
 #endif
 

@@ -303,11 +303,11 @@ void FePresent::init_monitors()
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen
 		//
-		if ( m_feSettings->get_window_mode() == FeSettings::Default )
-		{
-			translate_x += 1;
-			translate_y += 1;
-		}
+		// if ( m_feSettings->get_window_mode() == FeSettings::Default )
+		// {
+		// 	translate_x += 1;
+		// 	translate_y += 1;
+		// }
 
 		sf::Transform correction = sf::Transform().translate( translate_x, translate_y );
 
@@ -374,12 +374,12 @@ void FePresent::init_monitors()
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen.
 		//
-		if ( m_feSettings->get_window_mode() == FeSettings::Default )
-		{
-			mc.size.x -= 2;
-			mc.size.y -= 2;
-			mc.transform = sf::Transform().translate( 1, 1 );
-		}
+		// if ( m_feSettings->get_window_mode() == FeSettings::Default )
+		// {
+		// 	mc.size.x -= 2;
+		// 	mc.size.y -= 2;
+		// 	mc.transform = sf::Transform().translate( 1, 1 );
+		// }
 #endif
 
 		m_mon.push_back( mc );
