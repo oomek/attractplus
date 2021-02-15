@@ -1128,6 +1128,7 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 	}
 
 	m_texture.display();
+	if ( m_mipmap ) m_texture.generateMipmap();
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )
@@ -1142,11 +1143,12 @@ bool FeSurfaceTextureContainer::get_smooth() const
 
 void FeSurfaceTextureContainer::set_mipmap( bool m )
 {
+	m_mipmap = m;
 }
 
 bool FeSurfaceTextureContainer::get_mipmap() const
 {
-	return false;
+	return m_mipmap;
 }
 
 void FeSurfaceTextureContainer::set_clear( bool c )

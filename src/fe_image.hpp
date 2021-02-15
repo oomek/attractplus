@@ -253,6 +253,7 @@ public:
 private:
 	sf::RenderTexture m_texture;
 	bool m_clear;
+	bool m_mipmap;
 };
 
 class FeImage : public sf::Drawable, public FeBasePresentable
