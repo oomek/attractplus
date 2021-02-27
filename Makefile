@@ -215,23 +215,33 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
 endif
 
 #
-# Deal with SFML
+# Backward compatibility with WINDOWS_STATIC
 #
 ifeq ($(WINDOWS_STATIC),1)
- ifeq ($(shell $(PKG_CONFIG) --exists sfml && echo "1" || echo "0"), 1)
-  SFML_PC="sfml"
- else
-  SFML_PC="sfml-system sfml-window sfml-graphics"
- endif
- LIBS += $(shell $(PKG_CONFIG) --static --libs $(SFML_PC))
- CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
- FE_WINDOWS_COMPILE=1
+  STATIC=1
+  FE_WINDOWS_COMPILE=1
+endif
 
+#
+# Deal with SFML
+#
+SFML_PC="sfml-system sfml-window sfml-graphics"
+ifeq ($(STATIC),1)
+  LIBS += $(shell $(PKG_CONFIG) --static --libs-only-L $(SFML_PC))
+  $(info Manually adding sfml libs as pkg-config has no --static version)
+  LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
+  CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
+  ifeq ($(FE_WINDOWS_COMPILE),1)
+    LIBS += -lws2_32
+  else ifeq ($(FE_MACOSX_COMPILE),1)
+  else
+    LIBS += -lX11 -lGL -lGLU -lm -lz -ludev -lXrandr -lrt -lXcursor -lpthread
+  endif
 else
-
- LIBS += -lsfml-graphics \
-	-lsfml-window \
-	-lsfml-system
+  # SFML may not generate .pc files, so manually add libs
+  CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --cflags $(SFML_PC))
+  LIBS += $(shell $(PKG_CONFIG) --libs $(SFML_PC))
+  #LIBS += -lsfml-graphics -lsfml-window -lsfml-system
 endif
 
 ifeq ($(FE_MACOSX_COMPILE),1)
@@ -268,6 +278,7 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
  ifeq ($(WINDOWS_CONSOLE),1)
   CFLAGS += -mconsole
   FE_FLAGS += -DWINDOWS_CONSOLE
+  EXE_BASE=attract-console
  else
   CFLAGS += -Wl,--subsystem,windows
  endif
@@ -330,6 +341,7 @@ endif
 ifeq ($(USE_DRM),1)
  TEMP_LIBS += libdrm gbm
  FE_FLAGS += -DUSE_DRM
+ LIBS += -lEGL
 endif
 
 ifeq ($(FE_HWACCEL_VAAPI),1)
@@ -430,6 +442,7 @@ else
 endif
 
 $(info flags:$(CFLAGS) $(FE_FLAGS))
+$(info libs:$(LIBS))
 
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
 DEP = $(patsubst %,$(SRC_DIR)/%,$(_DEP))
