@@ -357,7 +357,7 @@ void FeTextPrimitive::set_positions() const
 		else if ( m_align & Bottom )
 			textPos.y = rectPos.y + floorf( rectSize.height  - charSize - spacing * ( m_texts.size() - i - 1 ));
 		else if ( m_align & Middle )
-			textPos.y = rectPos.y + ceilf( spacing * i + ( rectSize.height + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 )) / 2.0 );
+			textPos.y = rectPos.y + floorf( spacing * i + ( rectSize.height + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
 		else
 			textPos.y = rectPos.y + ceilf( spacing * i + ( rectSize.height - ( spacing * m_texts.size() )) / 2.0 );
 
