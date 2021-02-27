@@ -585,8 +585,10 @@ void FeTextPrimitive::draw( sf::RenderTarget &target, sf::RenderStates states ) 
 	if ( m_needs_pos_set )
 		set_positions();
 
-	target.draw( m_bgRect, states );
+	if ( m_bgRect.getFillColor().a > 0 )
+		target.draw( m_bgRect, states );
 
-	for ( unsigned int i=0; i < m_texts.size(); i++ )
-		target.draw( m_texts[i], states );
+	if ( m_texts[0].getFillColor().a > 0 )
+		for ( unsigned int i=0; i < m_texts.size(); i++ )
+			target.draw( m_texts[i], states );
 }

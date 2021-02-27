@@ -166,7 +166,8 @@ void FeSprite::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	{
 		states.transform *= getTransform();
 		states.texture = m_texture;
-		target.draw( m_vertices, states );
+		if ( m_vertices[0].color.a > 0 )
+			target.draw( m_vertices, states );
 	}
 }
 
