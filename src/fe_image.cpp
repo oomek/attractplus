@@ -28,6 +28,7 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
+#include <cmath>
 
 #ifndef NO_MOVIE
 #include "media.hpp"
