@@ -19,7 +19,7 @@
 #include <new>	// for placement new
 
 
-// If you prefer STL implementations of array<> (i.e. std::vector) and
+// If you prefer STL implementations of tu_array<> (i.e. std::vector) and
 // hash<> (i.e. std::hash_map) instead of home cooking, then put
 // -D_TU_USE_STL=1 in your compiler flags, or do it in tu_config.h, or do
 // it right here:
@@ -78,18 +78,18 @@ public:
 #include <string>
 
 
-// array<> is much like std::vector<>
+// tu_array<> is much like std::vector<>
 //
 // @@ move this towards a strict subset of std::vector ?  Compatibility is good.
-template<class T> class array : public std::vector<T>
+template<class T> class tu_array : public std::vector<T>
 {
 public:
-	array() : std::vector<T>() {}
-	array( int s ) : std::vector<T>( s, 0 ) {}
+	tu_array() : std::vector<T>() {}
+	tu_array( int s ) : std::vector<T>( s, 0 ) {}
 
 	int	size() const { return (int) std::vector<T>::size(); }
 
-	void	append(const array<T>& other)
+	void	append(const tu_array<T>& other)
 	// Append the given data to our array.
 	{
 		std::vector<T>::insert(std::vector<T>::end(), other.begin(), other.end());
@@ -203,7 +203,7 @@ public:
 
 
 template<class T>
-class array {
+class tu_array {
 // Resizable array.  Don't put anything in here that can't be moved
 // around by bitwise copy.  Don't keep the address of an element; the
 // array contents will move around as it gets resized.
@@ -213,9 +213,9 @@ class array {
 public:
 	typedef T value_type;
 
-	array() : m_buffer(0), m_size(0), m_buffer_size(0) {}
-	array(int size_hint) : m_buffer(0), m_size(0), m_buffer_size(0) { resize(size_hint); }
-	array(const array<T>& a)
+	tu_array() : m_buffer(0), m_size(0), m_buffer_size(0) {}
+	tu_array(int size_hint) : m_buffer(0), m_size(0), m_buffer_size(0) { resize(size_hint); }
+	tu_array(const tu_array<T>& a)
 		:
 		m_buffer(0),
 		m_size(0),
@@ -223,7 +223,7 @@ public:
 	{
 		operator=(a);
 	}
-	~array() {
+	~tu_array() {
 		clear();
 	}
 
@@ -267,7 +267,7 @@ public:
 		resize(0);
 	}
 
-	void	operator=(const array<T>& a)
+	void	operator=(const tu_array<T>& a)
 	// Array copy.  Copies the contents of a into this array.
 	{
 		resize(a.size());
@@ -315,7 +315,7 @@ public:
 	}
 
 
-	void	append(const array<T>& other)
+	void	append(const tu_array<T>& other)
 	// Append the given data to our array.
 	{
 		append(other.m_buffer, other.size());
@@ -400,7 +400,7 @@ public:
 		}			
 	}
 
-	void	transfer_members(array<T>* a)
+	void	transfer_members(tu_array<T>* a)
 	// UNSAFE!  Low-level utility function: replace this array's
 	// members with a's members.
 	{

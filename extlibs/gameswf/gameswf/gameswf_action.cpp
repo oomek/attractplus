@@ -210,7 +210,7 @@ namespace gameswf
 			}
 		}
 
-		array<with_stack_entry>	dummy_with_stack;
+		tu_array<with_stack_entry>	dummy_with_stack;
 		as_value	method = env->get_variable(method_name, dummy_with_stack);
 
 		// check method
@@ -251,7 +251,7 @@ namespace gameswf
 			env->push( arguments[ i ] );
 		}
 
-		array<with_stack_entry>	dummy_with_stack;
+		tu_array<with_stack_entry>	dummy_with_stack;
 		as_value	method = env->get_variable(method_name, dummy_with_stack);
 
 		// check method
@@ -486,7 +486,7 @@ namespace gameswf
 		assert(env->m_local_frames.size() < 1000);
 
 
-		array<with_stack_entry>	empty_with_stack;
+		tu_array<with_stack_entry>	empty_with_stack;
 		execute(env, 0, m_buffer->size(), NULL, empty_with_stack, false /* not function2 */);
 
 //		env->set_local_frame_top(local_stack_top);
@@ -515,7 +515,7 @@ namespace gameswf
 	}
 
 	as_object* action_buffer::load_as_plugin(player* player, const tu_string& classname,
-		 const array<as_value>& params)
+		 const tu_array<as_value>& params)
 	// loads user defined class from DLL / shared library
 	{
 		// look first in app registered
@@ -559,7 +559,7 @@ namespace gameswf
 		int start_pc,
 		int exec_bytes,
 		as_value* retval,
-		const array<with_stack_entry>& initial_with_stack,
+		const tu_array<with_stack_entry>& initial_with_stack,
 		bool is_function2) const
 	// Interpret the specified subset of the actions in our
 	// buffer.  Caller is responsible for cleaning up our local
@@ -573,7 +573,7 @@ namespace gameswf
 		tu_string last_varname;
 
 		assert(env);
-		array<with_stack_entry>	with_stack(initial_with_stack);
+		tu_array<with_stack_entry>	with_stack(initial_with_stack);
 	
 		character*	original_target = env->get_target();
 		membuf & buffer = *m_buffer.get_ptr();
@@ -1193,7 +1193,7 @@ namespace gameswf
 					else
 					{
 						// try to load user defined class from DLL / shared library
-						array<as_value> params;
+						tu_array<as_value> params;
 						int first_arg_bottom_index = env->get_top_index();
 						for (int i = 0; i < nargs; i++)
 						{

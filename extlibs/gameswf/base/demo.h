@@ -42,7 +42,7 @@ namespace demo
 			int key;         // SDLK_ codes (from SDL)
 			int modifier;    // KMOD_ codes (from SDL)
 		};
-		array<key_event_info> m_keys;
+		tu_array<key_event_info> m_keys;
 
 		nav2d_state()
 			:

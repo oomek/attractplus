@@ -89,7 +89,7 @@ public:
     return _children[0];
   }
   
-  array<XMLNode *>childNodes()
+  tu_array<XMLNode *>childNodes()
   {
     return _children;
   }  
@@ -143,8 +143,8 @@ toString() 	XML.toString()
 #endif
   char               *_name;
   char               *_value;
-  array<XMLNode *>   _children;
-  array<XMLAttr *>   _attributes;
+  tu_array<XMLNode *>   _children;
+  tu_array<XMLAttr *>   _attributes;
 };
 
 struct xmlnode_as_object : public gameswf::as_object
@@ -223,7 +223,7 @@ class XML {
     delete _nodes;
   }
   
-  array<XMLNode *> childNodes()
+  tu_array<XMLNode *> childNodes()
   {
     return _nodes->_children;
   }
@@ -299,10 +299,10 @@ class XML {
                                             // the specified XML object has loaded.
     const char  *_nodename;                  // The node name of an XML object.
     XMLNode     *_nodes;
-    //    array<XMLNode *>  _node_data;
+    //    tu_array<XMLNode *>  _node_data;
   //    hash<gameswf::event_id, gameswf::as_value>	_event_handlers;
 #if 0
-    array<struct node *> _childNodes; // Read-only; returns an array containing
+    tu_array<struct node *> _childNodes; // Read-only; returns an array containing
                                             // references to the child
                                             // nodes of the specified
                                             // node.

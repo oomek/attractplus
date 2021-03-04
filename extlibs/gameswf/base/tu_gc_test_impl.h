@@ -163,7 +163,7 @@ void test_multiple_inheritance() {
 
 // test gc_container
 SPECIALIZE_GC_CONTAINER(gc_vector, std::vector);
-SPECIALIZE_GC_CONTAINER(gc_array, array);
+SPECIALIZE_GC_CONTAINER(gc_array, tu_array);
 
 struct bag : public gc_object {
 	gc_vector<gc_ptr<bag> > m_ptrs;

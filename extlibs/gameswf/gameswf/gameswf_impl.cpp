@@ -93,7 +93,7 @@ namespace gameswf
 	// some utility stuff
 	//
 
-	void	execute_actions(as_environment* env, const array<action_buffer*>& action_list)
+	void	execute_actions(as_environment* env, const tu_array<action_buffer*>& action_list)
 	// Execute the actions in the action list, in the given
 	// environment.
 	{
@@ -1243,7 +1243,7 @@ namespace gameswf
 			MOVE,
 			REPLACE,
 		} m_place_type;
-		array<swf_event*>	m_event_handlers;
+		tu_array<swf_event*>	m_event_handlers;
 
 		place_object_2() :
 			m_tag_type(0), m_ratio(0), m_has_matrix(false), m_has_cxform(false), m_depth(0),
@@ -1461,7 +1461,7 @@ namespace gameswf
 								}
 
 								// Create a function to execute the actions.
-								array<with_stack_entry>	empty_with_stack;
+								tu_array<with_stack_entry>	empty_with_stack;
 								as_s_function*	func = new as_s_function(player, &action, 0, empty_with_stack);
 								func->set_length(action.get_length());
 

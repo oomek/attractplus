@@ -60,7 +60,7 @@ namespace gameswf
 			OVER_DOWN_TO_IDLE = 1 << 8,
 		};
 		int	m_conditions;
-		array<action_buffer*>	m_actions;
+		tu_array<action_buffer*>	m_actions;
 
 		button_action();
 		button_action( const button_action &c );
@@ -87,7 +87,7 @@ namespace gameswf
 			Uint32 m_in_point;
 			Uint32 m_out_point;
 			Uint16 m_loop_count;
-			array<sound_envelope> m_envelopes;
+			tu_array<sound_envelope> m_envelopes;
 		};
 
 		struct button_sound_info
@@ -105,8 +105,8 @@ namespace gameswf
 
 
 		bool m_menu;
-		array<button_record>	m_button_records;
-		array<button_action>	m_button_actions;
+		tu_array<button_record>	m_button_records;
+		tu_array<button_action>	m_button_actions;
 		button_sound_def*	m_sound;
 
 		button_character_definition(player* player);

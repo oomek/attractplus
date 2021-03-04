@@ -362,7 +362,7 @@ namespace gameswf
 	}
 
 	// called from audio callback
-	bool sound::mix(Uint8* stream, int len, array< gc_ptr<listener> >* listeners, float max_volume)
+	bool sound::mix(Uint8* stream, int len, tu_array< gc_ptr<listener> >* listeners, float max_volume)
 	{
 		if (m_is_paused)
 		{
@@ -421,7 +421,7 @@ namespace gameswf
 		int pause = 1;
 		memset(stream, 0, len);
 
-		array< gc_ptr<listener> > listeners;
+		tu_array< gc_ptr<listener> > listeners;
 
 		// mix Flash audio
 		for (hash<int, gc_ptr<sound> >::iterator snd = handler->m_sound.begin();

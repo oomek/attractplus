@@ -123,7 +123,7 @@ struct render_handler_d3d : public gameswf::render_handler
   static D3DFORMAT m_FormatA;
   static D3DXMATRIX m_ModelViewMatrix;
   static D3DXMATRIX m_ProjMatrix;
-  static array<IDirect3DBaseTexture*> m_d3d_textures;
+  static tu_array<IDirect3DBaseTexture*> m_d3d_textures;
 
   void set_antialiased(bool enable)
   {
@@ -1465,7 +1465,7 @@ D3DFORMAT         render_handler_d3d::m_FormatRGBA;
 D3DFORMAT         render_handler_d3d::m_FormatA;
 D3DXMATRIX        render_handler_d3d::m_ModelViewMatrix;
 D3DXMATRIX        render_handler_d3d::m_ProjMatrix;
-array<IDirect3DBaseTexture*> render_handler_d3d::m_d3d_textures;
+tu_array<IDirect3DBaseTexture*> render_handler_d3d::m_d3d_textures;
 
 gameswf::render_handler*  gameswf::create_render_handler_d3d(IDirect3DDevice* device)
 // Factory.

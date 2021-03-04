@@ -43,7 +43,7 @@ namespace gameswf
 		exported_module void resize(int size) { m_array.resize(size); }
 
 		tu_string m_string_value;
-		array<as_value> m_array;
+		tu_array<as_value> m_array;
 	};
 
 	// this is "_global.Array" object

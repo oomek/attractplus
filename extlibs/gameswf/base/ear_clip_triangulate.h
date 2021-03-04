@@ -25,19 +25,19 @@ namespace ear_clip_triangulate
 
 	// coord type sint16
 	void compute(
-		array<sint16>* results,
+		tu_array<sint16>* results,
 		int path_count,
-		const array<sint16> paths[],
+		const tu_array<sint16> paths[],
 		int debug_halt_step = -1,
-		array<sint16>* debug_remaining_loop = NULL);
+		tu_array<sint16>* debug_remaining_loop = NULL);
 
 	// coord type float
 	void compute(
-		array<float>* results,
+		tu_array<float>* results,
 		int path_count,
-		const array<float> paths[],
+		const tu_array<float> paths[],
 		int debug_halt_step = -1,
-		array<float>* debug_remaining_loop = NULL);
+		tu_array<float>* debug_remaining_loop = NULL);
 }
 
 

@@ -122,7 +122,7 @@ namespace gameswf
 
 		void append(void* data, int size, SDL_sound_handler* handler);
 		void play(int loops, SDL_sound_handler* handler);
-		bool mix(Uint8* stream,	int len, array< gc_ptr<listener> >* listeners, float max_volume);
+		bool mix(Uint8* stream,	int len, tu_array< gc_ptr<listener> >* listeners, float max_volume);
 		void pause(bool paused);
 		int  get_played_bytes();
 
@@ -135,7 +135,7 @@ namespace gameswf
 		int m_sample_count;
 		int m_sample_rate;
 		bool m_stereo;
-		array<gc_ptr<active_sound> > m_playlist;
+		tu_array<gc_ptr<active_sound> > m_playlist;
 		bool m_is_paused;
 		gc_ptr<listener> m_listeners;	// onSoundComplete event listeners
 	};

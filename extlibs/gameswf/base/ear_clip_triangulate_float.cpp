@@ -11,11 +11,11 @@
 
 namespace ear_clip_triangulate {
 	void compute(
-		array<float>* results,
+		tu_array<float>* results,
 		int path_count,
-		const array<float> paths[],
+		const tu_array<float> paths[],
 		int debug_halt_step,
-		array<float>* debug_edges)
+		tu_array<float>* debug_edges)
 	{
 		ear_clip_triangulate::compute_triangulation<float>(results, path_count, paths, debug_halt_step, debug_edges);
 	}

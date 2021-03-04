@@ -25,7 +25,7 @@ namespace gameswf
 	struct as_mcloader;
 
 	const char*	next_slash_or_dot(const char* word);
-	void	execute_actions(as_environment* env, const array<action_buffer*>& action_list);
+	void	execute_actions(as_environment* env, const tu_array<action_buffer*>& action_list);
 
 	// this stuff should be high optimized
 	// thus I can't use here set_member(...);
@@ -291,8 +291,8 @@ namespace gameswf
 				if (m_current_frame == 0 && m_def->get_frame_count() > 1)
 				{
 					// affected depths
-					const array<execute_tag*>& playlist = m_def->get_playlist(0);
-					array<int> affected_depths;
+					const tu_array<execute_tag*>& playlist = m_def->get_playlist(0);
+					tu_array<int> affected_depths;
 					for (int i = 0; i < playlist.size(); i++)
 					{
 						int depth = (playlist[i]->get_depth_id_of_replace_or_add_tag()) >> 16;
@@ -366,7 +366,7 @@ namespace gameswf
 		// Execute this frame's init actions, if necessary.
 		if (m_init_actions_executed[frame] == false)
 		{
-			const array<execute_tag*>*	init_actions = m_def->get_init_actions(frame);
+			const tu_array<execute_tag*>*	init_actions = m_def->get_init_actions(frame);
 			if (init_actions && init_actions->size() > 0)
 			{
 				// Need to execute these actions.
@@ -382,7 +382,7 @@ namespace gameswf
 			}
 		}
 
-		const array<execute_tag*>&	playlist = m_def->get_playlist(frame);
+		const tu_array<execute_tag*>&	playlist = m_def->get_playlist(frame);
 		for (int i = 0; i < playlist.size(); i++)
 		{
 			execute_tag*	e = playlist[i];
@@ -431,7 +431,7 @@ namespace gameswf
 		assert(frame >= 0);
 		assert(frame < m_def->get_frame_count());
 
-		const array<execute_tag*>&	playlist = m_def->get_playlist(frame);
+		const tu_array<execute_tag*>&	playlist = m_def->get_playlist(frame);
 		for (int i = 0; i < playlist.size(); i++)
 		{
 			execute_tag*	e = playlist[i];
@@ -446,7 +446,7 @@ namespace gameswf
 
 		for (int f = frame - 1; f >= 0; f--)
 		{
-			const array<execute_tag*>&	playlist = m_def->get_playlist(f);
+			const tu_array<execute_tag*>&	playlist = m_def->get_playlist(f);
 			for (int i = playlist.size() - 1; i >= 0; i--)
 			{
 				execute_tag*	e = playlist[i];
@@ -467,7 +467,7 @@ namespace gameswf
 		assert(frame >= 0);
 		assert(frame < m_def->get_frame_count());
 
-		const array<execute_tag*>&	playlist = m_def->get_playlist(frame);
+		const tu_array<execute_tag*>&	playlist = m_def->get_playlist(frame);
 		for (int i = 0; i < playlist.size(); i++)
 		{
 			execute_tag*	e = playlist[i];
@@ -505,7 +505,7 @@ namespace gameswf
 		}
 	}
 
-	void sprite_instance::do_actions(const array<action_buffer*>& action_list)
+	void sprite_instance::do_actions(const tu_array<action_buffer*>& action_list)
 	{
 		for (int i = 0; i < action_list.size(); i++)
 		{
@@ -626,7 +626,7 @@ namespace gameswf
 	}
 
 	character* sprite_instance::add_display_object( Uint16 character_id, const tu_string& name,
-		const array<swf_event*>& event_handlers, int depth, bool replace_if_depth_is_occupied,
+		const tu_array<swf_event*>& event_handlers, int depth, bool replace_if_depth_is_occupied,
 		const cxform& color_transform, const matrix& matrix, float ratio, Uint16 clip_depth, Uint8 blend_mode)
 		// Add an object to the display list.
 	{
@@ -828,7 +828,7 @@ namespace gameswf
 			return;
 		}
 
-		array<with_stack_entry>	empty_with_stack;
+		tu_array<with_stack_entry>	empty_with_stack;
 		tu_string	path(path_to_var);
 		as_value	val(new_value);
 
@@ -850,7 +850,7 @@ namespace gameswf
 
 		assert(m_parent == NULL);	// should only be called on the root movie.
 
-		array<with_stack_entry>	empty_with_stack;
+		tu_array<with_stack_entry>	empty_with_stack;
 		tu_string	path(path_to_var);
 		as_value	val(new_value);
 
@@ -861,7 +861,7 @@ namespace gameswf
 	{
 		assert(m_parent == NULL);	// should only be called on the root movie.
 
-		array<with_stack_entry>	empty_with_stack;
+		tu_array<with_stack_entry>	empty_with_stack;
 		tu_string	path(path_to_var);
 
 		// NOTE: this is static so that the string
@@ -1020,7 +1020,7 @@ namespace gameswf
 		int	top_action = m_action_list.size();
 
 		// Execute the actions.
-		const array<execute_tag*>&	playlist = m_def->get_playlist(frame_number);
+		const tu_array<execute_tag*>&	playlist = m_def->get_playlist(frame_number);
 		for (int i = 0; i < playlist.size(); i++)
 		{
 			execute_tag*	e = playlist[i];
@@ -1165,7 +1165,7 @@ namespace gameswf
 	{
 		assert(m_parent == NULL);	// should only be called on the root movie.
 
-		array<with_stack_entry>	dummy;
+		tu_array<with_stack_entry>	dummy;
 		as_value	obj = m_as_environment.get_variable(tu_string(path_to_object), dummy);
 
 		character*	m = cast_to<character>(obj.to_object());
