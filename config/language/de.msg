@@ -1,4 +1,4 @@
-#@Deutsch
+﻿#@Deutsch
 #
 # Interface strings
 #
@@ -23,7 +23,7 @@ Artwork Label;Bezeichnung der Bilddatei
 Artwork Path;Pfad zur Bilddatei
 Back;Zurück
 Category;Kategorie
-CloneOf;Clon von
+CloneOf;Clone von
 Collection/Rom List;Sammlung/Romliste
 Command;Kommando
 Command Arguments;Kommandozeilenargumente
@@ -70,7 +70,7 @@ Emulator;Emulator
 Emulator Name;Name des Emulators
 Emulators;Emulatoren
 Enabled;Aktiviert
-Enter Display Name;Bezeichnung des Bildschrim eingeben
+Enter Display Name;Bezeichnung des Bildschirms eingeben
 Enter Emulator Name;Name des Emulators eingeben
 Enter Filter Name;Bezeichnung des Filters eingeben
 Executable;Ausführbare Datei
@@ -89,14 +89,14 @@ Filter Value;Filterwert
 Filter Wrap Mode;Rolliermodus des Filters
 Filters Menu;Filter-Menü
 Flip;Umdrehen
-Font Path;Pfad zu den Fonts
+Font Path;Pfad zu den Schriftarten
 Fullscreen Mode;Vollbildmodus
 Game Return Sound;Klang bei Rückkehr zum Spiel
 General;Allgemein
-Generate Collection/Rom List;Sammlung/Romliste anlegen
+Generate Collection/Rom List;Sammlung/Romliste erstellen
 Generating Rom List: $1%;Erzeuge Romliste $1%
 Global Filter;Globaler Filter
-Hide Brackets in Game Title;Unterdrücke Klammern im Spieltitel
+Hide Brackets in Game Title;Unterdrücke Klammern in Spieltiteln
 Info Source/Scraper;Info Quelle/Scraper
 Joystick Threshold;Schwellwert Joystick
 Jump to Next Display;Springe zur nächsten Liste
@@ -113,7 +113,7 @@ Next Display;Nächster Bildschirm
 Next Favourite;Nächster Favorit
 Next Filter;Nächster Filter
 Next Letter;Nächster Buchstabe
-Next Page;Seite zurück
+Next Page;Nächste Seite
 No;Nein
 No Sort;Keine Sortierung
 No Wrap;Kein Rollieren
@@ -130,7 +130,7 @@ Previous Display;Vorheriger Bildschirm
 Previous Favourite;Voriger Favorit
 Previous Filter;Vorheriger Filter
 Previous Letter;Voriger Buchstabe
-Previous Page;Seite vor
+Previous Page;Vorherige Seite
 Random Game;Zufälliges Spiel
 Remove Input;Steuerung löschen
 Replay Last Game;Letztes Spiel wiederholen
@@ -187,7 +187,7 @@ equals;ist gleich
 #
 _help_art;Eine Bilddatei-Quelle, welche im Thema verfügbar ist
 _help_art_add;Füge eine neue Bilddatei-Quelle (Marquees, Screenshots etc.) hinzu
-_help_art_label;Kennzeichnung zur Identikikation dieser Bilddatei-Quelle (verwendet in Themen)
+_help_art_label;Kennzeichnung zur Identifikation dieser Bilddatei-Quelle (verwendet in Themen)
 _help_art_path;Der Pfad zu den Dateien für diese Bilddatei. Mehrere Pfade können durch Semikolon getrennt werden.
 _help_back;Menü verlassen
 _help_confirm_favs;Das Hinzufügen/Löschen zu den Favoriten bestätigen
@@ -205,34 +205,34 @@ _help_control_next_display;Definiere die Taste(n), um zum nächsten Bildschirm z
 _help_control_next_favourite;Definiere die Taste(n), um zum nächsten Favoriten zu springen
 _help_control_next_filter;Definiere die Taste(n), um zum nächsten Filter zu springen
 _help_control_next_letter;Definiere die Taste(n), um zum nächsten Buchstaben zu springen
-_help_control_next_page;Definiere die Taste(n), um die Auswahl eine Seite nach unten zu bewegen
+_help_control_next_page;Definiere die Taste(n), um die Auswahl zur nächsten Seite zu bewegen
 _help_control_prev_display;Definiere die Taste(n), um zum vorigen Bildschirm zu springen
 _help_control_prev_favourite;Definiere die Taste(n), um zum vorigen Favoriten zu springen
 _help_control_prev_filter;Definiere die Taste(n), um zum vorigen Filter zu springen
 _help_control_prev_letter;Definiere die Taste(n), um zum vorigen Buchstaben zu springen
-_help_control_prev_page;Definiere die Taste(n), um die Auswahl eine Seite nach oben zu bewegen
+_help_control_prev_page;Definiere die Taste(n), um die Auswahl zur vorherigen Seite zu bewegen
 _help_control_random_game;Definiere die Taste(n), die ein zufälliges Spiel aus der aktuellen Liste wählen
 _help_control_replay_last_game;Definiere die Taste(n), die das zuletzt gespielte Spiel erneut starten
 _help_control_screen_saver;Definiere die Taste(n), die den Bildschirmschoner starten
-_help_control_screenshot;Definiere die Taste(n), um das einen Screenshot vom Frontend zu machen
-_help_control_select;Definiere die Taste(n), um die aktuelle Auswahl starten
-_help_control_toggle_flip;Definiere die Taste(n), die umschalten ob der Bildschirm 180 Grad gedreht werden soll
-_help_control_toggle_layout;Definiere die Taste(n), die umschalten welches Themen-Script genutzt wird (Es hängt aber vom verwendeten Thema ab, ob dies überhaupt etwas bewirkt)
-_help_control_toggle_movie;Definiere die Taste(n), die umschalten ob Videos abgespielt werden oder nicht
-_help_control_toggle_mute;Definiere die Taste(n), die die Frontend-Klänge stumm/laut schalten
-_help_control_toggle_rotate_left;Definiere die Taste(n), die umschalten ob der Bildschirm 90 Grad nach links gedreht werden soll
-_help_control_toggle_rotate_right;Definiere die Taste(n), die umschalten ob der Bildschirm 90 Grad nach rechts gedreht werden soll
+_help_control_screenshot;Definiere die Taste(n), um ein Bildschirmphoto vom Frontend zu machen
+_help_control_select;Definiere die Taste(n), um die aktuelle Auswahl zu starten
+_help_control_toggle_flip;Definiere die Taste(n), die den Bildschirm um 180 Grad drehen
+_help_control_toggle_layout;Definiere die Taste(n), die das Thema wechseln (Dies funktioniert nicht bei allen Themen)
+_help_control_toggle_movie;Definiere die Taste(n) für Videos an/aus
+_help_control_toggle_mute;Definiere die Taste(n) für Frontend-Klänge an/aus
+_help_control_toggle_rotate_left;Definiere die Taste(n) für eine 90 Grad Drehung des Bildschirms gegen den Uhrzeigersinn
+_help_control_toggle_rotate_right;Definiere die Taste(n) für eine 90 Grad Drehung des Bildschirms im Uhrzeigersinn
 _help_control_up;Definiere die Taste(n), um die Auswahl nach oben zu bewegen
 _help_controls;Konfiguriere die Joystick-, Tastatur- und Maus-Eingaben die Attract-Mode steuern
 _help_default_font;Bezeichnung der zu nutzenden Standard-Schriftart
 _help_display_add;Neuen Bildschirm hinzufügen
-_help_display_add_filter;Füge einen Filter dem Filter-Set dieses Bildschirm hinzu
+_help_display_add_filter;Füge einen Filter dem Filter-Set dieses Bildschirms hinzu
 _help_display_delete;Diesen Bildschirm löschen
 _help_display_filter;Konfiguriere diesen Filter vom Filter-Set des Bildschirms
-_help_display_global_filter;Konfiguriere die globalen Filterregeln, die auf jeden Eintrag in der Sammlung/Romliste dieses Bildschirm angewendet werden
+_help_display_global_filter;Konfiguriere die globalen Filterregeln, die auf jeden Eintrag in der Sammlung/Romliste dieses Bildschirms angewendet werden
 _help_display_layout;Welches Thema soll dieser Bildschirm nutzen
 _help_display_layout_options;Konfiguriere alle Themen-spezifischen Optionen
-_help_display_name;Der Titel dieses Bildschirms
+_help_display_name;Der Titel des aktuellen Bildschirms
 _help_display_romlist;Die Sammlung/Romliste, die für diesen Bildschirm verwendet wird
 _help_display_sel;Konfiguriere Bildschirm
 _help_displays;Konfiguriere die Romlisten/Themen-Gruppierungen (die "Bildschirme") welche in Attract-Mode zum Durchblättern verfügbar sind
@@ -240,12 +240,12 @@ _help_displays_menu_exit;Lege fest, ob eine Beenden-Option im "Bildschirm Menü"
 _help_emu_add;Neuen Emulator hinzufügen
 _help_emu_args;Die Kommandozeilenargumente für diesen Emulator. Folgende Einträge werden entsprechend ersetzt: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
 _help_emu_delete;Lösche den Eintrag für diesen Emulator
-_help_emu_executable;Der komplette Pfad und Bezeichnung der Emulator Executable. $HOME wird durch die Homedir des Users ersetzt
+_help_emu_executable;Der komplette Pfad und die Bezeichnung der Programmdatei des Emulators. $HOME wird durch die Homedir des Users ersetzt
 _help_emu_exit_hotkey;Definiere einen globalen Hotkey, um den Emulator zu verlassen.  Attract-Mode wird den Emulator Prozess beenden, wenn dieser Hotkey betätigt wird.
 _help_emu_gen_romlist;Generiere eine Romliste, indem der eingestellte ROM-Pfad nach ROMs mit der definierten Endung durchsucht wird. Falls verfügbar, werden XML-Informationen und zusätzliche Import-Dateien mit einbezogen.
 _help_emu_import_extras;Pfad zu beliebigen zusätzlichen Dateien welche gelesen werden müssen wenn eine Romliste für diesen Emulator generiert wird. Unterstützte Dateien sind: catver.ini (für Spiele Kategorien) und nplayers.ini (für Anzahl an Spielern).  Mehrere Dateipfade können durch Semikolon getrennt werden.
 _help_emu_info_source;Verwende "listxml" falls der Emulator mame -listxml Ausgabe bereitstellt, "listsoftware" für mame/mess -listsoftware Ausgabe, "thegamesdb.net" um Daten von thegamesdb.net zu scrapen, oder "steam" um von einer Steam-Installation zu lesen. "listsoftware" und "thegamesdb.net" benötigen zusätzlich die Konfiguration einer System-Kennung welche von diesen Ressourcen erkannt wird
-_help_emu_nb_mode_wait;Definiere eine minimale Laufzeit (in Sekunden).  Attract-Mode wird nach dem Lauf dieses Emulators warten bis die minimale Zeit verstrichen ist und es zum Vordergund-Fenster wird. Dies wird speziell benötigt, um Steam korrekt unter Windows auszuführen. Lass es auf 0 stehen, ausser du weisst, dass du es benötigst
+_help_emu_nb_mode_wait;Definiere eine minimale Wartezeit (in Sekunden).  Attract-Mode wird bei Aktivierung dieses Emulators warten bis die minimale Zeit verstrichen ist und es zum Vordergund-Fenster wird. Dies wird speziell benötigt, um Steam korrekt unter Windows auszuführen. Lass es auf 0 stehen, außer du weißt, dass du es benötigst
 _help_emu_romext;Die ROM Dateiendung(en) für diesen Emulator (z.B. .zip). Mehrere Endungen können durch Semikolon getrennt werden. Gib "<DIR>" als Eintrag an, falls die Spiele in separaten Unterverzeichnissen gespeichert sind
 _help_emu_rompath;Der Pfad zu den ROMs für diesen Emulator. Mehrere Pfade können durch Semikolon getrennt werden.
 _help_emu_scrape_artwork;Scrape fehlende Bilddateien für diesen Emulator von TheGamesDB.net und mamedb.com
@@ -260,7 +260,7 @@ _help_filter_name;Bezeichnung für diesen Filter
 _help_filter_rule;Konfiguriere Filterregel
 _help_filter_sort_by;Das Spiel-Informationsattribut nach dem du die Sammlung/Romliste sortieren möchtest. Stelle auf "Keine Sortierung" um die Sortierung der Quell-Sammlung/Romliste zu verwenden
 _help_filter_wrap_mode;Definiere was passieren soll wenn die "Nächster Filter" oder "Vorheriger Filter" Aktionen das Ende Filterliste erreichen
-_help_font_path;Die Verzeichnisse mit den Schriftarten. Mehrere Verzeichnisse können angegeben werden, durch Semikolon separiert.  Attract-Mode wird diese Verzeichnisse rekursiv durchsuchen um die angegebene Schriftart zu finden
+_help_font_path;Die Verzeichnisse mit den Schriftarten. Mehrere Verzeichnisse können durch Semikolon separiert werden.  Attract-Mode wird diese Verzeichnisse rekursiv durchsuchen um die angegebene Schriftart zu finden
 _help_hide_brackets;Verberge bei der Anzeige der Spieletitel den Text in Klammern 
 _help_input_action;
 _help_input_add;Dieser Aktion ein neues Steuerungs-Mapping zuordnen
@@ -275,11 +275,11 @@ _help_plugin_sel;Konfiguriere Plug-in
 _help_plugins;Konfiguriere verfügbare Plug-ins
 _help_rule_comp;Vergleichstyp für diesen Filter
 _help_rule_delete;Diese Filterregel löschen
-_help_rule_target;Das Spiel-Informationsattribut basierend auf dem du filtern möchtest
-_help_rule_value;The reguläre Ausdruckswert nach dem gefiltert wird. Wenn zum Beispiel der Filter auf "Jahr" und der Vergleichswert auf "ist gleich" gesetzt wird, wird ein Wert "1984" das Jahr 1984 filtern, "198." jedes Jahr in den Achtzigern und "(198.)|(199.)" jedes Jahr in den 80er oder 90ern
-_help_scrape_fanart;Lege fest ob, Spiel Fanart während des Scrapens heruntergeladen werden sollen
-_help_scrape_flyers;Lege fest ob, Spiel Flyers und Box Cover während des Scrapens heruntergeladen werden sollen
-_help_scrape_marquees;Lege fest ob, Spiel Marquees und Banner während des Scrapens heruntergeladen werden sollen
+_help_rule_target;Das Spiel-Informationsattribut nach welchem du filtern möchtest
+_help_rule_value;Der reguläre Ausdruckswert nach dem gefiltert wird. Wenn zum Beispiel der Filter auf "Jahr" und der Vergleichswert auf "ist gleich" gesetzt wird, wird ein Wert "1984" das Jahr 1984 filtern, "198." jedes Jahr in den Achtzigern und "(198.)|(199.)" jedes Jahr in den 80ern und 90ern
+_help_scrape_fanart;Lege fest ob, Spiele Fanart während des Scrapens heruntergeladen werden soll
+_help_scrape_flyers;Lege fest ob, Spiele Flyer und Box Covers während des Scrapens heruntergeladen werden sollen
+_help_scrape_marquees;Lege fest ob, Spiele Marquees und Banner während des Scrapens heruntergeladen werden sollen
 _help_scrape_snaps;Lege fest ob, Spiel Snapshots während des Scrapens heruntergeladen werden sollen
 _help_scrape_vids;Lege fest ob, Videos der Spiele während des Scrapens heruntergeladen werden sollen
 _help_scrape_wheels;Lege fest ob, Spiel Logos während des Scrapens heruntergeladen werden sollen
@@ -288,7 +288,7 @@ _help_screen_saver;Konfiguriere Bildschirmschoner
 _help_screen_saver_timeout;Die Wartezeit in Sekunden, bevor der Bildschirmschoner aktiv wird. 0 zum Deaktivieren
 _help_sound;Konfiguriere Klang-Lautstärke, Klang->Ereignis Zuordnungen und den Umgebungs-Soundtrack
 _help_sound_sel;Weise diesem Ereignis/dieser Aktion einen Klang zu
-_help_track_usage;Konfiguriere, ob Attract-Mode die Nutzung protokollieren soll (gespielte Zeit und wie-oft-gespielt pro Spiel)
+_help_track_usage;Konfiguriere, ob Attract-Mode die Nutzung protokollieren soll (Gesamtspielzeit und Anzahl der Spielestarts pro Spiel)
 _help_volume;Gültige Lautstärke Einstellungen gehen von 0 (stumm) bis 100 
 _help_window_mode;Lege fest, ob Attract-Mode in einem Fenster läuft oder den Bildschirm füllt
 _sort_regexp;^(Vs\. The |The |Vs\. )
@@ -314,119 +314,110 @@ en;English
 es;Español
 fr;Français
 _help_autolaunch_last_game;Beim Hochfahren automatisch das zuletzt gespielte Spiel starten
-
-#@DONE_TRANSLATED
-#
-# Strings still needing translation
-#
-Add '$1' to Favourites?;Add '$1' to Favourites?
-Add Exception;Add Exception
-Add tag: '$1';Add tag: '$1'
-Artwork Name;Artwork Name
-Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
-Blank Game;Blank Game
-Buttons;Buttons
-Clear Hotkey?;Clear Hotkey?
-Configure / Displays Menu;Configure / Displays Menu
-Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure Intro;Configure Intro
-Configure Layout;Configure Layout
-Confirm Exit;Confirm Exit
-Create new tag;Create new tag
-Custom Arguments;Custom Arguments
-Custom Executable;Custom Executable
-Default;Default
-Default Action;Default Action
-Delete game '$1'?;Delete game '$1'?
-Delete shortcut '$1'?;Delete shortcut '$1'?
-Delete this Game;Delete this Game
-Delete this Shortcut;Delete this Shortcut
-Display Name;Display Name
-Edit Game;Edit Game
-Edit Shortcut;Edit Shortcut
-Enable Multiple Monitors;Enable Multiple Monitors
-Enter Romlist Name;Enter Romlist Name
-Enter new tag name;Enter new tag name
-Exception;Exception
-Exception Edit;Exception Edit
-Exit Message;Exit Message
+Add '$1' to Favourites?;Soll '$1' zu Favoriten hinzugefügt werden?
+Add Exception;Ausnahme hinzufügen
+Add tag: '$1';Etikett hinzufügen: '$1'
+Artwork Name;Bilddateiname
+Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode hat Emulatoren gefunden, die automatisch hinzugefügt werden können, sollen diese jetzt integriert werden?
+Blank Game;Spiele-Platzhalter
+Buttons;Tasten
+Clear Hotkey?;Tastenkombination entfernen?
+Configure / Displays Menu;Konfiguration / Bildschirmmenü
+Configure / Joystick Mapping;Konfiguration / Joystick Belegung
+Configure Intro;Intro Sequenz konfigurieren
+Configure Layout;Konfiguriere das Thema
+Confirm Exit;Beenden bestätigen
+Create new tag;neues Etikett erstellen
+Custom Arguments;benutzerdefinierte Argumente
+Custom Executable;benutzerdefinierte Programmdatei
+Default;Grundeinstellung
+Default Action;Standardaktion
+Delete game '$1'?;Lösche Spiel '$1'?
+Delete shortcut '$1'?;Lösche Verknüpfung '$1'?
+Delete this Game;Lösche dieses Spiel
+Delete this Shortcut;Lösche diese Verknüpfung
+Display Name;Bildschirmname
+Edit Game;editiere das Spiel
+Edit Shortcut;editiere die Verknüpfung
+Enable Multiple Monitors;mehrere Monitore zulassen
+Enter Romlist Name;benenne die Romliste
+Enter new tag name;gib einen neuen Etikettennamen ein
+Exception;Ausnahme
+Exception Edit;editiere die Ausnahme
+Exit Message;Abschiedsnachricht
 Extra;Extra
-FileIsAvailable;FileIsAvailable
-Image Cache Size;Image Cache Size
-Insert Command Shortcut;Insert Command Shortcut
-Insert Display Shortcut;Insert Display Shortcut
-Insert Game Entry;Insert Game Entry
-Insert Menu Entry;Insert Menu Entry
+FileIsAvailable;Datei ist vorhanden
+Insert Command Shortcut;füge eine Kommandoverknüpfung ein
+Insert Display Shortcut;füge eine Bildschirmverknüpfung hinzu
+Insert Game Entry;Setze Spieleintrag
+Insert Menu Entry;Setze Menüeintrag
 Intro;Intro
 Joystick $1;Joystick $1
-Joystick Mappings;Joystick Mappings
-Launch Last Game;Launch Last Game
-Layout File;Layout File
-Menu Prompt;Menu Prompt
-Menu Style / Layout;Menu Style / Layout
-Next Game;Next Game
-Non-Blocking Mode Wait;Non-Blocking Mode Wait
-Overview;Overview
-Pause Hotkey;Pause Hotkey
-Please Wait;Please Wait
-Power Saving;Power Saving
-Press Hotkey;Press Hotkey
-Previous Game;Previous Game
-Remove '$1' from Favourites?;Remove '$1' from Favourites?
-Remove tag: '$1';Remove tag: '$1'
+Joystick Mappings;Joystick Belegung
+Launch Last Game;zuletzt gespieltes Spiel starten
+Layout File;Themendatei
+Menu Prompt;Eingabeaufforderung
+Menu Style / Layout;Menüstil / Thema
+Next Game;nächstes Spiel
+Non-Blocking Mode Wait;Klippo-Modus Wartezeit
+Overview;Übersicht
+Pause Hotkey;Pause Tastenkombination
+Please Wait;bitte warten
+Press Hotkey;betätige die Tastenkombination
+Previous Game;vorheriges Spiel
+Remove '$1' from Favourites?;Entferne '$1' aus den Favoriten?
+Remove tag: '$1';Entferne Etikett: '$1'
 Scrape Fanart;Scrape Fanart
-Scrape Videos (MAME only);Scrape Videos (MAME only)
-Select template to use for emulator settings;Select template to use for emulator settings
-Show Displays Menu;Show Displays Menu
-Show Last Selection (Default);Show Last Selection (Default)
-Show in Cycle;Show in Cycle
-Show in Menu;Show in Menu
-Startup Mode;Startup Mode
+Scrape Videos (MAME only);Scrape Videos (nur für MAME)
+Select template to use for emulator settings;Wähle Beispieldatei für die Emulator-Einstellungen
+Show Displays Menu;Bildschirmmenü anzeigen
+Show Last Selection (Default);Zeige die letzte Auswahl (Standard)
+Show in Cycle;Zeige in der Übersicht
+Show in Menu;Zeige im Menü
+Startup Mode;Startup Modus
 Video Decoder;Video Decoder
-Window (No Border);Window (No Border)
-Working Directory;Working Directory
+Window (No Border);Window (ohne Umrandung)
+Working Directory;Arbeitsverzeichnis
 multi;multi
-_help_confirm_exit;Confirm before exiting Attact-Mode?
-_help_control_back;Set the control(s) that go back
-_help_control_custom3;Set the "Custom3" control(s)
-_help_control_custom4;Set the "Custom4" control(s)
-_help_control_custom5;Set the "Custom5" control(s)
-_help_control_custom6;Set the "Custom6" control(s)
-_help_control_edit_game;Set the control(s) to edit the current selection
-_help_control_intro;Set the control(s) that show the intro video
-_help_control_left;Set the control(s) that move the selection left
-_help_control_next_game;Set the control(s) that move to the next game
-_help_control_prev_game;Set the control(s) that move to the previous game
-_help_control_right;Set the control(s) that move the selection right
-_help_display_in_cycle;Include this display in the "Previous Display"/"Next Display" cycle?
-_help_display_in_menu;Include this display in the "Displays Menu"?
-_help_displays_menu;Configure options for the "Displays Menu"
-_help_displays_menu_layout;The layout to use for the 'Displays Menu'. Set to 'Default' to use the frontend's built-in menu
-_help_displays_menu_prompt;The 'Displays Menu' prompt (i.e. "Select System")
-_help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
-_help_emu_sel_gen_romlist;Generate a Collection/Romlist containing games for multiple emulators
-_help_emu_workdir;The working directory for this emulator.  This is the directory that the frontend runs the emulator from.  Also, any relative rom paths, artwork paths, or additional import file paths are treated as being relative to this directory
-_help_exit_message;Alternate message to exit the frontend [i.e. "Shut Down System"]
-_help_filter_add_exception;Add an exception to this filter.  If a game matches an exception (and wasn't filtered out by an earlier rule) it will be listed in the filter
-_help_filter_exception;Configure this filter exception.  If a game matches an exception it will be listed in the filter.  Rules and exceptions get applied in the order that they are listed
-_help_game_custom_args;Set this to override the default command line arguments for this game.  Set this to [nothing] if you want to override with no parameters.  The following get substituted appropriately: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
-_help_game_custom_executable;Set this to override the default executable for this game
-_help_game_delete;Delete this game from the Romlist
-_help_game_edit;Edit this game information
-_help_game_overview;Edit game overview
-_help_generator_build;Generate romlist with the selected emulator(s)
-_help_generator_opt;Set whether this emulator is to be included in the generated romlist
-_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it.
-_help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
-_help_input_default_action;Set the default behaviour for this control
-_help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
-_help_language;Select the language to use in Attract-Mode's user interface
-_help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
-_help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
-_help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
-_help_shortcut_delete;Delete this shortcut from the Romlist
-_help_shortcut_label_edit;Edit this shortcut's label
-_help_shortcut_target_edit;Edit this shortcut's target
-_help_startup_mode;Set what should happen when Attract-Mode first starts up
-_help_video_decoder;Configure the decoder to use for video playback (if multiple decoders are available)
+_help_confirm_exit;Bestätigung vor Verlassen von Attact-Mode verlangen?
+_help_control_back;Definiere die Taste(n) für Zurück/Cancel
+_help_control_custom3;Definiere die Taste(n) für Eigendefiniert3
+_help_control_custom4;Definiere die Taste(n) für Eigendefiniert4
+_help_control_custom5;Definiere die Taste(n) für Eigendefiniert5
+_help_control_custom6;Definiere die Taste(n) für Eigendefiniert6
+_help_control_edit_game;Definiere die Taste(n) zum Editieren der aktuellen Auswahl
+_help_control_intro;Definiere die Taste(n) um das Intro-Video abzuspielen
+_help_control_left;Definiere die Taste(n) um die Auswahl nach links zu bewegen
+_help_control_next_game;Definiere die Taste(n) um das nächste Spiel auszuwählen
+_help_control_prev_game;Definiere die Taste(n) um das vorherige Spiel auszuwählen
+_help_control_right;Definiere die Taste(n) um die Auswahl nach rechts zu bewegen
+_help_display_in_cycle;Soll dieser Bildschirm in "Vorheriger Bildschirm"/"Nächster Bildschirm" in der Übersicht angezeigt werden?
+_help_display_in_menu;Soll dieser Bildschirm im "Bildschirmmenü" angezeigt werden?
+_help_displays_menu;Konfiguriere die Optionen für das "Bildschirmmenü"
+_help_displays_menu_layout;Wähle das Thema für das 'Bildschirmmenü'. Wähle 'Standard', um das voreingestellte Menü des Frontends zu verwenden
+_help_displays_menu_prompt;Die 'Bildschirmmenü' Aufforderung (z.B. "Select System")
+_help_emu_pause_hotkey;Definiere eine globale Tastenkombination um Emulatoren zu pausieren. Wird diese benutzt pausiert Attract-Mode jegliche Emulation und kehrt zum Frontend zurück. Um die Emulation fortzusetzen muss dasselbe Spiel wie vorher ausgewählt werden.
+_help_emu_sel_gen_romlist;Erstelle eine Sammlung/Romliste, die aus Spielen verschiedener Emulatoren besteht.
+_help_emu_workdir;Arbeitsverzeichnis dieses Emulators. Von hier aus startet das Frontend den gewählten Emulator. Dabei wird angenommen, dass alle relativen Pfade, Ordner für Bilddateien oder etwaige Zusatzdateien zu diesem Verzeichnis relativ positioniert sind.
+_help_exit_message;Alternative Abschiedsnachricht beim Beenden des Programms [z.B. "Erstmal"]
+_help_filter_add_exception;Füge eine Ausnahme zu diesem Filter hinzu. Stimmt ein Spiel mit dieser Ausnahme überein und wurde nicht anderweitig herausgefiltert, wird es mittles dieses Filters angezeigt
+_help_filter_exception;Konfiguriere eine Filterausnahme. Stimmt ein Spiel mit dieser Ausnahme überein, wird es im Filter aufgelistet. Regeln und Ausnahmen werden in der selben Reihenfolge angewandt in der sie aufgelistet sind
+_help_game_custom_args;Nutze dies, um die Standard Kommandozeilenattribute für dieses Spiel außer Kraft zu setzen. Setze das Argument [nothing] wenn hierbei keine Parameter angewandt werden sollen. Folgendes kann analog verwendet werden: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
+_help_game_custom_executable;Nutze dies, um die Standart Programmdatei für dieses Spiel zu überschreiben.
+_help_game_delete;Lösche dieses Spiel aus der Romliste
+_help_game_edit;Editiere die Information zu diesem Spiel
+_help_game_overview;Editiere die Spieleübersicht
+_help_generator_build;Erstelle eine Romliste mit dem/den ausgewählten Emulator(en)
+_help_generator_opt;Wähle, ob dieser Emulator in der zu erstellenden Romliste enthalten sein soll
+_help_hide_console;Verstecke das Kommandozeilenfenster beim Starten. Bitte beachte, dass dies nur in einer Windows Schaltfläche funktioniert. Wird die Anwendung durch ein Kommandozeilenfenster, wie z.B. einer Batch-Datei, gestartet, wird der Ladevorgang and dieses Fenster gebunden sein
+_help_input_default_action;Setze ein Standardverhalten für diese Eingabe
+_help_joystick_map;Hier kannst du das Frontend zwingen bestimmte Joystick ports immer denselben Joysticks/Gamepads zuzuweisen (So kannst du zum Beispiel 'Microsoft X-Box 360 pad' immer als Joystick 0 verwenden.)
+_help_language;Wähle die Sprache in der Attract-Mode angezeigt wird
+_help_layout_file;Manche Themen haben mehrere .NUT Dateien. Wähle welche standardgemäß verwendet werden soll
+_help_multiple_monitors;Wähle ob Attract-Mode mehrere Monitore verwendet. Ist 'No' gewählt, kann das Flackern beim Start einiger Spiele reduzieren
+_help_shortcut_artwork_name_edit;Hier kannst du Bilddateien einer Verknüpfung zuordnen. Das Frontend wird versuchen Bilddateien mit diesem Namen zu laden wenn die jeweilige Verknüpfung angezeigt wird
+_help_shortcut_delete;Lösche diese Verknüpfung aus der Romliste
+_help_shortcut_label_edit;Editiere den Namen der Verknüpfung
+_help_shortcut_target_edit;Editiere das Ziel der Verknüpfung
+_help_startup_mode;Wähle, was passieren soll, wenn Attract-Mode das erste Mal startet
+_help_video_decoder;Konfiguriere den Decoder für die Video Wiedergabe (falls mehrere Decoder verfügbar sind)
