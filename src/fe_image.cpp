@@ -1380,7 +1380,7 @@ void FeImage::scale()
 				// ratio, so calculate how we will centre the image in the space we have
 				//
 				sf::Transform t;
-				t.rotate( m_sprite.getRotation() );
+				t.rotate( m_rotation );
 
 				if ( scale_x > scale_y * ratio ) // centre in x direction
 					final_pos += t.transformPoint(
