@@ -1121,6 +1121,40 @@ bool FeVM::on_new_layout()
 		}
 	}
 
+	//
+	// Now run any plugin script(s), skip for intro
+	//
+	if ( ps != FeSettings::Intro_Showing )
+	{
+		const std::vector< FePlugInfo > &plugins = m_feSettings->get_plugins();
+
+		for ( int i=0; i<(int)plugins.size(); i++ )
+		{
+			// Don't run disabled plugins...
+			if ( plugins[i].get_enabled() == false )
+				continue;
+
+			std::string plug_path, plug_name;
+			m_feSettings->get_plugin_full_path(
+					plugins[i].get_name(),
+					plug_path,
+					plug_name );
+
+			if ( !plug_name.empty() )
+			{
+				fe.SetValue( _SC("script_dir"), plug_path );
+				fe.SetValue( _SC("script_file"), plug_name );
+				m_script_cfg = &(plugins[i]);
+				m_script_id = i;
+
+				run_script( plug_path, plug_name );
+			}
+		}
+	}
+
+	//
+	// Run layout
+	//
 	if ( skip_layout )
 	{
 		FeDisplayInfo *di = m_feSettings->get_display(
@@ -1139,33 +1173,6 @@ bool FeVM::on_new_layout()
 				<< " (" << filename << ")" << std::endl;
 	}
 
-	//
-	// Now run any plugin script(s)
-	//
-	const std::vector< FePlugInfo > &plugins = m_feSettings->get_plugins();
-
-	for ( int i=0; i<(int)plugins.size(); i++ )
-	{
-		// Don't run disabled plugins...
-		if ( plugins[i].get_enabled() == false )
-			continue;
-
-		std::string plug_path, plug_name;
-		m_feSettings->get_plugin_full_path(
-				plugins[i].get_name(),
-				plug_path,
-				plug_name );
-
-		if ( !plug_name.empty() )
-		{
-			fe.SetValue( _SC("script_dir"), plug_path );
-			fe.SetValue( _SC("script_file"), plug_name );
-			m_script_cfg = &(plugins[i]);
-			m_script_id = i;
-
-			run_script( plug_path, plug_name );
-		}
-	}
 
 	fe.SetValue( _SC("script_dir"), "" );
 	fe.SetValue( _SC("script_file"), "" );
