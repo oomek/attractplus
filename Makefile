@@ -97,14 +97,14 @@ override PKG_CONFIG := $(TOOLCHAIN)-$(PKG_CONFIG)
 override WINDRES := $(TOOLCHAIN)-$(WINDRES)
 endif
 
-prefix=/usr/local
+prefix ?= /usr/local
 datarootdir=$(prefix)/share
 datadir=$(datarootdir)
 exec_prefix=$(prefix)
 bindir=$(exec_prefix)/bin
 
 DATA_PATH:=$(datadir)/attract/
-EXE_BASE=attract
+EXE_BASE=attractplus
 EXE_EXT=
 OBJ_DIR=obj
 SRC_DIR=src
@@ -278,7 +278,7 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
  ifeq ($(WINDOWS_CONSOLE),1)
   CFLAGS += -mconsole
   FE_FLAGS += -DWINDOWS_CONSOLE
-  EXE_BASE=attract-console
+  EXE_BASE=attractplus-console
  else
   CFLAGS += -Wl,--subsystem,windows
  endif
