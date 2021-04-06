@@ -1093,36 +1093,7 @@ bool FeVM::on_new_layout()
 	write_non_volatile_from_string( "nv", nv );
 
 	//
-	// Run the layout script
-	//
-	std::string path, filename;
-	bool skip_layout = !m_feSettings->get_path( FeSettings::Current, path, filename );
-
-	std::string rep_path( path );
-
-	fe.SetValue( _SC("script_dir"), path );
-	fe.SetValue( _SC("script_file"), filename );
-	m_script_cfg = &layout_params;
-	m_script_id = -1;
-
-	if ( filename.empty() )
-	{
-		if ( ps == FeSettings::Intro_Showing )
-			return false; // silent fail if intro is not found
-		else
-		{
-			// if there is no script file at this point,
-			// we try loader script instead
-			//
-			m_feSettings->get_path( FeSettings::Loader,
-				path, filename );
-
-			fe.SetValue( _SC("loader_dir"), path );
-		}
-	}
-
-	//
-	// Now run any plugin script(s), skip for intro
+	// Run any plugin script(s), skip for intro
 	//
 	if ( ps != FeSettings::Intro_Showing )
 	{
@@ -1153,8 +1124,34 @@ bool FeVM::on_new_layout()
 	}
 
 	//
-	// Run layout
+	// Run the layout script
 	//
+	std::string path, filename;
+	bool skip_layout = !m_feSettings->get_path( FeSettings::Current, path, filename );
+
+	std::string rep_path( path );
+
+	fe.SetValue( _SC("script_dir"), path );
+	fe.SetValue( _SC("script_file"), filename );
+	m_script_cfg = &layout_params;
+	m_script_id = -1;
+
+	if ( filename.empty() )
+	{
+		if ( ps == FeSettings::Intro_Showing )
+			return false; // silent fail if intro is not found
+		else
+		{
+			// if there is no script file at this point,
+			// we try loader script instead
+			//
+			m_feSettings->get_path( FeSettings::Loader,
+				path, filename );
+
+			fe.SetValue( _SC("loader_dir"), path );
+		}
+	}
+
 	if ( skip_layout )
 	{
 		FeDisplayInfo *di = m_feSettings->get_display(
