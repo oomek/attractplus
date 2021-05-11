@@ -260,6 +260,7 @@ public:
 	bool get_video_toggle() { return m_playMovies; };
 
 	int get_layout_ms();
+	int get_refresh_rate();
 
 	//
 	// Script static functions

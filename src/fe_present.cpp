@@ -1543,6 +1543,11 @@ int FePresent::get_layout_ms()
 	return m_layoutTimer.getElapsedTime().asMilliseconds();
 }
 
+int FePresent::get_refresh_rate()
+{
+	return m_refresh_rate;
+}
+
 void FePresent::script_do_update( FeBasePresentable *bp )
 {
 	FePresent *fep = script_get_fep();
