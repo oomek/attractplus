@@ -1162,8 +1162,8 @@ bool FeMedia::tick()
 		{
 			m_video->display_texture->update( m_video->display_frame );
 			m_video->display_frame = NULL;
+			return true;
 		}
-		return true;
 	}
 
 	return false;
