@@ -36,6 +36,7 @@
 #include "fe_util.hpp"
 #include "fe_util_sq.hpp"
 #include "image_loader.hpp"
+#include "async_loader.hpp"
 #include "zip.hpp"
 
 #include <sqrat.h>
@@ -974,6 +975,15 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("bg_load"), &FeImageLoader::get_background_loading, &FeImageLoader::set_background_loading )
 	);
 
+	// DEBUG
+	fe.Bind( _SC("AsyncLoader"), Class <FeAsyncLoader, NoConstructor>()
+		.Prop( _SC("cached_size"), &FeAsyncLoader::get_cached_size )
+		.Prop( _SC("active_size"), &FeAsyncLoader::get_active_size )
+		.Prop( _SC("queue_size"),  &FeAsyncLoader::get_queue_size )
+		.Func( _SC("cached_ref"),  &FeAsyncLoader::get_cached_ref )
+		.Func( _SC("active_ref"),  &FeAsyncLoader::get_active_ref )
+	);
+
 	//
 	// Define functions that get exposed to Squirrel
 	//
@@ -1076,7 +1086,10 @@ bool FeVM::on_new_layout()
 	fe.SetInstance( _SC("ambient_sound"), &m_ambient_sound );
 
 	FeImageLoader &il = FeImageLoader::get_ref();
+	FeAsyncLoader &al = FeAsyncLoader::get_ref();
+
 	fe.SetInstance( _SC("image_cache"), &il );
+	fe.SetInstance( _SC("loader"), &al );
 	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
 
 	// We keep a "non-volatile" table for use by layouts/plugins, the

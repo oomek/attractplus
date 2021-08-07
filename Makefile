@@ -139,6 +139,7 @@ _DEP =\
 	fe_blend.hpp \
 	path_cache.hpp \
 	image_loader.hpp \
+	async_loader.hpp \
 	zip.hpp
 
 _OBJ =\
@@ -174,6 +175,7 @@ _OBJ =\
 	zip.o \
 	path_cache.o \
 	image_loader.o \
+	async_loader.o \
 	main.o
 
 ifneq ($(FE_WINDOWS_COMPILE),1)

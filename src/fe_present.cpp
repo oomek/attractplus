@@ -29,6 +29,7 @@
 #include "fe_input.hpp"
 #include "fe_file.hpp"
 #include "fe_blend.hpp"
+#include "async_loader.hpp"
 #include "zip.hpp"
 
 #include <iostream>
@@ -1108,6 +1109,22 @@ int FePresent::update( bool new_list, bool new_display )
 	}
 
 	return 0;
+}
+
+bool FePresent::update_textures()
+{
+	FeAsyncLoader &al = FeAsyncLoader::get_ref();
+	if ( al.pending_updates() )
+	{
+		std::vector<FeBaseTextureContainer *>::iterator itc;
+		for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			(*itc)->set_texture();
+
+		// FeLog() << "TEXTURES UPDATED" << std::endl;
+		return true;
+	}
+
+	return false;
 }
 
 void FePresent::on_end_navigation()

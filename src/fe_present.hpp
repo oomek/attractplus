@@ -229,6 +229,7 @@ public:
 
 	bool reset_screen_saver();
 	bool handle_event( FeInputMap::Command );
+	bool update_textures();
 
 	void change_selection( int step, bool end_navigation=true );
 
