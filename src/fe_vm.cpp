@@ -97,51 +97,12 @@ namespace
 		try
 		{
 			Sqrat::Script sc;
-			if ( is_supported_archive( path ) )
-			{
-				FeZipStream zip( path );
-				if ( !zip.open( filename ) )
-				{
-					// Error opening specified filename.  Try to correct
-					// in case filename is in a subdir of the archive
-					std::string temp;
-					if ( get_archive_filename_with_base(
-							temp, path, filename ) )
-						zip.open( temp );
-					else
-						return false;
-				}
+			path_to_run += filename;
 
-				// in case error reporting is needed
-				path_to_run += " (";
-				path_to_run += filename;
-				path_to_run += ")";
+			if ( !file_exists( path_to_run ) )
+				return false;
 
-				char *d = zip.getData();
-
-				// CompileString chokes on whitespace at the start of a file,
-				// while CompileFile (below) doesn't seem to have the same
-				// problem...
-				//
-				int i=0;
-				while (( i < zip.getSize() ) && ( d[i] < 32 ))
-					i++;
-
-				if ( i == zip.getSize() )
-					return false;
-
-				std::string str( &(d[i]), zip.getSize()-i );
-				sc.CompileString( str );
-			}
-			else
-			{
-				path_to_run += filename;
-
-				if ( !file_exists( path_to_run ) )
-					return false;
-
-				sc.CompileFile( path_to_run );
-			}
+			sc.CompileFile( path_to_run );
 
 			FeDebug() << "Running script: " << path_to_run << std::endl;
 			sc.Run();
@@ -761,7 +722,6 @@ bool FeVM::on_new_layout()
 		.Func(_SC("rawset_index_offset"), &FeImage::rawset_index_offset )
 		.Func(_SC("rawset_filter_offset"), &FeImage::rawset_filter_offset )
 		.Func(_SC("fix_masked_image"), &FeImage::fix_masked_image )
-		.Func(_SC("load_from_archive"), &FeImage::loadFromArchive )
 
 		//
 		// Surface-specific functionality:
@@ -913,7 +873,6 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("duration"), &FeSound::get_duration )
 		.Prop(_SC("time"), &FeSound::get_time )
 		.Func( _SC("get_metadata"), &FeSound::get_metadata )
-		.Func( _SC("load_from_archive"), &FeSound::load_from_archive )
 	);
 
 	fe.Bind( _SC("Shader"), Class <FeShader, NoConstructor>()

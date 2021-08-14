@@ -101,7 +101,7 @@ int FeBaseTextureContainer::get_video_time() const
 	return 0;
 }
 
-void FeBaseTextureContainer::load_from_archive( const char *a, const char *n )
+void FeBaseTextureContainer::load_file( const char *n )
 {
 }
 
@@ -314,47 +314,26 @@ bool FeTextureContainer::fix_masked_image()
 
 #ifndef NO_MOVIE
 bool FeTextureContainer::load_with_ffmpeg(
-	const std::string &path,
 	const std::string &filename,
 	bool is_image )
 {
 	std::string loaded_name;
 	bool res=false;
 
-	if ( is_supported_archive( path ) )
+	loaded_name = filename;
+	if ( loaded_name.compare( m_file_name ) == 0 )
+		return true;
+
+	clear();
+
+	if ( !file_exists( loaded_name ) )
 	{
-		loaded_name = path + "|" + filename;
-		if ( loaded_name.compare( m_file_name ) == 0 )
-			return true;
-
-		clear();
-
-		if ( !file_exists( path ) )
-		{
-			m_texture = sf::Texture();
-			return false;
-		}
-
-		m_movie = new FeMedia( FeMedia::AudioVideo );
-		res = m_movie->open( path, filename, &m_texture );
+		m_texture = sf::Texture();
+		return false;
 	}
-	else
-	{
-		loaded_name = path + filename;
-		if ( loaded_name.compare( m_file_name ) == 0 )
-			return true;
 
-		clear();
-
-		if ( !file_exists( loaded_name ) )
-		{
-			m_texture = sf::Texture();
-			return false;
-		}
-
-		m_movie = new FeMedia( FeMedia::AudioVideo );
-		res = m_movie->open( "", loaded_name, &m_texture );
-	}
+	m_movie = new FeMedia( FeMedia::AudioVideo );
+	res = m_movie->open( "", loaded_name, &m_texture );
 
 	if ( !res )
 	{
@@ -388,7 +367,6 @@ bool FeTextureContainer::load_with_ffmpeg(
 #endif
 
 bool FeTextureContainer::try_to_load(
-	const std::string &path,
 	const std::string &filename,
 	bool is_image )
 {
@@ -397,59 +375,28 @@ bool FeTextureContainer::try_to_load(
 #ifndef NO_SWF
 	if ( !is_image && tail_compare( filename, FE_SWF_EXT ) )
 	{
+		loaded_name = filename;
+		if ( loaded_name.compare( m_file_name ) == 0 )
+			return true;
 
-		if ( is_supported_archive( path ) )
+		clear();
+
+		if ( !file_exists( loaded_name ) )
 		{
-			loaded_name = path + "|" + filename;
-			if ( loaded_name.compare( m_file_name ) == 0 )
-				return true;
-
-			clear();
-
-			if ( !file_exists( path ) )
-			{
-				m_texture = sf::Texture();
-				return false;
-			}
-
-			m_swf = new FeSwf();
-
-			if (!m_swf->open_from_archive( path, filename ))
-			{
-				FeLog() << " ! ERROR loading SWF from archive: "
-					<< path << " (" << filename << ")" << std::endl;
-
-				m_texture = sf::Texture();
-				delete m_swf;
-				m_swf = NULL;
-				return false;
-			}
+			m_texture = sf::Texture();
+			return false;
 		}
-		else
+
+		m_swf = new FeSwf();
+		if (!m_swf->open_from_file( loaded_name ))
 		{
-			loaded_name = path + filename;
-			if ( loaded_name.compare( m_file_name ) == 0 )
-				return true;
+			FeLog() << " ! ERROR loading SWF: "
+				<< loaded_name << std::endl;
 
-			clear();
-
-			if ( !file_exists( loaded_name ) )
-			{
-				m_texture = sf::Texture();
-				return false;
-			}
-
-			m_swf = new FeSwf();
-			if (!m_swf->open_from_file( loaded_name ))
-			{
-				FeLog() << " ! ERROR loading SWF: "
-					<< loaded_name << std::endl;
-
-				m_texture = sf::Texture();
-				delete m_swf;
-				m_swf = NULL;
-				return false;
-			}
+			m_texture = sf::Texture();
+			delete m_swf;
+			m_swf = NULL;
+			return false;
 		}
 
 		m_movie_status = !(m_video_flags & VF_NoAutoStart);
@@ -462,61 +409,26 @@ bool FeTextureContainer::try_to_load(
 
 #ifndef NO_MOVIE
 	if ( !is_image && FeMedia::is_supported_media_file( filename ) )
-		return load_with_ffmpeg( path, filename, false );
+		return load_with_ffmpeg( filename, false );
 #endif
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	unsigned char *data = NULL;
 
-	if ( is_supported_archive( path ) )
+	loaded_name = filename;
+	if ( loaded_name.compare( m_file_name ) == 0 )
+		return true;
+
+	clear();
+
+	if ( !file_exists( loaded_name ) )
 	{
-		loaded_name = path + "|" + filename;
-		if ( loaded_name.compare( m_file_name ) == 0 )
-			return true;
-
-		clear();
-
-		if ( !file_exists( path ) )
-		{
-			m_texture = sf::Texture();
-			return false;
-		}
-
-		FeZipStream zs( path );
-		std::string temp = filename;
-
-		if ( !zs.open( filename ) )
-		{
-			// Error opening specified filename.  Try to correct
-			// in case filename is in a subdir of the archive
-			if ( get_archive_filename_with_base(
-					temp, path, filename ) )
-			{
-				zs.open( temp );
-				loaded_name = path + "|" + temp;
-			}
-		}
-
-		if ( il.load_image_from_archive( path, temp, &m_entry ) )
-			data = m_entry->get_data();
+		m_texture = sf::Texture();
+		return false;
 	}
-	else
-	{
-		loaded_name = path + filename;
-		if ( loaded_name.compare( m_file_name ) == 0 )
-			return true;
 
-		clear();
-
-		if ( !file_exists( loaded_name ) )
-		{
-			m_texture = sf::Texture();
-			return false;
-		}
-
-		if ( il.load_image_from_file( loaded_name, &m_entry ) )
-			data = m_entry->get_data();
-	}
+	if ( il.load_image_from_file( loaded_name, &m_entry ) )
+		data = m_entry->get_data();
 
 	m_file_name = loaded_name;
 
@@ -589,7 +501,6 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 	std::vector<std::string> vid_list;
 	std::vector<std::string> image_list;
-	std::string archive_name; // empty if no archive
 
 	if ( m_type == IsArtwork )
 	{
@@ -628,22 +539,9 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 	for ( itr=vid_list.begin(); itr != vid_list.end(); ++itr )
 	{
-		std::string path = archive_name;
 		std::string filename = *itr;
 
-		if ( path.empty() )
-		{
-			// test for artwork in an archive
-			// format of filename is "<archivename>|<filename>"
-			size_t pos = (*itr).find( "|" );
-			if ( pos != std::string::npos )
-			{
-				path = (*itr).substr( 0, pos );
-				filename = (*itr).substr( pos+1 );
-			}
-		}
-
-		if ( try_to_load( path, filename ) )
+		if ( try_to_load( filename ) )
 		{
 			loaded = true;
 			break;
@@ -663,22 +561,9 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			for ( itr=image_list.begin();
 				itr != image_list.end(); ++itr )
 			{
-				std::string path = archive_name;
 				std::string filename = *itr;
 
-				if ( path.empty() )
-				{
-					// test for artwork in an archive
-					// format of filename is "<archivename>|<filename>"
-					size_t pos = (*itr).find( "|" );
-					if ( pos != std::string::npos )
-					{
-						path = (*itr).substr( 0, pos );
-						filename = (*itr).substr( pos+1 );
-					}
-				}
-
-				if ( try_to_load( path, filename, true ) )
+				if ( try_to_load( filename, true ) )
 				{
 					loaded = true;
 					break;
@@ -918,9 +803,9 @@ int FeTextureContainer::get_video_time() const
 	return 0;
 }
 
-void FeTextureContainer::load_from_archive( const char *a, const char *n )
+void FeTextureContainer::load_file( const char *n )
 {
-	std::string path, filename = clean_path( n );
+	std::string filename = clean_path( n );
 
 	if ( filename.empty() )
 	{
@@ -930,17 +815,11 @@ void FeTextureContainer::load_from_archive( const char *a, const char *n )
 		return;
 	}
 
-	if ( a && ( strlen( a ) > 0 ))
-		path = clean_path( a );
-
-	// If it is a relative path we assume it is in the
-	// layout/screensaver/intro directory
-	//
-	else if ( is_relative_path( filename ) )
-		path = FePresent::script_get_base_path();
+	if ( is_relative_path( filename ) )
+		filename = FePresent::script_get_base_path() + filename;
 
 	bool is_image=tail_compare( filename, FE_ART_EXTENSIONS );
-	try_to_load( path, filename, is_image );
+	try_to_load( filename, is_image );
 	notify_texture_change();
 }
 
@@ -1526,25 +1405,9 @@ const char *FeImage::getFileName() const
 
 void FeImage::setFileName( const char *n )
 {
-	std::string path;
 	std::string filename = n;
 
-	// Test for artwork in an archive
-	// format of filename is "<archivename>|<filename>"
-	//
-	size_t pos = filename.find( "|" );
-	if ( pos != std::string::npos )
-	{
-		path = filename.substr( 0, pos );
-		filename = filename.substr( pos+1 );
-	}
-
-	m_tex->load_from_archive( path.c_str(), filename.c_str() );
-}
-
-void FeImage::loadFromArchive( const char *a, const char *n )
-{
-	m_tex->load_from_archive( a, n );
+	m_tex->load_file( filename.c_str() );
 }
 
 int FeImage::getTrigger() const

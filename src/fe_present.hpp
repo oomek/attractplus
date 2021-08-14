@@ -69,7 +69,7 @@ public:
 	FeFontContainer();
 	~FeFontContainer();
 
-	void set_font( const std::string &p, const std::string &n );
+	void set_font( const std::string &n );
 
 	const sf::Font &get_font() const;
 	const std::string &get_name() const { return m_name; };
@@ -82,7 +82,6 @@ private:
 
 	mutable sf::Font m_font;
 	std::string m_name;
-	sf::InputStream *m_stream;
 	mutable bool m_needs_reload;
 };
 

@@ -1157,25 +1157,12 @@ bool FeSettings::get_path(
 
 		if ( file.empty() )
 		{
-			if ( is_supported_archive( path ) )
+			std::string temp = path + FE_LAYOUT_FILE_BASE
+				+ FE_LAYOUT_FILE_EXTENSION;
+			if ( file_exists( temp ) )
 			{
-				std::string temp = FE_LAYOUT_FILE_BASE;
-				temp += FE_LAYOUT_FILE_EXTENSION;
-
-				get_archive_filename_with_base(
-				        file,
-				        path,
-				        temp );
-			}
-			else
-			{
-				std::string temp = path + FE_LAYOUT_FILE_BASE
-					+ FE_LAYOUT_FILE_EXTENSION;
-				if ( file_exists( temp ) )
-				{
-					file = FE_LAYOUT_FILE_BASE;
-					file += FE_LAYOUT_FILE_EXTENSION;
-				}
+				file = FE_LAYOUT_FILE_BASE;
+				file += FE_LAYOUT_FILE_EXTENSION;
 			}
 		}
 		else
@@ -2559,7 +2546,7 @@ void FeSettings::get_list_of_emulators( std::vector<std::string> &emu_list, bool
 	std::sort( emu_list.begin(), emu_list.end() );
 }
 
-bool FeSettings::get_font_file( std::string &fpath,
+bool FeSettings::get_font_file(
 	std::string &ffile,
 	const std::string &fontname ) const
 {
@@ -2568,7 +2555,7 @@ bool FeSettings::get_font_file( std::string &fpath,
 		if ( m_default_font.empty() )
 			return false;
 		else
-			return get_font_file( fpath, ffile, m_default_font );
+			return get_font_file( ffile, m_default_font );
 	}
 
 	//
@@ -2579,20 +2566,7 @@ bool FeSettings::get_font_file( std::string &fpath,
 	std::string layout_dir;
 	layout_dir = FePresent::script_get_base_path();
 
-	if ( is_supported_archive( layout_dir ) )
-	{
-		std::string temp;
-		if ( get_archive_filename_with_base( temp,
-			layout_dir,
-			fontname,
-			FE_FONT_EXTENSIONS ) )
-		{
-			fpath = layout_dir;
-			ffile = temp;
-			return true;
-		}
-	}
-	else if ( !layout_dir.empty() && search_for_file( layout_dir,
+	if ( !layout_dir.empty() && search_for_file( layout_dir,
 		fontname, FE_FONT_EXTENSIONS, test ) )
 	{
 		ffile = test;
@@ -3132,26 +3106,12 @@ void FeSettings::get_layouts_list( std::vector<std::string> &layouts ) const
 
 	get_subdirectories( layouts, path );
 
-	int i=0;
-	while ( FE_ARCHIVE_EXT[i] != NULL )
-	{
-		get_basename_from_extension( layouts, path, FE_ARCHIVE_EXT[i] );
-		i++;
-	}
-
 	if ( FE_DATA_PATH != NULL )
 	{
 		std::string t = FE_DATA_PATH;
 		t += FE_LAYOUT_SUBDIR;
 
 		get_subdirectories( layouts, t );
-
-		i=0;
-		while ( FE_ARCHIVE_EXT[i] != NULL )
-		{
-			get_basename_from_extension( layouts, t, FE_ARCHIVE_EXT[i] );
-			i++;
-		}
 	}
 
 	if ( !layouts.empty() )
@@ -3662,45 +3622,6 @@ bool gather_artwork_filenames(
 		std::vector < std::string > img_contents;
 		std::vector < std::string > vid_contents;
 
-		if ( is_supported_archive( *itr ) )
-		{
-			gather_archive_filenames_with_base(
-				        img_contents,
-				        vid_contents,
-				        *itr,
-				        target_name + ".",
-					FE_ART_EXTENSIONS );
-
-#ifdef NO_MOVIE
-			vid_contents.clear();
-#else
-			for ( std::vector<std::string>::iterator itn = vid_contents.begin();
-					itn != vid_contents.end(); )
-			{
-				if ( FeMedia::is_supported_media_file( *itn ) )
-					++itn;
-				else
-					itn = vid_contents.erase( itn );
-			}
-#endif
-			if ( !img_contents.empty() || !vid_contents.empty() )
-			{
-				while ( !img_contents.empty() )
-				{
-					images.push_back( (*itr) + "|" + img_contents.back() );
-					img_contents.pop_back();
-				}
-
-				while ( !vid_contents.empty() )
-				{
-					vids.push_back( (*itr) + "|" + vid_contents.back() );
-					vid_contents.pop_back();
-				}
-			}
-
-			continue;
-		}
-
 		if ( path_cache )
 		{
 			path_cache->get_filename_from_base(
@@ -3778,31 +3699,6 @@ bool gather_artwork_filenames(
 		}
 	}
 
-	return ( !images.empty() || !vids.empty() );
-}
-
-bool gather_artwork_filenames_from_archive(
-		const std::string &archive_name,
-		const std::string &target_name,
-		std::vector<std::string> &vids,
-		std::vector<std::string> &images )
-{
-	std::vector < std::string > out;
-	gather_archive_filenames_with_base(
-		images,
-		out,
-		archive_name,
-		target_name,
-		FE_ART_EXTENSIONS );
-
-#ifndef NO_MOVIE
-	for ( std::vector<std::string>::iterator itr=out.begin();
-			itr!=out.end(); ++itr )
-	{
-		if ( FeMedia::is_supported_media_file( *itr ) )
-			vids.push_back( *itr );
-	}
-#endif
 	return ( !images.empty() || !vids.empty() );
 }
 
@@ -3978,40 +3874,22 @@ void FeSettings::get_best_artwork_file(
 	const std::string &emu_name = rom.get_info(
 			FeRomInfo::Emulator );
 
-	if ( is_supported_archive( layout_path ) )
+	std::vector<std::string> layout_paths;
+	layout_paths.push_back( layout_path );
+
+	// check for "[emulator-[artlabel]" artworks first
+	if ( gather_artwork_filenames( layout_paths,
+		emu_name + "-" + art_name,
+		vid_list, image_list, &m_path_cache ) )
 	{
-		archive_name = layout_path;
-
-		// check for "[emulator-[artlabel]" artworks first
-		if ( gather_artwork_filenames_from_archive(
-			layout_path, emu_name + "-" + art_name,
-			vid_list, image_list ) )
-		{
-			if ( !image_only && !vid_list.empty() )
-				return;
-		}
-
-		gather_artwork_filenames_from_archive( layout_path,
-			art_name, vid_list, image_list );
+		if ( !image_only && !vid_list.empty() )
+			return;
 	}
-	else
-	{
-		std::vector<std::string> layout_paths;
-		layout_paths.push_back( layout_path );
 
-		// check for "[emulator-[artlabel]" artworks first
-		if ( gather_artwork_filenames( layout_paths,
-			emu_name + "-" + art_name,
-			vid_list, image_list, &m_path_cache ) )
-		{
-			if ( !image_only && !vid_list.empty() )
-				return;
-		}
+	// then "[artlabel]"
+	gather_artwork_filenames( layout_paths,
+		art_name, vid_list, image_list, &m_path_cache );
 
-		// then "[artlabel]"
-		gather_artwork_filenames( layout_paths,
-			art_name, vid_list, image_list, &m_path_cache );
-	}
 }
 
 bool FeSettings::has_artwork( const FeRomInfo &rom, const std::string &art_name )

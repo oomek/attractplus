@@ -472,7 +472,6 @@ public:
 	// [out] ffile = font file to open
 	// [in] fontname = name of font to find.  If empty return default font
 	bool get_font_file(
-		std::string &fpath,
 		std::string &ffile,
 		const std::string &fontname="" ) const;
 

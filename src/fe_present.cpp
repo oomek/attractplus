@@ -90,49 +90,27 @@ BOOL CALLBACK my_mon_enum_proc( HMONITOR, HDC, LPRECT mon_rect, LPARAM data )
 #endif
 
 FeFontContainer::FeFontContainer()
-	: m_stream( NULL ),
-	m_needs_reload( false )
+	: m_needs_reload( false )
 {
 }
 
 FeFontContainer::~FeFontContainer()
 {
-	if ( m_stream )
-		delete m_stream;
 }
 
-void FeFontContainer::set_font( const std::string &p, const std::string &n )
+void FeFontContainer::set_font( const std::string &n )
 {
 	m_name = n;
 
-	if ( m_stream )
-	{
-		delete m_stream;
-		m_stream = NULL;
-	}
-
-	if ( is_supported_archive( p ) )
-	{
-		FeZipStream *zs = new FeZipStream( p );
-		zs->open( n );
-		m_stream = zs;
-
-		if ( !m_font.loadFromStream( *m_stream ) )
-			FeLog() << "Error loading font: " << p << "[" << n << "]" << std::endl;
-	}
-	else
-	{
-		m_stream = new FeFileInputStream( p + n );
-		if ( !m_font.loadFromStream( *m_stream ) )
-			FeLog() << "Error loading font from file: " << p + n << std::endl;
-	}
+	if ( !m_font.loadFromFile( n ) )
+		FeLog() << "Error loading font from file: " << n << std::endl;
 }
 
 const sf::Font &FeFontContainer::get_font() const
 {
-	if ( m_needs_reload && m_stream )
+	if ( m_needs_reload )
 	{
-		m_font.loadFromStream( *m_stream );
+		m_font.loadFromFile( m_name );
 		m_needs_reload=false;
 	}
 
@@ -613,11 +591,7 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 
 		if ( reuse )
 		{
-			std::string test;
-			if ( is_supported_archive( path ) )
-				test = name;
-			else
-				test = path + name;
+			std::string test = path + name;
 
 			for ( std::vector<FeSound *>::iterator itr=m_sounds.begin();
 						itr!=m_sounds.end(); ++itr )
@@ -633,7 +607,7 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 	FeSound *new_sound = new FeSound();
 
 	if ( !name.empty() )
-		new_sound->load( path, name );
+		new_sound->load( path + name );
 
 	new_sound->set_volume(
 		m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
@@ -644,10 +618,13 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 
 FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const char *shader2 )
 {
-	std::string path;
-	m_feSettings->get_path( FeSettings::Current, path );
+	std::string path1;
+	std::string path2;
+	m_feSettings->get_path( FeSettings::Current, path1 );
 
 	std::string s1;
+	std::string s2;
+
 	if ( shader1 )
 		s1 = clean_path( shader1 );
 
@@ -655,56 +632,24 @@ FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const
 	FeShader *sh = m_scriptShaders.back();
 
 	if ( !is_relative_path( s1 ) )
-		path.clear();
+		path1.clear();
 
 	switch ( type )
 	{
 		case FeShader::VertexAndFragment:
-			if ( is_supported_archive( path ) )
-			{
-				//
-				// Known Issue: We don't properly handle the
-				// situation where one shader is specified as a
-				// relative path and is in a zip, while the other
-				// is specified as an absolute path.  If the first
-				// is in a zip, the second is assumed to be in the
-				// same zip as well.
-				//
-				FeZipStream zs1( path );
-				zs1.open( shader1 );
+			path2 = path1;
+			if ( shader2 )
+				s2 = clean_path( shader2 );
 
-				FeZipStream zs2( path );
-				zs2.open( shader2 );
+			if ( !is_relative_path( s2 ) )
+				path2.clear();
 
-				sh->load( zs1, zs2 );
-			}
-			else
-			{
-				std::string path2 = path;
-				std::string s2;
-				if ( shader2 )
-					s2 = clean_path( shader2 );
-
-				if ( !is_relative_path( s2 ) )
-					path2.clear();
-
-				sh->load( path + s1, path2 + s2 );
-			}
+			sh->load( path1 + s1, path2 + s2 );
 			break;
 
 		case FeShader::Vertex:
 		case FeShader::Fragment:
-			if ( is_supported_archive( path ) )
-			{
-				FeZipStream zs( path );
-				zs.open( shader1 );
-
-				sh->load( zs, type );
-			}
-			else
-			{
-				sh->load( path + s1, type );
-			}
+			sh->load( path1 + s1, type );
 			break;
 
 		case FeShader::Empty:
@@ -766,13 +711,13 @@ const FeFontContainer *FePresent::get_pooled_font( const std::string &n )
 const FeFontContainer *FePresent::get_pooled_font(
 		const std::vector < std::string > &l )
 {
-	std::string fpath, ffile;
+	std::string ffile;
 
 	// search list for a font
 	for ( std::vector<std::string>::const_iterator itr=l.begin();
 			itr != l.end(); ++itr )
 	{
-		if ( m_feSettings->get_font_file( fpath, ffile, *itr ) )
+		if ( m_feSettings->get_font_file( ffile, *itr ) )
 			break;
 	}
 
@@ -794,7 +739,7 @@ const FeFontContainer *FePresent::get_pooled_font(
 	// No match, so load this font and add it to the pool
 	//
 	m_fontPool.push_back( new FeFontContainer() );
-	m_fontPool.back()->set_font( fpath, ffile );
+	m_fontPool.back()->set_font( ffile );
 
 	return m_fontPool.back();
 }

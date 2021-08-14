@@ -76,7 +76,7 @@ public:
 	virtual int get_video_duration() const;
 	virtual int get_video_time() const;
 
-	virtual void load_from_archive( const char *a, const char *n );
+	virtual void load_file( const char *n );
 	virtual const char *get_file_name() const;
 	virtual void set_trigger( int );
 	virtual int get_trigger() const;
@@ -156,7 +156,7 @@ public:
 	int get_video_duration() const;
 	int get_video_time() const;
 
-	void load_from_archive( const char *a, const char *n );
+	void load_file( const char *n );
 	const char *get_file_name() const;
 	void set_trigger( int );
 	int get_trigger() const;
@@ -186,13 +186,11 @@ private:
 
 #ifndef NO_MOVIE
 	bool load_with_ffmpeg(
-		const std::string &path,
 		const std::string &filename,
 		bool is_image );
 #endif
 
 	bool try_to_load(
-		const std::string &path,
 		const std::string &filename,
 		bool is_image=false );
 
@@ -305,7 +303,6 @@ public:
 	int getVideoTime() const;
 	const char *getFileName() const;
 	void setFileName( const char * );
-	void loadFromArchive( const char *, const char * );
 	int getTrigger() const;
 	void setTrigger( int );
 

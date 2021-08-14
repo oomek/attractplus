@@ -126,15 +126,15 @@ int main(int argc, char *argv[])
 
 	feSettings.load();
 
-	std::string def_font_path, def_font_file;
-	if ( feSettings.get_font_file( def_font_path, def_font_file ) == false )
+	std::string def_font_file;
+	if ( feSettings.get_font_file( def_font_file ) == false )
 	{
 		FeLog() << "Error, could not find default font."  << std::endl;
 		return 1;
 	}
 
 	FeFontContainer def_font;
-	def_font.set_font( def_font_path, def_font_file );
+	def_font.set_font( def_font_file );
 
 	//
 	// Set up music/sound playing objects
@@ -173,8 +173,8 @@ int main(int argc, char *argv[])
 			exit_selected = true;
 
 		// Font may change depending on the language selected
-		feSettings.get_font_file( def_font_path, def_font_file );
-		def_font.set_font( def_font_path, def_font_file );
+		feSettings.get_font_file( def_font_file );
+		def_font.set_font( def_font_file );
 
 		if ( !exit_selected )
 		{
@@ -241,8 +241,8 @@ int main(int argc, char *argv[])
 			{
 				// Settings changed, reload
 				//
-				if ( feSettings.get_font_file( def_font_path, def_font_file ) )
-					def_font.set_font( def_font_path, def_font_file );
+				if ( feSettings.get_font_file( def_font_file ) )
+					def_font.set_font( def_font_file );
 
 				feSettings.set_display(
 					feSettings.get_current_display_index() );

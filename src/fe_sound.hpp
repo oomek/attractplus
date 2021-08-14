@@ -59,10 +59,9 @@ public:
 	FeSound( bool loop=false );
 	~FeSound();
 
-	void load( const std::string &path, const std::string &fn );
+	void load( const std::string &fn );
 	void tick();
 
-	void load_from_archive( const char *, const char * );
 	void set_file_name( const char * );
 	const char *get_file_name();
 

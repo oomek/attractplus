@@ -56,7 +56,7 @@ void FeSoundSystem::sound_event( FeInputMap::Command c )
 		return;
 
 	if ( sound.compare( m_sound.get_file_name() ) != 0 )
-		m_sound.load( "", sound );
+		m_sound.load( sound );
 
 	m_current_sound = c;
 	m_sound.set_playing( true );
@@ -77,7 +77,7 @@ void FeSoundSystem::play_ambient()
 		return;
 
 	if ( sound.compare( m_music.get_file_name() ) != 0 )
-		m_music.load( "", sound );
+		m_music.load( sound );
 
 	m_music.set_playing( true );
 }
@@ -143,7 +143,7 @@ void FeSound::tick()
 #endif
 }
 
-void FeSound::load( const std::string &path, const std::string &fn )
+void FeSound::load( const std::string &fn )
 {
 	if ( m_stream )
 	{
@@ -151,102 +151,42 @@ void FeSound::load( const std::string &path, const std::string &fn )
 		m_stream = NULL;
 	}
 
-	if ( is_supported_archive( path ) )
-	{
 #ifndef NO_MOVIE
-		if ( !m_sound.open( path, fn ) )
-		{
-			FeLog() << "Error loading sound file from archive: "
-				<< path << " (" << fn << ")" << std::endl;
-			m_file_name = "";
-			return;
-		}
+	if ( !m_sound.open( "", fn ) )
+	{
+		FeLog() << "Error loading sound file: " << fn << std::endl;
+		m_file_name = "";
+		return;
+	}
 #else
-		FeZipStream *zip = new FeZipStream( path );
-		m_stream = zip;
+	FeFileInputStream *fs = new FeFileInputStream( fn );
+	m_stream = fs;
 
-		if ( !zip->open( fn ) )
-		{
-			FeLog() << "Error loading sound file from archive: "
-				<< path << " (" << fn << ")" << std::endl;
-			m_file_name = "";
-			return;
-		}
-
-		if ( !m_sound.openFromStream( *m_stream ) )
-		{
-			FeLog() << "Error loading sound file: " << fn
-				<< std::endl;
-			m_file_name = "";
-			return;
-		}
+	if ( !m_sound.openFromStream( *m_stream ) )
+	{
+		FeLog() << "Error loading sound file: " << fn << std::endl;
+		m_file_name = "";
+		return;
+	}
 #endif
 
-		m_file_name = path + "|" + fn;
-	}
-	else
-	{
-		std::string file_to_load = path + fn;
-
-#ifndef NO_MOVIE
-		if ( !m_sound.open( "", file_to_load ) )
-		{
-			FeLog() << "Error loading sound file: " << file_to_load << std::endl;
-			m_file_name = "";
-			return;
-		}
-#else
-		FeFileInputStream *fs = new FeFileInputStream( file_to_load );
-		m_stream = fs;
-
-		if ( !m_sound.openFromStream( *m_stream ) )
-		{
-			FeLog() << "Error loading sound file: " << file_to_load << std::endl;
-			m_file_name = "";
-			return;
-		}
-#endif
-
-		m_file_name = file_to_load;
-	}
+	m_file_name = fn;
 }
 
 void FeSound::set_file_name( const char *n )
 {
-	std::string path;
-	std::string filename = n;
+	std::string filename = clean_path( n );
 
-	// Test for sound from an archive
-	// format of filename is "<archivename>|<filename>"
-	//
-	size_t pos = filename.find( "|" );
-	if ( pos != std::string::npos )
-	{
-		path = filename.substr( 0, pos );
-		filename = filename.substr( pos+1 );
-	}
-
-
-	load_from_archive( path.c_str(), filename.c_str() );
-}
-
-void FeSound::load_from_archive( const char *a, const char *n )
-{
-	std::string fn = clean_path( n );
-	if ( fn.empty() )
+	if ( filename.empty() )
 	{
 		m_file_name = "";
 		return;
 	}
 
-	std::string path;
+	if ( is_relative_path( filename ) )
+		filename = FePresent::script_get_base_path() + filename;
 
-	if ( a && ( strlen( a ) > 0 ) )
-		path = clean_path( a );
-	else if ( is_relative_path( fn ) )
-		path = FePresent::script_get_base_path();
-
-	load( path, fn );
+	load( filename );
 }
 
 const char *FeSound::get_file_name()
