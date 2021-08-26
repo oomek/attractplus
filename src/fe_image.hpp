@@ -366,6 +366,7 @@ public:
 	void rawset_index_offset( int io );
 	void rawset_filter_offset( int fo );
 	bool fix_masked_image();
+	FePresentableParent *get_presentable_parent();
 
 	//
 	// Callback functions for use with surface objects

@@ -949,9 +949,11 @@ void FeTextureContainer::release_audio( bool state )
 }
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
-	: m_clear( true )
+	: m_clear( true ),
+	m_mipmap( false )
 {
 	m_texture.create( width, height );
+	m_texture.clear( sf::Color::Transparent );
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -1088,6 +1090,7 @@ FeImage::FeImage( FeImage *o )
 	m_blend_mode( o->m_blend_mode ),
 	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio )
 {
+	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
 }
 
@@ -1783,4 +1786,9 @@ FeImage *FeImage::add_surface(int w, int h)
 		return p->add_surface( w, h );
 
 	return NULL;
+}
+
+FePresentableParent *FeImage::get_presentable_parent()
+{
+	return m_tex->get_presentable_parent();
 }

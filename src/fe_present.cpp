@@ -500,6 +500,10 @@ FeImage *FePresent::add_clone( FeImage *o,
 	FeImage *new_image = new FeImage( o );
 	flag_redraw();
 	p.elements.push_back( new_image );
+
+	if ( o->get_presentable_parent() != NULL )
+		o->get_presentable_parent()->set_nesting_level( p.get_nesting_level() + 1 );
+
 	return new_image;
 }
 
