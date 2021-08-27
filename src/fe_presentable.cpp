@@ -36,7 +36,7 @@ FeBasePresentable::~FeBasePresentable()
 }
 
 FePresentableParent::FePresentableParent( )
-	: m_nesting_level ( 0 )
+	: m_nesting_level ( -1 )
 {
 }
 

@@ -1673,6 +1673,11 @@ bool FeImage::get_repeat() const
 	return m_tex->get_repeat();
 }
 
+int FeImage::get_parents()
+{
+	return get_presentable_parent()->get_nesting_level();
+}
+
 void FeImage::transition_swap( FeImage *o )
 {
 	// if we're pointing at the same texture, don't do anything

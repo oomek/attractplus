@@ -339,6 +339,7 @@ public:
 	int get_blend_mode() const;
 	bool get_clear() const;
 	bool get_repeat() const;
+	int get_parents();
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
