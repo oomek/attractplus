@@ -74,6 +74,8 @@ RM=rm -f
 MD=mkdir -p
 WINDRES=windres
 
+CFLAGS += -DSQUSEDOUBLE
+
 ifndef OPTIMIZE
 OPTIMIZE=2
 endif
