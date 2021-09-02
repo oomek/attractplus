@@ -502,7 +502,7 @@ FeImage *FePresent::add_clone( FeImage *o,
 	p.elements.push_back( new_image );
 
 	if ( o->get_presentable_parent() != NULL )
-		o->get_presentable_parent()->set_nesting_level( p.get_nesting_level() + 1 );
+		o->get_presentable_parent()->set_nesting_level( p.get_nesting_level() + o->get_presentable_parent()->get_nesting_level() + 1 );
 
 	return new_image;
 }
