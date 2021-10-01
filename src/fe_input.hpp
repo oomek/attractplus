@@ -26,6 +26,7 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include "fe_base.hpp"
+#include "fe_window.hpp"
 #include <vector>
 #include <map>
 #include <set>
@@ -91,7 +92,7 @@ public:
 
 	// Return the current position of the input that this object represents.
 	// Works for joystick axes
-	int get_current_pos() const;
+	int get_current_pos( FeWindow &w ) const;
 
 	std::string get_joy_name() const; // return the system name for this joystick
 

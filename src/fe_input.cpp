@@ -656,14 +656,14 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 	}
 }
 
-int FeInputSingle::get_current_pos() const
+int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 {
 	if ( m_type == Mouse )
 	{
 		if (( m_code == MouseUp ) || ( m_code == MouseDown ))
-			return sf::Mouse::getPosition().y;
+			return sf::Mouse::getPosition( wnd.get_win() ).y;
 		else if (( m_code == MouseLeft ) || ( m_code == MouseRight ))
-			return sf::Mouse::getPosition().x;
+			return sf::Mouse::getPosition( wnd.get_win() ).x;
 	}
 	else if (( m_type >= Joystick0 ) && ( m_code < JoyButton0 ))
 	{

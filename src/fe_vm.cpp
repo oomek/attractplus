@@ -829,6 +829,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("page_size"), &FePresent::get_page_size, &FePresent::set_page_size )
 		.Prop(_SC("preserve_aspect_ratio"), &FePresent::get_preserve_aspect_ratio, &FePresent::set_preserve_aspect_ratio )
 		.Prop(_SC("time"), &FePresent::get_layout_ms )
+		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 	);
 
 	fe.Bind( _SC("CurrentList"), Class <FePresent, NoConstructor>()
@@ -2256,7 +2257,9 @@ bool FeVM::cb_get_input_state( const char *input )
 
 int FeVM::cb_get_input_pos( const char *input )
 {
-	return FeInputSingle( input ).get_current_pos();
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	return FeInputSingle( input ).get_current_pos( fev->m_window );
 }
 
 // return false if file not found

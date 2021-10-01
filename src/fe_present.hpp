@@ -260,6 +260,8 @@ public:
 
 	int get_layout_ms();
 	int get_refresh_rate();
+	bool get_mouse_pointer();
+	void set_mouse_pointer( bool );
 
 	//
 	// Script static functions

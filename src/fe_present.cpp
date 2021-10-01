@@ -1497,6 +1497,16 @@ int FePresent::get_refresh_rate()
 	return m_refresh_rate;
 }
 
+void FePresent::set_mouse_pointer( bool b )
+{
+	m_window.get_win().setMouseCursorVisible( b );
+}
+
+bool FePresent::get_mouse_pointer()
+{
+	return false;
+}
+
 void FePresent::script_do_update( FeBasePresentable *bp )
 {
 	FePresent *fep = script_get_fep();
