@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 	if ( !log_file.empty() )
 		fe_set_log_file( clean_path( log_file ) );
 
-	// The following call also initializes the log callback for ffmpeg and gameswf
+	// The following call also initializes the log callback for ffmpeg
 	//
 	fe_set_log_level( log_level );
 

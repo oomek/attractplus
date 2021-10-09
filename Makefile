@@ -47,9 +47,6 @@
 # instead (Windows only)
 #WINDOWS_CONSOLE=1
 #
-# Uncomment the next line to disable SWF support (i.e. no game_swf)
-#NO_SWF=1
-#
 # Uncomment the next line(s) as appropriate to enable hardware video
 # decoding on Linux (req FFmpeg >= 3.4)
 #FE_HWACCEL_VAAPI=1
@@ -250,24 +247,14 @@ ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenGL -ljpeg
 endif
 
-ifneq ($(NO_SWF),1)
- _DEP += swf.hpp
- _OBJ += swf.o
- LIBS += -ljpeg -lz -lpthread
-
- ifneq ($(FE_WINDOWS_COMPILE),1)
-  ifneq ($(FE_MACOSX_COMPILE),1)
-   CFLAGS += -Wl,--export-dynamic
-   LIBS += -ldl -lGL
-   TEMP_LIBS += freetype2
-   CFLAGS += $(shell $(PKG_CONFIG) --cflags --silence-errors freetype2)
-  endif
- else
-  LIBS += -lopengl32
-  TEMP_LIBS += freetype2
+ifneq ($(FE_WINDOWS_COMPILE),1)
+ ifneq ($(FE_MACOSX_COMPILE),1)
+  LIBS += -ldl -lGL
  endif
-
+else
+ LIBS += -lopengl32
 endif
+
 
 ifeq ($(FE_WINDOWS_COMPILE),1)
  _DEP += attract.rc
@@ -436,13 +423,6 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
  SQUIRREL += $(OBJ_DIR)/libnowide.a
 endif
 
-ifeq ($(NO_SWF),1)
- FE_FLAGS += -DNO_SWF
-else
- CFLAGS += -I$(EXTLIBS_DIR)/gameswf
- SQUIRREL += $(OBJ_DIR)/libgameswf.a
-endif
-
 $(info flags:$(CFLAGS) $(FE_FLAGS))
 $(info libs:$(LIBS))
 
@@ -609,133 +589,6 @@ $(NOWIDE_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/nowide/%.cpp | $(NOWIDE_OBJ_DIR)
 $(NOWIDE_OBJ_DIR):
 	$(MD) $@
 
-#
-# gameswf
-#
-GAMESWF_OBJ_DIR = $(OBJ_DIR)/gameswflib
-GSBASE_OBJ_DIR = $(OBJ_DIR)/gsbaselib
-
-GAMESWFOBJS= \
-	$(GSBASE_OBJ_DIR)/configvars.o                          \
-	$(GSBASE_OBJ_DIR)/ear_clip_triangulate_float.o          \
-	$(GSBASE_OBJ_DIR)/ear_clip_triangulate_sint16.o         \
-	$(GSBASE_OBJ_DIR)/container.o                           \
-	$(GSBASE_OBJ_DIR)/file_util.o                           \
-	$(GSBASE_OBJ_DIR)/image.o                               \
-	$(GSBASE_OBJ_DIR)/image_filters.o                       \
-	$(GSBASE_OBJ_DIR)/jpeg.o                                \
-	$(GSBASE_OBJ_DIR)/logger.o                              \
-	$(GSBASE_OBJ_DIR)/membuf.o                              \
-	$(GSBASE_OBJ_DIR)/postscript.o                          \
-	$(GSBASE_OBJ_DIR)/triangulate_float.o                   \
-	$(GSBASE_OBJ_DIR)/triangulate_sint32.o                  \
-	$(GSBASE_OBJ_DIR)/tu_file.o                             \
-	$(GSBASE_OBJ_DIR)/tu_gc_singlethreaded_marksweep.o      \
-	$(GSBASE_OBJ_DIR)/tu_loadlib.o                          \
-	$(GSBASE_OBJ_DIR)/tu_random.o                           \
-	$(GSBASE_OBJ_DIR)/tu_timer.o                            \
-	$(GSBASE_OBJ_DIR)/tu_types.o                            \
-	$(GSBASE_OBJ_DIR)/utf8.o                                \
-	$(GSBASE_OBJ_DIR)/utility.o                             \
-	$(GSBASE_OBJ_DIR)/zlib_adapter.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_array.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_boolean.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_broadcaster.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_class.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_color.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_color_transform.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_date.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_event.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_flash.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_geom.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_global.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_key.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_loadvars.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_math.o   \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_matrix.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_mcloader.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_mouse.o    \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_mouse_event.o    \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_netconnection.o  \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_netstream.o  \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_number.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_point.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_selection.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_sharedobject.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_sound.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_string.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_textformat.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_transform.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_xml.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_classes/as_xmlsocket.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_abc.o  \
-	$(GAMESWF_OBJ_DIR)/gameswf_action.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_avm2.o \
-	$(GAMESWF_OBJ_DIR)/gameswf_as_sprite.o    \
-	$(GAMESWF_OBJ_DIR)/gameswf_button.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_canvas.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_character.o    \
-	$(GAMESWF_OBJ_DIR)/gameswf_disasm.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_dlist.o        \
-	$(GAMESWF_OBJ_DIR)/gameswf_environment.o  \
-	$(GAMESWF_OBJ_DIR)/gameswf_filters.o              \
-	$(GAMESWF_OBJ_DIR)/gameswf_font.o         \
-	$(GAMESWF_OBJ_DIR)/gameswf_function.o     \
-	$(GAMESWF_OBJ_DIR)/gameswf_impl.o         \
-	$(GAMESWF_OBJ_DIR)/gameswf_listener.o     \
-	$(GAMESWF_OBJ_DIR)/gameswf_log.o          \
-	$(GAMESWF_OBJ_DIR)/gameswf_morph2.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_movie_def.o    \
-	$(GAMESWF_OBJ_DIR)/gameswf_object.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_player.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_render.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_root.o         \
-	$(GAMESWF_OBJ_DIR)/gameswf_shape.o        \
-	$(GAMESWF_OBJ_DIR)/gameswf_sound.o        \
-	$(GAMESWF_OBJ_DIR)/gameswf_sprite.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_sprite_def.o   \
-	$(GAMESWF_OBJ_DIR)/gameswf_stream.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_styles.o       \
-	$(GAMESWF_OBJ_DIR)/gameswf_tesselate.o    \
-	$(GAMESWF_OBJ_DIR)/gameswf_text.o         \
-	$(GAMESWF_OBJ_DIR)/gameswf_tools.o        \
-	$(GAMESWF_OBJ_DIR)/gameswf_types.o        \
-	$(GAMESWF_OBJ_DIR)/gameswf_value.o        \
-	$(GAMESWF_OBJ_DIR)/gameswf_video_impl.o   \
-	$(GAMESWF_OBJ_DIR)/gameswf_mutex.o   \
-	$(GAMESWF_OBJ_DIR)/gameswf_sound_handler_openal.o   \
-	$(GAMESWF_OBJ_DIR)/gameswf_render_handler_ogl.o
-
-
-ifeq ($(FE_MACOSX_COMPILE),1)
-	GAMESWFOBJS += $(GAMESWF_OBJ_DIR)/gameswf_fontlib.o
-else
-	GAMESWFOBJS += $(GAMESWF_OBJ_DIR)/gameswf_freetype.o
-endif
-
-$(OBJ_DIR)/libgameswf.a: $(GAMESWFOBJS) | $(GAMESWF_OBJ_DIR) $(GSBASE_OBJ_DIR)
-	$(AR_MSG)
-	$(SILENT)$(AR) $(ARFLAGS) $@ $(GAMESWFOBJS)
-
-$(GAMESWF_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/gameswf/gameswf/%.cpp | $(GAMESWF_OBJ_DIR)
-	$(CC_MSG)
-	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS) -Wno-deprecated
-
-$(GAMESWF_OBJ_DIR):
-	$(MD) $@
-	$(MD) $@/gameswf_as_classes
-
-$(GSBASE_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/gameswf/base/%.cpp | $(GSBASE_OBJ_DIR)
-	$(CC_MSG)
-	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS) -Wno-deprecated
-
-$(GSBASE_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/gameswf/base/%.c | $(GSBASE_OBJ_DIR)
-	$(CC_MSG)
-	$(SILENT)$(CC) -c $< -o $@ $(CFLAGS)
-
-$(GSBASE_OBJ_DIR):
-	$(MD) $@
-
 $(DATA_PATH):
 	$(MD) -p $(DESTDIR)$@
 
@@ -748,4 +601,4 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core
 
 clean:
-	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(GSBASE_OBJ_DIR)/*.o $(GAMESWF_OBJ_DIR)/*.o $(GAMESWF_OBJ_DIR)/gameswf_as_classes/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core
+	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core

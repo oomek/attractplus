@@ -34,10 +34,6 @@
 #include "media.hpp"
 #endif
 
-#ifndef NO_SWF
-#include "swf.hpp"
-#endif
-
 FeBaseTextureContainer::FeBaseTextureContainer()
 {
 }
@@ -146,11 +142,6 @@ bool FeBaseTextureContainer::get_repeat() const
 	return false;
 }
 
-bool FeBaseTextureContainer::is_swf() const
-{
-	return false;
-}
-
 float FeBaseTextureContainer::get_sample_aspect_ratio() const
 {
 	return 1.0;
@@ -236,7 +227,6 @@ FeTextureContainer::FeTextureContainer(
 	m_current_filter_index( -1 ),
 	m_art_update_trigger( ToNewSelection ),
 	m_movie( NULL ),
-	m_swf( NULL ),
 	m_movie_status( -1 ),
 	m_video_flags( VF_Normal ),
 	m_mipmap( false ),
@@ -265,14 +255,6 @@ FeTextureContainer::~FeTextureContainer()
 	{
 		delete m_movie;
 		m_movie=NULL;
-	}
-#endif
-
-#ifndef NO_SWF
-	if ( m_swf )
-	{
-		delete m_swf;
-		m_swf=NULL;
 	}
 #endif
 
@@ -372,41 +354,6 @@ bool FeTextureContainer::try_to_load(
 {
 	std::string loaded_name;
 
-#ifndef NO_SWF
-	if ( !is_image && tail_compare( filename, FE_SWF_EXT ) )
-	{
-		loaded_name = filename;
-		if ( loaded_name.compare( m_file_name ) == 0 )
-			return true;
-
-		clear();
-
-		if ( !file_exists( loaded_name ) )
-		{
-			m_texture = sf::Texture();
-			return false;
-		}
-
-		m_swf = new FeSwf();
-		if (!m_swf->open_from_file( loaded_name ))
-		{
-			FeLog() << " ! ERROR loading SWF: "
-				<< loaded_name << std::endl;
-
-			m_texture = sf::Texture();
-			delete m_swf;
-			m_swf = NULL;
-			return false;
-		}
-
-		m_movie_status = !(m_video_flags & VF_NoAutoStart);
-
-		m_swf->set_smooth( m_smooth );
-		m_file_name = loaded_name;
-		return true;
-	}
-#endif
-
 #ifndef NO_MOVIE
 	if ( !is_image && FeMedia::is_supported_media_file( filename ) )
 		return load_with_ffmpeg( filename, false );
@@ -449,10 +396,6 @@ bool FeTextureContainer::try_to_load(
 
 const sf::Texture &FeTextureContainer::get_texture()
 {
-#ifndef NO_SWF
-	if ( m_swf )
-		return m_swf->get_texture();
-#endif
 	return m_texture;
 }
 
@@ -600,11 +543,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
 
-#ifndef NO_SWF
-	if ( m_swf && m_movie_status )
-		return m_swf->tick();
-#endif
-
 #ifndef NO_MOVIE
 	if (( m_movie ) && ( m_movie_status > 0 ))
 	{
@@ -657,14 +595,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 void FeTextureContainer::set_play_state( bool play )
 {
-#ifndef NO_SWF
-	if ( m_swf )
-	{
-		m_movie_status = play;
-		return;
-	}
-#endif
-
 #ifndef NO_MOVIE
 	if (m_movie)
 	{
@@ -697,11 +627,6 @@ void FeTextureContainer::set_play_state( bool play )
 
 bool FeTextureContainer::get_play_state() const
 {
-#ifndef NO_SWF
-	if ( m_swf )
-		return m_movie_status;
-#endif
-
 #ifndef NO_MOVIE
 	if ( m_movie )
 	{
@@ -865,14 +790,6 @@ void FeTextureContainer::clear()
 	m_frame_displayed = false;
 	m_file_name.clear();
 
-#ifndef NO_SWF
-	if ( m_swf )
-	{
-		delete m_swf;
-		m_swf=NULL;
-	}
-#endif
-
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
 	if ( m_movie )
@@ -893,10 +810,6 @@ void FeTextureContainer::clear()
 void FeTextureContainer::set_smooth( bool s )
 {
 	m_smooth = s;
-#ifndef NO_SWF
-	if ( m_swf )
-		m_swf->set_smooth( s );
-#endif
 	m_texture.setSmooth( s );
 }
 
@@ -924,11 +837,6 @@ void FeTextureContainer::set_repeat( bool r )
 bool FeTextureContainer::get_repeat() const
 {
 	return m_texture.isRepeated();
-}
-
-bool FeTextureContainer::is_swf() const
-{
-	return m_swf;
 }
 
 float FeTextureContainer::get_sample_aspect_ratio() const
@@ -1213,11 +1121,7 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	else
 		states.shader = FeBlend::get_default_shader( m_blend_mode );
 
-	if (( m_tex->is_swf() ) && ( m_blend_mode == FeBlend::Alpha ))
-		states.blendMode = FeBlend::get_blend_mode( FeBlend::Premultiplied );
-	else
-		states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
-
+	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
 	target.draw( m_sprite, states );
 }
 

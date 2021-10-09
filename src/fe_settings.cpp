@@ -123,7 +123,6 @@ const char *FE_INTRO_FILE				= "intro.nut";
 const char *FE_LAYOUT_FILE_BASE		= "layout";
 const char *FE_LAYOUT_FILE_EXTENSION	= ".nut";
 const char *FE_LANGUAGE_FILE_EXTENSION = ".msg";
-const char *FE_SWF_EXT					= ".swf";
 const char *FE_PLUGIN_FILE_EXTENSION	= FE_LAYOUT_FILE_EXTENSION;
 const char *FE_GAME_EXTRA_FILE_EXTENSION = ".cfg";
 const char *FE_GAME_OVERVIEW_FILE_EXTENSION = ".txt";
