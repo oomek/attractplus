@@ -231,7 +231,6 @@ ifeq ($(STATIC),1)
   LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
   CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
   ifeq ($(FE_WINDOWS_COMPILE),1)
-    LIBS += -lws2_32
   else ifeq ($(FE_MACOSX_COMPILE),1)
   else
     LIBS += -lX11 -lGL -lGLU -lm -lz -ludev -lXrandr -lrt -lXcursor -lpthread
