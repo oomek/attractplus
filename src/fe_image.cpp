@@ -28,6 +28,7 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
+#include "async_loader.hpp"
 #include <cmath>
 
 #ifndef NO_MOVIE
@@ -156,16 +157,16 @@ void FeBaseTextureContainer::transition_swap( FeBaseTextureContainer *o )
 
 	//
 	// Now update the images to point at their new parent textures.
-	// texture_changed() will also cause them to update their sf::Sprite
+	// update_sprite() will also cause them to update their sf::Sprite
 	// accordingly
 	//
 	std::vector< FeImage * >::iterator itr;
 
 	for ( itr = m_images.begin(); itr != m_images.end(); ++itr )
-		(*itr)->texture_changed( this );
+		(*itr)->update_sprite( this );
 
 	for ( itr = o->m_images.begin(); itr != o->m_images.end(); ++itr )
-		(*itr)->texture_changed( o );
+		(*itr)->update_sprite( o );
 }
 
 bool FeBaseTextureContainer::fix_masked_image()
@@ -197,7 +198,7 @@ void FeBaseTextureContainer::notify_texture_change()
 {
 	for ( std::vector<FeImage *>::iterator itr=m_images.begin();
 			itr != m_images.end(); ++itr )
-		(*itr)->texture_changed();
+		(*itr)->update_sprite();
 }
 
 void FeBaseTextureContainer::release_audio( bool )
@@ -232,8 +233,14 @@ FeTextureContainer::FeTextureContainer(
 	m_mipmap( false ),
 	m_smooth( false ),
 	m_frame_displayed( false ),
-	m_entry( NULL )
+	m_entry( NULL ),
+	m_texture( NULL ),
+	m_texture_changed( false ),
+	m_texture_size( 0, 0 )
 {
+	FeAsyncLoader &al = FeAsyncLoader::get_ref();
+	m_texture = al.get_dummy_texture();
+
 	if ( is_artwork )
 	{
 		m_type = IsArtwork;
@@ -277,7 +284,7 @@ bool FeTextureContainer::fix_masked_image()
 {
 	bool retval=false;
 
-	sf::Image tmp_img = m_texture.copyToImage();
+	sf::Image tmp_img = m_texture->copyToImage();
 	sf::Vector2u tmp_s = tmp_img.getSize();
 
 	if (( tmp_s.x > 0 ) && ( tmp_s.y > 0 ))
@@ -285,7 +292,7 @@ bool FeTextureContainer::fix_masked_image()
 		sf::Color p = tmp_img.getPixel( 0, 0 );
 		tmp_img.createMaskFromColor( p );
 
-		if ( m_texture.loadFromImage( tmp_img ) )
+		if ( m_texture->loadFromImage( tmp_img ) )
 			retval=true;
 
 		notify_texture_change();
@@ -310,19 +317,22 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	if ( !file_exists( loaded_name ) )
 	{
-		m_texture = sf::Texture();
+		FeAsyncLoader &al = FeAsyncLoader::get_ref();
+		m_texture = al.get_dummy_texture();
 		return false;
 	}
 
 	m_movie = new FeMedia( FeMedia::AudioVideo );
-	res = m_movie->open( "", loaded_name, &m_texture );
+	res = m_movie->open( "", loaded_name, m_texture );
 
 	if ( !res )
 	{
 		FeLog() << "ERROR loading video: "
 			<< loaded_name << std::endl;
 
-		m_texture = sf::Texture();
+		FeAsyncLoader &al = FeAsyncLoader::get_ref();
+		m_texture = al.get_dummy_texture();
+
 		delete m_movie;
 		m_movie = NULL;
 		return false;
@@ -342,7 +352,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	else
 		m_movie_status = 1; // 1=on track to be played
 
-	m_texture.setSmooth( m_smooth );
+	m_texture->setSmooth( m_smooth );
 	m_file_name = loaded_name;
 	return true;
 }
@@ -359,44 +369,54 @@ bool FeTextureContainer::try_to_load(
 		return load_with_ffmpeg( filename, false );
 #endif
 
-	FeImageLoader &il = FeImageLoader::get_ref();
-	unsigned char *data = NULL;
+	FeAsyncLoader &al = FeAsyncLoader::get_ref();
 
 	loaded_name = filename;
-	if ( loaded_name.compare( m_file_name ) == 0 )
-		return true;
 
+	al.release_texture( m_file_name );
 	clear();
 
 	if ( !file_exists( loaded_name ) )
 	{
-		m_texture = sf::Texture();
+		FeAsyncLoader &al = FeAsyncLoader::get_ref();
+		m_texture = al.get_dummy_texture();
+
 		return false;
 	}
 
-	if ( il.load_image_from_file( loaded_name, &m_entry ) )
-		data = m_entry->get_data();
-
 	m_file_name = loaded_name;
-
-	// resize our texture accordingly
-	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
-		m_texture.create( m_entry->get_width(), m_entry->get_height() );
-
-	if ( data )
-	{
-		m_texture.update( data );
-		il.release_entry( &m_entry ); // don't need entry any more
-		if ( m_mipmap ) m_texture.generateMipmap();
-		m_texture.setSmooth( m_smooth );
-	}
+	sf::Vector2u size = al.add_texture( m_file_name );
+	// FeLog() << size.x << " " << size.y << std::endl;
+	m_texture_size = size;
+	// FeLog() << m_file_name << std::endl;
+	m_texture_changed = true;
 
 	return true;
 }
 
-const sf::Texture &FeTextureContainer::get_texture()
+const sf::Texture *FeTextureContainer::get_texture()
 {
 	return m_texture;
+}
+
+bool FeTextureContainer::update_texture()
+{
+	if ( m_texture_changed )
+	{
+		// FeLog() << m_file_name << std::endl;
+		FeAsyncLoader &al = FeAsyncLoader::get_ref();
+		m_texture = al.get_texture( m_file_name );
+		notify_texture_change();
+		m_texture_changed = false;
+		return true;
+	}
+
+	return false;
+}
+
+bool FeTextureContainer::texture_changed()
+{
+	return m_texture_changed;
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -473,7 +493,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 	// Load any found videos/images now
 	//
-	bool loaded=false;
+	bool loaded=false; // TODO: check if needed
 	std::vector<std::string>::iterator itr;
 
 #ifndef NO_MOVIE
@@ -497,7 +517,9 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 		if ( image_list.empty() )
 		{
 			clear();
-			m_texture = sf::Texture();
+
+			FeAsyncLoader &al = FeAsyncLoader::get_ref();
+			m_texture = al.get_dummy_texture();
 		}
 		else
 		{
@@ -508,38 +530,20 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 				if ( try_to_load( filename, true ) )
 				{
+					std::vector< FeImage * >::iterator itr;
+					for ( itr = m_images.begin(); itr != m_images.end(); ++itr )
+						(*itr)->update_texture_size( m_texture_size );
+
 					loaded = true;
 					break;
 				}
 			}
 		}
 	}
-
-	//
-	// Texture was replaced, so notify the attached images
-	//
-	notify_texture_change();
 }
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
-	//
-	// We have an m_entry if the image is being loaded in the background
-	//
-	if ( m_entry )
-	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		if ( il.check_loaded( m_entry ) )
-		{
-			m_texture.update( m_entry->get_data() );
-			if ( m_mipmap ) m_texture.generateMipmap();
-			m_texture.setSmooth( m_smooth );
-
-			il.release_entry( &m_entry );
-			return true;
-		}
-	}
-
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
 
@@ -584,7 +588,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( m_movie->tick() )
 		{
 			m_frame_displayed=true;
-			if ( m_mipmap ) m_texture.generateMipmap();
+			if ( m_mipmap ) m_texture->generateMipmap();
 			return true;
 		}
 	}
@@ -735,7 +739,10 @@ void FeTextureContainer::load_file( const char *n )
 	if ( filename.empty() )
 	{
 		clear();
-		m_texture = sf::Texture();
+
+		FeAsyncLoader &al = FeAsyncLoader::get_ref();
+		m_texture = al.get_dummy_texture();
+
 		notify_texture_change();
 		return;
 	}
@@ -744,8 +751,13 @@ void FeTextureContainer::load_file( const char *n )
 		filename = FePresent::script_get_base_path() + filename;
 
 	bool is_image=tail_compare( filename, FE_ART_EXTENSIONS );
-	try_to_load( filename, is_image );
-	notify_texture_change();
+	if ( try_to_load( filename, is_image ))
+	{
+		std::vector< FeImage * >::iterator itr;
+		for ( itr = m_images.begin(); itr != m_images.end(); ++itr )
+			(*itr)->update_texture_size( m_texture_size );
+	}
+	// notify_texture_change();
 }
 
 const char *FeTextureContainer::get_file_name() const
@@ -799,18 +811,12 @@ void FeTextureContainer::clear()
 		m_movie=NULL;
 	}
 #endif
-
-	if ( m_entry )
-	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		il.release_entry( &m_entry );
-	}
 }
 
 void FeTextureContainer::set_smooth( bool s )
 {
 	m_smooth = s;
-	m_texture.setSmooth( s );
+	m_texture->setSmooth( s );
 }
 
 bool FeTextureContainer::get_smooth() const
@@ -821,7 +827,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie) m_texture.generateMipmap();
+	if ( m_mipmap && !m_movie) m_texture->generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -831,12 +837,12 @@ bool FeTextureContainer::get_mipmap() const
 
 void FeTextureContainer::set_repeat( bool r )
 {
-	m_texture.setRepeated( r );
+	m_texture->setRepeated( r );
 }
 
 bool FeTextureContainer::get_repeat() const
 {
-	return m_texture.isRepeated();
+	return m_texture->isRepeated();
 }
 
 float FeTextureContainer::get_sample_aspect_ratio() const
@@ -858,10 +864,17 @@ void FeTextureContainer::release_audio( bool state )
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	: m_clear( true ),
-	m_mipmap( false )
+	m_mipmap( false ),
+	m_texture_size( width, height )
 {
-	m_texture.create( width, height );
-	m_texture.clear( sf::Color::Transparent );
+	m_texture = new sf::RenderTexture();
+	m_texture->create( width, height );
+	m_texture->clear( sf::Color::Transparent );
+
+	// std::vector< FeImage * >::iterator itr;
+	// for ( itr = m_images.begin(); itr != m_images.end(); ++itr )
+	// 	(*itr)->update_texture_size( m_texture_size );
+	// notify_texture_change();
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -874,9 +887,18 @@ FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
 	}
 }
 
-const sf::Texture &FeSurfaceTextureContainer::get_texture()
+const sf::Texture *FeSurfaceTextureContainer::get_texture()
 {
-	return m_texture.getTexture();
+	return &m_texture->getTexture();
+}
+
+bool FeSurfaceTextureContainer::update_texture()
+{
+}
+
+bool FeSurfaceTextureContainer::texture_changed()
+{
+	return false;
 }
 
 void FeSurfaceTextureContainer::on_new_selection( FeSettings *s )
@@ -906,26 +928,26 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 	//
 	// Draw the surface's draw list to the render texture
 	//
-	if ( m_clear ) m_texture.clear( sf::Color::Transparent );
+	if ( m_clear ) m_texture->clear( sf::Color::Transparent );
 	for ( std::vector<FeBasePresentable *>::const_iterator itr = elements.begin();
 				itr != elements.end(); ++itr )
 	{
 		if ( (*itr)->get_visible() )
-			m_texture.draw( (*itr)->drawable() );
+			m_texture->draw( (*itr)->drawable() );
 	}
 
-	m_texture.display();
-	if ( m_mipmap ) m_texture.generateMipmap();
+	m_texture->display();
+	if ( m_mipmap ) m_texture->generateMipmap();
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )
 {
-	m_texture.setSmooth( s );
+	m_texture->setSmooth( s );
 }
 
 bool FeSurfaceTextureContainer::get_smooth() const
 {
-	return m_texture.isSmooth();
+	return m_texture->isSmooth();
 }
 
 void FeSurfaceTextureContainer::set_mipmap( bool m )
@@ -950,12 +972,12 @@ bool FeSurfaceTextureContainer::get_clear() const
 
 void FeSurfaceTextureContainer::set_repeat( bool r )
 {
-	m_texture.setRepeated( r );
+	m_texture->setRepeated( r );
 }
 
 bool FeSurfaceTextureContainer::get_repeat() const
 {
-	return m_texture.isRepeated();
+	return m_texture->isRepeated();
 }
 
 FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
@@ -969,6 +991,8 @@ FeImage::FeImage( FePresentableParent &p,
 	m_tex( tc ),
 	m_pos( x, y ),
 	m_size( w, h ),
+	m_texture_size( 0, 0 ),
+	m_texture_rect( 0.0, 0.0, 0.0, 0.0 ),
 	m_rotation ( 0.0 ),
 	m_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
@@ -989,6 +1013,8 @@ FeImage::FeImage( FeImage *o )
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
+	m_texture_size( o->m_texture_size ),
+	m_texture_rect( o->m_texture_rect ),
 	m_rotation( o->m_rotation ),
 	m_origin( o->m_origin ),
 	m_anchor( o->m_anchor ),
@@ -1009,7 +1035,7 @@ FeImage::~FeImage()
 const sf::Texture *FeImage::get_texture()
 {
 	if ( m_tex )
-		return &(m_tex->get_texture());
+		return m_tex->get_texture();
 	else
 		return NULL;
 }
@@ -1023,18 +1049,36 @@ bool FeImage::get_visible() const
 
 }
 
-void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
+void FeImage::update_sprite( FeBaseTextureContainer *new_tex )
 {
 	if ( new_tex )
 		m_tex = new_tex;
 
-	m_sprite.setTexture( m_tex->get_texture() );
+	// if ( m_tex->get_file_name() == NULL )
+	// 	return;
+
+	// Temporary const hack
+	if ( m_tex )
+	{
+		sf::Texture *t = const_cast<sf::Texture *>( m_tex->get_texture() );
+		t->setSmooth( m_tex->get_smooth() );
+		if ( m_tex->get_mipmap() ) t->generateMipmap();
+	}
+
+	m_sprite.setTexture( *m_tex->get_texture() );
 
 	//  reset texture rect now to the one reported by the new texture object
 	m_sprite.setTextureRect(
-		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
+		sf::FloatRect( 0, 0, m_texture_size.x, m_texture_size.y ) );
 
+	// FeLog() << m_tex->get_texture()->getSize().x << " " << m_texture_size.x << std::endl;
 	scale();
+}
+
+void FeImage::update_texture_size( sf::Vector2u size )
+{
+	m_texture_size = size;
+	m_texture_rect = sf::FloatRect( 0, 0, size.x, size.y );
 }
 
 sf::Vector2f FeImage::alignTypeToVector( int type )
@@ -1122,15 +1166,22 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 		states.shader = FeBlend::get_default_shader( m_blend_mode );
 
 	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
+	// sf::Texture *t = const_cast<sf::Texture *>( m_sprite.getTexture() );
+	// if ( t )
+	// {
+		// t->setSmooth( m_tex->get_smooth() );
+		// if ( m_tex->get_mipmap() ) t->generateMipmap();
+	// }
 	target.draw( m_sprite, states );
 }
 
 void FeImage::scale()
 {
-	sf::FloatRect texture_rect = m_sprite.getTextureRect();
+	// FeLog() << " " << m_texture_rect.width << "x" << m_texture_rect.height << std::endl;
+	// sf::FloatRect texture_rect = m_sprite.getTextureRect();
 	float ratio = m_tex->get_sample_aspect_ratio();
 
-	if (( texture_rect.width == 0 ) || ( texture_rect.height == 0 ))
+	if (( m_texture_rect.width == 0 ) || ( m_texture_rect.height == 0 ))
 		return;
 
 	bool scale=false;
@@ -1139,7 +1190,7 @@ void FeImage::scale()
 
 	if ( m_size.x > 0.0 )
 	{
-		scale_x = (float) m_size.x / abs( texture_rect.width );
+		scale_x = (float) m_size.x / abs( m_texture_rect.width );
 
 		if ( m_preserve_aspect_ratio )
 			scale_y = scale_x;
@@ -1149,7 +1200,7 @@ void FeImage::scale()
 
 	if ( m_size.y > 0.0 )
 	{
-		scale_y = (float) m_size.y / abs( texture_rect.height );
+		scale_y = (float) m_size.y / abs( m_texture_rect.height );
 
 		if ( m_preserve_aspect_ratio )
 		{
@@ -1167,11 +1218,11 @@ void FeImage::scale()
 
 				if ( scale_x > scale_y * ratio ) // centre in x direction
 					final_pos += t.transformPoint(
-						( m_size.x - abs( texture_rect.width ) * scale_y * ratio ) / 2.0,
+						( m_size.x - abs( m_texture_rect.width ) * scale_y * ratio ) / 2.0,
 						0 );
 				else // centre in y direction
 					final_pos += t.transformPoint( 0,
-						( m_size.y - abs( texture_rect.height ) * scale_x / ratio ) / 2.0 );
+						( m_size.y - abs( m_texture_rect.height ) * scale_x / ratio ) / 2.0 );
 			}
 		}
 
@@ -1203,6 +1254,7 @@ const sf::Vector2f &FeImage::getPosition() const
 
 const sf::Vector2f &FeImage::getSize() const
 {
+	// FeLog() << "m_size" << m_size.x << "x" << m_size.y << std::endl;
 	return m_size;
 }
 
@@ -1257,21 +1309,26 @@ void FeImage::setColor( const sf::Color &c )
 
 const sf::Vector2u FeImage::getTextureSize() const
 {
-	return m_tex->get_texture().getSize();
+	return m_texture_size;
 }
 
 const sf::FloatRect &FeImage::getTextureRect() const
 {
-	return m_sprite.getTextureRect();
+	return m_texture_rect;
 }
 
 void FeImage::setTextureRect( const sf::FloatRect &r )
 {
-	if ( r != m_sprite.getTextureRect() )
+	m_texture_rect = r;
+	if ( !m_tex->texture_changed() )
 	{
-		m_sprite.setTextureRect( r );
-		scale();
-		FePresent::script_flag_redraw();
+		// if ( r != m_texture_rect )
+		{
+			// FeLog() << "changed" << std::endl;
+			m_sprite.setTextureRect( r );
+			scale();
+			FePresent::script_flag_redraw();
+		}
 	}
 }
 

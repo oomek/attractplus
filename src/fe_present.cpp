@@ -29,6 +29,7 @@
 #include "fe_input.hpp"
 #include "fe_file.hpp"
 #include "fe_blend.hpp"
+#include "async_loader.hpp"
 #include "zip.hpp"
 
 #include <iostream>
@@ -560,7 +561,8 @@ FeImage *FePresent::add_surface( int w, int h, FePresentableParent &p )
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_image->set_blend_mode( FeBlend::Premultiplied );
 
-	new_image->texture_changed();
+	new_image->update_texture_size( sf::Vector2u( w, h ));
+	new_image->update_sprite();
 
 	flag_redraw();
 	p.elements.push_back( new_image );
@@ -1057,6 +1059,25 @@ int FePresent::update( bool new_list, bool new_display )
 	}
 
 	return 0;
+}
+
+bool FePresent::update_textures()
+{
+	FeAsyncLoader &al = FeAsyncLoader::get_ref();
+	if ( al.done() )
+	{
+		bool redraw = false;
+		std::vector<FeBaseTextureContainer *>::iterator itc;
+		for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+		{
+			if ( (*itc)->update_texture() ) redraw = true;
+		}
+
+		// FeLog() << "TEXTURES UPDATED" << std::endl;
+		return redraw;
+	}
+
+	return false;
 }
 
 void FePresent::on_end_navigation()

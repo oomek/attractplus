@@ -51,7 +51,9 @@ class FeBaseTextureContainer
 public:
 	virtual ~FeBaseTextureContainer();
 
-	virtual const sf::Texture &get_texture()=0;
+	virtual const sf::Texture *get_texture()=0;
+	virtual bool update_texture()=0;
+	virtual bool texture_changed()=0;
 
 	virtual void on_new_selection( FeSettings *feSettings )=0;
 	virtual void on_end_navigation( FeSettings *feSettings )=0;
@@ -123,6 +125,7 @@ private:
 	std::vector< FeImage * > m_images;
 
 	friend class FeTextureContainer;
+	friend class FeSurfaceTextureContainer;
 };
 
 class FeTextureContainer : public FeBaseTextureContainer
@@ -132,7 +135,9 @@ public:
 
 	~FeTextureContainer();
 
-	const sf::Texture &get_texture();
+	const sf::Texture *get_texture();
+	bool update_texture();
+	bool texture_changed();
 	bool get_visible() const;
 
 	void on_new_selection( FeSettings *feSettings );
@@ -194,7 +199,7 @@ private:
 	void internal_update_selection( FeSettings *feSettings );
 	void clear();
 
-	sf::Texture m_texture;
+	sf::Texture *m_texture;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)
 	std::string m_file_name; // the name of the loaded file
@@ -213,6 +218,8 @@ private:
 	bool m_smooth;
 	bool m_frame_displayed;
 	FeImageLoaderEntry *m_entry;
+	bool m_texture_changed;
+	sf::Vector2u m_texture_size;
 };
 
 class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresentableParent
@@ -222,7 +229,9 @@ public:
 	FeSurfaceTextureContainer( int width, int height );
 	~FeSurfaceTextureContainer();
 
-	const sf::Texture &get_texture();
+	const sf::Texture *get_texture();
+	bool update_texture();
+	bool texture_changed();
 
 	void on_new_selection( FeSettings *feSettings );
 	void on_end_navigation( FeSettings *feSettings );
@@ -245,9 +254,10 @@ public:
 	FePresentableParent *get_presentable_parent();
 
 private:
-	sf::RenderTexture m_texture;
+	sf::RenderTexture *m_texture;
 	bool m_clear;
 	bool m_mipmap;
+	sf::Vector2u m_texture_size;
 };
 
 class FeImage : public sf::Drawable, public FeBasePresentable
@@ -312,7 +322,8 @@ public:
 
 	bool get_visible() const;
 
-	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
+	void update_sprite( FeBaseTextureContainer *new_tex=NULL );
+	void update_texture_size( sf::Vector2u );
 
 	float get_origin_x() const;
 	float get_origin_y() const;
@@ -384,6 +395,8 @@ protected:
 	FeSprite m_sprite;
 	sf::Vector2f m_pos;
 	sf::Vector2f m_size;
+	sf::Vector2u m_texture_size;
+	sf::FloatRect m_texture_rect;
 	sf::Vector2f m_scale;
 	sf::Vector2f m_origin;
 	sf::Vector2f m_rotation_origin;

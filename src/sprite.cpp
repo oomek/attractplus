@@ -56,6 +56,7 @@
 // Headers
 ////////////////////////////////////////////////////////////
 #include "sprite.hpp"
+#include "fe_base.hpp" // logging
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <cmath>

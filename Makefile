@@ -71,7 +71,7 @@ RM=rm -f
 MD=mkdir -p
 WINDRES=windres
 
-CFLAGS += -DSQUSEDOUBLE
+CFLAGS += -DSQUSEDOUBLE -fpermissive -std=c++11
 
 ifndef OPTIMIZE
 OPTIMIZE=2
@@ -138,6 +138,7 @@ _DEP =\
 	fe_blend.hpp \
 	path_cache.hpp \
 	image_loader.hpp \
+	async_loader.hpp \
 	zip.hpp
 
 _OBJ =\
@@ -173,6 +174,7 @@ _OBJ =\
 	zip.o \
 	path_cache.o \
 	image_loader.o \
+	async_loader.o \
 	main.o
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
@@ -233,7 +235,7 @@ ifeq ($(STATIC),1)
   ifeq ($(FE_WINDOWS_COMPILE),1)
   else ifeq ($(FE_MACOSX_COMPILE),1)
   else
-    LIBS += -lX11 -lGL -lGLU -lm -lz -ludev -lXrandr -lrt -lXcursor -lpthread
+    LIBS += -lX11 -lGL -lGLU -lm -lz -ludev -lXrandr -lrt -lXcursor
   endif
 else
   # SFML may not generate .pc files, so manually add libs
@@ -248,7 +250,7 @@ endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL
+  LIBS += -ldl -lGL -lpthread
  endif
 else
  LIBS += -lopengl32

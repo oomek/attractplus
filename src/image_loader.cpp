@@ -32,15 +32,16 @@
 #include <queue>
 #include <string>
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#include "stb_image.h"
+
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
 #include "zip.hpp"
 #include "media.hpp"
 
 #include "image_loader.hpp"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 namespace
 {

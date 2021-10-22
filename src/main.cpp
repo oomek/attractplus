@@ -1059,6 +1059,9 @@ int main(int argc, char *argv[])
 		else
 			has_focus = window.hasFocus();
 
+		if ( feVM.update_textures() )
+			redraw=true;
+
 		if ( feVM.on_tick() )
 			redraw=true;
 
