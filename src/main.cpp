@@ -43,6 +43,10 @@
 #include "fe_util_android.hpp"
 #endif
 
+#ifdef USE_LIBCURL
+#include <curl/curl.h>
+#endif
+
 #ifdef SFML_SYSTEM_WINDOWS
 #include <windows.h>
 #include "nvapi.hpp"
@@ -53,10 +57,6 @@ extern "C"
 __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
-#endif
-
-#ifdef USE_LIBCURL
-#include <curl/curl.h>
 #endif
 
 void process_args( int argc, char *argv[],
