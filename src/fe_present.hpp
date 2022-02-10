@@ -152,6 +152,7 @@ protected:
 
 	FeText *m_overlay_caption;
 	FeListBox *m_overlay_lb;
+	bool m_layout_loaded;
 
 	FePresent( const FePresent & );
 	FePresent &operator=( const FePresent & );
@@ -212,6 +213,8 @@ public:
 	bool load_intro(); // returns false if no intro is available
 	void load_screensaver();
 	void load_layout( bool initial_load=false, bool suppress_transition=false );
+	void set_layout_loaded( bool loaded ) { m_layout_loaded = loaded; };
+	bool is_layout_loaded() { return m_layout_loaded; };
 
 	virtual void update_to_new_list( int var=0, bool reset_display=false, bool suppress_transition=false ); // NOTE virtual function!
 	void on_end_navigation();

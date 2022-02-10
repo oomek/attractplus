@@ -1091,6 +1091,8 @@ bool FeVM::on_new_layout()
 		}
 	}
 
+	FePresent *fep = FePresent::script_get_fep();
+
 	//
 	// Run the layout script
 	//
@@ -1145,13 +1147,13 @@ bool FeVM::on_new_layout()
 
 	if ( !skip_layout && ( ps == FeSettings::Layout_Showing ))
 	{
+		fep->set_layout_loaded( true );
 		FeLog() << " - Loaded layout: " << rep_path
 			<< " (" << filename << ")" << std::endl;
 	}
 
 	// To avoid frame delay of nested surfaces we have to sort them here
 	// so the most nested ones are redrawn first
-	FePresent *fep = FePresent::script_get_fep();
 	std::stable_sort( fep->m_texturePool.begin(), fep->m_texturePool.end(), nesting_compare );
 
 	return true;

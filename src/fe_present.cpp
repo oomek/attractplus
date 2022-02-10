@@ -178,7 +178,8 @@ FePresent::FePresent( FeSettings *fesettings, FeFontContainer &defaultfont, FeWi
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
-	m_refresh_rate( 0 )
+	m_refresh_rate( 0 ),
+	m_layout_loaded( false )
 {
 	m_layoutFontName = m_feSettings->get_info( FeSettings::DefaultFont );
 	init_monitors();
@@ -1116,6 +1117,8 @@ void FePresent::load_screensaver()
 
 void FePresent::load_layout( bool initial_load, bool suppress_transition )
 {
+	m_layout_loaded = false;
+
 	int var = ( m_feSettings->get_present_state() == FeSettings::ScreenSaver_Showing )
 			? FromToScreenSaver : FromToNoValue;
 

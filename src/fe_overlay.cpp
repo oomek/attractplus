@@ -272,7 +272,9 @@ void FeOverlay::splash_message( const std::string &msg,
 
 	const sf::Transform &t = m_fePresent.get_transform();
 
-	m_fePresent.tick();
+	// Process tick only when Layout is fully loaded
+	if ( m_fePresent.is_layout_loaded() )
+		m_fePresent.tick();
 
 	m_wnd.clear();
 	m_wnd.draw( m_fePresent, t );
