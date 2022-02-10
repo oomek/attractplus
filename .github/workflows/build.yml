@@ -12,7 +12,7 @@ jobs:
         platform:
         - { name: Windows MXE,    os: ubuntu-20.04, sfmlrepo: oomek/SFML,    crossprefix: x86_64-w64-mingw32.static-, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1 }
         - { name: Linux GCC,      os: ubuntu-20.04, sfmlrepo: oomek/sfml-pi, flags: -DSFML_DRM=1,                     amosflags: USE_DRM=1 }
-        - { name: MacOS XCode,    os: macos-latest, sfmlrepo: oomek/SFML,    flags: -DSFML_USE_SYSTEM_DEPS=TRUE}
+        - { name: MacOS XCode,    os: macos-10.15, sfmlrepo: oomek/SFML,    flags: -DSFML_USE_SYSTEM_DEPS=TRUE}
         config:
         - { name: shared, flags: -DBUILD_SHARED_LIBS=TRUE }
         - { name: static, flags: -DBUILD_SHARED_LIBS=FALSE, amflags: STATIC=1 }
@@ -61,7 +61,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew update
-        brew install pkg-config ffmpeg libarchive libvorbis flac
+        brew install pkg-config ffmpeg@4 libarchive libvorbis flac
 
     - name: SFML - Checkout
       uses: actions/checkout@v2
@@ -83,7 +83,7 @@ jobs:
     - name: AM+ - Build
       run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
-        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig"
+        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
         EXTRA_CFLAGS: "${{matrix.platform.amextracflags}}"
 
