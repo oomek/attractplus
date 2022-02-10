@@ -33,6 +33,10 @@
 #include "fe_window.hpp"
 #include "fe_blend.hpp"
 
+#ifdef USE_LIBCURL
+#include "fe_net.hpp"
+#endif
+
 #include "fe_util.hpp"
 #include "fe_util_sq.hpp"
 #include "image_loader.hpp"
@@ -968,6 +972,9 @@ bool FeVM::on_new_layout()
 	fe.Func<int (*)(const char *)>(_SC("get_input_pos"), &FeVM::cb_get_input_pos);
 	fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
+#ifdef USE_LIBCURL
+	fe.Func<bool (*)(const char *, const char *)>(_SC("get_url"), &FeVM::get_url);
+#endif
 	fe.Overload<const char* (*)(int)>(_SC("game_info"), &FeVM::cb_game_info);
 	fe.Overload<const char* (*)(int, int)>(_SC("game_info"), &FeVM::cb_game_info);
 	fe.Overload<const char* (*)(int, int, int)>(_SC("game_info"), &FeVM::cb_game_info);
@@ -2309,6 +2316,26 @@ bool FeVM::load_module( const char *module )
 
 	return internal_do_nut( module_dir, module_file );
 }
+
+#ifdef USE_LIBCURL
+bool FeVM::get_url( const char *url, const char *path )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	std::string script_path;
+	int script_id = fev->get_script_id();
+	if ( script_id < 0 )
+		fev->m_feSettings->get_path( FeSettings::Current, script_path );
+	else
+		fev->m_feSettings->get_plugin_full_path( script_id, script_path );
+
+	std::string file_url = url;
+	std::string file_path = path;
+	if ( is_relative_path( file_path )) file_path = script_path + file_path;
+	FeNetTask my_task( file_url, file_path, FeNetTask::SpecialFileTask );
+	return my_task.do_task();
+}
+#endif
 
 bool FeVM::cb_plugin_command( const char *command,
 		const char *args,
