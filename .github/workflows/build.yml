@@ -77,7 +77,7 @@ jobs:
         path: sfml
 
     - name: SFML - Configure CMake
-      run: ${{env.cross_prefix}}cmake -S $GITHUB_WORKSPACE/sfml -B $GITHUB_WORKSPACE/sfml/build -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE ${{matrix.platform.flags}} ${{matrix.config.flags}}
+      run: ${{env.cross_prefix}}cmake -S $GITHUB_WORKSPACE/sfml -B $GITHUB_WORKSPACE/sfml/build -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_AUDIO=FALSE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
 
     - name: SFML - Build
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
@@ -163,7 +163,7 @@ jobs:
           apt-get update -y -q
           apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libavresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
         run: |
-          cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE ${{matrix.platform.flags}} ${{matrix.config.flags}}
+          cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_AUDIO=FALSE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
           cmake --build /sfml/build --config Release --target install
           make -C /am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
 
