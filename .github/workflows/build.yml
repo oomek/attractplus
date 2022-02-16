@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         platform:
-        - { name: Windows MXE,    os: ubuntu-20.04, sfmlrepo: oomek/SFML,    crossprefix: x86_64-w64-mingw32.static-, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1 }
+        - { name: Windows MXE,    os: ubuntu-20.04, sfmlrepo: oomek/SFML,    sfmlbranch: 2.6.x, crossprefix: x86_64-w64-mingw32.static-, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1 }
         - { name: Linux GCC,      os: ubuntu-20.04, sfmlrepo: oomek/sfml-pi, flags: -DSFML_DRM=1,                     amosflags: USE_DRM=1 }
         - { name: MacOS XCode,    os: macos-10.15, sfmlrepo: oomek/SFML,    flags: -DSFML_USE_SYSTEM_DEPS=TRUE}
         config:
@@ -22,6 +22,11 @@ jobs:
         #  config: { name: Frameworks, flags: -DSFML_BUILD_FRAMEWORKS=TRUE }
 
     steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v2
+      with:
+        path: am
+
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.platform.name != 'Windows MXE'
       run: |
@@ -51,6 +56,7 @@ jobs:
           mxe-x86-64-w64-mingw32.${{matrix.config.name}}-libarchive \
           mxe-x86-64-w64-mingw32.${{matrix.config.name}}-curl \
           mxe-x86-64-w64-mingw32.${{matrix.config.name}}-openjpeg
+        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.${{matrix.config.name}}-gcc_11.2.0-focal.deb
         sudo ln -s /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.${{matrix.config.name}}-gcc /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.${{matrix.config.name}}-cc
         sudo pip install mingw-ldd
         echo "/usr/lib/mxe/usr/bin" >> $GITHUB_PATH
@@ -67,6 +73,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: ${{matrix.platform.sfmlrepo}}
+        ref: ${{matrix.platform.sfmlbranch}} 
         path: sfml
 
     - name: SFML - Configure CMake
@@ -74,11 +81,6 @@ jobs:
 
     - name: SFML - Build
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
-
-    - name: AM+ - Checkout
-      uses: actions/checkout@v2
-      with:
-        path: am
 
     - name: AM+ - Build
       run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
