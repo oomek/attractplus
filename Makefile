@@ -58,7 +58,7 @@
 #VERBOSE=1
 #WINDOWS_XP=1
 
-FE_VERSION=v2.6.1
+FE_VERSION=v2.6.2
 
 CC ?= gcc
 CXX ?= g++
@@ -72,6 +72,7 @@ MD=mkdir -p
 WINDRES=windres
 
 CFLAGS += -DSQUSEDOUBLE
+CFLAGS += -std=c++11
 
 ifndef OPTIMIZE
 OPTIMIZE=2
