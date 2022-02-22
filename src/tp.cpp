@@ -193,6 +193,7 @@ void FeTextPrimitive::fit_string(
 		{
 			i--;
 			last_char = i - 1;
+			if ( last_char < 0 ) last_char = 0;
 			if ( s[last_char] == L' ' ) last_char--;
 		}
 		else
