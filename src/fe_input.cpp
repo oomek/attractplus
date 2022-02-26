@@ -393,9 +393,9 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 			}
 			break;
 
-		case sf::Event::MouseWheelMoved:
+		case sf::Event::MouseWheelScrolled:
 			m_type = Mouse;
-			if ( e.mouseWheel.delta > 0 )
+			if ( e.mouseWheelScroll.delta > 0 )
 				m_code=MouseWheelUp;
 			else
 				m_code=MouseWheelDown;
@@ -1003,7 +1003,7 @@ void FeInputMap::initialize_mappings()
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyLeft,      Left },
 			{ FeInputSingle::Keyboard,    sf::Keyboard::Right,         Right },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyRight,     Right },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Return,        Select },
+			{ FeInputSingle::Keyboard,    sf::Keyboard::Enter,         Select },
 			{ FeInputSingle::Keyboard,    sf::Keyboard::LControl,      Select },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0,   Select },
 
