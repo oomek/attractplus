@@ -34,6 +34,7 @@
 #include <iostream>
 #include <cmath>
 #include <limits>
+#include <cstring>
 
 #ifndef NO_MOVIE
 #include <Audio/AudioDevice.hpp>
