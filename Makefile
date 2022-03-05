@@ -234,7 +234,7 @@ ifeq ($(STATIC),1)
   ifeq ($(FE_WINDOWS_COMPILE),1)
   else ifeq ($(FE_MACOSX_COMPILE),1)
   else
-    LIBS += -lX11 -lGL -lGLU -lm -lz -ludev -lXrandr -lrt -lXcursor -lpthread
+    LIBS += -lGL -lGLU -lm -lz -ludev -lrt -lpthread
   endif
 else
   # SFML may not generate .pc files, so manually add libs
@@ -318,7 +318,7 @@ endif
 
 ifeq ($(USE_XLIB),1)
  FE_FLAGS += -DUSE_XLIB
- LIBS += -lX11 -lXrandr
+ LIBS += -lX11 -lXrandr -lXcursor
 
 ifeq ($(USE_XINERAMA),1)
   FE_FLAGS += -DUSE_XINERAMA
