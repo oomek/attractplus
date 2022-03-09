@@ -1243,7 +1243,8 @@ void FeVM::on_transition(
 
 	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
 
-	sf::Clock ttimer;
+	sf::Clock clk;
+	int ttime = 0;
 
 	std::vector<FeCallback *> worklist( m_trans.size() );
 	for ( unsigned int i=0; i < m_trans.size(); i++ )
@@ -1276,7 +1277,7 @@ void FeVM::on_transition(
 					keep = func.Evaluate<bool>(
 						(int)t,
 						var,
-						ttimer.getElapsedTime().asMilliseconds() );
+						ttime );
 				}
 			}
 			catch( const Exception &e )
@@ -1301,6 +1302,7 @@ void FeVM::on_transition(
 			m_window.clear();
 			m_window.draw( *this );
 			m_window.display();
+			ttime = clk.getElapsedTime().asMilliseconds();
 
 #ifdef SFML_SYSTEM_LINUX
 			//
