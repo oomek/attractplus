@@ -36,20 +36,22 @@ extern "C"
 
 #define FE_NAME_D			"Attract-Mode Plus"
 
-const char *FE_NAME			= FE_NAME_D;
-const char *FE_COPYRIGHT		= FE_NAME_D " " FE_VERSION_D \
-	" Copyright (c) 2013-2022 Andrew Mickelson & Radek Dutkiewicz";
-const char *FE_VERSION 			= FE_VERSION_D;
+const char *FE_NAME         = FE_NAME_D;
+const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " (Build " FE_BUILD_D ")\n" \
+	"Copyright (c) 2013-2022 Andrew Mickelson & Radek Dutkiewicz";
+const char *FE_VERSION      = FE_VERSION_D;
 
-const char *FE_WHITESPACE=" \t\r";
-const char *FE_DIR_TOKEN				= "<DIR>";
+const char *FE_BUILD_NUMBER  = FE_BUILD_D;
 
-const char *FE_DEFAULT_ARTWORK		= "snap";
+const char *FE_WHITESPACE   = " \t\r";
+const char *FE_DIR_TOKEN    = "<DIR>";
 
-const char *FE_EMULATOR_SUBDIR		= "emulators/";
-const char *FE_EMULATOR_TEMPLATES_SUBDIR	= "emulators/templates/";
-const char *FE_EMULATOR_FILE_EXTENSION	= ".cfg";
-const char *FE_EMULATOR_DEFAULT		= "default-emulator.cfg";
+const char *FE_DEFAULT_ARTWORK           = "snap";
+
+const char *FE_EMULATOR_SUBDIR           = "emulators/";
+const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/";
+const char *FE_EMULATOR_FILE_EXTENSION   = ".cfg";
+const char *FE_EMULATOR_DEFAULT          = "default-emulator.cfg";
 
 namespace {
 	nowide::ofstream g_logfile;
@@ -118,7 +120,7 @@ void fe_set_log_level( enum FeLogLevel f )
 
 void fe_print_version()
 {
-	FeLog() << FE_NAME << " " << FE_VERSION << " ("
+	FeLog() << FE_NAME << " " << FE_VERSION << " (Build " << FE_BUILD_NUMBER << ") ("
 		<< get_OS_string()
 		<< ", SFML " << SFML_VERSION_MAJOR << '.' << SFML_VERSION_MINOR
 		<< "." << SFML_VERSION_PATCH
