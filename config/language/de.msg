@@ -346,7 +346,9 @@ Exception;Ausnahme
 Exception Edit;editiere die Ausnahme
 Exit Message;Abschiedsnachricht
 Extra;Extra
+Group Clones;Gruppenklone
 FileIsAvailable;Datei ist vorhanden
+Group Clones;Gruppenklone
 Insert Command Shortcut;füge eine Kommandoverknüpfung ein
 Insert Display Shortcut;füge eine Bildschirmverknüpfung hinzu
 Insert Game Entry;Setze Spieleintrag
@@ -409,6 +411,7 @@ _help_game_edit;Editiere die Information zu diesem Spiel
 _help_game_overview;Editiere die Spieleübersicht
 _help_generator_build;Erstelle eine Romliste mit dem/den ausgewählten Emulator(en)
 _help_generator_opt;Wähle, ob dieser Emulator in der zu erstellenden Romliste enthalten sein soll
+_help_group_clones;Gruppieren Sie alle Klone eines Spiels unter einem einzigen Listeneintrag
 _help_hide_console;Verstecke das Kommandozeilenfenster beim Starten. Bitte beachte, dass dies nur in einer Windows Schaltfläche funktioniert. Wird die Anwendung durch ein Kommandozeilenfenster, wie z.B. einer Batch-Datei, gestartet, wird der Ladevorgang and dieses Fenster gebunden sein
 _help_input_default_action;Setze ein Standardverhalten für diese Eingabe
 _help_joystick_map;Hier kannst du das Frontend zwingen bestimmte Joystick ports immer denselben Joysticks/Gamepads zuzuweisen (So kannst du zum Beispiel 'Microsoft X-Box 360 pad' immer als Joystick 0 verwenden.)
