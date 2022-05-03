@@ -234,7 +234,7 @@ ifeq ($(STATIC),1)
   ifeq ($(FE_WINDOWS_COMPILE),1)
   else ifeq ($(FE_MACOSX_COMPILE),1)
   else
-    LIBS += -lGL -lGLU -lm -lz -ludev -lrt -lpthread
+    LIBS += -lGL -lGLU -lm -lz -ludev -lrt
   endif
 else
   # SFML may not generate .pc files, so manually add libs
@@ -249,7 +249,7 @@ endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL
+  LIBS += -ldl -lGL -lpthread
  endif
 else
  LIBS += -lopengl32
