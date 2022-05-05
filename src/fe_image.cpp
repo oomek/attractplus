@@ -604,7 +604,10 @@ void FeTextureContainer::set_play_state( bool play )
 		if ( m_movie_status > PLAY_COUNT )
 		{
 			if ( play )
+			{
+				m_movie->stop();
 				m_movie->play();
+			}
 			else
 			{
 				m_movie->stop();
