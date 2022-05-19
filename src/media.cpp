@@ -83,6 +83,12 @@ typedef const AVCodec FeAVCodec;
 typedef AVCodec FeAVCodec;
 #endif
 
+#if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 58, 7, 100 ))
+  #define FORMAT_CTX_URL m_imp->m_format_ctx->url
+#else
+  #define FORMAT_CTX_URL m_imp->m_format_ctx->filename
+#endif
+
 void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec );
 
 std::string g_decoder;
@@ -836,7 +842,7 @@ the_end:
 
 	int average = ( displayed == 0 ) ? qscore_accum : ( qscore_accum / displayed );
 
-	FeDebug() << "End Video Thread - " << m_parent->m_imp->m_format_ctx->url << std::endl
+	FeDebug() << "End Video Thread - " << m_parent->FORMAT_CTX_URL << std::endl
 				<< " - bit_rate=" << codec_ctx->bit_rate
 				<< ", width=" << codec_ctx->width << ", height=" << codec_ctx->height << std::endl
 				<< " - displayed=" << displayed << std::endl
@@ -1051,7 +1057,7 @@ bool FeMedia::open( const std::string &archive,
 	if ( avformat_find_stream_info( m_imp->m_format_ctx, NULL ) < 0 )
 	{
 		FeLog() << "Error finding stream information in input file: "
-					<< m_imp->m_format_ctx->url << std::endl;
+				<< FORMAT_CTX_URL << std::endl;
 		return false;
 	}
 
@@ -1076,7 +1082,7 @@ bool FeMedia::open( const std::string &archive,
 			if ( avcodec_open2( codec_ctx, dec, NULL ) < 0 )
 			{
 				FeLog() << "Could not open audio decoder for file: "
-						<< m_imp->m_format_ctx->url << std::endl;
+					<< FORMAT_CTX_URL << std::endl;
 				avcodec_free_context( &codec_ctx );
 			}
 			else
@@ -1105,7 +1111,7 @@ bool FeMedia::open( const std::string &archive,
 				if ( codec_ctx->sample_fmt != AV_SAMPLE_FMT_S16 )
 				{
 					FeLog() << "Warning: Attract-Mode was compiled without an audio resampler (libswresample or libavresample)." << std::endl
-						<< "The audio format in " << m_imp->m_format_ctx->url << " appears to need resampling.  It will likely sound like garbage." << std::endl;
+						<< "The audio format in " << FORMAT_CTX_URL << " appears to need resampling.  It will likely sound like garbage." << std::endl;
 				}
 #endif
 			}
@@ -1125,7 +1131,7 @@ bool FeMedia::open( const std::string &archive,
 		if ( stream_id < 0 )
 		{
 			FeLog() << "No video stream found, file: "
-				<< m_imp->m_format_ctx->url << std::endl;
+				<< FORMAT_CTX_URL << std::endl;
 		}
 		else
 		{
@@ -1160,7 +1166,7 @@ bool FeMedia::open( const std::string &archive,
 					case AV_CODEC_ID_MPEG4:
 						FeLog() << "mmal video decoding (" << dec->name
 							<< ") not supported for file (trying software): "
-							<< m_imp->m_format_ctx->url << std::endl;
+							<< FORMAT_CTX_URL << std::endl;
 
 						dec = avcodec_find_decoder_by_name(prev_dec_name.c_str());
 
@@ -1175,7 +1181,7 @@ bool FeMedia::open( const std::string &archive,
 				if ( av_result < 0 )
 				{
 					FeLog() << "Could not open video decoder for file: "
-							<< m_imp->m_format_ctx->url << std::endl;
+							<< FORMAT_CTX_URL << std::endl;
 					avcodec_free_context( &codec_ctx );
 				}
 			}
