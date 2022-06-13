@@ -383,8 +383,8 @@ int FeOverlay::common_list_dialog(
 		FeTextPrimitive heading( m_fePresent.get_font(), m_selColour,
 			sf::Color::Transparent, char_size );
 		heading.setSize( size.x, size.y / 8 );
-		heading.setOutlineColor( m_textColour );
-		heading.setOutlineThickness( -2 );
+		heading.setBgOutlineColor( m_textColour );
+		heading.setBgOutlineThickness( -2 );
 		heading.setTextScale( text_scale );
 		heading.setString( title );
 		draw_list.push_back( &heading );
@@ -486,8 +486,8 @@ int FeOverlay::languages_dialog()
 
 	FeTextPrimitive heading( m_fePresent.get_font(), m_selColour, sf::Color::Transparent, char_size );
 	heading.setSize( size.x, size.y / 8 );
-	heading.setOutlineColor( m_textColour );
-	heading.setOutlineThickness( -2 );
+	heading.setBgOutlineColor( m_textColour );
+	heading.setBgOutlineThickness( -2 );
 	heading.setTextScale( text_scale );
 
 	heading.setString( "" );
@@ -1059,8 +1059,8 @@ int FeOverlay::display_config_dialog(
 
 	FeTextPrimitive heading( font, m_selColour, sf::Color::Transparent, char_size / 2 );
 	heading.setSize( size.x, slice );
-	heading.setOutlineColor( m_textColour );
-	heading.setOutlineThickness( -2 );
+	heading.setBgOutlineColor( m_textColour );
+	heading.setBgOutlineThickness( -2 );
 	heading.setTextScale( text_scale );
 	heading.setString( ctx.title );
 	draw_list.push_back( &heading );
@@ -1121,8 +1121,8 @@ int FeOverlay::display_config_dialog(
 
 	footer.setPosition( 0, size.y - slice );
 	footer.setSize( size.x, slice );
-	footer.setOutlineColor( m_textColour );
-	footer.setOutlineThickness( -2 );
+	footer.setBgOutlineColor( m_textColour );
+	footer.setBgOutlineThickness( -2 );
 	footer.setWordWrap( true );
 	footer.setTextScale( text_scale );
 	draw_list.push_back( &footer );

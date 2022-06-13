@@ -50,6 +50,8 @@ public:
 
 	void setColor( const sf::Color & );
 	void setBgColor( const sf::Color & );
+	void setOutlineColor( const sf::Color & );
+	void setBgOutlineColor( const sf::Color & );
 
 	void setString( const std::string & );	// does utf-8 conversion!
 
@@ -74,19 +76,23 @@ public:
 	void setSize( const sf::Vector2f & );
 	void setStyle( int );
 	void setRotation( float );
-	void setOutlineColor( const sf::Color & );
-	void setOutlineThickness( int );
+	void setBgOutlineThickness( float );
+	float getBgOutlineThickness();
 	void setFirstLineHint( int );
 	void setWordWrap( bool );
 	void setNoMargin( bool );
 	bool getNoMargin();
 	void setMargin( int );
 	int getMargin();
+	void setOutlineThickness( float );
+	float getOutlineThickness();
 	void setTextScale( const sf::Vector2f & );
 
 	const sf::Font *getFont() const;
 	const sf::Color &getColor() const;
 	const sf::Color &getBgColor() const;
+	const sf::Color &getOutlineColor() const;
+	const sf::Color &getBgOutlineColor() const;
 	unsigned int getCharacterSize() const;
 	unsigned int getGlyphSize() const;
 	float getCharacterSpacing() const;
@@ -115,6 +121,7 @@ private:
 	// larger than the area available to display it.
 	int m_first_line;
 	int m_margin;
+	int m_outline;
 	float m_line_spacing;
 
 	mutable bool m_needs_pos_set;

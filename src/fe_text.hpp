@@ -70,6 +70,10 @@ public:
 	bool get_no_margin();
 	void set_margin( int );
 	int get_margin();
+	void set_outline( float );
+	float get_outline();
+	void set_bg_outline( float );
+	float get_bg_outline();
 
 	void set_first_line_hint( int l );
 	int get_first_line_hint();
@@ -96,6 +100,8 @@ public:
 	void set_bgb(int b);
 	void set_bga(int a);
 	void set_bg_rgb( int, int, int );
+	void set_bg_outline_rgb( int, int, int );
+	void set_outline_rgb( int, int, int );
 	void set_charsize(int s);
 	void set_spacing(float s);
 	void set_line_spacing(float s);

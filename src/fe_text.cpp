@@ -206,6 +206,28 @@ int FeText::get_margin()
 	return m_draw_text.getMargin();
 }
 
+void FeText::set_outline( float t )
+{
+	m_draw_text.setOutlineThickness( t );
+	FePresent::script_do_update( this );
+}
+
+float FeText::get_outline()
+{
+	return m_draw_text.getOutlineThickness();
+}
+
+void FeText::set_bg_outline( float t )
+{
+	m_draw_text.setBgOutlineThickness( t );
+	FePresent::script_do_update( this );
+}
+
+float FeText::get_bg_outline()
+{
+	return m_draw_text.getBgOutlineThickness();
+}
+
 void FeText::set_first_line_hint( int l )
 {
 	if ( l != m_draw_text.getFirstLineHint() )
@@ -355,6 +377,42 @@ void FeText::set_bg_rgb(int r, int g, int b )
 			c.a = 255;
 
 		m_draw_text.setBgColor(c);
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_bg_outline_rgb(int r, int g, int b )
+{
+	sf::Color c=m_draw_text.getBgOutlineColor();
+
+	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
+	{
+		c.r=r;
+		c.g=g;
+		c.b=b;
+
+		if ( c.a == 0 )
+			c.a = 255;
+
+		m_draw_text.setBgOutlineColor(c);
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_outline_rgb(int r, int g, int b )
+{
+	sf::Color c=m_draw_text.getOutlineColor();
+
+	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
+	{
+		c.r=r;
+		c.g=g;
+		c.b=b;
+
+		if ( c.a == 0 )
+			c.a = 255;
+
+		m_draw_text.setOutlineColor(c);
 		FePresent::script_flag_redraw();
 	}
 }

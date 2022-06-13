@@ -242,15 +242,15 @@ FeTextPrimitive *FeListBox::setEditMode( bool e, sf::Color c )
 		if ( e )
 		{
 			m_texts[ sel ].setColor( c );
-			m_texts[ sel ].setOutlineColor( c );
-			m_texts[ sel ].setOutlineThickness( -1 );
+			m_texts[ sel ].setBgOutlineColor( c );
+			m_texts[ sel ].setBgOutlineThickness( -1 );
 
 			return &(m_texts[ sel ]);
 		}
 		else
 		{
 			m_texts[ sel ].setColor( m_selColour );
-			m_texts[ sel ].setOutlineThickness( 0 );
+			m_texts[ sel ].setBgOutlineThickness( 0 );
 		}
 	}
 	return NULL;

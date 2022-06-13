@@ -29,10 +29,12 @@ FeTextPrimitive::FeTextPrimitive( )
 	m_align( Centre ),
 	m_first_line( -1 ),
 	m_margin( -1 ),
+	m_outline( 0.0 ),
 	m_line_spacing( 1.0 ),
 	m_needs_pos_set( false )
 {
 	setColor( sf::Color::White );
+	setBgOutlineColor( sf::Color::Black );
 	setBgColor( sf::Color::Transparent );
 }
 
@@ -46,6 +48,7 @@ FeTextPrimitive::FeTextPrimitive(
 	m_align( align ),
 	m_first_line( -1 ),
 	m_margin( -1 ),
+	m_outline( 0.0 ),
 	m_line_spacing( 1.0 ),
 	m_needs_pos_set( false )
 {
@@ -63,6 +66,7 @@ FeTextPrimitive::FeTextPrimitive( const FeTextPrimitive &c )
 	m_align( c.m_align ),
 	m_first_line( c.m_first_line ),
 	m_margin( c.m_margin ),
+	m_outline( c.m_outline ),
 	m_line_spacing( c.m_line_spacing ),
 	m_needs_pos_set( c.m_needs_pos_set )
 {
@@ -87,6 +91,27 @@ void FeTextPrimitive::setBgColor( const sf::Color &c )
 const sf::Color &FeTextPrimitive::getBgColor() const
 {
 	return m_bgRect.getFillColor();
+}
+
+void FeTextPrimitive::setOutlineColor( const sf::Color &c )
+{
+	for ( unsigned int i=0; i < m_texts.size(); i++ )
+		m_texts[i].setOutlineColor( c );
+}
+
+const sf::Color &FeTextPrimitive::getOutlineColor() const
+{
+	return m_texts[0].getOutlineColor();
+}
+
+void FeTextPrimitive::setBgOutlineColor( const sf::Color &c )
+{
+	m_bgRect.setOutlineColor( c );
+}
+
+const sf::Color &FeTextPrimitive::getBgOutlineColor() const
+{
+	return m_bgRect.getOutlineColor();
 }
 
 void FeTextPrimitive::fit_string(
@@ -114,7 +139,7 @@ void FeTextPrimitive::fit_string(
 	const sf::Font *font = getFont();
 	unsigned int charsize = m_texts[0].getCharacterSize();
 	unsigned int spacing = charsize;
-	float width = m_bgRect.getLocalBounds().width / m_texts[0].getScale().x;
+	float width = m_bgRect.getSize().x / m_texts[0].getScale().x;
 
 	int running_total( 0 );
 	int running_width( 0 );
@@ -268,7 +293,7 @@ sf::Vector2f FeTextPrimitive::setString(
 		//
 		// Calculate the number of lines we can fit in our RectShape
 		//
-		sf::FloatRect rectSize = m_bgRect.getLocalBounds();
+		sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
 
 		const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), false );
 		float glyphSize = glyph->bounds.height * m_texts[0].getScale().y;
@@ -329,7 +354,7 @@ void FeTextPrimitive::set_positions() const
 	spacing = getLineSpacingFactored( font, spacing );
 
 	sf::Vector2f rectPos = m_bgRect.getPosition();
-	sf::FloatRect rectSize = m_bgRect.getLocalBounds();
+	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
 
 	for ( int i=0; i < (int)m_texts.size(); i++ )
 	{
@@ -341,11 +366,14 @@ void FeTextPrimitive::set_positions() const
 		textSize.height *= m_texts[i].getScale().y;
 		textSize.left *= m_texts[i].getScale().x;
 
+		// outline compensation
+		float outline = ceilf( m_outline );
+
 		// set position x
 		if ( m_align & Left )
-			textPos.x = rectPos.x;
+			textPos.x = rectPos.x - outline;
 		else if ( m_align & Right )
-			textPos.x = rectPos.x + floorf( rectSize.width ) - textSize.width;
+			textPos.x = rectPos.x + floorf( rectSize.width ) - textSize.width + outline;
 		else if ( m_align & Centre )
 			textPos.x = rectPos.x + floorf(( rectSize.width - textSize.width ) / 2.0 );
 
@@ -494,14 +522,14 @@ void FeTextPrimitive::setStyle( int s )
 		m_texts[i].setStyle( s );
 }
 
-void FeTextPrimitive::setOutlineColor( const sf::Color &c )
+void FeTextPrimitive::setBgOutlineThickness( float t )
 {
-	m_bgRect.setOutlineColor( c );
+	m_bgRect.setOutlineThickness( t );
 }
 
-void FeTextPrimitive::setOutlineThickness( int i )
+float FeTextPrimitive::getBgOutlineThickness()
 {
-	m_bgRect.setOutlineThickness( i );
+	return m_bgRect.getOutlineThickness();
 }
 
 void FeTextPrimitive::setRotation( float r )
@@ -548,6 +576,19 @@ void FeTextPrimitive::setMargin( int margin )
 int FeTextPrimitive::getMargin()
 {
 	return m_margin;
+}
+
+void FeTextPrimitive::setOutlineThickness( float t )
+{
+	if ( t < 0.0 ) t = 0.0;
+	m_outline = t;
+	for ( unsigned int i=0; i < m_texts.size(); i++ )
+		m_texts[i].setOutlineThickness( m_outline / m_texts[0].getScale().x );
+}
+
+float FeTextPrimitive::getOutlineThickness()
+{
+	return m_outline;
 }
 
 void FeTextPrimitive::setTextScale( const sf::Vector2f &s )
