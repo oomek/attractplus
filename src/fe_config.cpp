@@ -124,7 +124,11 @@ void FeMenuOpt::append_vlist( const std::vector< std::string > &list )
 }
 
 FeConfigContext::FeConfigContext( FeSettings &f )
-	: fe_settings( f ), style( SelectionList ), curr_sel( -1 ), save_req( false )
+	: fe_settings( f ),
+	style( SelectionList ),
+	curr_sel( -1 ),
+	default_sel( 0 ),
+	save_req( false )
 {
 }
 
@@ -1326,6 +1330,7 @@ bool FeDisplayMenuEditMenu::save( FeConfigContext &ctx )
 
 void FeDisplaySelMenu::get_options( FeConfigContext &ctx )
 {
+	ctx.default_sel = ctx.fe_settings.get_current_display_index();
 	ctx.set_style( FeConfigContext::SelectionList, "Configure / Displays" );
 
 	int display_count = ctx.fe_settings.displays_count();
@@ -2455,6 +2460,7 @@ bool FeSaverEditMenu::save( FeConfigContext &ctx )
 
 void FeConfigMenu::get_options( FeConfigContext &ctx )
 {
+	ctx.default_sel = 1;
 	ctx.set_style( FeConfigContext::SelectionList, "Configure" );
 	ctx.help_msg = FE_COPYRIGHT;
 

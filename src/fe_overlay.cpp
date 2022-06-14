@@ -239,7 +239,7 @@ void FeOverlay::splash_message( const std::string &msg,
 	sf::RectangleShape bg( sf::Vector2f( size.x, size.y ) );
 	bg.setFillColor( m_bgColour );
 	bg.setOutlineColor( m_textColour );
-	bg.setOutlineThickness( -2 );
+	bg.setOutlineThickness( 0 );
 
 	FeTextPrimitive message(
 		m_fePresent.get_font(),
@@ -377,14 +377,14 @@ int FeOverlay::common_list_dialog(
 		sf::RectangleShape bg( sf::Vector2f( size.x, size.y ) );
 		bg.setFillColor( m_bgColour );
 		bg.setOutlineColor( m_textColour );
-		bg.setOutlineThickness( -2 );
+		bg.setOutlineThickness( 0 );
 		draw_list.push_back( &bg );
 
 		FeTextPrimitive heading( m_fePresent.get_font(), m_selColour,
 			sf::Color::Transparent, char_size );
 		heading.setSize( size.x, size.y / 8 );
 		heading.setBgOutlineColor( m_textColour );
-		heading.setBgOutlineThickness( -2 );
+		heading.setBgOutlineThickness( 0 );
 		heading.setTextScale( text_scale );
 		heading.setString( title );
 		draw_list.push_back( &heading );
@@ -481,13 +481,13 @@ int FeOverlay::languages_dialog()
 	sf::RectangleShape bg( sf::Vector2f( size.x, size.y ) );
 	bg.setFillColor( m_bgColour );
 	bg.setOutlineColor( m_textColour );
-	bg.setOutlineThickness( -2 );
+	bg.setOutlineThickness( 0 );
 	draw_list.push_back( &bg );
 
 	FeTextPrimitive heading( m_fePresent.get_font(), m_selColour, sf::Color::Transparent, char_size );
 	heading.setSize( size.x, size.y / 8 );
 	heading.setBgOutlineColor( m_textColour );
-	heading.setBgOutlineThickness( -2 );
+	heading.setBgOutlineThickness( 0 );
 	heading.setTextScale( text_scale );
 
 	heading.setString( "" );
@@ -679,7 +679,7 @@ int FeOverlay::common_basic_dialog(
 		sf::RectangleShape bg( sf::Vector2f( size.x, size.y ) );
 		bg.setFillColor( m_bgColour );
 		bg.setOutlineColor( m_textColour );
-		bg.setOutlineThickness( -2 );
+		bg.setOutlineThickness( 0 );
 
 		FeTextPrimitive message(
 			m_fePresent.get_font(),
@@ -1054,13 +1054,13 @@ int FeOverlay::display_config_dialog(
 	sf::RectangleShape bg( sf::Vector2f( size.x, size.y ) );
 	bg.setFillColor( m_bgColour );
 	bg.setOutlineColor( m_textColour );
-	bg.setOutlineThickness( -2 );
+	bg.setOutlineThickness( 0 );
 	draw_list.push_back( &bg );
 
 	FeTextPrimitive heading( font, m_selColour, sf::Color::Transparent, char_size / 2 );
 	heading.setSize( size.x, slice );
 	heading.setBgOutlineColor( m_textColour );
-	heading.setBgOutlineThickness( -2 );
+	heading.setBgOutlineThickness( 0 );
 	heading.setTextScale( text_scale );
 	heading.setString( ctx.title );
 	draw_list.push_back( &heading );
@@ -1122,12 +1122,12 @@ int FeOverlay::display_config_dialog(
 	footer.setPosition( 0, size.y - slice );
 	footer.setSize( size.x, slice );
 	footer.setBgOutlineColor( m_textColour );
-	footer.setBgOutlineThickness( -2 );
+	footer.setBgOutlineThickness( 0 );
 	footer.setWordWrap( true );
 	footer.setTextScale( text_scale );
 	draw_list.push_back( &footer );
 
-	ctx.curr_sel = sdialog.getRowCount() / 2;
+	ctx.curr_sel = ctx.default_sel;
 	if ( ctx.curr_sel >= (int)ctx.left_list.size() )
 		ctx.curr_sel = 0;
 

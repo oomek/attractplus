@@ -112,6 +112,7 @@ public:
 
 	std::vector<FeMenuOpt> opt_list;	// menu options
 	int curr_sel;		// index of currently selected menu option in opt_list
+	int default_sel;
 	bool save_req; 	// flag whether save() should be called on this menu
 
 	FeConfigContext( FeSettings & );
