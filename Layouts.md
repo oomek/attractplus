@@ -1,8 +1,9 @@
-Attract-Mode Frontend
-=====================
+Attract-Mode Plus Frontend
+==========================
 
 Layout and Plug-in Programming Reference
 ----------------------------------------
+Functions and parameters unique to Plus are marked with &#x1F538; sign.
 
 Contents
 --------
@@ -18,6 +19,7 @@ Contents
       * [`fe.add_clone()`](#add_clone)
       * [`fe.add_text()`](#add_text)
       * [`fe.add_listbox()`](#add_listbox)
+      * [`fe.add_rectangle()`](#add_rectangle)&#x1F538;
       * [`fe.add_shader()`](#add_shader)
       * [`fe.add_sound()`](#add_sound)
       * [`fe.add_ticks_callback()`](#add_ticks_callback)
@@ -38,6 +40,7 @@ Contents
       * [`fe.path_test()`](#path_test)
       * [`fe.get_config()`](#get_config)
       * [`fe.get_text()`](#get_text)
+      * [`fe.get_url()`](#get_url)&#x1F538;
    * [Objects and Variables](#objects)
       * [`fe.ambient_sound`](#ambient_sound)
       * [`fe.layout`](#layout)
@@ -63,6 +66,7 @@ Contents
       * [`fe.Image`](#Image)
       * [`fe.Text`](#Text)
       * [`fe.ListBox`](#ListBox)
+      * [`fe.Rectangle`](#Rectangle)&#x1F538;
       * [`fe.Sound`](#Sound)
       * [`fe.Shader`](#Shader)
    * [Constants](#constants)
@@ -439,6 +443,29 @@ Return Value:
 
    * An instance of the class [`fe.ListBox`](#ListBox) which can be used to
      interact with the added text.
+
+&nbsp;
+<a name="add_rectangle" />
+
+#### `fe.add_rectangle()`&#x1F538;
+
+    fe.add_rectangle( x, y, w, h )
+
+Add a rectangle to the end of Attract-Mode's draw list.
+
+Parameters:
+
+   * x - the x coordinate of the top left corner of the rectangle (in layout
+     coordinates).
+   * y - the y coordinate of the top left corner of the rectangle (in layout
+     coordinates).
+   * w - the width of the rectangle (in layout coordinates).
+   * h - the height of the rectangle (in layout coordinates).
+
+Return Value:
+
+   * An instance of the class [`fe.Rectangle`](#Rectangle) which can be used to
+     interact with the added rectangle.
 
 &nbsp;
 <a name="add_shader" />
@@ -1155,6 +1182,22 @@ Return Value:
    * A string containing the translated text.
 
 &nbsp;
+<a name="get_url" />
+
+#### `fe.get_url()`&#x1F538;
+
+    fe.get_url( url, file_path )
+
+Download a file from provided url address. When `file_path` is relative the file
+will be saved to the layout's folder.
+
+Parameters:
+
+   * url - an internet address of the file to download.
+   * file_path - a destination folder set as an absolute path,
+     or a relative path inside the layout's folder
+
+&nbsp;
 <a name="objects" />
 
 Objects and Variables
@@ -1205,7 +1248,7 @@ functionality may be accessed.
 #### `fe.obj` ####
 
 `fe.obj` contains the Attract-Mode draw list.  It is an array of `fe.Image`,
-`fe.Text` and `fe.ListBox` instances.
+`fe.Text`, `fe.ListBox` and `fe.Rectangle` instances.
 
 &nbsp;
 <a name="displays" />
@@ -1307,6 +1350,7 @@ Properties:
    * `preserve_aspect_ratio` - Get/set whether the overall layout aspect ratio
      should be preserved by the frontend.  Default value is false.
    * `time` - Get the number of millseconds that the layout has been showing.
+   * `mouse_pointer`&#x1F538;When set to true mouse pointer will be visible.
 
 Notes:
 
@@ -1583,7 +1627,29 @@ Properties:
      the image.  Default origin in 0,0 (top-left corner).
    * `origin_y` - Get/set the y position of the local origin for the image.
      The origin defines the centre point for any positioning or rotation of
-     the image.  Default origin is 0,0 (top-left corner).
+     the image. Default origin is 0,0 (top-left corner).
+   * `anchor`&#x1F538;Set the midpoint for position and scale.
+     Can be set to one of the following modes:
+      - `Anchor.Left`
+      - `Anchor.Centre`
+      - `Anchor.Right`
+      - `Anchor.Top`
+      - `Anchor.Bottom`
+      - `Anchor.TopLeft`
+      - `Anchor.TopRight`
+      - `Anchor.BottomLeft`
+      - `Anchor.BottomRight`
+   * `origin`&#x1F538;Set the midpoint for rotation
+     Can be set to one of the following modes:
+      - `Origin.Left`
+      - `Origin.Centre`
+      - `Origin.Right`
+      - `Origin.Top`
+      - `Origin.Bottom`
+      - `Origin.TopLeft`
+      - `Origin.TopRight`
+      - `Origin.BottomLeft`
+      - `Origin.BottomRight`
    * `video_flags` - [image & artwork only] Get/set video flags for this
      object.  These flags allow you to override Attract-Mode's default video
      playback behaviour.  Can be set to any combination of none or more of the
@@ -1628,6 +1694,10 @@ Properties:
      The default value is `false`.  It's advised to force anisotropic filtering in
      the display driver settings if the Image with auto generated mipmap is scaled
      by the ratio that is not isotropic.
+   * `repeat`&#x1F538;Enables texture repeat when set to true. Default value is false.
+     To see the effect `subimg_width/height` must be set larger than `texture_width/height`
+   * `clear`&#x1F538;[surface only] When set to false surface is not cleared
+     before the next frame. This can be used for various accumulative effects.
 
 Member Functions:
 
@@ -1636,14 +1706,18 @@ Member Functions:
    * `set_pos( x, y )` - Set the image position (in layout coordinates).
    * `set_pos( x, y, width, height )` - Set the image position and size (in
      layout coordinates).
+   * `set_anchor( x, y )`&#x1F538;Set the midpoint for position and scale
+     x and y are in [0.0 ... 1.0] scale
+   * `set_origin( x, y )`&#x1F538;Set the midpoint for rotation
+     x and y are in [0.0 ... 1.0] scale
    * `swap( other_img )` - swap the texture contents of this object (and all
      of its clones) with the contents of "other_img" (and all of its clones).
      If an image or artwork is swapped, its video attributes (`video_flags`
      and `video_playing`) will be swapped as well.
    * `fix_masked_image()` - Takes the colour of the top left pixel in the image
      and makes all the pixels in the image with that colour transparent.
-   * `load_from_archive( archive, filename )` - Load the image from the
-     specified archive file (.zip, etc).
+   * ~~`load_from_archive( archive, filename )` - Load the image from the
+     specified archive file (.zip, etc).~~
    * `add_image()` - [surface only] add an image to the end of this surface's
      draw list (see [`fe.add_image()`](#add_image) for parameters and return
      value).
@@ -1775,6 +1849,10 @@ Properties:
    * `line_spacing` - Get/set the spacing factor between lines.  Default value is 1.0
      At values 0.75 or lower letters start to overlap. For uppercase texts it's around 0.5
      It's advised to use this property with the new align modes.
+   * `outline`&#x1F538;Get/set the thickness of the outline applied to text.
+     Value is set in pixels and can be fractional. Default value is 0.0
+   * `bg_outline`&#x1F538;Get/set the thickness of the outline applied to the background.
+     Value is set in pixels and can be fractional. Default value is 0.0
    * `style` - Get/set the text style.  Can be a combination of one or more
      of the following (i.e. `Style.Bold | Style.Italic`):
       - `Style.Regular` (default)
@@ -1816,6 +1894,10 @@ Member Functions:
      text.  Range is [0 ... 255].
    * `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for
      the text background.  Range is [0 ... 255].
+   * `set_outline_rgb( r, g, b )`&#x1F538;Set the red, green and blue colour values for
+     the text outline.  Range is [0 ... 255].
+   * `set_bg_outline_rgb()`&#x1F538;Set the red, green and blue colour values for
+     the outline of the text background.  Range is [0 ... 255].
    * `set_pos( x, y )` - Set the text position (in layout coordinates).
    * `set_pos( x, y, width, height )` - Set the text position and size (in
      layout coordinates).
@@ -1970,8 +2052,8 @@ Member Functions:
 
    * `get_metadata( tag )` - Get the meta data (if available in the source
      file) that corresponds to the specified tag (i.e. "artist", "album", etc.)
-   * `load_from_archive( archive, filename )` - Load the sound from the
-     specified archive file (.zip, etc).
+   * ~~`load_from_archive( archive, filename )` - Load the sound from the
+     specified archive file (.zip, etc).~~
 
 &nbsp;
 <a name="Shader" />
