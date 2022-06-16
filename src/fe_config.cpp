@@ -1331,6 +1331,8 @@ bool FeDisplayMenuEditMenu::save( FeConfigContext &ctx )
 void FeDisplaySelMenu::get_options( FeConfigContext &ctx )
 {
 	ctx.default_sel = ctx.fe_settings.get_current_display_index();
+	if ( ctx.default_sel < 0 ) ctx.default_sel = 0; // We are in the displays menu.
+
 	ctx.set_style( FeConfigContext::SelectionList, "Configure / Displays" );
 
 	int display_count = ctx.fe_settings.displays_count();
