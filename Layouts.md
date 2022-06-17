@@ -1383,6 +1383,7 @@ Properties:
      cleared or the user navigates away from the display/filter.
    * `size` - Get the size of the current game list.  If a search rule has
      been applied, this will be the number of matches found (if > 0)
+   * `clones_list`&#x1F538;Returns 'true' if the curent list contains game clones.
 
 &nbsp;
 <a name="ImageCache" />

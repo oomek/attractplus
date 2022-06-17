@@ -846,6 +846,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("filter_index"), &FePresent::get_filter_index, &FePresent::set_filter_index )
 		.Prop( _SC("search_rule"), &FePresent::get_search_rule, &FePresent::set_search_rule )
 		.Prop( _SC("size"), &FePresent::get_current_filter_size )
+		.Prop( _SC("clones_list"), &FePresent::get_clones_list_showing )
 
 		// The following are deprecated as of version 1.5 in favour of using the fe.filters array:
 		.Prop( _SC("filter"), &FePresent::get_filter_name )	// deprecated as of 1.5

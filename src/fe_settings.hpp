@@ -368,6 +368,7 @@ public:
 
 	bool switch_to_clone_group( int index = -1 ); // set index to the index of the clone to select.  -1=default
 	bool switch_from_clone_group();
+	int get_clone_index();
 
 	bool select_last_launch();
 	bool is_last_launch( int filter_offset, int index_offset );

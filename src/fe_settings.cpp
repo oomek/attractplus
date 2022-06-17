@@ -1104,6 +1104,11 @@ bool FeSettings::switch_from_clone_group()
 	return true;
 }
 
+int FeSettings::get_clone_index()
+{
+	return m_clone_index;
+}
+
 const std::string &FeSettings::get_search_rule() const
 {
 	return m_current_search_str;

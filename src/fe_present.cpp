@@ -843,6 +843,14 @@ int FePresent::get_current_filter_size() const
 	return m_feSettings->get_filter_size( m_feSettings->get_current_filter_index() );
 }
 
+bool FePresent::get_clones_list_showing() const
+{
+	if ( m_feSettings->get_clone_index() > 0 )
+		return true;
+	else
+		return false;
+}
+
 int FePresent::get_selection_index() const
 {
 	return m_feSettings->get_rom_index( m_feSettings->get_current_filter_index(), 0 );
