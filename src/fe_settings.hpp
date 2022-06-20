@@ -87,6 +87,9 @@ class FeSettings : public FeBaseConfigurable
 {
 public:
 	enum RotationState { RotateNone=0, RotateRight, RotateFlip, RotateLeft };
+	static const char *screenRotationTokens[];
+	static const char *screenRotationDispTokens[];
+
 	enum FePresentState
 	{
 		Intro_Showing,
@@ -123,6 +126,8 @@ public:
 		MouseThreshold,
 		JoystickThreshold,
 		WindowMode,
+		ScreenAspectRatio,
+		ScreenRotation,
 		FilterWrapMode,
 		TrackUsage,
 		MultiMon,
@@ -236,6 +241,8 @@ private:
 	bool m_hide_console;
 #endif
 	bool m_power_saving;
+	std::pair<int, int> m_screen_aspect_ratio;
+	RotationState m_screen_rotation;
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 
@@ -483,6 +490,8 @@ public:
 		const std::string &fontname="" ) const;
 
 	WindowType get_window_mode() const;
+	double get_screen_aspect_ratio() const;
+	RotationState get_screen_rotation() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
 	int get_screen_saver_timeout() const;

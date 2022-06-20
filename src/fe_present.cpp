@@ -35,6 +35,7 @@
 #include <cmath>
 #include <limits>
 #include <cstring>
+#include <iomanip>
 
 #ifndef NO_MOVIE
 #include <Audio/AudioDevice.hpp>
@@ -1378,10 +1379,46 @@ void FePresent::toggle_rotate( FeSettings::RotationState r )
 		m_toggleRotation = r;
 
 	set_transforms();
+	load_layout();
 }
 
 void FePresent::set_transforms()
 {
+	m_baseRotation = m_feSettings->get_screen_rotation();
+
+	double sar = m_feSettings->get_screen_aspect_ratio();
+	double sar_x = (double) m_mon[0].size.x / ( m_mon[0].size.y * sar );
+	double sar_y = (double) m_mon[0].size.y / ( m_mon[0].size.x / sar );
+
+	if (( m_baseRotation + m_toggleRotation ) % 2 == 0 )
+	{
+		if ( sar == 1.0 )
+		{
+			m_layoutSize.x = m_mon[0].size.x;
+			m_layoutSize.y = m_mon[0].size.y;
+		}
+		else
+		{
+			m_layoutSize.x = m_mon[0].size.x / std::max( sar_x, 1.0 );
+			m_layoutSize.y = m_mon[0].size.y / std::max( sar_y, 1.0 );
+		}
+	}
+	else
+	{
+		if ( sar == 1.0 )
+		{
+			m_layoutSize.x = m_mon[0].size.y;
+			m_layoutSize.y = m_mon[0].size.x;
+		}
+		else
+		{
+			m_layoutSize.x = m_mon[0].size.y / std::max( sar_y, 1.0 );
+			m_layoutSize.y = m_mon[0].size.x / std::max( sar_x, 1.0 );
+		}
+	}
+
+	FeLog() << std::setprecision(3) << "SAR: " << sar << " " << sar_x << " x " << sar_y << std::endl;
+
 	m_transform = m_mon[0].transform;
 
 	FeSettings::RotationState actualRotation
@@ -1430,30 +1467,48 @@ void FePresent::set_transforms()
 	}
 	else // !m_preserve_aspect
 	{
-		m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
-		m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
-
 		switch ( actualRotation )
 		{
 		case FeSettings::RotateNone:
+			m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
+			m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
 			break;
 
 		case FeSettings::RotateRight:
 			m_transform.translate( m_mon[0].size.x, 0 );
-			m_transform.scale( (float) m_mon[0].size.x / m_mon[0].size.y,
-				(float) m_mon[0].size.y / m_mon[0].size.x );
+			if ( sar == 1.0 )
+			{
+				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
+				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
+			}
+			else
+			{
+				m_layoutScale.x = std::max( sar_y, 1.0 );
+				m_layoutScale.y = std::max( sar_x, 1.0 );
+			}
+
 			m_transform.rotate(90);
 			break;
 
 		case FeSettings::RotateLeft:
 			m_transform.translate( 0, m_mon[0].size.y );
-			m_transform.scale( (float) m_mon[0].size.x / m_mon[0].size.y,
-				(float) m_mon[0].size.y / m_mon[0].size.x );
+			if ( sar == 1.0 )
+			{
+				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
+				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
+			}
+			else
+			{
+				m_layoutScale.x = std::max( sar_y, 1.0 );
+				m_layoutScale.y = std::max( sar_x, 1.0 );
+			}
 			m_transform.rotate(270);
 			break;
 
 		case FeSettings::RotateFlip:
 			m_transform.translate( m_mon[0].size.x, m_mon[0].size.y );
+			m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
+			m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
 			m_transform.rotate(180);
 			break;
 		}
@@ -1464,6 +1519,8 @@ void FePresent::set_transforms()
 	for ( std::vector<FeBasePresentable *>::iterator itr=m_mon[0].elements.begin();
 			itr!=m_mon[0].elements.end(); ++itr )
 		(*itr)->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+
+	FeLog() << m_mon[0].size.x << "x" << m_mon[0].size.y << " " << m_layoutSize.x << "x" << m_layoutSize.y << " L.Scale " << m_layoutScale.x << "x" << m_layoutScale.y << "\n";
 }
 
 FeShader *FePresent::get_empty_shader()
