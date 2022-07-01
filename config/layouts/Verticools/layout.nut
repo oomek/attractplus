@@ -31,10 +31,10 @@ function cycleValue(ttime,counter,switcher,workValue,minV,maxV,BY,speed){
    cycleVTable[workValue]-=BY;
    if (cycleVTable[workValue]<=minV)
     cycleVTable[switcher]=0;
-  }    
+  }
  cycleVTable[counter]=0;
  }
- return cycleVTable[workValue];	
+ return cycleVTable[workValue];
 }
 
 // Gives us a nice high random number for the RGB levels
@@ -42,21 +42,10 @@ function brightrand() {
 	return 255-(rand()/512);
 }
 
-// Layout Constants
-fe.layout.orient=RotateScreen.Right;
-fe.layout.width=fe.layout.width/2;
+// Uncomment for 640x240
+// fe.layout.width=fe.layout.width*2;
 local flw=fe.layout.width;
 local flh=fe.layout.height;
-local rot=(fe.layout.base_rotation+fe.layout.toggle_rotation)%4;
-switch (rot) {
- case RotateScreen.Right:
- case RotateScreen.Left:
-  fe.layout.width=flh;
-  fe.layout.height=flw;
-  flw=fe.layout.width;
-  flh=fe.layout.height;
-  break;
-}
 
 // Background
 if (my_config["bg_image"]=="video") {
@@ -93,7 +82,7 @@ local itn=9;                    // Listbox entries
 if (my_config["wheel_logo"]=="No"){
  lby=flh*0.17;                  // Listbox Y position without logo
  itn=13;                        // Listbox entries without logo
-} 
+}
 local lbw=flw;                  // Listbox width
 local lbh=(flh-lby-(flh*0.08)); // Listbox height
 local ith=lbh/itn;              // Listbox entry height
@@ -106,11 +95,11 @@ local lbf=0.75;                 // Listbox colour fade. Lower values=less fade.
 for (local i=(itn/2)*-1;i<=(itn/2);i+=1){
  if (i==0){
  }
- else { 
+ else {
   local unselgame=fe.add_text("[Title]",lbx,lby+(ith*i),lbw,ith);
   unselgame.index_offset=i;
   if (i<0) {unselgame.alpha=255-((i*(255/(itn/2))*-1)*lbf);}
-  else {unselgame.alpha=255-(i*(255/(itn/2))*lbf);} 
+  else {unselgame.alpha=255-(i*(255/(itn/2))*lbf);}
  }
 }
 
@@ -136,7 +125,7 @@ if (my_config["category_text"]=="Yes"){
  category.align=Align.Left;
  category.alpha=64;
 }
-local copyright=fe.add_text("©[Year] [Manufacturer]",flw-(flh*0.06),flh*0.95,flh*0.85,flh*0.05);
+local copyright=fe.add_text("Â©[Year] [Manufacturer]",flw-(flh*0.06),flh*0.95,flh*0.85,flh*0.05);
 copyright.rotation=-90;
 copyright.align=Align.Left;
 copyright.alpha=64;
@@ -152,9 +141,9 @@ if (my_config["wheel_logo"]=="Yes"){
  wheel.x-=2;
  wheel.y-=2;
  wheel.alpha=255;
-} 
+}
 
-function textTickles(ttime){		
+function textTickles(ttime){
  local RED=cycleValue(ttime,"cnListRed","swListRed","wkListRed",100,254,1,1);
  local GREEN=cycleValue(ttime,"cnListGreen","swListGreen","wkListGreen",100,254,1.5,1);
  local BLUE=cycleValue(ttime,"cnListBlue","swListBlue","wkListBlue",100,254,2,1);
@@ -182,6 +171,7 @@ function fades(ttype,var,ttime){
    break;
   case Transition.EndLayout:
    if (ttime<10){
+    fltsh.msg="EXITING";
     filtername.msg="EXITING";
     return true;
    }

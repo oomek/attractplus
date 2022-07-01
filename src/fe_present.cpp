@@ -455,7 +455,21 @@ void FePresent::clear()
 		delete f;
 	}
 
-	m_layoutSize = m_mon[0].size;
+	m_baseRotation = m_feSettings->get_screen_rotation();
+
+	FeSettings::RotationState actualRotation = get_actual_rotation();
+
+	if (( actualRotation == FeSettings::RotateLeft ) || ( actualRotation == FeSettings::RotateRight ))
+	{
+		m_layoutSize.x = m_mon[0].size.y;
+		m_layoutSize.y = m_mon[0].size.x;
+	}
+	else
+	{
+		m_layoutSize.x = m_mon[0].size.x;
+		m_layoutSize.y = m_mon[0].size.y;
+	}
+
 	m_layoutScale.x = 1.0;
 	m_layoutScale.y = 1.0;
 
@@ -778,12 +792,7 @@ const char *FePresent::get_layout_font() const
 
 void FePresent::set_base_rotation( int r )
 {
-	if ( r != m_baseRotation )
-	{
-		m_baseRotation = (FeSettings::RotationState)r;
-		set_transforms();
-		flag_redraw();
-	}
+	FeLog() << "! NOTE: Setting base_rotation is deprecated. Use toggle_rotation or Screen Rotation in General Settings." << std::endl;
 }
 
 int FePresent::get_base_rotation() const
@@ -1100,7 +1109,7 @@ void FePresent::redraw_surfaces()
 bool FePresent::load_intro()
 {
 	clear();
-	m_baseRotation = FeSettings::RotateNone;
+	// m_baseRotation = FeSettings::RotateNone;
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Intro_Showing );
 
@@ -1146,7 +1155,6 @@ void FePresent::load_layout( bool initial_load, bool suppress_transition )
 		var = FromToFrontend;
 
 	clear();
-	m_baseRotation = FeSettings::RotateNone;
 
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Layout_Showing );
@@ -1377,85 +1385,93 @@ void FePresent::toggle_rotate( FeSettings::RotationState r )
 	else
 		m_toggleRotation = r;
 
-	set_transforms();
+	load_layout();
+}
+
+FeSettings::RotationState FePresent::get_actual_rotation()
+{
+	return (FeSettings::RotationState)(( m_baseRotation + m_toggleRotation ) % 4 );
 }
 
 void FePresent::set_transforms()
 {
 	m_transform = m_mon[0].transform;
 
-	FeSettings::RotationState actualRotation
-		= (FeSettings::RotationState)(( m_baseRotation + m_toggleRotation ) % 4);
+	FeSettings::RotationState actualRotation = get_actual_rotation();
 
 	if ( m_preserve_aspect )
 	{
-		if (( actualRotation == FeSettings::RotateRight )
-			|| ( actualRotation == FeSettings::RotateLeft ))
+		switch ( actualRotation )
 		{
-			m_layoutScale.x = m_layoutScale.y = std::min(
-				(float) m_mon[0].size.y / m_layoutSize.x,
-				(float) m_mon[0].size.x / m_layoutSize.y );
-
-			float adjust_x = std::fabs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2;
-			float adjust_y = std::fabs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2;
-
-			if ( actualRotation == FeSettings::RotateRight )
+			case FeSettings::RotateNone:
 			{
+				m_layoutScale.x = m_layoutScale.y = std::min( (float) m_mon[0].size.x / m_layoutSize.x, (float) m_mon[0].size.y / m_layoutSize.y );
+				float adjust_x = std::floor(( m_layoutSize.x * m_layoutScale.x - m_mon[0].size.x ) / 2.0 + 0.5 );
+				float adjust_y = std::floor(( m_layoutSize.y * m_layoutScale.y - m_mon[0].size.y ) / 2.0 + 0.5 );
+				m_transform.translate( -adjust_x, -adjust_y );
+				break;
+			}
+
+			case FeSettings::RotateRight:
+			{
+				m_layoutScale.x = m_layoutScale.y = std::min( (float) m_mon[0].size.y / m_layoutSize.x,	(float) m_mon[0].size.x / m_layoutSize.y );
+				float adjust_x = std::floor( std::abs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2 + 0.5 );
+				float adjust_y = std::floor( std::abs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2 + 0.5 );
 				m_transform.translate( m_mon[0].size.x - adjust_x, adjust_y );
 				m_transform.rotate(90);
+				break;
 			}
-			else
+
+			case FeSettings::RotateLeft:
 			{
+				m_layoutScale.x = m_layoutScale.y = std::min( (float) m_mon[0].size.y / m_layoutSize.x,	(float) m_mon[0].size.x / m_layoutSize.y );
+				float adjust_x = std::floor( std::fabs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2 + 0.5 );
+				float adjust_y = std::floor( std::fabs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2 + 0.5 );
 				m_transform.translate( adjust_x, m_mon[0].size.y - adjust_y );
 				m_transform.rotate(270);
+				break;
 			}
-		}
-		else
-		{
-			m_layoutScale.x = m_layoutScale.y = std::min(
-				(float) m_mon[0].size.x / m_layoutSize.x,
-				(float) m_mon[0].size.y / m_layoutSize.y );
 
-			float adjust_x = (m_layoutSize.x * m_layoutScale.x - m_mon[0].size.x) / 2;
-			float adjust_y = (m_layoutSize.y * m_layoutScale.y - m_mon[0].size.y) / 2;
-			if ( actualRotation == FeSettings::RotateNone )
-				m_transform.translate( -adjust_x, -adjust_y );
-			else
+			case FeSettings::RotateFlip:
 			{
-				m_transform.translate(
-						m_mon[0].size.x + adjust_x, m_mon[0].size.y + adjust_y );
+				m_layoutScale.x = m_layoutScale.y = std::min( (float) m_mon[0].size.x / m_layoutSize.x, (float) m_mon[0].size.y / m_layoutSize.y );
+				float adjust_x = std::floor(( m_layoutSize.x * m_layoutScale.x - m_mon[0].size.x ) / 2.0 + 0.5 );
+				float adjust_y = std::floor(( m_layoutSize.y * m_layoutScale.y - m_mon[0].size.y ) / 2.0 + 0.5 );
+				m_transform.translate( m_mon[0].size.x + adjust_x, m_mon[0].size.y + adjust_y );
 				m_transform.rotate(180);
+				break;
 			}
 		}
 	}
 	else // !m_preserve_aspect
 	{
-		m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
-		m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
-
 		switch ( actualRotation )
 		{
-		case FeSettings::RotateNone:
-			break;
+			case FeSettings::RotateNone:
+				m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
+				m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
+				break;
 
-		case FeSettings::RotateRight:
-			m_transform.translate( m_mon[0].size.x, 0 );
-			m_transform.scale( (float) m_mon[0].size.x / m_mon[0].size.y,
-				(float) m_mon[0].size.y / m_mon[0].size.x );
-			m_transform.rotate(90);
-			break;
+			case FeSettings::RotateRight:
+				m_transform.translate( m_mon[0].size.x, 0 );
+				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
+				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
+				m_transform.rotate(90);
+				break;
 
-		case FeSettings::RotateLeft:
-			m_transform.translate( 0, m_mon[0].size.y );
-			m_transform.scale( (float) m_mon[0].size.x / m_mon[0].size.y,
-				(float) m_mon[0].size.y / m_mon[0].size.x );
-			m_transform.rotate(270);
-			break;
+			case FeSettings::RotateLeft:
+				m_transform.translate( 0, m_mon[0].size.y );
+				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
+				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
+				m_transform.rotate(270);
+				break;
 
-		case FeSettings::RotateFlip:
-			m_transform.translate( m_mon[0].size.x, m_mon[0].size.y );
-			m_transform.rotate(180);
-			break;
+			case FeSettings::RotateFlip:
+				m_transform.translate( m_mon[0].size.x, m_mon[0].size.y );
+				m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
+				m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
+				m_transform.rotate(180);
+				break;
 		}
 	}
 

@@ -144,6 +144,7 @@ _help_scrape_snaps;Set whether game snapshots should be downloaded when scraping
 _help_scrape_vids;Set whether game videos should be downloaded when scraping
 _help_scrape_wheels;Set whether game logos should be downloaded when scraping
 _help_scraper;Configure artwork scraper settings
+_help_screen_rotation;Set the base rotation of the screen
 _help_screen_saver;Configure screen saver
 _help_screen_saver_timeout;The amount of time in seconds to wait before switching to the screen saver.  0 to disable
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut

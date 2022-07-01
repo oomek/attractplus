@@ -13,9 +13,6 @@ class UserConfig
     </ label="Detect aspect ratio", help="Toggle detection of aspect ratio (if disabled, default video will play)", options="Yes,No", order=2 />
     detect_aspect = "Yes";
 
-    </ label="Layout rotation", help="Set the playback rotation to suit your monitor", options="none,right,flip,left", order=3 />
-    layout_rotation="none";
-
     </ label="Default video", help="Default video to play at startup. Used if aspect ratio detection failed or disabled", order=4 />
     video_default = "intro.mp4"
 
@@ -40,19 +37,15 @@ function exit()
 
 local config = fe.get_config();
 
-local screen_width = null;
-local screen_height = null;
-local layout_rotation = null;
 local layout_width = null;
 local layout_height = null;
-local ar = null;
 local layout_aspect = "default";
 local vid = null;
 local Aspect = [ "16x9", "4x3", "9x16", "3x4" ];
 local exit_intro = false;
 
-screen_width = ScreenWidth;
-screen_height = ScreenHeight;
+layout_width = fe.layout.width
+layout_height = fe.layout.height
 
 switch (config["play_intro"])
 {
@@ -60,32 +53,6 @@ switch (config["play_intro"])
         exit_intro = true;
     case "Yes":
     default:
-        switch (config["layout_rotation"])
-        {
-            case "none":
-                layout_rotation = RotateScreen.None;
-                layout_width = screen_width;
-                layout_height = screen_height;
-                break;
-            case "right":
-                layout_rotation = RotateScreen.Right;
-                layout_width = screen_height;
-                layout_height = screen_width;
-                break;
-            case "flip":
-                layout_rotation = RotateScreen.Flip;
-                layout_width = screen_width;
-                layout_height = screen_height;
-                break;
-            case "left":
-                layout_rotation = RotateScreen.Left;
-                layout_width = screen_height;
-                layout_height = screen_width;
-                break;
-        }
-
-        fe.layout.base_rotation = layout_rotation;
-
         if (config["detect_aspect"] == "Yes")
         {
             local _layout_ar = layout_width / layout_height.tofloat();
@@ -103,7 +70,7 @@ switch (config["play_intro"])
             }
         }
 
-        vid = fe.add_image(config["video_" + layout_aspect], 0, 0, ScreenWidth, ScreenHeight);
+        vid = fe.add_image(config["video_" + layout_aspect], 0, 0, layout_width, layout_height);
         if (vid.file_name.len() == 0 && layout_aspect != "default")
         {
             vid.file_name = config["video_default"];

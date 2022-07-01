@@ -205,6 +205,7 @@ Scrape Snaps;Scrape Snaps
 Scrape Videos (MAME only);Scrape Videos (MAME only)
 Scraper;Scraper
 Scraping Artwork: $1%;Scraping Artwork: $1%
+Screen Rotation;Screen Rotation
 Screen Saver;Screen Saver
 Screen Saver Timeout;Screen Saver Timeout
 Screenshot;Screenshot
@@ -388,6 +389,7 @@ _help_scrape_snaps;Set whether game snapshots should be downloaded when scraping
 _help_scrape_vids;Set whether game videos should be downloaded when scraping
 _help_scrape_wheels;Set whether game logos should be downloaded when scraping
 _help_scraper;Configure artwork scraper settings
+_help_screen_rotation;Set the rotation of the screen
 _help_screen_saver;Configure screen saver
 _help_screen_saver_timeout;The amount of time in seconds to wait before switching to the screen saver.  0 to disable
 _help_shortcut_label_edit;Edit this shortcut's label

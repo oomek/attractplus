@@ -160,6 +160,7 @@ protected:
 	void toggle_movie();
 
 	void toggle_rotate( FeSettings::RotationState ); // toggle between none and provided state
+	FeSettings::RotationState get_actual_rotation();
 	void set_transforms();
 	int update( bool reload_list=false, bool new_layout=false );
 
