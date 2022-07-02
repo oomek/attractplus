@@ -160,7 +160,6 @@ root table.
 
 Example:
 ```` squirrel
-fe.layout.base_rotation = RotateScreen.Right;
 fe.add_image( "bg.png", 0, 0 );
 local marquee = fe.add_artwork( "marquee", 256, 20, 512, 256 );
 marquee.set_rgb( 100, 100, 100 );
@@ -1330,17 +1329,18 @@ Properties:
    * `height` - Get/set the layout height.  Default value is `ScreenHeight`.
    * `font` - Get/set the layout font name.  Default value is the default
      font configured for Attract-Mode.
-   * `base_rotation` - Get/set the base (i.e the default) orientation of the
-     layout.  This can be one of the following values:
+   * `base_rotation` - Get the base orientation of Attract Mode wchich is set
+     in General Settings. This property cannot be set from the script.
+     This can be one of the following values:
       - `RotateScreen.None` (default)
       - `RotateScreen.Right`
       - `RotateScreen.Flip`
       - `RotateScreen.Left`
-   * `toggle_rotation` - Get/set the "toggle" orientation of the layout.  The
-     toggle rotation is added to the `base_rotation` to determine what the
-     actual rotation is at any given time.  The user can change this value
-     using the Rotation Toggle inputs.  This can be one of the following
-     values:
+   * `toggle_rotation` - Get/set the "toggle" orientation of the layout.
+     The toggle rotation is added to the rotation sen in general settings
+     to determine what the actual rotation is at any given time.
+     The user can change this value using the Rotation Toggle inputs.
+     This can be one of the following values:
       - `RotateScreen.None` (default)
       - `RotateScreen.Right`
       - `RotateScreen.Flip`
@@ -1786,17 +1786,6 @@ function flip_y( img )
 }
 ````
 
-   * To rotate an image around its centre, set the origin_x and origin_y
-     values to one half of the image's width and height (respectively)
-     and then set the 'rotation' value accordingly
-
-```` squirrel
-local img = fe.add_image( "img.png", 100, 100, 200, 200 );
-img.origin_x = 100;
-img.origin_y = 100;
-img.rotation = 90; // rotate img around its centre
-````
-
 &nbsp;
 <a name="Text" />
 
@@ -1879,6 +1868,7 @@ Properties:
    * `word_wrap` - Get/set whether word wrapping is enabled in this text
      (boolean).  Default is `false`.
    * `msg_width` - Get the width of the text message, in layout coordinates.
+   * `msg_height`&#x1F538;Get the height of the text message, in layout coordinates.
    * `font` - Get/set the name of the font used for this text.  Default is
      the layout font name.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.

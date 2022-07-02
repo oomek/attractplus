@@ -83,6 +83,7 @@ public:
 	const char *get_string_wrapped();
 
 	int get_actual_width() { return m_draw_text.getActualWidth(); };
+	int get_actual_height() { return m_draw_text.getActualHeight(); };
 
 	int get_bgr();
 	int get_bgg();

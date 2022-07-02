@@ -420,6 +420,20 @@ int FeTextPrimitive::getActualWidth()
 	return (int)w;
 }
 
+int FeTextPrimitive::getActualHeight()
+{
+	float h = 0;
+
+	if ( m_texts.size() > 0 )
+	{
+		sf::FloatRect first = m_texts.front().getGlobalBounds();
+		sf::FloatRect last = m_texts.back().getGlobalBounds();
+		h = last.top + last.height - first.top;
+	}
+
+	return (int)h;
+}
+
 void FeTextPrimitive::setFont( const sf::Font &font )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )

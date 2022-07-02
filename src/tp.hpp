@@ -108,6 +108,7 @@ public:
 	const char *getStringWrapped();
 
 	int getActualWidth(); // return the width of the actual text
+	int getActualHeight(); // return the height of the actual text
 
 private:
 	sf::RectangleShape m_bgRect;
