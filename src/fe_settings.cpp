@@ -2715,6 +2715,25 @@ bool FeSettings::get_font_file(
 		return true;
 	}
 
+	std::vector<std::string> path_list;
+	std::vector<std::string>::const_iterator its;
+
+	//
+	// m_font_paths contains the configured paths (which may need further
+	// processing ($HOME substitution etc)
+	//
+	for ( its=m_font_paths.begin(); its!=m_font_paths.end(); ++its )
+		path_list.push_back( clean_path( *its, true ) );
+
+	for ( its=path_list.begin(); its!= path_list.end(); ++its )
+	{
+		if ( search_for_file( (*its), fontname, FE_FONT_EXTENSIONS, test ) )
+		{
+			ffile = test;
+			return true;
+		}
+	}
+
 #ifdef USE_FONTCONFIG
 	bool fc_found = false;
 	FcConfig *config = FcInitLoadConfigAndFonts();
@@ -2746,25 +2765,6 @@ bool FeSettings::get_font_file(
 	if ( fc_found )
 		return true;
 #endif
-
-	std::vector<std::string> path_list;
-	std::vector<std::string>::const_iterator its;
-
-	//
-	// m_font_paths contains the configured paths (which may need further
-	// processing ($HOME substitution etc)
-	//
-	for ( its=m_font_paths.begin(); its!=m_font_paths.end(); ++its )
-		path_list.push_back( clean_path( *its, true ) );
-
-	for ( its=path_list.begin(); its!= path_list.end(); ++its )
-	{
-		if ( search_for_file( (*its), fontname, FE_FONT_EXTENSIONS, test ) )
-		{
-			ffile = test;
-			return true;
-		}
-	}
 
 	return false;
 }
