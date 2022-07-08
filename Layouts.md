@@ -909,13 +909,12 @@ Return Value:
 
 #### `fe.set_display()` ####
 
+    fe.set_display( index, stack_previous, reload )
     fe.set_display( index, stack_previous )
     fe.set_display( index )
 
 Change to the display at the specified index.  This should align with the
 index of the fe.displays array that contains the intended display.
-
-NOTE that changing the display causes all layout and plugin scripts to reload.
 
 Parameters:
 
@@ -925,6 +924,8 @@ Parameters:
    * stack_previous - [boolean] if set to `true`, the new display is stacked on
    the current one, so that when the user selects the "Back" UI button the frontend
    will navigate back to the earlier display.  Default value is `false`.
+   * reload&#x1F538; [boolean] if set to `false` and the current display shares the same
+   layout file the layout is not reloaded. Default value is `true`.
 
 
 Return Value:

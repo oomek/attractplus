@@ -995,6 +995,7 @@ bool FeVM::on_new_layout()
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
 	fe.Func<void (*)(const char *)>(_SC("signal"), &FeVM::cb_signal);
+	fe.Overload<void (*)(int, bool, bool)>(_SC("set_display"), &FeVM::cb_set_display);
 	fe.Overload<void (*)(int, bool)>(_SC("set_display"), &FeVM::cb_set_display);
 	fe.Overload<void (*)(int)>(_SC("set_display"), &FeVM::cb_set_display);
 	fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
@@ -2663,7 +2664,7 @@ void FeVM::cb_signal( const char *sig )
 	}
 }
 
-void FeVM::cb_set_display( int idx, bool stack_previous )
+void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -2674,13 +2675,21 @@ void FeVM::cb_set_display( int idx, bool stack_previous )
 	if ( idx < 0 )
 		idx = 0;
 
-	fes->set_display( idx, stack_previous );
-	fev->m_posted_commands.push( FeInputMap::Reload );
+	if ( fes->set_display( idx, stack_previous ) || reload )
+		fev->m_posted_commands.push( FeInputMap::Reload );
+	else
+		fev->update_to_new_list();
 }
+
+void FeVM::cb_set_display( int idx, bool stack_previous  )
+{
+	cb_set_display( idx, stack_previous, true );
+}
+
 
 void FeVM::cb_set_display( int idx )
 {
-	cb_set_display( idx, false );
+	cb_set_display( idx, false, true );
 }
 
 const char *FeVM::cb_get_text( const char *t )
