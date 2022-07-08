@@ -3,7 +3,7 @@ Attract-Mode Plus Frontend
 
 Layout and Plug-in Programming Reference
 ----------------------------------------
-Functions and parameters unique to Plus are marked with &#x1F538; sign.
+Functions and parameters unique to Plus are marked with 🔶 sign.
 
 Contents
 --------
@@ -19,7 +19,7 @@ Contents
       * [`fe.add_clone()`](#add_clone)
       * [`fe.add_text()`](#add_text)
       * [`fe.add_listbox()`](#add_listbox)
-      * [`fe.add_rectangle()`](#add_rectangle)&#x1F538;
+      * [`fe.add_rectangle()`](#add_rectangle) 🔶
       * [`fe.add_shader()`](#add_shader)
       * [`fe.add_sound()`](#add_sound)
       * [`fe.add_ticks_callback()`](#add_ticks_callback)
@@ -40,7 +40,7 @@ Contents
       * [`fe.path_test()`](#path_test)
       * [`fe.get_config()`](#get_config)
       * [`fe.get_text()`](#get_text)
-      * [`fe.get_url()`](#get_url)&#x1F538;
+      * [`fe.get_url()`](#get_url) 🔶
    * [Objects and Variables](#objects)
       * [`fe.ambient_sound`](#ambient_sound)
       * [`fe.layout`](#layout)
@@ -66,7 +66,7 @@ Contents
       * [`fe.Image`](#Image)
       * [`fe.Text`](#Text)
       * [`fe.ListBox`](#ListBox)
-      * [`fe.Rectangle`](#Rectangle)&#x1F538;
+      * [`fe.Rectangle`](#Rectangle) 🔶
       * [`fe.Sound`](#Sound)
       * [`fe.Shader`](#Shader)
    * [Constants](#constants)
@@ -446,7 +446,7 @@ Return Value:
 &nbsp;
 <a name="add_rectangle" />
 
-#### `fe.add_rectangle()`&#x1F538;
+#### `fe.add_rectangle()` 🔶
 
     fe.add_rectangle( x, y, w, h )
 
@@ -909,7 +909,7 @@ Return Value:
 
 #### `fe.set_display()` ####
 
-    fe.set_display( index, stack_previous, reload )
+    fe.set_display( index, stack_previous, reload ) 🔶
     fe.set_display( index, stack_previous )
     fe.set_display( index )
 
@@ -924,7 +924,7 @@ Parameters:
    * stack_previous - [boolean] if set to `true`, the new display is stacked on
    the current one, so that when the user selects the "Back" UI button the frontend
    will navigate back to the earlier display.  Default value is `false`.
-   * reload&#x1F538; [boolean] if set to `false` and the current display shares the same
+   * reload 🔶 [boolean] if set to `false` and the current display shares the same
    layout file the layout is not reloaded. Default value is `true`.
 
 
@@ -1184,7 +1184,7 @@ Return Value:
 &nbsp;
 <a name="get_url" />
 
-#### `fe.get_url()`&#x1F538;
+#### `fe.get_url()` 🔶
 
     fe.get_url( url, file_path )
 
@@ -1351,7 +1351,7 @@ Properties:
    * `preserve_aspect_ratio` - Get/set whether the overall layout aspect ratio
      should be preserved by the frontend.  Default value is false.
    * `time` - Get the number of millseconds that the layout has been showing.
-   * `mouse_pointer`&#x1F538;When set to true mouse pointer will be visible.
+   * `mouse_pointer` 🔶 When set to true mouse pointer will be visible.
 
 Notes:
 
@@ -1384,7 +1384,7 @@ Properties:
      cleared or the user navigates away from the display/filter.
    * `size` - Get the size of the current game list.  If a search rule has
      been applied, this will be the number of matches found (if > 0)
-   * `clones_list`&#x1F538;Returns 'true' if the curent list contains game clones.
+   * `clones_list` 🔶 Returns 'true' if the curent list contains game clones.
 
 &nbsp;
 <a name="ImageCache" />
@@ -1630,7 +1630,7 @@ Properties:
    * `origin_y` - Get/set the y position of the local origin for the image.
      The origin defines the centre point for any positioning or rotation of
      the image. Default origin is 0,0 (top-left corner).
-   * `anchor`&#x1F538;Set the midpoint for position and scale.
+   * `anchor` 🔶 Set the midpoint for position and scale.
      Can be set to one of the following modes:
       - `Anchor.Left`
       - `Anchor.Centre`
@@ -1641,7 +1641,7 @@ Properties:
       - `Anchor.TopRight`
       - `Anchor.BottomLeft`
       - `Anchor.BottomRight`
-   * `origin`&#x1F538;Set the midpoint for rotation
+   * `origin` 🔶 Set the midpoint for rotation
      Can be set to one of the following modes:
       - `Origin.Left`
       - `Origin.Centre`
@@ -1696,9 +1696,9 @@ Properties:
      The default value is `false`.  It's advised to force anisotropic filtering in
      the display driver settings if the Image with auto generated mipmap is scaled
      by the ratio that is not isotropic.
-   * `repeat`&#x1F538;Enables texture repeat when set to true. Default value is false.
+   * `repeat` 🔶 Enables texture repeat when set to true. Default value is false.
      To see the effect `subimg_width/height` must be set larger than `texture_width/height`
-   * `clear`&#x1F538;[surface only] When set to false surface is not cleared
+   * `clear` 🔶 [surface only] When set to false surface is not cleared
      before the next frame. This can be used for various accumulative effects.
 
 Member Functions:
@@ -1708,9 +1708,9 @@ Member Functions:
    * `set_pos( x, y )` - Set the image position (in layout coordinates).
    * `set_pos( x, y, width, height )` - Set the image position and size (in
      layout coordinates).
-   * `set_anchor( x, y )`&#x1F538;Set the midpoint for position and scale
+   * `set_anchor( x, y )` 🔶 Set the midpoint for position and scale
      x and y are in [0.0 ... 1.0] scale
-   * `set_origin( x, y )`&#x1F538;Set the midpoint for rotation
+   * `set_origin( x, y )` 🔶 Set the midpoint for rotation
      x and y are in [0.0 ... 1.0] scale
    * `swap( other_img )` - swap the texture contents of this object (and all
      of its clones) with the contents of "other_img" (and all of its clones).
@@ -1840,9 +1840,9 @@ Properties:
    * `line_spacing` - Get/set the spacing factor between lines.  Default value is 1.0
      At values 0.75 or lower letters start to overlap. For uppercase texts it's around 0.5
      It's advised to use this property with the new align modes.
-   * `outline`&#x1F538;Get/set the thickness of the outline applied to text.
+   * `outline` 🔶 Get/set the thickness of the outline applied to text.
      Value is set in pixels and can be fractional. Default value is 0.0
-   * `bg_outline`&#x1F538;Get/set the thickness of the outline applied to the background.
+   * `bg_outline` 🔶 Get/set the thickness of the outline applied to the background.
      Value is set in pixels and can be fractional. Default value is 0.0
    * `style` - Get/set the text style.  Can be a combination of one or more
      of the following (i.e. `Style.Bold | Style.Italic`):
@@ -1869,7 +1869,7 @@ Properties:
    * `word_wrap` - Get/set whether word wrapping is enabled in this text
      (boolean).  Default is `false`.
    * `msg_width` - Get the width of the text message, in layout coordinates.
-   * `msg_height`&#x1F538;Get the height of the text message, in layout coordinates.
+   * `msg_height` 🔶 Get the height of the text message, in layout coordinates.
    * `font` - Get/set the name of the font used for this text.  Default is
      the layout font name.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.
@@ -1886,9 +1886,9 @@ Member Functions:
      text.  Range is [0 ... 255].
    * `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for
      the text background.  Range is [0 ... 255].
-   * `set_outline_rgb( r, g, b )`&#x1F538;Set the red, green and blue colour values for
+   * `set_outline_rgb( r, g, b )` 🔶 Set the red, green and blue colour values for
      the text outline.  Range is [0 ... 255].
-   * `set_bg_outline_rgb()`&#x1F538;Set the red, green and blue colour values for
+   * `set_bg_outline_rgb()` 🔶 Set the red, green and blue colour values for
      the outline of the text background.  Range is [0 ... 255].
    * `set_pos( x, y )` - Set the text position (in layout coordinates).
    * `set_pos( x, y, width, height )` - Set the text position and size (in
