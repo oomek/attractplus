@@ -416,6 +416,7 @@ _help_scrape_mamedb;Stabilisce se utilizzare il sito mamedb.com per recuperare s
 #
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
+Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Clear Hotkey?;Clear Hotkey?
 Configure / Joystick Mapping;Configure / Joystick Mapping
@@ -439,6 +440,7 @@ Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Select template to use for emulator settings;Select template to use for emulator settings
 _help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
+_help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_exit_message;Alternate message to exit the frontend [i.e. "Shut Down System"]
 _help_group_clones;Group all clones of a game under one single list entry
 _help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it.
@@ -446,6 +448,7 @@ _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal i
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
+_help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
 _help_shortcut_delete;Delete this shortcut from the Romlist
 _help_shortcut_label_edit;Edit this shortcut's label

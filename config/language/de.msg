@@ -424,3 +424,11 @@ _help_shortcut_label_edit;Editiere den Namen der Verknüpfung
 _help_shortcut_target_edit;Editiere das Ziel der Verknüpfung
 _help_startup_mode;Wähle, was passieren soll, wenn Attract-Mode das erste Mal startet
 _help_video_decoder;Konfiguriere den Decoder für die Video Wiedergabe (falls mehrere Decoder verfügbar sind)
+
+#@DONE_TRANSLATED
+#
+# Strings still needing translation
+#
+Auto-detect emulators?;Auto-detect emulators?
+_help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
+_help_screen_rotation;Set the base rotation of the screen

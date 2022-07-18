@@ -421,5 +421,8 @@ Up (Previous Game);↑ (上一個遊戲)
 #
 # Strings still needing translation
 #
+Auto-detect emulators?;Auto-detect emulators?
 Group Clones;Group Clones
+_help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_group_clones;Group all clones of a game under one single list entry
+_help_screen_rotation;Set the base rotation of the screen

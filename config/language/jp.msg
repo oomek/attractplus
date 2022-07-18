@@ -319,6 +319,7 @@ Add Exception;Add Exception
 Add tag: '$1';Add tag: '$1'
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
+Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
@@ -406,6 +407,7 @@ _help_displays_menu_layout;The layout to use for the 'Displays Menu'. Set to 'De
 _help_displays_menu_prompt;The 'Displays Menu' prompt (i.e. "Select System")
 _help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
 _help_emu_sel_gen_romlist;Generate a Collection/Romlist containing games for multiple emulators
+_help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_emu_workdir;The working directory for this emulator.  This is the directory that the frontend runs the emulator from.  Also, any relative rom paths, artwork paths, or additional import file paths are treated as being relative to this directory
 _help_exit_message;Alternate message to exit the frontend [i.e. "Shut Down System"]
 _help_filter_add_exception;Add an exception to this filter.  If a game matches an exception (and wasn't filtered out by an earlier rule) it will be listed in the filter
@@ -428,6 +430,7 @@ _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
 _help_scrape_vids;Set whether game videos should be downloaded when scraping
+_help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
 _help_shortcut_delete;Delete this shortcut from the Romlist
 _help_shortcut_label_edit;Edit this shortcut's label

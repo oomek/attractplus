@@ -90,6 +90,7 @@ _help_emu_rompath;The path to the roms for this emulator.  Multiple paths can be
 _help_emu_scrape_artwork;Scrape missing artwork images for this emulator from the net
 _help_emu_sel;Configure emulator
 _help_emu_sel_gen_romlist;Generate a Collection/Romlist containing games for multiple emulators
+_help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_emu_system;The system identifier(s) for this emulator.  Multiple values can be entered if separated by a semicolon
 _help_emu_workdir;The working directory for this emulator.  This is the directory that the frontend runs the emulator from.  Also, any relative rom paths, artwork paths, or additional import file paths are treated as being relative to this directory
 _help_emulators;Configure emulator settings

@@ -255,6 +255,7 @@ kr;한글 (Korean)
 Add tag: '$1';Add tag: '$1'
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
+Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
@@ -379,6 +380,7 @@ _help_emu_rompath;The path to the roms for this emulator.  Multiple paths can be
 _help_emu_scrape_artwork;Scrape missing artwork images for this emulator from the net
 _help_emu_sel;Configure emulator
 _help_emu_sel_gen_romlist;Generate a Collection/Romlist containing games for multiple emulators
+_help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_emu_system;The system identifier(s) for this emulator.  Multiple values can be entered if separated by a semicolon
 _help_emu_workdir;The working directory for this emulator.  This is the directory that the frontend runs the emulator from.  Also, any relative rom paths, artwork paths, or additional import file paths are treated as being relative to this directory
 _help_emulators;Configure emulator settings
@@ -433,6 +435,7 @@ _help_scrape_snaps;Set whether game snapshots should be downloaded when scraping
 _help_scrape_vids;Set whether game videos should be downloaded when scraping
 _help_scrape_wheels;Set whether game logos should be downloaded when scraping
 _help_scraper;Configure artwork scraper settings
+_help_screen_rotation;Set the base rotation of the screen
 _help_screen_saver;Configure screen saver
 _help_screen_saver_timeout;The amount of time in seconds to wait before switching to the screen saver.  0 to disable
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
