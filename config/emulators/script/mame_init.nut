@@ -21,6 +21,7 @@ mame_emu <-
 	"exts"   : ".zip;.7z",
 	"system" : "Arcade",
 	"source" : "listxml",
+	"import_extras" : ""
 };
 
 // We only keep this at the nes settings if no non-arcade systems are

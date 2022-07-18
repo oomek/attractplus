@@ -178,9 +178,12 @@ int main(int argc, char *argv[])
 
 		if ( !exit_selected )
 		{
-			FeLog() << "Performing some initial configuration" << std::endl;
-			feVM.setup_wizard();
-			FeLog() << "Done initial configuration" << std::endl;
+			if ( feOverlay.confirm_dialog( "Auto-detect emulators?", "" ) == 0 )
+			{
+				FeLog() << "Performing emulator auto-detection" << std::endl;
+				feVM.setup_wizard();
+				FeLog() << "Done auto-detecting emulators" << std::endl;
+			}
 		}
 	}
 

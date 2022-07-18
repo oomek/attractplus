@@ -289,6 +289,7 @@ public:
 	virtual void init_with_default_layout()=0;
 	virtual int get_script_id()=0;
 	virtual void set_script_id( int )=0;
+	virtual bool setup_wizard()=0;
 };
 
 
