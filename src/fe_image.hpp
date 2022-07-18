@@ -95,6 +95,9 @@ public:
 	virtual void set_repeat( bool );
 	virtual bool get_repeat() const;
 
+	virtual void set_redraw( bool );
+	virtual bool get_redraw() const;
+
 	virtual float get_sample_aspect_ratio() const;
 
 	// function for use with surface objects
@@ -242,11 +245,15 @@ public:
 	void set_repeat( bool );
 	bool get_repeat() const;
 
+	void set_redraw( bool );
+	bool get_redraw() const;
+
 	FePresentableParent *get_presentable_parent();
 
 private:
 	sf::RenderTexture m_texture;
 	bool m_clear;
+	bool m_redraw;
 	bool m_mipmap;
 };
 
@@ -335,6 +342,7 @@ public:
 	int get_blend_mode() const;
 	bool get_clear() const;
 	bool get_repeat() const;
+	bool get_redraw() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
@@ -355,6 +363,7 @@ public:
 	void set_smooth( bool );
 	void set_clear( bool );
 	void set_repeat( bool );
+	void set_redraw( bool );
 	void set_blend_mode( int b );
 
 	void transition_swap( FeImage * );

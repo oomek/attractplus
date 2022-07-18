@@ -142,6 +142,15 @@ bool FeBaseTextureContainer::get_repeat() const
 	return false;
 }
 
+void FeBaseTextureContainer::set_redraw( bool r )
+{
+}
+
+bool FeBaseTextureContainer::get_redraw() const
+{
+	return false;
+}
+
 float FeBaseTextureContainer::get_sample_aspect_ratio() const
 {
 	return 1.0;
@@ -861,6 +870,7 @@ void FeTextureContainer::release_audio( bool state )
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	: m_clear( true ),
+	m_redraw( true ),
 	m_mipmap( false )
 {
 	m_texture.create( width, height );
@@ -910,15 +920,18 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 	// Draw the surface's draw list to the render texture
 	//
 	if ( m_clear ) m_texture.clear( sf::Color::Transparent );
-	for ( std::vector<FeBasePresentable *>::const_iterator itr = elements.begin();
-				itr != elements.end(); ++itr )
+	if ( m_redraw )
 	{
-		if ( (*itr)->get_visible() )
-			m_texture.draw( (*itr)->drawable() );
-	}
+		for ( std::vector<FeBasePresentable *>::const_iterator itr = elements.begin();
+					itr != elements.end(); ++itr )
+		{
+			if ( (*itr)->get_visible() )
+				m_texture.draw( (*itr)->drawable() );
+		}
 
-	m_texture.display();
-	if ( m_mipmap ) m_texture.generateMipmap();
+		m_texture.display();
+		if ( m_mipmap ) m_texture.generateMipmap();
+	}
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )
@@ -959,6 +972,16 @@ void FeSurfaceTextureContainer::set_repeat( bool r )
 bool FeSurfaceTextureContainer::get_repeat() const
 {
 	return m_texture.isRepeated();
+}
+
+void FeSurfaceTextureContainer::set_redraw( bool r )
+{
+	m_redraw = r;
+}
+
+bool FeSurfaceTextureContainer::get_redraw() const
+{
+	return m_redraw;
 }
 
 FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
@@ -1578,6 +1601,16 @@ void FeImage::set_repeat( bool r )
 bool FeImage::get_repeat() const
 {
 	return m_tex->get_repeat();
+}
+
+void FeImage::set_redraw( bool r )
+{
+	m_tex->set_redraw( r );
+}
+
+bool FeImage::get_redraw() const
+{
+	return m_tex->get_redraw();
 }
 
 void FeImage::transition_swap( FeImage *o )

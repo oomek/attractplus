@@ -1700,6 +1700,9 @@ Properties:
      To see the effect `subimg_width/height` must be set larger than `texture_width/height`
    * `clear` 🔶 [surface only] When set to false surface is not cleared
      before the next frame. This can be used for various accumulative effects.
+   * `redraw` 🔶 [surface only] When set to false surface's content is not redrawn
+     which gives optimization opportunity for hidden surfaces.
+     This in conjunction with `clear = false` can be used to freeze surface's content.
 
 Member Functions:
 
