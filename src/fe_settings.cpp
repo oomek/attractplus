@@ -50,7 +50,11 @@
 
 const char *FE_DEFAULT_CFG_PATH		= "./";
 const char *FE_DEFAULT_FONT			= "arial";
-const char *FE_DEFAULT_FONT_PATHS[]	= { "%SYSTEMROOT%/Fonts/", NULL };
+const char *FE_DEFAULT_FONT_PATHS[]	=
+{
+	"%SYSTEMROOT%/Fonts/",
+	NULL
+};
 
 #elif defined(SFML_SYSTEM_MACOS)
 
@@ -2701,7 +2705,21 @@ bool FeSettings::get_font_file(
 	}
 
 	//
-	// First check if there is a matching font file in the
+	// First try to load font file directly
+	//
+	std::string filename = clean_path( fontname );
+
+	if ( is_relative_path( filename ))
+		filename = FePresent::script_get_base_path() + filename;
+
+	if ( file_exists( filename ))
+	{
+		ffile = filename;
+		return true;
+	}
+
+	//
+	// Check if there is a matching font file in the
 	// layout/plugin directory
 	//
 	std::string test;
@@ -2711,6 +2729,7 @@ bool FeSettings::get_font_file(
 	if ( !layout_dir.empty() && search_for_file( layout_dir,
 		fontname, FE_FONT_EXTENSIONS, test ) )
 	{
+		FeLog() << " ! NOTE: Relative path to " << fontname << " not provided. Font found in a subfolder. This may be slower." << std::endl;
 		ffile = test;
 		return true;
 	}
