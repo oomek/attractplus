@@ -128,6 +128,7 @@ _DEP =\
 	sprite.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
+	fe_music.hpp \
 	fe_shader.hpp \
 	fe_overlay.hpp \
 	fe_window.hpp \
@@ -162,6 +163,7 @@ _OBJ =\
 	sprite.o \
 	fe_image.o \
 	fe_sound.o \
+	fe_music.o \
 	fe_shader.o \
 	fe_overlay.o \
 	fe_window.o \
@@ -225,11 +227,11 @@ endif
 #
 # Deal with SFML
 #
-SFML_PC="sfml-system sfml-window sfml-graphics"
+SFML_PC="sfml-system sfml-window sfml-graphics sfml-audio"
 ifeq ($(STATIC),1)
   LIBS += $(shell $(PKG_CONFIG) --static --libs-only-L $(SFML_PC))
   $(info Manually adding sfml libs as pkg-config has no --static version)
-  LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
+  LIBS += -lsfml-audio-s -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
   CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
   ifeq ($(FE_WINDOWS_COMPILE),1)
   else ifeq ($(FE_MACOSX_COMPILE),1)
@@ -244,15 +246,16 @@ else
 endif
 
 ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenGL -ljpeg
+  LIBS += -L$(EXTLIBS_DIR)/libs-osx/Frameworks
+  LIBS += -framework OpenGL -ljpeg -framework FLAC -framework freetype -framework ogg -framework OpenAL -framework vorbis -framework vorbisenc -framework vorbisfile
 endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL -lpthread
+  LIBS += -ldl -lGL -lpthread -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
  endif
 else
- LIBS += -lopengl32
+ LIBS += -lopengl32 -lFLAC -logg -lvorbis -lvorbisfile -lopenal32
 endif
 
 
@@ -370,7 +373,6 @@ ifeq ($(NO_MOVIE),1)
  else
   LIBS += -lsfml-audio
  endif
- AUDIO =
 else
  TEMP_LIBS += libavformat libavcodec libavutil libswscale
 
@@ -393,8 +395,6 @@ else
  _DEP += media.hpp
  _OBJ += media.o
 
- CFLAGS += -I$(EXTLIBS_DIR)/audio/include
- AUDIO = $(OBJ_DIR)/libaudio.a
 endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS
@@ -416,6 +416,7 @@ else
 endif
 
 CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include
+LIBS += -L$(EXTLIBS_DIR)/libs-mingw/x64
 SQUIRREL = $(OBJ_DIR)/libsquirrel.a $(OBJ_DIR)/libsqstdlib.a
 
 # Our nowide "lib" is only needed on Windows systems
@@ -461,7 +462,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(DEP) | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CC) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
 
-$(EXE): $(OBJ) $(EXPAT) $(SQUIRREL) $(AUDIO)
+$(EXE): $(OBJ) $(EXPAT) $(SQUIRREL)
 	$(EXE_MSG)
 	$(SILENT)$(CXX) -o $@ $^ $(CFLAGS) $(FE_FLAGS) $(LIBS)
 ifneq ($(FE_DEBUG),1)
@@ -554,29 +555,6 @@ $(SQSTDLIB_OBJ_DIR):
 	$(MD) $@
 
 #
-# Audio
-#
-AUDIO_OBJ_DIR = $(OBJ_DIR)/audiolib
-
-AUDIOOBJS= \
-	$(AUDIO_OBJ_DIR)/ALCheck.o \
-	$(AUDIO_OBJ_DIR)/AudioDevice.o \
-	$(AUDIO_OBJ_DIR)/Listener.o \
-	$(AUDIO_OBJ_DIR)/SoundSource.o \
-	$(AUDIO_OBJ_DIR)/SoundStream.o
-
-$(OBJ_DIR)/libaudio.a: $(AUDIOOBJS) | $(AUDIO_OBJ_DIR)
-	$(AR_MSG)
-	$(SILENT)$(AR) $(ARFLAGS) $@ $(AUDIOOBJS)
-
-$(AUDIO_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/audio/Audio/%.cpp | $(AUDIO_OBJ_DIR)
-	$(CC_MSG)
-	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS)
-
-$(AUDIO_OBJ_DIR):
-	$(MD) $@
-
-#
 # Nowide
 #
 NOWIDE_OBJ_DIR = $(OBJ_DIR)/nowidelib
@@ -612,4 +590,4 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core
 
 clean:
-	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core
+	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core

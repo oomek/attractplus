@@ -862,10 +862,10 @@ float FeTextureContainer::get_sample_aspect_ratio() const
 
 void FeTextureContainer::release_audio( bool state )
 {
-#ifndef NO_MOVIE
-	if ( m_movie )
-		m_movie->release_audio( state );
-#endif
+// #ifndef NO_MOVIE
+// 	if ( m_movie )
+// 		m_movie->release_audio( state );
+// #endif
 }
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )

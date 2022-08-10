@@ -23,22 +23,14 @@
 #ifndef FE_SOUND_HPP
 #define FE_SOUND_HPP
 
-#ifdef NO_MOVIE
-#include <SFML/Audio/Music.hpp>
-#include "zip.hpp"
-#else
+#include "fe_music.hpp"
+#include <SFML/Audio.hpp>
 #include "media.hpp"
-#endif
-
 #include <string>
+#include <deque>
 #include "fe_input.hpp"
 
 class FeSettings;
-
-namespace sf
-{
-	class InputStream;
-};
 
 class FeSound
 {
@@ -46,14 +38,14 @@ private:
 	FeSound( const FeSound & );
 	FeSound &operator=( const FeSound & );
 
-	sf::InputStream *m_stream;
-#ifdef NO_MOVIE
-	sf::Music m_sound;
-#else
-	FeMedia m_sound;
-#endif
+	sf::SoundBuffer m_buffer;
+	std::deque<sf::Sound> m_sounds;
+	int m_voices;
 	std::string m_file_name;
 	bool m_play_state;
+	float m_volume;
+	float m_pitch;
+	bool m_loop;
 
 public:
 	FeSound( bool loop=false );
@@ -65,7 +57,8 @@ public:
 	void set_file_name( const char * );
 	const char *get_file_name();
 
-	void set_volume( int );
+	float get_volume();
+	void set_volume( float );
 
 	bool get_playing();
 	void set_playing( bool );
@@ -85,7 +78,9 @@ public:
 
 	int get_duration();
 	int get_time();
-	const char *get_metadata( const char * );
+
+	int get_voices();
+	void set_voices( int );
 
 	void release_audio( bool );
 };
@@ -96,8 +91,8 @@ private:
 	FeSoundSystem( const FeSoundSystem & );
 	FeSoundSystem &operator=( const FeSoundSystem & );
 
-	FeSound m_sound;
-	FeSound m_music;
+	FeSound m_event_sound;
+	FeMusic m_ambient_sound;
 	FeSettings *m_fes;
 	FeInputMap::Command m_current_sound;
 
@@ -105,7 +100,7 @@ public:
 	FeSoundSystem( FeSettings * );
 	~FeSoundSystem();
 
-	FeSound &get_ambient_sound();
+	FeMusic &get_ambient_sound();
 
 	void sound_event( FeInputMap::Command );
 	bool is_sound_event_playing( FeInputMap::Command );

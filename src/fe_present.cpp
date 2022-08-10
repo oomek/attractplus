@@ -36,9 +36,8 @@
 #include <limits>
 #include <cstring>
 
-#ifndef NO_MOVIE
-#include <Audio/AudioDevice.hpp>
-#endif
+#include <SFML/Audio.hpp>
+
 
 #ifdef USE_XLIB
 #include <X11/extensions/Xrandr.h>
@@ -432,7 +431,15 @@ void FePresent::clear()
 	{
 		FeSound *s = m_sounds.back();
 		m_sounds.pop_back();
+		//s->set_playing( false );
 		delete s;
+	}
+
+	while ( !m_musics.empty() )
+	{
+		FeMusic *a = m_musics.back();
+		m_musics.pop_back();
+		delete a;
 	}
 
 	while ( !m_scriptShaders.empty() )
@@ -643,6 +650,36 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 
 	m_sounds.push_back( new_sound );
 	return new_sound;
+}
+
+FeMusic *FePresent::add_music( const char *n )
+{
+	std::string path;
+	std::string name=n;
+	if ( !name.empty() )
+	{
+		if ( is_relative_path( name ) )
+		{
+			int script_id = get_script_id();
+			if ( script_id < 0 )
+				m_feSettings->get_path( FeSettings::Current, path );
+			else
+				m_feSettings->get_plugin_full_path( script_id, path );
+		}
+	}
+
+	// Sound not found, try loading now
+	//
+	FeMusic *new_music = new FeMusic();
+
+	if ( !name.empty() )
+		new_music->load( path + name );
+
+	new_music->set_volume(
+		m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
+
+	m_musics.push_back( new_music );
+	return new_music;
 }
 
 FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const char *shader2 )
@@ -1299,7 +1336,11 @@ void FePresent::pre_run()
 				its != m_sounds.end(); ++its )
 		(*its)->release_audio( true );
 
-	sf::AudioDevice::release_audio( true );
+	for ( std::vector<FeMusic *>::iterator its=m_musics.begin();
+				its != m_musics.end(); ++its )
+		(*its)->set_playing( false );
+
+	// sf::AudioDevice::release_audio( true );
 #endif
 }
 
@@ -1311,7 +1352,7 @@ void FePresent::post_run()
 	//
 	// Re-establish openAL stuff now that we are back from the emulator
 	//
-	sf::AudioDevice::release_audio( false );
+	// sf::AudioDevice::release_audio( false );
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )
