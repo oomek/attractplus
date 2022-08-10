@@ -247,8 +247,7 @@ else
 endif
 
 ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -L$(EXTLIBS_DIR)/libs-osx/Frameworks
-  LIBS += -framework OpenGL -ljpeg -framework FLAC -framework freetype -framework ogg -framework OpenAL -framework vorbis -framework vorbisenc -framework vorbisfile
+  LIBS += -framework OpenGL -ljpeg
 endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
@@ -379,9 +378,10 @@ else
  TEMP_LIBS += libavformat libavcodec libavutil libswscale
 
  ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenAL
+  LIBS += -L$(EXTLIBS_DIR)/libs-osx/Frameworks
+  LIBS += -framework OpenAL -framework FLAC -framework freetype -framework ogg -framework vorbis -framework vorbisenc -framework vorbisfile
  else
-  TEMP_LIBS += openal
+#   TEMP_LIBS += openal
  endif
 
  ifeq ($(USE_SWRESAMPLE),1)
