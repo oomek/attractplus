@@ -235,6 +235,7 @@ ifeq ($(STATIC),1)
   CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
   ifeq ($(FE_WINDOWS_COMPILE),1)
   else ifeq ($(FE_MACOSX_COMPILE),1)
+  	LIBS += -lopenal
   else
     LIBS += -lGL -lGLU -lm -lz -ludev -lrt
   endif
