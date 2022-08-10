@@ -255,6 +255,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
   LIBS += -ldl -lGL -lpthread -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
  endif
 else
+ LIBS += -L$(EXTLIBS_DIR)/libs-mingw/x64
  LIBS += -lopengl32 -lFLAC -logg -lvorbis -lvorbisfile -lopenal32
 endif
 
@@ -416,7 +417,6 @@ else
 endif
 
 CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include
-LIBS += -L$(EXTLIBS_DIR)/libs-mingw/x64
 SQUIRREL = $(OBJ_DIR)/libsquirrel.a $(OBJ_DIR)/libsqstdlib.a
 
 # Our nowide "lib" is only needed on Windows systems
