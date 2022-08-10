@@ -83,7 +83,9 @@ jobs:
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
 
     - name: AM+ - Build
-      run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
+      run: |
+        nproc || alias nproc="sysctl -n hw.logicalcpu"
+        ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
         PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
