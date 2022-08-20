@@ -67,7 +67,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew update
-        brew install pkg-config ffmpeg@4 libarchive libvorbis flac
+        brew install pkg-config ffmpeg@4 libarchive libvorbis flac openal-soft
 
     - name: SFML - Checkout
       uses: actions/checkout@v2
