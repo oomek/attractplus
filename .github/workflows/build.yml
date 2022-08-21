@@ -68,6 +68,7 @@ jobs:
       run: |
         brew update
         brew install pkg-config ffmpeg@4 libarchive libvorbis flac openal-soft
+        alias nproc="sysctl -n hw.logicalcpu"
 
     - name: SFML - Checkout
       uses: actions/checkout@v2
@@ -83,9 +84,7 @@ jobs:
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
 
     - name: AM+ - Build
-      run: |
-        nproc || alias nproc="sysctl -n hw.logicalcpu"
-        ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
+      run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
         PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
@@ -167,7 +166,7 @@ jobs:
           apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libavresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
         run: |
           cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
-          cmake --build /sfml/build --config Release --target install
+          cmake --build /sfml/build --config Release --target install -- -j$(nproc)
           make -C /am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
 
     - name: Prepare artifacts
