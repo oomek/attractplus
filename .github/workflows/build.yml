@@ -224,7 +224,6 @@ jobs:
         files: artifacts_for_release/attract-*.7z
 
   macOS_Release:
-    if: runner.os == 'macOS'
     name: MacOS Release
     runs-on: macos-latest
     continue-on-error: false
