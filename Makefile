@@ -379,7 +379,7 @@ else
 
  ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -L$(EXTLIBS_DIR)/libs-osx/Frameworks
-  LIBS += -openal -lFLAC -lfreetype -framework ogg -framework vorbis -framework vorbisenc -framework vorbisfile
+  LIBS += -openal -lFLAC -lfreetype -logg -lvorbis -lvorbisenc -lvorbisfile
  else
 #   TEMP_LIBS += openal
  endif
