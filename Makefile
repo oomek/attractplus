@@ -256,7 +256,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
  endif
 else
  LIBS += -L$(EXTLIBS_DIR)/libs-mingw/x64
- LIBS += -lopengl32 -lFLAC -logg -lvorbis -lvorbisfile -lopenal32
+ LIBS += -lopengl32 -lFLAC -lvorbisfile -lopenal32
 endif
 
 

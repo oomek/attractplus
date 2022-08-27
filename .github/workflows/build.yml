@@ -68,7 +68,6 @@ jobs:
       run: |
         brew update
         brew install pkg-config ffmpeg@4 libarchive libvorbis flac openal-soft
-        alias nproc="sysctl -n hw.logicalcpu"
 
     - name: SFML - Checkout
       uses: actions/checkout@v2
@@ -84,7 +83,16 @@ jobs:
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
 
     - name: AM+ - Build
+      if: runner.os != 'macOS'
       run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
+      env:
+        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig"
+        PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
+        EXTRA_CFLAGS: "${{matrix.platform.amextracflags}}"
+
+    - name: AM+ - Build macOS
+      if: runner.os == 'macOS'
+      run: ${{matrix.platform.ammakeopts}} make -C am -j$(sysctl -n hw.logicalcpu) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
         PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
