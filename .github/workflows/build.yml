@@ -223,7 +223,7 @@ jobs:
         prerelease: false
         files: artifacts_for_release/attract-*.7z
 
-  macOS Release:
+  macOS_Release:
     if: matrix.platform.name == 'MacOS XCode'
     name: MacOS Release
     runs-on: macos-latest
