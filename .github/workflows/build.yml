@@ -224,7 +224,7 @@ jobs:
         files: artifacts_for_release/attract-*.7z
 
   macOS_Release:
-    if: matrix.platform.name == 'MacOS XCode'
+    if: runner.os == 'macOS'
     name: MacOS Release
     runs-on: macos-latest
     continue-on-error: false
