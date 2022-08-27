@@ -94,7 +94,7 @@ jobs:
       if: runner.os == 'macOS'
       run: ${{matrix.platform.ammakeopts}} make -C am -j$(sysctl -n hw.logicalcpu) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
-        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig"
+        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/opt/ffmpeg@4/lib/pkgconfig:/usr/local/pkgconfig:/usr/local/opt/openal-soft/lib/pkgconfig/"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
         EXTRA_CFLAGS: "${{matrix.platform.amextracflags}}"
 
