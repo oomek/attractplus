@@ -198,7 +198,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    #
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
-   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL-Soft
+   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL
   else
    ifeq ($(USE_DRM),1)
    else
