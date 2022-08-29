@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleIconFile</key>
-	<string>attract.icns</string>
+	<string>attractplus.icns</string>
 	<key>CFBundleExecutable</key>
 	<string>launch.sh</string>
 	<key>CFBundleIdentifier</key>
@@ -13,11 +13,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Attract</string>
+	<string>Attract Mode Plus</string>
 	<key>CFBundleDisplayName</key>
-	<string>AttradeMode</string>
+	<string>AttractModePlus</string>
 	<key>CFBundleSpokenName</key>
-	<string>Attract Mode</string>
+	<string>Attract Mode Plus</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
