@@ -106,6 +106,7 @@ jobs:
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
 
     - name: Prepare artifacts
+      if: runner.os != 'macOS'
       run: |
         mkdir -p "${GITHUB_WORKSPACE}"/artifacts
         for e in "${GITHUB_WORKSPACE}"/am/*.exe ; do
@@ -115,6 +116,14 @@ jobs:
         done
         find "${GITHUB_WORKSPACE}"/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
         cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
+        7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}-x86_64.7z" artifacts
+
+    - name: Prepare macOS artifacts
+      if: runner.os == 'macOS'
+      run: |
+        git -C am/ fetch --unshallow
+        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
+        bash am/util/osx/appbuilder.sh
         7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}-x86_64.7z" artifacts
 
     - name: Upload artifacts
