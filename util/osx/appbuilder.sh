@@ -87,7 +87,7 @@ VERSION=$(git -C am/ describe --tag | sed 's/-[^-]\{8\}$//')
 BUNDLEVERSION=${VERSION//[v-]/.}; BUNDLEVERSION=${BUNDLEVERSION#"."}
 SHORTVERSION=${LASTTAG//v/}
 
-cat $basedir/util/osx/Info.plist | sed -e 's/%%SHORTVERSION%%/'${SHORTVERSION}'/' -e 's/%%BUNDLEVERSION%%/'${BUNDLEVERSION}'/' > "$bundlecontent"/Info.plist
+sed -e 's/%%SHORTVERSION%%/'${SHORTVERSION}'/' -e 's/%%BUNDLEVERSION%%/'${BUNDLEVERSION}'/' $basedir/util/osx/Info.plist > "$bundlecontent"/Info.plist
 
 echo STEP 4 - FIX ATTRACTPLUS EXECUTABLE
 
