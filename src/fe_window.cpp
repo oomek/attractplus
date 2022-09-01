@@ -20,7 +20,9 @@
  *
  */
 
+#ifndef SFML_SYSTEM_MACOS
 #include "attract_icon.hpp"
+#endif
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
@@ -335,10 +337,11 @@ void FeWindow::initial_create()
 	m_window->setMouseCursorVisible(false);
 	m_window->setJoystickThreshold( 1.0 );
 
-	sf::Image icon;
-	icon.loadFromMemory( attract_icon, sizeof( attract_icon ));
-	m_window->setIcon( icon.getSize().y, icon.getSize().y, icon.getPixelsPtr() );
-
+#ifndef SFML_SYSTEM_MACOS
+    sf::Image icon;
+    icon.loadFromMemory( attract_icon, sizeof( attract_icon ));
+    m_window->setIcon( icon.getSize().y, icon.getSize().y, icon.getPixelsPtr() );
+#endif
 	// We need to clear and display here before calling setSize and setPosition
 	// to avoid a white window flash on launching Attract Mode.
 	clear();

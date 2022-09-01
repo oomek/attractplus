@@ -9,13 +9,13 @@
 	<key>CFBundleExecutable</key>
 	<string>launch.sh</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.attractmode.attract</string>
+	<string>attractplus</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>Attract Mode Plus</string>
 	<key>CFBundleDisplayName</key>
-	<string>AttractModePlus</string>
+	<string>Attract Mode Plus</string>
 	<key>CFBundleSpokenName</key>
 	<string>Attract Mode Plus</string>
 	<key>CFBundlePackageType</key>
