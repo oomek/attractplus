@@ -10,9 +10,9 @@ jobs:
     strategy:
       matrix:
         platform:
-        - { name: Windows MXE, os: ubuntu-20.04, sfmlrepo: oomek/SFML, sfmlbranch: 2.6.0, crossprefix: x86_64-w64-mingw32.static-, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1 }
-        - { name: Linux GCC,   os: ubuntu-20.04, sfmlrepo: oomek/SFML, sfmlbranch: 2.6.0, flags: -DSFML_USE_DRM=1,                 amosflags: USE_DRM=1 }
-        - { name: MacOS XCode, os: macos-10.15,  sfmlrepo: oomek/SFML, sfmlbranch: 2.6.0, flags: -DSFML_USE_SYSTEM_DEPS=1 }
+        - { name: Windows MXE, os: ubuntu-20.04, crossprefix: x86_64-w64-mingw32.static-, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1 }
+        - { name: Linux GCC,   os: ubuntu-20.04, flags: -DSFML_USE_DRM=1,                 amosflags: USE_DRM=1 }
+        - { name: MacOS XCode, os: macos-10.15,  flags: -DSFML_USE_SYSTEM_DEPS=1 }
         config:
         - { name: shared, flags: -DBUILD_SHARED_LIBS=TRUE }
         - { name: static, flags: -DBUILD_SHARED_LIBS=FALSE, amflags: STATIC=1 }
@@ -20,6 +20,15 @@ jobs:
         #include:
         #- platform: { name: MacOS XCode, os: macos-latest }
         #  config: { name: Frameworks, flags: -DSFML_BUILD_FRAMEWORKS=TRUE }
+        include:
+        - platform: { name: Windows MXE }
+          config: { name: static }
+          specifific_flags: -DCMAKE_CXX_FLAGS="-DAL_LIBTYPE_STATIC=TRUE"
+        exclude:
+        - platform: { os: ubuntu-20.04 }
+          config: { name: shared }
+        - platform: { os: macos-10.15 }
+          config: { name: static }
 
     steps:
     - name: AM+ - Checkout
@@ -72,12 +81,12 @@ jobs:
     - name: SFML - Checkout
       uses: actions/checkout@v2
       with:
-        repository: ${{matrix.platform.sfmlrepo}}
-        ref: ${{matrix.platform.sfmlbranch}}
+        repository: oomek/SFML
+        ref: 2.6.0
         path: sfml
 
     - name: SFML - Configure CMake
-      run: ${{env.cross_prefix}}cmake -S $GITHUB_WORKSPACE/sfml -B $GITHUB_WORKSPACE/sfml/build -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_AUDIO=FALSE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
+      run: ${{env.cross_prefix}}cmake -S $GITHUB_WORKSPACE/sfml -B $GITHUB_WORKSPACE/sfml/build -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}} ${{matrix.specifific_flags}}
 
     - name: SFML - Build
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
@@ -142,7 +151,7 @@ jobs:
         - { name: armv7,   os: buster,  shell: bash, flags: -DSFML_USE_DRM=1, amosflags: USE_DRM=1 }
         - { name: aarch64, os: buster,  shell: bash, flags: -DSFML_USE_DRM=1, amosflags: USE_DRM=1 }
         config:
-        - { name: Shared, flags: -DBUILD_SHARED_LIBS=TRUE }
+        #- { name: Shared, flags: -DBUILD_SHARED_LIBS=TRUE }
         - { name: Static, flags: -DBUILD_SHARED_LIBS=FALSE, amflags: STATIC=1 }
 
     steps:
@@ -173,7 +182,7 @@ jobs:
           apt-get update -y -q
           apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libavresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
         run: |
-          cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_AUDIO=FALSE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
+          cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
           cmake --build /sfml/build --config Release --target install
           make -C /am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
 
