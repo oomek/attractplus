@@ -84,7 +84,7 @@ private:
 	};
 
 	FeOverlay *m_overlay;
-	FeSound &m_ambient_sound;
+	FeMusic &m_ambient_sound;
 
 	bool m_redraw_triggered;
 	bool m_process_console_input;
@@ -110,7 +110,7 @@ private:
 	static bool internal_do_nut(const std::string &, const std::string &);
 
 public:
-	FeVM( FeSettings &fes, FeFontContainer &defaultfont, FeWindow &wnd, FeSound &ambient_sound, bool console_input );
+	FeVM( FeSettings &fes, FeFontContainer &defaultfont, FeWindow &wnd, FeMusic &ambient_sound, bool console_input );
 	~FeVM();
 
 	void set_overlay( FeOverlay *feo );
@@ -191,6 +191,7 @@ public:
 	static FeImage *cb_add_surface(int, int);
 	static FeSound *cb_add_sound(const char *, bool);
 	static FeSound *cb_add_sound(const char *);
+	static FeMusic *cb_add_music(const char *);
 	static FeShader *cb_add_shader(int, const char *, const char *);
 	static FeShader *cb_add_shader(int, const char *);
 	static FeShader *cb_add_shader(int);

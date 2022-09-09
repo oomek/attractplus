@@ -23,7 +23,8 @@
 #ifndef MEDIA_HPP
 #define MEDIA_HPP
 
-#include <Audio/SoundStream.hpp>
+// #include <Audio/SoundStream.hpp>
+#include <SFML/Audio.hpp>
 #include <vector>
 #include <string>
 
@@ -62,7 +63,6 @@ public:
 	using sf::SoundStream::getStatus;
 	using sf::SoundStream::setLoop;
 	using sf::SoundStream::getLoop;
-	using sf::SoundSource::release_audio;
 
 	void play();
 	void stop();
@@ -83,9 +83,6 @@ public:
 	sf::Time get_video_time();
 	sf::Time get_duration() const;
 
-	const char *get_metadata( const char *tag );
-
-	//
 	// return true if the given filename is a media file that can be opened
 	//	by FeMedia
 	//

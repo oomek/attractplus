@@ -128,6 +128,7 @@ _DEP =\
 	sprite.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
+	fe_music.hpp \
 	fe_shader.hpp \
 	fe_overlay.hpp \
 	fe_window.hpp \
@@ -162,6 +163,7 @@ _OBJ =\
 	sprite.o \
 	fe_image.o \
 	fe_sound.o \
+	fe_music.o \
 	fe_shader.o \
 	fe_overlay.o \
 	fe_window.o \
@@ -196,7 +198,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    #
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
-   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo
+   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL
   else
    ifeq ($(USE_DRM),1)
    else
@@ -225,14 +227,15 @@ endif
 #
 # Deal with SFML
 #
-SFML_PC="sfml-system sfml-window sfml-graphics"
+SFML_PC="sfml-system sfml-window sfml-graphics sfml-audio"
 ifeq ($(STATIC),1)
   LIBS += $(shell $(PKG_CONFIG) --static --libs-only-L $(SFML_PC))
   $(info Manually adding sfml libs as pkg-config has no --static version)
-  LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
+  LIBS += -lsfml-audio-s -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
   CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
   ifeq ($(FE_WINDOWS_COMPILE),1)
   else ifeq ($(FE_MACOSX_COMPILE),1)
+  	LIBS += -lopenal
   else
     LIBS += -lGL -lGLU -lm -lz -ludev -lrt
   endif
@@ -249,10 +252,11 @@ endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL -lpthread
+  LIBS += -ldl -lGL -lpthread -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
  endif
 else
- LIBS += -lopengl32
+ LIBS += -L$(EXTLIBS_DIR)/openal-soft
+ LIBS += -lopengl32 -lFLAC -lvorbisfile -lopenal32-s
 endif
 
 
@@ -362,21 +366,22 @@ ifeq ($(NO_MOVIE),1)
  else
   LIBS += -lsfml-audio
  endif
- AUDIO =
 else
  TEMP_LIBS += libavformat libavcodec libavutil libswscale libswresample
 
- ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenAL
- else
-  TEMP_LIBS += openal
+ifeq ($(USE_SWRESAMPLE),1)
+ TEMP_LIBS += libswresample
+ FE_FLAGS += -DUSE_SWRESAMPLE
+else
+ifeq ($(USE_AVRESAMPLE),1)
+ TEMP_LIBS += libavresample
+ FE_FLAGS += -DUSE_AVRESAMPLE
  endif
+endif
 
- _DEP += media.hpp
- _OBJ += media.o
+_DEP += media.hpp
+_OBJ += media.o
 
- CFLAGS += -I$(EXTLIBS_DIR)/audio/include
- AUDIO = $(OBJ_DIR)/libaudio.a
 endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS
@@ -443,7 +448,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(DEP) | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CC) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
 
-$(EXE): $(OBJ) $(EXPAT) $(SQUIRREL) $(AUDIO)
+$(EXE): $(OBJ) $(EXPAT) $(SQUIRREL)
 	$(EXE_MSG)
 	$(SILENT)$(CXX) -o $@ $^ $(CFLAGS) $(FE_FLAGS) $(LIBS)
 ifneq ($(FE_DEBUG),1)
@@ -535,29 +540,6 @@ $(SQSTDLIB_OBJ_DIR):
 	$(MD) $@
 
 #
-# Audio
-#
-AUDIO_OBJ_DIR = $(OBJ_DIR)/audiolib
-
-AUDIOOBJS= \
-	$(AUDIO_OBJ_DIR)/ALCheck.o \
-	$(AUDIO_OBJ_DIR)/AudioDevice.o \
-	$(AUDIO_OBJ_DIR)/Listener.o \
-	$(AUDIO_OBJ_DIR)/SoundSource.o \
-	$(AUDIO_OBJ_DIR)/SoundStream.o
-
-$(OBJ_DIR)/libaudio.a: $(AUDIOOBJS) | $(AUDIO_OBJ_DIR)
-	$(AR_MSG)
-	$(SILENT)$(AR) $(ARFLAGS) $@ $(AUDIOOBJS)
-
-$(AUDIO_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/audio/Audio/%.cpp | $(AUDIO_OBJ_DIR)
-	$(CC_MSG)
-	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS)
-
-$(AUDIO_OBJ_DIR):
-	$(MD) $@
-
-#
 # Nowide
 #
 NOWIDE_OBJ_DIR = $(OBJ_DIR)/nowidelib
@@ -593,4 +575,4 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core
 
 clean:
-	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core
+	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core

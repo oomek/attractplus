@@ -279,7 +279,7 @@ const char *FeVM::transitionTypeStrings[] =
 		NULL
 };
 
-FeVM::FeVM( FeSettings &fes, FeFontContainer &defaultfont, FeWindow &wnd, FeSound &ambient_sound, bool console_input )
+FeVM::FeVM( FeSettings &fes, FeFontContainer &defaultfont, FeWindow &wnd, FeMusic &ambient_sound, bool console_input )
 	: FePresent( &fes, defaultfont, wnd ),
 	m_overlay( NULL ),
 	m_ambient_sound( ambient_sound ),
@@ -882,9 +882,23 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("x"), &FeSound::get_x, &FeSound::set_x )
 		.Prop( _SC("y"), &FeSound::get_y, &FeSound::set_y )
 		.Prop( _SC("z"), &FeSound::get_z, &FeSound::set_z )
-		.Prop(_SC("duration"), &FeSound::get_duration )
-		.Prop(_SC("time"), &FeSound::get_time )
-		.Func( _SC("get_metadata"), &FeSound::get_metadata )
+		.Prop( _SC("duration"), &FeSound::get_duration )
+		.Prop( _SC("time"), &FeSound::get_time )
+		.Prop( _SC("voices"), &FeSound::get_voices, &FeSound::set_voices )
+		.Prop( _SC("volume"), &FeSound::get_volume, &FeSound::set_volume )
+	);
+
+	fe.Bind( _SC("Music"), Class <FeMusic, NoConstructor>()
+		.Prop( _SC("file_name"), &FeMusic::get_file_name, &FeMusic::set_file_name )
+		.Prop( _SC("playing"), &FeMusic::get_playing, &FeMusic::set_playing )
+		.Prop( _SC("loop"), &FeMusic::get_loop, &FeMusic::set_loop )
+		.Prop( _SC("pitch"), &FeMusic::get_pitch, &FeMusic::set_pitch )
+		.Prop( _SC("x"), &FeMusic::get_x, &FeMusic::set_x )
+		.Prop( _SC("y"), &FeMusic::get_y, &FeMusic::set_y )
+		.Prop( _SC("z"), &FeMusic::get_z, &FeMusic::set_z )
+		.Prop( _SC("duration"), &FeMusic::get_duration )
+		.Prop( _SC("time"), &FeMusic::get_time )
+		.Prop( _SC("volume"), &FeMusic::get_volume, &FeMusic::set_volume )
 	);
 
 	fe.Bind( _SC("Shader"), Class <FeShader, NoConstructor>()
@@ -964,6 +978,7 @@ bool FeVM::on_new_layout()
 	fe.Func<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
+	fe.Overload<FeMusic* (*)(const char *)>(_SC("add_music"), &FeVM::cb_add_music);
 	fe.Overload<FeShader* (*)(int, const char *, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
 	fe.Overload<FeShader* (*)(int, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
 	fe.Overload<FeShader* (*)(int)>(_SC("add_shader"), &FeVM::cb_add_shader);
@@ -2160,18 +2175,28 @@ FeImage* FeVM::cb_add_surface( int w, int h )
 
 FeSound* FeVM::cb_add_sound( const char *s, bool reuse )
 {
+	FeLog() << "! NOTE: reuse parameter in fe.add_sound is deprecated." << std::endl;
+
+	return cb_add_sound( s );
+}
+
+FeSound* FeVM::cb_add_sound( const char *s )
+{
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
-	return fev->add_sound( s, reuse );
+	return fev->add_sound( s );
 	//
 	// We assume the script will keep a reference to the sound
 	//
 }
 
-FeSound* FeVM::cb_add_sound( const char *s )
+FeMusic* FeVM::cb_add_music( const char *s )
 {
-	return cb_add_sound( s, true );
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	return fev->add_music( s );
 }
 
 FeShader* FeVM::cb_add_shader( int type, const char *shader1, const char *shader2 )

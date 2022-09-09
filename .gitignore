@@ -1,6 +1,5 @@
 /attract
 *.o
-*.a
 obj
 core
 *.dll

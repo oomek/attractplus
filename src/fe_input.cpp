@@ -1602,7 +1602,8 @@ int FeSoundInfo::process_setting( const std::string &setting,
 
 bool FeSoundInfo::get_sound( FeInputMap::Command c, std::string &name ) const
 {
-	if (( !m_mute ) && ( m_sound_vol > 0 ))
+	// Causes sound mappings to disappear permanently if Sound Volume is set to 0
+	// if (( !m_mute ) && ( m_sound_vol > 0 ))
 	{
 		std::map<FeInputMap::Command, std::string>::const_iterator it;
 		it = m_sounds.find( c );
