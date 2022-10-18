@@ -224,6 +224,7 @@ public:
 
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required
 	bool video_tick(); // update videos only. return true if redraw required
+	void redraw(); // redraw the screen while doing computationally intensive loops
 
 	bool saver_activation_check();
 	void on_stop_frontend();

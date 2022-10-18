@@ -1353,6 +1353,13 @@ Properties:
    * `time` - Get the number of millseconds that the layout has been showing.
    * `mouse_pointer` 🔶 When set to true mouse pointer will be visible.
 
+Member Functions:
+
+   * `redraw()` 🔶 Adds the ability to process tick() and redraw the screen
+     during computationally intensive loops in transition and signal callbacks.
+     DO NOT call this function inside tick() callback. It will result in
+     an infinite loop and the frontend will crash.
+
 Notes:
 
    * The actual rotation of the layout can be determined using the following

@@ -1231,6 +1231,17 @@ bool FePresent::video_tick()
 	return ret_val;
 }
 
+void FePresent::redraw()
+{
+	// Process tick only when Layout is fully loaded
+	if ( is_layout_loaded() )
+		tick();
+
+	m_window.clear();
+	m_window.draw( *this, m_transform );
+	m_window.display();
+}
+
 bool FePresent::saver_activation_check()
 {
 	int saver_timeout = m_feSettings->get_screen_saver_timeout();

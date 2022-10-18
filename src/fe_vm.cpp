@@ -839,6 +839,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("preserve_aspect_ratio"), &FePresent::get_preserve_aspect_ratio, &FePresent::set_preserve_aspect_ratio )
 		.Prop(_SC("time"), &FePresent::get_layout_ms )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
+		.Func(_SC("redraw"), &FePresent::redraw )
 	);
 
 	fe.Bind( _SC("CurrentList"), Class <FePresent, NoConstructor>()
