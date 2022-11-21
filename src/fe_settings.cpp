@@ -2237,7 +2237,7 @@ void FeSettings::prep_for_launch( std::string &command,
 
 	std::string rom_path, extension, romfilename;
 
-	std::vector<std::string>::const_iterator itr;
+	std::vector<std::string>::const_iterator itr, itr2;
 
 	const std::vector<std::string> &exts = emu->get_extensions();
 	const char *my_filter[ exts.size() + 1 ];
@@ -2256,7 +2256,10 @@ void FeSettings::prep_for_launch( std::string &command,
 		}
 	}
 	my_filter[ i ] = NULL;
+	for ( int i = 0; i < exts.size(); i++ )
+		FeLog() << "my_filter " << my_filter[i] << std::endl;
 
+	FeLog() << std::flush;
 	const std::vector<std::string> &paths = emu->get_paths();
 
 	//
@@ -2275,6 +2278,7 @@ void FeSettings::prep_for_launch( std::string &command,
 		if (( check_subdirs ) && ( directory_exists( path + rom_name ) ))
 			in_list.push_back( path + rom_name );
 
+		FeLog() << "Search for the rom" << std::endl;
 		if ( !in_list.empty() )
 		{
 			//
@@ -2282,25 +2286,59 @@ void FeSettings::prep_for_launch( std::string &command,
 			//
 			rom_path = path;
 			for ( std::vector<std::string>::const_iterator i = in_list.begin(); i != in_list.end(); ++i )
+			{
+				FeLog() << *i << std::endl;
 				if ( romfilename.empty() || romfilename.length() > i->length() )
 					romfilename = *i;
+			}
 			found = true;
+			FeLog() << "FOUND: " << romfilename << std::endl;
 			break;
 		}
 	}
 
 	if ( found )
 	{
+
+		FeLog() << "Figure out the extensions:" << std::endl;
+		FeLog() << "Extensions: ";
+		for ( itr = exts.begin(); itr != exts.end(); ++itr )
+		{
+			FeLog() << *itr << " ";
+		}
+		FeLog() << std::endl;
+
 		//
 		// figure out the extension
 		//
+		bool ext_found = false;
 		for ( itr = exts.begin(); itr != exts.end(); ++itr )
 		{
-			if ( ( (*itr).compare( FE_DIR_TOKEN ) == 0 )
-					? directory_exists( romfilename )
-					: tail_compare( romfilename, (*itr) ) )
+			if ( (*itr).compare( FE_DIR_TOKEN ) == 0 )
 			{
-				extension = (*itr);
+				if ( directory_exists( romfilename ) )
+				{
+					extension = (*itr);
+					FeLog() << "Chosen: " << *itr << std::endl;
+					break;
+				}
+			}
+			else
+			{
+				for ( itr2 = exts.begin(); itr2 != exts.end(); ++itr2 )
+				{
+					if ( tail_compare( rom_path + rom_name + *itr2, (*itr) ) )
+					{
+						extension = (*itr);
+						FeLog() << "Chosen: " << *itr << std::endl;
+						ext_found = true;
+						break;
+					}
+				}
+			}
+			if ( ext_found )
+			{
+				romfilename = rom_path + rom_name + extension;
 				break;
 			}
 		}
@@ -2318,6 +2356,8 @@ void FeSettings::prep_for_launch( std::string &command,
 		FeLog() << "Warning: could not locate rom.  Best guess: "
 				<< romfilename << std::endl;
 	}
+
+	FeLog() << "romfilename " << romfilename << std::endl;
 
 	args = get_game_extra( Arguments );
 	if ( args.empty() )
