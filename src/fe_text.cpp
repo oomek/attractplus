@@ -83,6 +83,9 @@ void FeText::setColor( const sf::Color &c )
 	if ( c != m_draw_text.getColor() )
 	{
 		m_draw_text.setColor( c );
+		sf::Color o = m_draw_text.getOutlineColor();
+		o.a = c.a;
+		m_draw_text.setOutlineColor( o );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -359,6 +362,9 @@ void FeText::set_bga(int a)
 	{
 		c.a=a;
 		m_draw_text.setBgColor(c);
+		sf::Color o = m_draw_text.getBgOutlineColor();
+		o.a = c.a;
+		m_draw_text.setBgOutlineColor( o );
 		FePresent::script_flag_redraw();
 	}
 }
