@@ -32,7 +32,7 @@ jobs:
 
     steps:
     - name: AM+ - Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: am
 
@@ -79,7 +79,7 @@ jobs:
         brew install pkg-config ffmpeg@4 libarchive libvorbis flac
 
     - name: SFML - Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: oomek/SFML
         ref: 2.6.0
@@ -136,7 +136,7 @@ jobs:
         7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}-x86_64.7z" artifacts
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{matrix.platform.name}}-${{matrix.config.name}}
         path: attract-*.7z
@@ -156,19 +156,19 @@ jobs:
 
     steps:
     - name: SFML - Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: oomek/SFML
         ref: 2.6.0
         path: sfml
 
     - name: AM+ - Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: am
 
     - name: SFML and AM
-      uses: uraimo/run-on-arch-action@v2.0.8
+      uses: uraimo/run-on-arch-action@v2.3.0
       with:
         arch: ${{ matrix.platform.name }}
         distro: ${{ matrix.platform.os }}
@@ -194,7 +194,7 @@ jobs:
         7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}-x86_64.7z" artifacts
 
     - name: AM+ - Upload binary
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Linux-${{matrix.platform.name}}-${{matrix.config.name}}
         path: attract-*.7z
