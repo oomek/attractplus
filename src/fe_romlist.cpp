@@ -100,7 +100,15 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 			two_len -= two_begin;
 		}
 
-		return ( one.compare( one_begin, one_len, two, two_begin, two_len ) < 0 );
+		//
+		// Convert to uppercase to perform case-insensitive sorting.
+		//
+		std::string ONE = one.substr( one_begin, one_len );
+		std::string TWO = two.substr( two_begin, two_len );
+		for (int i = 0; i < ONE.length(); i++) ONE[i] = toupper(ONE[i]);
+		for (int i = 0; i < TWO.length(); i++) TWO[i] = toupper(TWO[i]);
+
+		return ( ONE.compare( TWO ) < 0 );
 	}
 	else if (( m_comp == FeRomInfo::PlayedCount )
 				|| ( m_comp == FeRomInfo::PlayedTime ))
