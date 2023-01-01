@@ -75,7 +75,6 @@ jobs:
     - name: Install MacOS brew
       if: runner.os == 'macOS'
       run: |
-        brew update
         brew install pkg-config ffmpeg@4 libarchive libvorbis flac
 
     - name: SFML - Checkout
