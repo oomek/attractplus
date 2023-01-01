@@ -244,7 +244,7 @@ else
 endif
 
 ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenGL -ljpeg
+  LIBS += -framework OpenGL -L/opt/homebrew/Cellar/jpeg/9e/lib -ljpeg
 endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
