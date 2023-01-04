@@ -1,5 +1,13 @@
-Attract-Mode Frontend
----------------------
+Attract-Mode Plus Frontend
+--------------------------
+
+Attract-Mode Plus is a fork of Attract-Mode with various community
+improvements and fixes.
+
+The latest binaries can be found in Actions tab ( you have to be logged
+into Github to see the binaries )
+
+The differences in scripting can be found in Layouts.md file
 
 Attract-Mode is a graphical frontend for command line emulators such as
 MAME, MESS, and Nestopia.  It hides the underlying operating system and is

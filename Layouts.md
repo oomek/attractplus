@@ -1572,8 +1572,8 @@ Notes:
 #### `fe.Image` ####
 
 The class representing an image in Attract-Mode.  Instances of this class
-are returned by the `add_image()`, `add_artwork()`, `add_surface` and
-`add_clone()` functions and also appear in the `fe.obj` array (the
+are returned by the [`fe.add_image()`](#add_image), [`fe.add_artwork()`](#add_artwork), [`fe.add_surface()`](#add_surface) and
+[`fe.add_clone()`](#add_clone) functions and also appear in the `fe.obj` array (the
 Attract-Mode draw list).  This class cannot be otherwise instantiated in
 a script.
 
@@ -1803,7 +1803,7 @@ function flip_y( img )
 #### `fe.Text` ####
 
 The class representing a text label in Attract-Mode.  Instances of this
-class are returned by the `add_text()` functions and also appear in the
+class are returned by the [`fe.add_text()`](#add_text) functions and also appear in the
 `fe.obj` array (the Attract-Mode draw list).  This class cannot be
 otherwise instantiated in a script.
 
@@ -1910,7 +1910,7 @@ Member Functions:
 #### `fe.ListBox` ####
 
 The class representing the listbox in Attract-Mode.  Instances of this
-class are returned by the `add_listbox()` functions and also appear in the
+class are returned by the [`fe.add_listbox()`](#add_listbox) functions and also appear in the
 `fe.obj` array (the Attract-Mode draw list).  This class cannot be
 otherwise instantiated in a script.
 
@@ -2027,12 +2027,109 @@ Member Functions:
      layout coordinates).
 
 &nbsp;
+<a name="Rectangle" />
+
+#### `fe.Rectangle` 🔶 ####
+
+The class representing a rectangle in Attract-Mode.  Instances of this class
+are returned by the [`fe.add_rectangle()`](#add_rectangle) function and also appear in the `fe.obj`
+array (the Attract-Mode draw list).  This class cannot be otherwise instantiated in
+a script.
+
+Properties:
+
+   * `x` - Get/set x position of the rectangle (in layout coordinates).
+   * `y` - Get/set y position of the rectangle (in layout coordinates).
+   * `width` - Get/set width of the rectangle (in layout coordinates), 0 if the
+     image is unscaled.  Default value is 0.
+   * `height` - Get/set height of the rectangle (in layout coordinates), if 0 the
+     image is unscaled.  Default value is 0.
+   * `visible` - Get/set whether the rectangle is visible (boolean).  Default value
+     is `true`.
+   * `rotation` - Get/set rotation of the rectangle around its origin. Range is [0
+     ... 360].  Default value is 0.
+   * `red` - Get/set red colour level for the rectangle. Range is [0 ... 255].
+     Default value is 255.
+   * `green` - Get/set green colour level for the rectangle. Range is [0 ... 255].
+     Default value is 255.
+   * `blue` - Get/set blue colour level for the rectangle. Range is [0 ... 255].
+     Default value is 255.
+   * `alpha` - Get/set alpha level for the rectangle. Range is [0 ... 255].  Default
+     value is 255.
+   * `outline` Get/set the thickness of the outline applied to the rectangle.
+     Value is set in pixels and can be fractional. Default value is 0.0
+   * `outline_red` - Get/set red colour level for the rectangle's outline.
+     Range is [0 ... 255]. Default value is 255.
+   * `outline_green` - Get/set green colour level for the rectangle's outline.
+     Range is [0 ... 255]. Default value is 255.
+   * `outline_blue` - Get/set blue colour level for the rectangle's outline.
+     Range is [0 ... 255]. Default value is 255.
+   * `outline_alpha` - Get/set alpha level for the rectangle's outline.
+     Range is [0 ... 255].  Default value is 255.
+   * `origin_x` - Get/set the x position of the local origin for the rectangle.
+     The origin defines the centre point for any positioning or rotation of
+     the rectangle.  Default origin in 0,0 (top-left corner).
+   * `origin_y` - Get/set the y position of the local origin for the rectangle.
+     The origin defines the centre point for any positioning or rotation of
+     the rectangle. Default origin is 0,0 (top-left corner).
+   * `anchor` Set the midpoint for position and scale.
+     Can be set to one of the following modes:
+      - `Anchor.Left`
+      - `Anchor.Centre`
+      - `Anchor.Right`
+      - `Anchor.Top`
+      - `Anchor.Bottom`
+      - `Anchor.TopLeft`
+      - `Anchor.TopRight`
+      - `Anchor.BottomLeft`
+      - `Anchor.BottomRight`
+   * `origin` Set the midpoint for rotation
+     Can be set to one of the following modes:
+      - `Origin.Left`
+      - `Origin.Centre`
+      - `Origin.Right`
+      - `Origin.Top`
+      - `Origin.Bottom`
+      - `Origin.TopLeft`
+      - `Origin.TopRight`
+      - `Origin.BottomLeft`
+      - `Origin.BottomRight`
+   * `shader` - Get/set the GLSL shader for this rectangle. This can only be set to
+     an instance of the class `fe.Shader` (see: `fe.add_shader()`).
+   * `zorder` - Get/set the rectangles's order in the applicable draw list.  Objects
+     with a lower zorder are drawn first, so that when objects overlap, the one
+     with the higher zorder is drawn on top.  Default value is 0.
+   * `blend_mode` - Get/set the blend mode for this rectangle.  Can have one of the
+     following values:
+      - `BlendMode.Alpha`
+      - `BlendMode.Add`
+      - `BlendMode.Screen`
+      - `BlendMode.Multiply`
+      - `BlendMode.Overlay`
+      - `BlendMode.Premultiplied`
+      - `BlendMode.None`
+
+Member Functions:
+
+   * `set_rgb( r, g, b )` - Set the red, green and blue colour values for the
+     rectangle.  Range is [0 ... 255].
+   * `set_pos( x, y )` - Set the rectangle position (in layout coordinates).
+   * `set_pos( x, y, width, height )` - Set the rectangle position and size (in
+     layout coordinates).
+   * `set_outline_rgb( r, g, b )` Set the red, green and blue colour values for
+     the rectangle outline.  Range is [0 ... 255].
+   * `set_anchor( x, y )` Set the midpoint for position and scale
+     x and y are in [0.0 ... 1.0] scale
+   * `set_origin( x, y )` Set the midpoint for rotation
+     x and y are in [0.0 ... 1.0] scale
+
+&nbsp;
 <a name="Sound" />
 
 #### `fe.Sound` ####
 
 The class representing an audio track.  Instances of this class are returned
-by the `fe.add_sound()` function.  This is also the class for the
+by the [`fe.add_sound()`](#add_sound) function.  This is also the class for the
 `fe.ambient_sound` object.  Object of this class cannot be otherwise
 instantiated in a script.
 
@@ -2063,7 +2160,7 @@ Member Functions:
 #### `fe.Shader` ####
 
 The class representing a GLSL shader.  Instances of this class are returned
-by the `fe.add_shader()` function.  This class cannot be otherwise
+by the [`fe.add_shader()`](#add_shader) function.  This class cannot be otherwise
 instantiated in a script.
 
 Properties:
