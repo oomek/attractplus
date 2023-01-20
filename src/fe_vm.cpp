@@ -2680,7 +2680,7 @@ void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
 	if ( fes->set_display( idx, stack_previous ) || reload )
 		fev->m_posted_commands.push( FeInputMap::Reload );
 	else
-		fev->update_to_new_list();
+		fev->update_to_new_list( 0, true );
 }
 
 void FeVM::cb_set_display( int idx, bool stack_previous  )
