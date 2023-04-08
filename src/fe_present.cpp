@@ -1340,7 +1340,10 @@ void FePresent::post_run()
 		(*its)->set_volume( m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
 
 	set_video_play_state( m_playMovies );
+
+#if !defined(USE_DRM) && !defined(USE_XLIB)
 	on_transition( FromGame, FromToNoValue );
+#endif
 
 	reset_screen_saver();
 	update( true );

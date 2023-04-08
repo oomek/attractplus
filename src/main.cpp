@@ -342,8 +342,13 @@ int main(int argc, char *argv[])
 				soundsys.sound_event( FeInputMap::EventGameReturn );
 				soundsys.play_ambient();
 
+#ifdef USE_DRM
+				feSettings.switch_from_clone_group();
+				feVM.load_layout(true);
+#else
 				if ( feSettings.switch_from_clone_group() )
 					feVM.update_to_new_list( 0, true );
+#endif
 
 				has_focus=true;
 			}

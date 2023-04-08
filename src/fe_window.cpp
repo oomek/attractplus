@@ -603,9 +603,6 @@ bool FeWindow::run()
 		if ( !isOpen() )
 			initial_create();
  #else
-  #if defined(USE_DRM)
-		fep->load_layout( false, true );
-  #endif
 		initial_create(); // On raspberry pi or with DRM, we have forcibly closed the window, so recreate it now
  #endif
 	}
