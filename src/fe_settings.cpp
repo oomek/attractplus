@@ -87,8 +87,8 @@ const char *FE_DEFAULT_FONT			= "Barlow";
 const char *FE_DEFAULT_FONT_PATHS[]	=
 {
 	"$HOME/.attract/fonts/",
-	"/usr/share/attract/fonts/",
-	"/usr/share/fonts",
+	DATA_PATH"fonts/",
+	"/usr/share/fonts/",
 	NULL
 };
 
@@ -328,10 +328,6 @@ FeSettings::FeSettings( const std::string &config_path,
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing )
 {
-	int i=0;
-	while ( FE_DEFAULT_FONT_PATHS[i] != NULL )
-		m_font_paths.push_back( FE_DEFAULT_FONT_PATHS[i++] );
-
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
 	else
@@ -2767,6 +2763,10 @@ bool FeSettings::get_font_file(
 	// m_font_paths contains the configured paths (which may need further
 	// processing ($HOME substitution etc)
 	//
+	int i=0;
+	while ( FE_DEFAULT_FONT_PATHS[i] != NULL )
+		path_list.push_back( FE_DEFAULT_FONT_PATHS[i++] );
+
 	for ( its=m_font_paths.begin(); its!=m_font_paths.end(); ++its )
 		path_list.push_back( clean_path( *its, true ) );
 
