@@ -1,4 +1,4 @@
-#@Français
+#@Français;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
 #
 # Interface strings
 #
@@ -89,16 +89,16 @@ Filter Wrap Mode;Mode de fin de liste de filtres
 Filters Menu;Menu des filtres
 Flip;Retourné
 Font Path;Chemin de la police
-Fullscreen Mode;Mode plein écran 
+Fullscreen Mode;Mode plein écran
 Game Return Sound;Son au retour du jeu
 General;Général
-Generate Collection/Rom List;Générer la liste de roms 
+Generate Collection/Rom List;Générer la liste de roms
 Generating Rom List: $1%;Génération de la liste de ROM: $1%
 Global Filter;Filtre global
 Hide Brackets in Game Title;Cacher les crochets dans le titre du jeu
 Info Source/Scraper;Info Source/Aspiration
 Joystick Threshold;Seuil du joystick
-Jump to Next Display;Bascule sur la liste de roms suivante 
+Jump to Next Display;Bascule sur la liste de roms suivante
 Language;Langue
 Layout;Thème
 Layout Options;Options du Layout
@@ -127,7 +127,7 @@ Press Input;Appuyer sur le contrôle
 Previous Display;Liste précédente
 Previous Favourite;Favoris précédent
 Previous Filter;Filtre précédent
-Previous Letter;Lettre précédente 
+Previous Letter;Lettre précédente
 Previous Page;Page Suivante
 Random Game;Jeu au hasard
 Remove Input;Enlever le contrôle
@@ -190,18 +190,18 @@ _help_art_path;Répertoire contenant les Artworks
 _help_confirm_favs;Confirmer l'addition/suppression des favoris
 _help_control_add_favourite;Définit le(s) contrôle(s) qui permet(ent) d'ajouter/supprimer le jeu selectionné à la liste des favoris
 _help_control_add_tags;Définit le(s) contrôle(s) qui ajoute(nt)/supprime(nt) des mots clés au jeu sélectionné
-_help_control_configure;Définit le(s) contrôle(s) qui affiche(nt) le menu de configuration  
+_help_control_configure;Définit le(s) contrôle(s) qui affiche(nt) le menu de configuration
 _help_control_custom1;Définit le(s) contrôle(s) utilisateur(s) "Custom1"
 _help_control_custom2;Définit le(s) contrôle(s) utilisateur(s) "Custom2"
 _help_control_custom3;Définit le(s) contrôle(s) utilisateur(s) "Custom3"
 _help_control_custom4;Définit le(s) contrôle(s) utilisateur(s) "Custom4"
 _help_control_custom5;Définit le(s) contrôle(s) utilisateur(s) "Custom5"
 _help_control_custom6;Définit le(s) contrôle(s) utilisateur(s) "Custom6"
-_help_control_displays_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des listes 
+_help_control_displays_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des listes
 _help_control_down;Définit le(s) contrôle(s) qui décrémente(nt) la séléction d'une valeur
-_help_control_exit;Définit le(s) contrôle(s) qui quitte(nt) Attract Mode 
+_help_control_exit;Définit le(s) contrôle(s) qui quitte(nt) Attract Mode
 _help_control_exit_to_desktop;Définit le(s) contrôle(s) qui quitte(nt) immédiatement Attract Mode pour revenir au bureau
-_help_control_filters_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des filtres 
+_help_control_filters_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des filtres
 _help_control_next_display;Définit le(s) contrôle(s) qui bascule(nt) à la liste suivante
 _help_control_next_favourite;Définit le(s) contrôle(s) qui selectionne(nt) le jeu favoris suivant
 _help_control_next_filter;Définit le(s) contrôle(s) qui bascule(nt) au filtre suivant
@@ -215,13 +215,13 @@ _help_control_random_game;Définit le(s) contrôle(s) qui sélectionne(nt) un je
 _help_control_replay_last_game;Définit le(s) contrôle(s) qui relance(nt) le dernier jeu joué
 _help_control_screen_saver;Définit le(s) contrôle(s) qui lance(nt) le mode "économiseur d'écran"
 _help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract Mode
-_help_control_select;Définit le(s) contrôle(s) qui valide(nt) la valeur sélectionnée 
+_help_control_select;Définit le(s) contrôle(s) qui valide(nt) la valeur sélectionnée
 _help_control_toggle_flip;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 180 degrés
 _help_control_toggle_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
-_help_control_toggle_movie;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la lecture des vidéos.  
-_help_control_toggle_mute;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) le son. 
-_help_control_toggle_rotate_left;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la gauche 
-_help_control_toggle_rotate_right;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la droite 
+_help_control_toggle_movie;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la lecture des vidéos.
+_help_control_toggle_mute;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) le son.
+_help_control_toggle_rotate_left;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la gauche
+_help_control_toggle_rotate_right;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la droite
 _help_control_up;Définit le(s) contrôle(s) qui incrémente(nt) la séléction d'une valeur
 _help_controls;Configurer les contrôles
 _help_default_font;Le nom de la police par défaut à utiliser
@@ -277,11 +277,11 @@ _help_rule_comp;Règle de comparaison pour le filtre
 _help_rule_delete;Supprimer cette règle de filtrage
 _help_rule_target;L'attribut du jeu que vous souhaitez filtrer sur la base de
 _help_rule_value;Valeur à filtrer.  Par exemple, si la cible de filtrage est "Année" et le comparateur "est égale à", une valeur de "1984" correspondra à l'année 1984, "198." correspondra à n'importe quelle année des années 1980, et "(198.)|(199.)" correspondra aux années comprises entre 1980 et 1999
-_help_scrape_fanart;Définir où les 'fan art' des jeux doivent être téléchargés lorsqu'ils sont aspirés 
+_help_scrape_fanart;Définir où les 'fan art' des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scrape_flyers;Définir où les 'flyers' et les couvertures des boîtes des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scrape_marquees;Définir où les 'marquees' et les bannières des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scrape_snaps;Définir où les 'snapshots' des jeux doivent être téléchargés lorsqu'ils sont aspirés
-_help_scrape_vids;Définir où les videos des jeux doivent être téléchargés lorsqu'ils sont aspirés 
+_help_scrape_vids;Définir où les videos des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scrape_wheels;Définir où les logos des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scraper;Configurer les parametres d'aspiration des artworks
 _help_screen_saver;Configurer l'économiseur d'écran
@@ -297,7 +297,7 @@ _sort_regexp;^(Vs\. The |The |Vs\. )
 # Extra strings provided by translation
 #
 Add a rule to this filter;Ajouter une règle à ce filtre
-Allow Exit from 'Lists Menu';Permettre la sortie des listes de menu 
+Allow Exit from 'Lists Menu';Permettre la sortie des listes de menu
 Ambient Sounds;Son d'ambiance
 Configure available emulators;Configurer les émulateurs disponibles
 Configure filter rule;Configuration de la règle de filtrage
@@ -307,15 +307,11 @@ Generate Collection/Romlist;Générer la liste de ROM
 Launch Last Game on Startup;Lancer le dernier jeu au démarrage
 Lists;Listes
 Lists Menu;Menu des listes
-Minimum Run Time;Temps minimum fonctionnement 
+Minimum Run Time;Temps minimum fonctionnement
 Next List;Liste suivante
 Previous List;Liste précédent
 XML Mode;Mode XML
-en;Anglais
-es;Español
-fr;Français
-jp;Japonais
-kr;Coréen
+
 _help_autolaunch_last_game;Lancer automatiquement au démarrage le dernier jeu joué
 _help_control_previous_page;Définit le(s) contrôle(s) qui incrémente(nt) la séléction d'une page
 

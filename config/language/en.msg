@@ -1,4 +1,4 @@
-#@English
+#@English;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
 #
 # Interface strings
 #
@@ -162,7 +162,7 @@ _help_window_mode;Set whether Attract-Mode fills the screen or runs in a window
 _sort_regexp;^(Vs\. The |The |Vs\. )
 
 #
-# Extra strings provided by translation
+# Don't translate language names
 #
 cn;中文 (Chinese)
 de;Deutsch
@@ -172,5 +172,9 @@ fr;Français
 it;Italiano
 jp;日本語 (Japanese)
 kr;한국어 (Korean)
+
+#
+# Extra strings provided by translation
+#
 
 #@DONE_TRANSLATED

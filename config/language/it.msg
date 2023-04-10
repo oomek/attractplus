@@ -1,4 +1,4 @@
-#@Italiano
+#@Italiano;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
 # Traduzione a cura di Piergiorgio Ghezzo <PJ@piggei.com>
 #
 # Interface strings
@@ -401,10 +401,6 @@ Scrape mamedb.com (MAME only);Utilizza mamedb.com (solo per MAME)
 Scraped $1 artwork file(s);Immagini recuperate: $1
 Up (Previous Game); Su (Gioco precedente)
 XML Mode;Modo XML
-en;English
-es;Español
-fr;Français
-it;Italiano
 _help_autolaunch_last_game;Esegui automaticamente l'ultimo titolo giocato
 _help_control_page_down;Configura i controlli che muovono la selezione una pagina in basso
 _help_control_page_up;Configura i controlli che muovono la selezione una pagina in alto

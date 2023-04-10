@@ -49,9 +49,10 @@
 #if defined(SFML_SYSTEM_WINDOWS)
 
 const char *FE_DEFAULT_CFG_PATH		= "./";
-const char *FE_DEFAULT_FONT			= "arial";
+const char *FE_DEFAULT_FONT			= "Barlow";
 const char *FE_DEFAULT_FONT_PATHS[]	=
 {
+	"fonts/",
 	"%SYSTEMROOT%/Fonts/",
 	NULL
 };
@@ -59,9 +60,10 @@ const char *FE_DEFAULT_FONT_PATHS[]	=
 #elif defined(SFML_SYSTEM_MACOS)
 
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/.attract/";
-const char *FE_DEFAULT_FONT			= "Arial";
+const char *FE_DEFAULT_FONT			= "Barlow";
 const char *FE_DEFAULT_FONT_PATHS[]	=
 {
+	"$HOME/.attract/fonts/",
 	"/Library/Fonts/",
 	"$HOME/Library/Fonts/",
 	NULL
@@ -70,9 +72,10 @@ const char *FE_DEFAULT_FONT_PATHS[]	=
 #elif defined(SFML_SYSTEM_ANDROID)
 
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/";
-const char *FE_DEFAULT_FONT			= "DroidSans.ttf";
+const char *FE_DEFAULT_FONT			= "Barlow";
 const char *FE_DEFAULT_FONT_PATHS[]	=
 {
+	"$HOME/fonts/",
 	"/system/fonts/",
 	NULL
 };
@@ -80,11 +83,12 @@ const char *FE_DEFAULT_FONT_PATHS[]	=
 #else
 
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/.attract/";
-const char *FE_DEFAULT_FONT			= "FreeSans";
+const char *FE_DEFAULT_FONT			= "Barlow";
 const char *FE_DEFAULT_FONT_PATHS[]	=
 {
-	"/usr/share/fonts/",
-	"$HOME/.fonts/",
+	"$HOME/.attract/fonts/",
+	"/usr/share/attract/fonts/",
+	"/usr/share/fonts",
 	NULL
 };
 

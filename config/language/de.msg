@@ -1,4 +1,4 @@
-﻿#@Deutsch
+#@Deutsch;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
 #
 # Interface strings
 #
@@ -104,7 +104,7 @@ Language;Sprache
 Layout;Thema
 Layout Options;Themen Optionen
 Left;Links
-List Limit;Limit für die Liste 
+List Limit;Limit für die Liste
 Manufacturer;Hersteller
 Mouse Threshold;Schwellwert Maus
 Movie Volume;Film-Lautstärke
@@ -194,7 +194,7 @@ _help_confirm_favs;Das Hinzufügen/Löschen zu den Favoriten bestätigen
 _help_control_add_favourite;Definiere die Taste(n), um das momentan gewählten Spiel als Favoriten zu markiern/löschen
 _help_control_add_tags;Definiere die Taste(n), um Markierungen zum momentan gewählten Spiel hinzuzufügen/zu löschen
 _help_control_configure;Definiere die Taste(n), um das "Konfigurations Menu" anzuzeigen
-_help_control_custom1;Definiere die Taste(n) für "Eigendefiniert1" 
+_help_control_custom1;Definiere die Taste(n) für "Eigendefiniert1"
 _help_control_custom2;Definiere die Taste(n) für "Eigendefiniert2"
 _help_control_displays_menu;Definiere die Taste(n), um das "Bildschirm Menü" anzuzeigen
 _help_control_down;Definiere die Taste(n), um die Auswahl nach unten zu bewegen
@@ -261,7 +261,7 @@ _help_filter_rule;Konfiguriere Filterregel
 _help_filter_sort_by;Das Spiel-Informationsattribut nach dem du die Sammlung/Romliste sortieren möchtest. Stelle auf "Keine Sortierung" um die Sortierung der Quell-Sammlung/Romliste zu verwenden
 _help_filter_wrap_mode;Definiere was passieren soll wenn die "Nächster Filter" oder "Vorheriger Filter" Aktionen das Ende Filterliste erreichen
 _help_font_path;Die Verzeichnisse mit den Schriftarten. Mehrere Verzeichnisse können durch Semikolon separiert werden.  Attract-Mode wird diese Verzeichnisse rekursiv durchsuchen um die angegebene Schriftart zu finden
-_help_hide_brackets;Verberge bei der Anzeige der Spieletitel den Text in Klammern 
+_help_hide_brackets;Verberge bei der Anzeige der Spieletitel den Text in Klammern
 _help_input_action;
 _help_input_add;Dieser Aktion ein neues Steuerungs-Mapping zuordnen
 _help_input_delete;Dieses Steuerungs-Mapping löschen
@@ -289,7 +289,7 @@ _help_screen_saver_timeout;Die Wartezeit in Sekunden, bevor der Bildschirmschone
 _help_sound;Konfiguriere Klang-Lautstärke, Klang->Ereignis Zuordnungen und den Umgebungs-Soundtrack
 _help_sound_sel;Weise diesem Ereignis/dieser Aktion einen Klang zu
 _help_track_usage;Konfiguriere, ob Attract-Mode die Nutzung protokollieren soll (Gesamtspielzeit und Anzahl der Spielestarts pro Spiel)
-_help_volume;Gültige Lautstärke Einstellungen gehen von 0 (stumm) bis 100 
+_help_volume;Gültige Lautstärke Einstellungen gehen von 0 (stumm) bis 100
 _help_window_mode;Lege fest, ob Attract-Mode in einem Fenster läuft oder den Bildschirm füllt
 _sort_regexp;^(Vs\. The |The |Vs\. )
 
@@ -309,10 +309,6 @@ Movie collage;Video Collage
 Overlay Artwork;Bilddatei als Overlay
 Preserve Aspect Ratio;Seitenverhältnis beibehalten
 XML Mode;XML-Modus
-de;Deutsch
-en;English
-es;Español
-fr;Français
 _help_autolaunch_last_game;Beim Hochfahren automatisch das zuletzt gespielte Spiel starten
 Add '$1' to Favourites?;Soll '$1' zu Favoriten hinzugefügt werden?
 Add Exception;Ausnahme hinzufügen

@@ -1,4 +1,4 @@
-#@日本語 (Japanese);win_font=YuGothR,ARIALUNI,MSMINCHO;mac_font=Osaka;linux_font=TakaoGothic,TakaoPGothic,NotoSansCJK-Regular
+#@日本語 (Japanese);win_font=NotoSans;mac_font=NotoSans;linux_font=NotoSans
 #
 # Interface strings
 #
@@ -299,10 +299,6 @@ Minimum Run Time;最小実行時間
 Page Down;1画面下
 Page Up;1画面上
 XML Mode;XML モード
-en;英語
-fr;フランス語
-jp;日本語
-kr;韓国語
 _help_autolaunch_last_game;プラグラムの起動時, 最後にプレイしたゲームを一緒に起動するかを設定します
 _help_control_page_down;1ページ下に移動するキーを設定します
 _help_control_page_up;1ページ上に移動するキーを設定します

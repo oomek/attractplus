@@ -2146,7 +2146,8 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 				itr != m_languages[ index_l ].font.end(); ++itr )
 		{
 			std::string temp1, temp2;
-			if ( ctx.fe_settings.get_font_file( temp1, temp2, *itr ) )
+			std::string temp;
+			if ( ctx.fe_settings.get_font_file( temp, *itr ) )
 			{
 				override_default_font = *itr;
 				break;

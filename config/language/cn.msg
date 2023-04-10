@@ -1,4 +1,4 @@
-#@中文 (Chinese);win_font=MSYH,YuGothR,MALGUN,ARIALUNI,MSMINCHO;mac_font=AppleLiSung;linux_font=UMing,NotoSansCJK-Regular
+#@中文 (Chinese);win_font=NotoSans;mac_font=NotoSans;linux_font=NotoSans
 #
 # Interface strings
 #
@@ -161,7 +161,7 @@ Rule Edit;规则编辑
 Scrape Artwork;搜刮插图（Artwork）
 Scrape Fanart;搜刮玩家自制（Fanart）
 Scrape Flyers/Boxart;搜刮传单/手办（Flyers/Boxart）
-Scrape Game Logos (Wheel Art);搜刮LOGO (Wheel Art) 
+Scrape Game Logos (Wheel Art);搜刮LOGO (Wheel Art)
 Scrape Marquees;搜刮跑马灯（Marquees）
 Scrape Snaps;搜刮快照（Snaps）
 Scrape Videos (MAME only);搜刮 Videos (MAME only)
@@ -239,14 +239,6 @@ Right(Next Display);→（下一界面）
 Scrape mamedb.com (MAME only);搜刮 mamedb.com（仅 MAME）
 Up(Previous Game);↑（上一游戏）
 XML Mode;XML 模式
-cn;中文 (Chinese)
-de;Deutsch
-en;English
-es;Español
-font;字体
-fr;Français
-jp;日本語 (Japanese)
-kr;한글 (Korean)
 
 #@DONE_TRANSLATED
 #

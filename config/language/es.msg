@@ -1,4 +1,4 @@
-#@Español
+#@Español;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
 #
 # Interface strings
 #
@@ -99,7 +99,7 @@ Global Filter;Filtro global
 Hide Brackets in Game Title;Esconder paréntesis en títutlos de juegos
 Info Source/Scraper;Fuente de información/Scraper
 Joystick Threshold;Umbral de la palanca
-Jump to Next Display;Saltar a la siguiente pantalla 
+Jump to Next Display;Saltar a la siguiente pantalla
 Language;Idioma
 Layout;Tema
 Layout Options;Opciones de temas
@@ -289,7 +289,7 @@ _help_screen_saver_timeout;Cantidad de tiempo en segundos a esperar antes de lan
 _help_sound;Configura volumenes de sonidos, asignaciones de eventos de sonido y el tema (canción) de ambiente
 _help_sound_sel;Asigna un sonido a este evento/acción
 _help_track_usage;Configura si Attract-Mode debería registrar el uso (tiempo jugado y cuenta de partidas para cada juego)
-_help_volume;Las configuraciones válidas se volumen van de 0 (silencio) a 100 
+_help_volume;Las configuraciones válidas se volumen van de 0 (silencio) a 100
 _help_window_mode;configura si Attract-Mode llena lapantalla o se ejecuta en una ventana
 _sort_regexp;^(Vs\. The |The |Vs\. )
 
@@ -311,9 +311,6 @@ Movie collage;Collage de video
 Overlay Artwork;superposición de artworks
 Preserve Aspect Ratio;Preservar relación de aspecto
 XML Mode;Modo XML
-en;English
-es;Español
-fr;Français
 _help_autolaunch_last_game;Lanza automaticamente el útlito juego jugado en el inicio
 
 #@DONE_TRANSLATED

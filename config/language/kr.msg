@@ -1,4 +1,4 @@
-#@한국어 (Korean);win_font=ARIALUNI,DOTUM,MALGUN;mac_font=AppleSDGothicNeo;linux_font=UnDotum,NotoSansCJK-Regular
+#@한국어 (Korean);win_font=NotoSans;mac_font=NotoSans;linux_font=NotoSans
 #
 # Interface strings
 #
@@ -68,7 +68,7 @@ Delete display '$1'?;'$1' 목록을 제거하시겠습니까?
 Delete emulator '$1'?;'$1' 에뮬레이터를 삭제하시겠습니까?
 Delete filter '$1'?;'$1' 필터를 삭제하시겠습니까?
 Delete game '$1'?;'$1' 게임을 삭제하겠습니까?
-Delete shortcut '$1'?;'$1' 바로가기를 삭제하겠습니까? 
+Delete shortcut '$1'?;'$1' 바로가기를 삭제하겠습니까?
 Delete this Display;목록 삭제
 Delete this Emulator;에뮬레이터 삭제
 Delete this Filter;필터 삭제
@@ -400,10 +400,6 @@ Minimum Run Time;최소 실행 시간
 Page Down;페이지 아래로
 Page Up;페이지 위로
 XML Mode;XML 모드
-en;영어
-fr;프랑스어
-jp;일본어
-kr;한국어
 _help_autolaunch_last_game;프로그램 시작 시에, 마지막으로 실행하였던 게임을 바로 재시작할지 여부를 설정합니다
 _help_control_page_down;아래 항목으로 한 페이지 이동하는 키를 설정합니다.
 _help_control_page_up;위 항목으로 한 페이지 이동하는 키를 설정합니다.
