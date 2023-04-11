@@ -2765,7 +2765,7 @@ bool FeSettings::get_font_file(
 	//
 	int i=0;
 	while ( FE_DEFAULT_FONT_PATHS[i] != NULL )
-		path_list.push_back( FE_DEFAULT_FONT_PATHS[i++] );
+		path_list.push_back( clean_path( FE_DEFAULT_FONT_PATHS[i++] ));
 
 	for ( its=m_font_paths.begin(); its!=m_font_paths.end(); ++its )
 		path_list.push_back( clean_path( *its, true ) );
