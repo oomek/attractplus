@@ -368,20 +368,8 @@ ifeq ($(NO_MOVIE),1)
  endif
 else
  TEMP_LIBS += libavformat libavcodec libavutil libswscale libswresample
-
-ifeq ($(USE_SWRESAMPLE),1)
- TEMP_LIBS += libswresample
- FE_FLAGS += -DUSE_SWRESAMPLE
-else
-ifeq ($(USE_AVRESAMPLE),1)
- TEMP_LIBS += libavresample
- FE_FLAGS += -DUSE_AVRESAMPLE
- endif
-endif
-
-_DEP += media.hpp
-_OBJ += media.o
-
+ _DEP += media.hpp
+ _OBJ += media.o
 endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS

@@ -60,6 +60,7 @@ void FeMusic::set_file_name( const char *n )
 	if ( filename.empty() )
 	{
 		m_file_name = "";
+		m_music.stop();
 		return;
 	}
 
@@ -105,7 +106,7 @@ void FeMusic::set_playing( bool state )
 {
 	m_music.stop();
 
-	if ( state == true )
+	if ( state == true && m_file_name != "" )
 		m_music.play();
 }
 

@@ -149,6 +149,10 @@ void FeSound::set_file_name( const char *n )
 	if ( filename.empty() )
 	{
 		m_file_name = "";
+
+		for ( auto itr=m_sounds.begin(); itr != m_sounds.end(); ++itr )
+			itr->stop();
+
 		return;
 	}
 
@@ -190,7 +194,7 @@ void FeSound::set_playing( bool flag )
 {
 	m_play_state = flag;
 
-	if ( m_play_state == true )
+	if ( m_play_state == true && m_file_name != "" )
 	{
 		if ( m_sounds.size() >= m_voices )
 		{
