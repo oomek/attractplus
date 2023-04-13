@@ -75,7 +75,7 @@ jobs:
     - name: Install MacOS brew
       if: runner.os == 'macOS'
       run: |
-        brew install pkg-config ffmpeg libarchive libvorbis flac
+        brew install pkg-config ffmpeg libarchive libvorbis flac openal-soft
 
     - name: SFML - Checkout
       uses: actions/checkout@v3
@@ -93,7 +93,7 @@ jobs:
     - name: AM+ - Build
       run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
-        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig"
+        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig:/usr/local/pkgconfig:/usr/local/opt/openal-soft/lib/pkgconfig/"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
         EXTRA_CFLAGS: "${{matrix.platform.amextracflags}}"
 
