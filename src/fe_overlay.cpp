@@ -224,7 +224,7 @@ void FeOverlay::get_common(
 		scale_factor = 1.f;
 
 	text_scale.x = text_scale.y = 1.f / scale_factor;
-	char_size = ( std::min( size.x, size.y ) / 14 ) * scale_factor;
+	char_size = ( std::min( size.x, size.y ) / 12 ) * scale_factor;
 
 	if ( m_feSettings.ui_font_size() > 0 )
 		char_size = m_feSettings.ui_font_size() * 2;
@@ -1101,6 +1101,8 @@ int FeOverlay::display_config_dialog(
 
 	sdialog.setPosition( 2, slice );
 	sdialog.setSize( width, size.y - slice * 2 );
+	sdialog.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
+	sdialog.set_margin( 0 );
 	sdialog.init_dimensions();
 	sdialog.setTextScale( text_scale );
 	draw_list.push_back( &sdialog );
@@ -1124,6 +1126,8 @@ int FeOverlay::display_config_dialog(
 		//
 		vdialog.setPosition( width + 2, slice );
 		vdialog.setSize( width, size.y - slice * 2 );
+		vdialog.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
+		vdialog.set_margin( 0 );
 		vdialog.init_dimensions();
 		vdialog.setTextScale( text_scale );
 		draw_list.push_back( &vdialog );
