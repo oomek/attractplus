@@ -116,6 +116,7 @@ public:
 		ExitMessage,
 		DefaultFont,
 		FontPath,
+		UIFontSize,
 		ScreenSaverTimeout,
 		DisplaysMenuExit,
 		HideBrackets,
@@ -243,6 +244,7 @@ private:
 	RotationState m_screen_rotation;
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
+	int m_ui_font_size;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
@@ -426,6 +428,8 @@ public:
 	//
 	FePresentState get_present_state() const { return m_present_state; };
 	void set_present_state( FePresentState s ) { m_present_state=s; };
+
+	int ui_font_size() const { return m_ui_font_size; }
 
 #ifdef SFML_SYSTEM_WINDOWS
 	bool get_hide_console() const { return m_hide_console; };

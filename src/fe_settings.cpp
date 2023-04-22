@@ -326,7 +326,8 @@ FeSettings::FeSettings( const std::string &config_path,
 #endif
 	m_power_saving( false ),
 	m_loaded_game_extras( false ),
-	m_present_state( Layout_Showing )
+	m_present_state( Layout_Showing ),
+	m_ui_font_size( 0 )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
@@ -425,6 +426,7 @@ const char *FeSettings::configSettingStrings[] =
 	"exit_message",
 	"default_font",
 	"font_path",
+	"ui_font_size",
 	"screen_saver_timeout",
 	"displays_menu_exit",
 	"hide_brackets",
@@ -2889,8 +2891,12 @@ const std::string FeSettings::get_info( int index ) const
 			return ret;
 		}
 		break;
+	case UIFontSize:
+		if ( m_ui_font_size > 0 )
+			return as_str( m_ui_font_size );
+		break;
 	case ScreenSaverTimeout:
-		return as_str( m_ssaver_time);
+		return as_str( m_ssaver_time );
 	case MouseThreshold:
 		return as_str( m_mouse_thresh );
 	case JoystickThreshold:
@@ -3032,6 +3038,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 				m_font_paths.push_back( path );
 			} while ( pos < value.size() );
 		}
+		break;
+
+	case UIFontSize:
+		m_ui_font_size = as_int( value );
 		break;
 
 	case ScreenSaverTimeout:

@@ -224,7 +224,10 @@ void FeOverlay::get_common(
 		scale_factor = 1.f;
 
 	text_scale.x = text_scale.y = 1.f / scale_factor;
-	char_size = (size.y / 14) * scale_factor;
+	char_size = ( std::min( size.x, size.y ) / 14 ) * scale_factor;
+
+	if ( m_feSettings.ui_font_size() > 0 )
+		char_size = m_feSettings.ui_font_size() * 2;
 }
 
 void FeOverlay::splash_message( const std::string &msg,
@@ -1069,7 +1072,7 @@ int FeOverlay::display_config_dialog(
 	bg.setOutlineThickness( 0 );
 	draw_list.push_back( &bg );
 
-	FeTextPrimitive heading( font, m_selColour, sf::Color::Transparent, char_size / 2 );
+	FeTextPrimitive heading( font, m_selColour, sf::Color::Transparent, char_size );
 	heading.setSize( size.x, slice );
 	heading.setBgOutlineColor( m_textColour );
 	heading.setBgOutlineThickness( 0 );
