@@ -46,6 +46,8 @@ private:
 	const sf::Color m_bgColour;
 	const sf::Color m_selColour;
 	const sf::Color m_selBgColour;
+	const sf::Color m_lineColour;
+	const sf::Color m_headerBgColour;
 	bool m_overlay_is_on;
 
 	FeOverlay( const FeOverlay & );
