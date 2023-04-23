@@ -38,14 +38,14 @@ Configure / Controls;Configurazione / Controlli
 Configure / Displays;Configurazione / Display
 Configure / Displays Menu;Configura / Menù dei display
 Configure / Emulators;Configurazione / Emulatori
-Configure / Miscellaneous;Configurazione / Varie
+Configure / General;Configurazione / Varie
+Configure / Intro;Configura / Video di introduzione
 Configure / Plug-ins;Configurazione / Plugin
 Configure / Scraper;Configurazione / Recupera dalla rete
+Configure / Screen Saver;Configura / Salvaschermo
 Configure / Sound;Configurazione / Suoni
-Configure Intro;Configura il video di introduzione
 Configure Layout;Configura il tema
 Configure Plug-in;Configura i plugin
-Configure Screen Saver;Configura il salvaschermo
 Confirm Exit;Conferma l'uscita
 Confirm Favourites;Conferma aggiunta preferito
 Control;Controllo
@@ -182,7 +182,7 @@ Scrape Game Logos (Wheel Art);Recupera i logo
 Scrape Marquees;Recupera i marquee
 Scrape Snaps;Recupera le snap
 Scrape Videos (MAME only);Scarica video (solo per MAME)
-Scraper;Recupera immagini in rete
+Scraper;Recupera dalla rete
 Scraping Artwork: $1%;Sto recuperando le immagini: $1%
 Screen Saver;Salvaschermo
 Screen Saver Timeout;Timeout salvaschermo

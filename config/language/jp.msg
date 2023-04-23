@@ -31,12 +31,13 @@ Configure;設定
 Configure / Controls;設定 / 入力
 Configure / Displays;設定 / ディスプレイ
 Configure / Emulators;設定 / エミュレータ
-Configure / Miscellaneous;設定 / その他
+Configure / General;設定 / その他
+Configure / Intro;設定 / イントロ
 Configure / Plug-ins;設定 / プラグイン
 Configure / Scraper;設定 / オンラインゲーム情報
+Configure / Screen Saver;設定 / スクリーンセーバー
 Configure / Sound;設定 / サウンド
 Configure Plug-in;プラグインを設定
-Configure Screen Saver;スクリーンセーバー設定
 Confirm Favourites;お気に入りの確認
 Control;コントローラ(Control)
 Controls;入力
@@ -99,6 +100,7 @@ Generating Rom List: $1%;Romファイルリストを作成しています: $1%
 Global Filter;グローバルフィルターの設定
 Hide Brackets in Game Title;ゲームタイトルのブラケットを隠す
 Info Source/Scraper;情報元 設定
+Intro;イントロ
 Joystick Threshold;ジョイスティックの感度
 Jump to Next Display;次のリストに
 Language;言語
@@ -321,7 +323,6 @@ Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
 Configure / Displays Menu;Configure / Displays Menu
 Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure Intro;Configure Intro
 Configure Layout;Configure Layout
 Confirm Exit;Confirm Exit
 Create new tag;Create new tag
@@ -348,7 +349,6 @@ Insert Command Shortcut;Insert Command Shortcut
 Insert Display Shortcut;Insert Display Shortcut
 Insert Game Entry;Insert Game Entry
 Insert Menu Entry;Insert Menu Entry
-Intro;Intro
 Joystick $1;Joystick $1
 Joystick Mappings;Joystick Mappings
 Launch Last Game;Launch Last Game

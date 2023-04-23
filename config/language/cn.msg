@@ -32,15 +32,15 @@ Command Arguments;命令及参数（ Arguments）
 Comparison;比较
 Configure;设置
 Configure / Controls;设置 / 控制器
-Configure / Displays;设置/界面
+Configure / Displays;设置 / 界面
 Configure / Emulators;设置 / 模拟器
-Configure / Miscellaneous;设置/其它
-Configure / Plug-ins;设置/插件
-Configure / Scraper;搜刮
-Configure / Sound;设置/声音
-Configure Intro;设置开机画面
+Configure / General;设置 / 其它
+Configure / Intro;设置 / 开机画面
+Configure / Plug-ins;设置 / 插件
+Configure / Scraper;设置 / 搜刮
+Configure / Screen Saver;设置 / 屏保
+Configure / Sound;设置 / 声音
 Configure Plug-in;设置插件
-Configure Screen Saver;设置屏保
 Confirm Favourites;设置收藏
 Control;控制器(Control)
 Controls;控制器
@@ -102,7 +102,7 @@ Flip;180度（向下）
 Font Path;字体路径
 Fullscreen Mode;全屏模式
 Game Return Sound;游戏返回声音
-General;一般
+General;其它
 Generate Collection/Rom List;生成收集ROM列表
 Generating Rom List: $1%;ROM列表生成中: $1%
 Global Filter;全局分类
@@ -408,7 +408,7 @@ _help_joystick_map;Map the frontend's joystick slots to specifically named joyst
 _help_joystick_threshold;The threshold for registering joystick moves, from 1 to 100 (100=least sensitive)
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
-_help_misc;Configure miscellaneous settings
+_help_misc;Configure general settings
 _help_mouse_threshold;The threshold for registering mouse moves, from 1 to 100 (100=least sensitive)
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
 _help_plugin_command;The executable associated with this plug-in

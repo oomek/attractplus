@@ -36,18 +36,18 @@ Command Arguments;실행 인자
 Comparison;비교 조건
 Configure;설정
 Configure / Controls;설정 / 입력
-Configure / Displays;목록 설정
+Configure / Displays;설정 / 목록
 Configure / Displays Menu;설정 / 목록 관리 메뉴
 Configure / Emulators;설정 / 에뮬레이터 관련
+Configure / General;설정 / 기타
+Configure / Intro;설정 / 인트로
 Configure / Joystick Mapping;설정 / 조이스틱 매핑
-Configure / Miscellaneous;설정 / 기타
 Configure / Plug-ins;설정 / 플러그 인
-Configure / Scraper;온라인 정보원 설정
+Configure / Scraper; 설정 / 온라인 정보원
 Configure / Sound;설정 / 소리
-Configure Intro;인트로 설정
+Configure / Screen Saver;설정 / 화면 보호기
 Configure Layout;레이아웃 설정
 Configure Plug-in;플러그 인 설정
-Configure Screen Saver;화면 보호기 설정
 Confirm Exit;종료 확인
 Confirm Favourites;즐겨하는 게임 확인 창 표시
 Control;입력 장치(Control)

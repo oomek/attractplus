@@ -41,15 +41,15 @@ Configure / Controls;Configure / Controls
 Configure / Displays;Configure / Displays
 Configure / Displays Menu;Configure / Displays Menu
 Configure / Emulators;Configure / Emulators
+Configure / Intro;Configure Intro
 Configure / Joystick Mapping;Configure / Joystick Mapping
 Configure / Miscellaneous;Configure / Miscellaneous
 Configure / Plug-ins;Configure / Plug-ins
 Configure / Scraper;Configure / Scraper
+Configure / Screen Saver;Configure Screen Saver
 Configure / Sound;Configure / Sound
-Configure Intro;Configure Intro
 Configure Layout;Configure Layout
 Configure Plug-in;Configure Plug-in
-Configure Screen Saver;Configure Screen Saver
 Confirm Exit;Confirm Exit
 Confirm Favourites;Confirm Favourites
 Control;Control

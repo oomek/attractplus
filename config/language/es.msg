@@ -32,12 +32,13 @@ Configure;Configuración
 Configure / Controls;Configuración / Controles
 Configure / Displays;Configuración / Pantallas
 Configure / Emulators;Configuración / Emuladores
-Configure / Miscellaneous;Configuración / Varios
+Configure / General;Configuración / General
+Configure / Intro;Configuración / Intro
 Configure / Plug-ins;Configuración / Plugins
-Configure / Scraper;Configure / Scraper
+Configure / Scraper;Configuración / Scraper
+Configure / Screen Saver;Configuración / Protector de pantalla
 Configure / Sound;Configuración / Sonido
 Configure Plug-in;Configuración de Plugins
-Configure Screen Saver;Configurar el protector de pantalla
 Confirm Favourites;Confirmar favoritos
 Control;Controles
 Controls;Controles
@@ -124,7 +125,7 @@ Play Sound;Reproducir sonido
 PlayedCount;Cuenta de partidas
 PlayedTime;Tiempo jugado
 Players;Jugadores
-Plug-ins;Plug-ins
+Plug-ins;Plugins
 Press Input;Presionar control
 Previous Display;Pantalla previa
 Previous Favourite;Anterior favorito
@@ -328,7 +329,6 @@ Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
 Configure / Displays Menu;Configure / Displays Menu
 Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure Intro;Configure Intro
 Configure Layout;Configure Layout
 Confirm Exit;Confirm Exit
 Create new tag;Create new tag

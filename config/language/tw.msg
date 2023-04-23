@@ -41,15 +41,15 @@ Configure / Controls;設定 / 輸入控制
 Configure / Displays;設定 / 顯示介面
 Configure / Displays Menu;設定 / 主選單
 Configure / Emulators;設定 / 模擬器
+Configure / Intro;設定 / 啟動視訊
 Configure / Joystick Mapping;設定 / 搖桿映射
-Configure / Miscellaneous;設定 / 一般
+Configure / General;設定 / 一般
 Configure / Plug-ins;設定 / 外掛
 Configure / Scraper;設定 / 搜刮器
+Configure / Screen Saver;設定 / 螢幕保護
 Configure / Sound;設定 / 聲音
-Configure Intro;設定啟動視訊
 Configure Layout;設定畫面佈局
 Configure Plug-in;設定外掛
-Configure Screen Saver;設定螢幕保護
 Confirm Exit;結束時確認
 Confirm Favourites;操作我的最愛時確認
 Control;輸入控制

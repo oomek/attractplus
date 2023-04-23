@@ -31,12 +31,13 @@ Configure;Configuration
 Configure / Controls;Configuration / Contrôles
 Configure / Displays;Configuration / Listes
 Configure / Emulators;Configuration / Emulateurs
-Configure / Miscellaneous;Configuration / Divers
+Configure / General;Configuration / Général
+Configure / Intro;Configuration / Intro
 Configure / Plug-ins;Configuration / Plug-in
-Configure / Scraper;Configurer l'aspiration
+Configure / Scraper;Configuration / Aspiration
 Configure / Sound;Configuration / Son
+Configure / Screen Saver;Configuration / Économiseur d'écran
 Configure Plug-in;Configurer Plug-in
-Configure Screen Saver;Configurer l'économiseur d'écran
 Confirm Favourites;Confirmer les favoris
 Control;Contrôle
 Controls;Contrôles
@@ -331,7 +332,6 @@ Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
 Configure / Displays Menu;Configure / Displays Menu
 Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure Intro;Configure Intro
 Configure Layout;Configure Layout
 Confirm Exit;Confirm Exit
 Create new tag;Create new tag

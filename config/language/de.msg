@@ -29,15 +29,16 @@ Command;Kommando
 Command Arguments;Kommandozeilenargumente
 Comparison;Vergleich
 Configure;Konfiguration
-Configure / Controls;Konfiguration / Steuerung
+Configure / Controls;Konfiguration / Steuerungen
 Configure / Displays;Konfiguration / Bildschirme
-Configure / Emulators;Konfiguration / Emulator(en)
-Configure / Miscellaneous;Konfiguration / Verschiedenes
+Configure / Emulators;Konfiguration / Emulatoren
+Configure / General;Konfiguration / Allgemein
+Configure / Intro;Konfiguration / Intro Sequenz
 Configure / Plug-ins;Konfiguration / Plug-ins
 Configure / Scraper;Konfiguration / Scraper
-Configure / Sound;Konfiguration / Klang
+Configure / Screen Saver;Konfiguration / Bildschirmschoner
+Configure / Sound;Konfiguration / Klänge
 Configure Plug-in;Konfiguriere Plug-in
-Configure Screen Saver;Bildschirmschoner konfigurieren
 Confirm Favourites;Favoriten bestätigen
 Control;Steuerung
 Controls;Steuerungen
@@ -320,7 +321,6 @@ Buttons;Tasten
 Clear Hotkey?;Tastenkombination entfernen?
 Configure / Displays Menu;Konfiguration / Bildschirmmenü
 Configure / Joystick Mapping;Konfiguration / Joystick Belegung
-Configure Intro;Intro Sequenz konfigurieren
 Configure Layout;Konfiguriere das Thema
 Confirm Exit;Beenden bestätigen
 Create new tag;neues Etikett erstellen

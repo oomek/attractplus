@@ -1902,7 +1902,7 @@ bool FeScraperMenu::save( FeConfigContext &ctx )
 
 void FeMiscMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Miscellaneous" );
+	ctx.set_style( FeConfigContext::EditList, "Configure / General" );
 
 	ctx.fe_settings.get_languages_list( m_languages );
 	std::string cl = ctx.fe_settings.get_info( FeSettings::Language );
@@ -2459,7 +2459,7 @@ void FeLayoutEditMenu::set_layout( FeLayoutInfo *layout,
 
 void FeIntroEditMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure Intro" );
+	ctx.set_style( FeConfigContext::EditList, "Configure / Intro" );
 
 	std::string gen_help;
 	ctx.fe_settings.get_path( FeSettings::Intro,
@@ -2485,7 +2485,7 @@ bool FeIntroEditMenu::save( FeConfigContext &ctx )
 
 void FeSaverEditMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure Screen Saver" );
+	ctx.set_style( FeConfigContext::EditList, "Configure / Screen Saver" );
 
 	ctx.add_optl( Opt::EDIT,
 			"Screen Saver Timeout",
