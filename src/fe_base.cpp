@@ -37,7 +37,7 @@ extern "C"
 #define FE_NAME_D			"Attract-Mode Plus"
 
 const char *FE_NAME         = FE_NAME_D;
-const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " (Build " FE_BUILD_D ")\n" \
+const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " " FE_BUILD_D "\n" \
 	"Copyright (c) 2013-2022 Andrew Mickelson & Radek Dutkiewicz";
 const char *FE_VERSION      = FE_VERSION_D;
 
@@ -120,7 +120,7 @@ void fe_set_log_level( enum FeLogLevel f )
 
 void fe_print_version()
 {
-	FeLog() << FE_NAME << " " << FE_VERSION << " (Build " << FE_BUILD_NUMBER << ") ("
+	FeLog() << FE_NAME << " " << FE_VERSION << " " << FE_BUILD_NUMBER << "("
 		<< get_OS_string()
 		<< ", SFML " << SFML_VERSION_MAJOR << '.' << SFML_VERSION_MINOR
 		<< "." << SFML_VERSION_PATCH
