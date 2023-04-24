@@ -219,7 +219,7 @@ jobs:
         mkdir -p "${GITHUB_WORKSPACE}"/artifacts_for_release
         find "${GITHUB_WORKSPACE}"/artifacts/ -name "*.7z" | while read f ; do 
           p="$(basename "$f")"
-          cp -v "$f" "${GITHUB_WORKSPACE}/artifacts_for_release/attract-${GITHUB_REF#refs/*/}-${p%attract-}"
+          cp -v "$f" "${GITHUB_WORKSPACE}/artifacts_for_release/attract-${GITHUB_REF#refs/*/}-${p#attract-}"
         done
 
     - name: Create Release
@@ -227,7 +227,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: Attract Mode ${{ steps.prepare_artifacts.outputs.current_tag }}
+        name: Attract Mode Plus ${{ steps.prepare_artifacts.outputs.current_tag }}
         draft: true
         prerelease: false
         files: artifacts_for_release/attract-*.7z

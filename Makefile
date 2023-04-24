@@ -58,7 +58,7 @@
 #VERBOSE=1
 #WINDOWS_XP=1
 
-FE_VERSION=v2.6.2
+FE_VERSION=v3.0.0
 
 CC ?= gcc
 CXX ?= g++
