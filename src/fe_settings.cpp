@@ -3678,6 +3678,7 @@ void FeSettings::get_languages_list( std::vector < FeLanguage > &ll ) const
 	}
 	else
 	{
+		ll.clear();
 		for ( std::vector<std::string>::iterator itr=temp.begin();
 			itr!=temp.end(); ++itr )
 		{
