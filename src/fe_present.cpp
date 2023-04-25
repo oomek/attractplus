@@ -1341,7 +1341,7 @@ void FePresent::post_run()
 
 	set_video_play_state( m_playMovies );
 
-#if !defined(USE_DRM) && !defined(USE_XLIB)
+#if !defined(USE_DRM)
 	on_transition( FromGame, FromToNoValue );
 #endif
 
