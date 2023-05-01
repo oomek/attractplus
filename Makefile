@@ -52,6 +52,9 @@
 #FE_HWACCEL_VAAPI=1
 #FE_HWACCEL_VDPAU=1
 #
+# If you set this to 1, AM+ will link the system SFML version
+# If left to blank, AM+ will build and link the extlib/SFML version
+#USE_SYSTEM_SFML=1
 ###############################
 
 #FE_DEBUG=1
@@ -75,6 +78,7 @@ ARFLAGS ?= rc
 RM=rm -f
 MD=mkdir -p
 WINDRES=windres
+CMAKE=cmake
 
 CFLAGS += -DSQUSEDOUBLE
 CFLAGS += -std=c++11
@@ -82,6 +86,8 @@ CFLAGS += -std=c++11
 ifndef OPTIMIZE
 OPTIMIZE=2
 endif
+
+STATIC ?= 1
 
 ifndef VERBOSE
  SILENT=@
@@ -94,13 +100,17 @@ ifneq ($(origin TOOLCHAIN),undefined)
 override CC := $(TOOLCHAIN)-$(CC)
 override CXX := $(TOOLCHAIN)-$(CXX)
 override AR := $(TOOLCHAIN)-$(AR)
+override CMAKE := $(TOOLCHAIN)-$(CMAKE)
 endif
 
 ifneq ($(origin CROSS),undefined)
 override STRIP := $(TOOLCHAIN)-$(STRIP)
 override PKG_CONFIG := $(TOOLCHAIN)-$(PKG_CONFIG)
+PKG_CONFIG_MXE=_$(subst .,_,$(TOOLCHAIN))
+override PKG_CONFIG_MXE :=$(subst -,_,$(PKG_CONFIG_MXE))
 override WINDRES := $(TOOLCHAIN)-$(WINDRES)
 endif
+
 
 prefix ?= /usr/local
 datarootdir=$(prefix)/share
@@ -230,23 +240,13 @@ endif
 #
 # Deal with SFML
 #
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+SFML_OBJ_DIR = $(OBJ_DIR)/sfml
+SFML_LIB_DIR=$(SFML_OBJ_DIR)/install/lib/
+SFML_PKG_CONFIG_PATH=$(ROOT_DIR)/$(SFML_OBJ_DIR)/install/pkgconfig
+LIBS += -L$(SFML_LIB_DIR)
 SFML_PC="sfml-system sfml-window sfml-graphics"
-ifeq ($(STATIC),1)
-  LIBS += $(shell $(PKG_CONFIG) --static --libs-only-L $(SFML_PC))
-  $(info Manually adding sfml libs as pkg-config has no --static version)
-  LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s
-  CFLAGS += -DSFML_STATIC $(shell $(PKG_CONFIG) --static --cflags $(SFML_PC))
-  ifeq ($(FE_WINDOWS_COMPILE),1)
-  else ifeq ($(FE_MACOSX_COMPILE),1)
-  else
-    LIBS += -lGL -lGLU -lm -lz -ludev -lrt
-  endif
-else
-  # SFML may not generate .pc files, so manually add libs
-  CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SFML_PC))
-  LIBS += $(shell $(PKG_CONFIG) --libs $(SFML_PC))
-  #LIBS += -lsfml-graphics -lsfml-window -lsfml-system
-endif
+SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
 
 ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenGL -L/opt/homebrew/Cellar/jpeg/9e/lib -ljpeg
@@ -410,9 +410,6 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
  SQUIRREL += $(OBJ_DIR)/libnowide.a
 endif
 
-$(info flags:$(CFLAGS) $(FE_FLAGS))
-$(info libs:$(LIBS))
-
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
 DEP = $(patsubst %,$(SRC_DIR)/%,$(_DEP))
 
@@ -438,6 +435,12 @@ else
   FE_FLAGS += -DFE_BUILD_D='""'
 endif
 
+
+all:
+	$(SILENT)$(MAKE) --no-print-directory sfmlbuild
+	$(SILENT)$(MAKE) --no-print-directory headerinfo
+	$(SILENT)$(MAKE) --no-print-directory $(EXE)
+
 $(OBJ_DIR)/%.res: $(SRC_DIR)/%.rc | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(WINDRES) $(FE_FLAGS) $< -O coff -o $@
@@ -459,9 +462,63 @@ endif
 
 .PHONY: clean
 .PHONY: install
+.PHONY: sfml sfmlbuild
 
-$(OBJ_DIR):
+SFML_FLAGS =
+ifneq ($(USE_SYSTEM_SFML),1)
+sfmlbuild:
+ifneq ("$(wildcard $(SFML_TOKEN))","")
+	$(info SFML is already built)
+else
+	$(info Building SFML...)
+ifeq ($(STATIC),1)
+	$(eval SFML_FLAGS += -DBUILD_SHARED_LIBS=FALSE)
+ifeq ($(FE_WINDOWS_COMPILE),1)
+	$(eval SFML_FLAGS += -DCMAKE_CXX_FLAGS="-DAL_LIBTYPE_STATIC=TRUE")
+endif
+else
+	$(eval SFML_FLAGS += -DBUILD_SHARED_LIBS=TRUE)
+endif
+ifeq ($(USE_DRM),1)
+	$(eval SFML_FLAGS += -DSFML_USE_DRM=1)
+endif
+	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE $(SFML_FLAGS)
+	$(SILENT)$(CMAKE) --build obj/sfml --config Release --target install
+	touch $(SFML_TOKEN)
+endif
+else
+sfmlbuild:
+
+endif
+
+sfml:
+ifeq ($(STATIC),1)
+	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --static --libs-only-L $(SFML_PC)))
+	$(info Manually adding sfml libs as pkg-config has no --static version)
+	$(eval SFML_LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s)
+	$(eval CFLAGS += -DSFML_STATIC $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --static --cflags $(SFML_PC)))
+ifeq ($(FE_WINDOWS_COMPILE),1)
+else ifeq ($(FE_MACOSX_COMPILE),1)
+else
+	$(eval SFML_LIBS += -lGL -lGLU -lm -lz -ludev -lrt)
+endif
+else
+	# SFML may not generate .pc files, so manually add libs
+	$(eval CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --cflags $(SFML_PC)))
+	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --libs $(SFML_PC)))
+	#LIBS += -lsfml-graphics -lsfml-window -lsfml-system
+endif
+	$(eval override LIBS = $(SFML_LIBS) $(LIBS))
+
+# .WAIT is supported from make 4.4, not yet standard sadly. So the all target appreared
+#$(OBJ_DIR) : sfml .WAIT headerinfo
+$(OBJ_DIR): sfml
 	$(MD) $@
+
+headerinfo:
+	$(info flags:$(CFLAGS) $(FE_FLAGS))
+	$(info libs:$(LIBS))
+
 
 #
 # Expat Library
@@ -600,4 +657,4 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core
 
 clean:
-	-$(RM) $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) *~ core

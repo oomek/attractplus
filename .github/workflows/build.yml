@@ -10,12 +10,12 @@ jobs:
     strategy:
       matrix:
         platform:
-        - { name: Windows x64, os: ubuntu-20.04, crossprefix: x86_64-w64-mingw32.static-, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1 }
-        - { name: Linux x64,   os: ubuntu-20.04, flags: -DSFML_USE_DRM=1,                 amosflags: USE_DRM=1 }
+        - { name: Windows x64, os: ubuntu-20.04, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1, crossprefix: x86_64-w64-mingw32.static- }
+        - { name: Linux x64,   os: ubuntu-20.04, amosflags: USE_DRM=1 }
         - { name: MacOS, os: macos-11,  flags: -DSFML_USE_SYSTEM_DEPS=1 }
         config:
-        - { name: shared, flags: -DBUILD_SHARED_LIBS=TRUE }
-        - { name: static, flags: -DBUILD_SHARED_LIBS=FALSE, amflags: STATIC=1 }
+        - { name: shared, amflags: STATIC=0 }
+        - { name: static, amflags: STATIC=1 }
 
         #include:
         #- platform: { name: MacOS XCode, os: macos-latest }
@@ -77,28 +77,11 @@ jobs:
       run: |
         brew install pkg-config ffmpeg libarchive libvorbis flac
 
-    - name: SFML - Checkout
-      uses: actions/checkout@v3
-      with:
-        repository: oomek/SFML
-        ref: 2.6.0
-        path: sfml
-
-    - name: SFML - Configure CMake
-      run: ${{env.cross_prefix}}cmake -S $GITHUB_WORKSPACE/sfml -B $GITHUB_WORKSPACE/sfml/build -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/sfml/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}} ${{matrix.specifific_flags}}
-
-    - name: SFML - Build
-      run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
-
     - name: AM+ - Build
       run: |
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
-        ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
-      env:
-        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig"
-        PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
-        EXTRA_CFLAGS: "${{matrix.platform.amextracflags}}"
+        make -C am -j$(nproc) FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
 
     #~ - name: MacOS switch to GCC
       #~ if: runner.os == 'macOS'
@@ -113,21 +96,20 @@ jobs:
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         make -C am smallclean
-        make -C am -j$(nproc) WINDOWS_CONSOLE=1 FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
-      env:
-        PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install"
-        PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
+        make -C am -j$(nproc) WINDOWS_CONSOLE=1 ${{matrix.platform.amosflags}} FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
 
     - name: Prepare artifacts
       if: runner.os != 'macOS'
       run: |
         mkdir -p "${GITHUB_WORKSPACE}"/artifacts
         for e in "${GITHUB_WORKSPACE}"/am/*.exe ; do
+          echo "Gathering dll infos for $e ..."
+          which mingw-ldd || continue
           for dll in $(mingw-ldd "$e" --dll-lookup-dirs /usr/lib/mxe/usr/x86_64-w64-mingw32.shared/bin/ "${GITHUB_WORKSPACE}"/sfml/install/lib/ | grep -v 'not found$' | tr -d ' ' | cut -d '>' -f 2) ; do
             cp "$dll" "${GITHUB_WORKSPACE}"/artifacts/
           done
         done
-        find "${GITHUB_WORKSPACE}"/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
+        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
         cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
         cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
         7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}.7z" ./artifacts/*
@@ -160,12 +142,12 @@ jobs:
         - { name: Static, flags: -DBUILD_SHARED_LIBS=FALSE, amflags: STATIC=1 }
 
     steps:
-    - name: SFML - Checkout
-      uses: actions/checkout@v3
-      with:
-        repository: oomek/SFML
-        ref: 2.6.0
-        path: sfml
+    #- name: SFML - Checkout
+      #uses: actions/checkout@v3
+      #with:
+        #repository: oomek/SFML
+        #ref: 2.6.0
+        #path: sfml
 
     - name: AM+ - Checkout
       uses: actions/checkout@v3
@@ -189,14 +171,12 @@ jobs:
         run: |
           fe_version=
           [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
-          cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
-          cmake --build /sfml/build --config Release --target install
           make -C /am -j$(nproc) FE_VERSION=${fe_version} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
 
     - name: Prepare artifacts
       run: |
         mkdir -p "${GITHUB_WORKSPACE}"/artifacts
-        find "${GITHUB_WORKSPACE}"/sfml/install/lib/ -name "*.so" -exec cp {} "${GITHUB_WORKSPACE}"/artifacts/ \;
+        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.so" -exec cp {} "${GITHUB_WORKSPACE}"/artifacts/ \;
         cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
         7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}.7z" ./artifacts/*
 
@@ -224,7 +204,7 @@ jobs:
         tag="${GITHUB_REF#refs/*/}"
         echo "current_tag=${tag}" >> $GITHUB_OUTPUT
         mkdir -p "${GITHUB_WORKSPACE}"/artifacts_for_release
-        find "${GITHUB_WORKSPACE}"/artifacts/ -name "*.7z" | while read f ; do 
+        find "${GITHUB_WORKSPACE}"/artifacts/ -name "*.7z" | while read f ; do
           p="$(basename "$f")"
           cp -v "$f" "${GITHUB_WORKSPACE}/artifacts_for_release/attract-${GITHUB_REF#refs/*/}-${p#attract-}"
         done
