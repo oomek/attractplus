@@ -91,7 +91,10 @@ jobs:
       run: ${{env.cross_prefix}}cmake --build $GITHUB_WORKSPACE/sfml/build --config Release --target install
 
     - name: AM+ - Build
-      run: ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
+      run: |
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        ${{matrix.platform.ammakeopts}} make -C am -j$(nproc) FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
       env:
         PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install:${{github.workspace}}/sfml/install/pkgconfig"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
@@ -107,8 +110,10 @@ jobs:
     - name: AM+ - Build attract-console.exe
       if: matrix.platform.name == 'Windows x64'
       run: |
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         make -C am smallclean
-        make -C am -j$(nproc) WINDOWS_CONSOLE=1 ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
+        make -C am -j$(nproc) WINDOWS_CONSOLE=1 FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
       env:
         PKG_CONFIG_PATH: "${{github.workspace}}/sfml/install"
         PKG_CONFIG_PATH_x86_64_w64_mingw32_${{matrix.config.name}}: "${{github.workspace}}/sfml/install/pkgconfig"
@@ -182,9 +187,11 @@ jobs:
           apt-get update -y -q
           apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
         run: |
+          fe_version=
+          [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
           cmake -S /sfml -B /sfml/build -DCMAKE_INSTALL_PREFIX=/sfml/install -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE ${{matrix.platform.flags}} ${{matrix.config.flags}}
           cmake --build /sfml/build --config Release --target install
-          make -C /am -j$(nproc) ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
+          make -C /am -j$(nproc) FE_VERSION=${fe_version} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
 
     - name: Prepare artifacts
       run: |
