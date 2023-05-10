@@ -2,6 +2,7 @@
 
 echo STEP 1 - PREPARE BUNDLE FOLDERS
 
+# Define folder path variables
 bundlehome="artifacts/Attract Mode Plus.app"
 bundlecontent="$bundlehome"/Contents
 bundlelibs="$bundlecontent"/libs
@@ -18,9 +19,44 @@ attractname="$basedir/attractplus"
 
 echo STEP 2 - COLLECT AND FIX LINKED LIBRARIES
 
-# Array of libraries linked by attractplus
-fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}' | sed 's/@rpath/sfml\/install\/lib/') )  
-updatearray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}' | sed 's/@rpath/sfml\/install\/lib/') )  
+# Define library fixing pairs
+
+fr_lib=("@rpath/../Frameworks/freetype.framework/Versions/A/freetype")
+to_lib=("/usr/local/opt/freetype/lib/libfreetype.6.dylib")
+
+fr_lib+=("@rpath/libsfml")
+to_lib+=("am/obj/sfml/install/lib/libsfml")
+
+fr_lib+=("@rpath/libsharpyuv")
+to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
+
+fr_lib+=("@rpath/libwebp")
+to_lib+=("/usr/local/opt/webp/lib/libwebp")
+
+# Build commands for processing
+commands=("")
+for enum in ${!fr_lib[@]}; do
+	commands+=(s/$(sed 's/\//\\\//g' <<< "${fr_lib[enum]}")/$(sed 's/\//\\\//g' <<< "${to_lib[enum]}")/)
+done
+
+# Populate startarray with L0 paths
+startarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+
+#echo STARTARRAY
+#for val in ${startarray[@]}; do
+#   echo L0 $val
+#done
+
+# Build fullarray and updatearray with filtered paths
+fullarray=("")
+updatearray=("")
+for inputitem in ${startarray[@]}; do #scan array elements
+	for commandline in ${commands[@]}; do #apply filters one after the other
+		inputitem=$(sed "$commandline" <<< "$inputitem")
+	done
+	fullarray+=($inputitem)
+	updatearray+=($inputitem)
+done
 
 for val in ${updatearray[@]}; do
    echo L0 $val
@@ -28,17 +64,41 @@ done
 
 # Iterative scan of linked libraries to build library array
 iter=0
-while [ ${#updatearray[@]} != 1 ]
+while [ ${#updatearray[@]} != 1 ] #repeat until there are no more sublibraries
 do
    iter=$(($iter + 1))
    echo check iteration $iter
-   level1=("")
+	# Reset array of all libraries in this sublevel
+   sublevelarray=("")
+
+	# For each library in the updatearray build a subarray
    for strlib in ${updatearray[@]}; do
-      level1_T=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}' | sed 's/@rpath/sfml\/install\/lib/') )  
-      level1=("${level1[@]}" "${level1_T[@]}")
+		startsubarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+		subarray=("")
+		for inputitem in ${startsubarray[@]}; do
+			for commandline in ${commands[@]}; do
+				inputitem=$(sed "$commandline" <<< "$inputitem")
+			done
+			subarray+=($inputitem)
+		done
+
+		#echo SUBARRAY
+		#for val in ${subarray[@]}; do
+		#	echo $val
+		#done
+		# each subarray of libraries is added to the sublevelarray
+      sublevelarray+=("${subarray[@]}")
    done
+	
+	echo SUBLEVELARRAY
+	#for val in ${sublevelarray[@]}; do
+	#	echo $val
+	#done
+	echo
+
+	# Build an array of unique library entries to pass to the next iteration
    updatearray=("")
-   for val in ${level1[@]}; do
+   for val in ${sublevelarray[@]}; do
       new=1
       for i in ${fullarray[@]}; do
          if [[ $i == $val ]]
@@ -50,7 +110,7 @@ do
       then
          echo L$iter $val
          updatearray+=($val)
-         fullarray+=($val)
+         fullarray+=($val) #add the current unique non repeated libraries to the global array
       fi   
    done
 done
@@ -80,6 +140,7 @@ cp -r $basedir/config "$bundlecontent"/
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
+cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
 
 # Prepare plist file
 LASTTAG=$(git -C am/ describe --tag --abbrev=0)
