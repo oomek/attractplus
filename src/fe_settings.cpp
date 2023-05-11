@@ -66,6 +66,7 @@ const char *FE_DEFAULT_FONT_PATHS[]	=
 	"$HOME/.attract/fonts/",
 	"/Library/Fonts/",
 	"$HOME/Library/Fonts/",
+	DATA_PATH"fonts/",
 	NULL
 };
 
