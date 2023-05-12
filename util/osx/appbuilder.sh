@@ -13,6 +13,8 @@ mkdir "$bundlecontent"
 mkdir "$bundlelibs"
 mkdir "$bundlecontent"/MacOS
 mkdir "$bundlecontent"/Resources
+mkdir "$bundlecontent"/share
+mkdir "$bundlecontent"/share/attract
 
 basedir="am"
 attractname="$basedir/attractplus"
@@ -36,27 +38,29 @@ to_lib+=("/usr/local/opt/webp/lib/libwebp")
 # Build commands for processing
 commands=("")
 for enum in ${!fr_lib[@]}; do
-	commands+=(s/$(sed 's/\//\\\//g' <<< "${fr_lib[enum]}")/$(sed 's/\//\\\//g' <<< "${to_lib[enum]}")/)
+	commands+=(s/$(sed 's/\//\\\//g' <<< "${fr_lib[enum]}")/$(sed 's/\//\\\//g' <<< "${to_lib[enum]}")/g)
 done
 
 # Populate startarray with L0 paths
-startarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
 
-#echo STARTARRAY
-#for val in ${startarray[@]}; do
-#   echo L0 $val
-#done
+echo fullarray
+for val in ${fullarray[@]}; do
+   echo $val
+done
 
 # Build fullarray and updatearray with filtered paths
-fullarray=("")
-updatearray=("")
-for inputitem in ${startarray[@]}; do #scan array elements
-	for commandline in ${commands[@]}; do #apply filters one after the other
-		inputitem=$(sed "$commandline" <<< "$inputitem")
-	done
-	fullarray+=($inputitem)
-	updatearray+=($inputitem)
+for commandline in ${commands[@]}; do
+	fullarray=($(sed "$commandline" <<< "${fullarray[@]}"))
 done
+
+echo fullarray post
+for val in ${fullarray[@]}; do
+   echo $val
+done
+
+updatearray=(${fullarray[@]})
+
 
 for val in ${updatearray[@]}; do
    echo L0 $val
@@ -69,32 +73,24 @@ do
    iter=$(($iter + 1))
    echo check iteration $iter
 	# Reset array of all libraries in this sublevel
-   sublevelarray=("")
-
+	sublevelarray=("")
 	# For each library in the updatearray build a subarray
    for strlib in ${updatearray[@]}; do
-		startsubarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
-		subarray=("")
-		for inputitem in ${startsubarray[@]}; do
-			for commandline in ${commands[@]}; do
-				inputitem=$(sed "$commandline" <<< "$inputitem")
-			done
-			subarray+=($inputitem)
+		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+		echo subarray pre
+		for val in ${subarray[@]}; do
+			echo $val
 		done
-
-		#echo SUBARRAY
-		#for val in ${subarray[@]}; do
-		#	echo $val
-		#done
-		# each subarray of libraries is added to the sublevelarray
+		for commandline in ${commands[@]}; do
+			subarray=($(sed "$commandline" <<< "${subarray[@]}"))
+		done
+		echo subarray post
+		for val in ${subarray[@]}; do
+			echo $val
+		done
       sublevelarray+=("${subarray[@]}")
    done
 	
-	echo SUBLEVELARRAY
-	#for val in ${sublevelarray[@]}; do
-	#	echo $val
-	#done
-	echo
 
 	# Build an array of unique library entries to pass to the next iteration
    updatearray=("")
@@ -136,11 +132,11 @@ done
 echo STEP 3 - POPULATE BUNDLE FOLDER
 
 # Copy assets to bundle folder
-cp -r $basedir/config "$bundlecontent"/
+# cp -r $basedir/config "$bundlecontent"/
+cp -a $basedir/config/ "$bundlecontent"/share/attract
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
-cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
 
 # Prepare plist file
 LASTTAG=$(git -C am/ describe --tag --abbrev=0)
