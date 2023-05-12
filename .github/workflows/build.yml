@@ -37,6 +37,15 @@ jobs:
       with:
         path: am
 
+    - name: Prepare
+      id: vars
+      run: |
+        which nproc && nbproc=$(nproc) || nbproc=$(getconf _NPROCESSORS_ONLN)
+        echo "nbproc=${nbproc}" >> $GITHUB_OUTPUT
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+        
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.platform.name != 'Windows x64'
       run: |
@@ -80,9 +89,7 @@ jobs:
 
     - name: AM+ - Build
       run: |
-        fe_version=
-        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
-        make -C am -j$(nproc) FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
+        make -C am -j${{ steps.vars.outputs.nbproc }} FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
 
     #~ - name: MacOS switch to GCC
       #~ if: runner.os == 'macOS'
@@ -97,7 +104,7 @@ jobs:
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         make -C am smallclean
-        make -C am -j$(nproc) WINDOWS_CONSOLE=1 ${{matrix.platform.amosflags}} FE_VERSION=$fe_version ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
+        make -C am -j${{ steps.vars.outputs.nbproc }} FE_VERSION=${{ steps.vars.outputs.fe_version }} WINDOWS_CONSOLE=1 ${{matrix.platform.amosflags}} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
 
     - name: Prepare artifacts
       if: runner.os != 'macOS'
