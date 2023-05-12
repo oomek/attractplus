@@ -3,17 +3,19 @@ name: Build
 on: [push, pull_request]
 
 jobs:
-  buildx86_64:
+  buildAM:
     name: ${{ matrix.platform.name }} ${{ matrix.config.name }}
     runs-on: ${{ matrix.platform.os }}
 
     strategy:
       matrix:
         platform:
-        - { name: Windows x64, os: ubuntu-20.04, amosflags: CROSS=1 FE_WINDOWS_COMPILE=1, crossprefix: x86_64-w64-mingw32.static- }
-        - { name: Linux x64 KMS,   os: ubuntu-20.04, amosflags: USE_DRM=1 }
-        - { name: Linux x64 X11,   os: ubuntu-20.04 }
-        - { name: MacOS, os: macos-11,  flags: -DSFML_USE_SYSTEM_DEPS=1 }
+        - { name: Windows x64,   os: ubuntu-20.04, amflags: CROSS=1 FE_WINDOWS_COMPILE=1, crossprefix: x86_64-w64-mingw32.static- }
+        - { name: Linux x64 KMS, os: ubuntu-20.04, amflags: USE_DRM=1 }
+        - { name: Linux x64 X11, os: ubuntu-20.04 }
+        - { name: MacOS,         os: macos-11,  flags: -DSFML_USE_SYSTEM_DEPS=1 }
+        - { name: armv7,         os: ubuntu-20.04, archos: buster, shell: bash, amflags: USE_DRM=1 USE_MMAL=1}
+        - { name: aarch64,       os: ubuntu-20.04, archos: buster, shell: bash, amflags: USE_DRM=1}
         config:
         - { name: shared, amflags: STATIC=0 }
         - { name: static, amflags: STATIC=1 }
@@ -30,6 +32,8 @@ jobs:
           config: { name: shared }
         - platform: { os: macos-11 }
           config: { name: static }
+        - platform: { archos: buster }
+          config: { name: shared }
 
     steps:
     - name: AM+ - Checkout
@@ -45,7 +49,7 @@ jobs:
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
-        
+
     - name: Install Linux Dependencies
       if: runner.os == 'Linux' && matrix.platform.name != 'Windows x64'
       run: |
@@ -87,9 +91,20 @@ jobs:
       run: |
         brew install pkg-config ffmpeg libarchive libvorbis flac
 
-    - name: AM+ - Build
-      run: |
-        make -C am -j${{ steps.vars.outputs.nbproc }} FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} VERBOSE=1
+    - name: Build AM+ (ARM)
+      if: matrix.platform.name == 'armv7' || matrix.platform.name == 'aarch64'
+      uses: uraimo/run-on-arch-action@v2.5.0
+      with:
+        arch: ${{ matrix.platform.name }}
+        distro: ${{ matrix.platform.archos }}
+        githubToken: ${{ github.token }}
+        dockerRunArgs: |
+          --volume "${GITHUB_WORKSPACE}/am:/am"
+        install: |
+          apt-get update -y -q
+          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
+        run: |
+          make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
 
     #~ - name: MacOS switch to GCC
       #~ if: runner.os == 'macOS'
@@ -98,13 +113,17 @@ jobs:
         #~ echo "CXX=/usr/local/bin/g++-10" >> $GITHUB_ENV
         #~ echo "AR=/usr/local/bin/ar-10" >> $GITHUB_ENV
 
-    - name: AM+ - Build attract-console.exe
+    - name: Build AM+
+      run: |
+        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
+
+    - name: Build AM+ attract-console.exe
       if: matrix.platform.name == 'Windows x64'
       run: |
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         make -C am smallclean
-        make -C am -j${{ steps.vars.outputs.nbproc }} FE_VERSION=${{ steps.vars.outputs.fe_version }} WINDOWS_CONSOLE=1 ${{matrix.platform.amosflags}} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
+        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} WINDOWS_CONSOLE=1
 
     - name: Prepare artifacts
       if: runner.os != 'macOS'
@@ -136,68 +155,10 @@ jobs:
         name: ${{matrix.platform.name}}-${{matrix.config.name}}
         path: attract-*.7z
 
-
-  buildARM:
-    name: ${{ matrix.platform.name }} ${{ matrix.config.name }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        platform:
-        - { name: armv7,   os: buster,  shell: bash, flags: -DSFML_USE_DRM=1, amosflags: USE_DRM=1 }
-        - { name: aarch64, os: buster,  shell: bash, flags: -DSFML_USE_DRM=1, amosflags: USE_DRM=1 }
-        config:
-        #- { name: Shared, flags: -DBUILD_SHARED_LIBS=TRUE }
-        - { name: Static, flags: -DBUILD_SHARED_LIBS=FALSE, amflags: STATIC=1 }
-
-    steps:
-    #- name: SFML - Checkout
-      #uses: actions/checkout@v3
-      #with:
-        #repository: oomek/SFML
-        #ref: 2.6.0
-        #path: sfml
-
-    - name: AM+ - Checkout
-      uses: actions/checkout@v3
-      with:
-        path: am
-
-    - name: SFML and AM
-      uses: uraimo/run-on-arch-action@v2.3.0
-      with:
-        arch: ${{ matrix.platform.name }}
-        distro: ${{ matrix.platform.os }}
-        githubToken: ${{ github.token }}
-        env: |
-          PKG_CONFIG_PATH: "/sfml/install/pkgconfig/"
-        dockerRunArgs: |
-          --volume "${GITHUB_WORKSPACE}/sfml:/sfml"
-          --volume "${GITHUB_WORKSPACE}/am:/am"
-        install: |
-          apt-get update -y -q
-          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
-        run: |
-          fe_version=
-          [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
-          make -C /am -j$(nproc) FE_VERSION=${fe_version} ${{matrix.platform.amosflags}} ${{matrix.config.amflags}}
-
-    - name: Prepare artifacts
-      run: |
-        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
-        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.so" -exec cp {} "${GITHUB_WORKSPACE}"/artifacts/ \;
-        cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
-        7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}.7z" ./artifacts/*
-
-    - name: AM+ - Upload binary
-      uses: actions/upload-artifact@v3
-      with:
-        name: Linux-${{matrix.platform.name}}-${{matrix.config.name}}
-        path: attract-*.7z
-
   Release:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     name: Release to github
-    needs: [buildx86_64, buildARM]
+    needs: buildAM
     runs-on: ubuntu-latest
 
     steps:
