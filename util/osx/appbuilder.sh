@@ -129,7 +129,6 @@ cp -a $basedir/config/ "$bundlecontent"/share/attract
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
-cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
 
 # Prepare plist file
 LASTTAG=$(git -C am/ describe --tag --abbrev=0)
