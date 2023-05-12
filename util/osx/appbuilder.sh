@@ -77,8 +77,16 @@ do
 	# For each library in the updatearray build a subarray
    for strlib in ${updatearray[@]}; do
 		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+		echo subarray pre
+		for val in ${subarray[@]}; do
+			echo $val
+		done
 		for commandline in ${commands[@]}; do
 			subarray=($(sed "$commandline" <<< "${subarray[@]}"))
+		done
+		echo subarray post
+		for val in ${subarray[@]}; do
+			echo $val
 		done
       sublevelarray+=("${subarray[@]}")
    done
