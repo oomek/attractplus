@@ -13,7 +13,7 @@ jobs:
         - { name: Windows x64,   os: ubuntu-20.04, amflags: CROSS=1 FE_WINDOWS_COMPILE=1, crossprefix: x86_64-w64-mingw32.static- }
         - { name: Linux x64 KMS, os: ubuntu-20.04, amflags: USE_DRM=1 }
         - { name: Linux x64 X11, os: ubuntu-20.04 }
-        - { name: MacOS,         os: macos-11,  flags: -DSFML_USE_SYSTEM_DEPS=1 }
+        - { name: MacOS,         os: macos-11, amflags: prefix=.., flags: -DSFML_USE_SYSTEM_DEPS=1 }
         - { name: armv7,         os: ubuntu-20.04, archos: buster, shell: bash, amflags: USE_DRM=1 USE_MMAL=1}
         - { name: aarch64,       os: ubuntu-20.04, archos: buster, shell: bash, amflags: USE_DRM=1}
         config:

@@ -64,6 +64,7 @@ const char *FE_DEFAULT_FONT			= "Barlow";
 const char *FE_DEFAULT_FONT_PATHS[]	=
 {
 	"$HOME/.attract/fonts/",
+	DATA_PATH"fonts/",
 	"/Library/Fonts/",
 	"$HOME/Library/Fonts/",
 	NULL
