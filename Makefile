@@ -94,6 +94,7 @@ ifndef VERBOSE
  CC_MSG = @echo Compiling $@...
  AR_MSG = @echo Archiving $@...
  EXE_MSG = @echo Creating executable: $@
+ MAKEFLAGS += --no-print-directory
 endif
 
 ifneq ($(origin TOOLCHAIN),undefined)
@@ -435,12 +436,6 @@ else
   FE_FLAGS += -DFE_BUILD_D='""'
 endif
 
-
-all:
-	$(SILENT)$(MAKE) --no-print-directory sfmlbuild
-	$(SILENT)$(MAKE) --no-print-directory headerinfo
-	$(SILENT)$(MAKE) --no-print-directory $(EXE)
-
 $(OBJ_DIR)/%.res: $(SRC_DIR)/%.rc | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(WINDRES) $(FE_FLAGS) $< -O coff -o $@
@@ -483,7 +478,7 @@ ifeq ($(USE_DRM),1)
 	$(eval SFML_FLAGS += -DSFML_USE_DRM=1)
 endif
 	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE $(SFML_FLAGS)
-	$(SILENT)$(CMAKE) --build obj/sfml --config Release --target install
+	+$(SILENT)$(CMAKE) --build obj/sfml --config Release --target install
 	touch $(SFML_TOKEN)
 endif
 else
@@ -491,7 +486,7 @@ sfmlbuild:
 
 endif
 
-sfml:
+sfml: sfmlbuild
 ifeq ($(STATIC),1)
 	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --static --libs-only-L $(SFML_PC)))
 	$(info Manually adding sfml libs as pkg-config has no --static version)
@@ -512,10 +507,10 @@ endif
 
 # .WAIT is supported from make 4.4, not yet standard sadly. So the all target appreared
 #$(OBJ_DIR) : sfml .WAIT headerinfo
-$(OBJ_DIR): sfml
+$(OBJ_DIR): headerinfo
 	$(MD) $@
 
-headerinfo:
+headerinfo: sfml
 	$(info flags:$(CFLAGS) $(FE_FLAGS))
 	$(info libs:$(LIBS))
 
@@ -595,7 +590,7 @@ $(SQSTDLIB_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/squirrel/sqstdlib/%.cpp | $(SQSTDLIB_OBJ
 	$(CC_MSG)
 	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS) $(SQUIRREL_FLAGS)
 
-$(SQSTDLIB_OBJ_DIR):
+$(SQSTDLIB_OBJ_DIR): sfml
 	$(MD) $@
 
 #
@@ -618,7 +613,7 @@ $(AUDIO_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/audio/Audio/%.cpp | $(AUDIO_OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS)
 
-$(AUDIO_OBJ_DIR):
+$(AUDIO_OBJ_DIR): sfml
 	$(MD) $@
 
 #
