@@ -70,6 +70,8 @@ public:
 	~FeFontContainer();
 
 	void set_font( const std::string &n );
+	void set_font( const void *data, std::size_t sizeInBytes );
+	void load_default_font();
 
 	const sf::Font &get_font() const;
 	const std::string &get_name() const { return m_name; };
@@ -83,6 +85,7 @@ private:
 	mutable sf::Font m_font;
 	std::string m_name;
 	mutable bool m_needs_reload;
+	std::vector<unsigned char> m_decoded_data;
 };
 
 //

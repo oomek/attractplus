@@ -30,6 +30,9 @@
 #include "fe_file.hpp"
 #include "fe_blend.hpp"
 #include "zip.hpp"
+#include "base64.hpp"
+
+#include "BarlowCJK.ttf.h"
 
 #include <iostream>
 #include <cmath>
@@ -107,13 +110,30 @@ void FeFontContainer::set_font( const std::string &n )
 		FeLog() << "Error loading font from file: " << n << std::endl;
 }
 
+void FeFontContainer::set_font( const void *data, std::size_t sizeInBytes )
+{
+	m_name = "Barlow";
+
+	if ( !m_font.loadFromMemory( data, sizeInBytes ))
+		FeLog() << "Error loading default font" << m_name << std::endl;
+}
+
+void FeFontContainer::load_default_font()
+{
+	m_name = "Barlow";
+
+	m_decoded_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
+	if ( !m_font.loadFromMemory( m_decoded_data.data(), m_decoded_data.size() ))
+		FeLog() << "Error loading default font" << m_name << std::endl;
+}
+
 const sf::Font &FeFontContainer::get_font() const
 {
-	if ( m_needs_reload )
-	{
-		m_font.loadFromFile( m_name );
-		m_needs_reload=false;
-	}
+	// if ( m_needs_reload )
+	// {
+	// 	m_font.loadFromFile( m_name );
+	// 	m_needs_reload=false;
+	// }
 
 	return m_font;
 }
@@ -403,7 +423,7 @@ void FePresent::clear()
 	m_listBox=NULL; // listbox gets deleted with the m_mon.elements below
 	m_transform = sf::Transform();
 	m_currentFont = &m_defaultFont;
-	m_defaultFont.clear_font();
+	// m_defaultFont.clear_font();
 	m_layoutFontName = m_feSettings->get_info( FeSettings::DefaultFont );
 	m_user_page_size = -1;
 	m_preserve_aspect = false;
