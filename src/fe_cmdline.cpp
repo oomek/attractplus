@@ -32,7 +32,6 @@
 
 void process_args( int argc, char *argv[],
 			std::string &config_path,
-			std::string &cmdln_font,
 			bool &process_console,
 			std::string &log_file,
 			FeLogLevel &log_level )
@@ -61,21 +60,6 @@ void process_args( int argc, char *argv[],
 			else
 			{
 				FeLog() << "Error, no config directory specified with --config option." << std::endl;
-				exit(1);
-			}
-		}
-		else if (( strcmp( argv[next_arg], "-f" ) == 0 )
-				|| ( strcmp( argv[next_arg], "--font" ) == 0 ))
-		{
-			next_arg++;
-			if ( next_arg < argc )
-			{
-				cmdln_font = argv[next_arg];
-				next_arg++;
-			}
-			else
-			{
-				FeLog() << "Error, no font name specified with --font option." << std::endl;
 				exit(1);
 			}
 		}
@@ -326,8 +310,6 @@ void process_args( int argc, char *argv[],
 				<< "OTHER OPTIONS:" << std::endl
 				<< "  -c, --config <config_directory>" << std::endl
 				<< "     Specify the configuration to use" << std::endl
-				<< "  -f, --font <font_name>" << std::endl
-				<< "     Specify the default font to use" << std::endl
 				<< "  --logfile <log_file>" << std::endl
 				<< "     Write log info to the specified file" << std::endl
 				<< "  --loglevel (silent,info,debug)" << std::endl
@@ -344,7 +326,7 @@ void process_args( int argc, char *argv[],
 
 	if ( !task_list.empty() )
 	{
-		FeSettings feSettings( config_path, cmdln_font );
+		FeSettings feSettings( config_path );
 		feSettings.load_from_file( feSettings.get_config_dir() + FE_CFG_FILE );
 
 		int retval = feSettings.build_romlist( task_list, output_name, filter, full );

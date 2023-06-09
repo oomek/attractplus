@@ -110,31 +110,14 @@ void FeFontContainer::set_font( const std::string &n )
 		FeLog() << "Error loading font from file: " << n << std::endl;
 }
 
-void FeFontContainer::set_font( const void *data, std::size_t sizeInBytes )
-{
-	m_name = "Barlow";
-
-	if ( !m_font.loadFromMemory( data, sizeInBytes ))
-		FeLog() << "Error loading default font" << m_name << std::endl;
-}
-
 void FeFontContainer::load_default_font()
 {
-	m_name = "Barlow";
-
 	m_decoded_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
-	if ( !m_font.loadFromMemory( m_decoded_data.data(), m_decoded_data.size() ))
-		FeLog() << "Error loading default font" << m_name << std::endl;
+	m_font.loadFromMemory( m_decoded_data.data(), m_decoded_data.size() );
 }
 
 const sf::Font &FeFontContainer::get_font() const
 {
-	// if ( m_needs_reload )
-	// {
-	// 	m_font.loadFromFile( m_name );
-	// 	m_needs_reload=false;
-	// }
-
 	return m_font;
 }
 
@@ -187,7 +170,7 @@ int FeMonitor::get_num()
 FePresent::FePresent( FeSettings *fesettings, FeFontContainer &defaultfont, FeWindow &wnd )
 	: m_feSettings( fesettings ),
 	m_window( wnd ),
-	m_currentFont( &defaultfont ),
+	m_layoutFont( &defaultfont ),
 	m_defaultFont( defaultfont ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
@@ -202,7 +185,7 @@ FePresent::FePresent( FeSettings *fesettings, FeFontContainer &defaultfont, FeWi
 	m_overlay_lb( NULL ),
 	m_layout_loaded( false )
 {
-	m_layoutFontName = m_feSettings->get_info( FeSettings::DefaultFont );
+	m_layoutFontName = "";
 	init_monitors();
 }
 
@@ -422,9 +405,8 @@ void FePresent::clear()
 	//
 	m_listBox=NULL; // listbox gets deleted with the m_mon.elements below
 	m_transform = sf::Transform();
-	m_currentFont = &m_defaultFont;
-	// m_defaultFont.clear_font();
-	m_layoutFontName = m_feSettings->get_info( FeSettings::DefaultFont );
+	m_layoutFont = &m_defaultFont;
+	m_layoutFontName = "";
 	m_user_page_size = -1;
 	m_preserve_aspect = false;
 	m_custom_overlay = false;
@@ -557,8 +539,8 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 {
 	FeText *new_text = new FeText( p, n, x, y, w, h );
 
-	ASSERT( m_currentFont );
-	new_text->setFont( m_currentFont->get_font() );
+	ASSERT( m_layoutFont );
+	new_text->setFont( m_layoutFont->get_font() );
 	new_text->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 
 	flag_redraw();
@@ -571,8 +553,8 @@ FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
 {
 	FeListBox *new_lb = new FeListBox( p, x, y, w, h );
 
-	ASSERT( m_currentFont );
-	new_lb->setFont( m_currentFont->get_font() );
+	ASSERT( m_layoutFont );
+	new_lb->setFont( m_layoutFont->get_font() );
 	new_lb->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 
 	flag_redraw();
@@ -772,8 +754,7 @@ const FeFontContainer *FePresent::get_pooled_font(
 
 	// Check if this just matches the default font
 	//
-	if ( ffile.empty()
-			|| ( ffile.compare( m_defaultFont.get_name() ) == 0 ) )
+	if ( ffile.empty() )
 		return &m_defaultFont;
 
 	// Next check if this font is already loaded in our pool
@@ -800,7 +781,7 @@ void FePresent::set_layout_font( const char *n )
 	if ( font )
 	{
 		m_layoutFontName = n;
-		m_currentFont = font;
+		m_layoutFont = font;
 		flag_redraw();
 	}
 }
@@ -1403,8 +1384,8 @@ const sf::Transform &FePresent::get_transform() const
 
 const sf::Font *FePresent::get_font() const
 {
-	ASSERT( m_currentFont );
-	return &(m_currentFont->get_font());
+	ASSERT( m_layoutFont );
+	return &(m_layoutFont->get_font());
 }
 
 const sf::Font *FePresent::get_default_font() const

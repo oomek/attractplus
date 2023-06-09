@@ -1,4 +1,4 @@
-#@English;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
+#@English
 #
 # Interface strings
 #

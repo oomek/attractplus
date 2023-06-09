@@ -1,4 +1,4 @@
-#@Italiano;win_font=Barlow;mac_font=Barlow;linux_font=Barlow
+#@Italiano
 # Traduzione a cura di Piergiorgio Ghezzo <PJ@piggei.com>
 #
 # Interface strings

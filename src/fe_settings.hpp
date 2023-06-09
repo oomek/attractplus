@@ -39,7 +39,6 @@
  #define NO_MULTIMON
 #endif
 
-extern const char *FE_DEFAULT_FONT;
 extern const char *FE_ART_EXTENSIONS[];
 
 extern const char *FE_CFG_FILE;
@@ -114,8 +113,6 @@ public:
 		Language=0,
 		ExitCommand,
 		ExitMessage,
-		DefaultFont,
-		FontPath,
 		UIFontSize,
 		ScreenSaverTimeout,
 		DisplaysMenuExit,
@@ -165,7 +162,6 @@ public:
 
 private:
 	std::string m_config_path;
-	std::string m_default_font;
 	std::string m_exit_command;
 	std::string m_exit_message;
 	std::string m_exit_question;
@@ -182,7 +178,6 @@ private:
 	// configured API key to use for for thegamesdb.net scraping.  If blank, AM's standard public key is used
 	std::string m_tgdb_key;
 
-	std::vector<std::string> m_font_paths;
 	std::vector<FeDisplayInfo> m_displays;
 	std::vector<FePlugInfo> m_plugins;
 	std::vector<FeLayoutInfo> m_layout_params;
@@ -295,8 +290,7 @@ private:
 	bool get_game_overview_filepath( const std::string &emu, const std::string &romname, std::string &path );
 
 public:
-	FeSettings( const std::string &config_dir,
-				const std::string &cmdln_font );
+	FeSettings( const std::string &config_dir );
 
 	void load();
 	void save_state();
