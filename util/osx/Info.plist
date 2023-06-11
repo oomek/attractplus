@@ -13,11 +13,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Attract Mode Plus</string>
+	<string>Attract-Mode Plus v%%SHORTVERSION%%</string>
 	<key>CFBundleDisplayName</key>
-	<string>Attract Mode Plus</string>
+	<string>Attract-Mode Plus v%%SHORTVERSION%%</string>
 	<key>CFBundleSpokenName</key>
-	<string>Attract Mode Plus</string>
+	<string>Attract-Mode Plus v%%SHORTVERSION%%</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
