@@ -38,12 +38,6 @@ line as follows:
 
 		attract --config /my/config/location
 
-In the (hopefully unlikely) event that Attract-Mode has difficulty finding a
-display font to use on your system, you can specify one at the command line as
-follows:
-
-		attract --font <font_name>
-
 2. If you are running Attract-Mode for the first time, you will be prompted to
 select the language to use and then the frontend will load directly to its
 configuration mode.  If you do not start in config mode, pressing the "TAB" key

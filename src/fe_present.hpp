@@ -70,6 +70,7 @@ public:
 	~FeFontContainer();
 
 	void set_font( const std::string &n );
+	void load_default_font();
 
 	const sf::Font &get_font() const;
 	const std::string &get_name() const { return m_name; };
@@ -83,6 +84,7 @@ private:
 	mutable sf::Font m_font;
 	std::string m_name;
 	mutable bool m_needs_reload;
+	std::vector<unsigned char> m_font_binary_data;
 };
 
 //
@@ -122,7 +124,7 @@ protected:
 	FeSettings *m_feSettings;
 	FeWindow &m_window;
 
-	const FeFontContainer *m_currentFont;
+	const FeFontContainer *m_layoutFont;
 	FeFontContainer &m_defaultFont;
 	std::string m_layoutFontName;
 

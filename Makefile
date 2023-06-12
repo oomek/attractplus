@@ -62,7 +62,7 @@
 #WINDOWS_XP=1
 
 ifeq ($(FE_VERSION),)
-override FE_VERSION := v3.0.1
+override FE_VERSION := v3.0.3
 else
 $(info user set version on command line)
 override FE_VERSION := v$(FE_VERSION)
@@ -79,6 +79,9 @@ RM=rm -f
 MD=mkdir -p
 WINDRES=windres
 CMAKE=cmake
+LD=objcopy
+LDFLAGS ?=
+B64FLAGS = -w0
 
 CFLAGS += -DSQUSEDOUBLE
 CFLAGS += -std=c++11
@@ -102,6 +105,7 @@ override CC := $(TOOLCHAIN)-$(CC)
 override CXX := $(TOOLCHAIN)-$(CXX)
 override AR := $(TOOLCHAIN)-$(AR)
 override CMAKE := $(TOOLCHAIN)-$(CMAKE)
+override LD := $(TOOLCHAIN)-$(LD)
 endif
 
 ifneq ($(origin CROSS),undefined)
@@ -125,7 +129,12 @@ EXE_EXT=
 OBJ_DIR=obj
 SRC_DIR=src
 EXTLIBS_DIR=extlibs
+RES_DIR=resources
 FE_FLAGS=
+RES_SRC_DIR=resources
+RES_DIR=$(OBJ_DIR)/$(RES_SRC_DIR)
+RES_FONTS_DIR = $(RES_DIR)/fonts
+RES_IMGS_DIR = $(RES_DIR)/images
 
 _DEP =\
 	fe_base.hpp \
@@ -155,6 +164,7 @@ _DEP =\
 	fe_blend.hpp \
 	path_cache.hpp \
 	image_loader.hpp \
+	base64.hpp \
 	zip.hpp
 
 _OBJ =\
@@ -190,7 +200,32 @@ _OBJ =\
 	zip.o \
 	path_cache.o \
 	image_loader.o \
+	base64.o \
 	main.o
+
+_RES =\
+	resources/fonts/BarlowCJK.ttf \
+	resources/fonts/Attract.ttf \
+	resources/images/Logo.png
+
+#
+# Backward compatibility with WINDOWS_STATIC
+#
+
+ifeq ($(WINDOWS_STATIC),1)
+  STATIC=1
+  FE_WINDOWS_COMPILE=1
+endif
+
+#
+# Converting resources to objects
+#
+
+ifeq ($(FE_WINDOWS_COMPILE),1)
+  LDFLAGS += -I binary -O pe-x86-64 -B i386:x86-64
+else
+  LDFLAGS += -I binary -O elf64-x86-64 -B i386:x86-64
+endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  #
@@ -212,6 +247,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    #
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
+   override B64FLAGS = -b0
    LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo
   else
    ifeq ($(USE_DRM),1)
@@ -228,14 +264,6 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    endif
   endif
  endif
-endif
-
-#
-# Backward compatibility with WINDOWS_STATIC
-#
-ifeq ($(WINDOWS_STATIC),1)
-  STATIC=1
-  FE_WINDOWS_COMPILE=1
 endif
 
 #
@@ -385,7 +413,7 @@ else
  AUDIO = $(OBJ_DIR)/libaudio.a
 endif
 
-CFLAGS += -D__STDC_CONSTANT_MACROS
+CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR)
 
 LIBS := $(LIBS) $(shell $(PKG_CONFIG) --libs $(TEMP_LIBS))
 CFLAGS := $(CFLAGS) $(shell $(PKG_CONFIG) --cflags $(TEMP_LIBS))
@@ -413,6 +441,7 @@ endif
 
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
 DEP = $(patsubst %,$(SRC_DIR)/%,$(_DEP))
+RES = $(patsubst %,$(OBJ_DIR)/%.h,$(_RES))
 
 VER_TEMP  = $(subst -, ,$(FE_VERSION))
 VER_PARTS = $(subst ., ,$(word 1,$(VER_TEMP)))
@@ -440,13 +469,28 @@ $(OBJ_DIR)/%.res: $(SRC_DIR)/%.rc | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(WINDRES) $(FE_FLAGS) $< -O coff -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP) | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP) $(RES) | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CXX) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(DEP) | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CC) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
+
+# $(OBJ_DIR)/%.o: $(RES_DIR)/fonts/% | $(OBJ_DIR)
+# 	$(CC_MSG)
+# 	$(SILENT)$(LD) $(LDFLAGS) $< $@
+
+# $(OBJ_DIR)/%.o: $(RES_DIR)/images/% | $(OBJ_DIR)
+# 	$(CC_MSG)
+# 	$(SILENT)$(LD) $(LDFLAGS) $< $@
+
+.PRECIOUS: $(OBJ_DIR)/%.h
+$(OBJ_DIR)/%.h: % | $(RES_FONTS_DIR) $(RES_IMGS_DIR)
+	$(info Converting $< to $@ ...)
+# _binary_$(subst .,_,$(subst /,_,$<)) -> _binary_resources_fonts_Attract_ttf
+	$(shell (echo 'const char* _binary_$(subst .,_,$(subst /,_,$<)) = "' ; base64 $(B64FLAGS) $< ; echo '";') | tr -d '\n' > $@)
+
 
 $(EXE): $(OBJ) $(EXPAT) $(SQUIRREL) $(AUDIO)
 	$(EXE_MSG)
@@ -458,6 +502,7 @@ endif
 .PHONY: clean
 .PHONY: install
 .PHONY: sfml sfmlbuild
+.PHONY: bin2h
 
 SFML_FLAGS =
 ifneq ($(USE_SYSTEM_SFML),1)
@@ -510,10 +555,15 @@ endif
 $(OBJ_DIR): headerinfo
 	$(MD) $@
 
+$(RES_FONTS_DIR): $(OBJ_DIR)
+	$(MD) $@
+
+$(RES_IMGS_DIR): $(OBJ_DIR)
+	$(MD) $@
+
 headerinfo: sfml
 	$(info flags:$(CFLAGS) $(FE_FLAGS))
 	$(info libs:$(LIBS))
-
 
 #
 # Expat Library
@@ -649,7 +699,7 @@ install: $(EXE) $(DATA_PATH)
 	cp -r config/* $(DESTDIR)$(DATA_PATH)
 
 smallclean:
-	-$(RM) $(OBJ_DIR)/*.o *~ core
+	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h
 
 clean:
-	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h *~ core

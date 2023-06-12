@@ -1328,8 +1328,8 @@ Properties:
 
    * `width` - Get/set the layout width.  Default value is `ScreenWidth`.
    * `height` - Get/set the layout height.  Default value is `ScreenHeight`.
-   * `font` - Get/set the layout font name.  Default value is the default
-     font configured for Attract-Mode.
+   * `font` - Get/set the filename of the font which will be used for
+     text and listbox objects in this layout.
    * `base_rotation` - Get the base orientation of Attract Mode wchich is set
      in General Settings. This property cannot be set from the script.
      This can be one of the following values:
@@ -1880,8 +1880,8 @@ Properties:
      (boolean).  Default is `false`.
    * `msg_width` - Get the width of the text message, in layout coordinates.
    * `msg_height` 🔶 Get the height of the text message, in layout coordinates.
-   * `font` - Get/set the name of the font used for this text.  Default is
-     the layout font name.
+   * `font` - Get/set the filename of the font used for this text.
+     If not set default font is used.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.
      Default value is `-1` which calcualtes the margin based on the .char_size.
    * `shader` - Get/set the GLSL shader for this text. This can only be set to
@@ -1998,8 +1998,8 @@ Properties:
       - `Style.Bold`
       - `Style.Italic`
       - `Style.Underlined`
-   * `font` - Get/set the name of the font used for this listbox.  Default is
-     the layout font name.
+   * `font` - Get/set the filename of the font used for this listbox.
+     If not set default font is used.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.
      Default value is `-1` which calcualtes the margin based on the .char_size.
    * `format_string` - Get/set the format for the text to display in each list

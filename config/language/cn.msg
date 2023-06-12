@@ -1,4 +1,4 @@
-#@中文 (Chinese);win_font=NotoSans;mac_font=NotoSans;linux_font=NotoSans
+#@中文 (Chinese)
 #
 # Interface strings
 #

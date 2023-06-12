@@ -38,61 +38,18 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/Config.hpp>
 
-#ifdef USE_FONTCONFIG
-#include <fontconfig/fontconfig.h>
-#endif
-
 #ifndef NO_MOVIE
 #include "media.hpp" // for FeMedia::is_supported_media(), get/set_current_decoder()
 #endif
 
 #if defined(SFML_SYSTEM_WINDOWS)
-
 const char *FE_DEFAULT_CFG_PATH		= "./";
-const char *FE_DEFAULT_FONT			= "Barlow";
-const char *FE_DEFAULT_FONT_PATHS[]	=
-{
-	"fonts/",
-	"%SYSTEMROOT%/Fonts/",
-	NULL
-};
-
 #elif defined(SFML_SYSTEM_MACOS)
-
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/.attract/";
-const char *FE_DEFAULT_FONT			= "Barlow";
-const char *FE_DEFAULT_FONT_PATHS[]	=
-{
-	"$HOME/.attract/fonts/",
-	DATA_PATH"fonts/",
-	"/Library/Fonts/",
-	"$HOME/Library/Fonts/",
-	NULL
-};
-
 #elif defined(SFML_SYSTEM_ANDROID)
-
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/";
-const char *FE_DEFAULT_FONT			= "Barlow";
-const char *FE_DEFAULT_FONT_PATHS[]	=
-{
-	"$HOME/fonts/",
-	"/system/fonts/",
-	NULL
-};
-
 #else
-
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/.attract/";
-const char *FE_DEFAULT_FONT			= "Barlow";
-const char *FE_DEFAULT_FONT_PATHS[]	=
-{
-	"$HOME/.attract/fonts/",
-	DATA_PATH"fonts/",
-	"/usr/share/fonts/",
-	NULL
-};
-
 #endif
 
 const char *FE_ART_EXTENSIONS[]		=
@@ -102,17 +59,6 @@ const char *FE_ART_EXTENSIONS[]		=
 	".jpeg",
 	".bmp",
 	".tga",
-	NULL
-};
-
-const char *FE_FONT_EXTENSIONS[]		=
-{
-	".ttf",
-	".ttc",
-	".otf",
-	".fnt",
-	".pcf",
-	".bdf",
 	NULL
 };
 
@@ -272,8 +218,7 @@ const char *FeSettings::startupDispTokens[] =
 	NULL
 };
 
-FeSettings::FeSettings( const std::string &config_path,
-				const std::string &cmdln_font )
+FeSettings::FeSettings( const std::string &config_path )
 	:  m_rl( m_config_path ),
 	m_inputmap(),
 	m_saver_params( FeLayoutInfo::ScreenSaver ),
@@ -343,7 +288,6 @@ FeSettings::FeSettings( const std::string &config_path,
 			(m_config_path[m_config_path.size()-1] != '/') )
 		m_config_path += '/';
 
-	m_default_font = cmdln_font;
 }
 
 void FeSettings::clear()
@@ -408,12 +352,6 @@ void FeSettings::load()
 	//
 	m_inputmap.initialize_mappings();
 
-	// If we haven't got our font yet from the config file
-	// or command line then set to the default value now
-	//
-	if ( m_default_font.empty() )
-		m_default_font = FE_DEFAULT_FONT;
-
 	// If no menu prompt is configured, default to calling it "Displays Menu" (in current language)
 	//
 	if ( m_menu_prompt.empty() )
@@ -425,8 +363,6 @@ const char *FeSettings::configSettingStrings[] =
 	"language",
 	"exit_command",
 	"exit_message",
-	"default_font",
-	"font_path",
 	"ui_font_size",
 	"screen_saver_timeout",
 	"displays_menu_exit",
@@ -527,14 +463,6 @@ int FeSettings::process_setting( const std::string &setting,
 		m_current_config_object = &m_intro_params;
 	else if ( setting.compare( otherSettingStrings[8] ) == 0 ) // menu_config
 		m_current_config_object = &m_display_menu_per_display_params;
-	else if ( setting.compare( configSettingStrings[DefaultFont] ) == 0 ) // default_font
-	{
-		// Special case for the default font, we don't want to set it here
-		// if it was already specified at the command line
-		//
-		if ( m_default_font.empty() ) // don't overwrite command line font
-			m_default_font = value;
-	}
 	else
 	{
 		int i=0;
@@ -2721,14 +2649,6 @@ bool FeSettings::get_font_file(
 	std::string &ffile,
 	const std::string &fontname ) const
 {
-	if ( fontname.empty() )
-	{
-		if ( m_default_font.empty() )
-			return false;
-		else
-			return get_font_file( ffile, m_default_font );
-	}
-
 	//
 	// First try to load font file directly
 	//
@@ -2743,84 +2663,9 @@ bool FeSettings::get_font_file(
 		return true;
 	}
 
-	//
-	// Check if there is a matching font file in the
-	// layout/plugin directory
-	//
-	std::string test;
-	std::string layout_dir;
-	layout_dir = FePresent::script_get_base_path();
+	FeLog() << " Error, font file not found: " << fontname << std::endl;
 
-	if ( !layout_dir.empty() && search_for_file( layout_dir,
-		fontname, FE_FONT_EXTENSIONS, test ) )
-	{
-		FeLog() << " ! NOTE: Relative path to " << fontname << " not provided. Font found in a subfolder. This may be slower." << std::endl;
-		ffile = test;
-		return true;
-	}
-
-	std::vector<std::string> path_list;
-	std::vector<std::string>::const_iterator its;
-
-	//
-	// m_font_paths contains the configured paths (which may need further
-	// processing ($HOME substitution etc)
-	//
-	int i=0;
-	while ( FE_DEFAULT_FONT_PATHS[i] != NULL )
-		path_list.push_back( clean_path( FE_DEFAULT_FONT_PATHS[i++] ));
-
-	for ( its=m_font_paths.begin(); its!=m_font_paths.end(); ++its )
-		path_list.push_back( clean_path( *its, true ) );
-
-	for ( its=path_list.begin(); its!= path_list.end(); ++its )
-	{
-		if ( search_for_file( (*its), fontname, FE_FONT_EXTENSIONS, test ) )
-		{
-			ffile = test;
-			return true;
-		}
-	}
-
-#ifdef USE_FONTCONFIG
-	bool fc_found = false;
-	FcConfig *config = FcInitLoadConfigAndFonts();
-	if ( config )
-	{
-		FcPattern *pat = FcNameParse( (const FcChar8 *)(fontname.c_str()) );
-		if ( pat )
-		{
-			FcConfigSubstitute( config, pat, FcMatchPattern );
-			FcDefaultSubstitute( pat );
-
-			FcResult res = FcResultNoMatch;
-			FcFontSet *fs = FcFontSort( config, pat, false, NULL, &res );
-			if ( fs )
-			{
-				for ( int i=0; i < fs->nfont; i++ )
-				{
-					FcChar8 *file = NULL;
-					if ( FcPatternGetString( fs->fonts[i], FC_FILE, 0, &file ) == FcResultMatch )
-					{
-						if ( base_compare( (char *)file, fontname ) )
-						{
-							ffile = (char *)file;
-							fc_found = true;
-							break;
-						}
-					}
-				}
-				FcFontSetSortDestroy( fs );
-			}
-			FcPatternDestroy( pat );
-		}
-		FcConfigDestroy( config );
-	}
-
-	if ( fc_found )
-		return true;
-#endif
-
+	ffile = ""; // make sure default font is assigned
 	return false;
 }
 
@@ -2878,20 +2723,6 @@ const std::string FeSettings::get_info( int index ) const
 		return m_exit_command;
 	case ExitMessage:
 		return m_exit_message;
-	case DefaultFont:
-		return m_default_font;
-	case FontPath:
-		if ( !m_font_paths.empty() )
-		{
-			std::string ret = m_font_paths.front();
-			for ( unsigned int i=1; i < m_font_paths.size(); i++ )
-			{
-				ret += ";";
-				ret += m_font_paths[i];
-			}
-			return ret;
-		}
-		break;
 	case UIFontSize:
 		if ( m_ui_font_size > 0 )
 			return as_str( m_ui_font_size );
@@ -3022,23 +2853,6 @@ bool FeSettings::set_info( int index, const std::string &value )
 	case ExitMessage:
 		m_exit_message = value;
 		m_exit_question = value + "?";
-		break;
-
-	case DefaultFont:
-		m_default_font = value;
-		break;
-
-	case FontPath:
-		{
-			size_t pos=0;
-			m_font_paths.clear();
-			do
-			{
-				std::string path;
-				token_helper( value, pos, path );
-				m_font_paths.push_back( path );
-			} while ( pos < value.size() );
-		}
 		break;
 
 	case UIFontSize:
@@ -3719,43 +3533,9 @@ void FeSettings::get_languages_list( std::vector < FeLanguage > &ll ) const
 			std::string tok;
 			token_helper( line, pos, tok, ";" );
 
-			//
-			// Format should be:
-			//
-			// #@label;win_font=xxx,x2x2;mac_font=yyy;linux_font=zzz
-			//
 			if ( !tok.empty() )
 				ll.back().label = tok;
 
-			while ( pos < line.size() )
-			{
-				token_helper( line, pos, tok, ";" );
-				if ( !tok.empty() )
-				{
-					std::string t2;
-					size_t p2(0);
-					token_helper( tok, p2, t2, "=" );
-
-					if ( t2.compare(
-#ifdef SFML_SYSTEM_WINDOWS
-						"win_font"
-#else
- #ifdef SFML_SYSTEM_MACOS
-						"mac_font"
- #else
-						"linux_font"
- #endif
-#endif
-							) == 0 )
-					{
-						while ( p2 < tok.size() )
-						{
-							token_helper( tok, p2, t2, "," );
-							ll.back().font.push_back( t2 );
-						}
-					}
-				}
-			}
 			myfile.close();
 		}
 	}

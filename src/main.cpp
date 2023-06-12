@@ -61,14 +61,13 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
 void process_args( int argc, char *argv[],
 			std::string &config_path,
-			std::string &cmdln_font,
 			bool &process_console,
 			std::string &log_file,
 			FeLogLevel &log_level );
 
 int main(int argc, char *argv[])
 {
-	std::string config_path, cmdln_font, log_file;
+	std::string config_path, log_file;
 	bool launch_game = false;
 	bool process_console = false;
 	FeLogLevel log_level = FeLog_Info;
@@ -78,9 +77,9 @@ int main(int argc, char *argv[])
 #endif
 
 	nowide::args a( argc, argv );
-	process_args( argc, argv, config_path, cmdln_font, process_console, log_file, log_level );
+	process_args( argc, argv, config_path, process_console, log_file, log_level );
 
-	FeSettings feSettings( config_path, cmdln_font );
+	FeSettings feSettings( config_path );
 
 	//
 	// Setup logging
@@ -126,16 +125,6 @@ int main(int argc, char *argv[])
 
 	feSettings.load();
 
-	std::string def_font_file;
-	if ( feSettings.get_font_file( def_font_file ) == false )
-	{
-		FeLog() << "Error, could not find default font."  << std::endl;
-		return 1;
-	}
-
-	FeFontContainer def_font;
-	def_font.set_font( def_font_file );
-
 	//
 	// Set up music/sound playing objects
 	//
@@ -149,6 +138,9 @@ int main(int argc, char *argv[])
 
 	FeWindow window( feSettings );
 	window.initial_create();
+
+	FeFontContainer def_font;
+	def_font.load_default_font();
 
 #ifdef WINDOWS_CONSOLE
 	if ( feSettings.get_hide_console() )
@@ -171,10 +163,6 @@ int main(int argc, char *argv[])
 		//
 		if ( feOverlay.languages_dialog() < 0 )
 			exit_selected = true;
-
-		// Font may change depending on the language selected
-		feSettings.get_font_file( def_font_file );
-		def_font.set_font( def_font_file );
 
 		if ( !exit_selected )
 		{
@@ -244,9 +232,6 @@ int main(int argc, char *argv[])
 			{
 				// Settings changed, reload
 				//
-				if ( feSettings.get_font_file( def_font_file ) )
-					def_font.set_font( def_font_file );
-
 				feSettings.set_display(
 					feSettings.get_current_display_index() );
 

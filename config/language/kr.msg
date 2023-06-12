@@ -1,4 +1,4 @@
-#@한국어 (Korean);win_font=NotoSans;mac_font=NotoSans;linux_font=NotoSans
+#@한국어 (Korean)
 #
 # Interface strings
 #

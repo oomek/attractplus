@@ -247,7 +247,7 @@ void FeOverlay::splash_message( const std::string &msg,
 	bg.setOutlineThickness( 0 );
 
 	FeTextPrimitive message(
-		m_fePresent.get_font(),
+		m_fePresent.get_default_font(),
 		m_textColour,
 		sf::Color::Transparent,
 		char_size * 1.5 );
@@ -263,7 +263,7 @@ void FeOverlay::splash_message( const std::string &msg,
 	message.setString( msg_str );
 
 	FeTextPrimitive extra(
-		m_fePresent.get_font(),
+		m_fePresent.get_default_font(),
 		m_textColour,
 		sf::Color::Transparent,
 		char_size * 0.75 );
@@ -382,7 +382,7 @@ int FeOverlay::common_list_dialog(
 		bg.setOutlineThickness( 0 );
 		draw_list.push_back( &bg );
 
-		FeTextPrimitive heading( m_fePresent.get_font(),
+		FeTextPrimitive heading( m_fePresent.get_default_font(),
 			m_selColour,
 			m_headerBgColour,
 			char_size * 1.5 );
@@ -396,7 +396,7 @@ int FeOverlay::common_list_dialog(
 
 		FePresentableParent temp;
 		FeListBox dialog( temp,
-			m_fePresent.get_font(),
+			m_fePresent.get_default_font(),
 			m_textColour,
 			sf::Color::Transparent,
 			m_selColour,
@@ -492,7 +492,7 @@ int FeOverlay::languages_dialog()
 	bg.setOutlineThickness( 0 );
 	draw_list.push_back( &bg );
 
-	FeTextPrimitive heading( m_fePresent.get_font(), m_selColour, sf::Color::Transparent, char_size * 1.5 );
+	FeTextPrimitive heading( m_fePresent.get_default_font(), m_selColour, sf::Color::Transparent, char_size * 1.5 );
 	heading.setSize( size.x, size.y / 8 );
 	heading.setBgOutlineColor( m_lineColour );
 	heading.setBgOutlineThickness( char_size / 10 );
@@ -503,7 +503,7 @@ int FeOverlay::languages_dialog()
 
 	FePresentableParent temp;
 	FeListBox dialog( temp,
-		m_fePresent.get_font(),
+		m_fePresent.get_default_font(),
 		m_textColour,
 		sf::Color::Transparent,
 		m_selColour,
@@ -517,40 +517,18 @@ int FeOverlay::languages_dialog()
 	dialog.setTextScale( text_scale );
 	draw_list.push_back( &dialog );
 
-	std::map < std::string, const FeFontContainer * > font_map;
-	for ( std::vector<FeLanguage>::iterator itr=ll.begin(); itr != ll.end(); ++itr )
-	{
-		const FeFontContainer *f = m_fePresent.get_pooled_font( (*itr).font );
-		if ( f )
-			font_map[ (*itr).label ] = f;
-	}
-
 	int sel = current_i;
-	dialog.setLanguageText( sel, ll, font_map );
+	dialog.setLanguageText( sel, ll );
 
 	FeEventLoopCtx c( draw_list, sel, -1, ll.size() - 1 );
 	FeFlagMinder fm( m_overlay_is_on );
 
 	init_event_loop( c );
 	while ( event_loop( c ) == false )
-		dialog.setLanguageText( sel, ll, font_map );
+		dialog.setLanguageText( sel, ll );
 
 	if ( sel >= 0 )
-	{
-		std::string temp;
 		m_feSettings.set_language( ll[sel].language );
-
-		for ( std::vector<std::string>::iterator itr=ll[sel].font.begin();
-				itr != ll[sel].font.end(); ++itr )
-		{
-			if ( m_feSettings.get_font_file( temp, *itr ) )
-			{
-				m_feSettings.set_info( FeSettings::DefaultFont,
-					*itr );
-				break;
-			}
-		}
-	}
 
 	return sel;
 }
@@ -698,7 +676,7 @@ int FeOverlay::common_basic_dialog(
 		bg.setOutlineThickness( 0 );
 
 		FeTextPrimitive message(
-			m_fePresent.get_font(),
+			m_fePresent.get_default_font(),
 			m_textColour,
 			sf::Color::Transparent,
 			char_size * 1.5 );
@@ -707,7 +685,7 @@ int FeOverlay::common_basic_dialog(
 
 		FePresentableParent temp;
 		FeListBox dialog( temp,
-			m_fePresent.get_font(),
+			m_fePresent.get_default_font(),
 			m_textColour,
 			sf::Color::Transparent,
 			m_selColour,
@@ -757,11 +735,11 @@ bool FeOverlay::edit_dialog(
 	int char_size;
 	get_common( size, text_scale, char_size );
 
-	FeTextPrimitive message( m_fePresent.get_font(), m_textColour,
+	FeTextPrimitive message( m_fePresent.get_default_font(), m_textColour,
 		m_bgColour, char_size * 1.5 );
 	message.setWordWrap( true );
 
-	FeTextPrimitive tp( m_fePresent.get_font(), m_textColour,
+	FeTextPrimitive tp( m_fePresent.get_default_font(), m_textColour,
 		m_bgColour, char_size * 1.5 );
 
 	float slice = size.y / 3;
@@ -806,7 +784,7 @@ void FeOverlay::input_map_dialog(
 	int char_size;
 	get_common( s, text_scale, char_size );
 
-	FeTextPrimitive message( m_fePresent.get_font(),
+	FeTextPrimitive message( m_fePresent.get_default_font(),
 		m_textColour,
 		m_bgColour,
 		char_size * 2.0 );

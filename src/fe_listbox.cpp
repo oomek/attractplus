@@ -291,9 +291,7 @@ void FeListBox::internalSetText( const int index )
 	}
 }
 
-void FeListBox::setLanguageText( const int index,
-			const std::vector<FeLanguage> &list,
-			const std::map<std::string, const FeFontContainer * > &fcm )
+void FeListBox::setLanguageText( const int index, const std::vector<FeLanguage> &list )
 {
 	m_custom_sel = index;
 
@@ -307,15 +305,8 @@ void FeListBox::setLanguageText( const int index,
 			if (( listentry < 0 ) || ( listentry >= (int)list.size() ))
 				m_texts[i].setString("");
 			else
-			{
 				m_texts[i].setString( list[listentry].label );
 
-				std::map<std::string, const FeFontContainer *>::const_iterator itr
-					= fcm.find( list[listentry].label );
-
-				if ( itr != fcm.end() )
-					m_texts[i].setFont( (*itr).second->get_font() );
-			}
 		}
 	}
 }

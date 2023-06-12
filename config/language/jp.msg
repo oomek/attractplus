@@ -1,4 +1,4 @@
-#@日本語 (Japanese);win_font=NotoSans;mac_font=NotoSans;linux_font=NotoSans
+#@日本語 (Japanese)
 #
 # Interface strings
 #

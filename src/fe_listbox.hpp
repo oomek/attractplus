@@ -85,9 +85,7 @@ public:
 	void setCustomSelection( const int index );
 
 	// special case for the language selection listbox (different fonts)
-	void setLanguageText( const int index,
-			const std::vector<FeLanguage> &list,
-			const std::map<std::string, const FeFontContainer *> &fcm );
+	void setLanguageText( const int index, const std::vector<FeLanguage> &list );
 
 	int getRowCount() const;
 
