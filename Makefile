@@ -80,7 +80,6 @@ MD=mkdir -p
 WINDRES=windres
 CMAKE=cmake
 LD=objcopy
-LDFLAGS ?=
 B64FLAGS = -w0
 
 CFLAGS += -DSQUSEDOUBLE
@@ -217,16 +216,6 @@ ifeq ($(WINDOWS_STATIC),1)
   FE_WINDOWS_COMPILE=1
 endif
 
-#
-# Converting resources to objects
-#
-
-ifeq ($(FE_WINDOWS_COMPILE),1)
-  LDFLAGS += -I binary -O pe-x86-64 -B i386:x86-64
-else
-  LDFLAGS += -I binary -O elf64-x86-64 -B i386:x86-64
-endif
-
 ifneq ($(FE_WINDOWS_COMPILE),1)
  #
  # Test OS to set some defaults
@@ -314,12 +303,6 @@ endif
 #
 # Check whether optional libs should be enabled
 #
-ifneq ($(FE_WINDOWS_COMPILE),1)
- ifeq ($(shell $(PKG_CONFIG) --exists fontconfig && echo "1" || echo "0"), 1)
- USE_FONTCONFIG=1
- endif
-endif
-
 ifeq ($(shell $(PKG_CONFIG) --exists libarchive && echo "1" || echo "0"), 1)
  USE_LIBARCHIVE=1
 endif
@@ -365,13 +348,6 @@ endif
 
 ifeq ($(FE_HWACCEL_VDPAU),1)
  FE_FLAGS += -DFE_HWACCEL_VDPAU
-endif
-
-ifeq ($(USE_FONTCONFIG),1)
- FE_FLAGS += -DUSE_FONTCONFIG
- TEMP_LIBS += fontconfig
-else
- BUILD_EXPAT=1
 endif
 
 ifeq ($(USE_LIBARCHIVE),1)
@@ -431,6 +407,8 @@ else
  EXPAT =
 endif
 
+LIBS += -lfreetype
+
 CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include
 SQUIRREL = $(OBJ_DIR)/libsquirrel.a $(OBJ_DIR)/libsqstdlib.a
 
@@ -477,18 +455,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(DEP) | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CC) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
 
-# $(OBJ_DIR)/%.o: $(RES_DIR)/fonts/% | $(OBJ_DIR)
-# 	$(CC_MSG)
-# 	$(SILENT)$(LD) $(LDFLAGS) $< $@
-
-# $(OBJ_DIR)/%.o: $(RES_DIR)/images/% | $(OBJ_DIR)
-# 	$(CC_MSG)
-# 	$(SILENT)$(LD) $(LDFLAGS) $< $@
-
 .PRECIOUS: $(OBJ_DIR)/%.h
 $(OBJ_DIR)/%.h: % | $(RES_FONTS_DIR) $(RES_IMGS_DIR)
 	$(info Converting $< to $@ ...)
-# _binary_$(subst .,_,$(subst /,_,$<)) -> _binary_resources_fonts_Attract_ttf
 	$(shell (echo 'const char* _binary_$(subst .,_,$(subst /,_,$<)) = "' ; base64 $(B64FLAGS) $< ; echo '";') | tr -d '\n' > $@)
 
 

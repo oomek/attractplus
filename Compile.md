@@ -30,7 +30,6 @@ distributions.  Other distributions should have similar packages available.
       - Xrandr
 
    * Optional:
-      - Fontconfig (to assist with finding fonts).
       - Xinerama (for multiple monitor support).
       - libarchive (for .7z, .rar, .tar.gz and .tar.bz2 archive support).
       - Libcurl (for network info/artwork scraping).
