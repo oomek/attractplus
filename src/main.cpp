@@ -125,9 +125,6 @@ int main(int argc, char *argv[])
 
 	feSettings.load();
 
-	FeFontContainer def_font;
-	def_font.load_default_font();
-
 	//
 	// Set up music/sound playing objects
 	//
@@ -141,6 +138,9 @@ int main(int argc, char *argv[])
 
 	FeWindow window( feSettings );
 	window.initial_create();
+
+	FeFontContainer def_font;
+	def_font.load_default_font();
 
 #ifdef WINDOWS_CONSOLE
 	if ( feSettings.get_hide_console() )

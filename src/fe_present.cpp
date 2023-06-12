@@ -112,8 +112,8 @@ void FeFontContainer::set_font( const std::string &n )
 
 void FeFontContainer::load_default_font()
 {
-	m_decoded_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
-	m_font.loadFromMemory( m_decoded_data.data(), m_decoded_data.size() );
+	m_font_binary_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
+	m_font.loadFromMemory( m_font_binary_data.data(), m_font_binary_data.size() );
 }
 
 const sf::Font &FeFontContainer::get_font() const

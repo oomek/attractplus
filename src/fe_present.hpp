@@ -84,7 +84,7 @@ private:
 	mutable sf::Font m_font;
 	std::string m_name;
 	mutable bool m_needs_reload;
-	std::vector<unsigned char> m_decoded_data;
+	std::vector<unsigned char> m_font_binary_data;
 };
 
 //
