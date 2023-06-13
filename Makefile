@@ -247,7 +247,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    #
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
-   override B64FLAGS = -b0
+   override B64FLAGS = -b 0 -i
    LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo
   else
    ifeq ($(USE_DRM),1)
