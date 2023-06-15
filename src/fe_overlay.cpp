@@ -1657,13 +1657,11 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 	const sf::Font *font = tp->getFont();
 	sf::Text cursor( "|", *font, tp->getCharacterSize() / tp->getTextScale().x );
 	cursor.setFillColor( tp->getColor() );
-	cursor.setStyle( sf::Text::Bold );
 	cursor.setScale( tp->getTextScale() );
 
 	int cursor_pos=str.size();
-	cursor.setPosition( tp->setString( str, cursor_pos ) - sf::Vector2f((
-		cursor.getLocalBounds().width + cursor.getLocalBounds().left - 2.0 ) * cursor.getScale().x,
-		cursor.getLocalBounds().top * cursor.getScale().y / 2.0 ));
+	cursor.setPosition( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().width / 2.0 + cursor.getLocalBounds().left ) * cursor.getScale().x, 0 ); // x
+	cursor.setPosition( cursor.getPosition().x, std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 )); // y
 
 	bool redraw=true;
 	FeKeyRepeat key_repeat_enabler( m_wnd.get_win() );
@@ -1896,9 +1894,8 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 
 			if ( redraw )
 			{
-				cursor.setPosition( tp->setString( str, cursor_pos ) - sf::Vector2f((
-					cursor.getLocalBounds().width + cursor.getLocalBounds().left - 2.0 ) * cursor.getScale().x,
-					cursor.getLocalBounds().top * cursor.getScale().y / 2.0 ));
+				cursor.setPosition( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().width / 2.0 + cursor.getLocalBounds().left ) * cursor.getScale().x, 0 ); // x
+				cursor.setPosition( cursor.getPosition().x, std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 )); // y
 				cursor_timer.restart();
 			}
 		}
