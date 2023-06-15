@@ -14,7 +14,7 @@ rm -Rf $HOME/buildattract
 mkdir $HOME/buildattract
 
 echo Cloning attractplus
-git clone $branch http://github.com/zpaolo11x/attractplus-macOS $HOME/buildattract/attractplus
+git clone $branch http://github.com/oomek/attractplus $HOME/buildattract/attractplus
 
 cd $HOME/buildattract/attractplus
 
