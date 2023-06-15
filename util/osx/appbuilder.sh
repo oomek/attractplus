@@ -2,8 +2,13 @@
 
 echo STEP 1 - PREPARE BUNDLE FOLDERS
 
+#CALL WITH "artifacts" as buildpath for CI
+buildpath=${1:-"artifacts"}
+
+echo $buildpath
+
 # Define folder path variables
-bundlehome="artifacts/Attract Mode Plus.app"
+bundlehome="$buildpath/Attract Mode Plus.app"
 bundlecontent="$bundlehome"/Contents
 bundlelibs="$bundlecontent"/libs
 
@@ -16,7 +21,8 @@ mkdir "$bundlecontent"/Resources
 mkdir "$bundlecontent"/share
 mkdir "$bundlecontent"/share/attract
 
-basedir="am"
+#CALL WITH "am" AS PARAMETER 2
+basedir=${2:-"am"}
 attractname="$basedir/attractplus"
 
 echo STEP 2 - COLLECT AND FIX LINKED LIBRARIES
@@ -27,7 +33,7 @@ fr_lib=("@rpath/../Frameworks/freetype.framework/Versions/A/freetype")
 to_lib=("/usr/local/opt/freetype/lib/libfreetype.6.dylib")
 
 fr_lib+=("@rpath/libsfml")
-to_lib+=("am/obj/sfml/install/lib/libsfml")
+to_lib+=("$basedir/obj/sfml/install/lib/libsfml")
 
 fr_lib+=("@rpath/libsharpyuv")
 to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
@@ -41,15 +47,17 @@ for enum in ${!fr_lib[@]}; do
 	commands+=(s/$(sed 's/\//\\\//g' <<< "${fr_lib[enum]}")/$(sed 's/\//\\\//g' <<< "${to_lib[enum]}")/g)
 done
 
-# Populate startarray with L0 paths
+# Populate fullarray with L0 paths
+# This is the array of entries as they are in the actual binaries
 fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
 
-echo fullarray
+echo fullarray pre
 for val in ${fullarray[@]}; do
    echo $val
 done
 
 # Build fullarray and updatearray with filtered paths
+# This is the array with the correct names of the libraries as they appear in the paths of the build
 for commandline in ${commands[@]}; do
 	fullarray=($(sed "$commandline" <<< "${fullarray[@]}"))
 done
@@ -59,6 +67,8 @@ for val in ${fullarray[@]}; do
    echo $val
 done
 
+# Updatearray is the list of libraries that need to be changed, it is used to copy and gather the correct libraries
+# therefore it must use the fullarray data which carries the correct paths
 updatearray=(${fullarray[@]})
 
 
@@ -72,9 +82,10 @@ while [ ${#updatearray[@]} != 1 ] #repeat until there are no more sublibraries
 do
    iter=$(($iter + 1))
    echo check iteration $iter
-	# Reset array of all libraries in this sublevel
+	# Sublevelarray is the list of all libraries in this sublevel
 	sublevelarray=("")
-	# For each library in the updatearray build a subarray
+	# Updatearray contains the libraries from fullarray, that is the actual correct library paths,
+	# they are scanned one by one to gather sublibraries for each. Each library is scanned to build the subarray
    for strlib in ${updatearray[@]}; do
 		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
 		echo subarray pre
@@ -88,10 +99,11 @@ do
 		for val in ${subarray[@]}; do
 			echo $val
 		done
+		# as before, sublevelarray is built by post entries, with correct path
       sublevelarray+=("${subarray[@]}")
    done
-	
 
+	# Updatearray is cleaned so that only new entries can be added for future iterations
 	# Build an array of unique library entries to pass to the next iteration
    updatearray=("")
    for val in ${sublevelarray[@]}; do
@@ -102,16 +114,17 @@ do
             new=0
          fi
       done
+		# If the library is not in fullarray, then it can be added to updatearray to be scanned in next level, and to fullarray
       if [[ $new == "1" ]]
       then
          echo L$iter $val
          updatearray+=($val)
          fullarray+=($val) #add the current unique non repeated libraries to the global array
-      fi   
+      fi
    done
 done
 
-# Copy linked libraries to bundle folder
+# Copy linked libraries to bundle folder, using fullarray that has the whole list of paths
 for str in ${fullarray[@]}; do
    echo copying $str
    cp -n $str "$bundlelibs"/
@@ -122,8 +135,16 @@ libsarray=( $(ls "$bundlecontent"/libs) )
 for str in ${libsarray[@]}; do
    echo fixing $str
    subarray=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
-   for str2 in ${subarray[@]}; do
-      str3=$( basename "$str2" )
+   subarray_fix=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+
+	#Apply correction filters to all libraries
+	for commandline in ${commands[@]}; do
+		subarray_fix=($(sed "$commandline" <<< "${subarray_fix[@]}"))
+	done
+
+	for enum in ${!subarray[@]}; do
+      str3=$( basename "${subarray_fix[enum]}" )
+      str2="${subarray[enum]}"
       install_name_tool -change $str2 @loader_path/../libs/$str3 "$bundlelibs"/$str
    done
    install_name_tool -id @loader_path/../libs/$str "$bundlelibs"/$str
@@ -137,11 +158,11 @@ cp -a $basedir/config/ "$bundlecontent"/share/attract
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
-cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
+#cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
 
 # Prepare plist file
-LASTTAG=$(git -C am/ describe --tag --abbrev=0)
-VERSION=$(git -C am/ describe --tag | sed 's/-[^-]\{8\}$//')
+LASTTAG=$(git -C $basedir/ describe --tag --abbrev=0)
+VERSION=$(git -C $basedir/ describe --tag | sed 's/-[^-]\{8\}$//')
 BUNDLEVERSION=${VERSION//[v-]/.}; BUNDLEVERSION=${BUNDLEVERSION#"."}
 SHORTVERSION=${LASTTAG//v/}
 
@@ -153,7 +174,7 @@ echo STEP 4 - FIX ATTRACTPLUS EXECUTABLE
 install_name_tool -add_rpath "@executable_path/../libs/" "$bundlecontent"/MacOS/attractplus
 
 # List libraries linked in attractplus
-attractlibs=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )  
+attractlibs=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
 
 # Apply new links to libraries
 for str in ${attractlibs[@]}; do
@@ -163,4 +184,4 @@ done
 
 echo STEP 5 - RENAME ARTIFACT TO v${SHORTVERSION}
 
-mv "$bundlehome" "artifacts/Attract-Mode Plus v${SHORTVERSION}.app"
+mv "$bundlehome" "$buildpath/Attract-Mode Plus v${SHORTVERSION}.app"
