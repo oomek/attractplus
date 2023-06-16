@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [[ -n "$1" ]]
+then
+    branch="-b $1"
+else
+    branch=""
+fi
+
 export PKG_CONFIG_PATH=/usr/local/pkgconfig
 
 echo Creating Folders
@@ -7,7 +14,7 @@ rm -Rf $HOME/buildattract
 mkdir $HOME/buildattract
 
 echo Cloning attractplus
-git clone -b internal_font_macos_name_fix http://github.com/zpaolo11x/attractplus-macOS $HOME/buildattract/attractplus
+git clone $branch http://github.com/oomek/attractplus $HOME/buildattract/attractplus
 
 cd $HOME/buildattract/attractplus
 
@@ -20,6 +27,7 @@ NPROC=$(getconf _NPROCESSORS_ONLN)
 
 echo Building attractplus
 make clean
-eval make -j${NPROC} STATIC=0 VERBOSE=1 prefix=.. $@
+eval make -j${NPROC} STATIC=0 VERBOSE=1 prefix=..
+
 
 bash util/osx/appbuilder.sh $HOME/buildattract $HOME/buildattract/attractplus

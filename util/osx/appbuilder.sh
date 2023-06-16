@@ -28,9 +28,11 @@ attractname="$basedir/attractplus"
 echo STEP 2 - COLLECT AND FIX LINKED LIBRARIES
 
 # Define library fixing pairs
+#-- Installing: /Users/djhan/buildattract/attractplus/obj/sfml/install/lib/freetype.framework/Versions/A/freetype
 
-fr_lib=("@rpath/../Frameworks/freetype.framework/Versions/A/freetype")
-to_lib=("/usr/local/opt/freetype/lib/libfreetype.6.dylib")
+fr_lib=("@rpath/../Frameworks")
+to_lib=("$basedir/obj/sfml/install/lib")
+#to_lib=("/usr/local/opt/freetype/lib/libfreetype.6.dylib")
 
 fr_lib+=("@rpath/libsfml")
 to_lib+=("$basedir/obj/sfml/install/lib/libsfml")
