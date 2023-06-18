@@ -267,7 +267,9 @@ SFML_PC="sfml-system sfml-window sfml-graphics"
 SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
 
 ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenGL -L/opt/homebrew/Cellar/jpeg/9e/lib -ljpeg -L/opt/homebrew/Cellar/freetype/2.13.0_1/lib -lfreetype
+  LIBS += -framework OpenGL
+  LIBS += $(shell pkg-config --libs-only-L freetype2) -lfreetype
+  LIBS += $(shell pkg-config --libs-only-L libjpeg) -ljpeg
 endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
