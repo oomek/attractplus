@@ -89,7 +89,7 @@ jobs:
     - name: Install MacOS brew
       if: runner.os == 'macOS'
       run: |
-        brew install pkg-config ffmpeg libarchive libvorbis flac
+        brew install pkg-config ffmpeg libarchive libvorbis flac jpeg-turbo
 
     - name: Build AM+ (ARM)
       if: matrix.platform.name == 'armv7' || matrix.platform.name == 'aarch64'
