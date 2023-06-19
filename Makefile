@@ -267,7 +267,9 @@ SFML_PC="sfml-system sfml-window sfml-graphics"
 SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
 
 ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenGL -L/opt/homebrew/Cellar/jpeg/9e/lib -ljpeg
+  LIBS += -framework OpenGL
+  LIBS += $(shell pkg-config --libs-only-L freetype2) -lfreetype
+  LIBS += $(shell pkg-config --libs-only-L libjpeg) -ljpeg
 endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
@@ -490,6 +492,9 @@ else
 endif
 ifeq ($(USE_DRM),1)
 	$(eval SFML_FLAGS += -DSFML_USE_DRM=1)
+endif
+ifeq ($(FE_MACOSX_COMPILE),1)
+	$(eval SFML_FLAGS += -DSFML_USE_SYSTEM_DEPS=1)
 endif
 	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE $(SFML_FLAGS)
 	+$(SILENT)$(CMAKE) --build obj/sfml --config Release --target install
