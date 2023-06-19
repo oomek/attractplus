@@ -30,18 +30,29 @@ echo STEP 2 - COLLECT AND FIX LINKED LIBRARIES
 # Define library fixing pairs
 #-- Installing: /Users/djhan/buildattract/attractplus/obj/sfml/install/lib/freetype.framework/Versions/A/freetype
 
-fr_lib=("@rpath/../Frameworks")
-to_lib=("$basedir/obj/sfml/install/lib")
-#to_lib=("/usr/local/opt/freetype/lib/libfreetype.6.dylib")
-
 fr_lib+=("@rpath/libsfml")
 to_lib+=("$basedir/obj/sfml/install/lib/libsfml")
 
+checklib=$(pkg-config --libs-only-L libsharpyuv)
+checklib="${checklib:2}"
 fr_lib+=("@rpath/libsharpyuv")
-to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
+to_lib+=("$checklib/libsharpyuv")
 
+checklib=$(pkg-config --libs-only-L libwebp)
+checklib="${checklib:2}"
 fr_lib+=("@rpath/libwebp")
-to_lib+=("/usr/local/opt/webp/lib/libwebp")
+to_lib+=("$checklib/libwebp")
+
+#fr_lib+=("@rpath/libsharpyuv")
+#to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
+
+#fr_lib=("@rpath/../Frameworks")
+#to_lib=("$basedir/obj/sfml/install/lib")
+
+#"${myString:1}"
+
+#fr_lib+=("@rpath/libwebp")
+#to_lib+=("/usr/local/opt/webp/lib/libwebp")
 
 # Build commands for processing
 commands=("")
@@ -51,7 +62,7 @@ done
 
 # Populate fullarray with L0 paths
 # This is the array of entries as they are in the actual binaries
-fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
 echo fullarray pre
 for val in ${fullarray[@]}; do
@@ -89,7 +100,7 @@ do
 	# Updatearray contains the libraries from fullarray, that is the actual correct library paths,
 	# they are scanned one by one to gather sublibraries for each. Each library is scanned to build the subarray
    for strlib in ${updatearray[@]}; do
-		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 		echo subarray pre
 		for val in ${subarray[@]}; do
 			echo $val
@@ -136,8 +147,8 @@ done
 libsarray=( $(ls "$bundlecontent"/libs) )
 for str in ${libsarray[@]}; do
    echo fixing $str
-   subarray=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
-   subarray_fix=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+   subarray=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
+   subarray_fix=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
 	#Apply correction filters to all libraries
 	for commandline in ${commands[@]}; do
@@ -176,7 +187,7 @@ echo STEP 4 - FIX ATTRACTPLUS EXECUTABLE
 install_name_tool -add_rpath "@executable_path/../libs/" "$bundlecontent"/MacOS/attractplus
 
 # List libraries linked in attractplus
-attractlibs=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|@rpath' | awk -F' ' '{print $1}') )
+attractlibs=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
 # Apply new links to libraries
 for str in ${attractlibs[@]}; do
