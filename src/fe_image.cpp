@@ -240,7 +240,6 @@ FeTextureContainer::FeTextureContainer(
 	m_video_flags( VF_Normal ),
 	m_mipmap( false ),
 	m_smooth( false ),
-	m_frame_displayed( false ),
 	m_entry( NULL )
 {
 	if ( is_artwork )
@@ -279,7 +278,7 @@ bool FeTextureContainer::get_visible() const
 	if ( m_entry )
 		return false;
 
-	return ( !m_movie || m_frame_displayed );
+	return true;
 }
 
 bool FeTextureContainer::fix_masked_image()
@@ -353,6 +352,9 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	m_texture.setSmooth( m_smooth );
 	m_file_name = loaded_name;
+	sf::Image img = sf::Image();
+	img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color::Black );
+	m_texture.update( img );
 	return true;
 }
 #endif
@@ -592,7 +594,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
-			m_frame_displayed=true;
 			if ( m_mipmap ) m_texture.generateMipmap();
 			return true;
 		}
@@ -613,10 +614,7 @@ void FeTextureContainer::set_play_state( bool play )
 		if ( m_movie_status > PLAY_COUNT )
 		{
 			if ( play )
-			{
-				m_movie->stop();
 				m_movie->play();
-			}
 			else
 			{
 				m_movie->stop();
@@ -799,7 +797,6 @@ FeTextureContainer *FeTextureContainer::get_derived_texture_container()
 void FeTextureContainer::clear()
 {
 	m_movie_status = -1;
-	m_frame_displayed = false;
 	m_file_name.clear();
 
 #ifndef NO_MOVIE

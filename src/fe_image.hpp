@@ -214,7 +214,6 @@ private:
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;
 	bool m_smooth;
-	bool m_frame_displayed;
 	FeImageLoaderEntry *m_entry;
 };
 

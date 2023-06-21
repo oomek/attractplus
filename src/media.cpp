@@ -430,7 +430,7 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 		display_frame( NULL )
 {
 	FePresent *fep = FePresent::script_get_fep();
-	half_frame_offset = sf::milliseconds( fep->get_refresh_rate() / 2 );
+	half_frame_offset = sf::milliseconds( 500 / fep->get_refresh_rate() );
 }
 
 FeVideoImp::~FeVideoImp()
@@ -501,9 +501,28 @@ bool FeVideoImp::hw_retrieve_data( AVFrame *f )
 
 void FeVideoImp::play()
 {
+	if ( run_video_thread )
+	{
+		// our thread is already playing, so shut it down before
+		// we start it again below
+		run_video_thread = false;
+
+		if ( m_video_thread.joinable() )
+			m_video_thread.join();
+	}
+
 	run_video_thread = true;
 	video_timer.restart();
-	m_video_thread = std::thread( &FeVideoImp::video_thread, this );
+
+	try
+	{
+		m_video_thread = std::thread( &FeVideoImp::video_thread, this );
+	}
+	catch ( const std::system_error &e )
+	{
+		FeLog() << "System error starting video thread.  Code: " << e.code()
+			<< " - " << e.what() << std::endl;
+	}
 }
 
 void FeVideoImp::stop()
@@ -604,9 +623,9 @@ void FeVideoImp::video_thread()
 		if ( detached_frame )
 		{
 
-		wait_time = sf::seconds( detached_frame->pts
-					* av_q2d( m_parent->m_imp->m_format_ctx->streams[stream_id]->time_base ))
-					- m_parent->get_video_time() + half_frame_offset;
+			wait_time = sf::seconds( detached_frame->pts
+						* av_q2d( m_parent->m_imp->m_format_ctx->streams[stream_id]->time_base ))
+						- m_parent->get_video_time() + half_frame_offset;
 
 			if ( wait_time < max_sleep )
 			{
