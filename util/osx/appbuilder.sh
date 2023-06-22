@@ -64,9 +64,11 @@ done
 # This is the array of entries as they are in the actual binaries
 fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
-echo fullarray pre
+echo
+echo $( basename "$attractname" )
+echo "  pre"
 for val in ${fullarray[@]}; do
-   echo $val
+   echo "   $val"
 done
 
 # Build fullarray and updatearray with filtered paths
@@ -75,25 +77,21 @@ for commandline in ${commands[@]}; do
 	fullarray=($(sed "$commandline" <<< "${fullarray[@]}"))
 done
 
-echo fullarray post
+echo "  post"
 for val in ${fullarray[@]}; do
-   echo $val
+   echo "   $val"
 done
 
 # Updatearray is the list of libraries that need to be changed, it is used to copy and gather the correct libraries
 # therefore it must use the fullarray data which carries the correct paths
 updatearray=(${fullarray[@]})
 
-
-for val in ${updatearray[@]}; do
-   echo L0 $val
-done
-
 # Iterative scan of linked libraries to build library array
 iter=0
 while [ ${#updatearray[@]} != 1 ] #repeat until there are no more sublibraries
 do
    iter=$(($iter + 1))
+	echo 
    echo check iteration $iter
 	# Sublevelarray is the list of all libraries in this sublevel
 	sublevelarray=("")
@@ -101,16 +99,17 @@ do
 	# they are scanned one by one to gather sublibraries for each. Each library is scanned to build the subarray
    for strlib in ${updatearray[@]}; do
 		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
-		echo subarray pre
+		echo $( basename "$strlib" ) 
+		echo "  pre"
 		for val in ${subarray[@]}; do
-			echo $val
+			echo "   $val"
 		done
 		for commandline in ${commands[@]}; do
 			subarray=($(sed "$commandline" <<< "${subarray[@]}"))
 		done
-		echo subarray post
+		echo "  post"
 		for val in ${subarray[@]}; do
-			echo $val
+			echo "   $val"
 		done
 		# as before, sublevelarray is built by post entries, with correct path
       sublevelarray+=("${subarray[@]}")
@@ -119,6 +118,7 @@ do
 	# Updatearray is cleaned so that only new entries can be added for future iterations
 	# Build an array of unique library entries to pass to the next iteration
    updatearray=("")
+	echo
    for val in ${sublevelarray[@]}; do
       new=1
       for i in ${fullarray[@]}; do
@@ -161,6 +161,7 @@ for str in ${libsarray[@]}; do
       install_name_tool -change $str2 @loader_path/../libs/$str3 "$bundlelibs"/$str
    done
    install_name_tool -id @loader_path/../libs/$str "$bundlelibs"/$str
+	#codesign --force -s - "$bundlelibs"/$str
 done
 
 echo STEP 3 - POPULATE BUNDLE FOLDER
@@ -194,7 +195,23 @@ for str in ${attractlibs[@]}; do
    str2=$( basename "$str" )
    install_name_tool -change $str @loader_path/../libs/$str2 "$bundlecontent"/MacOS/attractplus
 done
-
+#codesign --force -s - "$bundlecontent"/MacOS/attractplus
 echo STEP 5 - RENAME ARTIFACT TO v${SHORTVERSION}
 
-mv "$bundlehome" "$buildpath/Attract-Mode Plus v${SHORTVERSION}.app"
+newappname="$buildpath/Attract-Mode Plus v${SHORTVERSION}.app"
+mv "$bundlehome" "$newappname"
+
+signapp=${3:-"no"}
+
+if [[ $signapp == "yes" ]]
+then
+	echo STEP 6 - AD HOC SIGNING
+	libsarray=( $(ls "$newappname/Contents/libs") )
+	for str in ${libsarray[@]}; do
+		codesign --force -s - "$newappname/Contents/libs/$str"
+	done
+	codesign --force -s - "$newappname/Contents/MacOS/attractplus"
+	codesign --force -s - "$newappname"
+fi
+
+echo ALL DONE
