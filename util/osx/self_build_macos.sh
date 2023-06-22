@@ -30,4 +30,4 @@ make clean
 eval make -j${NPROC} STATIC=0 VERBOSE=1 prefix=..
 
 
-bash util/osx/appbuilder.sh $HOME/buildattract $HOME/buildattract/attractplus
+bash util/osx/appbuilder.sh $HOME/buildattract $HOME/buildattract/attractplus yes
