@@ -388,6 +388,7 @@ int main(int argc, char *argv[])
         			window.get_win().setView( sf::View( sf::FloatRect( 0, 0, ev.size.width, ev.size.height )));
 					feVM.init_monitors();
 					feVM.load_layout();
+					feOverlay.init_font_sizes();
 					redraw = true;
 					break;
 

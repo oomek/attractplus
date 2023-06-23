@@ -44,11 +44,17 @@ private:
 	FePresent &m_fePresent;
 	const sf::Color m_textColour;
 	const sf::Color m_bgColour;
-	const sf::Color m_selColour;
+	const sf::Color m_selFrameColour;
 	const sf::Color m_selBgColour;
 	const sf::Color m_lineColour;
-	const sf::Color m_headerBgColour;
+	const sf::Color m_headingBgColour;
 	bool m_overlay_is_on;
+	sf::Vector2i m_screen_size;
+	sf::Vector2f m_text_scale;
+	int m_text_size;
+	int m_heading_size;
+	int m_footer_size;
+	int m_line_size;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -113,6 +119,8 @@ public:
 	// returns true if frontend should exit, false otherwise
 	//
 	bool common_exit();
+
+	void init_font_sizes();
 };
 
 #endif

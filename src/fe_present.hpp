@@ -256,6 +256,7 @@ public:
 	const FeFontContainer *get_pooled_font( const std::string &n );
 
 	const sf::Vector2i &get_layout_size() const { return m_layoutSize; }
+	const sf::Vector2i get_screen_size();
 	FeShader *get_empty_shader();
 
 	// Returns true if a script has set custom overlay controls.

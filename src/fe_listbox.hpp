@@ -76,7 +76,7 @@ public:
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
 
-	FeTextPrimitive *setEditMode( bool, sf::Color );
+	FeTextPrimitive *setEditMode( bool, sf::Color, int );
 
 	void setRotation( float );
 

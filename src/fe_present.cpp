@@ -1624,3 +1624,7 @@ std::string FePresent::script_get_base_path()
 	return path;
 }
 
+const sf::Vector2i FePresent::get_screen_size()
+{
+	return m_mon[0].size;
+}
