@@ -319,6 +319,7 @@ public:
 	bool get_visible() const;
 
 	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
+	void clear_sprite();
 
 	float get_origin_x() const;
 	float get_origin_y() const;

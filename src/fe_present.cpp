@@ -1558,6 +1558,20 @@ bool FePresent::get_mouse_pointer()
 	return false;
 }
 
+sf::Texture &FePresent::get_blank_texture()
+{
+	static sf::Texture m_blank_texture;
+
+	if ( m_blank_texture.getSize().x != 1 )
+	{
+		uint8_t arr[4]  = { 0x00,0x00,0x00,0xff };
+		m_blank_texture.create(1,1);
+		m_blank_texture.update( arr );
+	}
+
+	return m_blank_texture;
+}
+
 void FePresent::script_do_update( FeBasePresentable *bp )
 {
 	FePresent *fep = script_get_fep();

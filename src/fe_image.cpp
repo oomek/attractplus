@@ -352,9 +352,10 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	m_texture.setSmooth( m_smooth );
 	m_file_name = loaded_name;
-	sf::Image img = sf::Image();
-	img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color::Black );
-	m_texture.update( img );
+
+	for ( std::vector<FeImage *>::iterator itr = m_images.begin(); itr != m_images.end(); ++itr )
+		(*itr)->clear_sprite();
+
 	return true;
 }
 #endif
@@ -520,16 +521,12 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 				if ( try_to_load( filename, true ) )
 				{
 					loaded = true;
+					notify_texture_change();
 					break;
 				}
 			}
 		}
 	}
-
-	//
-	// Texture was replaced, so notify the attached images
-	//
-	notify_texture_change();
 }
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
@@ -594,6 +591,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
+			notify_texture_change();
 			if ( m_mipmap ) m_texture.generateMipmap();
 			return true;
 		}
@@ -1054,6 +1052,16 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 	m_sprite.setTexture( m_tex->get_texture() );
 
 	//  reset texture rect now to the one reported by the new texture object
+	m_sprite.setTextureRect(
+		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
+
+	scale();
+}
+
+void FeImage::clear_sprite()
+{
+	m_sprite.setTexture( FePresent::get_blank_texture() );
+
 	m_sprite.setTextureRect(
 		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
 
