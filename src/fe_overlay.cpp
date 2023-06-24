@@ -232,7 +232,6 @@ void FeOverlay::init_font_sizes()
 	m_heading_size = m_text_size * 1.5;
 	m_footer_size = m_text_size * 0.75;
 	m_line_size = std::round( std::min( m_screen_size.x, m_screen_size.y ) / 240 );
-	FeLog() << m_text_size << "," << m_heading_size << "," << m_footer_size << std::endl;
 }
 
 void FeOverlay::splash_message( const std::string &msg,
