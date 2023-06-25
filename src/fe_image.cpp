@@ -1066,7 +1066,7 @@ void FeImage::clear_sprite()
 	m_sprite.setTexture( FePresent::get_blank_texture() );
 
 	m_sprite.setTextureRect(
-		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
+		sf::FloatRect( 0, 0, 1, 1 ) );
 
 	scale();
 }
