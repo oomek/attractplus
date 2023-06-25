@@ -612,7 +612,10 @@ void FeTextureContainer::set_play_state( bool play )
 		if ( m_movie_status > PLAY_COUNT )
 		{
 			if ( play )
+			{
+				m_movie->stop();
 				m_movie->play();
+			}
 			else
 			{
 				m_movie->stop();
@@ -753,7 +756,7 @@ void FeTextureContainer::load_file( const char *n )
 
 	bool is_image=tail_compare( filename, FE_ART_EXTENSIONS );
 	try_to_load( filename, is_image );
-	notify_texture_change();
+	if ( is_image ) notify_texture_change();
 }
 
 const char *FeTextureContainer::get_file_name() const
