@@ -353,9 +353,6 @@ bool FeTextureContainer::load_with_ffmpeg(
 	m_texture.setSmooth( m_smooth );
 	m_file_name = loaded_name;
 
-	for ( std::vector<FeImage *>::iterator itr = m_images.begin(); itr != m_images.end(); ++itr )
-		(*itr)->clear_sprite();
-
 	return true;
 }
 #endif
@@ -815,6 +812,9 @@ void FeTextureContainer::clear()
 		FeImageLoader &il = FeImageLoader::get_ref();
 		il.release_entry( &m_entry );
 	}
+
+	for ( std::vector<FeImage *>::iterator itr = m_images.begin(); itr != m_images.end(); ++itr )
+		(*itr)->clear_sprite();
 }
 
 void FeTextureContainer::set_smooth( bool s )
