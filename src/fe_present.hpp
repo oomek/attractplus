@@ -272,6 +272,7 @@ public:
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
 
+	static sf::Texture *m_blank_texture;
 	static sf::Texture &get_blank_texture();
 
 	//

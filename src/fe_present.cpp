@@ -1313,6 +1313,8 @@ void FePresent::pre_run()
 
 	sf::AudioDevice::release_audio( true );
 #endif
+	delete m_blank_texture;
+	m_blank_texture = nullptr;
 }
 
 void FePresent::post_run()
@@ -1559,18 +1561,19 @@ bool FePresent::get_mouse_pointer()
 	return false;
 }
 
+sf::Texture *FePresent::m_blank_texture = nullptr;
+
 sf::Texture &FePresent::get_blank_texture()
 {
-	static sf::Texture m_blank_texture;
-
-	if ( m_blank_texture.getSize().x != 1 )
+	if ( !m_blank_texture )
 	{
 		uint8_t arr[4]  = { 0x00,0x00,0x00,0xff };
-		m_blank_texture.create(1,1);
-		m_blank_texture.update( arr );
+		m_blank_texture = new sf::Texture;
+		m_blank_texture->create(1,1);
+		m_blank_texture->update( arr );
 	}
 
-	return m_blank_texture;
+	return *m_blank_texture;
 }
 
 void FePresent::script_do_update( FeBasePresentable *bp )
