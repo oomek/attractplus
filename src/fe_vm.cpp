@@ -279,8 +279,8 @@ const char *FeVM::transitionTypeStrings[] =
 		NULL
 };
 
-FeVM::FeVM( FeSettings &fes, FeFontContainer &defaultfont, FeWindow &wnd, FeSound &ambient_sound, bool console_input )
-	: FePresent( &fes, defaultfont, wnd ),
+FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeSound &ambient_sound, bool console_input )
+	: FePresent( &fes, wnd ),
 	m_overlay( NULL ),
 	m_ambient_sound( ambient_sound ),
 	m_redraw_triggered( false ),

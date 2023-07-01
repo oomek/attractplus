@@ -139,15 +139,12 @@ int main(int argc, char *argv[])
 	FeWindow window( feSettings );
 	window.initial_create();
 
-	FeFontContainer def_font;
-	def_font.load_default_font();
-
 #ifdef WINDOWS_CONSOLE
 	if ( feSettings.get_hide_console() )
 		hide_console();
 #endif
 
-	FeVM feVM( feSettings, def_font, window, soundsys.get_ambient_sound(), process_console );
+	FeVM feVM( feSettings, window, soundsys.get_ambient_sound(), process_console );
 	FeOverlay feOverlay( window, feSettings, feVM );
 	feVM.set_overlay( &feOverlay );
 

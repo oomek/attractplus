@@ -110,7 +110,7 @@ private:
 	static bool internal_do_nut(const std::string &, const std::string &);
 
 public:
-	FeVM( FeSettings &fes, FeFontContainer &defaultfont, FeWindow &wnd, FeSound &ambient_sound, bool console_input );
+	FeVM( FeSettings &fes, FeWindow &wnd, FeSound &ambient_sound, bool console_input );
 	~FeVM();
 
 	void set_overlay( FeOverlay *feo );

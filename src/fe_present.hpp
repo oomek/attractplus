@@ -125,7 +125,7 @@ protected:
 	FeWindow &m_window;
 
 	const FeFontContainer *m_layoutFont;
-	FeFontContainer &m_defaultFont;
+	FeFontContainer *m_defaultFont;
 	std::string m_layoutFontName;
 
 	sf::Clock m_layoutTimer;
@@ -207,7 +207,7 @@ protected:
 	void set_preserve_aspect_ratio( bool );
 
 public:
-	FePresent( FeSettings *fesettings, FeFontContainer &defaultfont, FeWindow &wnd );
+	FePresent( FeSettings *fesettings, FeWindow &wnd );
 	virtual ~FePresent( void );
 
 	virtual void clear();

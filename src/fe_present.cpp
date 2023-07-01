@@ -167,11 +167,11 @@ int FeMonitor::get_num()
 	return num;
 }
 
-FePresent::FePresent( FeSettings *fesettings, FeFontContainer &defaultfont, FeWindow &wnd )
+FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	: m_feSettings( fesettings ),
 	m_window( wnd ),
-	m_layoutFont( &defaultfont ),
-	m_defaultFont( defaultfont ),
+	m_layoutFont( NULL ),
+	m_defaultFont( NULL ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
 	m_refresh_rate( 0 ),
@@ -187,6 +187,9 @@ FePresent::FePresent( FeSettings *fesettings, FeFontContainer &defaultfont, FeWi
 {
 	m_layoutFontName = "";
 	init_monitors();
+	m_defaultFont = new FeFontContainer();
+	m_defaultFont->load_default_font();
+	m_layoutFont = m_defaultFont;
 }
 
 void FePresent::init_monitors()
@@ -405,7 +408,7 @@ void FePresent::clear()
 	//
 	m_listBox=NULL; // listbox gets deleted with the m_mon.elements below
 	m_transform = sf::Transform();
-	m_layoutFont = &m_defaultFont;
+	m_layoutFont = m_defaultFont;
 	m_layoutFontName = "";
 	m_user_page_size = -1;
 	m_preserve_aspect = false;
@@ -755,7 +758,7 @@ const FeFontContainer *FePresent::get_pooled_font(
 	// Check if this just matches the default font
 	//
 	if ( ffile.empty() )
-		return &m_defaultFont;
+		return m_defaultFont;
 
 	// Next check if this font is already loaded in our pool
 	//
@@ -1315,10 +1318,17 @@ void FePresent::pre_run()
 #endif
 	delete m_blank_texture;
 	m_blank_texture = nullptr;
+
+	delete m_defaultFont;
+	m_defaultFont = nullptr;
 }
 
 void FePresent::post_run()
 {
+	m_defaultFont = new FeFontContainer();
+	m_defaultFont->load_default_font();
+	m_layoutFont = m_defaultFont;
+
 	std::vector<FeSound *>::iterator its;
 
 #ifndef NO_MOVIE
@@ -1392,7 +1402,7 @@ const sf::Font *FePresent::get_font() const
 
 const sf::Font *FePresent::get_default_font() const
 {
-	return &(m_defaultFont.get_font());
+	return &(m_defaultFont->get_font());
 }
 
 void FePresent::toggle_rotate( FeSettings::RotationState r )
