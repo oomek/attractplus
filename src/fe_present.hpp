@@ -195,15 +195,15 @@ protected:
 	int get_list_limit() const;
 	void set_search_rule( const char * );
 	const char *get_search_rule();
+	const char *get_layout_font_name() const;
 	bool get_preserve_aspect_ratio();
 
 	void set_selection_index( int );
-	const char *get_layout_font() const;
 	void set_layout_width( float );
 	void set_layout_height( float );
 	void set_base_rotation( int );
 	void set_toggle_rotation( int );
-	void set_layout_font( const char * );
+	void set_layout_font_name( const char * );
 	void set_preserve_aspect_ratio( bool );
 
 public:
@@ -245,8 +245,9 @@ public:
 	void set_page_size( int );
 
 	const sf::Transform &get_transform() const;
-	const sf::Font *get_font() const; // get the current font (used by overlay)
-	const sf::Font *get_default_font() const; // get the default font (used by config overlay)
+	const sf::Font *get_layout_font();
+	const sf::Font *get_default_font();
+	const FeFontContainer *get_default_font_container();
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;

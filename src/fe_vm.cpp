@@ -830,7 +830,7 @@ bool FeVM::on_new_layout()
 	fe.Bind( _SC("LayoutGlobals"), Class <FePresent, NoConstructor>()
 		.Prop( _SC("width"), &FePresent::get_layout_width, &FePresent::set_layout_width )
 		.Prop( _SC("height"), &FePresent::get_layout_height, &FePresent::set_layout_height )
-		.Prop( _SC("font"), &FePresent::get_layout_font, &FePresent::set_layout_font )
+		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
 		// orient property deprecated as of 1.3.2, use "base_rotation" instead
 		.Prop( _SC("orient"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )
 		.Prop( _SC("base_rotation"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )

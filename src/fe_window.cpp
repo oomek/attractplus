@@ -474,12 +474,12 @@ bool FeWindow::run()
 	opt.launch_opaque = this;
 
 #if defined(USE_DRM)
+	FePresent *fep = FePresent::script_get_fep();
+	fep->clear();
+
 	close();
 	delete m_window;
 	m_window = NULL;
-
-	FePresent *fep = FePresent::script_get_fep();
-	fep->clear();
 #endif
 
 	bool have_paused_prog = m_running_pid && process_exists( m_running_pid );
