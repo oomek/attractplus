@@ -133,7 +133,8 @@ protected:
 
 	FeSettings::RotationState m_baseRotation;
 	FeSettings::RotationState m_toggleRotation;
-	sf::Transform m_transform;
+	sf::Transform m_layout_transform;
+	sf::Transform m_ui_transform;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
@@ -245,6 +246,7 @@ public:
 	void set_page_size( int );
 
 	const sf::Transform &get_transform() const;
+	const sf::Transform &get_ui_transform() const;
 	const sf::Font *get_layout_font();
 	const sf::Font *get_default_font();
 	const FeFontContainer *get_default_font_container();

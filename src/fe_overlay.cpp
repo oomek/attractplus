@@ -209,10 +209,9 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	m_headingBgColour( sf::Color( 10, 20, 40, 255 ) ),
 	m_overlay_is_on( false )
 {
-	init_font_sizes();
 }
 
-void FeOverlay::init_font_sizes()
+void FeOverlay::init()
 {
 	m_screen_size = m_fePresent.get_screen_size();
 	float scale_x = m_fePresent.get_layout_scale_x();
@@ -271,7 +270,7 @@ void FeOverlay::splash_message( const std::string &msg,
 
 	extra.setString( aux );
 
-	const sf::Transform &t = m_fePresent.get_transform();
+	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	// Process tick only when Layout is fully loaded
 	if ( m_fePresent.is_layout_loaded() )
@@ -280,10 +279,8 @@ void FeOverlay::splash_message( const std::string &msg,
 	m_wnd.clear();
 	m_wnd.draw( m_fePresent, t );
 	m_wnd.draw( bg );
-	// m_wnd.draw( message, t );
-	m_wnd.draw( message );
-	// m_wnd.draw( extra, t );
-	m_wnd.draw( extra );
+	m_wnd.draw( message, t );
+	m_wnd.draw( extra, t );
 	m_wnd.display();
 }
 
@@ -796,7 +793,7 @@ void FeOverlay::input_map_dialog(
 	FeInputMapEntry entry;
 	sf::Clock timeout;
 
-	const sf::Transform &t = m_fePresent.get_transform();
+	const sf::Transform &t = m_fePresent.get_ui_transform();
 	while ( m_wnd.isOpen() )
 	{
 		while (m_wnd.pollEvent(ev))
@@ -874,8 +871,7 @@ void FeOverlay::input_map_dialog(
 
 			m_wnd.clear();
 			m_wnd.draw( m_fePresent, t );
-			// m_wnd.draw( message, t );
-			m_wnd.draw( message );
+			m_wnd.draw( message, t );
 			m_wnd.display();
 			redraw = false;
 		}
@@ -1299,7 +1295,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 	// Make sure the Back and Select buttons are NOT down, to avoid immediately
 	// triggering an exit/selection
 	//
-	const sf::Transform &t = m_fePresent.get_transform();
+	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	sf::Clock timer;
 	while (( timer.getElapsedTime() < sf::seconds( 6 ) )
@@ -1320,8 +1316,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 
 			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
 					itr < ctx.draw_list.end(); ++itr )
-				// m_wnd.draw( *(*itr), t );
-				m_wnd.draw( *(*itr) );
+				m_wnd.draw( *(*itr), t );
 
 			m_wnd.display();
 		}
@@ -1336,7 +1331,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 //
 bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 {
-	const sf::Transform &t = m_fePresent.get_transform();
+	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	bool redraw=true;
 
@@ -1409,8 +1404,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 
 			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
 					itr < ctx.draw_list.end(); ++itr )
-				// m_wnd.draw( *(*itr), t );
-				m_wnd.draw( *(*itr));
+				m_wnd.draw( *(*itr), t );
 
 			m_wnd.display();
 			redraw = false;
@@ -1617,7 +1611,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 			std::basic_string<sf::Uint32> &str, FeTextPrimitive *tp )
 {
 	sf::Clock cursor_timer;
-	const sf::Transform &t = m_fePresent.get_transform();
+	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	const sf::Font *font = tp->getFont();
 	sf::Text cursor( "|", *font, tp->getCharacterSize() / tp->getTextScale().x );
@@ -1878,15 +1872,13 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 
 		for ( std::vector<sf::Drawable *>::iterator itr=d.begin();
 				itr < d.end(); ++itr )
-			// m_wnd.draw( *(*itr), t );
-			m_wnd.draw( *(*itr) );
+			m_wnd.draw( *(*itr), t );
 
 		int cursor_fade = ( sin( cursor_timer.getElapsedTime().asMilliseconds() / 250.0 * M_PI ) + 1.0 ) * 255;
 
 		cursor.setFillColor( sf::Color( 255, 255, 255, std::max( 0, std::min( cursor_fade, 255 ))));
 
-		// m_wnd.draw( cursor, t );
-		m_wnd.draw( cursor );
+		m_wnd.draw( cursor, t );
 		m_wnd.display();
 
 		if ( !redraw && m_feSettings.get_info_bool( FeSettings::PowerSaving ) )

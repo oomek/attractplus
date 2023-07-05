@@ -375,7 +375,7 @@ bool FeVM::poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui )
 void FeVM::clear()
 {
 	FePresent::clear();
-
+	m_overlay->init();
 	m_last_ui_cmd = sf::Time();
 	m_ticks.clear();
 	m_trans.clear();

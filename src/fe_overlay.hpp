@@ -120,7 +120,7 @@ public:
 	//
 	bool common_exit();
 
-	void init_font_sizes();
+	void init();
 };
 
 #endif
