@@ -393,7 +393,7 @@ endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR)
 
-ifeq ($(shell $(PKG_CONFIG) --libs $(TEMP_LIBS) toto && echo "1" || echo "0"), 0)
+ifeq ($(shell $(PKG_CONFIG) --libs $(TEMP_LIBS) && echo "1" || echo "0"), 0)
   $(error pkg-config couldn't find some libraries, aborting)
 endif
 LIBS := $(LIBS) $(shell $(PKG_CONFIG) --libs $(TEMP_LIBS))
