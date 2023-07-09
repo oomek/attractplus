@@ -2,6 +2,9 @@ name: Build
 
 on: [push, pull_request]
 
+env:
+  PKG_CONFIG_PATH_x86_64_w64_mingw32_static: /usr/lib/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/
+
 jobs:
   buildAM:
     name: ${{ matrix.platform.name }} ${{ matrix.config.name }}
@@ -120,9 +123,7 @@ jobs:
     - name: Build AM+ attract-console.exe
       if: matrix.platform.name == 'Windows x64'
       run: |
-        fe_version=
-        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
-        make -C am smallclean
+        make -C am smallclean ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
         make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}} WINDOWS_CONSOLE=1
 
     - name: Prepare artifacts
