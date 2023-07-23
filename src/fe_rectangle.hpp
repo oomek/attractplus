@@ -69,6 +69,10 @@ public:
 	float get_origin_y() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;
+	float get_anchor_x() const;
+	float get_anchor_y() const;
+	float get_rotation_origin_x() const;
+	float get_rotation_origin_y() const;
 	int get_olr() const;
 	int get_olg() const;
 	int get_olb() const;
@@ -80,6 +84,10 @@ public:
 	void set_anchor_type( int t );
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
+	void set_anchor_x( float x );
+	void set_anchor_y( float y );
+	void set_rotation_origin_x( float x );
+	void set_rotation_origin_y( float y );
 	void set_olr( int r );
 	void set_olg( int g );
 	void set_olb( int b );

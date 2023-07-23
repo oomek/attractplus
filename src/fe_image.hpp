@@ -325,6 +325,10 @@ public:
 	float get_origin_y() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;
+	float get_anchor_x() const;
+	float get_anchor_y() const;
+	float get_rotation_origin_x() const;
+	float get_rotation_origin_y() const;
 	int get_skew_x() const;
 	int get_skew_y() const;
 	int get_pinch_x() const ;
@@ -350,6 +354,10 @@ public:
 	void set_anchor_type( int t );
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
+	void set_anchor_x( float x );
+	void set_anchor_y( float y );
+	void set_rotation_origin_x( float x );
+	void set_rotation_origin_y( float y );
 	void set_skew_x( int x );
 	void set_skew_y( int y );
 	void set_pinch_x( int x );

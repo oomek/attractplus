@@ -1399,6 +1399,26 @@ int FeImage::get_rotation_origin_type() const
 	return (FeImage::Alignment)m_rotation_origin_type;
 }
 
+float FeImage::get_anchor_x() const
+{
+	return m_anchor.x;
+}
+
+float FeImage::get_anchor_y() const
+{
+	return m_anchor.y;
+}
+
+float FeImage::get_rotation_origin_x() const
+{
+	return m_rotation_origin.x;
+}
+
+float FeImage::get_rotation_origin_y() const
+{
+	return m_rotation_origin.y;
+}
+
 int FeImage::get_skew_x() const
 {
 	return m_sprite.getSkewX();
@@ -1471,6 +1491,46 @@ void FeImage::set_rotation_origin_type( int t )
 	m_rotation_origin_type = (FeImage::Alignment)t;
 	sf::Vector2f o = alignTypeToVector( t );
 	set_rotation_origin( o.x, o.y );
+}
+
+void FeImage::set_anchor_x( float x )
+{
+	if ( x != m_anchor.x )
+	{
+		m_anchor.x = x;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_anchor_y( float y )
+{
+	if ( y != m_anchor.y )
+	{
+		m_anchor.y = y;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_rotation_origin_x( float x )
+{
+	if ( x != m_rotation_origin.x )
+	{
+		m_rotation_origin.x = x;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_rotation_origin_y( float y )
+{
+	if ( y != m_rotation_origin.y )
+	{
+		m_rotation_origin.y = y;
+		scale();
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeImage::set_skew_x( int x )

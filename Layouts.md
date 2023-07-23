@@ -1587,8 +1587,8 @@ Properties:
      image is unscaled.  Default value is 0.
    * `visible` - Get/set whether image is visible (boolean).  Default value
      is `true`.
-   * `rotation` - Get/set rotation of image around its origin. Range is [0
-     ... 360].  Default value is 0.
+   * `rotation` - Get/set rotation of image around its rotation origin.
+     Range is [0 ... 360].  Default value is 0.
    * `red` - Get/set red colour level for image. Range is [0 ... 255].
      Default value is 255.
    * `green` - Get/set green colour level for image. Range is [0 ... 255].
@@ -1631,10 +1631,10 @@ Properties:
      to display.  Default value is `texture_height`.
    * `sample_aspect_ratio` - Get the "sample aspect ratio", which is the width
      of a pixel divided by the height of the pixel.
-   * `origin_x` - Get/set the x position of the local origin for the image.
+   * `origin_x` - (deprecated) Get/set the x position of the local origin for the image.
      The origin defines the centre point for any positioning or rotation of
      the image.  Default origin in 0,0 (top-left corner).
-   * `origin_y` - Get/set the y position of the local origin for the image.
+   * `origin_y` - (deprecated) Get/set the y position of the local origin for the image.
      The origin defines the centre point for any positioning or rotation of
      the image. Default origin is 0,0 (top-left corner).
    * `anchor` 🔶 Set the midpoint for position and scale.
@@ -1644,21 +1644,29 @@ Properties:
       - `Anchor.Right`
       - `Anchor.Top`
       - `Anchor.Bottom`
-      - `Anchor.TopLeft`
+      - `Anchor.TopLeft` (default)
       - `Anchor.TopRight`
       - `Anchor.BottomLeft`
       - `Anchor.BottomRight`
-   * `origin` 🔶 Set the midpoint for rotation
+   * `rotation_origin` 🔶 Set the midpoint for rotation
      Can be set to one of the following modes:
       - `Origin.Left`
       - `Origin.Centre`
       - `Origin.Right`
       - `Origin.Top`
       - `Origin.Bottom`
-      - `Origin.TopLeft`
+      - `Origin.TopLeft` (default)
       - `Origin.TopRight`
       - `Origin.BottomLeft`
       - `Origin.BottomRight`
+   * `anchor_x` 🔶 Get/set the x position of the midpoint for position and scale.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
+   * `anchor_y` 🔶 Get/set the y position of the midpoint for position and scale.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
+   * `rotation_origin_x` 🔶 Get/set the x position of the midpoint for rotation.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
+   * `rotation_origin_y` 🔶 Get/set the y position of the midpoint for rotation.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
    * `video_flags` - [image & artwork only] Get/set video flags for this
      object.  These flags allow you to override Attract-Mode's default video
      playback behaviour.  Can be set to any combination of none or more of the
@@ -1719,9 +1727,9 @@ Member Functions:
    * `set_pos( x, y, width, height )` - Set the image position and size (in
      layout coordinates).
    * `set_anchor( x, y )` 🔶 Set the midpoint for position and scale
-     x and y are in [0.0 ... 1.0] scale
-   * `set_origin( x, y )` 🔶 Set the midpoint for rotation
-     x and y are in [0.0 ... 1.0] scale
+     x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
+   * `set_rotation_origin( x, y )` 🔶 Set the midpoint for rotation
+     x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
    * `swap( other_img )` - swap the texture contents of this object (and all
      of its clones) with the contents of "other_img" (and all of its clones).
      If an image or artwork is swapped, its video attributes (`video_flags`
@@ -2066,10 +2074,10 @@ Properties:
      Range is [0 ... 255]. Default value is 255.
    * `outline_alpha` - Get/set alpha level for the rectangle's outline.
      Range is [0 ... 255].  Default value is 255.
-   * `origin_x` - Get/set the x position of the local origin for the rectangle.
+   * `origin_x` - (deprecated) Get/set the x position of the local origin for the rectangle.
      The origin defines the centre point for any positioning or rotation of
      the rectangle.  Default origin in 0,0 (top-left corner).
-   * `origin_y` - Get/set the y position of the local origin for the rectangle.
+   * `origin_y` - (deprecated) Get/set the y position of the local origin for the rectangle.
      The origin defines the centre point for any positioning or rotation of
      the rectangle. Default origin is 0,0 (top-left corner).
    * `anchor` Set the midpoint for position and scale.
@@ -2079,21 +2087,29 @@ Properties:
       - `Anchor.Right`
       - `Anchor.Top`
       - `Anchor.Bottom`
-      - `Anchor.TopLeft`
+      - `Anchor.TopLeft` (default)
       - `Anchor.TopRight`
       - `Anchor.BottomLeft`
       - `Anchor.BottomRight`
-   * `origin` Set the midpoint for rotation
+   * `rotation_origin` Set the midpoint for rotation
      Can be set to one of the following modes:
       - `Origin.Left`
       - `Origin.Centre`
       - `Origin.Right`
       - `Origin.Top`
       - `Origin.Bottom`
-      - `Origin.TopLeft`
+      - `Origin.TopLeft` (default)
       - `Origin.TopRight`
       - `Origin.BottomLeft`
       - `Origin.BottomRight`
+   * `anchor_x` - Get/set the x position of the midpoint for position and scale.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
+   * `anchor_y` - Get/set the y position of the midpoint for position and scale.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
+   * `rotation_origin_x` - Get/set the x position of the midpoint for rotation.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
+   * `rotation_origin_y` - Get/set the y position of the midpoint for rotation.
+     Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
    * `shader` - Get/set the GLSL shader for this rectangle. This can only be set to
      an instance of the class `fe.Shader` (see: `fe.add_shader()`).
    * `zorder` - Get/set the rectangles's order in the applicable draw list.  Objects
@@ -2116,12 +2132,12 @@ Member Functions:
    * `set_pos( x, y )` - Set the rectangle position (in layout coordinates).
    * `set_pos( x, y, width, height )` - Set the rectangle position and size (in
      layout coordinates).
-   * `set_outline_rgb( r, g, b )` Set the red, green and blue colour values for
+   * `set_outline_rgb( r, g, b )` - Set the red, green and blue colour values for
      the rectangle outline.  Range is [0 ... 255].
-   * `set_anchor( x, y )` Set the midpoint for position and scale
-     x and y are in [0.0 ... 1.0] scale
-   * `set_origin( x, y )` Set the midpoint for rotation
-     x and y are in [0.0 ... 1.0] scale
+   * `set_anchor( x, y )` - Set the midpoint for position and scale
+     x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
+   * `set_rotation_origin( x, y )` - Set the midpoint for rotation
+     x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
 
 &nbsp;
 <a name="Sound" />
