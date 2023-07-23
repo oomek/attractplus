@@ -145,7 +145,7 @@ void FeTextPrimitive::fit_string(
 	int running_width( 0 );
 	int kerning( 0 );
 
-	const sf::Glyph *g = &font->getGlyph( s[i], charsize, false );
+	const sf::Glyph *g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
 
 	if ( font->getLineSpacing( spacing ) > spacing )
 		spacing = font->getLineSpacing( spacing );
@@ -171,7 +171,7 @@ void FeTextPrimitive::fit_string(
 				running_total += kerning;
 			}
 
-			g = &font->getGlyph( s[i], charsize, false );
+			g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
 			running_width = std::max( running_width, (int)( running_total + g->bounds.left + g->bounds.width ));
 			running_total += g->advance;
 
@@ -196,7 +196,7 @@ void FeTextPrimitive::fit_string(
 			j--;
 			kerning = font->getKerning( s[j], s[std::min( j + 1, (int)s.size() - 1 )], charsize );
 			running_total += kerning;
-			g = &font->getGlyph( s[j], charsize, false );
+			g = &font->getGlyph( s[j], charsize, m_texts[0].getStyle() & sf::Text::Bold );
 			running_width = std::max( running_width, (int)( running_total + g->bounds.left + g->bounds.width ));
 			running_total += g->advance;
 		}
@@ -295,7 +295,7 @@ sf::Vector2f FeTextPrimitive::setString(
 		//
 		sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
 
-		const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), false );
+		const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
 		float glyphSize = glyph->bounds.height * m_texts[0].getScale().y;
 
 		int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
@@ -464,7 +464,7 @@ unsigned int FeTextPrimitive::getGlyphSize() const
 {
 	const sf::Font *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
-	const sf::Glyph *glyph = &font->getGlyph( L'X', charSize, false );
+	const sf::Glyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & sf::Text::Bold );
 	return floorf(glyph->bounds.height * m_texts[0].getScale().y);
 }
 
