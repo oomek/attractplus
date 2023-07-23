@@ -507,6 +507,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 		{
 			clear();
 			m_texture = sf::Texture();
+			notify_texture_change();
 		}
 		else
 		{
