@@ -9,8 +9,7 @@ void main()
 
 	// multiply it by the color
 	gl_FragColor = gl_Color * pixel;
-	
+
 	// this must be the last line in this shader
-	// * sign(pixel.w) fixes the white border around some transparent pngs
-	gl_FragColor.xyz *= gl_Color.w * sign(pixel.w);
+	gl_FragColor.xyz *= gl_Color.w;
 }

@@ -44,7 +44,7 @@ namespace
 		"void main(){" \
 		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
 		"gl_FragColor = gl_Color * pixel;" \
-		"gl_FragColor.xyz *= gl_Color.w * sign(pixel.w);}";
+		"gl_FragColor.xyz *= gl_Color.w;}";
 
 	sf::Shader *default_shader_multiplied=NULL;
 	sf::Shader *default_shader_overlay=NULL;
