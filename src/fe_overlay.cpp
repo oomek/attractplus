@@ -209,6 +209,7 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	m_headingBgColour( sf::Color( 10, 20, 40, 255 ) ),
 	m_overlay_is_on( false )
 {
+	init();
 }
 
 void FeOverlay::init()
