@@ -625,15 +625,15 @@ int FeTextPrimitive::getFirstLineHint() const
 
 const char *FeTextPrimitive::getStringWrapped()
 {
-	static std::string str;
-	str.clear();
+	sf::String str;
 
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 	{
 		str += m_texts[i].getString();
 		str += "\n";
 	}
-	return str.c_str();
+	std::basic_string<sf::Uint32> tmp;
+	return reinterpret_cast<const char*>( str.toUtf8().c_str() );
 }
 
 void FeTextPrimitive::draw( sf::RenderTarget &target, sf::RenderStates states ) const
