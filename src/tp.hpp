@@ -105,7 +105,7 @@ public:
 	int getStyle() const;
 	int getFirstLineHint() const;
 	const sf::Vector2f &getTextScale() const;
-	const char *getStringWrapped();
+	std::string getStringWrapped();
 
 	int getActualWidth(); // return the width of the actual text
 	int getActualHeight(); // return the height of the actual text

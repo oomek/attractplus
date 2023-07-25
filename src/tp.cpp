@@ -623,17 +623,17 @@ int FeTextPrimitive::getFirstLineHint() const
 	return m_first_line;
 }
 
-const char *FeTextPrimitive::getStringWrapped()
+std::string FeTextPrimitive::getStringWrapped()
 {
-	sf::String str;
+	std::string str;
 
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 	{
-		str += m_texts[i].getString();
+		std::string utf8(reinterpret_cast<const char*>(m_texts[i].getString().toUtf8().data()), m_texts[i].getString().toUtf8().size());
+		str += utf8;
 		str += "\n";
 	}
-	std::basic_string<sf::Uint32> tmp;
-	return reinterpret_cast<const char*>( str.toUtf8().c_str() );
+	return str;
 }
 
 void FeTextPrimitive::draw( sf::RenderTarget &target, sf::RenderStates states ) const

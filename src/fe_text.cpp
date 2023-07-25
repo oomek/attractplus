@@ -31,6 +31,7 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	int x, int y, int w, int h )
 	: FeBasePresentable( p ),
 	m_string( str ),
+	m_string_wrapped( str ),
 	m_index_offset( 0 ),
 	m_filter_offset( 0 ),
 	m_user_charsize( -1 ),
@@ -254,7 +255,8 @@ const char *FeText::get_string()
 
 const char *FeText::get_string_wrapped()
 {
-	return m_draw_text.getStringWrapped();
+	m_string_wrapped = m_draw_text.getStringWrapped();
+	return m_string_wrapped.c_str();
 }
 
 void FeText::set_string(const char *s)
