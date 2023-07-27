@@ -312,10 +312,10 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	fit_string( t, position, first_char, last_char );
 
-	if ( m_first_line > m_lines_total - m_lines + 1 ) m_first_line = m_lines_total - m_lines + 1;
-
 	if ( m_first_line > 0 )
 	{
+		if ( m_first_line > m_lines_total - m_lines + 1 ) m_first_line = m_lines_total - m_lines + 1;
+
 		int actual_first_line = 1;
 		while ( actual_first_line < m_first_line )
 		{
@@ -345,8 +345,6 @@ sf::Vector2f FeTextPrimitive::setString(
 			m_texts.back().setString( t.substr( first_char, last_char - first_char + 1 ));
 			actual_line_count++;
 		}
-
-		m_first_line = std::max( 0, m_first_line );
 	}
 
 	set_positions(); // We need to set the positions now for findCharacterPos() to work below
