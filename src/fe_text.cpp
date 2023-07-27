@@ -237,8 +237,6 @@ void FeText::set_first_line_hint( int l )
 	if ( l != m_draw_text.getFirstLineHint() )
 	{
 		m_draw_text.setFirstLineHint( l );
-		m_draw_text.setString( m_string );
-
 		FePresent::script_do_update( this );
 	}
 }
