@@ -253,6 +253,25 @@ sf::Vector2f FeTextPrimitive::setString(
 			int position )
 {
 	//
+	// We count the total lines
+	//
+	int total_line_count = 1;
+	int tmp_pos = -1;
+	int tmp_first_char = 0;
+	int tmp_last_char = 0;
+
+	if ( m_first_line >= 0 && (int)t.size() > 1 )
+	{
+		while ( true )
+		{
+			if ( tmp_pos >= (int)t.size() ) break;
+			fit_string( t, tmp_pos, tmp_first_char, tmp_last_char );
+			total_line_count++;
+		}
+		total_line_count--;
+	}
+
+	//
 	// Cut the string if it is too big to fit our dimension
 	//
 	int first_char, last_char;
@@ -270,6 +289,8 @@ sf::Vector2f FeTextPrimitive::setString(
 	// We cut the first line of text here
 	//
 	fit_string( t, position, first_char, last_char );
+
+	if ( m_first_line > total_line_count ) m_first_line = total_line_count;
 
 	if ( m_first_line > 0 )
 	{
@@ -326,7 +347,7 @@ sf::Vector2f FeTextPrimitive::setString(
 			actual_line_count++;
 		}
 
-		m_first_line = std::max( 0, m_first_line - line_count + actual_line_count );
+		m_first_line = std::max( 0, m_first_line );
 	}
 
 	set_positions(); // We need to set the positions now for findCharacterPos() to work below
