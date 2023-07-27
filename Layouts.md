@@ -1888,6 +1888,9 @@ Properties:
      (boolean).  Default is `false`.
    * `msg_width` - Get the width of the text message, in layout coordinates.
    * `msg_height` 🔶 Get the height of the text message, in layout coordinates.
+   * `lines` 🔶 Get the maximum line count that can be fitted inside the text box.
+   * `lines_total` 🔶 Get the total line count of the formatted text message.
+   * `first_line_hint` 🔶 Get/set the line in the formatted text that is shown as first line in the text object
    * `font` - Get/set the filename of the font used for this text.
      If not set default font is used.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.

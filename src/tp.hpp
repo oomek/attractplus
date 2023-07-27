@@ -104,6 +104,8 @@ public:
 	float getRotation() const;
 	int getStyle() const;
 	int getFirstLineHint() const;
+	int getLines() const;
+	int getLinesTotal() const;
 	const sf::Vector2f &getTextScale() const;
 	std::string getStringWrapped();
 
@@ -121,6 +123,8 @@ private:
 	// to control scrolling text where the text set into the control is
 	// larger than the area available to display it.
 	int m_first_line;
+	int m_lines;
+	int m_lines_total;
 	int m_margin;
 	int m_outline;
 	float m_line_spacing;

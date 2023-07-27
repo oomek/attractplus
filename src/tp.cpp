@@ -28,6 +28,8 @@ FeTextPrimitive::FeTextPrimitive( )
 	: m_texts( 1, sf::Text() ),
 	m_align( Centre ),
 	m_first_line( -1 ),
+	m_lines( 1 ),
+	m_lines_total( 1 ),
 	m_margin( -1 ),
 	m_outline( 0.0 ),
 	m_line_spacing( 1.0 ),
@@ -255,7 +257,9 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	// We count the total lines
 	//
-	int total_line_count = 1;
+	m_lines = 1;
+	m_lines_total = 1;
+
 	int tmp_pos = -1;
 	int tmp_first_char = 0;
 	int tmp_last_char = 0;
@@ -266,10 +270,30 @@ sf::Vector2f FeTextPrimitive::setString(
 		{
 			if ( tmp_pos >= (int)t.size() ) break;
 			fit_string( t, tmp_pos, tmp_first_char, tmp_last_char );
-			total_line_count++;
+			m_lines_total++;
 		}
-		total_line_count--;
+		m_lines_total--;
 	}
+
+	//
+	// Calculate the number of lines we can fit in our RectShape
+	//
+	const sf::Font *font = getFont();
+	const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
+	float glyphSize = glyph->bounds.height * m_texts[0].getScale().y;
+	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
+	int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
+	float default_spacing = font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y;
+
+	if ( m_align & ( Top | Bottom | Middle ))
+	{
+		if ( m_margin < 0 )
+			m_lines = std::max( 1, (int)floorf(( rectSize.height + spacing - default_spacing - glyphSize ) / spacing ));
+		else
+			m_lines = std::max( 1, (int)floorf(( rectSize.height + spacing - glyphSize - m_margin * 2.0 ) / spacing ));
+	}
+	else
+		m_lines = std::max( 1, (int)( rectSize.height / spacing ));
 
 	//
 	// Cut the string if it is too big to fit our dimension
@@ -283,14 +307,12 @@ sf::Vector2f FeTextPrimitive::setString(
 	if ( m_texts.size() > 1 )
 		m_texts.resize( 1 );
 
-	const sf::Font *font = getFont();
-
 	//
 	// We cut the first line of text here
 	//
 	fit_string( t, position, first_char, last_char );
 
-	if ( m_first_line > total_line_count ) m_first_line = total_line_count;
+	if ( m_first_line > m_lines_total - m_lines + 1 ) m_first_line = m_lines_total - m_lines + 1;
 
 	if ( m_first_line > 0 )
 	{
@@ -312,33 +334,10 @@ sf::Vector2f FeTextPrimitive::setString(
 	if ( m_first_line >= 0 )
 	{
 		//
-		// Calculate the number of lines we can fit in our RectShape
-		//
-		sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
-
-		const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
-		float glyphSize = glyph->bounds.height * m_texts[0].getScale().y;
-
-		int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
-		float default_spacing = font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y;
-
-		int line_count = 1;
-
-		if ( m_align & ( Top | Bottom | Middle ))
-		{
-			if ( m_margin < 0 )
-				line_count = std::max( 1, (int)floorf(( rectSize.height + spacing - default_spacing - glyphSize ) / spacing ));
-			else
-				line_count = std::max( 1, (int)floorf(( rectSize.height + spacing - glyphSize - m_margin * 2.0 ) / spacing ));
-		}
-		else
-			line_count = std::max( 1, (int)( rectSize.height / spacing ));
-
-		//
 		// We break the string to lines here starting from the second line
 		//
 		int actual_line_count = 1;
-		for ( int i = 1; i < line_count; i++ )
+		for ( int i = 1; i < m_lines; i++ )
 		{
 			if ( position >= (int)t.size() ) break;
 			fit_string( t, position, first_char, last_char );
@@ -642,6 +641,16 @@ const sf::Vector2f &FeTextPrimitive::getTextScale() const
 int FeTextPrimitive::getFirstLineHint() const
 {
 	return m_first_line;
+}
+
+int FeTextPrimitive::getLines() const
+{
+	return m_lines;
+}
+
+int FeTextPrimitive::getLinesTotal() const
+{
+	return m_lines_total;
 }
 
 std::string FeTextPrimitive::getStringWrapped()

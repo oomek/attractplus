@@ -246,6 +246,16 @@ int FeText::get_first_line_hint()
 	return m_draw_text.getFirstLineHint();
 }
 
+int FeText::get_lines()
+{
+	return m_draw_text.getLines();
+}
+
+int FeText::get_lines_total()
+{
+	return m_draw_text.getLinesTotal();
+}
+
 const char *FeText::get_string()
 {
 	return m_string.c_str();

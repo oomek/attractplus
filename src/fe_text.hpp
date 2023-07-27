@@ -77,6 +77,8 @@ public:
 
 	void set_first_line_hint( int l );
 	int get_first_line_hint();
+	int get_lines();
+	int get_lines_total();
 
 	const char *get_string();
 	void set_string(const char *s);
