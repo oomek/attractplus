@@ -80,6 +80,7 @@ public:
 	float getBgOutlineThickness();
 	void setFirstLineHint( int );
 	void setWordWrap( bool );
+	bool getWordWrap();
 	void setNoMargin( bool );
 	bool getNoMargin();
 	void setMargin( int );
@@ -128,6 +129,7 @@ private:
 	int m_margin;
 	int m_outline;
 	float m_line_spacing;
+	bool m_word_wrap;
 
 	mutable bool m_needs_pos_set;
 

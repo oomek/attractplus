@@ -27,12 +27,13 @@
 FeTextPrimitive::FeTextPrimitive( )
 	: m_texts( 1, sf::Text() ),
 	m_align( Centre ),
-	m_first_line( -1 ),
+	m_first_line( 1 ),
 	m_lines( 1 ),
 	m_lines_total( 1 ),
 	m_margin( -1 ),
 	m_outline( 0.0 ),
 	m_line_spacing( 1.0 ),
+	m_word_wrap( false ),
 	m_needs_pos_set( false )
 {
 	setColor( sf::Color::White );
@@ -48,10 +49,13 @@ FeTextPrimitive::FeTextPrimitive(
 			Alignment align )
 	: m_texts( 1, sf::Text() ),
 	m_align( align ),
-	m_first_line( -1 ),
+	m_first_line( 1 ),
+	m_lines( 1 ),
+	m_lines_total( 1 ),
 	m_margin( -1 ),
 	m_outline( 0.0 ),
 	m_line_spacing( 1.0 ),
+	m_word_wrap( false ),
 	m_needs_pos_set( false )
 {
 	if ( font )
@@ -67,9 +71,12 @@ FeTextPrimitive::FeTextPrimitive( const FeTextPrimitive &c )
 	m_texts( c.m_texts ),
 	m_align( c.m_align ),
 	m_first_line( c.m_first_line ),
+	m_lines( c.m_lines ),
+	m_lines_total( c.m_lines_total ),
 	m_margin( c.m_margin ),
 	m_outline( c.m_outline ),
 	m_line_spacing( c.m_line_spacing ),
+	m_word_wrap( c.m_word_wrap ),
 	m_needs_pos_set( c.m_needs_pos_set )
 {
 }
@@ -126,7 +133,7 @@ void FeTextPrimitive::fit_string(
 	// We do not cut the trailing space in this situation
 	//
 	bool edit_mode( false );
-	if (( position >= 0 ) && ( m_first_line < 0 ))
+	if (( position >= 0 ) && !m_word_wrap )
 		edit_mode = true;
 
 	if ( position < 0 )
@@ -163,7 +170,7 @@ void FeTextPrimitive::fit_string(
 	// We need to adjust the width to make sure that at least one character is displayed per line
 	width = std::max( width, (float)g->bounds.width );
 
-	while (( running_width <= width ) && (( i < (int)s.size() ) || (( m_first_line < 0 ) && ( j > 0 ))))
+	while (( running_width <= width ) && (( i < (int)s.size() ) || ( !m_word_wrap && ( j > 0 ))))
 	{
 		if ( i < (int)s.size() )
 		{
@@ -193,7 +200,7 @@ void FeTextPrimitive::fit_string(
 			i++;
 		}
 
-		if (( m_first_line < 0 ) && ( j > 0 ) && ( running_width <= width ))
+		if ( !m_word_wrap && ( j > 0 ) && ( running_width <= width ))
 		{
 			j--;
 			kerning = font->getKerning( s[j], s[std::min( j + 1, (int)s.size() - 1 )], charsize );
@@ -209,7 +216,7 @@ void FeTextPrimitive::fit_string(
 	// If we are word wrapping and found a space, then break at the space.
 	// Otherwise, fit as much on this line as we can.
 	//
-	if (( last_space > 0 ) && ( m_first_line >= 0 ))
+	if (( last_space > 0 ) && m_word_wrap )
 	{
 		last_char = last_space - 1;
 		i = last_space + 1;
@@ -264,7 +271,7 @@ sf::Vector2f FeTextPrimitive::setString(
 	int tmp_first_char = 0;
 	int tmp_last_char = 0;
 
-	if ( m_first_line >= 0 && (int)t.size() > 1 )
+	if ( m_word_wrap && (int)t.size() > 1 )
 	{
 		while ( true )
 		{
@@ -301,7 +308,7 @@ sf::Vector2f FeTextPrimitive::setString(
 	int first_char, last_char;
 	int disp_cpos( position );
 
-	if ( m_first_line >= 0 )
+	if ( m_word_wrap )
 		position = -1;
 
 	if ( m_texts.size() > 1 )
@@ -312,9 +319,9 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	fit_string( t, position, first_char, last_char );
 
-	if ( m_first_line > 0 )
+	if ( m_word_wrap )
 	{
-		if ( m_first_line > m_lines_total - m_lines + 1 ) m_first_line = m_lines_total - m_lines + 1;
+		if ( m_first_line > m_lines_total - m_lines + 1 ) m_first_line = std::max( 1, m_lines_total - m_lines + 1 );
 
 		int actual_first_line = 1;
 		while ( actual_first_line < m_first_line )
@@ -331,7 +338,7 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	// If we are word wrapping calculate the rest of lines
 	//
-	if ( m_first_line >= 0 )
+	if ( m_word_wrap )
 	{
 		//
 		// We break the string to lines here starting from the second line
@@ -582,12 +589,19 @@ int FeTextPrimitive::getStyle() const
 
 void FeTextPrimitive::setFirstLineHint( int line )
 {
-	m_first_line = ( line < 0 ) ? 0 : line;
+	if ( m_word_wrap )
+		m_first_line = ( line < 1 ) ? 1 : line;
 }
 
 void FeTextPrimitive::setWordWrap( bool wrap )
 {
-	m_first_line = wrap ? 0 : -1;
+	m_word_wrap = wrap;
+	if ( !m_word_wrap ) m_first_line = 1;
+}
+
+bool FeTextPrimitive::getWordWrap()
+{
+	return m_word_wrap;
 }
 
 void FeTextPrimitive::setNoMargin( bool nomargin )

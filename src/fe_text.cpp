@@ -185,7 +185,7 @@ void FeText::set_word_wrap( bool w )
 
 bool FeText::get_word_wrap()
 {
-	return ( m_draw_text.getFirstLineHint() >= 0 );
+	return m_draw_text.getWordWrap();
 }
 
 void FeText::set_no_margin( bool m )
