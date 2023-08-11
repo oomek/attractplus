@@ -43,6 +43,10 @@ checklib="${checklib:2}"
 fr_lib+=("@rpath/libwebp")
 to_lib+=("$checklib/libwebp")
 
+checklib=$(brew --prefix)
+fr_lib+=("@loader_path/../../../../opt")
+to_lib+=("$checklib/opt")
+
 #fr_lib+=("@rpath/libsharpyuv")
 #to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
 
