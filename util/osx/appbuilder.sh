@@ -43,6 +43,10 @@ checklib="${checklib:2}"
 fr_lib+=("@rpath/libwebp")
 to_lib+=("$checklib/libwebp")
 
+checklib=$(brew --prefix)
+fr_lib+=("@loader_path/../../../../opt")
+to_lib+=("$checklib/opt")
+
 #fr_lib+=("@rpath/libsharpyuv")
 #to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
 
@@ -62,7 +66,7 @@ done
 
 # Populate fullarray with L0 paths
 # This is the array of entries as they are in the actual binaries
-fullarray=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
+fullarray=( $(otool -L $attractname | tail -n +2 | grep '@loader_path/../../../../opt\|/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
 echo
 echo $( basename "$attractname" )
@@ -98,7 +102,7 @@ do
 	# Updatearray contains the libraries from fullarray, that is the actual correct library paths,
 	# they are scanned one by one to gather sublibraries for each. Each library is scanned to build the subarray
    for strlib in ${updatearray[@]}; do
-		subarray=( $(otool -L $strlib | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
+		subarray=( $(otool -L $strlib | tail -n +2 | grep '@loader_path/../../../../opt\|/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 		echo $( basename "$strlib" ) 
 		echo "  pre"
 		for val in ${subarray[@]}; do
@@ -147,8 +151,8 @@ done
 libsarray=( $(ls "$bundlecontent"/libs) )
 for str in ${libsarray[@]}; do
    echo fixing $str
-   subarray=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
-   subarray_fix=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
+   subarray=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '@loader_path/../../../../opt\|/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
+   subarray_fix=( $(otool -L "$bundlelibs"/$str | tail -n +2 | grep '@loader_path/../../../../opt\|/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
 	#Apply correction filters to all libraries
 	for commandline in ${commands[@]}; do
@@ -188,7 +192,7 @@ echo STEP 4 - FIX ATTRACTPLUS EXECUTABLE
 install_name_tool -add_rpath "@executable_path/../libs/" "$bundlecontent"/MacOS/attractplus
 
 # List libraries linked in attractplus
-attractlibs=( $(otool -L $attractname | tail -n +2 | grep '/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
+attractlibs=( $(otool -L $attractname | tail -n +2 | grep '@loader_path/../../../../opt\|/usr/local\|/opt/homebrew/opt\|@rpath' | awk -F' ' '{print $1}') )
 
 # Apply new links to libraries
 for str in ${attractlibs[@]}; do
