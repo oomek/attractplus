@@ -1244,6 +1244,7 @@ void FePresent::redraw()
 		tick();
 
 	m_window.clear();
+	redraw_surfaces();
 	m_window.draw( *this, m_layout_transform );
 	m_window.display();
 }
