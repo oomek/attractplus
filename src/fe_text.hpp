@@ -95,7 +95,7 @@ public:
 	int get_glyph_size();
 	float get_spacing();
 	float get_line_spacing();
-	int get_line_size();
+	int get_line_height();
 	int get_style();
 	int get_align();
 	const char *get_font();

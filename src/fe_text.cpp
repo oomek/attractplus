@@ -313,7 +313,7 @@ float FeText::get_line_spacing()
 	return m_draw_text.getLineSpacing();
 }
 
-int FeText::get_line_size()
+int FeText::get_line_height()
 {
 	return m_draw_text.getLineSpacingFactored( m_draw_text.getFont(), m_draw_text.getCharacterSize() );
 }

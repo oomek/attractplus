@@ -1890,6 +1890,7 @@ Properties:
    * `msg_height` 🔶 Get the height of the text message, in layout coordinates.
    * `lines` 🔶 Get the maximum line count that can be fitted inside the text box.
    * `lines_total` 🔶 Get the total line count of the formatted text message.
+   * `line_height` 🔶 Get the distance between 2 lines of text in layout coordinates.
    * `first_line_hint` 🔶 Get/set the line in the formatted text that is shown as first line in the text object
    * `font` - Get/set the filename of the font used for this text.
      If not set default font is used.
