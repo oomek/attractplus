@@ -66,6 +66,16 @@ checklib="${checklib:2}"
 fr_lib+=("@loader_path/libavutil")
 to_lib+=("$checklib/libavutil")
 
+checklib=$(pkg-config --libs-only-L libcrypto)
+checklib="${checklib:2}"
+fr_lib+=("@loader_path/libcrypto")
+to_lib+=("$checklib/libcrypto")
+
+checklib=$(pkg-config --libs-only-L libbrotlicommon)
+checklib="${checklib:2}"
+fr_lib+=("@loader_path/libbrotlicommon")
+to_lib+=("$checklib/libbrotlicommon")
+
 #fr_lib+=("@rpath/libsharpyuv")
 #to_lib+=("/usr/local/opt/webp/lib/libsharpyuv")
 
