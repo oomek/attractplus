@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <cerrno>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -250,21 +251,39 @@ bool base_compare( const std::string &path,
 
 bool file_exists( const std::string &file )
 {
+	FeLog() << "file_exists() " << file << std::endl;
 #ifdef SFML_SYSTEM_WINDOWS
-	return ( _waccess( widen( file ).c_str(), 0 ) != -1 );
+    std::wstring wide_file = widen( file );
+    std::wcout << L"Wide string: " << wide_file << std::endl;
+	int result = _waccess( wide_file.c_str(), 0 );
+	FeLog() << "_waccess() " << file << " " << result << std::endl;
+	int temp_errno = errno;
+	if ( result < 0 ) std::cout << "Error: " << strerror(temp_errno) << std::endl;
+	return result != -1;
 #else
-	return ( access( file.c_str(), 0 ) != -1 );
+	int result = access( file.c_str(), 0 );
+	FeLog() << "access() " << file << " " << result << std::endl;
+	int temp_errno = errno;
+	if ( result < 0 ) std::cout << "Error: " << strerror(temp_errno) << std::endl;
+	return result != -1;
 #endif
 }
 
 bool directory_exists( const std::string &file )
 {
+	FeLog() << "directory_exists() " << file << std::endl;
 	if (( file.empty() )
 			|| ( file[ file.size()-1 ] == '/' )
 			|| ( file[ file.size()-1 ] == '\\' ))
-		return file_exists( file );
+		{
+			FeLog() << "return file_exists( file )" << std::endl;
+			return file_exists( file );
+		}
 	else
+	{
+		FeLog() << "return file_exists( file + '/' )" << std::endl;
 		return file_exists( file + '/' );
+	}
 }
 
 bool is_relative_path( const std::string &n )
