@@ -33,8 +33,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
-#include <cerrno>
-#include <sys/stat.h>
+// #include <cerrno>
+// #include <sys/stat.h>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -252,14 +252,14 @@ bool base_compare( const std::string &path,
 
 bool file_exists( const std::string &file )
 {
-	// FeLog() << "file_exists() " << file << std::endl;
+	FeLog() << "file_exists() " << file << std::endl;
 #ifdef SFML_SYSTEM_WINDOWS
     std::wstring wide_file = widen( file );
     // std::wcout << L"Wide string: " << wide_file << std::endl;
 	int result = _waccess( wide_file.c_str(), 0 );
 	// FeLog() << "_waccess() " << file << " " << result << std::endl;
 	int temp_errno = errno;
-	if ( result < 0 ) std::cout << "Error: " << strerror(temp_errno) << std::endl;
+	// if ( result < 0 ) std::cout << "Error: " << strerror(temp_errno) << std::endl;
 	return result != -1;
 #else
 	int result = access( file.c_str(), 0 );
@@ -272,34 +272,35 @@ bool file_exists( const std::string &file )
 
 bool directory_exists( const std::string &file )
 {
-	// FeLog() << "directory_exists() " << file << std::endl;
-	if (( file.empty() )
-			|| ( file[ file.size()-1 ] == '/' )
-			|| ( file[ file.size()-1 ] == '\\' ))
-		{
-			// FeLog() << "return file_exists( file )" << std::endl;
-			return file_exists( file );
-		}
-	else
-	{
-		if ( file_exists( file ))
-		{
-			bool ret;
-#ifdef SFML_SYSTEM_WINDOWS
-    		std::wstring wide_file = widen( file );
-			struct _stat buf;
-			_wstat( wide_file.c_str(), &buf );
-			ret = (( buf.st_mode & _S_IFDIR ) != 0 );
-#else
-			struct stat buf;
-			stat( file.c_str(), &buf );
-			ret = (( buf.st_mode & S_IFDIR) != 0 );
-#endif
-			FeLog() << "It's a folder " << ret << std::endl;
-			return ret;
-		}
+	FeLog() << "directory_exists() " << file << std::endl;
+
+	if ( file.empty() )
 		return false;
+
+	if (( file.back() == '/' ) || ( file.back() == '\\' ))
+	{
+		std::string stripped_file = file;
+       	stripped_file.pop_back();
+		FeLog() << "Trailing / or \\ removed" << std::endl;
 	}
+
+	if ( file_exists( file ))
+	{
+		bool ret;
+#ifdef SFML_SYSTEM_WINDOWS
+		std::wstring wide_file = widen( file );
+		struct _stat buf;
+		_wstat( wide_file.c_str(), &buf );
+		ret = (( buf.st_mode & _S_IFDIR ) != 0 );
+#else
+		struct stat buf;
+		stat( file.c_str(), &buf );
+		ret = (( buf.st_mode & S_IFDIR) != 0 );
+#endif
+		FeLog() << "It's a folder " << ret << std::endl;
+		return ret;
+	}
+	return false;
 }
 
 bool is_relative_path( const std::string &n )
