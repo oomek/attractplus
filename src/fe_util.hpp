@@ -158,6 +158,17 @@ void kill_program( unsigned int pid );
 
 bool process_exists( unsigned int pid );
 
+enum PathTestType
+{
+	IsNotFound = 0,
+	IsFile = 1,
+	IsDirectory = 2,
+	IsFileOrDirectory = 4,
+	IsRelativePath = 8,
+	IsSupportedArchive = 16,
+	IsSupportedMedia = 32,
+};
+
 //
 // Utility functions for file processing:
 //
@@ -166,6 +177,9 @@ bool file_exists( const std::string &file );
 
 // return true if specified path is an existing directory
 bool directory_exists( const std::string &file );
+
+// Check if provided path exists and whether it's a file or a directory
+int check_path( const std::string &file );
 
 // return true if the specified path is a relative path
 bool is_relative_path( const std::string &file );

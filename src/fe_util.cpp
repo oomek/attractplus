@@ -250,21 +250,46 @@ bool base_compare( const std::string &path,
 
 bool file_exists( const std::string &file )
 {
-#ifdef SFML_SYSTEM_WINDOWS
-	return ( _waccess( widen( file ).c_str(), 0 ) != -1 );
-#else
-	return ( access( file.c_str(), 0 ) != -1 );
-#endif
+	return check_path( file ) & ( IsFile | IsDirectory );
 }
 
 bool directory_exists( const std::string &file )
 {
-	if (( file.empty() )
-			|| ( file[ file.size()-1 ] == '/' )
-			|| ( file[ file.size()-1 ] == '\\' ))
-		return file_exists( file );
-	else
-		return file_exists( file + '/' );
+	return check_path( file ) & IsDirectory;
+}
+
+int check_path( const std::string &path )
+{
+	std::string p = path;
+
+	if ( p.empty() )
+		return IsNotFound;
+
+	// Remove trailing slash
+	if (( p.back() == '\\' || p.back() == '/' ))
+		p.pop_back();
+
+#ifdef SFML_SYSTEM_WINDOWS
+	struct _stat s;
+	std::wstring wide_path = widen( p );
+	if ( _wstat( wide_path.c_str(), &s ) == 0 )
+	{
+		if ( s.st_mode & _S_IFREG )
+			return IsFile;
+		else if ( s.st_mode & _S_IFDIR )
+			return IsDirectory;
+	}
+#else
+	struct stat s;
+	if ( stat( p.c_str(), &s ) == 0 )
+	{
+		if ( s.st_mode & S_IFREG )
+			return IsFile;
+		else if ( s.st_mode & S_IFDIR )
+			return IsDirectory;
+	}
+#endif
+	return IsNotFound;
 }
 
 bool is_relative_path( const std::string &n )

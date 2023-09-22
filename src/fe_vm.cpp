@@ -1613,12 +1613,12 @@ public:
 			.Const( _SC("OS"), get_OS_string() )
 			.Const( _SC("ShadersAvailable"), sf::Shader::isAvailable() )
 			.Enum( _SC("PathTest"), Sqrat::Enumeration()
-				.Const( "IsFile", FeVM::IsFile )
-				.Const( "IsDirectory", FeVM::IsDirectory )
-				.Const( "IsFileOrDirectory", FeVM::IsFileOrDirectory )
-				.Const( "IsRelativePath", FeVM::IsRelativePath )
-				.Const( "IsSupportedArchive", FeVM::IsSupportedArchive )
-				.Const( "IsSupportedMedia", FeVM::IsSupportedMedia )
+				.Const( "IsFile", IsFile )
+				.Const( "IsDirectory", IsDirectory )
+				.Const( "IsFileOrDirectory", IsFileOrDirectory )
+				.Const( "IsRelativePath", IsRelativePath )
+				.Const( "IsSupportedArchive", IsSupportedArchive )
+				.Const( "IsSupportedMedia", IsSupportedMedia )
 			);
 
 		Sqrat::ConstTable().Const( _SC("FeConfigDirectory"), fe_vm->m_feSettings->get_config_dir().c_str() );
@@ -2411,13 +2411,13 @@ bool FeVM::cb_path_test( const char *path, int flag )
 	switch ( flag )
 	{
 	case IsFileOrDirectory:
-		return file_exists( p );
+		return check_path( p ) & ( IsFile | IsDirectory );
 
 	case IsFile:
-		return ( file_exists( p ) && !directory_exists( p ) );
+		return check_path( p ) & IsFile;
 
 	case IsDirectory:
-		return directory_exists( p );
+		return check_path( p ) & IsDirectory;
 
 	case IsRelativePath:
 		return is_relative_path( p );
