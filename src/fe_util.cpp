@@ -270,23 +270,27 @@ int check_path( const std::string &path )
 		p.pop_back();
 
 #ifdef SFML_SYSTEM_WINDOWS
-	struct _stat s;
-	std::wstring wide_path = widen( p );
-	if ( _wstat( wide_path.c_str(), &s ) == 0 )
+	std::wstring wide_path = widen( path );
+	_WDIR* dir = _wopendir( wide_path.c_str() );
+	if ( dir )
 	{
-		if ( s.st_mode & _S_IFREG )
-			return IsFile;
-		else if ( s.st_mode & _S_IFDIR )
-			return IsDirectory;
+		_wclosedir( dir );
+		return IsDirectory;
+	}
+	else if( _waccess( wide_path.c_str(), F_OK) != -1 )
+	{
+		return IsFile;
 	}
 #else
-	struct stat s;
-	if ( stat( p.c_str(), &s ) == 0 )
+	DIR* dir = opendir( path.c_str() );
+	if ( dir )
 	{
-		if ( s.st_mode & S_IFREG )
-			return IsFile;
-		else if ( s.st_mode & S_IFDIR )
-			return IsDirectory;
+		closedir( dir );
+		return IsDirectory;
+	}
+	else if( access( path.c_str(), F_OK) != -1 )
+	{
+		return IsFile;
 	}
 #endif
 	return IsNotFound;
