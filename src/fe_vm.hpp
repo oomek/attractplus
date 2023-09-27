@@ -215,14 +215,15 @@ public:
 	static bool cb_plugin_command_bg(const char *, const char *);
 	static const char *cb_path_expand( const char *path );
 
-	enum PathTestType
+	enum PathTestFlags
 	{
-		IsFileOrDirectory,
-		IsFile,
-		IsDirectory,
-		IsRelativePath,
-		IsSupportedArchive,
-		IsSupportedMedia,
+		IsNotFound=0,
+		IsFile=1,
+		IsDirectory=2,
+		IsFileOrDirectory=4,
+		IsRelativePath=8,
+		IsSupportedArchive=16,
+		IsSupportedMedia=32
 	};
 	static bool cb_path_test( const char *, int );
 

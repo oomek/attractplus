@@ -2411,13 +2411,13 @@ bool FeVM::cb_path_test( const char *path, int flag )
 	switch ( flag )
 	{
 	case IsFileOrDirectory:
-		return file_exists( p );
+		return check_path( p ) & ( IsFile | IsDirectory );
 
 	case IsFile:
-		return ( file_exists( p ) && !directory_exists( p ) );
+		return check_path( p ) & IsFile;
 
 	case IsDirectory:
-		return directory_exists( p );
+		return check_path( p ) & IsDirectory;
 
 	case IsRelativePath:
 		return is_relative_path( p );
