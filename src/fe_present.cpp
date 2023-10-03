@@ -479,9 +479,6 @@ void FePresent::clear()
 
 	FeBlend::clear_default_shaders();
 
-	delete m_blank_texture;
-	m_blank_texture = NULL;
-
 	delete m_defaultFont;
 	m_defaultFont = NULL;
 	m_layoutFont = NULL;
@@ -1605,21 +1602,6 @@ void FePresent::set_mouse_pointer( bool b )
 bool FePresent::get_mouse_pointer()
 {
 	return false;
-}
-
-sf::Texture *FePresent::m_blank_texture = nullptr;
-
-sf::Texture &FePresent::get_blank_texture()
-{
-	if ( !m_blank_texture )
-	{
-		uint8_t arr[4]  = { 0x00,0x00,0x00,0xff };
-		m_blank_texture = new sf::Texture;
-		m_blank_texture->create(1,1);
-		m_blank_texture->update( arr );
-	}
-
-	return *m_blank_texture;
 }
 
 void FePresent::script_do_update( FeBasePresentable *bp )
