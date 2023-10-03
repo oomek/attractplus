@@ -350,6 +350,14 @@ bool FeTextureContainer::load_with_ffmpeg(
 	else
 		m_movie_status = 1; // 1=on track to be played
 
+	if ( res && !is_image )
+	{
+		// Fill the first video frame with a black colour
+		sf::Image img;
+		img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color( 0, 0, 0 ));
+		m_texture.update( img );
+	}
+
 	m_texture.setSmooth( m_smooth );
 	m_file_name = loaded_name;
 
@@ -507,7 +515,6 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 		{
 			clear();
 			m_texture = sf::Texture();
-			notify_texture_change();
 		}
 		else
 		{
@@ -592,7 +599,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
-			notify_texture_change();
 			if ( m_mipmap ) m_texture.generateMipmap();
 			return true;
 		}
@@ -757,7 +763,7 @@ void FeTextureContainer::load_file( const char *n )
 
 	bool is_image=tail_compare( filename, FE_ART_EXTENSIONS );
 	try_to_load( filename, is_image );
-	if ( is_image ) notify_texture_change();
+	notify_texture_change();
 }
 
 const char *FeTextureContainer::get_file_name() const
