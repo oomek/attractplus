@@ -279,6 +279,8 @@ Adds an image or video to the end of Attract-Mode's draw list.
 [Magic Tokens](#magic) can be used in the supplied "name", in which case
 Attract-Mode will dynamically update the image in response to navigation.
 
+The default blend mode for images is `BlendMode.Alpha`
+
 Parameters:
 
    * name - the name of an image/video file to show.  If a relative path is
@@ -325,6 +327,8 @@ Add an artwork to the end of Attract-Mode's draw list.  The image/video
 displayed in an artwork is updated automatically whenever the user changes
 the game selection.
 
+The default blend mode for artwork is `BlendMode.Alpha`
+
 Parameters:
 
    * label - the label of the artwork to display.  This should correspond
@@ -360,6 +364,8 @@ screen texture upon which you can draw other image, artwork, text, listbox
 and surface objects.  The resulting texture is treated as a static image by
 Attract-Mode which can in turn have image effects applied to it (scale,
 position, pinch, skew, shaders, etc) when it is drawn.
+
+The default blend mode for surfaces is `BlendMode.Premultiplied`
 
 Parameters:
 
@@ -1699,12 +1705,12 @@ Properties:
      with the higher zorder is drawn on top.  Default value is 0.
    * `blend_mode` - Get/set the blend mode for this image.  Can have one of the
      following values:
-      - `BlendMode.Alpha`
+      - `BlendMode.Alpha` (default for images and artwork)
       - `BlendMode.Add`
       - `BlendMode.Screen`
       - `BlendMode.Multiply`
       - `BlendMode.Overlay`
-      - `BlendMode.Premultiplied`
+      - `BlendMode.Premultiplied` (default for surfaces)
       - `BlendMode.None`
    * `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video.
      Setting this to `true` greatly improves the quality of scaled down images.
