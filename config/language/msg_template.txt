@@ -25,8 +25,10 @@ Artwork Label;Artwork Label
 Artwork Name;Artwork Name
 Artwork Path;Artwork Path
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
-Auto-detect emulators?;Auto-detect emulators?
+Auto-detect Emulators;Auto-detect Emulators
+Auto-detect emulators?;Auto-detect Emulators?
 Back;Back
+Back (Exit);Back (Exit)
 Blank Game;Blank Game
 Buttons;Buttons
 Category;Category
@@ -43,7 +45,7 @@ Configure / Displays Menu;Configure / Displays Menu
 Configure / Emulators;Configure / Emulators
 Configure / Intro;Configure Intro
 Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure / Miscellaneous;Configure / Miscellaneous
+Configure / General;Configure / General
 Configure / Plug-ins;Configure / Plug-ins
 Configure / Scraper;Configure / Scraper
 Configure / Screen Saver;Configure Screen Saver
@@ -85,6 +87,7 @@ DisplayType;DisplayType
 Displays;Displays
 Displays Menu;Displays Menu
 Down;Down
+Down (Next Game);Down (Next Game)
 Edit Artwork;Edit Artwork
 Edit Emulator;Edit Emulator
 Edit Game;Edit Game
@@ -131,10 +134,12 @@ Generating Rom List: $1%;Generating Rom List: $1%
 Global Filter;Global Filter
 Group Clones;Group Clones
 Hide Brackets in Game Title;Hide Brackets in Game Title
+Hide Console;Hide Console
 Image Cache Size;Image Cache Size
 Info Source/Scraper;Info Source/Scraper
 Insert Command Shortcut;Insert Command Shortcut
 Insert Display Shortcut;Insert Display Shortcut
+Insert Game;Insert Game
 Insert Game Entry;Insert Game Entry
 Insert Menu Entry;Insert Menu Entry
 Intro;Intro
@@ -148,6 +153,7 @@ Layout;Layout
 Layout File;Layout File
 Layout Options;Layout Options
 Left;Left
+Left (Previous Display);Left (Previous Display)
 List Limit;List Limit
 Manufacturer;Manufacturer
 Menu Prompt;Menu Prompt
@@ -165,6 +171,7 @@ No;No
 No Sort;No Sort
 No Wrap;No Wrap
 None;None
+None (Default);None (Default)
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
 OR;OR
 Overview;Overview
@@ -186,11 +193,14 @@ Previous Game;Previous Game
 Previous Letter;Previous Letter
 Previous Page;Previous Page
 Random Game;Random Game
+Rating;Rating
+Region;Region
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove Input;Remove Input
 Remove tag: '$1';Remove tag: '$1'
 Replay Last Game;Replay Last Game
 Right;Right
+Right (Next Display);Right (Next Display)
 Rom Extension(s);Rom Extension(s)
 Rom Path(s);Rom Path(s)
 Rom path '$1' not found, proceed anyways?;Rom path '$1' not found, proceed anyways?
@@ -212,6 +222,7 @@ Screen Saver Timeout;Screen Saver Timeout
 Screenshot;Screenshot
 Select;Select
 Select template to use for emulator settings;Select template to use for emulator settings
+Series;Series
 Show in Cycle;Show in Cycle
 Show in Menu;Show in Menu
 Show Displays Menu;Show Displays Menu
@@ -236,6 +247,7 @@ Toggle Rotate Left;Toggle Rotate Left
 Toggle Rotate Right;Toggle Rotate Right
 Track Usage;Track Usage
 Up;Up
+Up (Previous Game);Up (Previous Game)
 Video Decoder;Video Decoder
 Window;Window
 Window Mode;Window Mode
