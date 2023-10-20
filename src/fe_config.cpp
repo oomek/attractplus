@@ -1654,14 +1654,17 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 		//
 		// Show the default action in brackets beside the UI controls (up/down/left...etc)
 		//
-		std::string name = FeInputMap::commandDispStrings[(*it).command];
+		std::string name;
+		ctx.fe_settings.get_resource( FeInputMap::commandDispStrings[(*it).command], name );
 		if ( (*it).command < FeInputMap::Select )
 		{
 			FeInputMap::Command c = ctx.fe_settings.get_default_command( (*it).command );
 			if ( c != FeInputMap::LAST_COMMAND )
 			{
 				name += " (";
-				name += FeInputMap::commandDispStrings[c];
+				std::string command;
+				ctx.fe_settings.get_resource( FeInputMap::commandDispStrings[c], command );
+				name += command;
 				name += ")";
 			}
 		}
@@ -1669,7 +1672,7 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 		std::string help_msg( "_help_control_" );
 		help_msg += FeInputMap::commandStrings[(*it).command];
 
-		ctx.add_optl( Opt::SUBMENU,
+		ctx.add_opt( Opt::SUBMENU,
 			name,
 			value,
 			help_msg );
