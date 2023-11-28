@@ -87,6 +87,7 @@ private:
 	FeSound &m_ambient_sound;
 
 	bool m_redraw_triggered;
+	bool m_sort_zorder_triggered;
 	bool m_process_console_input;
 	const FeScriptConfigurable *m_script_cfg;
 	int m_script_id;
@@ -116,6 +117,7 @@ public:
 	void set_overlay( FeOverlay *feo );
 
 	void flag_redraw() { m_redraw_triggered = true; };
+	void flag_sort_zorder() { m_sort_zorder_triggered = true; };
 	bool poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui );
 	void clear(); // override of base class clear()
 

@@ -484,6 +484,27 @@ void FePresent::clear()
 	m_layoutFont = NULL;
 }
 
+namespace
+{
+	bool zcompare( FeBasePresentable *one, FeBasePresentable *two )
+	{
+		return ( one->get_zorder() < two->get_zorder() );
+	}
+};
+
+void FePresent::sort_zorder()
+{
+	std::vector<FeBaseTextureContainer *>::iterator itc;
+	std::vector<FeMonitor>::iterator itm;
+
+	for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+		if ( (*itc)->get_presentable_parent() )
+			std::stable_sort( (*itc)->get_presentable_parent()->elements.begin(), (*itc)->get_presentable_parent()->elements.end(), zcompare );
+
+	for ( itm=m_mon.begin(); itm != m_mon.end(); ++itm )
+		std::stable_sort( (*itm).elements.begin(), (*itm).elements.end(), zcompare );
+}
+
 void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 {
 	std::vector<FeBasePresentable *>::const_iterator itl;
@@ -1631,6 +1652,13 @@ void FePresent::script_flag_redraw()
 	FePresent *fep = script_get_fep();
 	if ( fep )
 		fep->flag_redraw();
+}
+
+void FePresent::script_flag_sort_zorder()
+{
+	FePresent *fep = script_get_fep();
+	if ( fep )
+		fep->flag_sort_zorder();
 }
 
 std::string FePresent::script_get_base_path()

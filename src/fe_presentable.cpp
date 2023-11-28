@@ -222,14 +222,6 @@ int FeBasePresentable::get_zorder()
 	return m_zorder;
 }
 
-namespace
-{
-	bool zcompare( FeBasePresentable *one, FeBasePresentable *two )
-	{
-		return ( one->get_zorder() < two->get_zorder() );
-	}
-};
-
 void FeBasePresentable::set_zorder( int pos )
 {
 	if ( pos == m_zorder )
@@ -237,7 +229,7 @@ void FeBasePresentable::set_zorder( int pos )
 
 	m_zorder = pos;
 
-	std::stable_sort( m_parent.elements.begin(), m_parent.elements.end(), zcompare );
+	FePresent::script_flag_sort_zorder();
 	FePresent::script_flag_redraw();
 }
 

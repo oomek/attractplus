@@ -284,6 +284,7 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeSound &ambient_sound, bool console
 	m_overlay( NULL ),
 	m_ambient_sound( ambient_sound ),
 	m_redraw_triggered( false ),
+	m_sort_zorder_triggered( false ),
 	m_process_console_input( console_input ),
 	m_script_cfg( NULL ),
 	m_script_id( -1 )
@@ -1227,6 +1228,12 @@ bool FeVM::on_tick()
 {
 	using namespace Sqrat;
 	m_redraw_triggered = process_console_input();
+
+	if ( m_sort_zorder_triggered )
+	{
+		sort_zorder();
+		m_sort_zorder_triggered = false;
+	}
 
 	for ( std::vector<FeCallback>::iterator itr = m_ticks.begin();
 		itr != m_ticks.end(); )

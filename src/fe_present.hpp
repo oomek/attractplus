@@ -169,6 +169,7 @@ protected:
 
 	// Overrides from base classes:
 	//
+	void sort_zorder();
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 
 	FeImage *add_image(bool a, const std::string &n, float x, float y, float w, float h, FePresentableParent &p);
@@ -282,6 +283,7 @@ public:
 	static void script_do_update( FeBaseTextureContainer * );
 	static void script_do_update( FeBasePresentable * );
 	static void script_flag_redraw();
+	static void script_flag_sort_zorder();
 	static void script_process_magic_strings( std::string &str,
 			int filter_offset,
 			int index_offset );
@@ -293,6 +295,7 @@ public:
 	virtual bool on_tick()=0;
 	virtual void on_transition( FeTransitionType, int var )=0;
 	virtual void flag_redraw()=0;
+	virtual void flag_sort_zorder()=0;
 	virtual void init_with_default_layout()=0;
 	virtual int get_script_id()=0;
 	virtual void set_script_id( int )=0;
