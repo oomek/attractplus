@@ -878,7 +878,14 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	m_redraw( true ),
 	m_mipmap( false )
 {
-	m_texture.create( width, height );
+	sf::ContextSettings ctx;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		FeSettings *fes = fep->get_fes();
+		if ( fes ) ctx.antialiasingLevel = fes->get_antialiasing();
+	}
+	m_texture.create( width, height, ctx );
 	m_texture.clear( sf::Color::Transparent );
 }
 

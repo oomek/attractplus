@@ -225,6 +225,8 @@ int main(int argc, char *argv[])
 			// Enter config mode
 			//
 			int old_mode = feSettings.get_window_mode();
+			int old_aa = feSettings.get_antialiasing();
+
 			if ( feOverlay.config_dialog() )
 			{
 				// Settings changed, reload
@@ -239,7 +241,7 @@ int main(int argc, char *argv[])
 				soundsys.play_ambient();
 
 				// Recreate window if the window mode changed
-				if ( feSettings.get_window_mode() != old_mode )
+				if (( feSettings.get_window_mode() != old_mode ) || ( feSettings.get_antialiasing() != old_aa ))
 				{
 					window.on_exit();
 					window.initial_create();

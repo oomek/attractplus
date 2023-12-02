@@ -88,6 +88,8 @@ public:
 	enum RotationState { RotateNone=0, RotateRight, RotateFlip, RotateLeft };
 	static const char *screenRotationTokens[];
 	static const char *screenRotationDispTokens[];
+	static const char *antialiasingTokens[];
+	static const char *antialiasingDispTokens[];
 
 	enum FePresentState
 	{
@@ -125,6 +127,7 @@ public:
 		JoystickThreshold,
 		WindowMode,
 		ScreenRotation,
+		AntiAliasing,
 		FilterWrapMode,
 		TrackUsage,
 		MultiMon,
@@ -237,6 +240,7 @@ private:
 #endif
 	bool m_power_saving;
 	RotationState m_screen_rotation;
+	int m_antialiasing;
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
@@ -487,6 +491,7 @@ public:
 
 	WindowType get_window_mode() const;
 	RotationState get_screen_rotation() const;
+	int get_antialiasing() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
 	int get_screen_saver_timeout() const;

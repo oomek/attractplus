@@ -323,7 +323,10 @@ void FeWindow::initial_create()
 	//
 	// Create window
 	//
-	m_window->create( vm, "Attract-Mode", style_map[ m_win_mode ] );
+	sf::ContextSettings ctx;
+	ctx.antialiasingLevel = m_fes.get_antialiasing();
+
+	m_window->create( vm, "Attract-Mode", style_map[ m_win_mode ], ctx );
 
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync

@@ -186,6 +186,24 @@ const char *FeSettings::screenRotationDispTokens[] =
 	NULL
 };
 
+const char *FeSettings::antialiasingTokens[] =
+{
+	"0",
+	"2",
+	"4",
+	"8",
+	NULL
+};
+
+const char *FeSettings::antialiasingDispTokens[] =
+{
+	"None (Default)",
+	"MSAA x2",
+	"MSAA x4",
+	"MSAA x8",
+	NULL
+};
+
 const char *FeSettings::filterWrapTokens[] =
 {
 	"default",
@@ -375,6 +393,7 @@ const char *FeSettings::configSettingStrings[] =
 	"joystick_threshold",
 	"window_mode",
 	"screen_rotation",
+	"anti_aliasing",
 	"filter_wrap_mode",
 	"track_usage",
 	"multiple_monitors",
@@ -2679,6 +2698,11 @@ FeSettings::RotationState FeSettings::get_screen_rotation() const
 	return m_screen_rotation;
 }
 
+int FeSettings::get_antialiasing() const
+{
+	return m_antialiasing;
+}
+
 FeSettings::FilterWrapModeType FeSettings::get_filter_wrap_mode() const
 {
 	return m_filter_wrap_mode;
@@ -2737,6 +2761,8 @@ const std::string FeSettings::get_info( int index ) const
 		return windowModeTokens[ m_window_mode ];
 	case ScreenRotation:
 		return screenRotationTokens[ m_screen_rotation ];
+	case AntiAliasing:
+		return as_str( m_antialiasing );
 	case FilterWrapMode:
 		return filterWrapTokens[ m_filter_wrap_mode ];
 	case SelectionMaxStep:
@@ -2957,6 +2983,17 @@ bool FeSettings::set_info( int index, const std::string &value )
 			if ( screenRotationTokens[i] == NULL )
 				return false;
 		}
+		break;
+
+	case AntiAliasing:
+		// Limit to MSAAx8
+		m_antialiasing = std::min( as_int( value ), 8 );
+
+		// Check if it's a power of 2 and if it's greater than 1
+		if ( m_antialiasing > 1 && !( m_antialiasing & ( m_antialiasing - 1 )))
+			break;
+
+		m_antialiasing = 0;
 		break;
 
 	case FilterWrapMode:

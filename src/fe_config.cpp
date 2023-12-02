@@ -32,6 +32,7 @@
 #endif
 
 #include <iostream>
+#include <cmath>
 #include "nowide/fstream.hpp"
 
 FeMenuOpt::FeMenuOpt( int t, const std::string &set, const std::string &val )
@@ -1959,6 +1960,21 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.add_optl( Opt::LIST, "Screen Rotation", rotmode, "_help_screen_rotation" );
 	ctx.back_opt().append_vlist( rot_modes );
 
+	std::string aamode;
+	// converting AA multiplier to array index: 0,2,4,8 to 0,1,2,3 respectively
+	int idx = std::max( log2( ctx.fe_settings.get_antialiasing() ), 0.0 );
+	ctx.fe_settings.get_resource( FeSettings::antialiasingDispTokens[ idx ], aamode );
+	std::vector < std::string > aa_modes;
+	i=0;
+	while ( FeSettings::antialiasingDispTokens[i] != 0 )
+	{
+		aa_modes.push_back( std::string() );
+		ctx.fe_settings.get_resource( FeSettings::antialiasingDispTokens[ i ], aa_modes.back() );
+		i++;
+	}
+	ctx.add_optl( Opt::LIST, "Anti-Aliasing", aamode, "_help_antialiasing" );
+	ctx.back_opt().append_vlist( aa_modes );
+
 	std::string startupmode;
 	ctx.fe_settings.get_resource( FeSettings::startupDispTokens[ ctx.fe_settings.get_startup_mode() ], startupmode );
 	std::vector < std::string > startup_modes;
@@ -2089,6 +2105,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 
 	ctx.fe_settings.set_info( FeSettings::ScreenRotation,
 			FeSettings::screenRotationTokens[ ctx.opt_list[i++].get_vindex() ] );
+
+	ctx.fe_settings.set_info( FeSettings::AntiAliasing,
+			FeSettings::antialiasingTokens[ ctx.opt_list[i++].get_vindex() ] );
 
 	ctx.fe_settings.set_info( FeSettings::StartupMode,
 			FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
