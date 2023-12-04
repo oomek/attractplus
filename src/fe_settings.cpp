@@ -204,6 +204,26 @@ const char *FeSettings::antialiasingDispTokens[] =
 	NULL
 };
 
+const char *FeSettings::anisotropicTokens[] =
+{
+	"0",
+	"2",
+	"4",
+	"8",
+	"16",
+	NULL
+};
+
+const char *FeSettings::anisotropicDispTokens[] =
+{
+	"None (Default)",
+	"x2",
+	"x4",
+	"x8",
+	"x16",
+	NULL
+};
+
 const char *FeSettings::filterWrapTokens[] =
 {
 	"default",
@@ -394,6 +414,7 @@ const char *FeSettings::configSettingStrings[] =
 	"window_mode",
 	"screen_rotation",
 	"anti_aliasing",
+	"anisotropic",
 	"filter_wrap_mode",
 	"track_usage",
 	"multiple_monitors",
@@ -2703,6 +2724,11 @@ int FeSettings::get_antialiasing() const
 	return m_antialiasing;
 }
 
+int FeSettings::get_anisotropic() const
+{
+	return m_anisotropic;
+}
+
 FeSettings::FilterWrapModeType FeSettings::get_filter_wrap_mode() const
 {
 	return m_filter_wrap_mode;
@@ -2763,6 +2789,8 @@ const std::string FeSettings::get_info( int index ) const
 		return screenRotationTokens[ m_screen_rotation ];
 	case AntiAliasing:
 		return as_str( m_antialiasing );
+	case Anisotropic:
+		return as_str( m_anisotropic );
 	case FilterWrapMode:
 		return filterWrapTokens[ m_filter_wrap_mode ];
 	case SelectionMaxStep:
@@ -2994,6 +3022,17 @@ bool FeSettings::set_info( int index, const std::string &value )
 			break;
 
 		m_antialiasing = 0;
+		break;
+
+	case Anisotropic:
+		// Limit Anisotropic Filtering to x16
+		m_anisotropic = std::min( as_int( value ), 16 );
+
+		// Check if it's a power of 2 and if it's greater than 1
+		if ( m_anisotropic > 1 && !( m_anisotropic & ( m_anisotropic - 1 )))
+			break;
+
+		m_anisotropic = 0;
 		break;
 
 	case FilterWrapMode:

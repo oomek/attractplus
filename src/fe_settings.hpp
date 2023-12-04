@@ -90,6 +90,8 @@ public:
 	static const char *screenRotationDispTokens[];
 	static const char *antialiasingTokens[];
 	static const char *antialiasingDispTokens[];
+	static const char *anisotropicTokens[];
+	static const char *anisotropicDispTokens[];
 
 	enum FePresentState
 	{
@@ -128,6 +130,7 @@ public:
 		WindowMode,
 		ScreenRotation,
 		AntiAliasing,
+		Anisotropic,
 		FilterWrapMode,
 		TrackUsage,
 		MultiMon,
@@ -241,6 +244,7 @@ private:
 	bool m_power_saving;
 	RotationState m_screen_rotation;
 	int m_antialiasing;
+	int m_anisotropic;
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
@@ -492,6 +496,7 @@ public:
 	WindowType get_window_mode() const;
 	RotationState get_screen_rotation() const;
 	int get_antialiasing() const;
+	int get_anisotropic() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
 	int get_screen_saver_timeout() const;

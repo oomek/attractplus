@@ -1975,6 +1975,21 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.add_optl( Opt::LIST, "Anti-Aliasing", aamode, "_help_antialiasing" );
 	ctx.back_opt().append_vlist( aa_modes );
 
+	std::string afmode;
+	// converting AF multiplier to array index: 0,2,4,8,16 to 0,1,2,3,4 respectively
+	idx = std::max( log2( ctx.fe_settings.get_anisotropic() ), 0.0 );
+	ctx.fe_settings.get_resource( FeSettings::anisotropicDispTokens[ idx ], afmode );
+	std::vector < std::string > af_modes;
+	i=0;
+	while ( FeSettings::anisotropicDispTokens[i] != 0 )
+	{
+		af_modes.push_back( std::string() );
+		ctx.fe_settings.get_resource( FeSettings::anisotropicDispTokens[ i ], af_modes.back() );
+		i++;
+	}
+	ctx.add_optl( Opt::LIST, "Anisotropic Filtering", afmode, "_help_anisotropic" );
+	ctx.back_opt().append_vlist( af_modes );
+
 	std::string startupmode;
 	ctx.fe_settings.get_resource( FeSettings::startupDispTokens[ ctx.fe_settings.get_startup_mode() ], startupmode );
 	std::vector < std::string > startup_modes;
@@ -2108,6 +2123,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 
 	ctx.fe_settings.set_info( FeSettings::AntiAliasing,
 			FeSettings::antialiasingTokens[ ctx.opt_list[i++].get_vindex() ] );
+
+	ctx.fe_settings.set_info( FeSettings::Anisotropic,
+			FeSettings::anisotropicTokens[ ctx.opt_list[i++].get_vindex() ] );
 
 	ctx.fe_settings.set_info( FeSettings::StartupMode,
 			FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
