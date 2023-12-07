@@ -152,6 +152,7 @@ _DEP =\
 	sprite.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
+	fe_music.hpp \
 	fe_shader.hpp \
 	fe_overlay.hpp \
 	fe_window.hpp \
@@ -187,6 +188,7 @@ _OBJ =\
 	sprite.o \
 	fe_image.o \
 	fe_sound.o \
+	fe_music.o \
 	fe_shader.o \
 	fe_overlay.o \
 	fe_window.o \
@@ -237,7 +239,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
    override B64FLAGS = -b 0 -i
-   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo
+   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL
   else
    ifeq ($(USE_DRM),1)
    else
@@ -263,8 +265,9 @@ SFML_OBJ_DIR = $(OBJ_DIR)/sfml
 SFML_LIB_DIR=$(SFML_OBJ_DIR)/install/lib/
 SFML_PKG_CONFIG_PATH=$(ROOT_DIR)/$(SFML_OBJ_DIR)/install/pkgconfig
 LIBS += -L$(SFML_LIB_DIR)
-SFML_PC="sfml-system sfml-window sfml-graphics"
+SFML_PC="sfml-system sfml-window sfml-audio sfml-graphics"
 SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
+
 
 ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenGL
@@ -274,10 +277,11 @@ endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL -lpthread
+  LIBS += -ldl -lGL -lpthread -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
  endif
 else
- LIBS += -lopengl32
+ LIBS += -L$(EXTLIBS_DIR)/openal-soft
+ LIBS += -lopengl32 -lFLAC -lvorbisfile -lopenal32-s
 endif
 
 
@@ -374,21 +378,10 @@ ifeq ($(NO_MOVIE),1)
  else
   LIBS += -lsfml-audio
  endif
- AUDIO =
 else
  TEMP_LIBS += libavformat libavcodec libavutil libswscale libswresample
-
- ifeq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -framework OpenAL
- else
-  TEMP_LIBS += openal
- endif
-
  _DEP += media.hpp
  _OBJ += media.o
-
- CFLAGS += -I$(EXTLIBS_DIR)/audio/include
- AUDIO = $(OBJ_DIR)/libaudio.a
 endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR)
@@ -466,7 +459,7 @@ $(OBJ_DIR)/%.h: % | $(RES_FONTS_DIR) $(RES_IMGS_DIR)
 	$(shell (echo 'const char* _binary_$(subst .,_,$(subst /,_,$<)) = "' ; base64 $(B64FLAGS) $< ; echo '";') | tr -d '\n' > $@)
 
 
-$(EXE): $(OBJ) $(EXPAT) $(SQUIRREL) $(AUDIO)
+$(EXE): $(OBJ) $(EXPAT) $(SQUIRREL)
 	$(EXE_MSG)
 	$(SILENT)$(CXX) -o $@ $^ $(CFLAGS) $(FE_FLAGS) $(LIBS)
 ifneq ($(FE_DEBUG),1)
@@ -510,10 +503,10 @@ endif
 
 sfml: sfmlbuild
 ifeq ($(STATIC),1)
-	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --static --libs-only-L $(SFML_PC)))
+	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --static --libs-only-L $(SFML_PC)))
 	$(info Manually adding sfml libs as pkg-config has no --static version)
-	$(eval SFML_LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s)
-	$(eval CFLAGS += -DSFML_STATIC $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --static --cflags $(SFML_PC)))
+	$(eval SFML_LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-audio-s -lsfml-system-s)
+	$(eval CFLAGS += -DSFML_STATIC $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --static --cflags $(SFML_PC)))
 ifeq ($(FE_WINDOWS_COMPILE),1)
 else ifeq ($(FE_MACOSX_COMPILE),1)
 else
@@ -521,8 +514,8 @@ else
 endif
 else
 	# SFML may not generate .pc files, so manually add libs
-	$(eval CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --cflags $(SFML_PC)))
-	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --libs $(SFML_PC)))
+	$(eval CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $(SFML_PC)))
+	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $(SFML_PC)))
 	#LIBS += -lsfml-graphics -lsfml-window -lsfml-system
 endif
 	$(eval override LIBS = $(SFML_LIBS) $(LIBS))
@@ -618,29 +611,6 @@ $(SQSTDLIB_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/squirrel/sqstdlib/%.cpp | $(SQSTDLIB_OBJ
 	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS) $(SQUIRREL_FLAGS)
 
 $(SQSTDLIB_OBJ_DIR): sfml
-	$(MD) $@
-
-#
-# Audio
-#
-AUDIO_OBJ_DIR = $(OBJ_DIR)/audiolib
-
-AUDIOOBJS= \
-	$(AUDIO_OBJ_DIR)/ALCheck.o \
-	$(AUDIO_OBJ_DIR)/AudioDevice.o \
-	$(AUDIO_OBJ_DIR)/Listener.o \
-	$(AUDIO_OBJ_DIR)/SoundSource.o \
-	$(AUDIO_OBJ_DIR)/SoundStream.o
-
-$(OBJ_DIR)/libaudio.a: $(AUDIOOBJS) | $(AUDIO_OBJ_DIR)
-	$(AR_MSG)
-	$(SILENT)$(AR) $(ARFLAGS) $@ $(AUDIOOBJS)
-
-$(AUDIO_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/audio/Audio/%.cpp | $(AUDIO_OBJ_DIR)
-	$(CC_MSG)
-	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS)
-
-$(AUDIO_OBJ_DIR): sfml
 	$(MD) $@
 
 #

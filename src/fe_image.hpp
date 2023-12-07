@@ -98,6 +98,9 @@ public:
 	virtual void set_redraw( bool );
 	virtual bool get_redraw() const;
 
+	virtual void set_volume( float );
+	virtual float get_volume() const;
+
 	virtual float get_sample_aspect_ratio() const;
 
 	// function for use with surface objects
@@ -177,6 +180,9 @@ public:
 	void set_repeat( bool );
 	bool get_repeat() const;
 
+	void set_volume( float );
+	float get_volume() const;
+
 	float get_sample_aspect_ratio() const;
 
 protected:
@@ -214,6 +220,7 @@ private:
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;
 	bool m_smooth;
+	float m_volume;
 	FeImageLoaderEntry *m_entry;
 };
 
@@ -346,6 +353,7 @@ public:
 	bool get_clear() const;
 	bool get_repeat() const;
 	bool get_redraw() const;
+	float get_volume() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
@@ -371,6 +379,7 @@ public:
 	void set_clear( bool );
 	void set_repeat( bool );
 	void set_redraw( bool );
+	void set_volume( float );
 	void set_blend_mode( int b );
 
 	void transition_swap( FeImage * );

@@ -26,6 +26,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
 #include "fe_settings.hpp"
+#include "fe_music.hpp"
 #include "fe_sound.hpp"
 #include "fe_shader.hpp"
 #include "fe_window.hpp"
@@ -138,6 +139,7 @@ protected:
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
+	std::vector<FeMusic *> m_musics;
 	std::vector<FeShader *> m_scriptShaders;
 	std::vector<FeFontContainer *> m_fontPool;
 	std::vector<FeMonitor> m_mon;
@@ -178,7 +180,8 @@ protected:
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_surface(int w, int h, FePresentableParent &p);
-	FeSound *add_sound(const char *n, bool reuse);
+	FeSound *add_sound(const char *n);
+	FeMusic *add_music(const char *n);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
 	float get_layout_width() const;
 	float get_layout_height() const;
