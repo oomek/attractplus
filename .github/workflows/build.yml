@@ -92,7 +92,7 @@ jobs:
     - name: Install MacOS brew
       if: runner.os == 'macOS'
       run: |
-        brew install pkg-config ffmpeg libarchive libvorbis flac jpeg-turbo
+        brew install pkg-config ffmpeg libarchive libvorbis flac jpeg-turbo openal-soft
 
     - name: Build AM+ (ARM)
       if: matrix.platform.name == 'armv7' || matrix.platform.name == 'aarch64'
@@ -119,6 +119,8 @@ jobs:
     - name: Build AM+
       run: |
         make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
+      env:
+        PKG_CONFIG_PATH: "/usr/local/opt/openal-soft/lib/pkgconfig"
 
     - name: Build AM+ attract-console.exe
       if: matrix.platform.name == 'Windows x64'

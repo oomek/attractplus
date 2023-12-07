@@ -841,7 +841,7 @@ void FeMedia::play()
 void FeMedia::signal_stop()
 {
 	if ( m_audio )
-		sf::SoundStream::signal_stop();
+		sf::SoundStream::stop();
 
 	if ( m_video )
 		m_video->signal_stop();
@@ -1351,17 +1351,6 @@ sf::Time FeMedia::get_duration() const
 	}
 
 	return sf::Time::Zero;
-}
-
-const char *FeMedia::get_metadata( const char *tag )
-{
-	if ( !m_imp->m_format_ctx )
-		return "";
-
-	AVDictionaryEntry *entry = NULL;
-	entry = av_dict_get( m_imp->m_format_ctx->metadata, tag, NULL, AV_DICT_IGNORE_SUFFIX );
-
-	return ( entry ? entry->value : "" );
 }
 
 #if FE_HWACCEL
