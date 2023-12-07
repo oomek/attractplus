@@ -151,6 +151,15 @@ bool FeBaseTextureContainer::get_redraw() const
 	return false;
 }
 
+void FeBaseTextureContainer::set_volume( float v )
+{
+}
+
+float FeBaseTextureContainer::get_volume() const
+{
+	return 0.0;
+}
+
 float FeBaseTextureContainer::get_sample_aspect_ratio() const
 {
 	return 1.0;
@@ -240,6 +249,7 @@ FeTextureContainer::FeTextureContainer(
 	m_video_flags( VF_Normal ),
 	m_mipmap( false ),
 	m_smooth( false ),
+	m_volume( 100.0 ),
 	m_entry( NULL )
 {
 	if ( is_artwork )
@@ -583,7 +593,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			if ( m_video_flags & VF_NoAudio )
 				m_movie->setVolume( 0.f );
 			else
-				m_movie->setVolume(feSettings->get_play_volume( FeSoundInfo::Movie ) );
+				m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
 
 			m_movie->play();
 		}
@@ -663,7 +673,7 @@ void FeTextureContainer::set_vol( float vol )
 {
 #ifndef NO_MOVIE
 	if ( (m_movie) && !(m_video_flags & VF_NoAudio) )
-		m_movie->setVolume( vol );
+		m_movie->setVolume( m_volume * vol / 100.0 );
 #endif
 }
 
@@ -713,9 +723,7 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 			float volume( 100.f );
 			FePresent *fep = FePresent::script_get_fep();
 			if ( fep )
-				volume = fep->get_fes()->get_play_volume( FeSoundInfo::Movie );
-
-			m_movie->setVolume( volume );
+				m_movie->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
 		}
 	}
 #endif
@@ -856,6 +864,18 @@ bool FeTextureContainer::get_repeat() const
 	return m_texture.isRepeated();
 }
 
+void FeTextureContainer::set_volume( float v )
+{
+	if ( v < 0.0 ) v = 0.0;
+	if ( v > 100.0 ) v = 100.0;
+	m_volume = v;
+}
+
+float FeTextureContainer::get_volume() const
+{
+	return m_volume;
+}
+
 float FeTextureContainer::get_sample_aspect_ratio() const
 {
 #ifndef NO_MOVIE
@@ -867,10 +887,10 @@ float FeTextureContainer::get_sample_aspect_ratio() const
 
 void FeTextureContainer::release_audio( bool state )
 {
-#ifndef NO_MOVIE
-	if ( m_movie )
-		m_movie->release_audio( state );
-#endif
+// #ifndef NO_MOVIE
+// 	if ( m_movie )
+// 		m_movie->release_audio( state );
+// #endif
 }
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
@@ -1683,6 +1703,16 @@ void FeImage::set_redraw( bool r )
 bool FeImage::get_redraw() const
 {
 	return m_tex->get_redraw();
+}
+
+void FeImage::set_volume( float v )
+{
+	m_tex->set_volume( v );
+}
+
+float FeImage::get_volume() const
+{
+	return m_tex->get_volume();
 }
 
 void FeImage::transition_swap( FeImage *o )
