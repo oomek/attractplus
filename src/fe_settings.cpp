@@ -288,6 +288,8 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_window_mode( Default ),
 #endif
 	m_screen_rotation( RotateNone ),
+	m_antialiasing( 0 ),
+	m_anisotropic( 0 ),
 	m_smooth_images( true ),
 	m_filter_wrap_mode( WrapWithinDisplay ),
 	m_selection_max_step( 128 ),
@@ -3014,8 +3016,8 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case AntiAliasing:
-		// Limit to MSAAx8
-		m_antialiasing = std::min( as_int( value ), 8 );
+		// Limit to the maximum antialiasing level supported by the system but not greater than 8
+		m_antialiasing = std::min( std::min( as_int( value ), static_cast<int>( sf::RenderTexture::getMaximumAntialiasingLevel() )), 8 );
 
 		// Check if it's a power of 2 and if it's greater than 1
 		if ( m_antialiasing > 1 && !( m_antialiasing & ( m_antialiasing - 1 )))

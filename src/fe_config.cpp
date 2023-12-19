@@ -1966,7 +1966,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.fe_settings.get_resource( FeSettings::antialiasingDispTokens[ idx ], aamode );
 	std::vector < std::string > aa_modes;
 	i=0;
-	while ( FeSettings::antialiasingDispTokens[i] != 0 )
+	while ( FeSettings::antialiasingDispTokens[i] != 0 && as_int( FeSettings::antialiasingTokens[ i ] ) <= std::min( static_cast<int>( sf::RenderTexture::getMaximumAntialiasingLevel() ), 8 ))
 	{
 		aa_modes.push_back( std::string() );
 		ctx.fe_settings.get_resource( FeSettings::antialiasingDispTokens[ i ], aa_modes.back() );
