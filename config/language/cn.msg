@@ -217,17 +217,14 @@ equals;等于
 'Displays Menu' Options;界面选择器设置
 Add a rule to this filter;添加分类规则
 Ambient Sounds;背景音乐
-Back(Exit(Confirm));返回（退出）
 Basic Movie;全屏式动态画面
 Configure / Input;设置/控制器
 Configure available emulators;可用模拟器
 Configure filter rule;设置分类规则
 Delete this filter;删除分类
-Down(Next Game);↓（下一游戏）
 Exit menu;退出菜单
 Image Collage;拼图式静态画面
 Launch Last Game on Startup;启动时载入最后一次运行的游戏
-Left(Previous Display);←（上一界面）
 Minimum Run Time;最小运行时间
 Movie Collage;拼图式动态画面
 Overlay Artwork;悬浮的插图
@@ -235,9 +232,7 @@ Page Down;向下翻页
 Page Up;向上翻页
 Preserve Aspect Ratio;以当前游戏为背景
 RGB Movie;RGB模式（RGB Movie）
-Right(Next Display);→（下一界面）
 Scrape mamedb.com (MAME only);搜刮 mamedb.com（仅 MAME）
-Up(Previous Game);↑（上一游戏）
 XML Mode;XML 模式
 
 #@DONE_TRANSLATED
@@ -245,6 +240,8 @@ XML Mode;XML 模式
 # Strings still needing translation
 #
 Add tag: '$1';Add tag: '$1'
+Anisotropic Filtering;Anisotropic Filtering
+Anti-Aliasing;Anti-Aliasing
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
 Auto-detect emulators?;Auto-detect emulators?
@@ -284,10 +281,13 @@ Please Wait;Please Wait
 Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Remove tag: '$1';Remove tag: '$1'
+Screen Rotation;Screen Rotation
 Select template to use for emulator settings;Select template to use for emulator settings
 Window (No Border);Window (No Border)
 Working Directory;Working Directory
 multi;multi
+_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_antialiasing;Set the anti-aliasing level
 _help_art;An artwork resource available for use by layouts
 _help_art_add;Add a new artwork resource (marquee images, screen shots, etc.)
 _help_art_label;The label that identifies this artwork resource (used by layouts)
@@ -397,7 +397,7 @@ _help_generator_build;Generate romlist with the selected emulator(s)
 _help_generator_opt;Set whether this emulator is to be included in the generated romlist
 _help_group_clones;Group all clones of a game under one single list entry
 _help_hide_brackets;Hide text in brackets when showing game titles
-_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it.
+_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
 _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_input_action;
 _help_input_add;Add a new input mapping for this control
@@ -415,7 +415,7 @@ _help_plugin_command;The executable associated with this plug-in
 _help_plugin_enabled;Set whether this plug-in is enabled
 _help_plugin_sel;Configure plug-in
 _help_plugins;Configure available plug-ins
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
+_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on

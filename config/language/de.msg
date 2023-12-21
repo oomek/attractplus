@@ -342,7 +342,6 @@ Exception;Ausnahme
 Exception Edit;editiere die Ausnahme
 Exit Message;Abschiedsnachricht
 Extra;Extra
-Group Clones;Gruppenklone
 FileIsAvailable;Datei ist vorhanden
 Group Clones;Gruppenklone
 Insert Command Shortcut;füge eine Kommandoverknüpfung ein
@@ -409,6 +408,7 @@ _help_generator_build;Erstelle eine Romliste mit dem/den ausgewählten Emulator(
 _help_generator_opt;Wähle, ob dieser Emulator in der zu erstellenden Romliste enthalten sein soll
 _help_group_clones;Gruppieren Sie alle Klone eines Spiels unter einem einzigen Listeneintrag
 _help_hide_console;Verstecke das Kommandozeilenfenster beim Starten. Bitte beachte, dass dies nur in einer Windows Schaltfläche funktioniert. Wird die Anwendung durch ein Kommandozeilenfenster, wie z.B. einer Batch-Datei, gestartet, wird der Ladevorgang and dieses Fenster gebunden sein
+_help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_input_default_action;Setze ein Standardverhalten für diese Eingabe
 _help_joystick_map;Hier kannst du das Frontend zwingen bestimmte Joystick ports immer denselben Joysticks/Gamepads zuzuweisen (So kannst du zum Beispiel 'Microsoft X-Box 360 pad' immer als Joystick 0 verwenden.)
 _help_language;Wähle die Sprache in der Attract-Mode angezeigt wird
@@ -425,6 +425,14 @@ _help_video_decoder;Konfiguriere den Decoder für die Video Wiedergabe (falls me
 #
 # Strings still needing translation
 #
+Anisotropic Filtering;Anisotropic Filtering
+Anti-Aliasing;Anti-Aliasing
 Auto-detect emulators?;Auto-detect emulators?
+Image Cache Size;Image Cache Size
+Power Saving;Power Saving
+Screen Rotation;Screen Rotation
+_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_antialiasing;Set the anti-aliasing level
 _help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
+_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen

@@ -6,6 +6,8 @@
 #
 # Help messages
 #
+_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_antialiasing;Set the anti-aliasing level
 _help_art;An artwork resource available for use by layouts
 _help_art_add;Add a new artwork resource (marquee images, screen shots, etc.)
 _help_art_label;The label that identifies this artwork resource (used by layouts)
@@ -115,7 +117,7 @@ _help_generator_build;Generate romlist with the selected emulator(s)
 _help_generator_opt;Set whether this emulator is to be included in the generated romlist
 _help_group_clones;Group all clones of a game under one single list entry
 _help_hide_brackets;Hide text in brackets when showing game titles
-_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it.
+_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
 _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_input_action;
 _help_input_add;Add a new input mapping for this control
@@ -133,7 +135,7 @@ _help_plugin_command;The executable associated with this plug-in
 _help_plugin_enabled;Set whether this plug-in is enabled
 _help_plugin_sel;Configure plug-in
 _help_plugins;Configure available plug-ins
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
+_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on

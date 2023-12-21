@@ -21,6 +21,8 @@ AltRomname;AltRomname
 AltTitle;AltTitle
 Ambient Soundtrack;Ambient Soundtrack
 Ambient Volume;Ambient Volume
+Anisotropic Filtering;Anisotropic Filtering
+Anti-Aliasing;Anti-Aliasing
 Artwork Label;Artwork Label
 Artwork Name;Artwork Name
 Artwork Path;Artwork Path
@@ -254,6 +256,8 @@ multi;multi
 #
 # Help message strings
 #
+_help_antialiasing;Set the anti-aliasing level
+_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
 _help_art;An artwork resource available for use by layouts
 _help_art_add;Add a new artwork resource (marquee images, screen shots, etc.)
 _help_art_label;The label that identifies this artwork resource (used by layouts)
@@ -380,6 +384,7 @@ _help_plugin_command;The executable associated with this plug-in
 _help_plugin_enabled;Set whether this plug-in is enabled
 _help_plugin_sel;Configure plug-in
 _help_plugins;Configure available plug-ins
+_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on
@@ -405,7 +410,7 @@ _help_track_usage;Configure whether Attract-Mode should track usage (played time
 _help_video_decoder;Configure the decoder to use for video playback (if multiple decoders are available)
 _help_volume;Valid volume settings are from 0 (mute) to 100
 _help_window_mode;Set whether Attract-Mode fills the screen or runs in a window
-_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it.
+_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
 _sort_regexp;^(Vs\. The |The |Vs\. )
 

@@ -408,21 +408,21 @@ _sort_regexp;^(Vs\. The |The |Vs\. )
 # Extra strings provided by translation
 #
 'Displays Menu' Options;主選單選項
-Back (Exit);返回 (結束)
-Down (Next Game);↓ (下一個遊戲)
-Left (Previous Page);← (上一頁)
 Rating;遊戲評比
 Region;遊戲區域
-Right (Next Page);→ (下一頁)
 Series;系列遊戲
-Up (Previous Game);↑ (上一個遊戲)
 
 #@DONE_TRANSLATED
 #
 # Strings still needing translation
 #
+Anisotropic Filtering;Anisotropic Filtering
+Anti-Aliasing;Anti-Aliasing
 Auto-detect emulators?;Auto-detect emulators?
 Group Clones;Group Clones
+Screen Rotation;Screen Rotation
+_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_antialiasing;Set the anti-aliasing level
 _help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_group_clones;Group all clones of a game under one single list entry
 _help_screen_rotation;Set the base rotation of the screen

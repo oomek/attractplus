@@ -321,6 +321,8 @@ _help_autolaunch_last_game;Lanza automaticamente el útlito juego jugado en el i
 Add '$1' to Favourites?;Add '$1' to Favourites?
 Add Exception;Add Exception
 Add tag: '$1';Add tag: '$1'
+Anisotropic Filtering;Anisotropic Filtering
+Anti-Aliasing;Anti-Aliasing
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
 Auto-detect emulators?;Auto-detect emulators?
@@ -376,6 +378,7 @@ Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Fanart;Scrape Fanart
 Scrape Videos (MAME only);Scrape Videos (MAME only)
+Screen Rotation;Screen Rotation
 Select template to use for emulator settings;Select template to use for emulator settings
 Show Displays Menu;Show Displays Menu
 Show Last Selection (Default);Show Last Selection (Default)
@@ -386,6 +389,8 @@ Video Decoder;Video Decoder
 Window (No Border);Window (No Border)
 Working Directory;Working Directory
 multi;multi
+_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_antialiasing;Set the anti-aliasing level
 _help_confirm_exit;Confirm before exiting Attact-Mode?
 _help_control_back;Set the control(s) that go back
 _help_control_custom3;Set the "Custom3" control(s)
@@ -418,14 +423,14 @@ _help_game_overview;Edit game overview
 _help_generator_build;Generate romlist with the selected emulator(s)
 _help_generator_opt;Set whether this emulator is to be included in the generated romlist
 _help_group_clones;Group all clones of a game under one single list entry
-_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it.
+_help_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
 _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_input_default_action;Set the default behaviour for this control
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux.
+_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
 _help_shortcut_delete;Delete this shortcut from the Romlist

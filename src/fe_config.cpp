@@ -1987,7 +1987,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 		ctx.fe_settings.get_resource( FeSettings::anisotropicDispTokens[ i ], af_modes.back() );
 		i++;
 	}
-	ctx.add_optl( Opt::LIST, "Anisotropic Filtering", afmode, "_help_anisotropic" );
+	ctx.add_optl( Opt::LIST, "Anisotropic Filtering", afmode, "_help_anisotropic_filtering" );
 	ctx.back_opt().append_vlist( af_modes );
 
 	std::string startupmode;
