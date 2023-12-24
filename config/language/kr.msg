@@ -414,17 +414,23 @@ _help_scrape_mamedb;MAME snap과 marquee를 mamedb.com에서 가져올 지 여�
 Anisotropic Filtering;Anisotropic Filtering
 Anti-Aliasing;Anti-Aliasing
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
-Auto-detect emulators?;Auto-detect emulators?
+Auto-detect Emulators;Auto-detect Emulators
 Clear Hotkey?;Clear Hotkey?
 Exit Message;Exit Message
 Group Clones;Group Clones
+Hide Console;Hide Console
 Image Cache Size;Image Cache Size
+Insert Game;Insert Game
 Layout File;Layout File
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
 Pause Hotkey;Pause Hotkey
 Please Wait;Please Wait
 Power Saving;Power Saving
 Press Hotkey;Press Hotkey
+Proceed with auto-detection of emulators?;Proceed with auto-detection of emulators?
+Rating;Rating
+Region;Region
+Series;Series
 Screen Rotation;Screen Rotation
 Select template to use for emulator settings;Select template to use for emulator settings
 _help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures

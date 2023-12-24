@@ -781,7 +781,7 @@ bool FeEmulatorSelMenu::on_option_select(
 	}
 	else if ( o.opaque == 3 )
 	{
-		if ( ctx.confirm_dialog( "Auto-detect emulators?", "" ))
+		if ( ctx.confirm_dialog( "Proceed with auto-detection of emulators?", "" ))
 		{
 			FePresent *fep = FePresent::script_get_fep();
 			if ( fep )

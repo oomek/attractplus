@@ -1,22 +1,23 @@
-# This file is the template for Attract-Mode translations.
-# Translate the string to the right of the semicolon on each line.  thanks!
+#@Polski
+#
+# Interface strings
 #
 $1 Rule(s);$1 Rule(s)
-Action;Action
-Add '$1' to Favourites?;Add '$1' to Favourites?
-Add Artwork;Add Artwork
-Add Emulator;Add Emulator
-Add Exception;Add Exception
-Add Filter;Add Filter
-Add Input;Add Input
-Add New Display;Add New Display
-Add Rule;Add Rule
-Add tag: '$1';Add tag: '$1'
-Add/Remove Favourite;Add/Remove Favourite
-Add/Remove Tags;Add/Remove Tags
-Additional Import File(s);Additional Import File(s)
-All;All
-Allow Exit from 'Displays Menu';Allow Exit from 'Displays Menu'
+Action;Czynność
+Add '$1' to Favourites?;Dodaj '$1' do Ulubionych?
+Add Artwork;Dodaj Grafikę
+Add Emulator;Dodaj Emulator
+Add Exception;Dodaj Wyjątek
+Add Filter;Dodaj Filtr
+Add Input;Dodaj Przycisk
+Add New Display;Dodaj nową Listę
+Add Rule;Dodaj Regułę
+Add tag: '$1';Dodaj etykietę: '$1'
+Add/Remove Favourite;Dodaj/Usuń Ulubione
+Add/Remove Tags;Dodaj/Usuń Etykietę
+Additional Import File(s);Dodatkowe pliki do importu
+All;Wszystkie
+Allow Exit from 'Displays Menu';Pozwól na wyjście z 'Menu List'
 AltRomname;AltRomname
 AltTitle;AltTitle
 Ambient Soundtrack;Ambient Soundtrack
@@ -28,7 +29,7 @@ Artwork Name;Artwork Name
 Artwork Path;Artwork Path
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
 Auto-detect Emulators;Auto-detect Emulators
-Back;Back
+Back;Wstecz
 Blank Game;Blank Game
 Buttons;Buttons
 Category;Category
@@ -38,24 +39,24 @@ Collection/Rom List;Collection/Rom List
 Command;Command
 Command Arguments;Command Arguments
 Comparison;Comparison
-Configure;Configure
-Configure / Controls;Configure / Controls
-Configure / Displays;Configure / Displays
-Configure / Displays Menu;Configure / Displays Menu
-Configure / Emulators;Configure / Emulators
-Configure / Intro;Configure Intro
-Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure / General;Configure / General
-Configure / Plug-ins;Configure / Plug-ins
-Configure / Scraper;Configure / Scraper
-Configure / Screen Saver;Configure Screen Saver
-Configure / Sound;Configure / Sound
-Configure Layout;Configure Layout
-Configure Plug-in;Configure Plug-in
-Confirm Exit;Confirm Exit
+Configure;Ustawienia
+Configure / Controls;Ustawienia / Sterowanie
+Configure / Displays;Ustawienia / Ekrany
+Configure / Displays Menu;Ustawienia / Menu Ekranów
+Configure / Emulators;Ustawienia / Emulatory
+Configure / Intro;Ustawienia / Intro
+Configure / Joystick Mapping;Ustawienia / Mapowanie Joysticków
+Configure / General;Ustawienia / Ogólne
+Configure / Plug-ins;Ustawienia / Plug-iny
+Configure / Scraper;Ustawienia / Scraper
+Configure / Screen Saver;Ustawienia / Wygaszacz
+Configure / Sound;Ustawienia / Dźwięki
+Configure Layout;Ustawienia Ekranu
+Configure Plug-in;Ustawienia Plug-inu
+Confirm Exit;Potwierdź Wyjście
 Confirm Favourites;Confirm Favourites
 Control;Control
-Controls;Controls
+Controls;Sterowanie
 Create new tag;Create new tag
 Custom Arguments;Custom Arguments
 Custom Executable;Custom Executable
@@ -84,9 +85,9 @@ Display Edit;Display Edit
 Display Name;Display Name
 DisplayCount;DisplayCount
 DisplayType;DisplayType
-Displays;Displays
-Displays Menu;Displays Menu
-Down;Down
+Displays;Ekrany
+Displays Menu;Menu Ekranów
+Down;Dół
 Edit Artwork;Edit Artwork
 Edit Emulator;Edit Emulator
 Edit Game;Edit Game
@@ -95,7 +96,7 @@ Edit Shortcut;Edit Shortcut
 Empty;Empty
 Emulator;Emulator
 Emulator Name;Emulator Name
-Emulators;Emulators
+Emulators;Emulatory
 Enable Multiple Monitors;Enable Multiple Monitors
 Enabled;Enabled
 Enter Display Name;Enter Display Name
@@ -106,7 +107,7 @@ Enter new tag name;Enter new tag name
 Exception;Exception
 Exception Edit;Exception Edit
 Executable;Executable
-Exit;Exit
+Exit;Wyjście
 Exit Attract-Mode;Exit Attract-Mode
 Exit Attract-Mode?;Exit Attract-Mode?
 Exit Command;Exit Command
@@ -122,12 +123,13 @@ Filter Edit;Filter Edit
 Filter Name;Filter Name
 Filter Value;Filter Value
 Filter Wrap Mode;Filter Wrap Mode
-Filters Menu;Filters Menu
+Filters;Filtry
+Filters Menu;Menu Filterów
 Flip;Flip
 Font Path;Font Path
 Fullscreen Mode;Fullscreen Mode
 Game Return Sound;Game Return Sound
-General;General
+General;Ogólne
 Generate Collection/Rom List;Generate Collection/Rom List
 Generating Rom List: $1%;Generating Rom List: $1%
 Global Filter;Global Filter
@@ -151,7 +153,7 @@ Launch Last Game;Launch Last Game
 Layout;Layout
 Layout File;Layout File
 Layout Options;Layout Options
-Left;Left
+Left;Lewo
 List Limit;List Limit
 Manufacturer;Manufacturer
 Menu Prompt;Menu Prompt
@@ -161,8 +163,8 @@ Movie Volume;Movie Volume
 Name;Name
 Next Display;Next Display
 Next Favourite;Next Favourite
-Next Filter;Next Filter
-Next Game;Next Game
+Next Filter;Następny Filtr
+Next Game;Następna Gra
 Next Letter;Next Letter
 Next Page;Next Page
 No;No
@@ -170,7 +172,7 @@ No Sort;No Sort
 No Wrap;No Wrap
 None;None
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
-OR;OR
+OR;LUB
 Overview;Overview
 Overwrite existing '$1' list?;Overwrite existing '$1' list?
 Pause Hotkey;Pause Hotkey
@@ -179,14 +181,14 @@ PlayedCount;PlayedCount
 PlayedTime;PlayedTime
 Players;Players
 Please Wait;Please Wait
-Plug-ins;Plug-ins
+Plug-ins;Plug-iny
 Power Saving;Power Saving
 Press Input;Press Input
 Press Hotkey;Press Hotkey
 Previous Display;Previous Display
 Previous Favourite;Previous Favourite
-Previous Filter;Previous Filter
-Previous Game;Previous Game
+Previous Filter;Poprzedni Filtr
+Previous Game;Poprzednia Gra
 Previous Letter;Previous Letter
 Previous Page;Previous Page
 Proceed with auto-detection of emulators?;Proceed with auto-detection of emulators?
@@ -198,7 +200,7 @@ Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove Input;Remove Input
 Remove tag: '$1';Remove tag: '$1'
 Replay Last Game;Replay Last Game
-Right;Right
+Right;Prawo
 Rom Extension(s);Rom Extension(s)
 Rom Path(s);Rom Path(s)
 Rom path '$1' not found, proceed anyways?;Rom path '$1' not found, proceed anyways?
@@ -215,18 +217,18 @@ Scrape Videos (MAME only);Scrape Videos (MAME only)
 Scraper;Scraper
 Scraping Artwork: $1%;Scraping Artwork: $1%
 Screen Rotation;Screen Rotation
-Screen Saver;Screen Saver
+Screen Saver;Wygaszacz
 Screen Saver Timeout;Screen Saver Timeout
 Screenshot;Screenshot
-Select;Select
+Select;Wybierz
 Select template to use for emulator settings;Select template to use for emulator settings
 Show in Cycle;Show in Cycle
 Show in Menu;Show in Menu
 Show Displays Menu;Show Displays Menu
 Show Last Selection (Default);Show Last Selection (Default)
 Sort By;Sort By
-Sound;Sound
-Sound Volume;Sound Volume
+Sound;Dźwięki
+Sound Volume;Głośność Dźwięków
 Startup Mode;Startup Mode
 Startup Sound;Startup Sound
 Status;Status
@@ -243,7 +245,7 @@ Toggle Mute;Toggle Mute
 Toggle Rotate Left;Toggle Rotate Left
 Toggle Rotate Right;Toggle Rotate Right
 Track Usage;Track Usage
-Up;Up
+Up;Góra
 Video Decoder;Video Decoder
 Window;Window
 Window Mode;Window Mode
@@ -273,7 +275,7 @@ _help_confirm_exit;Confirm before exiting Attact-Mode?
 _help_confirm_favs;Confirm the addition/removal of Favourites?
 _help_control_add_favourite;Set the control(s) that mark/unmark the currently selected game as a favourite
 _help_control_add_tags;Set the control(s) that add/remove tags from the currently selected game
-_help_control_back;Set the control(s) that go back
+_help_control_back;Ustaw klawisze sterujące kontrolujące komendę wstecz
 _help_control_configure;Set the control(s) that show the "Configuration Menu"
 _help_control_custom1;Set the "Custom1" control(s)
 _help_control_custom2;Set the "Custom2" control(s)
@@ -282,13 +284,13 @@ _help_control_custom4;Set the "Custom4" control(s)
 _help_control_custom5;Set the "Custom5" control(s)
 _help_control_custom6;Set the "Custom6" control(s)
 _help_control_displays_menu;Set the control(s) that show the "Displays Menu"
-_help_control_down;Set the control(s) that move the selection down
+_help_control_down;Ustaw klawisze sterujące przesuwające zaznaczenie w dół
 _help_control_edit_game;Set the control(s) to edit the current selection
 _help_control_exit;Set the control(s) that exit the frontend
 _help_control_exit_to_desktop;Set the control(s) that exit the frontend immediately to the desktop
 _help_control_filters_menu;Set the control(s) that show the "Filters Menu"
 _help_control_intro;Set the control(s) that show the intro video
-_help_control_left;Set the control(s) that move the selection left
+_help_control_left;Ustaw klawisze sterujące przesuwające zaznaczenie w lewo
 _help_control_next_display;Set the control(s) that move to the next display
 _help_control_next_favourite;Set the control(s) that move to the next favourite
 _help_control_next_filter;Set the control(s) that move to the next filter
@@ -303,7 +305,7 @@ _help_control_prev_letter;Set the control(s) that move to the previous letter
 _help_control_prev_page;Set the control(s) that move the selection down one page
 _help_control_random_game;Set the control(s) that select a random game from the current list
 _help_control_replay_last_game;Set the control(s) that relaunch the last game played
-_help_control_right;Set the control(s) that move the selection right
+_help_control_right;Ustaw klawisze sterujące przesuwające zaznaczenie w prawo
 _help_control_screen_saver;Set the control(s) that launch screen saver mode
 _help_control_screenshot;Set the control(s) that take a screenshot of the frontend
 _help_control_select;Set the control(s) that launch the current selection
@@ -313,8 +315,8 @@ _help_control_toggle_movie;Set the control(s) that toggle whether or not videos 
 _help_control_toggle_mute;Set the control(s) that mute/unmute frontend sound
 _help_control_toggle_rotate_left;Set the control(s) that toggle whether the display should be rotated 90 degrees to the left
 _help_control_toggle_rotate_right;Set the control(s) that toggle whether the display should be rotated 90 degrees to the right
-_help_control_up;Set the control(s) that move the selection up
-_help_controls;Configure the joystick, keyboard and mouse inputs that control Attract-Mode
+_help_control_up;Ustaw klawisze sterujące przesuwające zaznaczenie w górę
+_help_controls;Konfiguracja joysticka, klawiatury i myszy sterujących Attract-Mode Plus
 _help_default_font;The name of the default font to use
 _help_display_add;Add a new display
 _help_display_add_filter;Add a filter to this display's filter set

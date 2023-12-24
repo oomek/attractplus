@@ -409,7 +409,7 @@ Anisotropic Filtering;Anisotropic Filtering
 Anti-Aliasing;Anti-Aliasing
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
-Auto-detect emulators?;Auto-detect emulators?
+Auto-detect Emulators;Auto-detect Emulators
 Blank Game;Blank Game
 Clear Hotkey?;Clear Hotkey?
 Configure / Joystick Mapping;Configure / Joystick Mapping
@@ -418,9 +418,11 @@ Delete this Shortcut;Delete this Shortcut
 Edit Shortcut;Edit Shortcut
 Exit Message;Exit Message
 Group Clones;Group Clones
+Hide Console;Hide Console
 Image Cache Size;Image Cache Size
 Insert Command Shortcut;Insert Command Shortcut
 Insert Display Shortcut;Insert Display Shortcut
+Insert Game;Insert Game
 Insert Game Entry;Insert Game Entry
 Insert Menu Entry;Insert Menu Entry
 Joystick $1;Joystick $1
@@ -431,6 +433,10 @@ Pause Hotkey;Pause Hotkey
 Please Wait;Please Wait
 Power Saving;Power Saving
 Press Hotkey;Press Hotkey
+Proceed with auto-detection of emulators?;Proceed with auto-detection of emulators?
+Rating;Rating
+Region;Region
+Series;Series
 Screen Rotation;Screen Rotation
 Select template to use for emulator settings;Select template to use for emulator settings
 _help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures

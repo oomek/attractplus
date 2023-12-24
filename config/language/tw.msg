@@ -418,8 +418,11 @@ Series;系列遊戲
 #
 Anisotropic Filtering;Anisotropic Filtering
 Anti-Aliasing;Anti-Aliasing
-Auto-detect emulators?;Auto-detect emulators?
+Auto-detect Emulators;Auto-detect Emulators
 Group Clones;Group Clones
+Hide Console;Hide Console
+Insert Game;Insert Game
+Proceed with auto-detection of emulators?;Proceed with auto-detection of emulators?
 Screen Rotation;Screen Rotation
 _help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level

@@ -319,7 +319,7 @@ Anisotropic Filtering;Anisotropic Filtering
 Anti-Aliasing;Anti-Aliasing
 Artwork Name;Artwork Name
 Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
-Auto-detect emulators?;Auto-detect emulators?
+Auto-detect Emulators;Auto-detect Emulators
 Blank Game;Blank Game
 Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
@@ -346,9 +346,11 @@ Exception;Exception
 Exception Edit;Exception Edit
 Exit Message;Exit Message
 Group Clones;Group Clones
+Hide Console;Hide Console
 Image Cache Size;Image Cache Size
 Insert Command Shortcut;Insert Command Shortcut
 Insert Display Shortcut;Insert Display Shortcut
+Insert Game;Insert Game
 Insert Game Entry;Insert Game Entry
 Insert Menu Entry;Insert Menu Entry
 Joystick $1;Joystick $1
@@ -368,6 +370,10 @@ Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Previous Game;Previous Game
 Previous Page;Previous Page
+Proceed with auto-detection of emulators?;Proceed with auto-detection of emulators?
+Rating;Rating
+Region;Region
+Series;Series
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Fanart;Scrape Fanart

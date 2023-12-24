@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 
 		if ( !exit_selected )
 		{
-			if ( feOverlay.confirm_dialog( "Auto-detect emulators?", "" ) == 0 )
+			if ( feOverlay.confirm_dialog( "Proceed with auto-detection of emulators?", "" ) == 0 )
 			{
 				FeLog() << "Performing emulator auto-detection" << std::endl;
 				feVM.setup_wizard();

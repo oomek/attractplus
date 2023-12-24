@@ -394,6 +394,9 @@ void FeSettings::load()
 
 	// If no menu prompt is configured, default to calling it "Displays Menu" (in current language)
 	//
+	// TODO note:
+	// This is stored in attract.cfg on first launch and kept in m_menu_prompt
+	// Translation is only working when Menu Prompt is cleared in Configure / Displays Menu
 	if ( m_menu_prompt.empty() )
 		get_translation( "Displays Menu", m_menu_prompt );
 }

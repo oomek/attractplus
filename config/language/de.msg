@@ -427,9 +427,15 @@ _help_video_decoder;Konfiguriere den Decoder für die Video Wiedergabe (falls me
 #
 Anisotropic Filtering;Anisotropic Filtering
 Anti-Aliasing;Anti-Aliasing
-Auto-detect emulators?;Auto-detect emulators?
+Auto-detect Emulators;Auto-detect Emulators
+Hide Console;Hide Console
 Image Cache Size;Image Cache Size
+Insert Game;Insert Game
 Power Saving;Power Saving
+Proceed with auto-detection of emulators?;Proceed with auto-detection of emulators?
+Rating;Rating
+Region;Region
+Series;Series
 Screen Rotation;Screen Rotation
 _help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
