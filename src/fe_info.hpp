@@ -474,22 +474,22 @@ private:
 //
 // Class to contain the interface language strings
 //
-class FeResourceMap : public FeBaseConfigurable
+class FeTranslationMap : public FeBaseConfigurable
 {
 public:
-	FeResourceMap();
+	FeTranslationMap();
 	void clear() { m_map.clear(); }
 
 	int process_setting( const std::string &setting,
 		const std::string &value,
 		const std::string &filename );
 
-	void get_resource( const std::string &token,
+	void get_translation( const std::string &token,
 		std::string &str ) const;
 
 private:
-	FeResourceMap( const FeResourceMap & );
-	FeResourceMap &operator=( const FeResourceMap & );
+	FeTranslationMap( const FeTranslationMap & );
+	FeTranslationMap &operator=( const FeTranslationMap & );
 
 	std::map<std::string, std::string> m_map;
 };

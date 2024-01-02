@@ -382,7 +382,7 @@ void FeSettings::load()
 	// Initialize the regular expression used when sorting by title now...
 	//
 	std::string rex_str;
-	get_resource( "_sort_regexp", rex_str );
+	get_translation( "_sort_regexp", rex_str );
 	FeRomListSorter::init_title_rex( rex_str );
 
 	load_state();
@@ -395,7 +395,7 @@ void FeSettings::load()
 	// If no menu prompt is configured, default to calling it "Displays Menu" (in current language)
 	//
 	if ( m_menu_prompt.empty() )
-		get_resource( "Displays Menu", m_menu_prompt );
+		get_translation( "Displays Menu", m_menu_prompt );
 }
 
 const char *FeSettings::configSettingStrings[] =
@@ -2395,7 +2395,7 @@ int FeSettings::exit_command() const
 void FeSettings::get_exit_message( std::string &exit_message ) const
 {
 	if ( m_exit_message.empty() )
-		get_resource( "Exit Attract-Mode", exit_message );
+		get_translation( "Exit Attract-Mode", exit_message );
 	else
 		exit_message = m_exit_message;
 }
@@ -2404,7 +2404,7 @@ void FeSettings::get_exit_question( std::string &exit_question ) const
 {
 	// Question string is never empty; check message.
 	if ( m_exit_message.empty() )
-		get_resource( "Exit Attract-Mode?", exit_question );
+		get_translation( "Exit Attract-Mode?", exit_question );
 	else
 		exit_question = m_exit_question;
 }
@@ -2557,11 +2557,11 @@ void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 
 				if ( sort_by == FeRomInfo::LAST_INDEX )
 				{
-					get_resource( "None", sort_name );
+					get_translation( "None", sort_name );
 					sort_by = FeRomInfo::Title;
 				}
 				else
-					get_resource( FeRomInfo::indexStrings[sort_by], sort_name );
+					get_translation( FeRomInfo::indexStrings[sort_by], sort_name );
 
 
 				if ( i == 10 ) // SortName
@@ -2649,7 +2649,7 @@ std::string FeSettings::get_played_display_string( int filter_index, int rom_ind
 	}
 
 	std::string op_label;
-	get_resource( label, op_label );
+	get_translation( label, op_label );
 
 	return as_str( num, 1 ) + " " + op_label;
 }
@@ -3376,15 +3376,15 @@ void FeSettings::save() const
 	}
 }
 
-void FeSettings::get_resource( const std::string &token, std::string &str ) const
+void FeSettings::get_translation( const std::string &token, std::string &str ) const
 {
-	m_resourcemap.get_resource( token, str );
+	m_translation_map.get_translation( token, str );
 }
 
-void FeSettings::get_resource( const std::string &token,
+void FeSettings::get_translation( const std::string &token,
 					const std::string &rep, std::string &str ) const
 {
-	m_resourcemap.get_resource( token, str );
+	m_translation_map.get_translation( token, str );
 
 	if ( !rep.empty() )
 		perform_substitution( str, "$1", rep );
@@ -3538,11 +3538,11 @@ void FeSettings::get_plugin_full_path( int id,
 
 void FeSettings::internal_load_language( const std::string &lang )
 {
-	m_resourcemap.clear();
+	m_translation_map.clear();
 
 	std::string fname;
 	if ( internal_resolve_config_file( m_config_path, fname, FE_LANGUAGE_SUBDIR, lang + FE_LANGUAGE_FILE_EXTENSION ) )
-		m_resourcemap.load_from_file( fname, ";" );
+		m_translation_map.load_from_file( fname, ";" );
 	else
 		FeLog() << "Error loading language resource file: " << lang << std::endl;
 }
@@ -3567,7 +3567,7 @@ void FeSettings::get_languages_list( std::vector < FeLanguage > &ll ) const
 	if ( temp.empty() )
 	{
 		ll.push_back( FeLanguage( "en" ) );
-		get_resource( "en", ll.back().label );
+		get_translation( "en", ll.back().label );
 	}
 	else
 	{
@@ -3576,7 +3576,7 @@ void FeSettings::get_languages_list( std::vector < FeLanguage > &ll ) const
 			itr!=temp.end(); ++itr )
 		{
 			ll.push_back( FeLanguage( *itr ) );
-			get_resource( *itr, ll.back().label );
+			get_translation( *itr, ll.back().label );
 
 			std::string fname = m_config_path + FE_LANGUAGE_SUBDIR;
 			fname += (*itr);

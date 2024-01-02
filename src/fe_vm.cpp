@@ -2730,7 +2730,7 @@ const char *FeVM::cb_get_text( const char *t )
 	retval.clear();
 
 	if ( t )
-		fes->get_resource( t, retval );
+		fes->get_translation( t, retval );
 
 	return retval.c_str();
 }

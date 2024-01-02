@@ -1404,11 +1404,11 @@ bool FeLayoutInfo::operator!=( const FeLayoutInfo &o )
 		|| ( m_params != o.m_params ));
 }
 
-FeResourceMap::FeResourceMap()
+FeTranslationMap::FeTranslationMap()
 {
 }
 
-int FeResourceMap::process_setting( const std::string &setting,
+int FeTranslationMap::process_setting( const std::string &setting,
                         const std::string &value,
                         const std::string &filename )
 {
@@ -1416,7 +1416,7 @@ int FeResourceMap::process_setting( const std::string &setting,
 	return 0;
 }
 
-void FeResourceMap::get_resource( const std::string &token,
+void FeTranslationMap::get_translation( const std::string &token,
             std::string &str ) const
 {
 	if ( token.empty() )

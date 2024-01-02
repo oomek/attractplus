@@ -198,7 +198,7 @@ private:
 
 	FeInputMap m_inputmap;
 	FeSoundInfo m_sounds;
-	FeResourceMap m_resourcemap;
+	FeTranslationMap m_translation_map;
 	FeLayoutInfo m_saver_params;
 	FeLayoutInfo m_intro_params;
 	FeLayoutInfo m_current_layout_params; // copy of current layout params (w/ per display params as well)
@@ -597,8 +597,8 @@ public:
 
 	void save() const;
 
-	void get_resource( const std::string &token, std::string &str ) const;
-	void get_resource( const std::string &token, const std::string &rep,
+	void get_translation( const std::string &token, std::string &str ) const;
+	void get_translation( const std::string &token, const std::string &rep,
 		std::string &str ) const;
 
 	void set_language( const std::string &l );

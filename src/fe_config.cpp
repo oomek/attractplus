@@ -137,21 +137,21 @@ void FeConfigContext::add_opt( int t, const std::string &s,
 		const std::string &v, const std::string &h )
 {
 	opt_list.push_back( FeMenuOpt( t, s, v ) );
-	fe_settings.get_resource( h, opt_list.back().help_msg );
+	fe_settings.get_translation( h, opt_list.back().help_msg );
 }
 
 void FeConfigContext::add_optl( int t, const std::string &s,
 		const std::string &v, const std::string &h )
 {
 	std::string ss;
-	fe_settings.get_resource( s, ss );
+	fe_settings.get_translation( s, ss );
 	add_opt( t, ss, v, h );
 }
 
 void FeConfigContext::set_style( Style s, const std::string &t )
 {
 	style = s;
-	fe_settings.get_resource( t, title );
+	fe_settings.get_translation( t, title );
 }
 
 FeBaseConfigMenu::FeBaseConfigMenu()
@@ -625,8 +625,8 @@ void FeEmulatorGenMenu::get_options( FeConfigContext &ctx )
 	m_default_name = defaults.get_default_name();
 
 	std::vector<std::string> bool_opts( 2 );
-	ctx.fe_settings.get_resource( "Yes", bool_opts[0] );
-	ctx.fe_settings.get_resource( "No", bool_opts[1] );
+	ctx.fe_settings.get_translation( "Yes", bool_opts[0] );
+	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	for ( std::vector<std::string>::iterator itr=emu_file_list.begin();
 			itr < emu_file_list.end(); ++itr )
@@ -672,7 +672,7 @@ bool FeEmulatorGenMenu::on_option_select(
 			if ( emu_list.size() == 1 )
 				res = emu_list[0];
 			else
-				ctx.fe_settings.get_resource( "multi", res );
+				ctx.fe_settings.get_translation( "multi", res );
 		}
 
 		if ( !ctx.edit_dialog( "Enter Romlist name", res ) || res.empty() )
@@ -763,7 +763,7 @@ bool FeEmulatorSelMenu::on_option_select(
 		if ( t_list.size() > 0 )
 		{
 			std::string default_str;
-			ctx.fe_settings.get_resource( "Default", default_str );
+			ctx.fe_settings.get_translation( "Default", default_str );
 
 			t_list.insert( t_list.begin(), default_str );
 			int sel = ctx.option_dialog( "Select template to use for emulator settings", t_list, 0 );
@@ -830,17 +830,17 @@ void FeRuleEditMenu::get_options( FeConfigContext &ctx )
 		is_exception ? "Exception Edit" : "Rule Edit" );
 
 	if ( target != FeRomInfo::LAST_INDEX )
-		ctx.fe_settings.get_resource( FeRomInfo::indexStrings[ target ], target_str );
+		ctx.fe_settings.get_translation( FeRomInfo::indexStrings[ target ], target_str );
 
 	if ( comp != FeRule::LAST_COMPARISON )
-		ctx.fe_settings.get_resource( FeRule::filterCompDisplayStrings[ comp ], comp_str );
+		ctx.fe_settings.get_translation( FeRule::filterCompDisplayStrings[ comp ], comp_str );
 
 	std::vector< std::string > targets;
 	int i=0;
 	while ( FeRomInfo::indexStrings[i] != 0 )
 	{
 		targets.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeRomInfo::indexStrings[i], targets.back() );
+		ctx.fe_settings.get_translation( FeRomInfo::indexStrings[i], targets.back() );
 		i++;
 	}
 
@@ -852,7 +852,7 @@ void FeRuleEditMenu::get_options( FeConfigContext &ctx )
 	while ( FeRule::filterCompDisplayStrings[i] != 0 )
 	{
 		comparisons.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeRule::filterCompDisplayStrings[i], comparisons.back() );
+		ctx.fe_settings.get_translation( FeRule::filterCompDisplayStrings[i], comparisons.back() );
 		i++;
 	}
 
@@ -935,7 +935,7 @@ void FeFilterEditMenu::get_options( FeConfigContext &ctx )
 		if ( m_index < 0 )
 		{
 			std::string gf;
-			ctx.fe_settings.get_resource( "Global Filter", gf );
+			ctx.fe_settings.get_translation( "Global Filter", gf );
 			ctx.add_optl( Opt::INFO, "Filter Name", gf, "_help_filter_name" );
 		}
 		else
@@ -955,13 +955,13 @@ void FeFilterEditMenu::get_options( FeConfigContext &ctx )
 
 			if ( t != FeRomInfo::LAST_INDEX )
 			{
-				ctx.fe_settings.get_resource( FeRomInfo::indexStrings[t], rule_str );
+				ctx.fe_settings.get_translation( FeRomInfo::indexStrings[t], rule_str );
 
 				FeRule::FilterComp c = (*itr).get_comp();
 				if ( c != FeRule::LAST_COMPARISON )
 				{
 					std::string comp_str;
-					ctx.fe_settings.get_resource( FeRule::filterCompDisplayStrings[c], comp_str );
+					ctx.fe_settings.get_translation( FeRule::filterCompDisplayStrings[c], comp_str );
 
 					rule_str += " ";
 					rule_str += comp_str;
@@ -988,7 +988,7 @@ void FeFilterEditMenu::get_options( FeConfigContext &ctx )
 		if ( m_index >= 0 ) // don't add the following options for the global filter
 		{
 			std::string no_sort_str, sort_val;
-			ctx.fe_settings.get_resource( "No Sort", no_sort_str );
+			ctx.fe_settings.get_translation( "No Sort", no_sort_str );
 
 			if ( f->get_sort_by() != FeRomInfo::LAST_INDEX )
 				sort_val = FeRomInfo::indexStrings[f->get_sort_by()];
@@ -1000,7 +1000,7 @@ void FeFilterEditMenu::get_options( FeConfigContext &ctx )
 			while ( FeRomInfo::indexStrings[i] != 0 )
 			{
 				targets.push_back( std::string() );
-				ctx.fe_settings.get_resource( FeRomInfo::indexStrings[i], targets.back() );
+				ctx.fe_settings.get_translation( FeRomInfo::indexStrings[i], targets.back() );
 				i++;
 			}
 			targets.push_back( no_sort_str );
@@ -1138,8 +1138,8 @@ void FeDisplayEditMenu::get_options( FeConfigContext &ctx )
 		ctx.back_opt().append_vlist( romlists );
 
 		std::vector<std::string> bool_opts( 2 );
-		ctx.fe_settings.get_resource( "Yes", bool_opts[0] );
-		ctx.fe_settings.get_resource( "No", bool_opts[1] );
+		ctx.fe_settings.get_translation( "Yes", bool_opts[0] );
+		ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 		ctx.add_optl( Opt::LIST, "Show in Cycle",
 			display->show_in_cycle() ? bool_opts[0] : bool_opts[1],
@@ -1156,9 +1156,9 @@ void FeDisplayEditMenu::get_options( FeConfigContext &ctx )
 
 		std::string filter_desc;
 		if ( f->get_rule_count() < 1 )
-			ctx.fe_settings.get_resource( "Empty", filter_desc );
+			ctx.fe_settings.get_translation( "Empty", filter_desc );
 		else
-			ctx.fe_settings.get_resource( "$1 Rule(s)",
+			ctx.fe_settings.get_translation( "$1 Rule(s)",
 					as_str(f->get_rule_count()), filter_desc );
 
 		ctx.add_optl( Opt::SUBMENU, "Global Filter", filter_desc, "_help_display_global_filter" );
@@ -1280,7 +1280,7 @@ void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 	ctx.add_optl( Opt::EDIT, "Menu Prompt", prompt_str, "_help_displays_menu_prompt" );
 
 	std::string default_str;
-	ctx.fe_settings.get_resource( "Default", default_str );
+	ctx.fe_settings.get_translation( "Default", default_str );
 
 	std::string layout = ctx.fe_settings.get_info( FeSettings::MenuLayout );
 
@@ -1295,8 +1295,8 @@ void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 	ctx.back_opt().append_vlist( layouts );
 
 	std::vector<std::string> bool_opts( 2 );
-	ctx.fe_settings.get_resource( "Yes", bool_opts[0] );
-	ctx.fe_settings.get_resource( "No", bool_opts[1] );
+	ctx.fe_settings.get_translation( "Yes", bool_opts[0] );
+	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	ctx.add_optl( Opt::LIST,
 			"Allow Exit from 'Displays Menu'",
@@ -1414,7 +1414,7 @@ void FeInputEditMenu::get_options( FeConfigContext &ctx )
 	if (m_mapping)
 	{
 		std::string act;
-		ctx.fe_settings.get_resource( FeInputMap::commandDispStrings[m_mapping->command], act );
+		ctx.fe_settings.get_translation( FeInputMap::commandDispStrings[m_mapping->command], act );
 		ctx.add_optl( Opt::INFO, "Action", act, "_help_input_action" );
 
 		std::vector< std::string >::iterator it;
@@ -1505,7 +1505,7 @@ bool FeInputEditMenu::on_option_select(
 			else if ( conflict != FeInputMap::LAST_COMMAND )
 			{
 				std::string command_str;
-				ctx.fe_settings.get_resource( FeInputMap::commandDispStrings[ conflict ], command_str );
+				ctx.fe_settings.get_translation( FeInputMap::commandDispStrings[ conflict ], command_str );
 				save = ctx.confirm_dialog(
 					"This will overwrite an existing mapping ($1).  Proceed?", command_str  );
 			}
@@ -1564,7 +1564,7 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 	std::set < std::string > values_set;
 
 	std::string default_str;
-	ctx.fe_settings.get_resource( "Default", default_str );
+	ctx.fe_settings.get_translation( "Default", default_str );
 	values.push_back( default_str ); // we assume this is the first entry in the vector
 
 	for ( size_t i=0; i < sf::Joystick::Count; i++ )
@@ -1597,7 +1597,7 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 	{
 		std::string name;
 		std::string value = default_str;
-		ctx.fe_settings.get_resource( "Joystick $1", as_str( (int)i ), name );
+		ctx.fe_settings.get_translation( "Joystick $1", as_str( (int)i ), name );
 
 		for ( itr=joy_config.begin(); itr!=joy_config.end(); ++itr )
 		{
@@ -1638,7 +1638,7 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 	for ( it=m_mappings.begin(); it != m_mappings.end(); ++it )
 	{
 		std::string value, orstr;
-		ctx.fe_settings.get_resource( "OR", orstr );
+		ctx.fe_settings.get_translation( "OR", orstr );
 		std::vector < std::string >::iterator iti;
 		for ( iti=(*it).input_list.begin(); iti != (*it).input_list.end(); ++iti )
 		{
@@ -1656,7 +1656,7 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 		// Show the default action in brackets beside the UI controls (up/down/left...etc)
 		//
 		std::string name;
-		ctx.fe_settings.get_resource( FeInputMap::commandDispStrings[(*it).command], name );
+		ctx.fe_settings.get_translation( FeInputMap::commandDispStrings[(*it).command], name );
 		if ( (*it).command < FeInputMap::Select )
 		{
 			FeInputMap::Command c = ctx.fe_settings.get_default_command( (*it).command );
@@ -1664,7 +1664,7 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 			{
 				name += " (";
 				std::string command;
-				ctx.fe_settings.get_resource( FeInputMap::commandDispStrings[c], command );
+				ctx.fe_settings.get_translation( FeInputMap::commandDispStrings[c], command );
 				name += command;
 				name += ")";
 			}
@@ -1839,8 +1839,8 @@ void FeScraperMenu::get_options( FeConfigContext &ctx )
 	ctx.set_style( FeConfigContext::EditList, "Configure / Scraper" );
 
 	std::vector<std::string> bool_opts( 2 );
-	ctx.fe_settings.get_resource( "Yes", bool_opts[0] );
-	ctx.fe_settings.get_resource( "No", bool_opts[1] );
+	ctx.fe_settings.get_translation( "Yes", bool_opts[0] );
+	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	ctx.add_optl( Opt::LIST,
 			"Scrape Snaps",
@@ -1934,13 +1934,13 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 
 #if !defined(FORCE_FULLSCREEN)
 	std::string winmode;
-	ctx.fe_settings.get_resource( FeSettings::windowModeDispTokens[ ctx.fe_settings.get_window_mode() ], winmode );
+	ctx.fe_settings.get_translation( FeSettings::windowModeDispTokens[ ctx.fe_settings.get_window_mode() ], winmode );
 	std::vector < std::string > modes;
 	i=0;
 	while ( FeSettings::windowModeDispTokens[i] != 0 )
 	{
 		modes.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeSettings::windowModeDispTokens[ i ], modes.back() );
+		ctx.fe_settings.get_translation( FeSettings::windowModeDispTokens[ i ], modes.back() );
 		i++;
 	}
 	ctx.add_optl( Opt::LIST, "Window Mode", winmode, "_help_window_mode" );
@@ -1948,13 +1948,13 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 #endif
 
 	std::string rotmode;
-	ctx.fe_settings.get_resource( FeSettings::screenRotationDispTokens[ ctx.fe_settings.get_screen_rotation() ], rotmode );
+	ctx.fe_settings.get_translation( FeSettings::screenRotationDispTokens[ ctx.fe_settings.get_screen_rotation() ], rotmode );
 	std::vector < std::string > rot_modes;
 	i=0;
 	while ( FeSettings::screenRotationDispTokens[i] != 0 )
 	{
 		rot_modes.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeSettings::screenRotationDispTokens[ i ], rot_modes.back() );
+		ctx.fe_settings.get_translation( FeSettings::screenRotationDispTokens[ i ], rot_modes.back() );
 		i++;
 	}
 	ctx.add_optl( Opt::LIST, "Screen Rotation", rotmode, "_help_screen_rotation" );
@@ -1963,13 +1963,13 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::string aamode;
 	// converting AA multiplier to array index: 0,2,4,8 to 0,1,2,3 respectively
 	int idx = std::max( log2( ctx.fe_settings.get_antialiasing() ), 0.0 );
-	ctx.fe_settings.get_resource( FeSettings::antialiasingDispTokens[ idx ], aamode );
+	ctx.fe_settings.get_translation( FeSettings::antialiasingDispTokens[ idx ], aamode );
 	std::vector < std::string > aa_modes;
 	i=0;
 	while ( FeSettings::antialiasingDispTokens[i] != 0 && as_int( FeSettings::antialiasingTokens[ i ] ) <= std::min( static_cast<int>( sf::RenderTexture::getMaximumAntialiasingLevel() ), 8 ))
 	{
 		aa_modes.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeSettings::antialiasingDispTokens[ i ], aa_modes.back() );
+		ctx.fe_settings.get_translation( FeSettings::antialiasingDispTokens[ i ], aa_modes.back() );
 		i++;
 	}
 	ctx.add_optl( Opt::LIST, "Anti-Aliasing", aamode, "_help_antialiasing" );
@@ -1978,34 +1978,34 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::string afmode;
 	// converting AF multiplier to array index: 0,2,4,8,16 to 0,1,2,3,4 respectively
 	idx = std::max( log2( ctx.fe_settings.get_anisotropic() ), 0.0 );
-	ctx.fe_settings.get_resource( FeSettings::anisotropicDispTokens[ idx ], afmode );
+	ctx.fe_settings.get_translation( FeSettings::anisotropicDispTokens[ idx ], afmode );
 	std::vector < std::string > af_modes;
 	i=0;
 	while ( FeSettings::anisotropicDispTokens[i] != 0 )
 	{
 		af_modes.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeSettings::anisotropicDispTokens[ i ], af_modes.back() );
+		ctx.fe_settings.get_translation( FeSettings::anisotropicDispTokens[ i ], af_modes.back() );
 		i++;
 	}
 	ctx.add_optl( Opt::LIST, "Anisotropic Filtering", afmode, "_help_anisotropic_filtering" );
 	ctx.back_opt().append_vlist( af_modes );
 
 	std::string startupmode;
-	ctx.fe_settings.get_resource( FeSettings::startupDispTokens[ ctx.fe_settings.get_startup_mode() ], startupmode );
+	ctx.fe_settings.get_translation( FeSettings::startupDispTokens[ ctx.fe_settings.get_startup_mode() ], startupmode );
 	std::vector < std::string > startup_modes;
 	i=0;
 	while ( FeSettings::startupDispTokens[i] != 0 )
 	{
 		startup_modes.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeSettings::startupDispTokens[ i ], startup_modes.back() );
+		ctx.fe_settings.get_translation( FeSettings::startupDispTokens[ i ], startup_modes.back() );
 		i++;
 	}
 	ctx.add_optl( Opt::LIST, "Startup Mode", startupmode, "_help_startup_mode" );
 	ctx.back_opt().append_vlist( startup_modes );
 
 	std::vector<std::string> bool_opts( 2 );
-	ctx.fe_settings.get_resource( "Yes", bool_opts[0] );
-	ctx.fe_settings.get_resource( "No", bool_opts[1] );
+	ctx.fe_settings.get_translation( "Yes", bool_opts[0] );
+	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	ctx.add_optl( Opt::LIST,
 			"Track Usage",
@@ -2040,13 +2040,13 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.back_opt().append_vlist( bool_opts );
 
 	std::string filterwrapmode;
-	ctx.fe_settings.get_resource( FeSettings::filterWrapDispTokens[ ctx.fe_settings.get_filter_wrap_mode() ], filterwrapmode );
+	ctx.fe_settings.get_translation( FeSettings::filterWrapDispTokens[ ctx.fe_settings.get_filter_wrap_mode() ], filterwrapmode );
 	std::vector < std::string > wrap_modes;
 	i=0;
 	while ( FeSettings::filterWrapDispTokens[i] != 0 )
 	{
 		wrap_modes.push_back( std::string() );
-		ctx.fe_settings.get_resource( FeSettings::filterWrapDispTokens[ i ], wrap_modes.back() );
+		ctx.fe_settings.get_translation( FeSettings::filterWrapDispTokens[ i ], wrap_modes.back() );
 		i++;
 	}
 	ctx.add_optl( Opt::LIST, "Filter Wrap Mode", filterwrapmode, "_help_filter_wrap_mode" );
@@ -2275,8 +2275,8 @@ void FePluginEditMenu::get_options( FeConfigContext &ctx )
 		"_help_plugin_name" );
 
 	std::vector<std::string> opts( 2 );
-	ctx.fe_settings.get_resource( "Yes", opts[0] );
-	ctx.fe_settings.get_resource( "No", opts[1] );
+	ctx.fe_settings.get_translation( "Yes", opts[0] );
+	ctx.fe_settings.get_translation( "No", opts[1] );
 
 	ctx.add_optl( Opt::LIST, "Enabled",
 			m_plugin->get_enabled() ? opts[0] : opts[1],
@@ -2326,8 +2326,8 @@ void FePluginSelMenu::get_options( FeConfigContext &ctx )
 
 	std::string enabled_str;
 	std::string disabled_str;
-	ctx.fe_settings.get_resource( "Enabled", enabled_str );
-	ctx.fe_settings.get_resource( "Disabled", disabled_str );
+	ctx.fe_settings.get_translation( "Enabled", enabled_str );
+	ctx.fe_settings.get_translation( "Disabled", disabled_str );
 
 
 	for ( std::vector<std::string>::iterator itr=plugins.begin();

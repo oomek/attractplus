@@ -74,7 +74,7 @@ FeConfigContextImp::FeConfigContextImp( FeSettings &fes, FeOverlay &feo )
 bool FeConfigContextImp::edit_dialog( const std::string &m, std::string &t )
 {
 	std::string trans;
-	fe_settings.get_resource( m, trans );
+	fe_settings.get_translation( m, trans );
 	return m_feo.edit_dialog( trans, t );
 }
 
@@ -104,7 +104,7 @@ void FeConfigContextImp::input_map_dialog( const std::string &m,
 		FeInputMap::Command &conflict )
 {
 	std::string t;
-	fe_settings.get_resource( m, t );
+	fe_settings.get_translation( m, t );
 	m_feo.input_map_dialog( t, res, conflict );
 }
 
@@ -254,7 +254,7 @@ void FeOverlay::splash_message( const std::string &msg,
 	message.setTextScale( m_text_scale );
 
 	std::string msg_str;
-	m_feSettings.get_resource( msg, rep, msg_str );
+	m_feSettings.get_translation( msg, rep, msg_str );
 
 	message.setString( msg_str );
 
@@ -291,11 +291,11 @@ int FeOverlay::confirm_dialog( const std::string &msg,
 	FeInputMap::Command default_exit )
 {
 	std::string msg_str;
-	m_feSettings.get_resource( msg, rep, msg_str );
+	m_feSettings.get_translation( msg, rep, msg_str );
 
 	std::vector<std::string> list(2);
-	m_feSettings.get_resource( "Yes", list[0] );
-	m_feSettings.get_resource( "No", list[1] );
+	m_feSettings.get_translation( "Yes", list[0] );
+	m_feSettings.get_translation( "No", list[1] );
 
 	return common_basic_dialog( msg_str, list, (default_yes ? 0 : 1), 1, default_exit );
 }
@@ -528,7 +528,7 @@ int FeOverlay::tags_dialog()
 			itr!=tags_list.end(); ++itr )
 	{
 		std::string msg;
-		m_feSettings.get_resource(
+		m_feSettings.get_translation(
 				(*itr).second ? "Remove tag: '$1'" : "Add tag: '$1'",
 				(*itr).first,
 				msg );
@@ -537,13 +537,13 @@ int FeOverlay::tags_dialog()
 	}
 
 	list.push_back( std::string() );
-	m_feSettings.get_resource( "Create new tag", list.back() );
+	m_feSettings.get_translation( "Create new tag", list.back() );
 
 	list.push_back( std::string() );
-	m_feSettings.get_resource( "Back", list.back() );
+	m_feSettings.get_translation( "Back", list.back() );
 
 	std::string temp;
-	m_feSettings.get_resource( "Tags", temp );
+	m_feSettings.get_translation( "Tags", temp );
 
 	int sel = common_list_dialog( temp,
 		list, 0,
@@ -553,7 +553,7 @@ int FeOverlay::tags_dialog()
 	if ( sel == (int)tags_list.size() )
 	{
 		std::string title;
-		m_feSettings.get_resource( "Enter new tag name", title );
+		m_feSettings.get_translation( "Enter new tag name", title );
 
 		std::string name;
 		edit_dialog( title, name );

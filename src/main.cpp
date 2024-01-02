@@ -668,18 +668,18 @@ int main(int argc, char *argv[])
 						std::string temp;
 
 						// 0
-						feSettings.get_resource(  "Insert Game Entry", temp );
+						feSettings.get_translation(  "Insert Game Entry", temp );
 						options.push_back( temp );
 
 						// 1
-						feSettings.get_resource(  "Insert Display Shortcut", temp );
+						feSettings.get_translation(  "Insert Display Shortcut", temp );
 						options.push_back( temp );
 
 						// 2
-						feSettings.get_resource(  "Insert Command Shortcut", temp );
+						feSettings.get_translation(  "Insert Command Shortcut", temp );
 						options.push_back( temp );
 
-						feSettings.get_resource(  "Insert Menu Entry", temp );
+						feSettings.get_translation(  "Insert Menu Entry", temp );
 
 						int sel = feOverlay.common_list_dialog(
 							temp, options, 0, 0 );
@@ -696,14 +696,14 @@ int main(int argc, char *argv[])
 								if ( !tl.empty() )
 									emu_name = tl[0];
 
-								feSettings.get_resource( "Blank Game", def_name );
+								feSettings.get_translation( "Blank Game", def_name );
 							}
 							break;
 
 						case 1:
 							{
 								emu_name = "@";
-								feSettings.get_resource( "Display Shortcut", def_name );
+								feSettings.get_translation( "Display Shortcut", def_name );
 
 								if ( feSettings.displays_count() > 0 )
 									def_name = feSettings.get_display( 0 )
@@ -713,7 +713,7 @@ int main(int argc, char *argv[])
 
 						case 2:
 							emu_name = "@exit";
-							feSettings.get_resource( "Exit", def_name );
+							feSettings.get_translation( "Exit", def_name );
 							break;
 
 						default:
@@ -834,7 +834,7 @@ int main(int argc, char *argv[])
 						feSettings.get_current_display_filter_names( names_list );
 
 						std::string title;
-						feSettings.get_resource( "Filters", title );
+						feSettings.get_translation( "Filters", title );
 
 						int filter_index = feOverlay.common_list_dialog(
 										title,

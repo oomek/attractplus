@@ -863,7 +863,7 @@ bool FeSettings::build_romlist( const std::vector<std::string> &emu_list, const 
 	write_romlist( filename, total_romlist );
 
 	if ( user_message.empty() )
-		get_resource( "Wrote $1 entries to Collection/Rom List",
+		get_translation( "Wrote $1 entries to Collection/Rom List",
 			as_str( (int)total_romlist.size() ), msg );
 	else
 		msg = user_message;
@@ -929,7 +929,7 @@ bool FeSettings::scrape_artwork( const std::string &emu_name, UiUpdate uiu, void
 	FeLog() << "*** Scraping done." << std::endl;
 
 	if ( ctx.user_message.empty() )
-		get_resource( "Scraped $1 artwork file(s)", as_str( ctx.download_count ), msg );
+		get_translation( "Scraped $1 artwork file(s)", as_str( ctx.download_count ), msg );
 	else
 		msg = ctx.user_message;
 
