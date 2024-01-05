@@ -32,10 +32,11 @@ namespace {
 
 	int nvapi_init()
 	{
-		const bool disableThreadedOptimizations   = true;
-		const bool setMaximumPerformance          = true;
-		const bool disableTripleBuffering         = true;
-		const bool setPrerenderedFrames           = true;
+		const bool disableThreadedOptimizations             = true;
+		const bool setMaximumPerformance                    = true;
+		const bool disableTripleBuffering                   = true;
+		const bool setPrerenderedFrames                     = true;
+		const bool disableAntialiasingGammaCorrection       = true;
 
 		const wchar_t* profileName                = L"Attract Mode";
 		const wchar_t* appName                    = L"";
@@ -227,6 +228,22 @@ namespace {
 
 			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
 			FeDebug() << "NvAPI: GPU Maximum Performance ON: " << nvapi_get_error_msg( status );
+		}
+
+		// Set Antialiasing Gamma Correction
+		if ( disableAntialiasingGammaCorrection )
+		{
+			setting.version                 = NVDRS_SETTING_VER;
+			setting.settingId               = AA_MODE_GAMMACORRECTION_ID;
+			setting.settingType             = NVDRS_DWORD_TYPE;
+			setting.settingLocation         = NVDRS_CURRENT_PROFILE_LOCATION;
+			setting.isCurrentPredefined     = 0;
+			setting.isPredefinedValid       = 0;
+			setting.u32CurrentValue         = AA_MODE_GAMMACORRECTION_OFF;
+			setting.u32PredefinedValue      = AA_MODE_GAMMACORRECTION_OFF;
+
+			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
+			FeDebug() << "NvAPI: Antialiasing Gamma Correction OFF: " << nvapi_get_error_msg( status );
 		}
 
 		// Save changes

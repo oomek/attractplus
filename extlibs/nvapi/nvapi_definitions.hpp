@@ -11,7 +11,8 @@ enum Esetting {
 	OGL_TRIPLE_BUFFER_ID                                = 0x20FDD1F9,
 	PREFERRED_PSTATE_ID                                 = 0x1057EB71,
 	PRERENDERLIMIT_ID                                   = 0x007BA09E,
-	OGL_MAX_FRAMES_ALLOWED_ID                           = 0x208E55E3
+	OGL_MAX_FRAMES_ALLOWED_ID                           = 0x208E55E3,
+	AA_MODE_GAMMACORRECTION_ID                          = 0x107D639D
 };
 
 enum EValues_OGL_THREAD_CONTROL {
@@ -47,6 +48,18 @@ enum EValues_PRERENDERLIMIT {
     PRERENDERLIMIT_APP_CONTROLLED                        = 0x00,
     PRERENDERLIMIT_NUM_VALUES = 3,
     PRERENDERLIMIT_DEFAULT = PRERENDERLIMIT_APP_CONTROLLED
+};
+
+enum EValues_AA_MODE_GAMMACORRECTION {
+    AA_MODE_GAMMACORRECTION_MASK                         = 0x00000003,
+    AA_MODE_GAMMACORRECTION_OFF                          = 0x00000000,
+    AA_MODE_GAMMACORRECTION_ON_IF_FOS                    = 0x00000001,
+    AA_MODE_GAMMACORRECTION_ON_ALWAYS                    = 0x00000002,
+    AA_MODE_GAMMACORRECTION_MAX                          = 0x00000002,
+    AA_MODE_GAMMACORRECTION_DEFAULT                      = 0x00000000,
+    AA_MODE_GAMMACORRECTION_DEFAULT_TESLA                = 0x00000002,
+    AA_MODE_GAMMACORRECTION_DEFAULT_FERMI                = 0x00000002,
+    AA_MODE_GAMMACORRECTION_NUM_VALUES = 8,
 };
 
 typedef enum _NvAPI_Status
