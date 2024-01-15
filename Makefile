@@ -136,6 +136,7 @@ RES_FONTS_DIR = $(RES_DIR)/fonts
 RES_IMGS_DIR = $(RES_DIR)/images
 
 _DEP =\
+	fe_async_loader.hpp \
 	fe_base.hpp \
 	fe_file.hpp \
 	fe_util.hpp \
@@ -168,6 +169,7 @@ _DEP =\
 	zip.hpp
 
 _OBJ =\
+	fe_async_loader.o \
 	fe_base.o \
 	fe_file.o \
 	fe_util.o \
@@ -277,7 +279,7 @@ endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL -lpthread -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
+  LIBS += -ldl -lGL -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
  endif
 else
  LIBS += -L$(EXTLIBS_DIR)/openal-soft
@@ -405,7 +407,7 @@ else
  EXPAT =
 endif
 
-LIBS += -lfreetype
+LIBS += -lfreetype -lpthread
 
 CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include
 SQUIRREL = $(OBJ_DIR)/libsquirrel.a $(OBJ_DIR)/libsqstdlib.a
