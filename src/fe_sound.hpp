@@ -39,8 +39,7 @@ private:
 	FeSound &operator=( const FeSound & );
 
 	sf::SoundBuffer m_buffer;
-	std::deque<sf::Sound> m_sounds;
-	int m_voices;
+	sf::Sound m_sound;
 	std::string m_file_name;
 	bool m_play_state;
 	float m_volume;
@@ -79,9 +78,6 @@ public:
 
 	int get_duration();
 	int get_time();
-
-	int get_voices();
-	void set_voices( int );
 
 	void release_audio( bool );
 };

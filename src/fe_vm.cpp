@@ -905,7 +905,6 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("z"), &FeSound::get_z, &FeSound::set_z )
 		.Prop( _SC("duration"), &FeSound::get_duration )
 		.Prop( _SC("time"), &FeSound::get_time )
-		.Prop( _SC("voices"), &FeSound::get_voices, &FeSound::set_voices )
 		.Prop( _SC("volume"), &FeSound::get_volume, &FeSound::set_volume )
 	);
 
