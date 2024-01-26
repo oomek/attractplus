@@ -51,6 +51,11 @@ checklib="${checklib:2}"
 fr_lib+=("@rpath/libwebp")
 to_lib+=("$checklib/libwebp")
 
+checklib=$(pkg-config --libs-only-L libjxl_cms)
+checklib="${checklib:2}"
+fr_lib+=("@rpath/libjxl_cms")
+to_lib+=("$checklib/libjxl_cms")
+
 checklib=$(pkg-config --libs-only-L libavcodec)
 checklib="${checklib:2}"
 fr_lib+=("@loader_path/libavcodec")
