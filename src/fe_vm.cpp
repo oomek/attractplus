@@ -40,6 +40,7 @@
 #include "fe_util.hpp"
 #include "fe_util_sq.hpp"
 #include "image_loader.hpp"
+#include "fe_async_loader.hpp"
 #include "zip.hpp"
 
 #include <sqrat.h>
@@ -977,6 +978,15 @@ bool FeVM::on_new_layout()
 		.Func( _SC("name_at"), &FeImageLoader::cache_get_name_at )
 		.Func( _SC("size_at"), &FeImageLoader::cache_get_size_at )
 		.Prop( _SC("bg_load"), &FeImageLoader::get_background_loading, &FeImageLoader::set_background_loading )
+	);
+
+	// DEBUG
+	fe.Bind( _SC("AsyncLoader"), Class <FeAsyncLoader, NoConstructor>()
+		.Prop( _SC("cached_size"), &FeAsyncLoader::get_cached_size )
+		.Prop( _SC("active_size"), &FeAsyncLoader::get_active_size )
+		.Prop( _SC("queue_size"),  &FeAsyncLoader::get_queue_size )
+		.Func( _SC("cached_ref_count"),  &FeAsyncLoader::get_cached_ref_count )
+		.Func( _SC("active_ref_count"),  &FeAsyncLoader::get_active_ref_count )
 	);
 
 	//

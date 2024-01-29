@@ -61,7 +61,7 @@ int FeAsyncLoader::get_queue_size()
 	return m_in.size();
 }
 
-int FeAsyncLoader::get_cached_ref( int pos )
+int FeAsyncLoader::get_cached_ref_count( int pos )
 {
 	ulock_t lock( m_mutex );
 	list_iterator_t it = m_cached.begin();
@@ -69,7 +69,7 @@ int FeAsyncLoader::get_cached_ref( int pos )
 	return it->second->get_ref();
 }
 
-int FeAsyncLoader::get_active_ref( int pos )
+int FeAsyncLoader::get_active_ref_count( int pos )
 {
 	ulock_t lock( m_mutex );
 	list_iterator_t it = m_active.begin();
