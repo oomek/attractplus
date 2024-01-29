@@ -1097,6 +1097,10 @@ bool FeVM::on_new_layout()
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
+
+	FeAsyncLoader &al = FeAsyncLoader::get_ref();
+	fe.SetInstance( _SC("loader"), &al );
+
 	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
 
 	// We keep a "non-volatile" table for use by layouts/plugins, the

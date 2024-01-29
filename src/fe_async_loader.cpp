@@ -189,8 +189,6 @@ void FeAsyncLoader::add_texture( const std::string file, bool async )
 void FeAsyncLoader::load_texture( const std::string file )
 {
     FeAsyncLoaderEntryTexture *tmp_entry_ptr = new FeAsyncLoaderEntryTexture();
-    FeAsyncLoaderEntryFont *tmp_entry_ptr2 = new FeAsyncLoaderEntryFont();
-    // FeAsyncLoaderEntrySoundBuffer *tmp_entry_ptr3 = new FeAsyncLoaderEntrySoundBuffer();
     if ( tmp_entry_ptr->get_texture()->loadFromFile( file ))
     {
         ulock_t lock( m_mutex );
