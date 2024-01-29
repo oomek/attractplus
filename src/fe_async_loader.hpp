@@ -10,15 +10,23 @@
 
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics.hpp>
-// #include <SFML/Audio.hpp>
+#include <SFML/Audio.hpp>
 
+
+enum EntryType
+{
+	TextureType,
+	FontType,
+	SoundType
+};
 
 class FeAsyncLoaderEntryBase
 {
 	friend class FeAsyncLoader;
 
 protected:
-	FeAsyncLoaderEntryBase() : m_ref_count(0) {}; // Protected constructor
+	FeAsyncLoaderEntryBase(EntryType type) : m_ref_count(0), m_type(type) {}; // Protected constructor
+	EntryType m_type;
 
 private:
 	int m_ref_count;
@@ -40,7 +48,7 @@ public:
 	virtual sf::Font *get_font() { return nullptr; };
 
 	// FeAsyncLoaderEntrySoundBuffer
-	// virtual sf::SoundBuffer *get_sound_buffer() { return nullptr; };
+	virtual sf::SoundBuffer *get_sound_buffer() { return nullptr; };
 };
 
 
@@ -50,7 +58,7 @@ class FeAsyncLoaderEntryTexture : public FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 public:
-	FeAsyncLoaderEntryTexture() : m_texture_size(0, 0) {};
+	FeAsyncLoaderEntryTexture() : FeAsyncLoaderEntryBase(TextureType), m_texture_size(0, 0) {};
 	virtual ~FeAsyncLoaderEntryTexture() {};
 
 	sf::Texture *get_texture() override { return &m_texture; };
@@ -69,7 +77,7 @@ class FeAsyncLoaderEntryFont : public FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 public:
-	FeAsyncLoaderEntryFont() {};
+	FeAsyncLoaderEntryFont() : FeAsyncLoaderEntryBase(FontType) {};
 	virtual ~FeAsyncLoaderEntryFont() {};
 
 	sf::Font *get_font() override { return &m_font; };
@@ -80,19 +88,19 @@ private:
 
 
 
-// class FeAsyncLoaderEntrySoundBuffer : public FeAsyncLoaderEntryBase
-// {
-// 	friend class FeAsyncLoader;
+class FeAsyncLoaderEntrySoundBuffer : public FeAsyncLoaderEntryBase
+{
+	friend class FeAsyncLoader;
 
-// public:
-// 	FeAsyncLoaderEntrySoundBuffer() {};
-// 	virtual ~FeAsyncLoaderEntrySoundBuffer() {};
+public:
+	FeAsyncLoaderEntrySoundBuffer() : FeAsyncLoaderEntryBase(SoundType) {};
+	virtual ~FeAsyncLoaderEntrySoundBuffer() {};
 
-// 	sf::SoundBuffer *get_sound_buffer() override { return &m_sound_buffer; };
+	sf::SoundBuffer *get_sound_buffer() override { return &m_sound_buffer; };
 
-// private:
-// 	sf::SoundBuffer m_sound_buffer;
-// };
+private:
+	sf::SoundBuffer m_sound_buffer;
+};
 
 
 
