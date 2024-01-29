@@ -127,8 +127,8 @@ public:
 	int get_cached_size();
 	int get_active_size();
 	int get_queue_size();
-	int get_cached_ref( int );
-	int get_active_ref( int );
+	int get_cached_ref_count( int );
+	int get_active_ref_count( int );
 
 private:
 	FeAsyncLoader();
