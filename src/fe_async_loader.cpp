@@ -149,11 +149,10 @@ void FeAsyncLoader::thread_loop()
 		}
 		else
 		{
-			std::string file = m_in.front();
 			lock.unlock();
 
-			if ( m_map.find( file ) == m_map.end() )
-				load_texture( file );
+			if ( m_map.find( m_in.front().first ) == m_map.end() )
+				load_resource( m_in.front().first, m_in.front().second );
 
 			lock.lock();
 			m_in.pop();
@@ -174,29 +173,88 @@ void FeAsyncLoader::add_texture( const std::string file, bool async )
 	{
 		if ( !async )
 		{
-			load_texture( file );
+			load_resource( file, TextureType );
 			return;
 		}
 	}
 
 	m_done = false;
-	m_in.push( file );
+	m_in.push( std::make_pair( file, TextureType ));
 	lock.unlock();
 	m_cond.notify_one();
 	return;
 }
 
-void FeAsyncLoader::load_texture( const std::string file )
+void FeAsyncLoader::add_font( const std::string file, bool async )
 {
-    FeAsyncLoaderEntryTexture *tmp_entry_ptr = new FeAsyncLoaderEntryTexture();
-    if ( tmp_entry_ptr->get_texture()->loadFromFile( file ))
-    {
-        ulock_t lock( m_mutex );
-        m_cached.push_front( kvp_t( file, tmp_entry_ptr ) );
-        m_map[file] = m_cached.begin();
-    }
-    else
-        delete tmp_entry_ptr;
+	if ( file.empty() ) return;
+
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_map.find( file );
+	if ( it == m_map.end() )
+	{
+		if ( !async )
+		{
+			load_resource( file, FontType );
+			return;
+		}
+	}
+
+	m_done = false;
+	m_in.push( std::make_pair( file, FontType ));
+	lock.unlock();
+	m_cond.notify_one();
+	return;
+}
+
+void FeAsyncLoader::add_soundbuffer( const std::string file, bool async )
+{
+	if ( file.empty() ) return;
+
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_map.find( file );
+	if ( it == m_map.end() )
+	{
+		if ( !async )
+		{
+			load_resource( file, SoundBufferType );
+			return;
+		}
+	}
+
+	m_done = false;
+	m_in.push( std::make_pair( file, SoundBufferType ));
+	lock.unlock();
+	m_cond.notify_one();
+	return;
+}
+
+void FeAsyncLoader::load_resource( const std::string file, const EntryType type )
+{
+	FeAsyncLoaderEntryBase *tmp_entry_ptr = nullptr;
+
+	switch ( type )
+	{
+		case TextureType:
+			tmp_entry_ptr = new FeAsyncLoaderEntryTexture();
+			break;
+
+		case FontType:
+			tmp_entry_ptr = new FeAsyncLoaderEntryFont();
+			break;
+
+		case SoundBufferType:
+			tmp_entry_ptr = new FeAsyncLoaderEntrySoundBuffer();
+			break;
+	}
+
+	if ( tmp_entry_ptr->load_from_file( file ))
+	{
+		m_cached.push_front( kvp_t( file, tmp_entry_ptr ) );
+		m_map[file] = m_cached.begin();
+	}
+	else
+		delete tmp_entry_ptr;
 }
 
 sf::Texture *FeAsyncLoader::get_dummy_texture()
