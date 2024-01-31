@@ -17,7 +17,7 @@ enum EntryType
 {
 	TextureType,
 	FontType,
-	SoundType
+	SoundBufferType
 };
 
 class FeAsyncLoaderEntryBase
@@ -48,7 +48,9 @@ public:
 	virtual sf::Font *get_font() { return nullptr; };
 
 	// FeAsyncLoaderEntrySoundBuffer
-	virtual sf::SoundBuffer *get_sound_buffer() { return nullptr; };
+	virtual sf::SoundBuffer *get_soundbuffer() { return nullptr; };
+
+	virtual bool load_from_file( const std::string );
 };
 
 
@@ -59,9 +61,10 @@ class FeAsyncLoaderEntryTexture : public FeAsyncLoaderEntryBase
 
 public:
 	FeAsyncLoaderEntryTexture() : FeAsyncLoaderEntryBase(TextureType), m_texture_size(0, 0) {};
-	virtual ~FeAsyncLoaderEntryTexture() {};
+	~FeAsyncLoaderEntryTexture() {};
 
 	sf::Texture *get_texture() override { return &m_texture; };
+	bool load_from_file( const std::string file ) override { return m_texture.loadFromFile( file ); };
 	sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
 	size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
 
@@ -78,9 +81,10 @@ class FeAsyncLoaderEntryFont : public FeAsyncLoaderEntryBase
 
 public:
 	FeAsyncLoaderEntryFont() : FeAsyncLoaderEntryBase(FontType) {};
-	virtual ~FeAsyncLoaderEntryFont() {};
+	~FeAsyncLoaderEntryFont() {};
 
 	sf::Font *get_font() override { return &m_font; };
+	bool load_from_file( const std::string file ) override { return m_font.loadFromFile( file ); };
 
 private:
 	sf::Font m_font;
@@ -93,10 +97,11 @@ class FeAsyncLoaderEntrySoundBuffer : public FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 public:
-	FeAsyncLoaderEntrySoundBuffer() : FeAsyncLoaderEntryBase(SoundType) {};
-	virtual ~FeAsyncLoaderEntrySoundBuffer() {};
+	FeAsyncLoaderEntrySoundBuffer() : FeAsyncLoaderEntryBase(SoundBufferType) {};
+	~FeAsyncLoaderEntrySoundBuffer() {};
 
-	sf::SoundBuffer *get_sound_buffer() override { return &m_sound_buffer; };
+	sf::SoundBuffer *get_soundbuffer() override { return &m_sound_buffer; };
+	bool load_from_file( const std::string file ) override { return m_sound_buffer.loadFromFile( file ); };
 
 private:
 	sf::SoundBuffer m_sound_buffer;
@@ -122,8 +127,12 @@ public:
 
 	sf::Texture *get_dummy_texture();
 
+	void load_resource( const std::string, const EntryType );
+
 	void add_texture( const std::string, bool async = true );
-	void load_texture( const std::string );
+	void add_font( const std::string, bool async = true );
+	void add_soundbuffer( const std::string, bool async = true );
+
 	sf::Texture *get_texture( const std::string );
 	void release_texture( const std::string );
 
@@ -147,7 +156,7 @@ private:
 	list_t m_active;
 	list_t m_cached;
 	map_t m_map;
-	std::queue< std::string > m_in;
+	std::queue< std::pair< std::string, EntryType >> m_in;
 
 	sf::Texture dummy_texture;
 
