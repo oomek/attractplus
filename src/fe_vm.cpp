@@ -987,6 +987,9 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("queue_size"),  &FeAsyncLoader::get_queue_size )
 		.Func( _SC("cached_ref_count"),  &FeAsyncLoader::get_cached_ref_count )
 		.Func( _SC("active_ref_count"),  &FeAsyncLoader::get_active_ref_count )
+		.Func( _SC("load_image"),  &FeAsyncLoader::add_texture )
+		.Func( _SC("load_font"),  &FeAsyncLoader::add_font )
+		.Func( _SC("load_sound"),  &FeAsyncLoader::add_soundbuffer )
 	);
 
 	//
@@ -1099,7 +1102,7 @@ bool FeVM::on_new_layout()
 	fe.SetInstance( _SC("image_cache"), &il );
 
 	FeAsyncLoader &al = FeAsyncLoader::get_ref();
-	fe.SetInstance( _SC("loader"), &al );
+	fe.SetInstance( _SC("cache"), &al );
 
 	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
 
