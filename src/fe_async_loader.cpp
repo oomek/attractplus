@@ -163,90 +163,16 @@ void FeAsyncLoader::thread_loop()
 
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
-void FeAsyncLoader::add_texture( const std::string file, bool async )
-{
-	if ( file.empty() ) return;
-
-	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
-	if ( it == m_map.end() )
-	{
-		if ( !async )
-		{
-			load_resource( file, TextureType );
-			return;
-		}
-	}
-
-	m_done = false;
-	m_in.push( std::make_pair( file, TextureType ));
-	lock.unlock();
-	m_cond.notify_one();
-	return;
-}
-
-void FeAsyncLoader::add_font( const std::string file, bool async )
-{
-	if ( file.empty() ) return;
-
-	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
-	if ( it == m_map.end() )
-	{
-		if ( !async )
-		{
-			load_resource( file, FontType );
-			return;
-		}
-	}
-
-	m_done = false;
-	m_in.push( std::make_pair( file, FontType ));
-	lock.unlock();
-	m_cond.notify_one();
-	return;
-}
-
-void FeAsyncLoader::add_soundbuffer( const std::string file, bool async )
-{
-	if ( file.empty() ) return;
-
-	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
-	if ( it == m_map.end() )
-	{
-		if ( !async )
-		{
-			load_resource( file, SoundBufferType );
-			return;
-		}
-	}
-
-	m_done = false;
-	m_in.push( std::make_pair( file, SoundBufferType ));
-	lock.unlock();
-	m_cond.notify_one();
-	return;
-}
-
 void FeAsyncLoader::load_resource( const std::string file, const EntryType type )
 {
 	FeAsyncLoaderEntryBase *tmp_entry_ptr = nullptr;
 
-	switch ( type )
-	{
-		case TextureType:
-			tmp_entry_ptr = new FeAsyncLoaderEntryTexture();
-			break;
-
-		case FontType:
-			tmp_entry_ptr = new FeAsyncLoaderEntryFont();
-			break;
-
-		case SoundBufferType:
-			tmp_entry_ptr = new FeAsyncLoaderEntrySoundBuffer();
-			break;
-	}
+	if ( type == TextureType )
+		tmp_entry_ptr = new FeAsyncLoaderEntryTexture();
+	else if ( type == FontType )
+		tmp_entry_ptr = new FeAsyncLoaderEntryFont();
+	else if ( type == SoundBufferType )
+		tmp_entry_ptr = new FeAsyncLoaderEntrySoundBuffer();
 
 	if ( tmp_entry_ptr->load_from_file( file ))
 	{
