@@ -186,7 +186,60 @@ sf::Texture *FeAsyncLoader::get_dummy_texture()
 	return &dummy_texture;
 }
 
-void FeAsyncLoader::release_texture( const std::string file )
+template <typename T>
+void FeAsyncLoader::add_resource( const std::string file, bool async )
+{
+	if ( file.empty() ) return;
+
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_map.find( file );
+	if ( it == m_map.end() )
+	{
+		if ( !async )
+		{
+			load_resource( file, T::type );
+			return;
+		}
+	}
+
+	m_done = false;
+	m_in.push( std::make_pair( file, T::type ));
+	lock.unlock();
+	m_cond.notify_one();
+	return;
+}
+
+template void FeAsyncLoader::add_resource<FeAsyncLoaderEntryTexture>( const std::string file, bool async );
+template void FeAsyncLoader::add_resource<FeAsyncLoaderEntryFont>( const std::string file, bool async );
+template void FeAsyncLoader::add_resource<FeAsyncLoaderEntrySoundBuffer>( const std::string file, bool async );
+
+template <typename T>
+T *FeAsyncLoader::get_resource( const std::string file )
+{
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_map.find( file );
+
+	if ( it != m_map.end() )
+	{
+		if ( it->second->second->get_ref() > 0 )
+			// Promote in active list
+			m_active.splice( m_active.begin(), m_active, it->second );
+		else
+			// Move from cached list to active list
+			m_active.splice( m_active.begin(), m_cached, it->second );
+
+		it->second->second->inc_ref();
+		return reinterpret_cast<T*>( it->second->second->get_resource_pointer() );
+	}
+	else
+		return nullptr;
+}
+
+template sf::Texture *FeAsyncLoader::get_resource<sf::Texture>( const std::string file );
+template sf::Font *FeAsyncLoader::get_resource<sf::Font>( const std::string file );
+template sf::SoundBuffer *FeAsyncLoader::get_resource<sf::SoundBuffer>( const std::string file );
+
+void FeAsyncLoader::release_resource( const std::string file )
 {
 	if ( file.empty() ) return;
 
@@ -195,9 +248,7 @@ void FeAsyncLoader::release_texture( const std::string file )
 
 	if ( it != m_map.end() )
 		if ( it->second->second->get_ref() > 0 )
-		{
-			// Move to cache list if ref count is 0
 			if ( it->second->second->dec_ref() )
+				// Move to cache list if ref count is 0
 				m_cached.splice( m_cached.begin(), m_active, it->second );
-		}
 }
