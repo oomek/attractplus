@@ -25,8 +25,7 @@ class FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 protected:
-	FeAsyncLoaderEntryBase(EntryType type) : m_ref_count(0), m_type(type) {}; // Protected constructor
-	EntryType m_type;
+	FeAsyncLoaderEntryBase() : m_ref_count(0) {}; // Protected constructor
 
 private:
 	int m_ref_count;
@@ -36,7 +35,7 @@ private:
 	bool dec_ref();
 
 public:
-  	// Virtual to correctly call Derived's destructor, then Base's destructor
+	// Virtual to correctly call Derived's destructor, then Base's destructor
 	virtual ~FeAsyncLoaderEntryBase() {};
 
 	// FeAsyncLoaderEntryTexture
@@ -60,7 +59,8 @@ class FeAsyncLoaderEntryTexture : public FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 public:
-	FeAsyncLoaderEntryTexture() : FeAsyncLoaderEntryBase(TextureType), m_texture_size(0, 0) {};
+	static const EntryType type = TextureType;
+	FeAsyncLoaderEntryTexture() : m_texture_size(0, 0) {};
 	~FeAsyncLoaderEntryTexture() {};
 
 	sf::Texture *get_texture() override { return &m_texture; };
@@ -80,7 +80,8 @@ class FeAsyncLoaderEntryFont : public FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 public:
-	FeAsyncLoaderEntryFont() : FeAsyncLoaderEntryBase(FontType) {};
+	static const EntryType type = FontType;
+	FeAsyncLoaderEntryFont() {};
 	~FeAsyncLoaderEntryFont() {};
 
 	sf::Font *get_font() override { return &m_font; };
@@ -97,7 +98,8 @@ class FeAsyncLoaderEntrySoundBuffer : public FeAsyncLoaderEntryBase
 	friend class FeAsyncLoader;
 
 public:
-	FeAsyncLoaderEntrySoundBuffer() : FeAsyncLoaderEntryBase(SoundBufferType) {};
+	static const EntryType type = SoundBufferType;
+	FeAsyncLoaderEntrySoundBuffer() {};
 	~FeAsyncLoaderEntrySoundBuffer() {};
 
 	sf::SoundBuffer *get_soundbuffer() override { return &m_sound_buffer; };
@@ -133,6 +135,9 @@ public:
 	void add_font( const std::string, bool async = true );
 	void add_soundbuffer( const std::string, bool async = true );
 
+	template <typename T>
+	void add_resource( const std::string file, bool async );
+
 	sf::Texture *get_texture( const std::string );
 	void release_texture( const std::string );
 
@@ -164,5 +169,28 @@ private:
 	bool m_running;
 	void thread_loop();
 };
+
+template <typename T>
+void FeAsyncLoader::add_resource( const std::string file, bool async )
+{
+	if ( file.empty() ) return;
+
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_map.find( file );
+	if ( it == m_map.end() )
+	{
+		if ( !async )
+		{
+			load_resource( file, T::type );
+			return;
+		}
+	}
+
+	m_done = false;
+	m_in.push( std::make_pair( file, T::type ));
+	lock.unlock();
+	m_cond.notify_one();
+	return;
+}
 
 #endif
