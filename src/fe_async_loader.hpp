@@ -39,17 +39,13 @@ public:
 	virtual ~FeAsyncLoaderEntryBase() {};
 
 	// FeAsyncLoaderEntryTexture
-	virtual sf::Texture *get_texture() { return nullptr; };
 	virtual sf::Vector2u get_texture_size() { return sf::Vector2u( 0, 0 ); };
 	virtual size_t get_bytes() { return 0; };
 
-	// FeAsyncLoaderEntryFont
-	virtual sf::Font *get_font() { return nullptr; };
-
-	// FeAsyncLoaderEntrySoundBuffer
-	virtual sf::SoundBuffer *get_soundbuffer() { return nullptr; };
-
 	virtual bool load_from_file( const std::string );
+
+	template<typename T>
+	T get_resource_pointer() { return static_cast<T>( nullptr ); };
 };
 
 
@@ -63,8 +59,9 @@ public:
 	FeAsyncLoaderEntryTexture() : m_texture_size(0, 0) {};
 	~FeAsyncLoaderEntryTexture() {};
 
-	sf::Texture *get_texture() override { return &m_texture; };
+	sf::Texture *get_resource_pointer() { return &m_texture; };
 	bool load_from_file( const std::string file ) override { return m_texture.loadFromFile( file ); };
+
 	sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
 	size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
 
@@ -84,7 +81,7 @@ public:
 	FeAsyncLoaderEntryFont() {};
 	~FeAsyncLoaderEntryFont() {};
 
-	sf::Font *get_font() override { return &m_font; };
+	sf::Font *get_resource_pointer() { return &m_font; };
 	bool load_from_file( const std::string file ) override { return m_font.loadFromFile( file ); };
 
 private:
@@ -102,7 +99,7 @@ public:
 	FeAsyncLoaderEntrySoundBuffer() {};
 	~FeAsyncLoaderEntrySoundBuffer() {};
 
-	sf::SoundBuffer *get_soundbuffer() override { return &m_sound_buffer; };
+	sf::SoundBuffer *get_resource_pointer() { return &m_sound_buffer; };
 	bool load_from_file( const std::string file ) override { return m_sound_buffer.loadFromFile( file ); };
 
 private:
@@ -137,6 +134,9 @@ public:
 
 	template <typename T>
 	void add_resource( const std::string file, bool async );
+
+	template <typename T>
+	T *get_resource( const std::string file );
 
 	sf::Texture *get_texture( const std::string );
 	void release_texture( const std::string );
@@ -191,6 +191,28 @@ void FeAsyncLoader::add_resource( const std::string file, bool async )
 	lock.unlock();
 	m_cond.notify_one();
 	return;
+}
+
+template <typename T>
+T *FeAsyncLoader::get_resource( const std::string file )
+{
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_map.find( file );
+
+	if ( it != m_map.end() )
+	{
+		if ( it->second->second->get_ref() > 0 )
+			// Promote in active list
+			m_active.splice( m_active.begin(), m_active, it->second );
+		else
+			// Move from cached list to active list
+			m_active.splice( m_active.begin(), m_cached, it->second );
+
+		it->second->second->inc_ref();
+		return it->second->second->get_resource_pointer<T>();
+	}
+	else
+		return nullptr;
 }
 
 #endif

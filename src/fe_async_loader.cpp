@@ -144,9 +144,7 @@ void FeAsyncLoader::thread_loop()
 		ulock_t lock( m_mutex );
 
 		if ( m_in.size() == 0 )
-		{
 			m_cond.wait( lock );
-		}
 		else
 		{
 			lock.unlock();
@@ -188,32 +186,6 @@ sf::Texture *FeAsyncLoader::get_dummy_texture()
 	return &dummy_texture;
 }
 
-sf::Texture *FeAsyncLoader::get_texture( const std::string file )
-{
-	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
-
-	if ( it != m_map.end() )
-	{
-		if ( it->second->second->get_ref() > 0 )
-		{
-			// Promote in active list
-			m_active.splice( m_active.begin(), m_active, it->second );
-		}
-		else
-		{
-			// Move from cached list to active list
-			m_active.splice( m_active.begin(), m_cached, it->second );
-		}
-
-		it->second->second->inc_ref();
-
-		return it->second->second->get_texture();
-	}
-	else
-		return &dummy_texture;
-}
-
 void FeAsyncLoader::release_texture( const std::string file )
 {
 	if ( file.empty() ) return;
@@ -226,8 +198,6 @@ void FeAsyncLoader::release_texture( const std::string file )
 		{
 			// Move to cache list if ref count is 0
 			if ( it->second->second->dec_ref() )
-			{
 				m_cached.splice( m_cached.begin(), m_active, it->second );
-			}
 		}
 }
