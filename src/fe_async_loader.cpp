@@ -15,7 +15,9 @@
 #include <cstdio>
 #include <thread>
 
-
+// Destructor needs to be in the same compilation unit
+// so tmp_entry_ptr static_cast to derived will work
+FeAsyncLoaderEntryBase::~FeAsyncLoaderEntryBase() {};
 
 // FeAsyncLoaderEntryBase
 int FeAsyncLoaderEntryBase::get_ref()
@@ -166,11 +168,11 @@ void FeAsyncLoader::load_resource( const std::string file, const EntryType type 
 	FeAsyncLoaderEntryBase *tmp_entry_ptr = nullptr;
 
 	if ( type == TextureType )
-		tmp_entry_ptr = new FeAsyncLoaderEntryTexture();
+		tmp_entry_ptr = static_cast<FeAsyncLoaderEntryBase*>( new FeAsyncLoaderEntryTexture() );
 	else if ( type == FontType )
-		tmp_entry_ptr = new FeAsyncLoaderEntryFont();
+		tmp_entry_ptr = static_cast<FeAsyncLoaderEntryBase*>( new FeAsyncLoaderEntryFont() );
 	else if ( type == SoundBufferType )
-		tmp_entry_ptr = new FeAsyncLoaderEntrySoundBuffer();
+		tmp_entry_ptr = static_cast<FeAsyncLoaderEntryBase*>( new FeAsyncLoaderEntrySoundBuffer() );
 
 	if ( tmp_entry_ptr->load_from_file( file ))
 	{
@@ -229,7 +231,7 @@ T *FeAsyncLoader::get_resource( const std::string file )
 			m_active.splice( m_active.begin(), m_cached, it->second );
 
 		it->second->second->inc_ref();
-		return reinterpret_cast<T*>( it->second->second->get_resource_pointer() );
+		return static_cast<T*>( it->second->second->get_resource_pointer() );
 	}
 	else
 		return nullptr;

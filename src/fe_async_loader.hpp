@@ -36,14 +36,15 @@ private:
 
 public:
 	// Virtual to correctly call Derived's destructor, then Base's destructor
-	virtual ~FeAsyncLoaderEntryBase() {};
+	// Definition moved to cpp
+	virtual ~FeAsyncLoaderEntryBase();
 
 	// FeAsyncLoaderEntryTexture
-	virtual sf::Vector2u get_texture_size() { return sf::Vector2u( 0, 0 ); };
-	virtual size_t get_bytes() { return 0; };
+	// virtual sf::Vector2u get_texture_size() { return sf::Vector2u( 0, 0 ); };
+	// virtual size_t get_bytes() { return 0; };
 
-	virtual bool load_from_file( const std::string );
-	virtual void *get_resource_pointer() = 0;
+	virtual bool load_from_file( const std::string ) { return false; };
+	virtual void *get_resource_pointer() { return nullptr; };
 };
 
 
@@ -57,11 +58,11 @@ public:
 	FeAsyncLoaderEntryTexture() : m_texture_size(0, 0) {};
 	~FeAsyncLoaderEntryTexture() {};
 
-	void *get_resource_pointer() override { return &m_texture; }
+	void *get_resource_pointer() override { return &m_texture; };
 	bool load_from_file( const std::string file ) override { return m_texture.loadFromFile( file ); };
 
-	sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
-	size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
+	// sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
+	// size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
 
 private:
 	sf::Texture m_texture;
