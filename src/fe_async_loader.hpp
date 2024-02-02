@@ -135,6 +135,14 @@ public:
 
 	void release_resource( const std::string );
 
+	void add_resource_texture( const std::string file, bool async );
+	void add_resource_font( const std::string file, bool async );
+	void add_resource_sound( const std::string file, bool async );
+
+	sf::Texture *get_resource_texture( const std::string file );
+	sf::Font *get_resource_font( const std::string file );
+	sf::SoundBuffer *get_resource_sound( const std::string file );
+
 	bool done();
 
 	void notify();
