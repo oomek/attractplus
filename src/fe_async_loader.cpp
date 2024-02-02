@@ -211,9 +211,20 @@ void FeAsyncLoader::add_resource( const std::string file, bool async )
 	return;
 }
 
-template void FeAsyncLoader::add_resource<FeAsyncLoaderEntryTexture>( const std::string file, bool async );
-template void FeAsyncLoader::add_resource<FeAsyncLoaderEntryFont>( const std::string file, bool async );
-template void FeAsyncLoader::add_resource<FeAsyncLoaderEntrySoundBuffer>( const std::string file, bool async );
+void FeAsyncLoader::add_resource_texture( const std::string file, bool async )
+{
+    add_resource<FeAsyncLoaderEntryTexture>( file, async );
+}
+
+void FeAsyncLoader::add_resource_font( const std::string file, bool async )
+{
+    add_resource<FeAsyncLoaderEntryFont>( file, async );
+}
+
+void FeAsyncLoader::add_resource_sound( const std::string file, bool async )
+{
+    add_resource<FeAsyncLoaderEntrySoundBuffer>( file, async );
+}
 
 template <typename T>
 T *FeAsyncLoader::get_resource( const std::string file )
@@ -237,9 +248,20 @@ T *FeAsyncLoader::get_resource( const std::string file )
 		return nullptr;
 }
 
-template sf::Texture *FeAsyncLoader::get_resource<sf::Texture>( const std::string file );
-template sf::Font *FeAsyncLoader::get_resource<sf::Font>( const std::string file );
-template sf::SoundBuffer *FeAsyncLoader::get_resource<sf::SoundBuffer>( const std::string file );
+sf::Texture *FeAsyncLoader::get_resource_texture( const std::string file )
+{
+	return get_resource<sf::Texture>( file );
+}
+
+sf::Font *FeAsyncLoader::get_resource_font( const std::string file )
+{
+	return get_resource<sf::Font>( file );
+}
+
+sf::SoundBuffer *FeAsyncLoader::get_resource_sound( const std::string file )
+{
+	return get_resource<sf::SoundBuffer>( file );
+}
 
 void FeAsyncLoader::release_resource( const std::string file )
 {
