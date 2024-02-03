@@ -121,9 +121,7 @@ public:
 	typedef std::unique_lock<std::mutex> ulock_t;
 
 	~FeAsyncLoader();
-	static FeAsyncLoader &get_ref();
-
-	sf::Texture *get_dummy_texture();
+	static FeAsyncLoader &get_al();
 
 	void load_resource( const std::string, const EntryType );
 
@@ -158,14 +156,12 @@ private:
 	FeAsyncLoader();
 	std::thread m_thread;
 	std::mutex m_mutex;
-	std::condition_variable m_cond;
+	std::condition_variable m_condition;
 
-	list_t m_active;
-	list_t m_cached;
-	map_t m_map;
-	std::queue< std::pair< std::string, EntryType >> m_in;
-
-	sf::Texture dummy_texture;
+	list_t m_resources_active;
+	list_t m_resources_cached;
+	map_t m_resources_map;
+	std::queue< std::pair< std::string, EntryType >> m_queue;
 
 	bool m_done;
 	bool m_running;

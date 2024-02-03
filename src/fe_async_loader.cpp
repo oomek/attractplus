@@ -39,7 +39,7 @@ bool FeAsyncLoaderEntryBase::dec_ref()
 
 
 // FeAsyncLoader
-FeAsyncLoader &FeAsyncLoader::get_ref()
+FeAsyncLoader &FeAsyncLoader::get_al()
 {
 	static FeAsyncLoader loader;
 	return loader;
@@ -48,25 +48,25 @@ FeAsyncLoader &FeAsyncLoader::get_ref()
 int FeAsyncLoader::get_cached_size()
 {
 	ulock_t lock( m_mutex );
-	return m_cached.size();
+	return m_resources_cached.size();
 }
 
 int FeAsyncLoader::get_active_size()
 {
 	ulock_t lock( m_mutex );
-	return m_active.size();
+	return m_resources_active.size();
 }
 
 int FeAsyncLoader::get_queue_size()
 {
 	ulock_t lock( m_mutex );
-	return m_in.size();
+	return m_queue.size();
 }
 
 int FeAsyncLoader::get_cached_ref_count( int pos )
 {
 	ulock_t lock( m_mutex );
-	list_iterator_t it = m_cached.begin();
+	list_iterator_t it = m_resources_cached.begin();
 	std::advance( it, pos );
 	return it->second->get_ref();
 }
@@ -74,7 +74,7 @@ int FeAsyncLoader::get_cached_ref_count( int pos )
 int FeAsyncLoader::get_active_ref_count( int pos )
 {
 	ulock_t lock( m_mutex );
-	list_iterator_t it = m_active.begin();
+	list_iterator_t it = m_resources_active.begin();
 	std::advance( it, pos );
 	return (*it).second->get_ref();
 }
@@ -84,7 +84,7 @@ bool FeAsyncLoader::done()
 	if ( !m_done )
 	{
 		ulock_t lock( m_mutex );
-		if ( m_in.size() == 0 )
+		if ( m_queue.size() == 0 )
 		{
 			m_done = true;
 			return true;
@@ -96,44 +96,43 @@ bool FeAsyncLoader::done()
 
 void FeAsyncLoader::notify()
 {
-	m_cond.notify_one();
+	m_condition.notify_one();
 }
 
 FeAsyncLoader::FeAsyncLoader()
 	: m_running( true ),
 	m_done( true ),
-	m_active{},
-	m_cached{},
-	m_map{},
-	m_in{}
+	m_resources_active{},
+	m_resources_cached{},
+	m_resources_map{},
+	m_queue{}
 {
-	dummy_texture.loadFromFile( "dummy_texture.png" );
 	m_thread = std::thread( &FeAsyncLoader::thread_loop, this );
 }
 
 FeAsyncLoader::~FeAsyncLoader()
 {
 	m_running = false;
-	m_cond.notify_one();
+	m_condition.notify_one();
 	m_thread.join();
 
-	while ( !m_active.empty() )
+	while ( !m_resources_active.empty() )
 	{
 		ulock_t lock( m_mutex );
-		list_iterator_t last = --m_active.end();
+		list_iterator_t last = --m_resources_active.end();
 		delete last->second;
-		m_active.pop_back();
+		m_resources_active.pop_back();
 	}
 
-	while ( !m_cached.empty() )
+	while ( !m_resources_cached.empty() )
 	{
 		ulock_t lock( m_mutex );
-		list_iterator_t last = --m_cached.end();
+		list_iterator_t last = --m_resources_cached.end();
 		delete last->second;
-		m_cached.pop_back();
+		m_resources_cached.pop_back();
 	}
 
-	m_map.clear();
+	m_resources_map.clear();
 
 }
 
@@ -145,17 +144,17 @@ void FeAsyncLoader::thread_loop()
 	{
 		ulock_t lock( m_mutex );
 
-		if ( m_in.size() == 0 )
-			m_cond.wait( lock );
+		if ( m_queue.size() == 0 )
+			m_condition.wait( lock );
 		else
 		{
 			lock.unlock();
 
-			if ( m_map.find( m_in.front().first ) == m_map.end() )
-				load_resource( m_in.front().first, m_in.front().second );
+			if ( m_resources_map.find( m_queue.front().first ) == m_resources_map.end() )
+				load_resource( m_queue.front().first, m_queue.front().second );
 
 			lock.lock();
-			m_in.pop();
+			m_queue.pop();
 			lock.unlock();
 		}
 	}
@@ -176,16 +175,11 @@ void FeAsyncLoader::load_resource( const std::string file, const EntryType type 
 
 	if ( tmp_entry_ptr->load_from_file( file ))
 	{
-		m_cached.push_front( kvp_t( file, tmp_entry_ptr ) );
-		m_map[file] = m_cached.begin();
+		m_resources_cached.push_front( kvp_t( file, tmp_entry_ptr ) );
+		m_resources_map[file] = m_resources_cached.begin();
 	}
 	else
 		delete tmp_entry_ptr;
-}
-
-sf::Texture *FeAsyncLoader::get_dummy_texture()
-{
-	return &dummy_texture;
 }
 
 template <typename T>
@@ -194,8 +188,8 @@ void FeAsyncLoader::add_resource( const std::string file, bool async )
 	if ( file.empty() ) return;
 
 	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
-	if ( it == m_map.end() )
+	map_iterator_t it = m_resources_map.find( file );
+	if ( it == m_resources_map.end() )
 	{
 		if ( !async )
 		{
@@ -205,9 +199,9 @@ void FeAsyncLoader::add_resource( const std::string file, bool async )
 	}
 
 	m_done = false;
-	m_in.push( std::make_pair( file, T::type ));
+	m_queue.push( std::make_pair( file, T::type ));
 	lock.unlock();
-	m_cond.notify_one();
+	m_condition.notify_one();
 	return;
 }
 
@@ -230,16 +224,16 @@ template <typename T>
 T *FeAsyncLoader::get_resource( const std::string file )
 {
 	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
+	map_iterator_t it = m_resources_map.find( file );
 
-	if ( it != m_map.end() )
+	if ( it != m_resources_map.end() )
 	{
 		if ( it->second->second->get_ref() > 0 )
 			// Promote in active list
-			m_active.splice( m_active.begin(), m_active, it->second );
+			m_resources_active.splice( m_resources_active.begin(), m_resources_active, it->second );
 		else
 			// Move from cached list to active list
-			m_active.splice( m_active.begin(), m_cached, it->second );
+			m_resources_active.splice( m_resources_active.begin(), m_resources_cached, it->second );
 
 		it->second->second->inc_ref();
 		return static_cast<T*>( it->second->second->get_resource_pointer() );
@@ -268,11 +262,11 @@ void FeAsyncLoader::release_resource( const std::string file )
 	if ( file.empty() ) return;
 
 	ulock_t lock( m_mutex );
-	map_iterator_t it = m_map.find( file );
+	map_iterator_t it = m_resources_map.find( file );
 
-	if ( it != m_map.end() )
+	if ( it != m_resources_map.end() )
 		if ( it->second->second->get_ref() > 0 )
 			if ( it->second->second->dec_ref() )
 				// Move to cache list if ref count is 0
-				m_cached.splice( m_cached.begin(), m_active, it->second );
+				m_resources_cached.splice( m_resources_cached.begin(), m_resources_active, it->second );
 }
