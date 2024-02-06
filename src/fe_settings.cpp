@@ -1516,7 +1516,7 @@ bool FeSettings::navigate_display( int step, bool wrap_mode )
 		if ( step > 0 )
 			set_current_selection( 0, -1 );
 		else if ( m_current_display >= 0 )
-			set_current_selection( m_displays[m_current_display].get_filter_count() - 1, -1 );
+			set_current_selection( std::max( 0, m_displays[m_current_display].get_filter_count() - 1 ), -1 );
 	}
 
 	return retval;
@@ -1547,7 +1547,7 @@ bool FeSettings::navigate_filter( int step )
 	}
 
 	set_search_rule( "" );
-	set_current_selection( new_filter, -1 );
+	set_current_selection( std::max( 0, new_filter ), -1 );
 	return false;
 }
 
