@@ -1363,12 +1363,8 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 {
 	using namespace Sqrat;
 
-	//
-	// Go through the list in reverse so that the most recently registered signal handler
-	// gets the first shot at handling the signal.
-	//
-	for ( std::vector<FeCallback>::reverse_iterator itr = m_sig_handlers.rbegin();
-		itr != m_sig_handlers.rend(); ++itr )
+	for ( std::vector<FeCallback>::iterator itr = m_sig_handlers.begin();
+		itr != m_sig_handlers.end(); ++itr )
 	{
 		// Assumption: Handlers list is empty if no vm is active
 		//
