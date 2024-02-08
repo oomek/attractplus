@@ -51,6 +51,11 @@ checklib="${checklib:2}"
 fr_lib+=("@rpath/libwebp")
 to_lib+=("$checklib/libwebp")
 
+checklib=$(pkg-config --libs-only-L libjxl_cms)
+checklib="${checklib:2}"
+fr_lib+=("@rpath/libjxl_cms")
+to_lib+=("$checklib/libjxl_cms")
+
 checklib=$(pkg-config --libs-only-L libavcodec)
 checklib="${checklib:2}"
 fr_lib+=("@loader_path/libavcodec")
@@ -124,7 +129,7 @@ iter=0
 while [ ${#updatearray[@]} != 1 ] #repeat until there are no more sublibraries
 do
    iter=$(($iter + 1))
-	echo 
+	echo
    echo check iteration $iter
 	# Sublevelarray is the list of all libraries in this sublevel
 	sublevelarray=("")
@@ -132,7 +137,7 @@ do
 	# they are scanned one by one to gather sublibraries for each. Each library is scanned to build the subarray
    for strlib in ${updatearray[@]}; do
 		subarray=( $(otool -L $strlib | tail -n +2 | grep '@loader_path\|@loader_path/../../../../opt\|/usr/local\|/opt/homebrew\|@rpath' | awk -F' ' '{print $1}') )
-		echo $( basename "$strlib" ) 
+		echo $( basename "$strlib" )
 		echo "  pre"
 		for val in ${subarray[@]}; do
 			echo "   $val"
@@ -220,7 +225,7 @@ echo STEP 4 - FIX ATTRACTPLUS EXECUTABLE
 # Update rpath for attractplus
 install_name_tool -add_rpath "@executable_path/../libs/" "$bundlecontent"/MacOS/attractplus
 
-# List libraries linked in attractplus
+# List libraries linked in attractplus
 attractlibs=( $(otool -L $attractname | tail -n +2 | grep '@loader_path\|@loader_path/../../../../opt\|/usr/local\|/opt/homebrew\|@rpath' | awk -F' ' '{print $1}') )
 
 # Apply new links to libraries
