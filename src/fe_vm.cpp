@@ -263,23 +263,6 @@ Sqrat::Function &FeCallback::get_fn()
 	return m_cached_fn;
 }
 
-const char *FeVM::transitionTypeStrings[] =
-{
-		"StartLayout",
-		"EndLayout",
-		"ToNewSelection",
-		"FromOldSelection",
-		"ToGame",
-		"FromGame",
-		"ToNewList",
-		"EndNavigation",
-		"ShowOverlay",
-		"HideOverlay",
-		"NewSelOverlay",
-		"ChangedTag",
-		NULL
-};
-
 FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console_input )
 	: FePresent( &fes, wnd ),
 	m_overlay( NULL ),
@@ -649,9 +632,9 @@ bool FeVM::on_new_layout()
 
 	Enumeration transition;
 	i=0;
-	while ( transitionTypeStrings[i] != NULL )
+	while ( FeTransitionTypeStrings[i] != NULL )
 	{
-		transition.Const( transitionTypeStrings[i], i );
+		transition.Const( FeTransitionTypeStrings[i], i );
 		i++;
 	}
 	ConstTable().Enum( _SC("Transition"), transition );
@@ -1308,7 +1291,7 @@ void FeVM::on_transition(
 {
 	using namespace Sqrat;
 
-	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
+	FeDebug() << "[Transition] type=" << FeTransitionTypeStrings[t] << ", var=" << var << std::endl;
 
 	sf::Clock clk;
 	int ttime = 0;
@@ -1360,7 +1343,7 @@ void FeVM::on_transition(
 		}
 
 		// redraw now if we are doing another pass...
-		//
+		// TODO: DEPRECATE BLOCKIKNG TRANSITIONS
 		if (( !worklist.empty() ) && ( m_window.isOpen() ))
 		{
 			video_tick();

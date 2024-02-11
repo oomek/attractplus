@@ -23,6 +23,8 @@
 #ifndef FE_PRESENT_HPP
 #define FE_PRESENT_HPP
 
+#include <deque>
+
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
 #include "fe_settings.hpp"
@@ -49,16 +51,27 @@ enum FeTransitionType
 {
 	StartLayout=0,		// var: FromToScreenSaver, FromToFrontend or FromToNoValue
 	EndLayout,			// var: FromToScreenSaver, FromToFrontend or FromToNoValue
-	ToNewSelection,	// var = index_offset of new selection
-	FromOldSelection,	// var = index_offset of old selection
+	ToNewList,			// var = filter offset of new filter (if available), otherwise 0
+	ToNewSelection,		// var = index_offset of new selection
+	ToEndNavigation,	// var = 0
+	NewList,			// var = filter offset of new filter (if available), otherwise 0
+	NewSelection,		// var = index_offset of new selection
+	EndNavigation,		// var = 0
+	FromOldSelection,	// var = index_offset of old selection (not used in the new transition model)
 	ToGame,				// var = 0
 	FromGame,			// var = 0
-	ToNewList,			// var = filter offset of new filter (if available), otherwise 0
-	EndNavigation,		// var = 0
 	ShowOverlay,		// var = Custom, Exit, Displays, Filters, Tags
 	HideOverlay,		// var = 0
 	NewSelOverlay,		// var = index of new selection
 	ChangedTag		   // var = FeRomInfo::Favourite, FeRomInfo::Tags
+};
+
+extern const char *FeTransitionTypeStrings[];
+
+struct TransitionQueueElement
+{
+    FeTransitionType type;
+    int var;
 };
 
 //
@@ -159,6 +172,8 @@ protected:
 	FeListBox *m_overlay_lb;
 	bool m_layout_loaded;
 
+	std::deque<TransitionQueueElement> m_transition_queue;
+
 	FePresent( const FePresent & );
 	FePresent &operator=( const FePresent & );
 
@@ -233,6 +248,11 @@ public:
 	bool video_tick(); // update videos only. return true if redraw required
 	void redraw(); // redraw the screen while doing computationally intensive loops
 
+	void queue_transition( FeTransitionType type, int var=0 );
+	bool is_transition_queue_empty();
+	void process_transitions();
+	void process_transitions_v3();
+
 	bool saver_activation_check();
 	void on_stop_frontend();
 	void pre_run();
@@ -241,8 +261,6 @@ public:
 
 	bool reset_screen_saver();
 	bool handle_event( FeInputMap::Command );
-
-	void change_selection( int step, bool end_navigation=true );
 
 	FeSettings *get_fes() const { return m_feSettings; };
 
