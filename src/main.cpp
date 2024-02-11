@@ -987,8 +987,9 @@ int main(int argc, char *argv[])
 
 						switch ( move_triggered )
 						{
+						// Key repeat. First press in FePresent::handle_event()
 						case FeInputMap::PrevGame: step = -step; break;
-						case FeInputMap::NextGame: break; // do nothing
+						case FeInputMap::NextGame: break;
 						case FeInputMap::PrevPage: step *= -feVM.get_page_size(); break;
 						case FeInputMap::NextPage: step *= feVM.get_page_size(); break;
 						case FeInputMap::PrevFavourite:
@@ -1034,7 +1035,7 @@ int main(int argc, char *argv[])
 						if ( step != 0 )
 						{
 							if ( !feVM.script_handle_event( move_triggered ) )
-								feVM.change_selection( step, false );
+								feVM.queue_transition( ToNewSelection, step );
 
 							redraw=true;
 						}
@@ -1049,7 +1050,7 @@ int main(int argc, char *argv[])
 				// "End Navigation" stuff now
 				//
 				if ( move_triggered != FeInputMap::LAST_COMMAND )
-					feVM.on_end_navigation();
+					feVM.queue_transition( ToEndNavigation );
 
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;
@@ -1072,6 +1073,8 @@ int main(int argc, char *argv[])
 		}
 		else
 			has_focus = window.hasFocus();
+
+		feVM.process_transitions();
 
 		if ( feVM.on_tick() )
 			redraw=true;

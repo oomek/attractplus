@@ -92,6 +92,26 @@ BOOL CALLBACK my_mon_enum_proc( HMONITOR, HDC, LPRECT mon_rect, LPARAM data )
 }
 #endif
 
+const char *FeTransitionTypeStrings[]
+{
+	"StartLayout",
+	"EndLayout",
+	"ToNewList",
+	"ToNewSelection",
+	"ToEndNavigation",
+	"NewList",
+	"NewSelection",
+	"EndNavigation",
+	"FromOldSelection", // not used in the new transition model
+	"ToGame",
+	"FromGame",
+	"ShowOverlay",
+	"HideOverlay",
+	"NewSelOverlay",
+	"ChangedTag",
+	NULL
+};
+
 FeFontContainer::FeFontContainer()
 	: m_needs_reload( false )
 {
@@ -930,24 +950,124 @@ int FePresent::get_list_limit() const
 	return limit;
 }
 
+// Used by fe.list.index
 void FePresent::set_selection_index( int index )
 {
 	int new_offset = index - get_selection_index();
 	if ( new_offset != 0 )
-		change_selection( new_offset );
+	{
+		queue_transition( ToNewSelection, new_offset );
+		queue_transition( ToEndNavigation );
+	}
 }
 
-void FePresent::change_selection( int step, bool end_navigation )
+void FePresent::queue_transition( FeTransitionType type, int var )
 {
-		on_transition( ToNewSelection, step );
+	m_transition_queue.push_back({ type, var });
+}
 
-		m_feSettings->step_current_selection( step );
-		update( false );
+bool FePresent::is_transition_queue_empty()
+{
+	return m_transition_queue.empty();
+}
 
-		on_transition( FromOldSelection, -step );
+void FePresent::process_transitions()
+{
+	if ( !m_transition_queue.empty() )
+		FeLog() << FeTransitionTypeStrings[m_transition_queue.front().type] << " " << m_transition_queue.front().var << std::endl;
 
-		if ( end_navigation )
-			on_end_navigation();
+	if ( !m_transition_queue.empty() )
+	{
+		TransitionQueueElement next = m_transition_queue.front();
+		switch ( next.type )
+		{
+			case ToNewList:
+				break;
+
+			case ToNewSelection:
+				on_transition( ToNewSelection, next.var );
+				m_transition_queue.pop_front();
+				m_transition_queue.push_front({ NewSelection, next.var });
+				break;
+		}
+	}
+
+	if ( !m_transition_queue.empty() )
+	{
+		TransitionQueueElement next = m_transition_queue.front();
+		switch ( next.type )
+		{
+			case NewSelection:
+				m_feSettings->step_current_selection( next.var );
+				update( false );
+				on_transition( FromOldSelection, -next.var );
+				m_transition_queue.pop_front();
+				break;
+
+			case ToEndNavigation:
+				on_end_navigation();
+				m_transition_queue.pop_front();
+				break;
+		}
+	}
+}
+
+void FePresent::process_transitions_v3()
+{
+	if ( !m_transition_queue.empty() )
+		FeLog() << FeTransitionTypeStrings[m_transition_queue.front().type] << " " << m_transition_queue.front().var << std::endl;
+
+	if ( !m_transition_queue.empty() )
+	{
+		TransitionQueueElement next = m_transition_queue.front();
+		switch ( next.type )
+		{
+			case ToNewList:
+				on_transition( ToNewList, next.var );
+				m_transition_queue.pop_front();
+				m_transition_queue.push_front({ NewList, next.var });
+				break;
+
+			case ToNewSelection:
+				on_transition( ToNewSelection, next.var );
+				m_transition_queue.pop_front();
+				m_transition_queue.push_front({ FromOldSelection, next.var });
+				break;
+
+			case ToEndNavigation:
+				on_transition( ToEndNavigation, next.var );
+				m_transition_queue.pop_front();
+				m_transition_queue.push_front({ ToEndNavigation, 0 });
+				break;
+		}
+	}
+
+	//if al.done() for new transitions
+	if ( !m_transition_queue.empty() )
+	{
+		TransitionQueueElement next = m_transition_queue.front();
+		switch ( next.type )
+		{
+			case NewList:
+				on_transition( NewList, next.var );
+				m_transition_queue.pop_front();
+				break;
+
+			case NewSelection:
+				m_feSettings->step_current_selection( next.var );
+				update( false );
+				on_transition( NewSelection, next.var );
+				m_transition_queue.pop_front();
+				break;
+
+			case EndNavigation:
+				on_end_navigation(); //replace with
+				// updates from on_end_navigation()
+				// on_transition( EndNavigation, 0 );
+				m_transition_queue.pop_front();
+				break;
+		}
+	}
 }
 
 bool FePresent::reset_screen_saver()
@@ -964,6 +1084,7 @@ bool FePresent::reset_screen_saver()
 	return false;
 }
 
+// First press, repeat in main
 bool FePresent::handle_event( FeInputMap::Command c )
 {
 	if ( reset_screen_saver() )
@@ -972,19 +1093,19 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	switch( c )
 	{
 	case FeInputMap::NextGame:
-		change_selection( 1, false );
+		queue_transition( ToNewSelection, 1 );
 		break;
 
 	case FeInputMap::PrevGame:
-		change_selection( -1, false );
+		queue_transition( ToNewSelection, -1 );
 		break;
 
 	case FeInputMap::NextPage:
-		change_selection( get_page_size(), false );
+		queue_transition( ToNewSelection, get_page_size() );
 		break;
 
 	case FeInputMap::PrevPage:
-		change_selection( -get_page_size(), false );
+		queue_transition( ToNewSelection, -get_page_size() );
 		break;
 
 	case FeInputMap::RandomGame:
@@ -994,7 +1115,11 @@ bool FePresent::handle_event( FeInputMap::Command c )
 			{
 				int step = rand() % ls;
 				if ( step != 0 )
-					change_selection( step );
+				{
+					queue_transition( ToNewSelection, step );
+					queue_transition( ToEndNavigation );
+				}
+
 			}
 		}
 		break;
@@ -1069,7 +1194,7 @@ bool FePresent::handle_event( FeInputMap::Command c )
 			}
 
 			if ( step != 0 )
-				change_selection( step, false );
+				queue_transition( ToNewSelection, step );
 		}
 		break;
 
@@ -1235,6 +1360,7 @@ void FePresent::update_to_new_list( int var, bool reset_display, bool suppress_t
 		on_transition( ToNewList, var );
 }
 
+// Only called wnen menu is up
 bool FePresent::tick()
 {
 	bool ret_val = false;
@@ -1266,6 +1392,7 @@ bool FePresent::video_tick()
 	return ret_val;
 }
 
+// Used by fe.layout.redraw
 void FePresent::redraw()
 {
 	// Process tick only when Layout is fully loaded
