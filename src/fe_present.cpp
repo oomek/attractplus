@@ -1302,6 +1302,7 @@ void FePresent::load_screensaver()
 	update( true, true );
 }
 
+// suppress_transition usage eliminated
 void FePresent::load_layout( bool initial_load, bool suppress_transition )
 {
 	m_layout_loaded = false;
