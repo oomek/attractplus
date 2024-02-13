@@ -1303,7 +1303,7 @@ void FePresent::load_screensaver()
 }
 
 // suppress_transition usage eliminated
-void FePresent::load_layout( bool initial_load, bool suppress_transition )
+void FePresent::load_layout( bool initial_load )
 {
 	m_layout_loaded = false;
 
@@ -1347,18 +1347,14 @@ void FePresent::load_layout( bool initial_load, bool suppress_transition )
 		init_with_default_layout();
 	}
 
-	if ( !suppress_transition )
-		on_transition( StartLayout, var );
-
-	update_to_new_list( FromToNoValue, true, suppress_transition );
+	on_transition( StartLayout, var );
+	update_to_new_list( FromToNoValue, true );
 }
 
-void FePresent::update_to_new_list( int var, bool reset_display, bool suppress_transition )
+void FePresent::update_to_new_list( int var, bool reset_display )
 {
 	update( true, reset_display );
-
-	if ( !suppress_transition )
-		on_transition( ToNewList, var );
+	on_transition( ToNewList, var );
 }
 
 // Only called wnen menu is up

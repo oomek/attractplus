@@ -433,7 +433,7 @@ void FeVM::vm_init()
 	Sqrat::DefaultVM::Set( vm );
 }
 
-void FeVM::update_to_new_list( int var, bool reset_display, bool suppress_transition )
+void FeVM::update_to_new_list( int var, bool reset_display )
 {
 	if ( reset_display )
 	{
@@ -456,7 +456,7 @@ void FeVM::update_to_new_list( int var, bool reset_display, bool suppress_transi
 		}
 	}
 
-	FePresent::update_to_new_list( var, reset_display, suppress_transition );
+	FePresent::update_to_new_list( var, reset_display );
 }
 
 namespace
