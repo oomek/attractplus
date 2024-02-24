@@ -198,10 +198,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case FeSettings::ShowDisplaysMenu:
-				// we do a double load of the layout on startup if there is custom display menu
-				// so we suppress the extra transition signals that get triggered here
-				feSettings.set_display(-1);
-				FeVM::cb_signal( "displays_menu" );
+				// TODO: check if this switch statement is still necessary
 				break;
 
 			default:
@@ -561,10 +558,7 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeSettings::ShowDisplaysMenu:
-					// we do a double load of the layout on startup if there is custom display menu
-					// so we suppress the extra transition signals that get triggered here
-					if ( feSettings.get_current_display_index() != -1 )
-						feSettings.set_display(-1);
+					// TODO: check if this switch statement is still necessary
 					feVM.load_layout( true );
 					break;
 
