@@ -1061,7 +1061,7 @@ void FePresent::process_transitions_v3()
 				break;
 
 			case EndNavigation:
-				on_end_navigation(); //replace with
+				on_end_navigation(); //TODO: replace with
 				// updates from on_end_navigation()
 				// on_transition( EndNavigation, 0 );
 				m_transition_queue.pop_front();
@@ -1302,7 +1302,6 @@ void FePresent::load_screensaver()
 	update( true, true );
 }
 
-// suppress_transition usage eliminated
 void FePresent::load_layout( bool initial_load )
 {
 	m_layout_loaded = false;
@@ -1357,7 +1356,7 @@ void FePresent::update_to_new_list( int var, bool reset_display )
 	on_transition( ToNewList, var );
 }
 
-// Only called wnen menu is up
+// Only called when Configure Menu is up
 bool FePresent::tick()
 {
 	bool ret_val = false;

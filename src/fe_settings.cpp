@@ -274,6 +274,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_joy_thresh( 75 ),
 	m_mouse_thresh( 10 ),
 	m_current_search_index( 0 ),
+	m_current_display_index( 0 ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
 	m_group_clones( false ),
@@ -386,6 +387,11 @@ void FeSettings::load()
 	FeRomListSorter::init_title_rex( rex_str );
 
 	load_state();
+
+	m_current_display_index = m_current_display;
+	if ( get_startup_mode() == ShowDisplaysMenu )
+		m_current_display = -1;
+
 	init_display();
 
 	// Make sure we have some keyboard mappings
@@ -712,7 +718,7 @@ void FeSettings::save_state()
 		display_idx = m_display_stack.front();
 
 	if ( display_idx < 0 )
-		display_idx = m_current_search_index;
+		display_idx = m_current_display_index;
 
 	m_rl.save_state();
 
@@ -946,7 +952,7 @@ int FeSettings::get_rom_index( int filter_index, int offset ) const
 	int retval, rl_size;
 	if ( m_current_display < 0 )
 	{
-		retval = m_current_search_index;
+		retval = m_current_display_index;
 		rl_size = m_rl.filter_size( filter_index );
 	}
 	else if ( !m_current_search.empty()
@@ -1433,10 +1439,10 @@ int FeSettings::display_menu_get_current_selection_as_absolute_display_index()
 {
 	ASSERT( m_current_display < 0 );
 
-	if (( m_current_search_index < 0 ) || ( m_current_search_index >= (int)m_display_menu.size() ))
+	if (( m_current_display_index < 0 ) || ( m_current_display_index >= (int)m_display_menu.size() ))
 		return -1;
 
-	return m_display_menu[ m_current_search_index ];
+	return m_display_menu[ m_current_display_index ];
 }
 
 bool FeSettings::set_display( int index, bool stack_previous )
@@ -1456,16 +1462,19 @@ bool FeSettings::set_display( int index, bool stack_previous )
 				m_display_stack.pop_back();
 			}
 			else
-				index = m_current_display;
+				index = m_current_display_index;
 		}
 		else if (( m_current_display != index ) && ( m_current_display >= 0 ))
+		{
+			m_current_display_index = m_current_display;
 			m_display_stack.push_back( m_current_display );
+		}
 
 	}
 	else
 	{
 		if ( index < 0 )
-			m_current_search_index = find_idx_in_vec( m_current_display, m_display_menu );
+			m_current_display_index = find_idx_in_vec( m_current_display, m_display_menu );
 
 		// If not stacking, clear the existing back stack (if any)
 		m_display_stack.clear();
@@ -1571,9 +1580,11 @@ void FeSettings::set_current_selection( int filter_index, int rom_index )
 {
 	// handle situation where we are currently showing a search result or clone group
 	//
-	if (( m_current_display < 0 )
-		|| ( !m_current_search.empty()
-			&& ( get_current_filter_index() == filter_index )))
+	if ( m_current_display < 0 )
+	{
+		m_current_display_index = rom_index;
+	}
+	else if (( !m_current_search.empty() && ( get_current_filter_index() == filter_index )))
 	{
 		m_current_search_index = rom_index;
 	}
