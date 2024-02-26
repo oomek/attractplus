@@ -632,7 +632,7 @@ void FeEmulatorGenMenu::get_options( FeConfigContext &ctx )
 			itr < emu_file_list.end(); ++itr )
 	{
 		ctx.add_opt( Opt::LIST, *itr,
-			defaults.contains( *itr ) ? "Yes" : "No",
+			defaults.contains( *itr ) ? bool_opts[0] : bool_opts[1],
 			"_help_generator_opt" );
 
 		ctx.back_opt().append_vlist( bool_opts );
