@@ -456,7 +456,8 @@ void FeVM::update_to_new_list( int var, bool reset_display )
 		}
 	}
 
-	FePresent::update_to_new_list( var, reset_display );
+	FePresent::update_to( NewList, reset_display );
+	on_transition( ToNewList, var );
 }
 
 namespace
