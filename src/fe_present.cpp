@@ -898,10 +898,7 @@ void FePresent::set_filter_index( int idx )
 		if ( m_feSettings->navigate_filter( new_offset ) )
 			load_layout();
 		else
-		{
-			update_to( NewList, false );
-			on_transition( ToNewList, new_offset );
-		}
+			queue_transition( ToNewList, new_offset );
 	}
 }
 
@@ -982,9 +979,16 @@ void FePresent::process_transitions()
 	if ( !m_transition_queue.empty() )
 	{
 		TransitionQueueElement next = m_transition_queue.front();
+
+		bool reset = false;
+		if ( next.var == 0 ) reset = true;
+
 		switch ( next.type )
 		{
 			case ToNewList:
+				update_to( NewList, reset );
+				on_transition( ToNewList, next.var );
+				m_transition_queue.pop_front();
 				break;
 
 			case ToNewSelection:
@@ -1050,10 +1054,14 @@ void FePresent::process_transitions_v3()
 	if ( !m_transition_queue.empty() )
 	{
 		TransitionQueueElement next = m_transition_queue.front();
+
+		bool reset = false;
+		if ( next.var == 0 ) reset = true;
+
 		switch ( next.type )
 		{
 			case NewList:
-				update_to( NewList, false );
+				update_to( NewList, reset );
 				on_transition( NewList, next.var );
 				m_transition_queue.pop_front();
 				break;
@@ -1149,10 +1157,7 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		if ( m_feSettings->navigate_display( ( c == FeInputMap::NextDisplay ) ? 1 : -1 ) )
 			load_layout();
 		else
-		{
-			update_to( NewList, true );
-			on_transition( ToNewList, 0 );
-		}
+			queue_transition( ToNewList );
 
 		break;
 
@@ -1163,10 +1168,7 @@ bool FePresent::handle_event( FeInputMap::Command c )
 			if ( m_feSettings->navigate_filter( offset ) )
 				load_layout();
 			else
-			{
-				update_to( NewList, false );
-				on_transition( ToNewList, offset );
-			}
+				queue_transition( ToNewList, offset );
 		}
 		break;
 
