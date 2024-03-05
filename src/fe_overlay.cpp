@@ -1160,10 +1160,15 @@ int FeOverlay::display_config_dialog(
 		{
 			if ( ctx.save_req )
 			{
-				if ( m->save( ctx ) )
-					parent_setting_changed = true;
+				if ( t != Opt::EXIT )
+				{
+					if ( m->save( ctx ) )
+						parent_setting_changed = true;
 
-				ctx.save_req=false;
+					ctx.save_req = false;
+				}
+				else
+					parent_setting_changed = true;
 			}
 
 			switch (t)
