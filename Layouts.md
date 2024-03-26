@@ -73,7 +73,7 @@ Contents
    * [Constants](#constants)
 
 &nbsp;
-<a name="overview" />
+<a name="overview"></a>
 
 Overview
 --------
@@ -112,7 +112,7 @@ separate subdirectory or archive file (in which case the script itself needs to
 be in a file called `plugin.nut`).
 
 &nbsp;
-<a name="squirrel" />
+<a name="squirrel"></a>
 
 Squirrel Language
 -----------------
@@ -133,7 +133,7 @@ Also check out the Introduction to Squirrel on the Attract-Mode wiki:
 https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming
 
 &nbsp;
-<a name="squirrel_ext" />
+<a name="squirrel_ext"></a>
 
 Language Extensions
 -------------------
@@ -150,7 +150,7 @@ language and standard libraries:
 Supported archive formats are: .zip, .7z, .rar, .tar.gz, .tar.bz2 and .tar
 
 &nbsp;
-<a name="binding" />
+<a name="binding"></a>
 
 Frontend Binding
 ----------------
@@ -170,7 +170,7 @@ The remainder of this document describes the functions, objects, classes
 and constants that are exposed to layout and plug-in scripts.
 
 &nbsp;
-<a name="magic" />
+<a name="magic"></a>
 
 Magic Tokens
 ----------------
@@ -262,13 +262,12 @@ fe.add_text( "[!well_formatted]", 0, 0 );
 ````
 
 &nbsp;
-<a name="functions" />
+<a name="functions"></a>
 
 Functions
 ---------
 
-<a name="add_image" />
-
+<a name="add_image"></a>
 #### `fe.add_image()` ####
 
     fe.add_image( name )
@@ -316,7 +315,7 @@ Return Value:
      interact with the added image/video.
 
 &nbsp;
-<a name="add_artwork" />
+<a name="add_artwork"></a>
 
 #### `fe.add_artwork()` ####
 
@@ -354,7 +353,7 @@ Return Value:
      interact with the added artwork.
 
 &nbsp;
-<a name="add_surface" />
+<a name="add_surface"></a>
 
 #### `fe.add_surface()` ####
 
@@ -379,7 +378,7 @@ Return Value:
      interact with the added surface.
 
 &nbsp;
-<a name="add_clone" />
+<a name="add_clone"></a>
 
 #### `fe.add_clone()` ####
 
@@ -400,7 +399,7 @@ Return Value:
      interact with the added clone.
 
 &nbsp;
-<a name="add_text" />
+<a name="add_text"></a>
 
 #### `fe.add_text()` ####
 
@@ -428,7 +427,7 @@ Return Value:
      interact with the added text.
 
 &nbsp;
-<a name="add_listbox" />
+<a name="add_listbox"></a>
 
 #### `fe.add_listbox()` ####
 
@@ -451,7 +450,7 @@ Return Value:
      interact with the added text.
 
 &nbsp;
-<a name="add_rectangle" />
+<a name="add_rectangle"></a>
 
 #### `fe.add_rectangle()` 🔶
 
@@ -474,7 +473,7 @@ Return Value:
      interact with the added rectangle.
 
 &nbsp;
-<a name="add_shader" />
+<a name="add_shader"></a>
 
 #### `fe.add_shader()` ####
 
@@ -542,7 +541,7 @@ void main()
 ````
 
 &nbsp;
-<a name="add_sound" />
+<a name="add_sound"></a>
 
 #### `fe.add_sound()` ####
 
@@ -565,7 +564,7 @@ Return Value:
      interact with the sound.
 
 &nbsp;
-<a name="add_ticks_callback" />
+<a name="add_ticks_callback"></a>
 
 #### `fe.add_ticks_callback()` ####
 
@@ -595,7 +594,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="add_transition_callback" />
+<a name="add_transition_callback"></a>
 
 #### `fe.add_transition_callback()` ####
 
@@ -706,7 +705,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="game_info" />
+<a name="game_info"></a>
 
 #### `fe.game_info()` ####
 
@@ -762,7 +761,7 @@ Notes:
      the frontend, and an empty string if it is not.
 
 &nbsp;
-<a name="get_art" />
+<a name="get_art"></a>
 
 #### `fe.get_art()` ####
 
@@ -803,7 +802,7 @@ Return Value:
      separated by a pipe `|` character: "<archive_path>|<content_path>"
 
 &nbsp;
-<a name="get_input_state" />
+<a name="get_input_state"></a>
 
 #### `fe.get_input_state()` ####
 
@@ -830,7 +829,7 @@ Return Value:
    * `true` if input is pressed, `false` otherwise.
 
 &nbsp;
-<a name="get_input_pos" />
+<a name="get_input_pos"></a>
 
 #### `fe.get_input_pos()` ####
 
@@ -849,7 +848,7 @@ Return Value:
    * Current position of the specified axis, in range [0..100].
 
 &nbsp;
-<a name="signal" />
+<a name="signal"></a>
 
 #### `fe.signal()` ####
 
@@ -912,7 +911,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="set_display" />
+<a name="set_display"></a>
 
 #### `fe.set_display()` ####
 
@@ -940,7 +939,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="add_signal_handler" />
+<a name="add_signal_handler"></a>
 
 #### `fe.add_signal_handler()` ####
 
@@ -987,7 +986,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="remove_signal_handler" />
+<a name="remove_signal_handler"></a>
 
 #### `fe.remove_signal_handler()` ####
 
@@ -1009,7 +1008,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="do_nut" />
+<a name="do_nut"></a>
 
 #### `fe.do_nut()` ####
 
@@ -1028,7 +1027,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="load_module" />
+<a name="load_module"></a>
 
 #### `fe.load_module()` ####
 
@@ -1047,7 +1046,7 @@ Return Value:
    * `true` if the module was loaded, `false' if it was not found.
 
 &nbsp;
-<a name="plugin_command" />
+<a name="plugin_command"></a>
 
 #### `fe.plugin_command()` ####
 
@@ -1082,7 +1081,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="plugin_command_bg" />
+<a name="plugin_command_bg"></a>
 
 #### `fe.plugin_command_bg()` ####
 
@@ -1100,7 +1099,7 @@ Return Value:
    * None.
 
 &nbsp;
-<a name="path_expand" />
+<a name="path_expand"></a>
 
 #### `fe.path_expand()` ####
 
@@ -1121,7 +1120,7 @@ Return Value:
    * The expansion of path.
 
 &nbsp;
-<a name="path_test" />
+<a name="path_test"></a>
 
 #### `fe.path_test()` ####
 
@@ -1145,7 +1144,7 @@ Return Value:
    * (boolean) result.
 
 &nbsp;
-<a name="get_config" />
+<a name="get_config"></a>
 
 #### `fe.get_config()` ####
 
@@ -1171,7 +1170,7 @@ Return Value:
      Mode or the "Attrac-Man" layout.
 
 &nbsp;
-<a name="get_text" />
+<a name="get_text"></a>
 
 #### `fe.get_text()` ####
 
@@ -1189,7 +1188,7 @@ Return Value:
    * A string containing the translated text.
 
 &nbsp;
-<a name="get_url" />
+<a name="get_url"></a>
 
 #### `fe.get_url()` 🔶
 
@@ -1205,7 +1204,7 @@ Parameters:
      or a relative path inside the layout's folder
 
 &nbsp;
-<a name="log" />
+<a name="log"></a>
 
 #### `fe.log()` 🔶
 
@@ -1218,12 +1217,12 @@ Parameters:
    * string - a string of text to print in the console
 
 &nbsp;
-<a name="objects" />
+<a name="objects"></a>
 
 Objects and Variables
 ---------------------
 
-<a name="ambient_sound" />
+<a name="ambient_sound"></a>
 
 #### `fe.ambient_sound` ####
 
@@ -1231,7 +1230,7 @@ Objects and Variables
 control the ambient sound track.
 
 &nbsp;
-<a name="layout" />
+<a name="layout"></a>
 
 #### `fe.layout` ####
 
@@ -1239,7 +1238,7 @@ control the ambient sound track.
 global layout settings are stored.
 
 &nbsp;
-<a name="list" />
+<a name="list"></a>
 
 #### `fe.list` ####
 
@@ -1247,7 +1246,7 @@ global layout settings are stored.
 display settings are stored.
 
 &nbsp;
-<a name="image_cache" />
+<a name="image_cache"></a>
 
 #### `fe.image_cache` ####
 
@@ -1255,7 +1254,7 @@ display settings are stored.
 access to Attract-Mode's internal image cache.
 
 &nbsp;
-<a name="overlay" />
+<a name="overlay"></a>
 
 #### `fe.overlay` ####
 
@@ -1263,7 +1262,7 @@ access to Attract-Mode's internal image cache.
 functionality may be accessed.
 
 &nbsp;
-<a name="obj" />
+<a name="obj"></a>
 
 #### `fe.obj` ####
 
@@ -1271,7 +1270,7 @@ functionality may be accessed.
 `fe.Text`, `fe.ListBox` and `fe.Rectangle` instances.
 
 &nbsp;
-<a name="displays" />
+<a name="displays"></a>
 
 #### `fe.displays` ####
 
@@ -1279,7 +1278,7 @@ functionality may be accessed.
 of `fe.Display` instances.
 
 &nbsp;
-<a name="filters" />
+<a name="filters"></a>
 
 #### `fe.filters` ####
 
@@ -1287,7 +1286,7 @@ of `fe.Display` instances.
 of `fe.Filter` instances.
 
 &nbsp;
-<a name="monitors" />
+<a name="monitors"></a>
 
 #### `fe.monitors` ####
 
@@ -1297,7 +1296,7 @@ There will always be at least one entry in this list, and the first entry
 will always be the "primary" monitor.
 
 &nbsp;
-<a name="script_dir" />
+<a name="script_dir"></a>
 
 #### `fe.script_dir` ####
 
@@ -1305,7 +1304,7 @@ When Attract-Mode runs a layout or plug-in script, `fe.script_dir` is set to
 the layout or plug-in's directory.
 
 &nbsp;
-<a name="script_file" />
+<a name="script_file"></a>
 
 #### `fe.script_file` ####
 
@@ -1313,7 +1312,7 @@ When Attract-Mode runs a layout or plug-in script, `fe.script_file` is set to
 the name of the layout or plug-in script file.
 
 &nbsp;
-<a name="module_dir" />
+<a name="module_dir"></a>
 
 #### `fe.module_dir` ####
 
@@ -1321,7 +1320,7 @@ When Attract-Mode runs a module script, `fe.module_dir` is set to
 the module's directory.
 
 &nbsp;
-<a name="nv" />
+<a name="nv"></a>
 
 #### `fe.nv` ####
 
@@ -1331,12 +1330,12 @@ and are saved to disk when Attract-Mode is shut down.  Boolean, integer, float,
 string, array and table values can be stored in this table.
 
 &nbsp;
-<a name="classes" />
+<a name="classes"></a>
 
 Classes
 -------
 
-<a name="LayoutGlobals" />
+<a name="LayoutGlobals"></a>
 
 #### `fe.LayoutGlobals` ####
 
@@ -1386,7 +1385,7 @@ Notes:
      equation: `( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4`
 
 &nbsp;
-<a name="CurrentList" />
+<a name="CurrentList"></a>
 
 #### `fe.CurrentList` ####
 
@@ -1414,7 +1413,7 @@ Properties:
    * `clones_list` 🔶 Returns 'true' if the curent list contains game clones.
 
 &nbsp;
-<a name="ImageCache" />
+<a name="ImageCache"></a>
 
 #### `fe.ImageCache` ####
 
@@ -1444,7 +1443,7 @@ Member Functions:
      the internal cache.  `pos` can be an integer between 0 and fe.image_cache.count-1
 
 &nbsp;
-<a name="Overlay" />
+<a name="Overlay"></a>
 
 #### `fe.Overlay` ####
 
@@ -1488,7 +1487,7 @@ Member Functions:
      operations.
 
 &nbsp;
-<a name="Display" />
+<a name="Display"></a>
 
 #### `fe.Display` ####
 
@@ -1506,7 +1505,7 @@ Properties:
    * `in_menu` - Get whether the display is shown in the "Displays Menu"
 
 &nbsp;
-<a name="Filter" />
+<a name="Filter"></a>
 
 #### `fe.Filter` ####
 
@@ -1549,7 +1548,7 @@ Properties:
      list.
 
 &nbsp;
-<a name="Monitor" />
+<a name="Monitor"></a>
 
 #### `fe.Monitor` ####
 
@@ -1587,7 +1586,7 @@ Notes:
      for the system.
 
 &nbsp;
-<a name="Image" />
+<a name="Image"></a>
 
 #### `fe.Image` ####
 
@@ -1756,8 +1755,6 @@ Member Functions:
      and `video_playing`) will be swapped as well.
    * `fix_masked_image()` - Takes the colour of the top left pixel in the image
      and makes all the pixels in the image with that colour transparent.
-   * ~~`load_from_archive( archive, filename )` - Load the image from the
-     specified archive file (.zip, etc).~~
    * `add_image()` - [surface only] add an image to the end of this surface's
      draw list (see [`fe.add_image()`](#add_image) for parameters and return
      value).
@@ -1777,7 +1774,7 @@ Member Functions:
      and return value).
 
 &nbsp;
-<a name="ImageNotes" />
+<a name="ImageNotes"></a>
 
 Notes:
 
@@ -1826,7 +1823,7 @@ function flip_y( img )
 ````
 
 &nbsp;
-<a name="Text" />
+<a name="Text"></a>
 
 #### `fe.Text` ####
 
@@ -1937,7 +1934,7 @@ Member Functions:
      layout coordinates).
 
 &nbsp;
-<a name="ListBox" />
+<a name="ListBox"></a>
 
 #### `fe.ListBox` ####
 
@@ -2059,7 +2056,7 @@ Member Functions:
      layout coordinates).
 
 &nbsp;
-<a name="Rectangle" />
+<a name="Rectangle"></a>
 
 #### `fe.Rectangle` 🔶 ####
 
@@ -2164,7 +2161,7 @@ Member Functions:
      x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
 
 &nbsp;
-<a name="Sound" />
+<a name="Sound"></a>
 
 #### `fe.Sound` ####
 
@@ -2191,11 +2188,9 @@ Member Functions:
 
    * `get_metadata( tag )` - Get the meta data (if available in the source
      file) that corresponds to the specified tag (i.e. "artist", "album", etc.)
-   * ~~`load_from_archive( archive, filename )` - Load the sound from the
-     specified archive file (.zip, etc).~~
 
 &nbsp;
-<a name="Shader" />
+<a name="Shader"></a>
 
 #### `fe.Shader` ####
 
@@ -2230,7 +2225,7 @@ Member Functions:
      "image" must be an instance of the `fe.Image` class.
 
 &nbsp;
-<a name="constants" />
+<a name="constants"></a>
 
 Constants
 ---------
