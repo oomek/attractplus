@@ -208,6 +208,7 @@ public:
 	static int cb_get_input_pos( const char *input );
 	static void do_nut(const char *);
 	static bool load_module( const char *module_file );
+	static void print_to_console( const char *str );
 #ifdef USE_LIBCURL
 	static bool get_url( const char *url, const char *path );
 #endif

@@ -999,6 +999,7 @@ bool FeVM::on_new_layout()
 	fe.Func<int (*)(const char *)>(_SC("get_input_pos"), &FeVM::cb_get_input_pos);
 	fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
+	fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
 #ifdef USE_LIBCURL
 	fe.Func<bool (*)(const char *, const char *)>(_SC("get_url"), &FeVM::get_url);
 #endif
@@ -1706,6 +1707,7 @@ public:
 			fe.Overload<bool (*)(const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 			fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 			fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
+			fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
 			fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 			fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
@@ -2370,6 +2372,12 @@ bool FeVM::get_url( const char *url, const char *path )
 	return my_task.do_task();
 }
 #endif
+
+void FeVM::print_to_console( const char *str )
+{
+	FeLog() << str << std::endl;
+};
+
 
 bool FeVM::cb_plugin_command( const char *command,
 		const char *args,

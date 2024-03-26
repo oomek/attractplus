@@ -41,6 +41,7 @@ Contents
       * [`fe.get_config()`](#get_config)
       * [`fe.get_text()`](#get_text)
       * [`fe.get_url()`](#get_url) 🔶
+      * [`fe.log()`](#log) 🔶
    * [Objects and Variables](#objects)
       * [`fe.ambient_sound`](#ambient_sound)
       * [`fe.layout`](#layout)
@@ -1202,6 +1203,19 @@ Parameters:
    * url - an internet address of the file to download.
    * file_path - a destination folder set as an absolute path,
      or a relative path inside the layout's folder
+
+&nbsp;
+<a name="log" />
+
+#### `fe.log()` 🔶
+
+    fe.log( text )
+
+Print a string into the console. It's an alternative to Squirrel `print()` function, which does not always show up immediately.
+
+Parameters:
+
+   * string - a string of text to print in the console
 
 &nbsp;
 <a name="objects" />
