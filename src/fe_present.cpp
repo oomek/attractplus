@@ -202,7 +202,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
-	m_layout_loaded( false )
+	m_layout_loaded( false ),
+	m_layout_version( 2 )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -966,12 +967,13 @@ void FePresent::queue_transition( FeTransitionType type, int var )
 	m_transition_queue.push_back({ type, var });
 }
 
-bool FePresent::is_transition_queue_empty()
+void FePresent::process_transitions()
 {
-	return m_transition_queue.empty();
+	if ( m_layout_version >= 3 ) process_transitions_v3();
+	else process_transitions_v2();
 }
 
-void FePresent::process_transitions()
+void FePresent::process_transitions_v2()
 {
 	if ( !m_transition_queue.empty() )
 		FeLog() << FeTransitionTypeStrings[m_transition_queue.front().type] << " " << m_transition_queue.front().var << std::endl;
@@ -1039,13 +1041,13 @@ void FePresent::process_transitions_v3()
 			case ToNewSelection:
 				on_transition( ToNewSelection, next.var );
 				m_transition_queue.pop_front();
-				m_transition_queue.push_front({ FromOldSelection, next.var });
+				m_transition_queue.push_front({ NewSelection, next.var });
 				break;
 
 			case ToEndNavigation:
 				on_transition( ToEndNavigation, next.var );
 				m_transition_queue.pop_front();
-				m_transition_queue.push_front({ ToEndNavigation, 0 });
+				m_transition_queue.push_front({ EndNavigation, 0 });
 				break;
 		}
 	}

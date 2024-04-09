@@ -173,6 +173,7 @@ protected:
 	bool m_layout_loaded;
 
 	std::deque<TransitionQueueElement> m_transition_queue;
+	int m_layout_version;
 
 	FePresent( const FePresent & );
 	FePresent &operator=( const FePresent & );
@@ -247,9 +248,12 @@ public:
 	void redraw(); // redraw the screen while doing computationally intensive loops
 
 	void queue_transition( FeTransitionType type, int var=0 );
-	bool is_transition_queue_empty();
 	void process_transitions();
+	void process_transitions_v2();
 	void process_transitions_v3();
+
+	int get_layout_version() { return m_layout_version; };
+	void set_layout_version( int version ) { m_layout_version = version; };
 
 	bool saver_activation_check();
 	void on_stop_frontend();

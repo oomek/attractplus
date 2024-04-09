@@ -846,6 +846,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("time"), &FePresent::get_layout_ms )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 		.Func(_SC("redraw"), &FePresent::redraw )
+		.Prop(_SC("version"), &FePresent::get_layout_version, &FePresent::set_layout_version )
 	);
 
 	fe.Bind( _SC("CurrentList"), Class <FePresent, NoConstructor>()
@@ -2372,11 +2373,19 @@ bool FeVM::load_module( const char *module )
 	std::string module_file;
 	fev->m_feSettings->get_module_path( module, module_dir, module_file );
 
+	FeLog() << "Loading module: " << module_file << std::endl; // debug
+
 	Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	fe.SetValue( _SC("module_dir"), module_dir );
 	fe.SetValue( _SC("module_file"), module_file );
 
-	return internal_do_nut( module_dir, module_file );
+	int layout_ver = fev->get_layout_version();
+	fev->set_layout_version(2);
+	bool ret = internal_do_nut( module_dir, module_file );
+	if ( ret && layout_ver != fev->get_layout_version() )
+		FeLog() << "Layout version: " << layout_ver << "  Module " << module_file << " version: " <<  fev->get_layout_version() << std::endl;
+
+	return ret;
 }
 
 #ifdef USE_LIBCURL
