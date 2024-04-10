@@ -1033,7 +1033,10 @@ int main(int argc, char *argv[])
 				// "End Navigation" stuff now
 				//
 				if ( move_triggered != FeInputMap::LAST_COMMAND )
-					feVM.on_end_navigation();
+				{
+					feVM.update_to( EndNavigation, false );
+					feVM.on_transition( EndNavigation, 0 );
+				}
 
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;

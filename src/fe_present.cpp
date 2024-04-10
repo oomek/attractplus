@@ -878,7 +878,10 @@ void FePresent::set_filter_index( int idx )
 		if ( m_feSettings->navigate_filter( new_offset ) )
 			load_layout();
 		else
-			update_to_new_list( new_offset );
+		{
+			update_to( ToNewList, false );
+			on_transition( ToNewList, new_offset );
+		}
 	}
 }
 
@@ -942,12 +945,15 @@ void FePresent::change_selection( int step, bool end_navigation )
 		on_transition( ToNewSelection, step );
 
 		m_feSettings->step_current_selection( step );
-		update( false );
+		update_to( ToNewSelection, false );
 
 		on_transition( FromOldSelection, -step );
 
 		if ( end_navigation )
-			on_end_navigation();
+		{
+			update_to( EndNavigation, false );
+			on_transition( EndNavigation, 0 );
+		}
 }
 
 bool FePresent::reset_screen_saver()
@@ -1021,7 +1027,10 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		if ( m_feSettings->navigate_display( ( c == FeInputMap::NextDisplay ) ? 1 : -1 ) )
 			load_layout();
 		else
-			update_to_new_list( 0, true );
+		{
+			update_to( ToNewList, true );
+			on_transition( ToNewList, 0 );
+		}
 
 		break;
 
@@ -1032,7 +1041,10 @@ bool FePresent::handle_event( FeInputMap::Command c )
 			if ( m_feSettings->navigate_filter( offset ) )
 				load_layout();
 			else
-				update_to_new_list( offset );
+			{
+				update_to( ToNewList, false );
+				on_transition( ToNewList, offset );
+			}
 		}
 		break;
 
@@ -1093,44 +1105,37 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	return true;
 }
 
-int FePresent::update( bool new_list, bool new_display )
+void FePresent::update_to( FeTransitionType type, bool reset_display )
 {
 	std::vector<FeBaseTextureContainer *>::iterator itc;
 	std::vector<FeBasePresentable *>::iterator itl;
 	std::vector<FeMonitor>::iterator itm;
 
-	if ( new_list )
+	switch ( type )
 	{
-		for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
-			(*itc)->on_new_list( m_feSettings, new_display );
+		case ToNewList:
+			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+				(*itc)->on_new_list( m_feSettings, reset_display );
 
-		for ( itm=m_mon.begin(); itm != m_mon.end(); ++itm )
-		{
-			for ( itl=(*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
-				(*itl)->on_new_list( m_feSettings );
-		}
+			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
+				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
+					(*itl)->on_new_list( m_feSettings );
+			// Fallthrough intended
+
+		case ToNewSelection:
+			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+				(*itc)->on_new_selection( m_feSettings );
+
+			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
+				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
+					(*itl)->on_new_selection( m_feSettings );
+			break;
+
+		case EndNavigation:
+			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+				(*itc)->on_end_navigation( m_feSettings );
+			break;
 	}
-
-	for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
-		(*itc)->on_new_selection( m_feSettings );
-
-	for ( itm=m_mon.begin(); itm != m_mon.end(); ++itm )
-	{
-		for ( itl=(*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
-			(*itl)->on_new_selection( m_feSettings );
-	}
-
-	return 0;
-}
-
-void FePresent::on_end_navigation()
-{
-	std::vector<FeBaseTextureContainer *>::iterator itc;
-
-	for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
-		(*itc)->on_end_navigation( m_feSettings );
-
-	on_transition( EndNavigation, 0 );
 }
 
 void FePresent::redraw_surfaces()
@@ -1153,8 +1158,7 @@ bool FePresent::load_intro()
 	if ( !on_new_layout() )
 		return false;
 
-	// Don't do the StartLayout signal for the intro
-	update( true, true );
+	update_to( ToNewList, true );
 	return ( !m_mon[0].elements.empty() );
 }
 
@@ -1175,7 +1179,7 @@ void FePresent::load_screensaver()
 	// if there is no screen saver script then do a blank screen
 	//
 	on_transition( StartLayout, FromToNoValue );
-	update( true, true );
+	update_to( ToNewList, true );
 }
 
 void FePresent::load_layout( bool initial_load )
@@ -1223,13 +1227,8 @@ void FePresent::load_layout( bool initial_load )
 	}
 
 	on_transition( StartLayout, var );
-	update_to_new_list( FromToNoValue, true );
-}
-
-void FePresent::update_to_new_list( int var, bool reset_display )
-{
-	update( true, reset_display );
-	on_transition( ToNewList, var );
+	update_to( ToNewList, true );
+	on_transition( ToNewList, FromToNoValue );
 }
 
 // Only called when Configure Menu is up
@@ -1385,7 +1384,7 @@ void FePresent::post_run()
 #endif
 
 	reset_screen_saver();
-	update( true );
+	update_to( ToNewList, false );
 }
 
 void FePresent::toggle_movie()
@@ -1588,7 +1587,8 @@ FeShader *FePresent::get_empty_shader()
 void FePresent::set_search_rule( const char *s )
 {
 	m_feSettings->set_search_rule( s );
-	update_to_new_list( 0, true );
+	update_to( ToNewList, true );
+	on_transition( ToNewList, 0 );
 }
 
 const char *FePresent::get_search_rule()

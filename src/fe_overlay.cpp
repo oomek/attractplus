@@ -562,7 +562,8 @@ int FeOverlay::tags_dialog()
 		{
 			if ( m_feSettings.set_current_tag( name, true ) )
 			{
-				m_fePresent.update_to_new_list( 0, true ); // changing tag status altered our current list
+				m_fePresent.update_to( ToNewList, true ); // changing tag status altered our current list
+				m_fePresent.on_transition( ToNewList, 0 );
 				m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 			}
 		}
@@ -571,7 +572,8 @@ int FeOverlay::tags_dialog()
 	{
 		if ( m_feSettings.set_current_tag( tags_list[sel].first, !(tags_list[sel].second) ) )
 		{
-			m_fePresent.update_to_new_list( 0, true ); // changing tag status altered our current list
+			m_fePresent.update_to( ToNewList, true ); // changing tag status altered our current list
+			m_fePresent.on_transition( ToNewList, 0 );
 			m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 		}
 	}

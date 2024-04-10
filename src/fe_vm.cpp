@@ -473,7 +473,8 @@ void FeVM::update_to_new_list( int var, bool reset_display )
 		}
 	}
 
-	FePresent::update_to_new_list( var, reset_display );
+	FePresent::update_to( ToNewList, reset_display );
+	on_transition( ToNewList, var );
 }
 
 namespace
@@ -1309,7 +1310,7 @@ void FeVM::on_transition(
 {
 	using namespace Sqrat;
 
-	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
+	FeLog() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
 
 	sf::Clock clk;
 	int ttime = 0;
