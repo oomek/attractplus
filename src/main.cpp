@@ -198,9 +198,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case FeSettings::ShowDisplaysMenu:
-				// we do a double load of the layout on startup if there is custom display menu
-				// so we suppress the extra transition signals that get triggered here
-				feVM.load_layout( true, !feSettings.get_info( FeSettings::MenuLayout ).empty() );
+				feSettings.set_display(-1);
 				FeVM::cb_signal( "displays_menu" );
 				break;
 
@@ -561,10 +559,9 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeSettings::ShowDisplaysMenu:
-					// we do a double load of the layout on startup if there is custom display menu
-					// so we suppress the extra transition signals that get triggered here
-					feVM.load_layout( true, !feSettings.get_info( FeSettings::MenuLayout ).empty() );
-					FeVM::cb_signal( "displays_menu" );
+					if ( feSettings.get_current_display_index() != -1 )
+						feSettings.set_display(-1);
+					feVM.load_layout( true );
 					break;
 
 				default:
@@ -987,6 +984,7 @@ int main(int argc, char *argv[])
 
 						switch ( move_triggered )
 						{
+						// Key repeat. First press in FePresent::handle_event()
 						case FeInputMap::PrevGame: step = -step; break;
 						case FeInputMap::NextGame: break; // do nothing
 						case FeInputMap::PrevPage: step *= -feVM.get_page_size(); break;
