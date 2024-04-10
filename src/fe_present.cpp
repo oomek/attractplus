@@ -1232,7 +1232,7 @@ void FePresent::update_to_new_list( int var, bool reset_display )
 	on_transition( ToNewList, var );
 }
 
-// Only called wnen menu is up
+// Only called when Configure Menu is up
 bool FePresent::tick()
 {
 	bool ret_val = false;

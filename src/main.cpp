@@ -198,8 +198,6 @@ int main(int argc, char *argv[])
 				break;
 
 			case FeSettings::ShowDisplaysMenu:
-				feSettings.set_display(-1);
-				FeVM::cb_signal( "displays_menu" );
 				break;
 
 			default:
@@ -549,24 +547,12 @@ int main(int argc, char *argv[])
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
 
+				feVM.load_layout( true );
 
-				switch ( feSettings.get_startup_mode() )
+				if ( feSettings.get_startup_mode() == FeSettings::LaunchLastGame )
 				{
-				case FeSettings::LaunchLastGame:
-					feVM.load_layout( true );
 					feSettings.select_last_launch();
 					launch_game=true;
-					break;
-
-				case FeSettings::ShowDisplaysMenu:
-					if ( feSettings.get_current_display_index() != -1 )
-						feSettings.set_display(-1);
-					feVM.load_layout( true );
-					break;
-
-				default:
-					feVM.load_layout( true );
-					break;
 				}
 
 				redraw=true;

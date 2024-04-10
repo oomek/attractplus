@@ -215,7 +215,8 @@ private:
 	int m_clone_index; // >= 0 if a clone group is being shown, otherwise -1
 	int m_joy_thresh;		// [1..100], 100=least sensitive
 	int m_mouse_thresh;	// [1..100], 100=least sensitive
-	int m_current_search_index; // used when custom searching *AND* when showing 'Displays Menu' w/ custom layout
+	int m_current_search_index; // used when custom searching
+	int m_current_display_index; // used as an index of currently selected display in displays menu
 	bool m_displays_menu_exit;
 	bool m_hide_brackets;
 	bool m_group_clones;
@@ -582,6 +583,7 @@ public:
 		std::vector<int> &indices,
 		int &current_idx ) const;
 
+	// Used only when Edit Game is pressed in Displays Menu
 	int display_menu_get_current_selection_as_absolute_display_index();
 
 	FeDisplayInfo *get_display( int index );
