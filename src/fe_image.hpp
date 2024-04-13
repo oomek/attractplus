@@ -202,8 +202,10 @@ private:
 
 	void internal_update_selection( FeSettings *feSettings );
 	void clear();
+	void clear_texture();
 
-	sf::Texture m_texture;
+	sf::Texture *m_texture;
+	sf::Texture m_empty_texture;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)
 	std::string m_file_name; // the name of the loaded file
@@ -257,7 +259,7 @@ public:
 	FePresentableParent *get_presentable_parent();
 
 private:
-	sf::RenderTexture m_texture;
+	sf::RenderTexture *m_texture;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;

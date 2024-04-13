@@ -2,12 +2,15 @@
 // auto start = std::chrono::steady_clock::now();
 // auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now() - start ).count();
 // FeLog() << elapsed << std::endl;
+// FeLog() << std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now() - start ).count() << std::endl;
+
 
 #include <iostream>
 #include <chrono>
 #include <unistd.h>
 
 #include "fe_base.hpp" // logging
+#include "fe_util.hpp"
 #include "fe_async_loader.hpp"
 
 #include <fstream>
@@ -164,6 +167,7 @@ void FeAsyncLoader::thread_loop()
 
 void FeAsyncLoader::load_resource( const std::string file, const EntryType type )
 {
+	if ( file.empty() ) return;
 	FeAsyncLoaderEntryBase *tmp_entry_ptr = nullptr;
 
 	if ( type == TextureType )
@@ -183,9 +187,14 @@ void FeAsyncLoader::load_resource( const std::string file, const EntryType type 
 }
 
 template <typename T>
-void FeAsyncLoader::add_resource( const std::string file, bool async )
+void FeAsyncLoader::add_resource( const std::string input_file, bool async )
 {
-	if ( file.empty() ) return;
+	// sf::Clock clk;
+	if ( input_file.empty() ) return;
+
+    std::string file = input_file;
+    std::replace( file.begin(), file.end(), '\\', '/' );
+	// FeLog() << "FeAsyncLoader::add_resource( " << file << ", " << async << " )" << std::endl;
 
 	ulock_t lock( m_mutex );
 	map_iterator_t it = m_resources_map.find( file );
@@ -196,18 +205,28 @@ void FeAsyncLoader::add_resource( const std::string file, bool async )
 			load_resource( file, T::type );
 			return;
 		}
+		m_done = false;
+		m_queue.push( std::make_pair( file, T::type ));
+		lock.unlock();
+		m_condition.notify_one();
+		// FeLog() << "add_resource() " << clk.getElapsedTime().asMicroseconds() << std::endl;
+		return;
 	}
-
-	m_done = false;
-	m_queue.push( std::make_pair( file, T::type ));
-	lock.unlock();
-	m_condition.notify_one();
-	return;
+	else
+	{
+		// FeLog() << "FeAsyncLoader::add_resource( " << file << " ) already loaded" << std::endl;
+		// if ( it->second->second->get_ref() > 0 )
+		// 	if ( it->second->second->inc_ref() )
+				// Already in active list
+		return;
+	}
 }
 
 void FeAsyncLoader::add_resource_texture( const std::string file, bool async )
 {
+	// sf::Clock clk;
     add_resource<FeAsyncLoaderEntryTexture>( file, async );
+	// FeLog() << clk.getElapsedTime().asMicroseconds() << std::endl;
 }
 
 void FeAsyncLoader::add_resource_font( const std::string file, bool async )
@@ -221,13 +240,18 @@ void FeAsyncLoader::add_resource_sound( const std::string file, bool async )
 }
 
 template <typename T>
-T *FeAsyncLoader::get_resource( const std::string file )
+T *FeAsyncLoader::get_resource( const std::string input_file )
 {
-	ulock_t lock( m_mutex );
+	// sf::Clock clk;
+	std::string file = input_file;
+    std::replace( file.begin(), file.end(), '\\', '/' );
+
+	// FeLog() << "FeAsyncLoader::get_resource( " << file << " )" << std::endl;
 	map_iterator_t it = m_resources_map.find( file );
 
 	if ( it != m_resources_map.end() )
 	{
+		ulock_t lock( m_mutex );
 		if ( it->second->second->get_ref() > 0 )
 			// Promote in active list
 			m_resources_active.splice( m_resources_active.begin(), m_resources_active, it->second );
@@ -236,10 +260,16 @@ T *FeAsyncLoader::get_resource( const std::string file )
 			m_resources_active.splice( m_resources_active.begin(), m_resources_cached, it->second );
 
 		it->second->second->inc_ref();
+		// FeLog() << "get_resource() FOUND " << clk.getElapsedTime().asMicroseconds() << std::endl;
 		return static_cast<T*>( it->second->second->get_resource_pointer() );
 	}
 	else
-		return nullptr;
+	{
+		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) not found" << std::endl;
+		add_resource_texture( file, false ); // add_resource<T>( file, false ) this needs type FeAsyncLoaderEntryTexture but is sf::Texture
+		// FeLog() << "get_resource() NOT FOUND " << clk.getElapsedTime().asMicroseconds() << std::endl;
+		return get_resource<T>( file );
+	}
 }
 
 sf::Texture *FeAsyncLoader::get_resource_texture( const std::string file )
@@ -259,6 +289,7 @@ sf::SoundBuffer *FeAsyncLoader::get_resource_sound( const std::string file )
 
 void FeAsyncLoader::release_resource( const std::string file )
 {
+	// FeLog() << "FeAsyncLoader::release_resource( " << file << " )" << std::endl;
 	if ( file.empty() ) return;
 
 	ulock_t lock( m_mutex );

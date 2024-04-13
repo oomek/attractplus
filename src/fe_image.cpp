@@ -28,6 +28,7 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
+#include "fe_async_loader.hpp"
 #include <cmath>
 
 #ifndef NO_MOVIE
@@ -250,7 +251,8 @@ FeTextureContainer::FeTextureContainer(
 	m_mipmap( false ),
 	m_smooth( false ),
 	m_volume( 100.0 ),
-	m_entry( NULL )
+	m_entry( NULL ),
+	m_texture( &m_empty_texture )
 {
 	if ( is_artwork )
 	{
@@ -295,7 +297,7 @@ bool FeTextureContainer::fix_masked_image()
 {
 	bool retval=false;
 
-	sf::Image tmp_img = m_texture.copyToImage();
+	sf::Image tmp_img = m_texture->copyToImage();
 	sf::Vector2u tmp_s = tmp_img.getSize();
 
 	if (( tmp_s.x > 0 ) && ( tmp_s.y > 0 ))
@@ -303,7 +305,7 @@ bool FeTextureContainer::fix_masked_image()
 		sf::Color p = tmp_img.getPixel( 0, 0 );
 		tmp_img.createMaskFromColor( p );
 
-		if ( m_texture.loadFromImage( tmp_img ) )
+		if ( m_texture->loadFromImage( tmp_img ) )
 			retval=true;
 
 		notify_texture_change();
@@ -328,19 +330,19 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	if ( !file_exists( loaded_name ) )
 	{
-		m_texture = sf::Texture();
+		clear_texture();
 		return false;
 	}
 
 	m_movie = new FeMedia( FeMedia::AudioVideo );
-	res = m_movie->open( "", loaded_name, &m_texture );
+	res = m_movie->open( "", loaded_name, m_texture );
 
 	if ( !res )
 	{
 		FeLog() << "ERROR loading video: "
 			<< loaded_name << std::endl;
 
-		m_texture = sf::Texture();
+		clear_texture();
 		delete m_movie;
 		m_movie = NULL;
 		return false;
@@ -364,11 +366,11 @@ bool FeTextureContainer::load_with_ffmpeg(
 	{
 		// Fill the first video frame with a black colour
 		sf::Image img;
-		img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color( 0, 0, 0 ));
-		m_texture.update( img );
+		img.create(	m_texture->getSize().x, m_texture->getSize().y, sf::Color( 0, 0, 0 ));
+		m_texture->update( img );
 	}
 
-	m_texture.setSmooth( m_smooth );
+	m_texture->setSmooth( m_smooth );
 	m_file_name = loaded_name;
 
 	return true;
@@ -386,7 +388,8 @@ bool FeTextureContainer::try_to_load(
 		return load_with_ffmpeg( filename, false );
 #endif
 
-	FeImageLoader &il = FeImageLoader::get_ref();
+	FeAsyncLoader &al = FeAsyncLoader::get_al();
+	// FeImageLoader &il = FeImageLoader::get_ref();
 	unsigned char *data = NULL;
 
 	loaded_name = filename;
@@ -397,33 +400,40 @@ bool FeTextureContainer::try_to_load(
 
 	if ( !file_exists( loaded_name ) )
 	{
-		m_texture = sf::Texture();
+		clear_texture();
 		return false;
 	}
 
-	if ( il.load_image_from_file( loaded_name, &m_entry ) )
-		data = m_entry->get_data();
+	// sf::Clock clk;
+	m_texture = al.get_resource_texture( loaded_name );
+	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
 	m_file_name = loaded_name;
-
-	// resize our texture accordingly
-	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
-		m_texture.create( m_entry->get_width(), m_entry->get_height() );
-
-	if ( data )
-	{
-		m_texture.update( data );
-		il.release_entry( &m_entry ); // don't need entry any more
-		if ( m_mipmap ) m_texture.generateMipmap();
-		m_texture.setSmooth( m_smooth );
-	}
-
 	return true;
+
+	// if ( il.load_image_from_file( loaded_name, &m_entry ) )
+	// 	data = m_entry->get_data();
+
+	// m_file_name = loaded_name;
+
+	// // resize our texture accordingly
+	// if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
+	// 	m_texture.create( m_entry->get_width(), m_entry->get_height() );
+
+	// if ( data )
+	// {
+	// 	m_texture.update( data );
+	// 	il.release_entry( &m_entry ); // don't need entry any more
+	// 	if ( m_mipmap ) m_texture.generateMipmap();
+	// 	m_texture.setSmooth( m_smooth );
+	// }
+
+	// return true;
 }
 
 const sf::Texture &FeTextureContainer::get_texture()
 {
-	return m_texture;
+	return *m_texture;
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -524,7 +534,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 		if ( image_list.empty() )
 		{
 			clear();
-			m_texture = sf::Texture();
+			clear_texture();
 		}
 		else
 		{
@@ -557,9 +567,9 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		FeImageLoader &il = FeImageLoader::get_ref();
 		if ( il.check_loaded( m_entry ) )
 		{
-			m_texture.update( m_entry->get_data() );
-			if ( m_mipmap ) m_texture.generateMipmap();
-			m_texture.setSmooth( m_smooth );
+			m_texture->update( m_entry->get_data() );
+			if ( m_mipmap ) m_texture->generateMipmap();
+			m_texture->setSmooth( m_smooth );
 
 			il.release_entry( &m_entry );
 			return true;
@@ -609,7 +619,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
-			if ( m_mipmap ) m_texture.generateMipmap();
+			if ( m_mipmap ) m_texture->generateMipmap();
 			return true;
 		}
 	}
@@ -761,7 +771,7 @@ void FeTextureContainer::load_file( const char *n )
 	if ( filename.empty() )
 	{
 		clear();
-		m_texture = sf::Texture();
+		clear_texture();
 		notify_texture_change();
 		return;
 	}
@@ -813,6 +823,8 @@ FeTextureContainer *FeTextureContainer::get_derived_texture_container()
 void FeTextureContainer::clear()
 {
 	m_movie_status = -1;
+	FeAsyncLoader &al = FeAsyncLoader::get_al();
+	al.release_resource( m_file_name );
 	m_file_name.clear();
 
 #ifndef NO_MOVIE
@@ -832,10 +844,15 @@ void FeTextureContainer::clear()
 	}
 }
 
+void FeTextureContainer::clear_texture()
+{
+    m_texture = &m_empty_texture;
+}
+
 void FeTextureContainer::set_smooth( bool s )
 {
 	m_smooth = s;
-	m_texture.setSmooth( s );
+	m_texture->setSmooth( s );
 }
 
 bool FeTextureContainer::get_smooth() const
@@ -846,7 +863,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie) m_texture.generateMipmap();
+	if ( m_mipmap && !m_movie) m_texture->generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -856,12 +873,12 @@ bool FeTextureContainer::get_mipmap() const
 
 void FeTextureContainer::set_repeat( bool r )
 {
-	m_texture.setRepeated( r );
+	m_texture->setRepeated( r );
 }
 
 bool FeTextureContainer::get_repeat() const
 {
-	return m_texture.isRepeated();
+	return m_texture->isRepeated();
 }
 
 void FeTextureContainer::set_volume( float v )
@@ -905,8 +922,9 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 		FeSettings *fes = fep->get_fes();
 		if ( fes ) ctx.antialiasingLevel = fes->get_antialiasing();
 	}
-	m_texture.create( width, height, ctx );
-	m_texture.clear( sf::Color::Transparent );
+	m_texture = new sf::RenderTexture();
+	m_texture->create( width, height, ctx );
+	m_texture->clear( sf::Color::Transparent );
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -917,11 +935,12 @@ FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
 		elements.pop_back();
 		delete p;
 	}
+	delete m_texture;
 }
 
 const sf::Texture &FeSurfaceTextureContainer::get_texture()
 {
-	return m_texture.getTexture();
+	return m_texture->getTexture();
 }
 
 void FeSurfaceTextureContainer::on_new_selection( FeSettings *s )
@@ -951,29 +970,29 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 	//
 	// Draw the surface's draw list to the render texture
 	//
-	if ( m_clear ) m_texture.clear( sf::Color::Transparent );
+	if ( m_clear ) m_texture->clear( sf::Color::Transparent );
 	if ( m_redraw )
 	{
 		for ( std::vector<FeBasePresentable *>::const_iterator itr = elements.begin();
 					itr != elements.end(); ++itr )
 		{
 			if ( (*itr)->get_visible() )
-				m_texture.draw( (*itr)->drawable() );
+				m_texture->draw( (*itr)->drawable() );
 		}
 
-		m_texture.display();
-		if ( m_mipmap ) m_texture.generateMipmap();
+		m_texture->display();
+		if ( m_mipmap ) m_texture->generateMipmap();
 	}
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )
 {
-	m_texture.setSmooth( s );
+	m_texture->setSmooth( s );
 }
 
 bool FeSurfaceTextureContainer::get_smooth() const
 {
-	return m_texture.isSmooth();
+	return m_texture->isSmooth();
 }
 
 void FeSurfaceTextureContainer::set_mipmap( bool m )
@@ -998,12 +1017,12 @@ bool FeSurfaceTextureContainer::get_clear() const
 
 void FeSurfaceTextureContainer::set_repeat( bool r )
 {
-	m_texture.setRepeated( r );
+	m_texture->setRepeated( r );
 }
 
 bool FeSurfaceTextureContainer::get_repeat() const
 {
-	return m_texture.isRepeated();
+	return m_texture->isRepeated();
 }
 
 void FeSurfaceTextureContainer::set_redraw( bool r )
