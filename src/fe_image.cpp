@@ -774,7 +774,6 @@ void FeTextureContainer::load_file( const char *n )
     std::replace( filename.begin(), filename.end(), '\\', '/' );
 
 	FeAsyncLoader &al = FeAsyncLoader::get_al();
-	al.release_resource( m_file_name );
 	clear();
 	clear_texture();
 
@@ -836,22 +835,16 @@ void FeTextureContainer::clear()
 	// If a movie is running, close it...
 	if ( m_movie )
 	{
-		// FeImageLoader &il = FeImageLoader::get_ref();
-		// il.reap_video( m_movie );
+		m_movie->close();
 		m_movie=NULL;
 	}
 #endif
-
-	// if ( m_entry )
-	// {
-	// 	FeImageLoader &il = FeImageLoader::get_ref();
-	// 	il.release_entry( &m_entry );
-	// }
 }
 
 void FeTextureContainer::clear_texture()
 {
     m_texture = &m_empty_texture;
+	notify_texture_change();
 }
 
 void FeTextureContainer::set_smooth( bool s )
