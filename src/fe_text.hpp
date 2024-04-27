@@ -120,6 +120,8 @@ private:
 	FeText( const FeText & );
 	FeText &operator=( const FeText & );
 
+	void update_font_size();
+
 	FeTextPrimitive m_draw_text;
 	std::string m_string;
 	std::string m_string_wrapped;
