@@ -77,6 +77,7 @@ public:
 
 	virtual void load_file( const char *n );
 	virtual const char *get_file_name() const;
+	virtual const char *get_art_name() const;
 	virtual void set_trigger( int );
 	virtual int get_trigger() const;
 
@@ -162,6 +163,7 @@ public:
 
 	void load_file( const char *n );
 	const char *get_file_name() const;
+	const char *get_art_name() const;
 	void set_trigger( int );
 	int get_trigger() const;
 
@@ -314,6 +316,7 @@ public:
 	int getVideoTime() const;
 	const char *getFileName() const;
 	void setFileName( const char * );
+	const char *getArtName() const;
 	int getTrigger() const;
 	void setTrigger( int );
 

@@ -725,6 +725,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("preserve_aspect_ratio"), &FeImage::get_preserve_aspect_ratio,
 				&FeImage::set_preserve_aspect_ratio )
 		.Prop(_SC("file_name"), &FeImage::getFileName, &FeImage::setFileName )
+		.Prop(_SC("label"), &FeImage::getArtName )
 		.Prop(_SC("trigger"), &FeImage::getTrigger, &FeImage::setTrigger )
 		.Prop(_SC("smooth"), &FeImage::get_smooth, &FeImage::set_smooth )
 		.Prop(_SC("blend_mode"), &FeImage::get_blend_mode, &FeImage::set_blend_mode )

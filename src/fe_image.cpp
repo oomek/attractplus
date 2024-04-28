@@ -108,6 +108,11 @@ const char *FeBaseTextureContainer::get_file_name() const
 	return NULL;
 }
 
+const char *FeBaseTextureContainer::get_art_name() const
+{
+	return NULL;
+}
+
 void FeBaseTextureContainer::set_trigger( int t )
 {
 }
@@ -793,6 +798,14 @@ const char *FeTextureContainer::get_file_name() const
 	return m_file_name.c_str();
 }
 
+const char *FeTextureContainer::get_art_name() const
+{
+	if ( m_type == IsArtwork )
+		return m_art_name.c_str();
+	else
+		return NULL;
+}
+
 void FeTextureContainer::set_trigger( int t )
 {
 	m_art_update_trigger = t;
@@ -1390,6 +1403,11 @@ void FeImage::setFileName( const char *n )
 	std::string filename = n;
 
 	m_tex->load_file( filename.c_str() );
+}
+
+const char *FeImage::getArtName() const
+{
+	return m_tex->get_art_name();
 }
 
 int FeImage::getTrigger() const
