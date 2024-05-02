@@ -289,7 +289,8 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console
 	m_sort_zorder_triggered( false ),
 	m_process_console_input( console_input ),
 	m_script_cfg( NULL ),
-	m_script_id( -1 )
+	m_script_id( -1 ),
+	m_suppress_navigation( false )
 {
 	srand( time( NULL ) );
 	vm_init();
@@ -875,6 +876,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("search_rule"), &FePresent::get_search_rule, &FePresent::set_search_rule )
 		.Prop( _SC("size"), &FePresent::get_current_filter_size )
 		.Prop( _SC("clones_list"), &FePresent::get_clones_list_showing )
+		.Prop( _SC("next_step"), &FePresent::get_suppressed_navigation_step )
 
 		// The following are deprecated as of version 1.5 in favour of using the fe.filters array:
 		.Prop( _SC("filter"), &FePresent::get_filter_name )	// deprecated as of 1.5
@@ -1031,6 +1033,8 @@ bool FeVM::on_new_layout()
 	fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 	fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
+	fe.Func<void (*)()>(_SC("suppress_navigation"), &FeVM::cb_suppress_navigation);
+
 #ifdef USE_LIBCURL
 	fe.Func<bool (*)(const char *, const char *)>(_SC("get_url"), &FeVM::get_url);
 #endif
@@ -1407,12 +1411,19 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 		ASSERT( DefaultVM::Get() );
 		set_for_callback( *itr );
 
+		m_suppress_navigation = false;
+
 		try
 		{
 			Function &func = (*itr).get_fn();
-			if (( !func.IsNull() )
-					&& ( func.Evaluate<bool>( FeInputMap::commandStrings[ c ] )))
-				return true;
+			if ( !func.IsNull() )
+			{
+				bool result = func.Evaluate<bool>( FeInputMap::commandStrings[ c ] );
+// FeLog() << "Script returned: " << result << " " << FeInputMap::commandStrings[ c ]<< std::endl;
+				if ( result == true )
+					return true;
+				// More logic here for the 3rd state, or maybe not anymore?
+			}
 		}
 		catch( const Exception &e )
 		{
@@ -2423,6 +2434,12 @@ void FeVM::print_to_console( const char *str )
 	FeLog() << str << std::endl;
 };
 
+void FeVM::cb_suppress_navigation()
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	fev->suppress_navigation();
+};
 
 bool FeVM::cb_plugin_command( const char *command,
 		const char *args,

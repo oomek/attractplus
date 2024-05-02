@@ -148,6 +148,7 @@ protected:
 	int m_user_page_size;
 	bool m_preserve_aspect;
 	bool m_custom_overlay;
+	int m_suppressed_navigation_step;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	sf::Vector2i m_layoutSize;
@@ -193,6 +194,7 @@ protected:
 	void set_filter_index( int );
 	int get_current_filter_size() const;
 	bool get_clones_list_showing() const;
+	int get_suppressed_navigation_step() const;
 	int get_selection_index() const;
 	int get_sort_by() const;
 	bool get_reverse_order() const;
@@ -301,6 +303,7 @@ public:
 	virtual int get_script_id()=0;
 	virtual void set_script_id( int )=0;
 	virtual bool setup_wizard()=0;
+	virtual bool is_navigation_suppressed()=0;
 };
 
 

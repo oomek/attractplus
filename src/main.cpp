@@ -441,6 +441,7 @@ int main(int argc, char *argv[])
 			// user's scripts may be remapping the signal to another value.  If that is the case, we
 			// let the signal proceed (and set move_triggered below... at step 2 of 2)
 			//
+// FeLog() << "Move state: " << move_state << std::endl;
 			if (( move_state != FeInputMap::LAST_COMMAND )
 					&& ( from_ui || ( move_triggered != FeInputMap::LAST_COMMAND )))
 				continue;
@@ -525,7 +526,7 @@ int main(int argc, char *argv[])
 					continue;
 				}
 			}
-
+// FeLog() << "Command1: " << FeInputMap::commandStrings[c] << std::endl;
 			//
 			// Give the script the option to handle the command.
 			//
@@ -535,9 +536,9 @@ int main(int argc, char *argv[])
 					<< FeInputMap::commandStrings[c] << std::endl;
 
 				redraw=true;
+// FeLog() <<  "INTERCEPTED" << std::endl;
 				continue;
 			}
-
 			//
 			// Check if we need to get out of intro mode
 			//
@@ -570,6 +571,7 @@ int main(int argc, char *argv[])
 			//
 			// ( move_state == LAST_COMMAND ) will catch the regular case with no remapping
 			//
+// FeLog() << "Repeated Command: " << FeInputMap::commandStrings[c] << std::endl;
 			if (( !from_ui && ( move_triggered == FeInputMap::LAST_COMMAND ))
 					|| ( move_state != FeInputMap::LAST_COMMAND ))
 			{
@@ -938,6 +940,7 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
+// FeLog() << "Move state CONT: " <<  move_state << std::endl;
 						soundsys.sound_event( c );
 
 						move_last_triggered = t;
@@ -970,36 +973,16 @@ int main(int argc, char *argv[])
 
 						switch ( move_triggered )
 						{
-						// Key repeat. First press in FePresent::handle_event()
-						case FeInputMap::PrevGame: step = -step; break;
-						case FeInputMap::NextGame: break; // do nothing
-						case FeInputMap::PrevPage: step *= -feVM.get_page_size(); break;
-						case FeInputMap::NextPage: step *= feVM.get_page_size(); break;
-						case FeInputMap::PrevFavourite:
-							{
-								int temp = feSettings.get_prev_fav_offset();
-								step = ( temp < 0 ) ? temp : 0;
-							}
-							break;
-						case FeInputMap::NextFavourite:
-							{
-								int temp = feSettings.get_next_fav_offset();
-								step = ( temp > 0 ) ? temp : 0;
-							}
-							break;
-						case FeInputMap::PrevLetter:
-							{
-								int temp = feSettings.get_next_letter_offset( -1 );
-								step = ( temp < 0 ) ? temp : 0;
-							}
-							break;
-						case FeInputMap::NextLetter:
-							{
-								int temp = feSettings.get_next_letter_offset( 1 );
-								step = ( temp > 0 ) ? temp : 0;
-							}
-							break;
-						default: break;
+							// Key repeat. First press in FePresent::handle_event()
+							case FeInputMap::PrevGame: step = -step; break;
+							case FeInputMap::NextGame: break; // do nothing
+							case FeInputMap::PrevPage: step *= -feVM.get_page_size(); break;
+							case FeInputMap::NextPage: step *= feVM.get_page_size(); break;
+							case FeInputMap::PrevFavourite: step = std::min( feSettings.get_prev_fav_offset(), 0 ); break;
+							case FeInputMap::NextFavourite: step = std::max(feSettings.get_next_fav_offset(), 0); break;
+							case FeInputMap::PrevLetter: step = std::min( feSettings.get_next_letter_offset(-1), 0 ); break;
+							case FeInputMap::NextLetter: step = std::max( feSettings.get_next_letter_offset(1), 0 ); break;
+							default: break;
 						}
 
 						//
@@ -1014,6 +997,14 @@ int main(int argc, char *argv[])
 							if ( ( curr_sel + step ) >= list_size )
 								step = list_size - curr_sel - 1;
 						}
+
+						if ( feVM.is_navigation_suppressed() )
+						{
+							feVM.set_suppressed_navigation_step( step );
+							step = 0;
+						}
+						else
+							feVM.set_suppressed_navigation_step( 0 );
 
 						if ( step != 0 )
 						{

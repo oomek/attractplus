@@ -178,6 +178,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_user_page_size( -1 ),
 	m_preserve_aspect( false ),
 	m_custom_overlay( false ),
+	m_suppressed_navigation_step( 0 ),
 	m_listBox( NULL ),
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
@@ -898,6 +899,11 @@ bool FePresent::get_clones_list_showing() const
 		return false;
 }
 
+int FePresent::get_suppressed_navigation_step() const
+{
+	return m_suppressed_navigation_step;
+}
+
 int FePresent::get_selection_index() const
 {
 	return m_feSettings->get_rom_index( m_feSettings->get_current_filter_index(), 0 );
@@ -937,7 +943,7 @@ void FePresent::set_selection_index( int index )
 {
 	int new_offset = index - get_selection_index();
 	if ( new_offset != 0 )
-		change_selection( new_offset );
+		change_selection( new_offset, !is_navigation_suppressed() ); // Don't call EndNavigation in suppressed navigation
 }
 
 void FePresent::change_selection( int step, bool end_navigation )
@@ -976,33 +982,24 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	if ( reset_screen_saver() )
 		return true;
 
+	int step = 0;
+
 	switch( c )
 	{
-	case FeInputMap::NextGame:
-		change_selection( 1, false );
-		break;
-
-	case FeInputMap::PrevGame:
-		change_selection( -1, false );
-		break;
-
-	case FeInputMap::NextPage:
-		change_selection( get_page_size(), false );
-		break;
-
-	case FeInputMap::PrevPage:
-		change_selection( -get_page_size(), false );
-		break;
+	case FeInputMap::NextGame: step = 1; break;
+	case FeInputMap::PrevGame: step = -1; break;
+	case FeInputMap::NextPage: step = get_page_size(); break;
+	case FeInputMap::PrevPage: step = -get_page_size(); break;
+	case FeInputMap::NextFavourite:	step = m_feSettings->get_next_fav_offset(); break;
+	case FeInputMap::PrevFavourite:	step = m_feSettings->get_prev_fav_offset(); break;
+	case FeInputMap::NextLetter: step = m_feSettings->get_next_letter_offset( 1 ); break;
+	case FeInputMap::PrevLetter: step = m_feSettings->get_next_letter_offset( -1 ); break;
 
 	case FeInputMap::RandomGame:
 		{
 			int ls = m_feSettings->get_filter_size( m_feSettings->get_current_filter_index() );
 			if ( ls > 0 )
-			{
-				int step = rand() % ls;
-				if ( step != 0 )
-					change_selection( step );
-			}
+				step = rand() % ls;
 		}
 		break;
 
@@ -1053,39 +1050,6 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		load_layout();
 		break;
 
-	case FeInputMap::PrevFavourite:
-	case FeInputMap::NextFavourite:
-	case FeInputMap::PrevLetter:
-	case FeInputMap::NextLetter:
-		{
-			int step( 0 );
-			switch ( c )
-			{
-				case FeInputMap::PrevFavourite:
-					step = m_feSettings->get_prev_fav_offset();
-					break;
-
-				case FeInputMap::NextFavourite:
-					step = m_feSettings->get_next_fav_offset();
-					break;
-
-				case FeInputMap::PrevLetter:
-					step = m_feSettings->get_next_letter_offset( -1 );
-					break;
-
-				case FeInputMap::NextLetter:
-					step = m_feSettings->get_next_letter_offset( 1 );
-					break;
-
-				default:
-					break;
-			}
-
-			if ( step != 0 )
-				change_selection( step, false );
-		}
-		break;
-
 	case FeInputMap::ScreenSaver:
 		load_screensaver();
 		break;
@@ -1101,6 +1065,17 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		//
 		return false;
 	}
+
+	if ( is_navigation_suppressed() )
+	{
+		m_suppressed_navigation_step = step;
+		step = 0;
+	}
+	else
+		m_suppressed_navigation_step = 0;
+
+	if ( step != 0 )
+		change_selection( step, false );
 
 	return true;
 }

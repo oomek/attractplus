@@ -97,6 +97,7 @@ private:
 	std::vector< FeCallback > m_ticks;
 	std::vector< FeCallback > m_trans;
 	std::vector< FeCallback > m_sig_handlers;
+	bool m_suppress_navigation;
 
 	FeVM( const FeVM & );
 	FeVM &operator=( const FeVM & );
@@ -140,6 +141,9 @@ public:
 	void set_script_id( int id ) { m_script_id=id; };
 
 	bool script_handle_event( FeInputMap::Command c );
+	void suppress_navigation() { m_suppress_navigation = true; };
+	bool is_navigation_suppressed() { return m_suppress_navigation; };
+	void set_suppressed_navigation_step( int step ) { m_suppressed_navigation_step = step; };
 
 	//
 	// overlay functions used from scripts
@@ -210,6 +214,7 @@ public:
 	static void do_nut(const char *);
 	static bool load_module( const char *module_file );
 	static void print_to_console( const char *str );
+	static void cb_suppress_navigation();
 #ifdef USE_LIBCURL
 	static bool get_url( const char *url, const char *path );
 #endif
