@@ -57,7 +57,7 @@ jobs:
       if: runner.os == 'Linux' && matrix.platform.name != 'Windows x64'
       run: |
         sudo apt-get update
-        sudo apt-get install pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libegl1-mesa-dev libdrm-dev libcurl4-gnutls-dev
+        sudo apt-get install pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libegl1-mesa-dev libdrm-dev libcurl4-gnutls-dev libboost-system-dev libboost-filesystem-dev
 
     - name: Install Linux MXE for Windows cross-building
       if: matrix.platform.name == 'Windows x64'
@@ -81,7 +81,8 @@ jobs:
           mxe-x86-64-w64-mingw32.${{matrix.config.name}}-ffmpeg \
           mxe-x86-64-w64-mingw32.${{matrix.config.name}}-libarchive \
           mxe-x86-64-w64-mingw32.${{matrix.config.name}}-curl \
-          mxe-x86-64-w64-mingw32.${{matrix.config.name}}-openjpeg
+          mxe-x86-64-w64-mingw32.${{matrix.config.name}}-openjpeg \
+          mxe-x86-64-w64-mingw32.${{matrix.config.name}}-boost
         sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.${{matrix.config.name}}-gcc_11.2.0-focal.deb
         sudo ln -s /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.${{matrix.config.name}}-gcc /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.${{matrix.config.name}}-cc
         sudo pip install mingw-ldd
@@ -92,7 +93,7 @@ jobs:
     - name: Install MacOS brew
       if: runner.os == 'macOS'
       run: |
-        brew install pkg-config ffmpeg libarchive libvorbis flac jpeg-turbo
+        brew install pkg-config ffmpeg libarchive libvorbis flac jpeg-turbo boost
 
     - name: Build AM+ (ARM)
       if: matrix.platform.name == 'armv7' || matrix.platform.name == 'aarch64'
@@ -105,7 +106,7 @@ jobs:
           --volume "${GITHUB_WORKSPACE}/am:/am"
         install: |
           apt-get update -y -q
-          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev
+          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libboost-filesystem-dev libboost-system-dev
         run: |
           make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
 
@@ -120,7 +121,7 @@ jobs:
       run: |
         make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
 
-    - name: Build AM+ attract-console.exe
+    - name: Build AM+ attract-console.exe (Windows only)
       if: matrix.platform.name == 'Windows x64'
       run: |
         make -C am smallclean ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
