@@ -97,7 +97,7 @@ jobs:
 
     - name: Build AM+ (ARM)
       if: matrix.platform.name == 'armv7' || matrix.platform.name == 'aarch64'
-      uses: uraimo/run-on-arch-action@v2.5.0
+      uses: uraimo/run-on-arch-action@v2.7.2
       with:
         arch: ${{ matrix.platform.name }}
         distro: ${{ matrix.platform.archos }}
