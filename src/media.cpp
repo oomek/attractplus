@@ -62,6 +62,10 @@ typedef AVCodec FeAVCodec;
   #define FORMAT_CTX_URL m_imp->m_format_ctx->filename
 #endif
 
+#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 61, 3, 100 ))
+  #define USE_CH_LAYOUT
+#endif
+
 void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec );
 
 std::string g_decoder;
@@ -323,11 +327,19 @@ FeAudioImp::~FeAudioImp()
 
 bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, int &offset )
 {
+#ifdef USE_CH_LAYOUT
+	int data_size = av_samples_get_buffer_size(
+		NULL,
+		codec_ctx->ch_layout.nb_channels,
+		frame->nb_samples,
+		codec_ctx->sample_fmt, 1);
+#else
 	int data_size = av_samples_get_buffer_size(
 		NULL,
 		codec_ctx->channels,
 		frame->nb_samples,
 		codec_ctx->sample_fmt, 1);
+#endif
 
 	if ( codec_ctx->sample_fmt == AV_SAMPLE_FMT_S16 )
 	{
@@ -351,17 +363,31 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 				return false;
 			}
 
+#ifdef USE_CH_LAYOUT
+			int64_t channel_layout = frame->ch_layout.u.mask;
+			if ( !channel_layout )
+			{
+				AVChannelLayout l;
+				av_channel_layout_default(&l,
+						codec_ctx->ch_layout.nb_channels );
+			}
+#else
 			int64_t channel_layout = frame->channel_layout;
 			if ( !channel_layout )
 			{
 				channel_layout = av_get_default_channel_layout(
 						codec_ctx->channels );
 			}
+#endif
 
+#ifndef USE_CH_LAYOUT
 			av_opt_set_int( resample_ctx, "in_channel_layout", channel_layout, 0 );
+#endif
 			av_opt_set_int( resample_ctx, "in_sample_fmt", frame->format, 0 );
 			av_opt_set_int( resample_ctx, "in_sample_rate", frame->sample_rate, 0 );
+#ifndef USE_CH_LAYOUT
 			av_opt_set_int( resample_ctx, "out_channel_layout", channel_layout, 0 );
+#endif
 			av_opt_set_int( resample_ctx, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0 );
 			av_opt_set_int( resample_ctx, "out_sample_rate", frame->sample_rate, 0 );
 
@@ -384,11 +410,19 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 		if ( resample_ctx )
 		{
 			int out_linesize;
+#ifdef USE_CH_LAYOUT
+			av_samples_get_buffer_size(
+				&out_linesize,
+				codec_ctx->ch_layout.nb_channels,
+				frame->nb_samples,
+				AV_SAMPLE_FMT_S16, 0 );
+#else
 			av_samples_get_buffer_size(
 				&out_linesize,
 				codec_ctx->channels,
 				frame->nb_samples,
 				AV_SAMPLE_FMT_S16, 0 );
+#endif
 
 			uint8_t *tmp_ptr = (uint8_t *)(audio_buff + offset);
 
@@ -404,8 +438,13 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 				FeLog() << "Error performing audio conversion." << std::endl;
 				return false;
 			}
+#ifdef USE_CH_LAYOUT
+			offset += out_samples * codec_ctx->ch_layout.nb_channels;
+			data.sampleCount += out_samples * codec_ctx->ch_layout.nb_channels;
+#else
 			offset += out_samples * codec_ctx->channels;
 			data.sampleCount += out_samples * codec_ctx->channels;
+#endif
 			data.samples = audio_buff;
 		}
 	}
@@ -739,8 +778,8 @@ void FeVideoImp::video_thread()
 						if ( raw_frame->pts == AV_NOPTS_VALUE )
 							raw_frame->pts = packet->dts;
 
-// This only works on FFmpeg, exclude libav (it doesn't have pkt_duration
-#if (LIBAVUTIL_VERSION_MICRO >= 100 )
+// AVFrame.pkt_duration renamed to AVFrame.duration with FFmpeg 6, and deprecated with FFmpeg 7
+#if (LIBAVUTIL_VERSION_INT < AV_VERSION_INT( 58, 2, 100 ))
 						// Correct for out of bounds pts
 						if ( raw_frame->pts < prev_pts )
 							raw_frame->pts = prev_pts + prev_duration;
@@ -748,6 +787,15 @@ void FeVideoImp::video_thread()
 						// Track pts and duration if we need to correct next frame
 						prev_pts = raw_frame->pts;
 						prev_duration = raw_frame->pkt_duration;
+#elif (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 58, 2, 100 ))
+						// This only works on FFmpeg, exclude libav (it doesn't have pkt_duration
+						// Correct for out of bounds pts
+						if ( raw_frame->pts < prev_pts )
+							raw_frame->pts = prev_pts + prev_duration;
+
+						// Track pts and duration if we need to correct next frame
+						prev_pts = raw_frame->pts;
+						prev_duration = raw_frame->duration;
 #endif
 
 						detached_frame = raw_frame;
@@ -1051,10 +1099,15 @@ bool FeMedia::open( const std::string &archive,
 					MAX_AUDIO_FRAME_SIZE
 					+ AV_INPUT_BUFFER_PADDING_SIZE
 					+ codec_ctx->sample_rate );
-
+#ifdef USE_CH_LAYOUT
+				sf::SoundStream::initialize(
+					codec_ctx->ch_layout.nb_channels,
+					codec_ctx->sample_rate );
+#else
 				sf::SoundStream::initialize(
 					codec_ctx->channels,
 					codec_ctx->sample_rate );
+#endif
 
 				sf::SoundStream::setLoop( false );
 			}
