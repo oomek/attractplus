@@ -40,7 +40,7 @@ jobs:
 
     steps:
     - name: AM+ - Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: am
 
@@ -152,7 +152,7 @@ jobs:
         7z a "attract-${{matrix.platform.name}}-${{matrix.config.name}}.7z" ./artifacts/*
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{matrix.platform.name}}-${{matrix.config.name}}
         path: attract-*.7z
@@ -165,7 +165,7 @@ jobs:
 
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: artifacts
 
