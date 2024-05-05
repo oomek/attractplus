@@ -249,15 +249,17 @@ bool base_compare( const std::string &path,
 	return true;
 }
 
-bool file_exists( const std::string &file )
-{
-	return check_path( file ) & ( FeVM::IsFile | FeVM::IsDirectory );
-}
+// bool file_exists( const std::string &file )
+// {
+// 	FeLog() << "file_exists() " << file << std::endl;
+// 	return check_path( file ) & ( FeVM::IsFile | FeVM::IsDirectory );
+// }
 
-bool directory_exists( const std::string &file )
-{
-	return check_path( file ) & FeVM::IsDirectory;
-}
+// bool directory_exists( const std::string &file )
+// {
+// 	FeLog() << "directory_exists() " << file << std::endl;
+// 	return check_path( file ) & FeVM::IsDirectory;
+// }
 
 int check_path( const std::string &path )
 {
@@ -280,6 +282,64 @@ int check_path( const std::string &path )
 	}
 	else if( _waccess( wide_path.c_str(), F_OK) != -1 )
 		return FeVM::IsFile;
+
+
+	// std::wstring wide_path = widen( p );
+	// WIN32_FILE_ATTRIBUTE_DATA fileData;
+	// bool res = GetFileAttributesExW( wide_path.c_str(), GetFileExInfoStandard, &fileData );
+	// if ( res )
+	// {
+	// 	if (( fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 )
+	// 		return FeVM::IsDirectory;
+	// 	else
+	// 		return FeVM::IsFile;
+	// }
+
+
+	// std::wstring wide_path = widen( p );
+	// sf::Clock c1;
+	// DWORD attributes = GetFileAttributesW( wide_path.c_str() );
+	// int us = c1.getElapsedTime().asMicroseconds();
+	// if ( attributes != INVALID_FILE_ATTRIBUTES && !( attributes & FILE_ATTRIBUTE_DIRECTORY ))
+	// {
+	// 	FeLog() << "file: " << us << "us" << std::endl;
+	// 	return FeVM::IsFile;
+	// }
+	// if ( attributes != INVALID_FILE_ATTRIBUTES && ( attributes & FILE_ATTRIBUTE_DIRECTORY ))
+	// {
+	// 	FeLog() << "dir: " << us << "us" << std::endl;
+	// 	return FeVM::IsDirectory;
+	// }
+
+
+	// sf::Clock c2;
+	// int ret = _waccess( wide_path.c_str(), F_OK );
+	// FeLog() << c2.getElapsedTime().asMicroseconds() << "us " << path << std::endl;
+	// if( ret != -1 )
+	// 	return FeVM::IsFile;
+
+	// std::wstring wide_path = widen( p );
+	// _WDIR* dir = _wopendir( wide_path.c_str() );
+	// if ( dir )
+	// {
+	// 	_wclosedir( dir );
+	// 	return FeVM::IsDirectory;
+	// }
+	// else if( _waccess( wide_path.c_str(), F_OK) != -1 )
+	// 	return FeVM::IsFile;
+
+
+	// std::wstring wide_path = widen( p );
+	// struct _stat s;
+	// int res = _wstat( wide_path.c_str(), &s );
+    // if ( res == 0 )
+    // {
+    //     if ( s.st_mode & _S_IFREG )
+    //         return FeVM::IsFile;
+    //     else if ( s.st_mode & _S_IFDIR )
+    //         return FeVM::IsDirectory;
+    // }
+
 #else
 	struct stat s;
 	if ( stat( path.c_str(), &s ) == 0 )
@@ -404,7 +464,7 @@ std::string absolute_path( const std::string &path )
 		std::string retval = buff;
 		if (( retval.size() > 0 )
 				&& ( retval[ retval.size()-1 ] != '/' )
-				&& directory_exists( retval ))
+				&& FePathCache::directory_exists( retval ))
 			retval += "/";
 
 		return retval;
@@ -422,7 +482,7 @@ bool search_for_file( const std::string &base_path,
 	std::vector<std::string> result_list;
 	std::vector<std::string> ignore_list;
 
-	if ( get_filename_from_base(
+	if ( FePathCache::get_filename_from_base(
 		result_list, ignore_list, base_path, base_name, valid_exts )  )
 	{
 		result = result_list.front();
@@ -764,7 +824,7 @@ std::string get_available_filename(
 	test_name += extension;
 
 	int i=0;
-	while ( file_exists( path + test_name ) )
+	while ( FePathCache::file_exists( path + test_name ) )
 	{
 		std::ostringstream ss;
 		ss << base << ++i;
@@ -790,7 +850,7 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 {
 	bool retval=false;
 
-	if ( !directory_exists( base ) )
+	if ( !FePathCache::directory_exists( base ) )
 	{
 #ifdef SFML_SYSTEM_WINDOWS
 		_wmkdir( widen( base ).c_str() );
@@ -800,7 +860,7 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 		retval=true;
 	}
 
-	if ( (!sub.empty()) && (!directory_exists( base + sub )) )
+	if ( (!sub.empty()) && (!FePathCache::directory_exists( base + sub )) )
 	{
 #ifdef SFML_SYSTEM_WINDOWS
 		_wmkdir( widen(base + sub).c_str() );

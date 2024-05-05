@@ -583,7 +583,10 @@ int main(int argc, char *argv[])
 			FeDebug() << "Handling command: " << FeInputMap::commandStrings[c] << std::endl;
 
 			soundsys.sound_event( c );
-			if ( feVM.handle_event( c ) )
+// sf::Clock clk;
+			bool he_result = feVM.handle_event( c );
+// FeLog() << "FIRST" << clk.getElapsedTime().asMicroseconds() << std::endl;
+			if ( he_result )
 				redraw = true;
 			else
 			{

@@ -32,6 +32,7 @@
 #include "fe_overlay.hpp"
 #include "fe_window.hpp"
 #include "fe_blend.hpp"
+#include "path_cache.hpp"
 
 #ifdef USE_LIBCURL
 #include "fe_net.hpp"
@@ -104,7 +105,7 @@ namespace
 			Sqrat::Script sc;
 			path_to_run += filename;
 
-			if ( !file_exists( path_to_run ) )
+			if ( !FePathCache::file_exists( path_to_run ) )
 				return false;
 
 			sc.CompileFile( path_to_run );
@@ -177,7 +178,7 @@ namespace
 		// if we are given a directory, simply return the contents of
 		// the directory
 		//
-		if ( directory_exists( path ) )
+		if ( FePathCache::directory_exists( path ) )
 			get_basename_from_extension( res, path, "", false );
 		else if ( is_supported_archive( path ) )
 			fe_zip_get_dir( path.c_str(), res );

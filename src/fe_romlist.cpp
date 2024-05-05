@@ -22,6 +22,9 @@
 
 #include "fe_romlist.hpp"
 #include "fe_util.hpp"
+#include "fe_settings.hpp"
+#include "path_cache.hpp"
+
 
 #include <iostream>
 #include "nowide/fstream.hpp"
@@ -253,7 +256,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	m_tags_changed=false;
 	load_name = m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + "/";
 
-	if ( directory_exists( load_name ) )
+	if ( FePathCache::directory_exists( load_name ) )
 	{
 		std::vector<std::string> temp_tags;
 		get_basename_from_extension( temp_tags, load_name, FE_FAVOURITE_FILE_EXTENSION );
@@ -854,6 +857,7 @@ bool internal_resolve_config_file(
 
 FeEmulatorInfo *FeRomList::get_emulator( const std::string & emu )
 {
+	// FeLog() << "FeRomList::get_emulator( " << emu << " )" << std::endl;
 	if ( emu.empty() )
 		return NULL;
 
@@ -869,7 +873,7 @@ FeEmulatorInfo *FeRomList::get_emulator( const std::string & emu )
 	// Emulator not loaded yet, load it now
 	//
 	std::string filename;
-	if ( internal_resolve_config_file( m_config_path, filename, FE_EMULATOR_SUBDIR, emu + FE_EMULATOR_FILE_EXTENSION ) )
+	if ( internal_resolve_config_file( m_config_path, filename, FE_EMULATOR_SUBDIR, emu + FE_EMULATOR_FILE_EXTENSION ))
 	{
 		FeEmulatorInfo new_emu( emu );
 		if ( new_emu.load_from_file( filename ) )
@@ -885,6 +889,7 @@ FeEmulatorInfo *FeRomList::get_emulator( const std::string & emu )
 
 FeEmulatorInfo *FeRomList::create_emulator( const std::string &emu, const std::string &emu_template )
 {
+	// FeLog() << "FeRomList::create_emulator( " << emu << " )" << std::endl;
 	// If an emulator with the given name already exists we return it
 	//
 	FeEmulatorInfo *tmp = get_emulator( emu );
@@ -907,7 +912,7 @@ FeEmulatorInfo *FeRomList::create_emulator( const std::string &emu, const std::s
 		if ( !new_emu.load_from_file( defaults_file ) )
 			FeLog() << "Unable to open file: " << defaults_file << std::endl;
 	}
-	else if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_EMULATOR_DEFAULT ) )
+	else if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_EMULATOR_DEFAULT ))
 	{
 		if ( !new_emu.load_from_file( defaults_file ) )
 			FeLog() << "Unable to open file: " << defaults_file << std::endl;

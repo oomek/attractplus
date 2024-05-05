@@ -29,6 +29,7 @@
 #include "zip.hpp"
 #include "image_loader.hpp"
 #include "fe_async_loader.hpp"
+#include "path_cache.hpp"
 #include <cmath>
 
 #ifndef NO_MOVIE
@@ -278,11 +279,11 @@ FeTextureContainer::~FeTextureContainer()
 	}
 #endif
 
-	if ( m_entry )
-	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		il.release_entry( &m_entry );
-	}
+	// if ( m_entry )
+	// {
+	// 	FeImageLoader &il = FeImageLoader::get_ref();
+	// 	il.release_entry( &m_entry );
+	// }
 }
 
 bool FeTextureContainer::get_visible() const
@@ -328,7 +329,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	clear();
 
-	if ( !file_exists( loaded_name ) )
+	if ( !FePathCache::file_exists( loaded_name ) )
 	{
 		clear_texture();
 		return false;
@@ -398,7 +399,7 @@ bool FeTextureContainer::try_to_load(
 
 	clear();
 
-	if ( !file_exists( loaded_name ) )
+	if ( !FePathCache::file_exists( loaded_name ) )
 	{
 		clear_texture();
 		return false;
@@ -440,6 +441,7 @@ void FeTextureContainer::on_new_selection( FeSettings *feSettings )
 {
 	if (( m_type != IsStatic ) && ( m_art_update_trigger == ToNewSelection ))
 		internal_update_selection( feSettings );
+
 }
 
 void FeTextureContainer::on_new_list( FeSettings *feSettings, bool new_display )
@@ -459,6 +461,7 @@ void FeTextureContainer::on_end_navigation( FeSettings *feSettings )
 
 void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 {
+
 	int filter_index = feSettings->get_filter_index_from_offset( m_filter_offset );
 	int rom_index = feSettings->get_rom_index( filter_index, m_index_offset );
 
@@ -562,19 +565,19 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	//
 	// We have an m_entry if the image is being loaded in the background
 	//
-	if ( m_entry )
-	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		if ( il.check_loaded( m_entry ) )
-		{
-			m_texture->update( m_entry->get_data() );
-			if ( m_mipmap ) m_texture->generateMipmap();
-			m_texture->setSmooth( m_smooth );
+	// if ( m_entry )
+	// {
+	// 	FeImageLoader &il = FeImageLoader::get_ref();
+	// 	if ( il.check_loaded( m_entry ) )
+	// 	{
+	// 		m_texture->update( m_entry->get_data() );
+	// 		if ( m_mipmap ) m_texture->generateMipmap();
+	// 		m_texture->setSmooth( m_smooth );
 
-			il.release_entry( &m_entry );
-			return true;
-		}
-	}
+	// 		il.release_entry( &m_entry );
+	// 		return true;
+	// 	}
+	// }
 
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
@@ -768,13 +771,15 @@ void FeTextureContainer::load_file( const char *n )
 {
 	std::string filename = clean_path( n );
 
+    std::replace( filename.begin(), filename.end(), '\\', '/' );
+
+	FeAsyncLoader &al = FeAsyncLoader::get_al();
+	al.release_resource( m_file_name );
+	clear();
+	clear_texture();
+
 	if ( filename.empty() )
-	{
-		clear();
-		clear_texture();
-		notify_texture_change();
 		return;
-	}
 
 	if ( is_relative_path( filename ) )
 		filename = FePresent::script_get_base_path() + filename;
@@ -831,17 +836,17 @@ void FeTextureContainer::clear()
 	// If a movie is running, close it...
 	if ( m_movie )
 	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		il.reap_video( m_movie );
+		// FeImageLoader &il = FeImageLoader::get_ref();
+		// il.reap_video( m_movie );
 		m_movie=NULL;
 	}
 #endif
 
-	if ( m_entry )
-	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		il.release_entry( &m_entry );
-	}
+	// if ( m_entry )
+	// {
+	// 	FeImageLoader &il = FeImageLoader::get_ref();
+	// 	il.release_entry( &m_entry );
+	// }
 }
 
 void FeTextureContainer::clear_texture()

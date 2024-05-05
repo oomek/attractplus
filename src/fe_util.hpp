@@ -162,10 +162,10 @@ bool process_exists( unsigned int pid );
 // Utility functions for file processing:
 //
 // return true if file exists (file or directory)
-bool file_exists( const std::string &file );
+// bool file_exists( const std::string &file );
 
 // return true if specified path is an existing directory
-bool directory_exists( const std::string &file );
+// bool directory_exists( const std::string &file );
 
 // Check if provided path exists and whether it's a file or a directory
 // Returns one of the following: IsFile, IsDirectory, IsNotFound

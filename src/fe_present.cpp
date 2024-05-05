@@ -1123,6 +1123,7 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 			// Fallthrough intended
 
 		case ToNewSelection:
+
 			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
 				(*itc)->on_new_selection( m_feSettings );
 
