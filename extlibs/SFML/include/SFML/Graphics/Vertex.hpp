@@ -31,6 +31,7 @@
 #include <SFML/Graphics/Export.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/System/Vector3.hpp>
 
 
 namespace sf
@@ -79,7 +80,7 @@ public:
     /// \param theTexCoords Vertex texture coordinates
     ///
     ////////////////////////////////////////////////////////////
-    Vertex(const Vector2f& thePosition, const Vector2f& theTexCoords);
+    Vertex(const Vector2f& thePosition, const Vector3f& theTexCoords);
 
     ////////////////////////////////////////////////////////////
     /// \brief Construct the vertex from its position, color and texture coordinates
@@ -89,14 +90,14 @@ public:
     /// \param theTexCoords Vertex texture coordinates
     ///
     ////////////////////////////////////////////////////////////
-    Vertex(const Vector2f& thePosition, const Color& theColor, const Vector2f& theTexCoords);
+    Vertex(const Vector2f& thePosition, const Color& theColor, const Vector3f& theTexCoords);
 
     ////////////////////////////////////////////////////////////
     // Member data
     ////////////////////////////////////////////////////////////
     Vector2f  position;  //!< 2D position of the vertex
     Color     color;     //!< Color of the vertex
-    Vector2f  texCoords; //!< Coordinates of the texture's pixel to map to the vertex
+    Vector3f  texCoords; //!< Coordinates of the texture's pixel to map to the vertex
 };
 
 } // namespace sf
