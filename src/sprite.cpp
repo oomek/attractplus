@@ -277,8 +277,11 @@ void FeSprite::updateGeometry()
 
 	sf::Vector2f scale = getScale();
 	sf::Vector2f sskew = m_skew;
+	sf::Vector2f spinch = m_pinch;
 	sskew.x /= scale.x;
 	sskew.y /= scale.y;
+	spinch.x /= scale.x;
+	spinch.y /= scale.y;
 
 	// if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
 	// {
@@ -348,21 +351,44 @@ void FeSprite::updateGeometry()
 	// }
 	// else
 	{
-		//
-		// If we aren't pinching the image, then we draw it on two triangles.
-		//
-		m_vertices.resize( 4 );
-		m_vertices.setPrimitiveType( sf::TrianglesStrip );
+		sf::Vector2f tl = sf::Vector2f(0.0, 0.0);
+		sf::Vector2f bl = sf::Vector2f((sskew.x + spinch.x) / bounds.width, 1.0);
+		sf::Vector2f tr = sf::Vector2f(1.0, (sskew.y + spinch.y) / bounds.height);
+		sf::Vector2f br = sf::Vector2f(1.0 + (sskew.x - spinch.x) / bounds.width, 1.0 + (sskew.y - spinch.y) / bounds.height);
+
+		float z[4] = {1.0};
+		sf::Vector2f a = bl - tr;
+		sf::Vector2f b = tl - br;
+		float cp = a.x * b.y - a.y * b.x;
+		if (cp != 0.0)
+		{
+			sf::Vector2f c = tr - br;
+			float s = (a.x * c.y - a.y * c.x) / cp;
+			if (s > 0.0 && s < 1.0)
+			{
+				float t = (b.x * c.y - b.y * c.x) / cp;
+				if (t > 0.0 && t < 1.0)
+				{
+					z[0] = s;
+					z[1] = t;
+					z[2] = 1.0 - t;
+					z[3] = 1.0 - s;
+				}
+			}
+		}
+
+		m_vertices.resize(4);
+		m_vertices.setPrimitiveType(sf::TrianglesStrip);
 
 		m_vertices[0].position = sf::Vector2f(0, 0);
-		m_vertices[1].position = sf::Vector2f(sskew.x, bounds.height);
-		m_vertices[2].position = sf::Vector2f(bounds.width, sskew.y);
-		m_vertices[3].position = sf::Vector2f(bounds.width + sskew.x, bounds.height + sskew.y);
+		m_vertices[1].position = sf::Vector2f(sskew.x + spinch.x, bounds.height);
+		m_vertices[2].position = sf::Vector2f(bounds.width, sskew.y + spinch.y);
+		m_vertices[3].position = sf::Vector2f(bounds.width + sskew.x - spinch.x, bounds.height + sskew.y - spinch.y);
 
-		m_vertices[0].texCoords = sf::Vector3f(left, top, 0.0);
-		m_vertices[1].texCoords = sf::Vector3f(left, bottom, 0.0);
-		m_vertices[2].texCoords = sf::Vector3f(right, top, 0.0);
-		m_vertices[3].texCoords = sf::Vector3f(right, bottom, 0.0);
+		m_vertices[0].texCoords = sf::Vector3f(left, top, 1.0) / z[0];
+		m_vertices[1].texCoords = sf::Vector3f(left, bottom, 1.0) / z[1];
+		m_vertices[2].texCoords = sf::Vector3f(right, top, 1.0) / z[2];
+		m_vertices[3].texCoords = sf::Vector3f(right, bottom, 1.0) / z[3];
 	}
 
 	//
