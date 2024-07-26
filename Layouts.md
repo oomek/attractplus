@@ -232,15 +232,15 @@ Examples:
 // Add a text that displays the filter name and list location
 //
 fe.add_text( "[FilterName] [[ListEntry]/[ListSize]]",
-    0, 0, 400, 20 );
+		0, 0, 400, 20 );
 
 // Add an image that will match to the first word in the
 // Manufacturer name (i.e. "Atari.png", "Nintendo.jpg")
 //
 function strip_man( ioffset )
 {
-  local m = fe.game_info(Info.Manufacturer,ioffset);
-  return split( m, " " )[0];
+	local m = fe.game_info(Info.Manufacturer,ioffset);
+	return split( m, " " )[0];
 }
 fe.add_image( "[!strip_man]", 0, 0 );
 
@@ -250,13 +250,13 @@ fe.add_image( "[!strip_man]", 0, 0 );
 //
 function well_formatted()
 {
-  local m = fe.game_info( Info.Manufacturer );
-  local y = fe.game_info( Info.Year );
+	local m = fe.game_info( Info.Manufacturer );
+	local y = fe.game_info( Info.Year );
 
-  if (( m.len() > 0 ) && ( y.len() > 0 ))
-    return "Copyright " + y + ", " + m;
+	if (( m.len() > 0 ) && ( y.len() > 0 ))
+		return "Copyright " + y + ", " + m;
 
-  return m;
+	return m;
 }
 fe.add_text( "[!well_formatted]", 0, 0 );
 ````
