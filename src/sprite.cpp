@@ -385,10 +385,15 @@ void FeSprite::updateGeometry()
 		m_vertices[2].position = sf::Vector2f(bounds.width, sskew.y + spinch.y);
 		m_vertices[3].position = sf::Vector2f(bounds.width + sskew.x - spinch.x, bounds.height + sskew.y - spinch.y);
 
-		m_vertices[0].texCoords = sf::Vector3f(left, top, 1.0) / z[0];
-		m_vertices[1].texCoords = sf::Vector3f(left, bottom, 1.0) / z[1];
-		m_vertices[2].texCoords = sf::Vector3f(right, top, 1.0) / z[2];
-		m_vertices[3].texCoords = sf::Vector3f(right, bottom, 1.0) / z[3];
+		m_vertices[0].texCoords = sf::Vector2f(left, top) / z[0];
+		m_vertices[1].texCoords = sf::Vector2f(left, bottom) / z[1];
+		m_vertices[2].texCoords = sf::Vector2f(right, top) / z[2];
+		m_vertices[3].texCoords = sf::Vector2f(right, bottom) / z[3];
+
+		m_vertices[0].texProj = sf::Vector2f(1.0, 1.0 / z[0]);
+		m_vertices[1].texProj = sf::Vector2f(1.0, 1.0 / z[1]);
+		m_vertices[2].texProj = sf::Vector2f(1.0, 1.0 / z[2]);
+		m_vertices[3].texProj = sf::Vector2f(1.0, 1.0 / z[3]);
 	}
 
 	//
