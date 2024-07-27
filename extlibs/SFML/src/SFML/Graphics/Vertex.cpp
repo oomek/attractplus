@@ -34,7 +34,8 @@ namespace sf
 Vertex::Vertex() :
 position (0, 0),
 color    (255, 255, 255),
-texCoords(0, 0, 0)
+texCoords(0, 0),
+texProj(1, 1)
 {
 }
 
@@ -43,7 +44,8 @@ texCoords(0, 0, 0)
 Vertex::Vertex(const Vector2f& thePosition) :
 position (thePosition),
 color    (255, 255, 255),
-texCoords(0, 0, 0)
+texCoords(0, 0),
+texProj(1, 1)
 {
 }
 
@@ -52,25 +54,38 @@ texCoords(0, 0, 0)
 Vertex::Vertex(const Vector2f& thePosition, const Color& theColor) :
 position (thePosition),
 color    (theColor),
-texCoords(0, 0, 0)
+texCoords(0, 0),
+texProj(1, 1)
 {
 }
 
 
 ////////////////////////////////////////////////////////////
-Vertex::Vertex(const Vector2f& thePosition, const Vector3f& theTexCoords) :
+Vertex::Vertex(const Vector2f& thePosition, const Vector2f& theTexCoords) :
 position (thePosition),
 color    (255, 255, 255),
-texCoords(theTexCoords)
+texCoords(theTexCoords),
+texProj(1, 1)
 {
 }
 
 
 ////////////////////////////////////////////////////////////
-Vertex::Vertex(const Vector2f& thePosition, const Color& theColor, const Vector3f& theTexCoords) :
+Vertex::Vertex(const Vector2f& thePosition, const Color& theColor, const Vector2f& theTexCoords) :
 position (thePosition),
 color    (theColor),
-texCoords(theTexCoords)
+texCoords(theTexCoords),
+texProj(1, 1)
+{
+}
+
+
+////////////////////////////////////////////////////////////
+Vertex::Vertex(const Vector2f& thePosition, const Color& theColor, const Vector2f& theTexCoords, const Vector2f& theTexProj) :
+position (thePosition),
+color    (theColor),
+texCoords(theTexCoords),
+texProj(theTexProj)
 {
 }
 

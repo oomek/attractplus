@@ -300,6 +300,7 @@ void RenderTarget::draw(const Vertex* vertices, std::size_t vertexCount,
                 vertex.position = states.transform * vertices[i].position;
                 vertex.color = vertices[i].color;
                 vertex.texCoords = vertices[i].texCoords;
+                vertex.texProj = vertices[i].texProj;
             }
         }
 
@@ -328,14 +329,14 @@ void RenderTarget::draw(const Vertex* vertices, std::size_t vertexCount,
             glCheck(glVertexPointer(2, GL_FLOAT, sizeof(Vertex), data + 0));
             glCheck(glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), data + 8));
             if (enableTexCoordsArray)
-                glCheck(glTexCoordPointer(3, GL_FLOAT, sizeof(Vertex), data + 12));
+                glCheck(glTexCoordPointer(4, GL_FLOAT, sizeof(Vertex), data + 12));
         }
         else if (enableTexCoordsArray && !m_cache.texCoordsArrayEnabled)
         {
             // If we enter this block, we are already using our internal vertex cache
             const char* data = reinterpret_cast<const char*>(m_cache.vertexCache);
 
-            glCheck(glTexCoordPointer(3, GL_FLOAT, sizeof(Vertex), data + 12));
+            glCheck(glTexCoordPointer(4, GL_FLOAT, sizeof(Vertex), data + 12));
         }
 
         drawPrimitives(type, 0, vertexCount);
@@ -399,7 +400,7 @@ void RenderTarget::draw(const VertexBuffer& vertexBuffer, std::size_t firstVerte
 
         glCheck(glVertexPointer(2, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void*>(0)));
         glCheck(glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Vertex), reinterpret_cast<const void*>(8)));
-        glCheck(glTexCoordPointer(3, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void*>(12)));
+        glCheck(glTexCoordPointer(4, GL_FLOAT, sizeof(Vertex), reinterpret_cast<const void*>(12)));
 
         drawPrimitives(vertexBuffer.getPrimitiveType(), firstVertex, vertexCount);
 

@@ -172,10 +172,10 @@ void Sprite::updateTexCoords()
     float top    = convertedTextureRect.top;
     float bottom = top + convertedTextureRect.height;
 
-    m_vertices[0].texCoords = Vector3f(left, top, 0);
-    m_vertices[1].texCoords = Vector3f(left, bottom, 0);
-    m_vertices[2].texCoords = Vector3f(right, top, 0);
-    m_vertices[3].texCoords = Vector3f(right, bottom, 0);
+    m_vertices[0].texCoords = Vector2f(left, top);
+    m_vertices[1].texCoords = Vector2f(left, bottom);
+    m_vertices[2].texCoords = Vector2f(right, top);
+    m_vertices[3].texCoords = Vector2f(right, bottom);
 }
 
 } // namespace sf
