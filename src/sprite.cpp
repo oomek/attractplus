@@ -60,6 +60,7 @@
 #include <SFML/OpenGL.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <array>
 #include <cmath>
 
 #ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
@@ -86,7 +87,10 @@ m_top_right( 0.f, 0.f ),
 m_bottom_left( 0.f, 0.f ),
 m_bottom_right( 0.f, 0.f ),
 m_texture_perspective( false ),
-m_perspective_coefficient( 0.f )
+m_perspective_coefficient( 0.f ),
+m_rotation_x( 0.f ),
+m_rotation_y( 0.f ),
+m_rotation_z( 0.f )
 {
 }
 
@@ -103,7 +107,10 @@ m_top_right( 0.f, 0.f ),
 m_bottom_left( 0.f, 0.f ),
 m_bottom_right( 0.f, 0.f ),
 m_texture_perspective( false ),
-m_perspective_coefficient( 0.f )
+m_perspective_coefficient( 0.f ),
+m_rotation_x( 0.f ),
+m_rotation_y( 0.f ),
+m_rotation_z( 0.f )
 {
     setTexture(texture);
 }
@@ -121,7 +128,10 @@ m_top_right( 0.f, 0.f ),
 m_bottom_left( 0.f, 0.f ),
 m_bottom_right( 0.f, 0.f ),
 m_texture_perspective( false ),
-m_perspective_coefficient( 0.f )
+m_perspective_coefficient( 0.f ),
+m_rotation_x( 0.f ),
+m_rotation_y( 0.f ),
+m_rotation_z( 0.f )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -306,6 +316,39 @@ float FeSprite::getPerspectiveCoefficient() const
 void FeSprite::setPerspectiveCoefficient( float c )
 {
 	m_perspective_coefficient = c;
+	updateGeometry();
+}
+
+float FeSprite::getRotationX() const
+{
+	return m_rotation_x;
+}
+
+void FeSprite::setRotationX( float r )
+{
+	m_rotation_x = r;
+	updateGeometry();
+}
+
+float FeSprite::getRotationY() const
+{
+	return m_rotation_y;
+}
+
+void FeSprite::setRotationY( float r )
+{
+	m_rotation_y = r;
+	updateGeometry();
+}
+
+float FeSprite::getRotationZ() const
+{
+	return m_rotation_z;
+}
+
+void FeSprite::setRotationZ( float r )
+{
+	m_rotation_z = r;
 	updateGeometry();
 }
 
