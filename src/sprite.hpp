@@ -208,8 +208,11 @@ public :
 	float getSkewY() const;
 	float getPinchX() const;
 	float getPinchY() const;
-    bool getTexturePerspective() const;
-    float getPerspectiveCoefficient() const;
+	bool getTexturePerspective() const;
+	float getPerspectiveCoefficient() const;
+	float getRotationX() const;
+	float getRotationY() const;
+	float getRotationZ() const;
 
 	void setSkewX( float x );
 	void setSkewY( float y );
@@ -217,8 +220,11 @@ public :
 	void setPinchY( float y );
 	void setScale( const sf::Vector2f &s );
 	void setCorners( float tl_x, float tl_y, float tr_x, float tr_y, float bl_x, float bl_y, float br_x, float br_y );
-    void setTexturePerspective( bool texture_perspective );
-    void setPerspectiveCoefficient( float perspective_coefficient );
+	void setTexturePerspective( bool texture_perspective );
+	void setPerspectiveCoefficient( float perspective_coefficient );
+	void setRotationX( float r );
+	void setRotationY( float r );
+	void setRotationZ( float r );
 
 	using sf::Transformable::getRotation;
 	using sf::Transformable::setRotation;
@@ -250,12 +256,15 @@ private :
 	sf::FloatRect m_textureRect;      ///< Rectangle defining the area of the source texture to display
 	sf::Vector2f m_pinch;
 	sf::Vector2f m_skew;
-    sf::Vector2f m_top_left;
-    sf::Vector2f m_top_right;
-    sf::Vector2f m_bottom_left;
-    sf::Vector2f m_bottom_right;
-    bool m_texture_perspective;
-    float m_perspective_coefficient;
+	sf::Vector2f m_top_left;
+	sf::Vector2f m_top_right;
+	sf::Vector2f m_bottom_left;
+	sf::Vector2f m_bottom_right;
+	bool m_texture_perspective;
+	float m_perspective_coefficient;
+	float m_rotation_x;
+	float m_rotation_y;
+	float m_rotation_z;
 };
 
 

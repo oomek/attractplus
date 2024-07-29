@@ -1008,9 +1008,6 @@ FeImage::FeImage( FePresentableParent &p,
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_rotation ( 0.0 ),
-	m_rotation_x ( 0.0 ),
-	m_rotation_y ( 0.0 ),
-	m_rotation_z ( 0.0 ),
 	m_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
@@ -1031,9 +1028,6 @@ FeImage::FeImage( FeImage *o )
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_rotation( o->m_rotation ),
-	m_rotation_x( o->m_rotation_x ),
-	m_rotation_y( o->m_rotation_y ),
-	m_rotation_z( o->m_rotation_z ),
 	m_origin( o->m_origin ),
 	m_anchor( o->m_anchor ),
 	m_rotation_origin( o->m_rotation_origin ),
@@ -1730,32 +1724,32 @@ void FeImage::set_corners( float tl_x, float tl_y, float tr_x, float tr_y, float
 
 float FeImage::get_rotation_x() const
 {
-	return m_rotation_x;
+	return m_sprite.getRotationX();
 }
 
 void FeImage::set_rotation_x( float r )
 {
-	m_rotation_x = r;
+	m_sprite.setRotationX( r );
 }
 
 float FeImage::get_rotation_y() const
 {
-	return m_rotation_y;
+	return m_sprite.getRotationY();
 }
 
 void FeImage::set_rotation_y( float r )
 {
-	m_rotation_y = r;
+	m_sprite.setRotationY( r );
 }
 
 float FeImage::get_rotation_z() const
 {
-	return m_rotation_z;
+	return m_sprite.getRotationZ();
 }
 
 void FeImage::set_rotation_z( float r )
 {
-	m_rotation_z = r;
+	m_sprite.setRotationZ( r );
 }
 
 bool FeImage::get_texture_perspective() const

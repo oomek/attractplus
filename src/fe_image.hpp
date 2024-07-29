@@ -98,18 +98,6 @@ public:
 	virtual void set_redraw( bool );
 	virtual bool get_redraw() const;
 
-	// virtual void set_perspective( float );
-	// virtual float get_perspective() const;
-
-	// virtual void set_rotation_x( float );
-	// virtual float get_rotation_x() const;
-
-	// virtual void set_rotation_y( float );
-	// virtual float get_rotation_y() const;
-
-	// virtual void set_rotation_z( float );
-	// virtual float get_rotation_z() const;
-
 	virtual float get_sample_aspect_ratio() const;
 
 	// function for use with surface objects
@@ -428,9 +416,6 @@ protected:
 	sf::Vector2f m_rotation_origin;
 	sf::Vector2f m_anchor;
 	float m_rotation;
-	float m_rotation_x;
-	float m_rotation_y;
-	float m_rotation_z;
 	FeImage::Alignment m_anchor_type;
 	FeImage::Alignment m_rotation_origin_type;
 	FeBlend::Mode m_blend_mode;
