@@ -1008,6 +1008,9 @@ FeImage::FeImage( FePresentableParent &p,
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_rotation ( 0.0 ),
+	m_rotation_x ( 0.0 ),
+	m_rotation_y ( 0.0 ),
+	m_rotation_z ( 0.0 ),
 	m_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
@@ -1028,6 +1031,9 @@ FeImage::FeImage( FeImage *o )
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_rotation( o->m_rotation ),
+	m_rotation_x( o->m_rotation_x ),
+	m_rotation_y( o->m_rotation_y ),
+	m_rotation_z( o->m_rotation_z ),
 	m_origin( o->m_origin ),
 	m_anchor( o->m_anchor ),
 	m_rotation_origin( o->m_rotation_origin ),
@@ -1715,6 +1721,61 @@ int FeImage::get_blend_mode() const
 void FeImage::set_blend_mode( int b )
 {
 	m_blend_mode = (FeBlend::Mode)b;
+}
+
+void FeImage::set_corners( float tl_x, float tl_y, float tr_x, float tr_y, float bl_x, float bl_y, float br_x, float br_y )
+{
+	m_sprite.setCorners( tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y );
+}
+
+float FeImage::get_rotation_x() const
+{
+	return m_rotation_x;
+}
+
+void FeImage::set_rotation_x( float r )
+{
+	m_rotation_x = r;
+}
+
+float FeImage::get_rotation_y() const
+{
+	return m_rotation_y;
+}
+
+void FeImage::set_rotation_y( float r )
+{
+	m_rotation_y = r;
+}
+
+float FeImage::get_rotation_z() const
+{
+	return m_rotation_z;
+}
+
+void FeImage::set_rotation_z( float r )
+{
+	m_rotation_z = r;
+}
+
+bool FeImage::get_texture_perspective() const
+{
+	return m_sprite.getTexturePerspective();
+}
+
+void FeImage::set_texture_perspective( bool p )
+{
+	m_sprite.setTexturePerspective( p );
+}
+
+float FeImage::get_perspective_coefficient() const
+{
+	return m_sprite.getPerspectiveCoefficient();
+}
+
+void FeImage::set_perspective_coefficient( float p )
+{
+	m_sprite.setPerspectiveCoefficient( p );
 }
 
 FeImage *FeImage::add_image(const char *n, float x, float y, float w, float h)
