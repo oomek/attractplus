@@ -98,6 +98,18 @@ public:
 	virtual void set_redraw( bool );
 	virtual bool get_redraw() const;
 
+	// virtual void set_perspective( float );
+	// virtual float get_perspective() const;
+
+	// virtual void set_rotation_x( float );
+	// virtual float get_rotation_x() const;
+
+	// virtual void set_rotation_y( float );
+	// virtual float get_rotation_y() const;
+
+	// virtual void set_rotation_z( float );
+	// virtual float get_rotation_z() const;
+
 	virtual float get_sample_aspect_ratio() const;
 
 	// function for use with surface objects
@@ -346,6 +358,11 @@ public:
 	bool get_clear() const;
 	bool get_repeat() const;
 	bool get_redraw() const;
+	bool get_texture_perspective() const;
+	float get_perspective_coefficient() const;
+	float get_rotation_x() const;
+	float get_rotation_y() const;
+	float get_rotation_z() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
@@ -372,6 +389,12 @@ public:
 	void set_repeat( bool );
 	void set_redraw( bool );
 	void set_blend_mode( int b );
+	void set_corners( float, float, float, float, float, float, float, float );
+	void set_texture_perspective( bool );
+	void set_perspective_coefficient( float );
+	void set_rotation_x( float );
+	void set_rotation_y( float );
+	void set_rotation_z( float );
 
 	void transition_swap( FeImage * );
 
@@ -405,6 +428,9 @@ protected:
 	sf::Vector2f m_rotation_origin;
 	sf::Vector2f m_anchor;
 	float m_rotation;
+	float m_rotation_x;
+	float m_rotation_y;
+	float m_rotation_z;
 	FeImage::Alignment m_anchor_type;
 	FeImage::Alignment m_rotation_origin_type;
 	FeBlend::Mode m_blend_mode;

@@ -25,27 +25,34 @@
 
 namespace
 {
+	const char *DEFAULT_SHADER_GLSL_ALPHA = \
+		"uniform sampler2D texture;" \
+		"void main(){" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
+		"gl_FragColor = gl_Color * pixel;}";
+
 	const char *DEFAULT_SHADER_GLSL_MULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
-		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_FragColor.w;}";
 
 	const char *DEFAULT_SHADER_GLSL_OVERLAY = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
-		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor = mix(vec4(0.5,0.5,0.5,1.0), gl_FragColor, gl_FragColor.w);}";
 
 	const char *DEFAULT_SHADER_GLSL_PREMULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
-		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_Color.w;}";
 
+	sf::Shader *default_shader_alpha=NULL;
 	sf::Shader *default_shader_multiplied=NULL;
 	sf::Shader *default_shader_overlay=NULL;
 	sf::Shader *default_shader_premultiplied=NULL;
@@ -90,7 +97,12 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 		case FeBlend::Add:
 		case FeBlend::Subtract:
 		case FeBlend::None:
-			return NULL;
+			if ( !default_shader_alpha )
+			{
+				default_shader_alpha = new sf::Shader();
+				default_shader_alpha->loadFromMemory( DEFAULT_SHADER_GLSL_ALPHA, sf::Shader::Fragment );
+			}
+			return default_shader_alpha;
 		case FeBlend::Screen:
 		case FeBlend::Multiply:
 			if ( !default_shader_multiplied )
@@ -120,6 +132,11 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 
 void FeBlend::clear_default_shaders()
 {
+	if ( default_shader_alpha )
+	{
+		delete default_shader_alpha;
+		default_shader_alpha = NULL;
+	}
 	if ( default_shader_multiplied )
 	{
 		delete default_shader_multiplied;

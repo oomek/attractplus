@@ -80,7 +80,13 @@ m_vertices( sf::TrianglesStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_top_left( 0.f, 0.f ),
+m_top_right( 0.f, 0.f ),
+m_bottom_left( 0.f, 0.f ),
+m_bottom_right( 0.f, 0.f ),
+m_texture_perspective( false ),
+m_perspective_coefficient( 0.f )
 {
 }
 
@@ -91,7 +97,13 @@ m_vertices( sf::TrianglesStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_top_left( 0.f, 0.f ),
+m_top_right( 0.f, 0.f ),
+m_bottom_left( 0.f, 0.f ),
+m_bottom_right( 0.f, 0.f ),
+m_texture_perspective( false ),
+m_perspective_coefficient( 0.f )
 {
     setTexture(texture);
 }
@@ -103,7 +115,13 @@ m_vertices( sf::TrianglesStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_top_left( 0.f, 0.f ),
+m_top_right( 0.f, 0.f ),
+m_bottom_left( 0.f, 0.f ),
+m_bottom_right( 0.f, 0.f ),
+m_texture_perspective( false ),
+m_perspective_coefficient( 0.f )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -260,6 +278,37 @@ void FeSprite::setScale( const sf::Vector2f &s )
 	updateGeometry();
 }
 
+void FeSprite::setCorners( float tl_x, float tl_y, float tr_x, float tr_y, float bl_x, float bl_y, float br_x, float br_y )
+{
+	m_top_left = sf::Vector2f(tl_x, tl_y);
+	m_top_right = sf::Vector2f(tr_x, tr_y);
+	m_bottom_left = sf::Vector2f(bl_x, bl_y);
+	m_bottom_right = sf::Vector2f(br_x, br_y);
+	updateGeometry();
+}
+
+bool FeSprite::getTexturePerspective() const
+{
+	return m_texture_perspective;
+}
+
+void FeSprite::setTexturePerspective( bool texture_perspective )
+{
+	m_texture_perspective = texture_perspective;
+	updateGeometry();
+}
+
+float FeSprite::getPerspectiveCoefficient() const
+{
+	return m_perspective_coefficient;
+}
+
+void FeSprite::setPerspectiveCoefficient( float c )
+{
+	m_perspective_coefficient = c;
+	updateGeometry();
+}
+
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
 {
@@ -276,130 +325,142 @@ void FeSprite::updateGeometry()
 	sf::Color vert_colour = m_vertices[0].color;
 
 	sf::Vector2f scale = getScale();
-	sf::Vector2f sskew = m_skew;
-	sf::Vector2f spinch = m_pinch;
-	sskew.x /= scale.x;
-	sskew.y /= scale.y;
-	spinch.x /= scale.x;
-	spinch.y /= scale.y;
+    sf::Vector2f sskew(m_skew.x / scale.x, m_skew.y / scale.y);
+    sf::Vector2f spinch(m_pinch.x / scale.x, m_pinch.y / scale.y);
 
-	// if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
-	// {
-	// 	sf::Vector2f spinch = m_pinch;
-	// 	spinch.x /= scale.x;
-	// 	spinch.y /= scale.y;
-
-	// 	//
-	// 	// If we are pinching the image, then we slice it up into
-	// 	// a triangle strip going from left to right across the image.
-	// 	// This gives a smooth transition for the image texture
-	// 	// across the whole surface.  There is probably a better way
-	// 	// to do this...
-	// 	//
-
-	// 	// SLICES needs to be an odd number... We draw our surface using
-	// 	// SLICES+3 vertices
-	// 	//
-	// 	const int SLICES = 253;
-
-	// 	float bws = (float)bounds.width / SLICES;
-	// 	float pys = (float)spinch.y / SLICES;
-	// 	float sys = (float)sskew.y / SLICES;
-	// 	float bpxs = bws - (float)spinch.x * 2 / SLICES;
-
-	// 	m_vertices.resize( SLICES + 3 );
-	// 	m_vertices.setPrimitiveType( sf::TrianglesStrip );
-
-	// 	//
-	// 	// First do the vertex coordinates
-	// 	//
-	// 	m_vertices[0].position = sf::Vector2f(0, 0 );
-	// 	m_vertices[1].position = sf::Vector2f(sskew.x + spinch.x, bounds.height );
-
-	// 	for ( int i=1; i<SLICES; i++ )
-	// 	{
-	// 		if ( i%2 )
-	// 		{
-	// 			m_vertices[1 + i].position = sf::Vector2f(
-	// 					bws * i, (pys + sys) * i );
-	// 		}
-	// 		else
-	// 		{
-	// 			m_vertices[1 + i].position = sf::Vector2f(
-	// 					sskew.x + spinch.x + bpxs * i, bounds.height - ( pys - sys ) * i );
-	// 		}
-	// 	}
-	// 	m_vertices[SLICES + 1].position = sf::Vector2f( bounds.width, spinch.y + sskew.y );
-	// 	m_vertices[SLICES + 2].position = sf::Vector2f(
-	// 					sskew.x + bounds.width - spinch.x, bounds.height - spinch.y + sskew.y );
-
-	// 	//
-	// 	// Now do the texture coordinates
-	// 	//
-	// 	float tws = m_textureRect.width / (float)SLICES;
-
-	// 	m_vertices[0].texCoords = sf::Vector2f(left, top );
-	// 	m_vertices[1].texCoords = sf::Vector2f(left, bottom );
-
-	// 	for ( int i=1; i<SLICES; i++ )
-	// 		m_vertices[1 + i].texCoords = sf::Vector2f(
-	// 					left + tws * i,
-	// 					( i % 2 ) ? top : bottom );
-
-	// 	m_vertices[SLICES + 1].texCoords = sf::Vector2f(right, top );
-	// 	m_vertices[SLICES + 2].texCoords = sf::Vector2f(right, bottom );
-	// }
-	// else
+	//
+	// Barycentric coordinates texture mapping
+	// by Chadnaut
+	//
+	if ( m_texture_perspective )
 	{
-		sf::Vector2f tl = sf::Vector2f(0.0, 0.0);
-		sf::Vector2f bl = sf::Vector2f((sskew.x + spinch.x) / bounds.width, 1.0);
-		sf::Vector2f tr = sf::Vector2f(1.0, (sskew.y + spinch.y) / bounds.height);
-		sf::Vector2f br = sf::Vector2f(1.0 + (sskew.x - spinch.x) / bounds.width, 1.0 + (sskew.y - spinch.y) / bounds.height);
+		sf::Vector2f tl(0.0f, 0.0f);
+		sf::Vector2f bl((sskew.x + spinch.x) / bounds.width, 1.0f);
+		sf::Vector2f tr(1.0f, (sskew.y + spinch.y) / bounds.height);
+		sf::Vector2f br(1.0f + (sskew.x - spinch.x) / bounds.width, 1.0f + (sskew.y - spinch.y) / bounds.height);
 
-		float z[4] = {1.0};
+		std::array<float, 4> z = {1.0f, 1.0f, 1.0f, 1.0f};
 		sf::Vector2f a = bl - tr;
 		sf::Vector2f b = tl - br;
 		float cp = a.x * b.y - a.y * b.x;
-		if (cp != 0.0)
+		if (cp != 0.0f)
 		{
 			sf::Vector2f c = tr - br;
 			float s = (a.x * c.y - a.y * c.x) / cp;
-			if (s > 0.0 && s < 1.0)
-			{
-				float t = (b.x * c.y - b.y * c.x) / cp;
-				if (t > 0.0 && t < 1.0)
-				{
-					z[0] = s;
-					z[1] = t;
-					z[2] = 1.0 - t;
-					z[3] = 1.0 - s;
-				}
-			}
+			float t = (b.x * c.y - b.y * c.x) / cp;
+			if (s > 0.0f && s < 1.0f && t > 0.0f && t < 1.0f)
+				z = {s, t, 1.0f - t, 1.0f - s};
 		}
 
 		m_vertices.resize(4);
 		m_vertices.setPrimitiveType(sf::TrianglesStrip);
 
-		m_vertices[0].position = sf::Vector2f(0, 0);
-		m_vertices[1].position = sf::Vector2f(sskew.x + spinch.x, bounds.height);
-		m_vertices[2].position = sf::Vector2f(bounds.width, sskew.y + spinch.y);
-		m_vertices[3].position = sf::Vector2f(bounds.width + sskew.x - spinch.x, bounds.height + sskew.y - spinch.y);
+		std::array<sf::Vector2f, 4> positions =
+		{
+			sf::Vector2f(0, 0),
+			sf::Vector2f(sskew.x + spinch.x, bounds.height),
+			sf::Vector2f(bounds.width, sskew.y + spinch.y),
+			sf::Vector2f(bounds.width + sskew.x - spinch.x, bounds.height + sskew.y - spinch.y)
+		};
 
-		m_vertices[0].texCoords = sf::Vector2f(left, top) / z[0];
-		m_vertices[1].texCoords = sf::Vector2f(left, bottom) / z[1];
-		m_vertices[2].texCoords = sf::Vector2f(right, top) / z[2];
-		m_vertices[3].texCoords = sf::Vector2f(right, bottom) / z[3];
+		std::array<sf::Vector2f, 4> texCoords =
+		{
+			sf::Vector2f(left, top),
+			sf::Vector2f(left, bottom),
+			sf::Vector2f(right, top),
+			sf::Vector2f(right, bottom)
+		};
 
-		m_vertices[0].texProj = sf::Vector2f(1.0, 1.0 / z[0]);
-		m_vertices[1].texProj = sf::Vector2f(1.0, 1.0 / z[1]);
-		m_vertices[2].texProj = sf::Vector2f(1.0, 1.0 / z[2]);
-		m_vertices[3].texProj = sf::Vector2f(1.0, 1.0 / z[3]);
+		for (int i = 0; i < 4; ++i)
+		{
+			m_vertices[i].position = positions[i];
+			m_vertices[i].texCoords = texCoords[i] / z[i];
+			m_vertices[i].texProj = sf::Vector2f(1.0f, 1.0f / z[i]);
+			m_vertices[i].color = m_vertices[0].color;
+		}
 	}
 
 	//
-	// Finally, update the vertex colour
+	// Legacy tessellated texture mapping
 	//
-	for ( unsigned int i=0; i< m_vertices.getVertexCount(); i++ )
-		m_vertices[i].color = vert_colour;
+	else if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
+	{
+		//
+		// If we are pinching the image, then we slice it up into
+		// a triangle strip going from left to right across the image.
+		// This gives a smooth transition for the image texture
+		// across the whole surface.  There is probably a better way
+		// to do this...
+		//
 
+		// SLICES needs to be an odd number... We draw our surface using
+		// SLICES+3 vertices
+		//
+		const int SLICES = 253;
+
+		float bws = (float)bounds.width / SLICES;
+		float pys = (float)spinch.y / SLICES;
+		float sys = (float)sskew.y / SLICES;
+		float bpxs = bws - (float)spinch.x * 2 / SLICES;
+
+		m_vertices.resize( SLICES + 3 );
+		m_vertices.setPrimitiveType( sf::TrianglesStrip );
+
+		//
+		// First do the vertex coordinates
+		//
+		m_vertices[0].position = sf::Vector2f(0, 0 );
+		m_vertices[1].position = sf::Vector2f(sskew.x + spinch.x, bounds.height );
+
+		for ( int i=1; i<SLICES; i++ )
+		{
+			if ( i%2 )
+			{
+				m_vertices[1 + i].position = sf::Vector2f(
+						bws * i, (pys + sys) * i );
+			}
+			else
+			{
+				m_vertices[1 + i].position = sf::Vector2f(
+						sskew.x + spinch.x + bpxs * i, bounds.height - ( pys - sys ) * i );
+			}
+		}
+		m_vertices[SLICES + 1].position = sf::Vector2f( bounds.width, spinch.y + sskew.y );
+		m_vertices[SLICES + 2].position = sf::Vector2f(
+						sskew.x + bounds.width - spinch.x, bounds.height - spinch.y + sskew.y );
+
+		//
+		// Now do the texture coordinates
+		//
+		float tws = m_textureRect.width / (float)SLICES;
+
+		m_vertices[0].texCoords = sf::Vector2f(left, top );
+		m_vertices[1].texCoords = sf::Vector2f(left, bottom );
+
+		for ( int i=1; i<SLICES; i++ )
+			m_vertices[1 + i].texCoords = sf::Vector2f(
+						left + tws * i,
+						( i % 2 ) ? top : bottom );
+
+		m_vertices[SLICES + 1].texCoords = sf::Vector2f(right, top );
+		m_vertices[SLICES + 2].texCoords = sf::Vector2f(right, bottom );
+	}
+	else
+	{
+		//
+		// If we aren't pinching the image, then we draw it on two triangles.
+		//
+		m_vertices.resize( 4 );
+		m_vertices.setPrimitiveType( sf::TrianglesStrip );
+
+		m_vertices[0].position = sf::Vector2f(0, 0);
+		m_vertices[1].position = sf::Vector2f(sskew.x, bounds.height);
+		m_vertices[2].position = sf::Vector2f(bounds.width, sskew.y );
+		m_vertices[3].position = sf::Vector2f(bounds.width + sskew.x, bounds.height + sskew.y);
+
+		m_vertices[0].texCoords = sf::Vector2f(left, top);
+		m_vertices[1].texCoords = sf::Vector2f(left, bottom);
+		m_vertices[2].texCoords = sf::Vector2f(right, top);
+		m_vertices[3].texCoords = sf::Vector2f(right, bottom);
+	}
 }
