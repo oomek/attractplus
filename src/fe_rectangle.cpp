@@ -381,7 +381,7 @@ void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) cons
 			states.shader = sh;
 	}
 	else
-		states.shader = FeBlend::get_default_shader( m_blend_mode );
+		states.shader = FeBlend::get_default_shader_rectangle( m_blend_mode );
 
 	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
 
