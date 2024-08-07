@@ -42,6 +42,7 @@ public:
 
 	static sf::BlendMode get_blend_mode( int blend_mode );
 	static sf::Shader* get_default_shader( int blend_mode );
+	static sf::Shader* get_default_shader_rectangle( int blend_mode );
 
 	static void clear_default_shaders();
 };
