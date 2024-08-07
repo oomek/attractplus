@@ -92,6 +92,8 @@ m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
 m_rotation_z( 0.f )
 {
+	updateCorners();
+	updateGeometry();
 }
 
 
@@ -113,6 +115,8 @@ m_rotation_y( 0.f ),
 m_rotation_z( 0.f )
 {
     setTexture(texture);
+	updateCorners();
+	updateGeometry();
 }
 
 
@@ -135,6 +139,8 @@ m_rotation_z( 0.f )
 {
     setTexture(texture);
     setTextureRect(rectangle);
+	updateCorners();
+	updateGeometry();
 }
 
 
@@ -147,6 +153,8 @@ void FeSprite::setTexture(const sf::Texture& texture, bool resetRect)
 
     // Assign the new texture
     m_texture = &texture;
+	updateCorners();
+	updateGeometry();
 }
 
 
@@ -156,6 +164,7 @@ void FeSprite::setTextureRect(const sf::FloatRect& rectangle)
     if (rectangle != m_textureRect)
     {
         m_textureRect = rectangle;
+        updateCorners();
         updateGeometry();
     }
 }
@@ -164,9 +173,11 @@ void FeSprite::setTextureRect(const sf::FloatRect& rectangle)
 ////////////////////////////////////////////////////////////
 void FeSprite::setColor(const sf::Color& color)
 {
-    // Update the vertices' color
-    for ( unsigned int i=0; i < m_vertices.getVertexCount(); i++ )
-		m_vertices[i].color = color;
+	if ( color != m_vertices[0].color )
+	{
+		m_vertices[0].color = color;
+		updateGeometry();
+	}
 }
 
 
@@ -251,6 +262,7 @@ void FeSprite::setSkewX( float x )
 	if ( x != m_skew.x )
 	{
 		m_skew.x = x;
+		updateCorners();
 		updateGeometry();
 	}
 }
@@ -260,6 +272,7 @@ void FeSprite::setSkewY( float y )
 	if ( y != m_skew.y )
 	{
 		m_skew.y = y;
+		updateCorners();
 		updateGeometry();
 	}
 }
@@ -269,6 +282,7 @@ void FeSprite::setPinchX( float x )
 	if ( x != m_pinch.x )
 	{
 		m_pinch.x = x;
+		updateCorners();
 		updateGeometry();
 	}
 }
@@ -278,6 +292,7 @@ void FeSprite::setPinchY( float y )
 	if ( y != m_pinch.y )
 	{
 		m_pinch.y = y;
+		updateCorners();
 		updateGeometry();
 	}
 }
@@ -290,11 +305,26 @@ void FeSprite::setScale( const sf::Vector2f &s )
 
 void FeSprite::setCorners( float tl_x, float tl_y, float tr_x, float tr_y, float bl_x, float bl_y, float br_x, float br_y )
 {
+	m_texture_perspective = true;
+	sf::IntRect bounds = getLocalBounds();
 	m_top_left = sf::Vector2f(tl_x, tl_y);
-	m_top_right = sf::Vector2f(tr_x, tr_y);
-	m_bottom_left = sf::Vector2f(bl_x, bl_y);
-	m_bottom_right = sf::Vector2f(br_x, br_y);
+	m_top_right = sf::Vector2f(tr_x + bounds.width, tr_y);
+	m_bottom_left = sf::Vector2f(bl_x, bl_y + bounds.height);
+	m_bottom_right = sf::Vector2f(br_x + bounds.width, br_y + bounds.height);
 	updateGeometry();
+}
+
+void FeSprite::updateCorners()
+{
+	sf::Vector2f scale = getScale();
+    sf::Vector2f sskew(m_skew.x / scale.x, m_skew.y / scale.y);
+    sf::Vector2f spinch(m_pinch.x / scale.x, m_pinch.y / scale.y);
+
+	sf::IntRect bounds = getLocalBounds();
+	m_top_left = sf::Vector2f(0, 0);
+	m_bottom_left = sf::Vector2f(sskew.x + spinch.x, bounds.height);
+	m_top_right = sf::Vector2f(bounds.width, sskew.y + spinch.y);
+	m_bottom_right = sf::Vector2f(bounds.width + sskew.x - spinch.x, bounds.height + sskew.y - spinch.y);
 }
 
 bool FeSprite::getTexturePerspective() const
@@ -365,7 +395,6 @@ void FeSprite::updateGeometry()
 	float right  = left + m_textureRect.width;
 	float top    = m_textureRect.top;
 	float bottom = top + m_textureRect.height;
-	sf::Color vert_colour = m_vertices[0].color;
 
 	sf::Vector2f scale = getScale();
     sf::Vector2f sskew(m_skew.x / scale.x, m_skew.y / scale.y);
@@ -377,10 +406,10 @@ void FeSprite::updateGeometry()
 	//
 	if ( m_texture_perspective )
 	{
-		sf::Vector2f tl(0.0f, 0.0f);
-		sf::Vector2f bl((sskew.x + spinch.x) / bounds.width, 1.0f);
-		sf::Vector2f tr(1.0f, (sskew.y + spinch.y) / bounds.height);
-		sf::Vector2f br(1.0f + (sskew.x - spinch.x) / bounds.width, 1.0f + (sskew.y - spinch.y) / bounds.height);
+		sf::Vector2f tl(m_top_left.x / bounds.width, m_top_left.y / bounds.height);
+		sf::Vector2f bl(m_bottom_left.x / bounds.width, m_bottom_left.y / bounds.height);
+		sf::Vector2f tr(m_top_right.x / bounds.width, m_top_right.y / bounds.height);
+		sf::Vector2f br(m_bottom_right.x / bounds.width, m_bottom_right.y / bounds.height);
 
 		std::array<float, 4> z = {1.0f, 1.0f, 1.0f, 1.0f};
 		sf::Vector2f a = bl - tr;
@@ -398,29 +427,20 @@ void FeSprite::updateGeometry()
 		m_vertices.resize(4);
 		m_vertices.setPrimitiveType(sf::TrianglesStrip);
 
-		std::array<sf::Vector2f, 4> positions =
-		{
-			sf::Vector2f(0, 0),
-			sf::Vector2f(sskew.x + spinch.x, bounds.height),
-			sf::Vector2f(bounds.width, sskew.y + spinch.y),
-			sf::Vector2f(bounds.width + sskew.x - spinch.x, bounds.height + sskew.y - spinch.y)
-		};
+		m_vertices[0].position = m_top_left;
+		m_vertices[1].position = m_bottom_left;
+		m_vertices[2].position = m_top_right;
+		m_vertices[3].position = m_bottom_right;
 
-		std::array<sf::Vector2f, 4> texCoords =
-		{
-			sf::Vector2f(left, top),
-			sf::Vector2f(left, bottom),
-			sf::Vector2f(right, top),
-			sf::Vector2f(right, bottom)
-		};
+		m_vertices[0].texCoords = sf::Vector2f(left, top) / z[0];
+		m_vertices[1].texCoords = sf::Vector2f(left, bottom) / z[1];
+		m_vertices[2].texCoords = sf::Vector2f(right, top) / z[2];
+		m_vertices[3].texCoords = sf::Vector2f(right, bottom) / z[3];
 
-		for (int i = 0; i < 4; ++i)
-		{
-			m_vertices[i].position = positions[i];
-			m_vertices[i].texCoords = texCoords[i] / z[i];
-			m_vertices[i].texProj = sf::Vector2f(1.0f, 1.0f / z[i]);
-			m_vertices[i].color = m_vertices[0].color;
-		}
+		m_vertices[0].texProj = sf::Vector2f(1.0f, 1.0f / z[0]);
+		m_vertices[1].texProj = sf::Vector2f(1.0f, 1.0f / z[1]);
+		m_vertices[2].texProj = sf::Vector2f(1.0f, 1.0f / z[2]);
+		m_vertices[3].texProj = sf::Vector2f(1.0f, 1.0f / z[3]);
 	}
 
 	//
@@ -496,14 +516,25 @@ void FeSprite::updateGeometry()
 		m_vertices.resize( 4 );
 		m_vertices.setPrimitiveType( sf::TrianglesStrip );
 
-		m_vertices[0].position = sf::Vector2f(0, 0);
-		m_vertices[1].position = sf::Vector2f(sskew.x, bounds.height);
-		m_vertices[2].position = sf::Vector2f(bounds.width, sskew.y );
-		m_vertices[3].position = sf::Vector2f(bounds.width + sskew.x, bounds.height + sskew.y);
+		m_vertices[0].position = m_top_left;
+		m_vertices[1].position = m_bottom_left;
+		m_vertices[2].position = m_top_right;
+		m_vertices[3].position = m_bottom_right;
 
 		m_vertices[0].texCoords = sf::Vector2f(left, top);
 		m_vertices[1].texCoords = sf::Vector2f(left, bottom);
 		m_vertices[2].texCoords = sf::Vector2f(right, top);
 		m_vertices[3].texCoords = sf::Vector2f(right, bottom);
+
+		m_vertices[0].texProj = sf::Vector2f(1.0f, 1.0f);
+		m_vertices[1].texProj = sf::Vector2f(1.0f, 1.0f);
+		m_vertices[2].texProj = sf::Vector2f(1.0f, 1.0f);
+		m_vertices[3].texProj = sf::Vector2f(1.0f, 1.0f);
 	}
+
+	//
+	// Finally, update the vertex colour
+	//
+	for ( unsigned int i=1; i< m_vertices.getVertexCount(); i++ )
+		m_vertices[i].color = m_vertices[0].color;
 }
