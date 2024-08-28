@@ -950,14 +950,9 @@ int main(int argc, char *argv[])
 				int t = move_timer.getElapsedTime().asMilliseconds();
 				if (( t > TRIG_CHANGE_MS ) && ( t - move_last_triggered > feSettings.selection_speed() ))
 				{
-					if (( move_triggered == FeInputMap::LAST_COMMAND )
-						|| feVM.script_handle_event( move_triggered ))
+					if (( move_triggered != FeInputMap::LAST_COMMAND ))
 					{
 						redraw=true;
-						move_triggered = FeInputMap::LAST_COMMAND;
-					}
-					else
-					{
 						move_last_triggered = t;
 						int step = 1;
 
@@ -1039,6 +1034,10 @@ int main(int argc, char *argv[])
 
 							redraw=true;
 						}
+					}
+					else
+					{
+						redraw=true;
 					}
 				}
 			}
