@@ -789,7 +789,7 @@ Parameters:
      to any combination of none or more of the following (i.e. `Art.ImageOnly
      | Art.FullList`):
       - `Art.Default` - return single match, video or image
-      - `Art.ImageOnly` - Override Art.Default, only return an image match (no
+      - `Art.ImagesOnly` - Override Art.Default, only return an image match (no
         video)
       - `Art.FullList` - Return a full list of the matches made (if multiples
         available).  Names are returned in a single string, semicolon separated
