@@ -451,6 +451,7 @@ void FeText::set_charsize(int s)
 	if ( s != m_user_charsize )
 	{
 		m_user_charsize = s;
+		update_font_size();
 		FePresent::script_do_update( this );
 	}
 }
