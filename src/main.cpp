@@ -953,8 +953,19 @@ int main(int argc, char *argv[])
 					if (( move_triggered == FeInputMap::LAST_COMMAND )
 						|| feVM.script_handle_event( move_triggered ))
 					{
-						redraw=true;
+						//
+						// If we are ending a "repeatable" input (prev/next game etc) or a UI input
+						// that maps to a repeatable input (i.e. "Up"->"prev game") by the script event
+						// returning true then we trigger the "End Navigation" transition now
+						//
+						if ( move_triggered != FeInputMap::LAST_COMMAND )
+							feVM.on_end_navigation();
+
+						move_state = FeInputMap::LAST_COMMAND;
 						move_triggered = FeInputMap::LAST_COMMAND;
+						move_last_triggered = 0;
+
+						redraw=true;
 					}
 					else
 					{
@@ -1034,9 +1045,7 @@ int main(int argc, char *argv[])
 
 						if ( step != 0 )
 						{
-							if ( !feVM.script_handle_event( move_triggered ) )
-								feVM.change_selection( step, false );
-
+							feVM.change_selection( step, false );
 							redraw=true;
 						}
 					}
