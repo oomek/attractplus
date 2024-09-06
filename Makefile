@@ -277,7 +277,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
   LIBS += -ldl -lGL -lpthread
  endif
 else
- LIBS += -lopengl32
+ LIBS += -lopengl32 -lgdi32
 endif
 
 
