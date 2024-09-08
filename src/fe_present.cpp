@@ -878,7 +878,7 @@ int FePresent::get_current_filter_size() const
 
 bool FePresent::get_clones_list_showing() const
 {
-	if ( m_feSettings->get_clone_index() > 0 )
+	if ( m_feSettings->get_clone_index() >= 0 )
 		return true;
 	else
 		return false;
