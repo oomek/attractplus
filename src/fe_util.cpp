@@ -80,8 +80,8 @@
  #endif
 #endif
 
-namespace {
-
+namespace
+{
 	void str_from_c( std::string &s, const char *c )
 	{
 		if ( c )
@@ -93,33 +93,6 @@ namespace {
 		if ( c )
 			s += c;
 	}
-
-	std::string narrow( const std::basic_string<wchar_t> &s )
-	{
-		try
-		{
-			return nowide::narrow( s );
-		}
-		catch ( ... )
-		{
-			FeLog() << "Error converting string to UTF-8."<< std::endl;
-			return "";
-		}
-	}
-
-	std::basic_string<wchar_t> widen( const std::string &s )
-	{
-		try
-		{
-			return nowide::widen( s );
-		}
-		catch ( ... )
-		{
-			FeLog() << "Error converting string from UTF-8: " << s << std::endl;
-			return L"";
-		}
-	}
-
 
 #if defined(SFML_SYSTEM_WINDOWS)
 
@@ -149,6 +122,35 @@ namespace {
 #endif
 
 } // end namespace
+
+namespace FeUtil
+{
+	std::string narrow( const std::basic_string<wchar_t> &s )
+	{
+		try
+		{
+			return nowide::narrow( s );
+		}
+		catch ( ... )
+		{
+			FeLog() << "Error converting string to UTF-8."<< std::endl;
+			return "";
+		}
+	}
+
+	std::basic_string<wchar_t> widen( const std::string &s )
+	{
+		try
+		{
+			return nowide::widen( s );
+		}
+		catch ( ... )
+		{
+			FeLog() << "Error converting string from UTF-8: " << s << std::endl;
+			return L"";
+		}
+	}
+}
 
 //
 // Case insensitive check if filename has the specified extension/ending.
@@ -271,7 +273,7 @@ int check_path( const std::string &path )
 		p.pop_back();
 
 #ifdef SFML_SYSTEM_WINDOWS
-	std::wstring wide_path = widen( p );
+	std::wstring wide_path = FeUtil::widen( p );
 	_WDIR* dir = _wopendir( wide_path.c_str() );
 	if ( dir )
 	{
@@ -376,7 +378,7 @@ std::string get_program_path()
 #ifdef SFML_SYSTEM_WINDOWS
 	wchar_t result[ MAX_PATH ];
 	std::basic_string<wchar_t> s( result, GetModuleFileNameW( NULL, result, MAX_PATH ) );
-	path = narrow( s );
+	path = FeUtil::narrow( s );
 #else
 	char result[ PATH_MAX ];
 	ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
@@ -394,8 +396,8 @@ std::string absolute_path( const std::string &path )
 	wchar_t buff[ BUFF_SIZE + 1 ];
 	buff[BUFF_SIZE] = 0;
 
-	if ( GetFullPathNameW( widen( path ).c_str(), BUFF_SIZE, buff, NULL ))
-		return narrow( buff );
+	if ( GetFullPathNameW( FeUtil::widen( path ).c_str(), BUFF_SIZE, buff, NULL ))
+		return FeUtil::narrow( buff );
 #else
 	char buff[PATH_MAX+1];
 
@@ -457,7 +459,7 @@ bool get_subdirectories(
 	std::string temp = path + "*";
 
 	struct _wfinddata_t t;
-	intptr_t srch = _wfindfirst( widen( temp ).c_str(), &t );
+	intptr_t srch = _wfindfirst( FeUtil::widen( temp ).c_str(), &t );
 
 	if  ( srch < 0 )
 		return false;
@@ -471,7 +473,7 @@ bool get_subdirectories(
 			continue;
 
 		if ( t.attrib & _A_SUBDIR )
-			list.push_back( narrow( what ) );
+			list.push_back( FeUtil::narrow( what ) );
 
 	} while ( _wfindnext( srch, &t ) == 0 );
 	_findclose( srch );
@@ -521,14 +523,14 @@ bool get_basename_from_extension(
 	temp += "*" + extension;
 
 	struct _wfinddata_t t;
-	intptr_t srch = _wfindfirst( widen( temp ).c_str(), &t );
+	intptr_t srch = _wfindfirst( FeUtil::widen( temp ).c_str(), &t );
 
 	if  ( srch < 0 )
 		return false;
 
 	do
 	{
-		std::string what = narrow( t.name );
+		std::string what = FeUtil::narrow( t.name );
 
 		// I don't know why but the search filespec we are using
 		// "path/*.ext"seems to also match "path/*.ext*"... so we
@@ -588,14 +590,14 @@ bool get_filename_from_base(
 	std::string temp = path + base_name + "*";
 
 	struct _wfinddata_t t;
-	intptr_t srch = _wfindfirst( widen( temp ).c_str(), &t );
+	intptr_t srch = _wfindfirst( FeUtil::widen( temp ).c_str(), &t );
 
 	if  ( srch < 0 )
 		return false;
 
 	do
 	{
-		std::string whatstr = narrow( t.name );
+		std::string whatstr = FeUtil::narrow( t.name );
 		const char *what = whatstr.c_str();
 		size_t what_len = strlen( what );
 
@@ -793,7 +795,7 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 	if ( !directory_exists( base ) )
 	{
 #ifdef SFML_SYSTEM_WINDOWS
-		_wmkdir( widen( base ).c_str() );
+		_wmkdir( FeUtil::widen( base ).c_str() );
 #else
 		mkdir( base.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
 #endif // SFML_SYSTEM_WINDOWS
@@ -803,7 +805,7 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 	if ( (!sub.empty()) && (!directory_exists( base + sub )) )
 	{
 #ifdef SFML_SYSTEM_WINDOWS
-		_wmkdir( widen(base + sub).c_str() );
+		_wmkdir( FeUtil::widen(base + sub).c_str() );
 #else
 		mkdir( (base + sub).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
 #endif // SFML_SYSTEM_WINDOWS
@@ -1127,9 +1129,9 @@ bool run_program( const std::string &prog,
 		si.dwFlags |= STARTF_USESTDHANDLES;
 	}
 
-	std::basic_string<wchar_t> comstr( widen( prog ) );
+	std::basic_string<wchar_t> comstr( FeUtil::widen( prog ) );
 	comstr += L" ";
-	comstr += widen( args );
+	comstr += FeUtil::widen( args );
 
 	LPWSTR cmdline = new wchar_t[ comstr.length() + 1 ];
 	wcsncpy( cmdline, comstr.c_str(), comstr.length() + 1 );
@@ -1137,7 +1139,7 @@ bool run_program( const std::string &prog,
 	DWORD current_wd_len = GetCurrentDirectoryW( 0, NULL );
 	LPWSTR current_wd = new wchar_t[ current_wd_len ];
 	GetCurrentDirectoryW( current_wd_len, current_wd );
-	SetCurrentDirectoryW( widen( work_dir ).c_str() );
+	SetCurrentDirectoryW( FeUtil::widen( work_dir ).c_str() );
 
 	bool ret = CreateProcessW( NULL,
 		cmdline,
@@ -1164,7 +1166,7 @@ bool run_program( const std::string &prog,
 
 	if ( ret == false )
 	{
-		FeLog() << "Error executing command: '" << narrow( comstr ) << "'" << std::endl;
+		FeLog() << "Error executing command: '" << FeUtil::narrow( comstr ) << "'" << std::endl;
 		return false;
 	}
 

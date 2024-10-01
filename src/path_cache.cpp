@@ -91,10 +91,32 @@ std::vector < std::string > &FePathCache::get_cache( const std::string &path )
 	if ( itr != m_cache.end() )
 		return (*itr).second;
 
+	std::vector < std::string > temp;
+	temp.reserve(100);  // Reserve some space to avoid small reallocations
+
+#ifdef SFML_SYSTEM_WINDOWS
+	std::string search_path = path + "*";
+
+	struct _wfinddata_t t;
+	intptr_t srch = _wfindfirst( FeUtil::widen( search_path ).c_str(), &t );
+
+	if ( srch < 0 )
+	{
+		FeDebug() << "dir_cache: Error opening directory: " << path << std::endl;
+	}
+	else
+	{
+		do
+		{
+			std::string filename = FeUtil::narrow( t.name );
+			if (( filename != "." ) && ( filename != ".." ))
+				temp.emplace_back( std::move( filename ));
+		} while ( _wfindnext( srch, &t ) == 0 );
+		_findclose( srch );
+	}
+#else
 	DIR *dir;
 	struct dirent *ent;
-
-	std::vector < std::string > temp;
 
 	if ( (dir = opendir( path.c_str() )) == NULL )
 	{
@@ -104,28 +126,22 @@ std::vector < std::string > &FePathCache::get_cache( const std::string &path )
 	{
 		while ((ent = readdir( dir )) != NULL )
 		{
-			int l = strlen( ent->d_name );
-			if (( l > 0 ) && ( ent->d_name[0] != '.' ))
-			{
-				std::string t;
-				t.reserve( l );
-				t = ent->d_name;
-
-				temp.push_back( std::string() );
-				temp.back().swap( t );
-			}
+			std::string filename = ent->d_name;
+			if (( filename != "." ) && ( filename != ".." ))
+				temp.emplace_back( std::move( filename ));
 		}
-
-		std::sort( temp.begin(), temp.end(), my_comp );
 		closedir( dir );
 	}
+#endif
+
+	std::sort( temp.begin(), temp.end(), my_comp );
 
 	FeDebug() << "Caching contents of artwork path: " << path << " (" << temp.size() << " entries)." << std::endl;
 
 	std::pair<std::map<std::string, std::vector<std::string> >::iterator, bool> ret;
 
 	ret = m_cache.insert(
-		std::pair< std::string, std::vector<std::string> >( path, std::vector<std::string>() ) );
+		std::pair< std::string, std::vector<std::string> >( path, std::vector<std::string>() ));
 
 	if ( ret.second )
 		ret.first->second.swap( temp );

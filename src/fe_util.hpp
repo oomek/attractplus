@@ -35,6 +35,12 @@
 
 extern const char *FE_WHITESPACE;
 
+namespace FeUtil
+{
+    std::string narrow( const std::wstring& s );
+    std::wstring widen( const std::string& s );
+}
+
 //
 // Utility functions for processing config files:
 //
