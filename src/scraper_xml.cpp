@@ -471,19 +471,24 @@ bool FeListXMLParser::parse_command( const std::string &prog, const std::string 
 	// connection with -listsoftware parsing as well
 	//
 	bool ret_val=true;
-	if ( (!m_ctx.full) &&  (m_ctx.romlist.size() < 10) )
-	{
-		for ( FeRomInfoListType::iterator itr=m_ctx.romlist.begin();
-				itr != m_ctx.romlist.end(); ++itr )
-		{
-			if ( !parse_internal( prog,
-					base_args + " "
-					+ (*itr).get_info( FeRomInfo::Romname ), work_dir ) )
-				ret_val = false;
-		}
-	}
-	else
-		ret_val = parse_internal( prog, base_args, work_dir );
+
+	// TODO: This optimization is causing a segfault on linux.
+	// Commented temporarily. Needs investigation.
+
+	// if ( (!m_ctx.full) &&  (m_ctx.romlist.size() < 10) )
+	// {
+	// 	for ( FeRomInfoListType::iterator itr=m_ctx.romlist.begin();
+	// 			itr != m_ctx.romlist.end(); ++itr )
+	// 	{
+	// 		if ( !parse_internal( prog,
+	// 				base_args + " "
+	// 				+ (*itr).get_info( FeRomInfo::Romname ), work_dir ) )
+	// 			ret_val = false;
+	// 	}
+	// }
+	// else
+
+	ret_val = parse_internal( prog, base_args, work_dir );
 
 	post_parse();
 	return ret_val;
