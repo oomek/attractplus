@@ -500,7 +500,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	for ( itr=vid_list.begin(); itr != vid_list.end(); ++itr )
 	{
 		std::string filename = *itr;
-
+		FeLog() << "Loading video: " << filename << std::endl;
 		if ( try_to_load( filename ) )
 		{
 			loaded = true;
@@ -523,6 +523,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			{
 				std::string filename = *itr;
 
+				FeLog() << "Loading image: " << filename << std::endl;
 				if ( try_to_load( filename, true ) )
 				{
 					loaded = true;
