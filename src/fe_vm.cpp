@@ -2284,6 +2284,11 @@ bool FeVM::cb_get_input_state( const char *input )
 		return false;
 
 	//
+	// Prevent processing input when overlay is on
+	//
+	if ( fev->m_overlay->overlay_is_on() )
+		return false;
+	//
 	// First test if a command has been provided
 	//
 	for ( int i=0; i<FeInputMap::LAST_COMMAND; i++ )
