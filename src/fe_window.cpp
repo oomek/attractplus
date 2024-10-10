@@ -257,6 +257,8 @@ void FeWindow::initial_create()
 		vm.height = GetSystemMetrics( SM_CYVIRTUALSCREEN );
 	}
 
+	sf::Vector2i screen_size( vm.width, vm.height );
+
 	// Some Windows users are reporting emulators hanging/failing to get focus when launched
 	// from 'fullscreen' (fullscreen mode, fillscreen where window dimensions = screen dimensions)
 	// They also report that the same emulator does work when Attract-Mode is in one of its windowed
@@ -297,6 +299,25 @@ void FeWindow::initial_create()
 	sf::Vector2u wsize( vm.width, vm.height );
 
 #if defined(SFML_SYSTEM_WINDOWS)
+
+#if !defined(WINDOWS_XP)
+	// If the window mode is set to Window (No Border) and the values in window.am
+	// match the display resolution we treat it as if it was Fullscreen
+	// to properly handle borderless fulscreen optimizations.
+	// Required on Vista and above.
+	//
+	FeLog() << m_win_mode << " : " << wpos.x << "x" << wpos.y << "," << vm.width << "x" << vm.height << std::endl;
+	if (( m_win_mode == FeSettings::WindowNoBorder )
+		// && ( wpos.x == 0 )
+		// && ( wpos.y == 0 )
+		&& ( screen_size.x == vm.width )
+		&& ( screen_size.y == vm.height ))
+		{
+			FeLog() << "Window size matches display resolution. Setting to fullscreen mode." << std::endl;
+			m_win_mode = FeSettings::Fullscreen;
+		}
+#endif
+
 	// To avoid problems with black screen on launching games when window mode is set to Fullscreen
 	// we hide the main renderwindow and show this m_blackout window instead
 	// which has the extended size by 1 pixel in each direction to stop Windows
@@ -372,20 +393,6 @@ void FeWindow::initial_create()
 		<< vm.width << "x" << vm.height << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
-
-#if !defined(WINDOWS_XP)
-	// If the window mode is set to Window (No Border) and the values in window.am
-	// match the display resolution we treat it as if it was Fullscreen
-	// to properly handle borderless fulscreen optimizations.
-	// Required on Vista and above.
-	//
-	if (( m_win_mode == FeSettings::WindowNoBorder )
-		&& ( wpos.x == 0 )
-		&& ( wpos.y == 0 )
-		&& ( vm.width == wsize.x )
-		&& ( vm.height == wsize.y ))
-		m_win_mode = FeSettings::Fullscreen;
-#endif
 	set_win32_foreground_window( m_window->getSystemHandle(), HWND_TOP );
 #endif
 
