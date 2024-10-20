@@ -153,7 +153,8 @@ Windows (native compile):
 
 3. Close MSYS2 Shell,  run it again and run the following command:
 
-           pacman -Syu
+           y
+1. 
 
 4. Install required packages. (optionally use the mingw-w64-i686-toolchain
    instead for 32-bit windows architectures), install "all" (by default) :

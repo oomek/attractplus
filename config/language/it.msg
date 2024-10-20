@@ -59,6 +59,10 @@ Custom3; Personalizzato 3
 Custom4; Personalizzato 4
 Custom5; Personalizzato 5
 Custom6; Personalizzato 6
+Custom7; Personalizzato 7
+Custom8; Personalizzato 8
+Custom9; Personalizzato 9
+Custom10; Personalizzato 10
 Default;Predefinito
 Default Action;Azione predefinita
 Default Font;Font predefinito
@@ -247,6 +251,10 @@ _help_control_custom3;Imposta il controllo "Personalizzato 3"
 _help_control_custom4;Imposta il controllo "Personalizzato 4"
 _help_control_custom5;Imposta il controllo "Personalizzato 5"
 _help_control_custom6;Imposta il controllo "Personalizzato 6"
+_help_control_custom7;Imposta il controllo "Personalizzato 7"
+_help_control_custom8;Imposta il controllo "Personalizzato 8"
+_help_control_custom9;Imposta il controllo "Personalizzato 9"
+_help_control_custom10;Imposta il controllo "Personalizzato 10"
 _help_control_displays_menu;Configura i controlli per mostrare il menù dei display
 _help_control_down;Configura i controlli che muovono la selezione in basso
 _help_control_edit_game;Configura i controlli per modificare la selezione corrente

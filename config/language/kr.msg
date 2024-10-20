@@ -61,6 +61,10 @@ Custom3;사용자 정의 3
 Custom4;사용자 정의 4
 Custom5;사용자 정의 5
 Custom6;사용자 정의 6
+Custom7;사용자 정의 7
+Custom8;사용자 정의 8
+Custom9;사용자 정의 9
+Custom10;사용자 정의 10
 Default;기본값
 Default Action;기본 행동
 Default Font;기본 폰트
@@ -258,6 +262,10 @@ _help_control_custom3;사용자 지정 키 3을 설정합니다
 _help_control_custom4;사용자 지정 키 4를 설정합니다
 _help_control_custom5;사용자 지정 키 5를 설정합니다
 _help_control_custom6;사용자 지정 키 6을 설정합니다
+_help_control_custom7;사용자 지정 키 7을 설정합니다
+_help_control_custom8;사용자 지정 키 8을 설정합니다
+_help_control_custom9;사용자 지정 키 9을 설정합니다
+_help_control_custom10;사용자 지정 키 10을 설정합니다
 _help_control_displays_menu;'목록 메뉴' 를 호출하는 키를 설정합니다
 _help_control_down;아래 항목으로 한 칸 이동하는 키를 설정합니다
 _help_control_edit_game;선택한 게임을 편집하는 키를 설정합니다

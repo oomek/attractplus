@@ -847,6 +847,10 @@ const char *FeInputMap::commandStrings[] =
 	"custom4",
 	"custom5",
 	"custom6",
+	"custom7",
+	"custom8",
+	"custom9",
+	"custom10",
 	NULL, // LAST_COMMAND... NULL required here
 	"ambient",
 	"startup",
@@ -901,6 +905,10 @@ const char *FeInputMap::commandDispStrings[] =
 	"Custom4",
 	"Custom5",
 	"Custom6",
+	"Custom7",
+	"Custom8",
+	"Custom9",
+	"Custom10",
 	NULL, // LAST_COMMAND... NULL required here
 	"Ambient Soundtrack",
 	"Startup Sound",

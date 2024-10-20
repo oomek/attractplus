@@ -167,6 +167,10 @@ public:
 		Custom4,
 		Custom5,
 		Custom6,
+		Custom7,
+		Custom8,
+		Custom9,
+		Custom10,
 		LAST_COMMAND,
 
 		//

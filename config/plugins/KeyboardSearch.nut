@@ -8,7 +8,7 @@ class UserConfig </ help="A plugin that enables simple keyboard searches" /> {
 
 	</ label="Trigger",
 		help="The action that triggers a search.  Keys can be mapped to these under Attract-Mode's 'Controls' configuration",
-		options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6",
+		options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10",
 		order=1 />
 	trigger="Custom1";
 

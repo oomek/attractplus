@@ -25,6 +25,10 @@ _help_control_custom3;Set the "Custom3" control(s)
 _help_control_custom4;Set the "Custom4" control(s)
 _help_control_custom5;Set the "Custom5" control(s)
 _help_control_custom6;Set the "Custom6" control(s)
+_help_control_custom7;Set the "Custom7" control(s)
+_help_control_custom8;Set the "Custom8" control(s)
+_help_control_custom9;Set the "Custom9" control(s)
+_help_control_custom10;Set the "Custom10" control(s)
 _help_control_displays_menu;Set the control(s) that show the "Displays Menu"
 _help_control_down;Set the control(s) that move the selection down
 _help_control_edit_game;Set the control(s) to edit the current selection
