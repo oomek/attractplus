@@ -48,6 +48,10 @@ Custom3; Personalizado 3
 Custom4; Personalizado 4
 Custom5; Personalizado 5
 Custom6; Personalizado 6
+Custom7; Personalizado 7
+Custom8; Personalizado 8
+Custom9; Personalizado 9
+Custom10; Personalizado 10
 Default Font;Fuente por defecto
 Delete display '$1'?;¿Desea borrar la pantalla '$1'?
 Delete emulator '$1'?;¿Desea borrar el emulador '$1'?
@@ -197,6 +201,14 @@ _help_control_add_tags;Configura el(los) control(es) que agragan/remueven etique
 _help_control_configure;Configura el(los) control(es) que muestra el "Menú de configuración"
 _help_control_custom1;Configura el(los) control(es) "Personalizado1"
 _help_control_custom2;Configura el(los) control(es) "Personalizado2"
+_help_control_custom3;Configura el(los) control(es) "Personalizado3"
+_help_control_custom4;Configura el(los) control(es) "Personalizado4"
+_help_control_custom5;Configura el(los) control(es) "Personalizado5"
+_help_control_custom6;Configura el(los) control(es) "Personalizado6"
+_help_control_custom7;Configura el(los) control(es) "Personalizado7"
+_help_control_custom8;Configura el(los) control(es) "Personalizado8"
+_help_control_custom9;Configura el(los) control(es) "Personalizado9"
+_help_control_custom10;Configura el(los) control(es) "Personalizado10"
 _help_control_displays_menu;Configurar el(los) control(es) que "muestra el menú"
 _help_control_down;Configurar el(los) control(es) que mueven hacia abajo la selección
 _help_control_exit;Configura el(los) control(es) que cierran el frontend

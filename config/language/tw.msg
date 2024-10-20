@@ -63,6 +63,10 @@ Custom3;自訂 3
 Custom4;自訂 4
 Custom5;自訂 5
 Custom6;自訂 6
+Custom7;自訂 7
+Custom8;自訂 8
+Custom9;自訂 9
+Custom10;自訂 10
 Default;預設
 Default Action;預設操作
 Default Font;預設字型
@@ -269,6 +273,10 @@ _help_control_custom3;設定「自訂 3」的控制鍵
 _help_control_custom4;設定「自訂 4」的控制鍵
 _help_control_custom5;設定「自訂 5」的控制鍵
 _help_control_custom6;設定「自訂 6」的控制鍵
+_help_control_custom7;設定「自訂 7」的控制鍵
+_help_control_custom8;設定「自訂 8」的控制鍵
+_help_control_custom9;設定「自訂 9」的控制鍵
+_help_control_custom10;設定「自訂 10」的控制鍵
 _help_control_displays_menu;設定「顯示主選單」的控制鍵
 _help_control_down;設定「下移選項」的控制鍵
 _help_control_edit_game;設定「編輯當前選項」的控制鍵

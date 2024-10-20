@@ -27,13 +27,13 @@ class UserConfig </ help="A plugin that shows an FPS meter v2.2" />
 
 	</ label="On/Off key",
 		help="The hotkey that enables/disables the FPS monitor. This key can be mapped under Attract-Mode's 'Controls' configuration",
-		options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Disabled",
+		options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10,Disabled",
 		order=4 />
 	on_off="Disabled"
 
 	</ label="Layout reload key",
 		help="Maps a key to layout reload signal. This key can be mapped under Attract-Mode's 'Controls' configuration",
-		options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Disabled",
+		options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10,Disabled",
 		order=5 />
 	reload="Disabled"
 

@@ -10,7 +10,7 @@ class UserConfig </ help="Load a specific display on custom input" /> {
 
 	</ label="Trigger",
 		help="The custom command that will show this display (see also: Config->Controls->Costom#)",
-		order=2, options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6" />
+		order=2, options="Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10" />
 	trigger="";
 };
 

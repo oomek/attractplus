@@ -47,6 +47,10 @@ Custom3;カスタム 3
 Custom4;カスタム 4
 Custom5;カスタム 5
 Custom6;カスタム 6
+Custom7;カスタム 7
+Custom8;カスタム 8
+Custom9;カスタム 9
+Custom10;カスタム 10
 Default Font;基本フォント
 Delete display '$1'?;ディスプレイ '$1' を削除してもよろしいですか？
 Delete emulator '$1'?;'$1' エミュレータを削除しますか?
@@ -194,6 +198,14 @@ _help_control_add_tags;現在選択されたゲームのタッグを編集する
 _help_control_configure;この '設定画面' を表示するキーを設定します
 _help_control_custom1;カスタムキー1を設定します
 _help_control_custom2;カスタムキー2を設定します
+_help_control_custom3;カスタムキー3を設定します
+_help_control_custom4;カスタムキー4を設定します
+_help_control_custom5;カスタムキー5を設定します
+_help_control_custom6;カスタムキー6を設定します
+_help_control_custom7;カスタムキー7を設定します
+_help_control_custom8;カスタムキー8を設定します
+_help_control_custom9;カスタムキー9を設定します
+_help_control_custom10;カスタムキー10を設定します
 _help_control_displays_menu;'リストメニュー' を表示するキーを設定します
 _help_control_down;下に移動するキーを設定します
 _help_control_exit;このプログラムを終了するキーを設定します

@@ -902,6 +902,10 @@ Parameters:
       - "custom4"
       - "custom5"
       - "custom6"
+      - "custom7"
+      - "custom8"
+      - "custom9"
+      - "custom10"
       - "reset_window"
       - "reload"
 

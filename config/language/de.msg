@@ -48,6 +48,10 @@ Custom3;Eigendefiniert3
 Custom4;Eigendefiniert4
 Custom5;Eigendefiniert5
 Custom6;Eigendefiniert6
+Custom7;Eigendefiniert7
+Custom8;Eigendefiniert8
+Custom9;Eigendefiniert9
+Custom10;Eigendefiniert10
 Default Font;Standard Font
 Delete display '$1'?;Bildschirm '$1' löschen?
 Delete emulator '$1'?;Emulator '$1' löschen?
@@ -197,6 +201,14 @@ _help_control_add_tags;Definiere die Taste(n), um Markierungen zum momentan gew�
 _help_control_configure;Definiere die Taste(n), um das "Konfigurations Menu" anzuzeigen
 _help_control_custom1;Definiere die Taste(n) für "Eigendefiniert1"
 _help_control_custom2;Definiere die Taste(n) für "Eigendefiniert2"
+_help_control_custom3;Definiere die Taste(n) für "Eigendefiniert3"
+_help_control_custom4;Definiere die Taste(n) für "Eigendefiniert4"
+_help_control_custom5;Definiere die Taste(n) für "Eigendefiniert5"
+_help_control_custom6;Definiere die Taste(n) für "Eigendefiniert6"
+_help_control_custom7;Definiere die Taste(n) für "Eigendefiniert7"
+_help_control_custom8;Definiere die Taste(n) für "Eigendefiniert8"
+_help_control_custom9;Definiere die Taste(n) für "Eigendefiniert9"
+_help_control_custom10;Definiere die Taste(n) für "Eigendefiniert10"
 _help_control_displays_menu;Definiere die Taste(n), um das "Bildschirm Menü" anzuzeigen
 _help_control_down;Definiere die Taste(n), um die Auswahl nach unten zu bewegen
 _help_control_exit;Definiere die Taste(n), um das Frontend zu verlassen
