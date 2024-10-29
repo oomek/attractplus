@@ -1176,9 +1176,6 @@ int FeOverlay::display_config_dialog(
 			case Opt::RELOAD:
 				return display_config_dialog( m, parent_setting_changed );
 			case Opt::MENU:
-				if ( sm )
-					return display_config_dialog( sm, parent_setting_changed );
-				break;
 			case Opt::SUBMENU:
 				if ( sm )
 				{
