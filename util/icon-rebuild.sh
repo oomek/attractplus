@@ -43,7 +43,7 @@ convert ${IN} -type TrueColorMatte \
 	\( -clone 0 -resize 32x32 \) \
 	\( -clone 0 -resize 48x48 \) \
 	\( -clone 0 -resize 256x256 \) \
-	-delete 0 ../src/attract.ico
+	-delete 0 ../src/attractplus.ico
 
 ## osx
 if [[ "$PLATFORM" != "Darwin" ]]; then

@@ -282,8 +282,8 @@ endif
 
 
 ifeq ($(FE_WINDOWS_COMPILE),1)
- _DEP += attract.rc
- _OBJ += attract.res
+ _DEP += attractplus.rc
+ _OBJ += attractplus.res
  ifeq ($(WINDOWS_XP),1)
   FE_FLAGS += -DWINDOWS_XP
  else

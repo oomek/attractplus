@@ -1,12 +1,12 @@
 #define RT_MANIFEST 24
 #define APP_MANIFEST 1
-APP_MANIFEST RT_MANIFEST attract.exe.manifest
+APP_MANIFEST RT_MANIFEST attractplus.exe.manifest
 
 #define STRINGIZE_HELPER(...) #__VA_ARGS__
 #define STRINGIZE(x) STRINGIZE_HELPER(x)
 
 #ifndef APP_ICON
-  #define APP_ICON "attract.ico"
+  #define APP_ICON "attractplus.ico"
 #endif
 
 #ifdef FE_DEBUG
@@ -41,15 +41,15 @@ APP_MANIFEST RT_MANIFEST attract.exe.manifest
 		BEGIN
 			BLOCK LANG_WITH_CHARSET
 			BEGIN
-				VALUE "Author", "Andrew Mickelson\0"
+				VALUE "Author", "Andrew Mickelson & Radek Dutkiewicz\0"
 				VALUE "Comments", "\0"
 				VALUE "CompanyName", "attractmode.org\0"
-				VALUE "FileDescription", "Attract-Mode Frontend\0"
+				VALUE "FileDescription", "Attract-Mode Plus\0"
 				VALUE "FileVersion", STRINGIZE(RC_VERSION_FILE) "\0"
-				VALUE "InternalName", "attract\0"
-				VALUE "LegalCopyright", "Copyright (c) 2013-2018 Andrew Mickelson\0"
-				VALUE "OriginalFilename", "ATTRACT.EXE\0"
-				VALUE "ProductName", "Attract-Mode\0"
+				VALUE "InternalName", "attractplus\0"
+				VALUE "LegalCopyright", "Copyright (c) 2013-2024 Andrew Mickelson & Radek Dutkiewicz\0"
+				VALUE "OriginalFilename", "ATTRACTPLUS.EXE\0"
+				VALUE "ProductName", "Attract-Mode Plus\0"
 				VALUE "ProductVersion", STRINGIZE(RC_VERSION_BUILD) "\0"
 			END
 		END

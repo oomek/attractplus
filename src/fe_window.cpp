@@ -21,7 +21,7 @@
  */
 
 #ifndef SFML_SYSTEM_MACOS
-#include "attract_icon.hpp"
+#include "attractplus_icon.hpp"
 #endif
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
@@ -351,7 +351,7 @@ void FeWindow::initial_create()
 	sf::ContextSettings ctx;
 	ctx.antialiasingLevel = m_fes.get_antialiasing();
 
-	m_window->create( vm, "Attract-Mode", style_map[ m_win_mode ], ctx );
+	m_window->create( vm, "Attract-Mode Plus", style_map[ m_win_mode ], ctx );
 
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
@@ -367,7 +367,7 @@ void FeWindow::initial_create()
 
 #ifndef SFML_SYSTEM_MACOS
     sf::Image icon;
-    icon.loadFromMemory( attract_icon, sizeof( attract_icon ));
+    icon.loadFromMemory( attractplus_icon, sizeof( attractplus_icon ));
     m_window->setIcon( icon.getSize().y, icon.getSize().y, icon.getPixelsPtr() );
 #endif
 	// We need to clear and display here before calling setSize and setPosition
