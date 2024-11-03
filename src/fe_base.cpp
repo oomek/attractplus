@@ -180,12 +180,13 @@ void FeBaseConfigurable::invalid_setting(
 bool FeBaseConfigurable::load_from_file( const std::string &filename,
 	const char *sep )
 {
-   nowide::ifstream myfile( filename.c_str() );
+	// Open in binary mode for better performance
+	nowide::ifstream myfile( filename.c_str(), std::ios::binary );
 
-   if ( !myfile.is_open() )
+	if ( !myfile.is_open() )
 		return false;
 
-	const int DEBUG_MAX_LINES=200;
+	const int DEBUG_MAX_LINES=20;
 	int count=0;
 
 	while ( myfile.good() )
