@@ -188,7 +188,8 @@ bool FeRomList::load_romlist( const std::string &path,
 	const std::string &romlist_name,
 	FeDisplayInfo &display,
 	bool group_clones,
-	bool load_stats	)
+	bool load_stats,
+	bool skip_filters )
 {
 	m_romlist_name = romlist_name;
 
@@ -364,7 +365,20 @@ bool FeRomList::load_romlist( const std::string &path,
 			<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
 			<< " discarded)" << std::endl;
 
-	create_filters( display );
+	if ( !skip_filters )
+	{
+		create_filters( display );
+	}
+	else if ( m_group_clones )
+	{
+		for ( FeRomInfoListType::iterator itr = m_list.begin(); itr != m_list.end(); )
+		{
+			if ( !( *itr ).get_info( FeRomInfo::Cloneof ).empty() )
+				itr = m_list.erase( itr );
+			else
+				++itr;
+		}
+	}
 	return retval;
 }
 

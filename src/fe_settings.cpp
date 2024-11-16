@@ -462,11 +462,16 @@ int FeSettings::process_setting( const std::string &setting,
 					const std::string &value,
 					const std::string &fn )
 {
-	if (( setting.compare( otherSettingStrings[0] ) == 0 ) // list
+	if (( setting.compare( otherSettingStrings[0] ) == 0 ) // display
 		|| ( setting.compare( "list" ) == 0 )) // for backwards compatability.  As of 1.5, "list" became "display"
 	{
+		// Check if the display name already exists
+		if ( m_display_map.count( value ) )
+			FeLog() << "! Error: display " << value << " already exists" << std::endl;
+
 		m_displays.push_back( FeDisplayInfo( value ) );
 		m_current_config_object = &m_displays.back();
+		m_display_map[value] = m_displays.size() - 1;
 	}
 	else if ( setting.compare( otherSettingStrings[1] ) == 0 ) // sound
 		m_current_config_object = &m_sounds;
@@ -2483,6 +2488,7 @@ void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 			"System",
 			"SystemN",
 			"Overview",
+			"DisplaySize",
 			NULL
 		};
 
@@ -2609,6 +2615,19 @@ void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 
 		case 14: // "Overview"
 			get_game_overview_absolute( filter_index, rom_index, rep );
+			break;
+
+		case 15: // "DisplaySize"
+		 	if ( rom_index < m_displays.size() && m_current_display < 0 && display_menu_get_current_selection_as_absolute_display_index() >= 0 )
+				rep = as_str( m_displays[display_menu_get_current_selection_as_absolute_display_index()].get_romlist_size() );
+			else
+			{
+				std::string name = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Romname );
+				if ( m_display_map.count( name ) )
+					rep = as_str( m_displays[m_display_map[name]].get_romlist_size() );
+				else
+					rep = FE_EMPTY_STRING;
+			}
 			break;
 
 		default:
@@ -4226,4 +4245,16 @@ bool FeSettings::get_emulator_setup_script( std::string &path, std::string &file
 	file = FE_EMULATOR_INIT_FILE;
 
 	return true;
+}
+
+void FeSettings::count_display_romlist_size( int display_index )
+{
+	std::string list_path( m_config_path );
+	list_path += FE_ROMLIST_SUBDIR;
+
+	const std::string &list_name = m_displays[display_index].get_info( FeDisplayInfo::Romlist );
+	FeRomList list( m_config_path );
+	list.init_as_empty_list();
+	list.load_romlist( list_path, list_name, m_displays[display_index], m_group_clones, m_track_usage, true );
+	m_displays[display_index].set_romlist_size( list.get_list().size() );
 }

@@ -207,7 +207,8 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	m_selBgColour( sf::Color( 20, 40, 80, 255 ) ),
 	m_lineColour( sf::Color( 40, 80, 160, 192 ) ),
 	m_headingBgColour( sf::Color( 10, 20, 40, 255 ) ),
-	m_overlay_is_on( false )
+	m_overlay_is_on( false ),
+	m_recount_romlists( false )
 {
 	init();
 }
@@ -910,8 +911,10 @@ bool FeOverlay::edit_game_dialog()
 
 			if ( display_config_dialog( &m, settings_changed ) < 0 )
 				m_wnd.close();
-			else
+			else if ( settings_changed )
 			{
+				notify_romlist_recount();
+
 				// Save the updated settings to disk
 				m_feSettings.save();
 
@@ -1943,4 +1946,15 @@ bool FeOverlay::common_exit()
 	}
 
 	return false;
+}
+
+void FeOverlay::update_romlists()
+{
+	// calculate romlist sizes for each display. Global filter applied
+	for ( unsigned int i = 0; i < m_feSettings.displays_count(); i++ )
+	{
+		splash_message( "Calculating rom lists:  " + std::to_string( (int)( i / (float)m_feSettings.displays_count() * 100.0f )) + "%");
+		m_feSettings.count_display_romlist_size( i );
+	}
+	splash_message( "Calculating rom lists: 100%");
 }

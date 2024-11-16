@@ -191,6 +191,8 @@ int main(int argc, char *argv[])
 
 	if ( !config_mode )
 	{
+		feOverlay.update_romlists();
+
 		// start the intro now
 		if ( !feVM.load_intro() )
 		{
@@ -229,6 +231,8 @@ int main(int argc, char *argv[])
 
 			if ( feOverlay.config_dialog() )
 			{
+				feOverlay.update_romlists();
+
 				// Settings changed, reload
 				//
 				feSettings.set_display(
@@ -750,7 +754,12 @@ int main(int argc, char *argv[])
 
 				case FeInputMap::EditGame:
 					if ( feOverlay.edit_game_dialog() )
+					{
+						if( feOverlay.romlists_changed() )
+							feOverlay.update_romlists();
+
 						feVM.update_to_new_list();
+					}
 
 					redraw=true;
 					break;

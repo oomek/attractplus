@@ -31,6 +31,7 @@
 #include "scraper_base.hpp"
 #include "path_cache.hpp"
 #include <deque>
+#include <unordered_map>
 
 #if defined(USE_DRM)
  #define FORCE_FULLSCREEN
@@ -185,6 +186,7 @@ private:
 	std::string m_tgdb_key;
 
 	std::vector<FeDisplayInfo> m_displays;
+	std::unordered_map<std::string, int> m_display_map;
 	std::vector<FePlugInfo> m_plugins;
 	std::vector<FeLayoutInfo> m_layout_params;
 	std::vector<FeRomInfo *> m_current_search;
@@ -610,6 +612,8 @@ public:
 	static void get_layout_file_basenames_from_path(
 		const std::string &path,
 		std::vector<std::string> &names_list );
+
+	void count_display_romlist_size( int display_index );
 };
 
 inline bool is_windowed_mode( int m )

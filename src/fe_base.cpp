@@ -22,6 +22,7 @@
 
 #include "fe_base.hpp"
 #include "fe_util.hpp"
+#include "fe_settings.hpp"
 
 #ifndef NO_MOVIE
 extern "C"
@@ -186,22 +187,23 @@ bool FeBaseConfigurable::load_from_file( const std::string &filename,
 	if ( !myfile.is_open() )
 		return false;
 
-	const int DEBUG_MAX_LINES=20;
-	int count=0;
+	bool is_cfg_file = tail_compare( filename, FE_CFG_FILE );
+	const int DEBUG_MAX_LINES = is_cfg_file ? INT_MAX : 20;
+	int count = 0;
 
 	while ( myfile.good() )
 	{
 		std::string line, setting, value;
 		getline( myfile, line );
 
-		if ( line_to_setting_and_value( line, setting, value, sep ) )
+		if ( line_to_setting_and_value( line, setting, value, sep ))
 		{
 			if (( g_log_level == FeLog_Debug ) && ( count <= DEBUG_MAX_LINES ))
 			{
 				FeDebug() << "[" << filename <<  "] " << std::setw(15) << std::left << setting
 					<< " = " << value << std::endl;
 
-				if ( count == DEBUG_MAX_LINES )
+				if ( count == DEBUG_MAX_LINES && !is_cfg_file )
 					FeDebug() << "[" << filename <<  "] DEBUG_MAX_LINES exceeded, truncating further debug output from this file." << std::endl;
 
 				count++;
