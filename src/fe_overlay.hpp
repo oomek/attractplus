@@ -55,6 +55,7 @@ private:
 	int m_heading_size;
 	int m_footer_size;
 	int m_line_size;
+	bool m_recount_romlists;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -121,6 +122,10 @@ public:
 	bool common_exit();
 
 	void init();
+
+	void notify_romlist_recount(){ m_recount_romlists = true; };
+	bool romlists_changed() { bool res = m_recount_romlists; m_recount_romlists = false; return res; };
+	void update_romlists();
 };
 
 #endif

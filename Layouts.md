@@ -184,6 +184,7 @@ Manufacturer's name.  There are more examples below.
 
    * The following magic tokens are currently supported:
       - `[DisplayName]` - the name of the current display
+      - `[DisplaySize]` 🔶 the game count of the display ( used only in Displays Menu )
       - `[ListSize]` - the number of items in the game list
       - `[ListEntry]` - the number of the current selection in the game list
       - `[FilterName]` - the name of the filter
@@ -1507,6 +1508,7 @@ Properties:
    * `in_cycle` - Get whether the display is shown in the prev display/next
      display cycle.
    * `in_menu` - Get whether the display is shown in the "Displays Menu"
+   * `size` 🔶 Get the game count of this display.
 
 &nbsp;
 <a name="Filter"></a>

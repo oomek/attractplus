@@ -288,6 +288,9 @@ public:
 
 	FeScriptConfigurable &get_layout_per_display_params() { return m_layout_per_display_params; };
 
+	void set_romlist_size( int s ) { m_romlist_size=s; };
+	int get_romlist_size() const { return m_romlist_size; };
+
 private:
 	std::string m_info[LAST_INDEX];
 	std::string m_current_layout_file;
@@ -298,6 +301,7 @@ private:
 
 	std::vector< FeFilter > m_filters;
 	FeFilter m_global_filter;
+	int m_romlist_size;
 };
 
 //

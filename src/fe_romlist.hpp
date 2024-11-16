@@ -123,7 +123,8 @@ public:
 		const std::string &romlist_name,
 		FeDisplayInfo &display,
 		bool group_clones,
-		bool load_stats );
+		bool load_stats,
+		bool skip_filters=false );
 
 	void create_filters( FeDisplayInfo &display ); // called by load_romlist()
 
@@ -164,6 +165,8 @@ public:
 	FeEmulatorInfo *create_emulator( const std::string &, const std::string & );
 	void delete_emulator( const std::string & );
 	void clear_emulators() { m_emulators.clear(); }
+
+	const std::string get_config_path() const { return m_config_path; };
 };
 
 #endif
