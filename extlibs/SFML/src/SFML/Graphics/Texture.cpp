@@ -38,6 +38,10 @@
 #include <cstring>
 #include <climits>
 
+#if defined(__GNUC__)
+    #pragma GCC diagnostic ignored "-Wduplicated-branches"
+#endif
+
 
 namespace
 {
@@ -346,10 +350,32 @@ Image Texture::copyToImage() const
 
         glCheck(GLEXT_glBindFramebuffer(GLEXT_GL_FRAMEBUFFER, frameBuffer));
         glCheck(GLEXT_glFramebufferTexture2D(GLEXT_GL_FRAMEBUFFER, GLEXT_GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0));
-        glCheck(glReadPixels(0, 0, m_size.x, m_size.y, GL_RGBA, GL_UNSIGNED_BYTE, &pixels[0]));
+        glCheck(glReadPixels(0,
+                             0,
+                             static_cast<GLsizei>(m_size.x),
+                             static_cast<GLsizei>(m_size.y),
+                             GL_RGBA,
+                             GL_UNSIGNED_BYTE,
+                             &pixels[0]));
         glCheck(GLEXT_glDeleteFramebuffers(1, &frameBuffer));
 
-        glCheck(GLEXT_glBindFramebuffer(GLEXT_GL_FRAMEBUFFER, previousFrameBuffer));
+        glCheck(GLEXT_glBindFramebuffer(GLEXT_GL_FRAMEBUFFER, static_cast<GLuint>(previousFrameBuffer)));
+
+        if (m_pixelsFlipped)
+        {
+            // Flip the texture vertically
+            const int stride        = static_cast<int>(m_size.x * 4);
+            Uint8*    currentRowPtr = pixels.data();
+            Uint8*    nextRowPtr    = pixels.data() + stride;
+            Uint8*    reverseRowPtr = pixels.data() + (stride * static_cast<int>(m_size.y - 1));
+            for (unsigned int y = 0; y < m_size.y / 2; ++y)
+            {
+                std::swap_ranges(currentRowPtr, nextRowPtr, reverseRowPtr);
+                currentRowPtr = nextRowPtr;
+                nextRowPtr += stride;
+                reverseRowPtr -= stride;
+            }
+        }
     }
 
 #else

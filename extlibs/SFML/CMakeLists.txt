@@ -25,14 +25,7 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.9)
     cmake_policy(SET CMP0068 NEW)
 endif()
 
-if(NOT CMAKE_OSX_SYSROOT)
-    # query the path to the default SDK, will fail on non-macOS, but it's okay.
-    execute_process(COMMAND xcodebuild -sdk macosx -version Path
-                    COMMAND head -n 1
-                    COMMAND tr -d '\n'
-                    OUTPUT_VARIABLE CMAKE_OSX_SYSROOT
-                    ERROR_QUIET)
-endif()
+sfml_set_option(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" STRING "The minimal iOS version that will be able to run the built binaries. Cannot be lower than 13.0")
 
 # project name
 project(SFML)
@@ -48,17 +41,13 @@ include(GNUInstallDirs)
 # setup version numbers
 set(VERSION_MAJOR 2)
 set(VERSION_MINOR 6)
-set(VERSION_PATCH 0)
+set(VERSION_PATCH 2)
 
 # add an option for choosing the build type (shared or static)
-if(NOT (SFML_OS_IOS OR SFML_OS_ANDROID))
+if(NOT SFML_OS_ANDROID)
     sfml_set_option(BUILD_SHARED_LIBS TRUE BOOL "TRUE to build SFML as shared libraries, FALSE to build it as static libraries")
 else()
-    if(SFML_OS_IOS)
-        set(BUILD_SHARED_LIBS FALSE)
-    elseif(SFML_OS_ANDROID)
-        set(BUILD_SHARED_LIBS TRUE)
-    endif()
+    set(BUILD_SHARED_LIBS TRUE)
 endif()
 
 # add an option for building the examples
@@ -91,20 +80,16 @@ endif()
 sfml_set_option(SFML_BUILD_TEST_SUITE FALSE BOOL "TRUE to build the SFML test suite, FALSE to ignore it")
 
 # macOS specific options
-if(SFML_OS_MACOSX)
+if(SFML_OS_MACOSX OR SFML_OS_IOS)
     # add an option to build frameworks instead of dylibs (release only)
     sfml_set_option(SFML_BUILD_FRAMEWORKS FALSE BOOL "TRUE to build SFML as frameworks libraries (release only), FALSE to build according to BUILD_SHARED_LIBS")
 
+    if (SFML_OS_IOS AND NOT SFML_BUILD_FRAMEWORKS AND BUILD_SHARED_LIBS)
+        message(FATAL_ERROR "Naked dynamic libs not supported for iOS, build static or frameworks instead")
+    endif()
+
     # add an option to automatically install Xcode templates
     sfml_set_option(SFML_INSTALL_XCODE_TEMPLATES FALSE BOOL "TRUE to automatically install the Xcode templates, FALSE to do nothing about it. The templates are compatible with Xcode 4 and 5.")
-endif()
-
-# iOS specific options
-if(SFML_OS_IOS)
-    # At the moment the minimal deployement target version is 10.2 only because the externals for iOS were built with that requirement.
-    sfml_set_option(SFML_IOS_DEPLOYMENT_TARGET "10.2" STRING "The minimal iOS version that will be able to run the built binaries. Cannot be lower than 10.2.")
-
-    sfml_set_option(SFML_CODE_SIGN_IDENTITY "iPhone Developer" STRING "The code signing identity to use when building for a real device")
 endif()
 
 # Android options
@@ -232,10 +217,9 @@ if(SFML_OS_WINDOWS)
         foreach(flag
                 CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
                 CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-            if(${flag} MATCHES "/MD")
-                string(REGEX REPLACE "/MD" "/MT" ${flag} "${${flag}}")
-            endif()
+            string(REGEX REPLACE "/MDd|/MD|/MTd|/MT" "" ${flag} "${${flag}}")
         endforeach()
+        add_compile_options(/MT$<$<CONFIG:Debug>:d>)
     endif()
 endif()
 
@@ -301,6 +285,17 @@ endif()
 sfml_set_option(SFML_INSTALL_PKGCONFIG_FILES ${SFML_INSTALL_PKGCONFIG_DEFAULT} BOOL "TRUE to automatically install pkg-config files so other projects can find SFML")
 
 if(SFML_INSTALL_PKGCONFIG_FILES)
+    # account for CMAKE_INSTALL_LIBDIR potentially being an absolute path
+    file(RELATIVE_PATH SFML_RELATIVE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_LIBDIR})
+
+    # set pkgconfig install directory
+    # this could be e.g. macports on mac or msys2 on windows etc.
+    set(SFML_PKGCONFIG_DIR "/${SFML_RELATIVE_INSTALL_LIBDIR}/pkgconfig")
+
+    if(SFML_OS_FREEBSD OR SFML_OS_OPENBSD OR SFML_OS_NETBSD)
+        set(SFML_PKGCONFIG_DIR "/libdata/pkgconfig")
+    endif()
+
     sfml_set_option(SFML_PKGCONFIG_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/${SFML_PKGCONFIG_DIR}" PATH "Install directory for SFML's pkg-config .pc files")
 
     foreach(sfml_module IN ITEMS all system window graphics audio network)
@@ -329,6 +324,10 @@ if(NOT SFML_BUILD_FRAMEWORKS)
 else()
     # find only "root" headers
     file(GLOB SFML_HEADERS RELATIVE ${PROJECT_SOURCE_DIR} "include/SFML/*")
+
+    # Because we use generator expressions in the post build scripts we need to
+    # suppress the generation of "EFFECTIVE_PLATFORM_NAME" as it will fail
+    set_property(GLOBAL PROPERTY XCODE_EMIT_EFFECTIVE_PLATFORM_NAME OFF)
 
     # in fact we have to fool cmake to copy all the headers in subdirectories
     # to do that we have to add the "root" headers to the PUBLIC_HEADER
@@ -403,9 +402,9 @@ else()
     set_target_properties(SFML PROPERTIES INSTALL_NAME_DIR "@rpath")
     if(NOT CMAKE_SKIP_BUILD_RPATH)
         if (CMAKE_VERSION VERSION_LESS 3.9)
-            set_target_properties(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+            set_target_properties(SFML PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
         else()
-            set_target_properties(${target} PROPERTIES BUILD_WITH_INSTALL_NAME_DIR TRUE)
+            set_target_properties(SFML PROPERTIES BUILD_WITH_INSTALL_NAME_DIR TRUE)
         endif()
     endif()
 
@@ -423,7 +422,10 @@ if(SFML_OS_WINDOWS)
 
     if(NOT SFML_USE_SYSTEM_DEPS)
         # install the binaries of SFML dependencies
-        if(ARCH_32BITS)
+        if(ARCH_ARM64)
+            install(DIRECTORY extlibs/bin/ARM64/ DESTINATION ${CMAKE_INSTALL_BINDIR})
+            install(DIRECTORY extlibs/libs-msvc-universal/ARM64/ DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        elseif(ARCH_X86)
             install(DIRECTORY extlibs/bin/x86/ DESTINATION ${CMAKE_INSTALL_BINDIR})
             if(SFML_COMPILER_MSVC AND SFML_MSVC_VERSION LESS 14)
                 install(DIRECTORY extlibs/libs-msvc/x86/ DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -432,7 +434,7 @@ if(SFML_OS_WINDOWS)
             else()
                 install(DIRECTORY extlibs/libs-mingw/x86/ DESTINATION ${CMAKE_INSTALL_LIBDIR})
             endif()
-        elseif(ARCH_64BITS)
+        elseif(ARCH_X64)
             install(DIRECTORY extlibs/bin/x64/ DESTINATION ${CMAKE_INSTALL_BINDIR})
             if(SFML_COMPILER_MSVC AND SFML_MSVC_VERSION LESS 14)
                 install(DIRECTORY extlibs/libs-msvc/x64/ DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -494,9 +496,6 @@ elseif(SFML_OS_MACOSX)
     endif()
 
 elseif(SFML_OS_IOS)
-
-    # fix CMake install rules broken for iOS (see http://public.kitware.com/Bug/view.php?id=12506)
-    install(DIRECTORY "${CMAKE_BINARY_DIR}/lib/\$ENV{CONFIGURATION}/" DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
     if(NOT SFML_USE_SYSTEM_DEPS)
         # since the iOS libraries are built as static, we must install the SFML dependencies
