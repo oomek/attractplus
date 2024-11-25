@@ -33,7 +33,7 @@ jobs:
         exclude:
         - platform: { os: ubuntu-20.04 }
           config: { name: shared }
-        - platform: { os: macos-12 }
+        - platform: { os: macos-latest }
           config: { name: static }
         - platform: { archos: buster }
           config: { name: shared }
@@ -94,7 +94,9 @@ jobs:
     - name: Install MacOS brew
       if: runner.os == 'macOS'
       run: |
-        brew install pkg-config ffmpeg libarchive libvorbis flac jpeg-turbo boost
+        brew update
+        brew upgrade
+        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo boost sfml
 
     - name: Build AM+ (ARM)
       if: matrix.platform.name == 'armv7' || matrix.platform.name == 'aarch64'
