@@ -1482,7 +1482,7 @@ void FeVM::overlay_clear_custom_controls()
 
 bool FeVM::splash_message( const char *msg, const char *aux )
 {
-	m_overlay->splash_message( msg, aux );
+	m_overlay->splash_message( msg, "", aux );
 	return m_overlay->check_for_cancel();
 }
 
