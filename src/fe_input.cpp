@@ -39,6 +39,8 @@ namespace
 	sf::Event g_last_touch;
 	bool g_touch_moved=false;
 
+	int g_wheel_delta=0;
+
 	static std::vector< int > g_joyfemap( sf::Joystick::Count, 0 );
 
 	int joymap2feid( int raw_id )
@@ -395,6 +397,7 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 
 		case sf::Event::MouseWheelScrolled:
 			m_type = Mouse;
+			g_wheel_delta = e.mouseWheelScroll.delta;
 			if ( e.mouseWheelScroll.delta > 0 )
 				m_code=MouseWheelUp;
 			else
@@ -664,6 +667,11 @@ int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 			return sf::Mouse::getPosition( wnd.get_win() ).y;
 		else if (( m_code == MouseLeft ) || ( m_code == MouseRight ))
 			return sf::Mouse::getPosition( wnd.get_win() ).x;
+		else if (( m_code == MouseWheelUp ) || ( m_code == MouseWheelDown )) {
+		   int temp = g_wheel_delta;
+			g_wheel_delta = 0;
+		   return temp;
+		}
 	}
 	else if (( m_type >= Joystick0 ) && ( m_code < JoyButton0 ))
 	{
