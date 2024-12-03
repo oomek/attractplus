@@ -1487,8 +1487,8 @@ Member Functions:
      `msg` parameter is the prompt caption.  `text` is the initial text to be
      edited.  The return value a the string of text as edited by the user.
    * `splash_message( msg, replace, footer_msg )`
-	* `splash_message( msg, replace )`
-	* `splash_message( msg )` - immediately provide text feedback to the user.
+   * `splash_message( msg, replace )`
+   * `splash_message( msg )` - immediately provide text feedback to the user.
      This could be useful during computationally-intensive operations.
      The `msg` parameter may contain a `$1` placeholder that gets replaced by `replace`.
      The `footer_msg` text is displayed in the footer.
