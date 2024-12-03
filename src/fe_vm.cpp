@@ -890,6 +890,7 @@ bool FeVM::on_new_layout()
 		.Overload<int (FeVM::*)(Array, const char *)>(_SC("list_dialog"), &FeVM::list_dialog)
 		.Overload<int (FeVM::*)(Array)>(_SC("list_dialog"), &FeVM::list_dialog)
 		.Func( _SC("edit_dialog"), &FeVM::edit_dialog )
+		.Overload<bool (FeVM::*)(const char *, const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 		.Overload<bool (FeVM::*)(const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 		.Overload<bool (FeVM::*)(const char *)>( _SC("splash_message"), &FeVM::splash_message )
 	);
@@ -1480,15 +1481,20 @@ void FeVM::overlay_clear_custom_controls()
 	m_custom_overlay = false;
 }
 
-bool FeVM::splash_message( const char *msg, const char *aux )
+bool FeVM::splash_message( const char *msg, const char *rep, const char *aux )
 {
-	m_overlay->splash_message( msg, aux );
+	m_overlay->splash_message( msg, rep, aux );
 	return m_overlay->check_for_cancel();
+}
+
+bool FeVM::splash_message( const char *msg, const char *rep )
+{
+	return splash_message( msg, rep, "" );
 }
 
 bool FeVM::splash_message( const char *msg )
 {
-	return splash_message( msg, "" );
+	return splash_message( msg, "", "" );
 }
 
 //
@@ -1637,6 +1643,7 @@ public:
 			//
 			fe.Bind( _SC("Overlay"), Sqrat::Class <FeVM, Sqrat::NoConstructor>()
 				.Prop( _SC("is_up"), &FeVM::overlay_is_on )
+				.Overload<bool (FeVM::*)(const char *, const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 				.Overload<bool (FeVM::*)(const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 				.Overload<bool (FeVM::*)(const char *)>( _SC("splash_message"), &FeVM::splash_message )
 			);

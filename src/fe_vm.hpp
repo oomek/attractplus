@@ -154,6 +154,7 @@ public:
 	void overlay_set_custom_controls( FeText *caption );
 	void overlay_set_custom_controls();
 	void overlay_clear_custom_controls();
+	bool splash_message( const char *, const char *, const char * );
 	bool splash_message( const char *, const char * );
 	bool splash_message( const char * );
 
