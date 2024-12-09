@@ -750,7 +750,9 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 		m_filter_index = 0;
 
 	token_helper( state_string, pos, val );
-	m_romlist_size = as_int( val );
+	FeLog() << "romlist size: " << val << " val: " << as_int( val ) << std::endl;
+	if ( val.size() > 0 ) m_romlist_size = as_int( val );
+	else m_romlist_size = -1;
 	return 0;
 }
 
