@@ -55,6 +55,8 @@
 #include <stdio.h>
 #include <ctime>
 #include <stdarg.h>
+#include <thread>
+#include <algorithm>
 
 const char *FE_SCRIPT_NV_FILE = "script.nv";
 
@@ -72,6 +74,47 @@ namespace
 		va_end(vl);
 
 		FeLog() << buff;
+	}
+
+	//
+	// Struct for storing plugin command callbacks to keep them in-scope
+	//
+	struct PluginCallback
+	{
+		run_program_options_class opt;
+		Sqrat::Function func;
+	};
+
+	std::list<PluginCallback> cb_plugin_callbacks;
+
+	//
+	// Releases the stored sq func, and erases the stored object
+	// Called when a background thread `run_program` has completed
+	//
+	void plugin_complete_cb(void *opaque) {
+		PluginCallback cb = *(PluginCallback*)opaque;
+		auto it = std::find_if(cb_plugin_callbacks.begin(), cb_plugin_callbacks.end(),
+			[&cb](const PluginCallback& a) { return memcmp(&a, &cb, sizeof(struct PluginCallback)); });
+		if (it != cb_plugin_callbacks.end())
+		{
+			it->func.Release();
+			it->opt.launch_cb = NULL;
+			cb_plugin_callbacks.erase(it);
+		}
+	}
+
+	//
+	// Releases all stored sq funcs, does NOT erase the stored object
+	// Any running threads will still call `plugin_complete_cb` to erase it
+	// Called when changing layouts, or exiting
+	//
+	void plugin_cb_clear() {
+		for ( std::list<PluginCallback>::iterator it=cb_plugin_callbacks.begin();
+			it != cb_plugin_callbacks.end(); ++it )
+		{
+			it->func.Release();
+			it->opt.launch_cb = NULL;
+		}
 	}
 
 	bool my_callback( const char *buffer, void *opaque )
@@ -381,6 +424,7 @@ void FeVM::clear()
 	m_ticks.clear();
 	m_trans.clear();
 	m_sig_handlers.clear();
+	plugin_cb_clear();
 
 	while ( !m_posted_commands.empty() )
 		m_posted_commands.pop();
@@ -1013,7 +1057,9 @@ bool FeVM::on_new_layout()
 	fe.Overload<bool (*)(const char *, const char *, Object, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 	fe.Overload<bool (*)(const char *, const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 	fe.Overload<bool (*)(const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
-	fe.Func<bool (*)(const char *, const char *)>(_SC("plugin_command_bg"), &FeVM::cb_plugin_command_bg);
+	fe.Overload<bool (*)(const char *, const char *, Object, const char *)>(_SC("plugin_command_bg"), &FeVM::cb_plugin_command_bg);
+	fe.Overload<bool (*)(const char *, const char *, const char *)>(_SC("plugin_command_bg"), &FeVM::cb_plugin_command_bg);
+	fe.Overload<bool (*)(const char *, const char *)>(_SC("plugin_command_bg"), &FeVM::cb_plugin_command_bg);
 	fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
@@ -2405,6 +2451,30 @@ bool FeVM::cb_plugin_command( const char *command,
 bool FeVM::cb_plugin_command( const char *command, const char *args )
 {
 	return run_program( clean_path( command ), args, "" );
+}
+
+bool FeVM::cb_plugin_command_bg( const char *command,
+		const char *args,
+		Sqrat::Object obj,
+		const char *fn )
+{
+	cb_plugin_callbacks.push_back({ opt: {}, func: Sqrat::Function( obj, fn ) });
+	PluginCallback* cb = &cb_plugin_callbacks.back();
+	cb->opt.launch_opaque = cb;
+	cb->opt.launch_cb = plugin_complete_cb;
+
+	std::thread( run_program, clean_path( command ), args, "",
+		my_callback, &(cb->func), true, &(cb->opt) ).detach();
+
+	return true;
+}
+
+bool FeVM::cb_plugin_command_bg( const char *command,
+		const char *args,
+		const char *fn )
+{
+	Sqrat::RootTable rt;
+	return cb_plugin_command_bg( command, args, rt, fn );
 }
 
 bool FeVM::cb_plugin_command_bg( const char *command, const char *args )

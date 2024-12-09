@@ -1090,6 +1090,8 @@ Return Value:
 #### `fe.plugin_command_bg()` ####
 
     fe.plugin_command_bg( executable, arg_string )
+    fe.plugin_command_bg( executable, arg_string, environment, callback_function )
+    fe.plugin_command_bg( executable, arg_string, callback_function )
 
 Execute a plug-in command in the background and return immediately.
 
@@ -1097,6 +1099,21 @@ Parameters:
 
    * executable - the name of the executable to run.
    * arg_string - the arguments to pass when running the executable.
+   * environment - the squirrel object that the callback function
+     is associated with.
+   * callback_function - a string containing the name of the function in
+     Squirrel to call with any output that the executable provides on stdout.
+     The function should be in the following form:
+
+        function callback_function( op )
+        {
+        }
+
+     If provided, this function will get called repeatedely with chunks of the
+     command output in `op`.  NOTE: `op` is not necessarily aligned with the
+     start and the end of the lines of output from the command.  In any one
+     call `op` may contain data from multiple lines and that may begin or end
+     in the middle of a line.
 
 Return Value:
 

@@ -215,6 +215,8 @@ public:
 	static bool cb_plugin_command(const char *, const char *, Sqrat::Object, const char * );
 	static bool cb_plugin_command(const char *, const char *, const char *);
 	static bool cb_plugin_command(const char *, const char *);
+	static bool cb_plugin_command_bg(const char *, const char *, Sqrat::Object, const char * );
+	static bool cb_plugin_command_bg(const char *, const char *, const char *);
 	static bool cb_plugin_command_bg(const char *, const char *);
 	static const char *cb_path_expand( const char *path );
 
