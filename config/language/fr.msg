@@ -131,6 +131,7 @@ Previous Filter;Filtre précédent
 Previous Letter;Lettre précédente
 Previous Page;Page Suivante
 Random Game;Jeu au hasard
+Reload;Recharger
 Remove Input;Enlever le contrôle
 Replay Last Game;Rejouer au dernier jeu
 Right;Droite
@@ -213,6 +214,7 @@ _help_control_prev_favourite;Définit le(s) contrôle(s) qui selectionne(nt) le 
 _help_control_prev_filter;Définit le(s) contrôle(s) qui bascule(nt) au filtre précédente
 _help_control_prev_letter;Définit le(s) contrôle(s) qui bascule(nt) à la lettre précédente
 _help_control_random_game;Définit le(s) contrôle(s) qui sélectionne(nt) un jeu aléatoirement dans la liste de rom active
+_help_control_reload;Définit le(s) contrôle(s) qui rechargent la mise en page actuelle
 _help_control_replay_last_game;Définit le(s) contrôle(s) qui relance(nt) le dernier jeu joué
 _help_control_screen_saver;Définit le(s) contrôle(s) qui lance(nt) le mode "économiseur d'écran"
 _help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract Mode

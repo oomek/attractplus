@@ -169,6 +169,7 @@ Previous Game;Gioco precedente
 Previous Letter;Lettera precedente
 Previous Page;Pagina precedente
 Random Game;Gioco casuale
+Reload;Ricaricare
 Remove '$1' from Favourites?;Elimino '$1' dai preferiti?
 Remove Input;Eliminare il controllo
 Remove tag: '$1';Elimina etichetta: '$1'
@@ -277,6 +278,7 @@ _help_control_prev_game;Configura i controlli per spostarsi al gioco precedente
 _help_control_prev_letter;Configura i controlli per passare alla lettera precedente
 _help_control_prev_page;Configura i controlli per spostarsi alla pagina precedente
 _help_control_random_game;Configura i controlli per saltare ad un gioco casuale
+_help_control_reload;Configura i controlli che ricaricano il layout corrente
 _help_control_replay_last_game;Configura i controlli per eseguire nuovamente l'ultimo titolo giocato
 _help_control_right;Configura i controlli per spostare la selezione a destra
 _help_control_screen_saver;Configura i controlli per eseguire immediatamente il salvaschermo

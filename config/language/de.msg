@@ -137,6 +137,7 @@ Previous Filter;Vorheriger Filter
 Previous Letter;Voriger Buchstabe
 Previous Page;Vorherige Seite
 Random Game;Zufälliges Spiel
+Reload;Neu laden
 Remove Input;Steuerung löschen
 Replay Last Game;Letztes Spiel wiederholen
 Right;Rechts
@@ -225,6 +226,7 @@ _help_control_prev_filter;Definiere die Taste(n), um zum vorigen Filter zu sprin
 _help_control_prev_letter;Definiere die Taste(n), um zum vorigen Buchstaben zu springen
 _help_control_prev_page;Definiere die Taste(n), um die Auswahl zur vorherigen Seite zu bewegen
 _help_control_random_game;Definiere die Taste(n), die ein zufälliges Spiel aus der aktuellen Liste wählen
+_help_control_reload;Definiere die Taste(n), die das aktuelle Layout neu laden
 _help_control_replay_last_game;Definiere die Taste(n), die das zuletzt gespielte Spiel erneut starten
 _help_control_screen_saver;Definiere die Taste(n), die den Bildschirmschoner starten
 _help_control_screenshot;Definiere die Taste(n), um ein Bildschirmphoto vom Frontend zu machen

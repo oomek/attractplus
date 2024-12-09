@@ -190,6 +190,7 @@ Previous Game;上一個遊戲
 Previous Letter;上一個文字清單
 Previous Page;上一頁
 Random Game;隨機選取遊戲
+Reload;重新載入
 Remove '$1' from Favourites?;要從我的最愛移除「$1」嗎？
 Remove Input;移除輸入按鍵
 Remove tag: '$1';移除分類標籤: $1
@@ -299,6 +300,7 @@ _help_control_prev_game;設定「移至上一個遊戲」的控制鍵
 _help_control_prev_letter;設定「移至上一個文字清單」的控制鍵
 _help_control_prev_page;設定「移至上一頁」的控制鍵
 _help_control_random_game;設定「從當前清單隨機選取遊戲」的控制鍵
+_help_control_reload;設定「重新載入佈局」的控制鍵
 _help_control_replay_last_game;設定「重玩最後執行的遊戲」的控制鍵
 _help_control_right;設定「右移選項」的控制鍵
 _help_control_screen_saver;設定「進入螢幕保護模式」的控制鍵

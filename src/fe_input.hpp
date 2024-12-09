@@ -146,6 +146,7 @@ public:
 		ToggleRotateLeft,
 		Exit,
 		ExitToDesktop,
+		Reload,
 		ScreenShot,
 		Configure,
 		RandomGame,
@@ -180,8 +181,7 @@ public:
 		AmbientSound,
 		EventStartup,
 		EventGameReturn,
-		LAST_EVENT,
-		Reload // special case value used to reload the layout
+		LAST_EVENT
 	};
 
 	static const char *commandStrings[];
