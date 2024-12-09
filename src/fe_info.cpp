@@ -599,8 +599,8 @@ FeDisplayInfo::FeDisplayInfo( const std::string &n )
 	m_filter_index( 0 ),
 	m_current_config_filter( NULL ),
 	m_global_filter( "" ),
-	m_romlist_size( -1 ),
-	m_display_config_changed( false )
+	m_romlist_size( -1 )
+	// m_display_config_changed( false )
 {
 	m_info[ Name ] = n;
 	m_info[ InCycle ] = "yes";

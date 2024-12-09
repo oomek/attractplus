@@ -4261,9 +4261,12 @@ bool FeSettings::get_emulator_setup_script( std::string &path, std::string &file
 
 bool FeSettings::display_size_recount( int display_index )
 {
-	FeLog() << "display_size_recount() config_changed:"<< m_displays[display_index].display_config_changed() << " current_size:" << m_displays[display_index].get_romlist_size() << std::endl;
+	// FeLog() << "display_size_recount() config_changed:"<< m_displays[display_index].display_config_changed() << " current_size:" << m_displays[display_index].get_romlist_size() << std::endl;
+	FeLog() << "display_size_recount() current_size:" << m_displays[display_index].get_romlist_size() << std::endl;
 	//if (( m_displays[display_index].display_config_changed() == false ) || ( m_displays[display_index].get_romlist_size() > 0 )) return false;
-	if ( m_displays[display_index].display_config_changed() == false && m_displays[display_index].get_romlist_size() >= 0 ) return false;
+	// if ( m_displays[display_index].display_config_changed() == false && m_displays[display_index].get_romlist_size() >= 0 ) return false; // redundant
+	if ( m_displays[display_index].get_romlist_size() > -1 ) return false;
+
 	std::string list_path( m_config_path );
 	list_path += FE_ROMLIST_SUBDIR;
 
@@ -4278,7 +4281,8 @@ bool FeSettings::display_size_recount( int display_index )
 
 void FeSettings::notify_display_size_recount( int display_index )
 {
-	m_displays[display_index].notify_display_config_changed();
+	// m_displays[display_index].notify_display_config_changed(); // redundant
+	m_displays[display_index].set_romlist_size( -1 ); // remove notify_display_config_changed() and display_config_changed()
 }
 
 bool FeSettings::group_clones_changed()
