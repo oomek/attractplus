@@ -221,6 +221,7 @@ private:
 	bool m_displays_menu_exit;
 	bool m_hide_brackets;
 	bool m_group_clones;
+	bool m_group_clones_prev;
 	StartupModeType m_startup_mode;
 	bool m_confirm_favs;
 	bool m_confirm_exit;
@@ -613,7 +614,9 @@ public:
 		const std::string &path,
 		std::vector<std::string> &names_list );
 
-	void count_display_romlist_size( int display_index );
+	bool display_size_recount( int display_index );
+	void notify_display_size_recount( int display_index );
+	bool group_clones_changed();
 };
 
 inline bool is_windowed_mode( int m )

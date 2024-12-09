@@ -181,6 +181,7 @@ void FeBaseConfigurable::invalid_setting(
 bool FeBaseConfigurable::load_from_file( const std::string &filename,
 	const char *sep )
 {
+	FeLog() << "Loading config file: " << filename << std::endl;
 	// Open in binary mode for better performance
 	nowide::ifstream myfile( filename.c_str(), std::ios::binary );
 

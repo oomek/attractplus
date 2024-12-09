@@ -191,6 +191,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool load_stats,
 	bool skip_filters )
 {
+	FeLog() << "Loading romlist " << path << romlist_name << std::endl;
 	m_romlist_name = romlist_name;
 
 	m_list.clear();
@@ -202,6 +203,12 @@ bool FeRomList::load_romlist( const std::string &path,
 	int global_filtered_out_count = 0;
 
 	sf::Clock load_timer;
+
+	std::string full_path( path + m_romlist_name + FE_ROMLIST_FILE_EXTENSION );
+    struct stat attrib;
+    stat( full_path.c_str(), &attrib );
+	m_timestamp = attrib.st_mtime; // romlist timestamp
+	// FeLog() << "Romlist " << full_path << " last modified timestamp: " << m_timestamp << std::endl;
 
 	bool retval = FeBaseConfigurable::load_from_file(
 			path + m_romlist_name + FE_ROMLIST_FILE_EXTENSION, ";" );
@@ -360,25 +367,31 @@ bool FeRomList::load_romlist( const std::string &path,
 			m_list.erase( last_it, m_list.end() );
 	}
 
-	FeLog() << " - Loaded master romlist '" << m_romlist_name
-			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
-			<< " discarded)" << std::endl;
+// Temp skipped
+	// FeLog() << " - Loaded master romlist '" << m_romlist_name
+	// 		<< "' in " << load_timer.getElapsedTime().asMilliseconds()
+	// 		<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
+	// 		<< " discarded)" << std::endl;
 
 	if ( !skip_filters )
 	{
 		create_filters( display );
 	}
-	else if ( m_group_clones )
+	else
 	{
-		for ( FeRomInfoListType::iterator itr = m_list.begin(); itr != m_list.end(); )
-		{
-			if ( !( *itr ).get_info( FeRomInfo::Cloneof ).empty() )
-				itr = m_list.erase( itr );
-			else
-				++itr;
-		}
+		// build_single_filter_list( nullptr, m_filtered_list[0] );
+		build_single_filter_list( nullptr, m_global_list );
 	}
+	// else if ( m_group_clones )
+	// {
+	// 	for ( FeRomInfoListType::iterator itr = m_list.begin(); itr != m_list.end(); )
+	// 	{
+	// 		if ( !( *itr ).get_info( FeRomInfo::Cloneof ).empty() )
+	// 			itr = m_list.erase( itr );
+	// 		else
+	// 			++itr;
+	// 	}
+	// }
 	return retval;
 }
 
@@ -403,6 +416,7 @@ void FeRomList::build_single_filter_list( FeFilter *f,
 
 	if ( f )
 	{
+		// FeLog() << "FILTER:FeRomList::build_single_filter_list: ";
 		if ( f->get_size() > 0 ) // if this is non zero then we've loaded before and know how many to expect
 			result.filter_list.reserve( f->get_size() );
 
@@ -447,6 +461,7 @@ void FeRomList::build_single_filter_list( FeFilter *f,
 	}
 	else // no filter situation, so we just add the entire list...
 	{
+		// FeLog() << "NO FILTER:FeRomList::build_single_filter_list: ";
 		result.filter_list.reserve( m_list.size() );
 		if ( m_group_clones )
 		{
@@ -518,6 +533,7 @@ void FeRomList::build_single_filter_list( FeFilter *f,
 				result.filter_list.erase( result.filter_list.begin(), result.filter_list.end() + list_limit );
 		}
 	}
+	// FeLog() << " - Filtered " << result.filter_list.size() << std::endl;
 }
 
 void FeRomList::get_clone_group( int filter_idx, int idx, std::vector < FeRomInfo * > &group )
@@ -575,6 +591,19 @@ void FeRomList::create_filters(
 	FeLog() << " - Constructed " << filters_count << " filters in "
 			<< load_timer.getElapsedTime().asMilliseconds()
 			<< " ms (" << filters_count * m_list.size() << " comparisons)" << std::endl;
+}
+
+void FeRomList::create_global_filter(
+	FeDisplayInfo &display )
+{
+	FeLog() << "Creating global filter" << std::endl;
+	sf::Clock load_timer;
+
+	build_single_filter_list( nullptr, m_global_list );
+
+	FeLog() << " - Constructed global filter in "
+			<< load_timer.getElapsedTime().asMilliseconds()
+			<< " ms" << std::endl;
 }
 
 int FeRomList::process_setting( const std::string &setting,
@@ -790,6 +819,7 @@ bool FeRomList::set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::stri
 
 bool FeRomList::fix_filters( FeDisplayInfo &display, FeRomInfo::Index target )
 {
+	FeLog() << "Fixing filters for target " << target << std::endl;
 	bool retval = false;
 	for ( int i=0; i<display.get_filter_count(); i++ )
 	{

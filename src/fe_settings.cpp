@@ -277,6 +277,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
 	m_group_clones( false ),
+	m_group_clones_prev( false ),
 	m_startup_mode( ShowLastSelection ),
 	m_confirm_favs( true ),
 	m_confirm_exit( true ),
@@ -342,6 +343,7 @@ void FeSettings::clear()
 
 void FeSettings::load()
 {
+	sf::Clock clock;
 	clear();
 
 	std::string load_language( "en" );
@@ -352,7 +354,7 @@ void FeSettings::load()
 		FeLog() << "Warning: Attract-Mode was compiled to look for its default configuration files in: "
 			<< FE_DATA_PATH << ", which is not available." << std::endl;
 	}
-
+FeLog() << "  load() " <<clock.getElapsedTime().asMilliseconds() << "ms 0" << std::endl; clock.restart();
 	if ( load_from_file( filename ) == false )
 	{
 		FeLog() << "Config file not found: " << filename << std::endl;
@@ -366,7 +368,7 @@ void FeSettings::load()
 
 		load_language = m_language;
 	}
-
+FeLog() << "  load() " <<clock.getElapsedTime().asMilliseconds() << "ms 1" << std::endl; clock.restart();
 	// Load language strings now.
 	//
 	// If we didn't find a config file, then we leave m_language empty but load the english language strings
@@ -384,14 +386,15 @@ void FeSettings::load()
 	std::string rex_str;
 	get_translation( "_sort_regexp", rex_str );
 	FeRomListSorter::init_title_rex( rex_str );
-
+FeLog() << "  load() " <<clock.getElapsedTime().asMilliseconds() << "ms 2" << std::endl; clock.restart();
 	load_state();
+FeLog() << "  load() " <<clock.getElapsedTime().asMilliseconds() << "ms 3" << std::endl; clock.restart();
 	init_display();
-
+FeLog() << "  load() " <<clock.getElapsedTime().asMilliseconds() << "ms 4" << std::endl; clock.restart();
 	// Make sure we have some keyboard mappings
 	//
 	m_inputmap.initialize_mappings();
-
+FeLog() << "  load() " <<clock.getElapsedTime().asMilliseconds() << "ms 5" << std::endl; clock.restart();
 	// If no menu prompt is configured, default to calling it "Displays Menu" (in current language)
 	//
 	if ( m_menu_prompt.empty() )
@@ -748,6 +751,9 @@ void FeSettings::save_state()
 
 void FeSettings::load_state()
 {
+	FeLog() << "!!!!!!!!!!! load_state()" << std::endl;
+	m_group_clones_prev = m_group_clones;
+
 	if ( m_displays.empty() )
 	{
 		m_current_display = -1;
@@ -2948,6 +2954,12 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case GroupClones:
 		m_group_clones = config_str_to_bool( value );
+		FeLog() << "!!!!!!!!!!!!!!!!!!!!!!!!!!! GroupClones " << value << std::endl; // well, shit. it triggers on start and on change in settings
+		// for ( unsigned int i = 0; i < m_displays.size(); i++ )
+		// {
+		// 	notify_display_size_recount( i );
+		// // 	display_size_recount( i );
+		// }
 		break;
 
 	case StartupMode:
@@ -4247,8 +4259,11 @@ bool FeSettings::get_emulator_setup_script( std::string &path, std::string &file
 	return true;
 }
 
-void FeSettings::count_display_romlist_size( int display_index )
+bool FeSettings::display_size_recount( int display_index )
 {
+	FeLog() << "display_size_recount() config_changed:"<< m_displays[display_index].display_config_changed() << " current_size:" << m_displays[display_index].get_romlist_size() << std::endl;
+	//if (( m_displays[display_index].display_config_changed() == false ) || ( m_displays[display_index].get_romlist_size() > 0 )) return false;
+	if ( m_displays[display_index].display_config_changed() == false && m_displays[display_index].get_romlist_size() >= 0 ) return false;
 	std::string list_path( m_config_path );
 	list_path += FE_ROMLIST_SUBDIR;
 
@@ -4256,5 +4271,23 @@ void FeSettings::count_display_romlist_size( int display_index )
 	FeRomList list( m_config_path );
 	list.init_as_empty_list();
 	list.load_romlist( list_path, list_name, m_displays[display_index], m_group_clones, m_track_usage, true );
-	m_displays[display_index].set_romlist_size( list.get_list().size() );
+	m_displays[display_index].set_romlist_size( list.get_global_list().size() );
+	FeLog() << "display_size_recount() new_size:" << m_displays[display_index].get_romlist_size() << std::endl;
+	return true;
+}
+
+void FeSettings::notify_display_size_recount( int display_index )
+{
+	m_displays[display_index].notify_display_config_changed();
+}
+
+bool FeSettings::group_clones_changed()
+{
+	if ( m_group_clones != m_group_clones_prev )
+	{
+		m_group_clones_prev = m_group_clones;
+		return true;
+	}
+
+	return false;
 }

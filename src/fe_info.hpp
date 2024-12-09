@@ -288,8 +288,11 @@ public:
 
 	FeScriptConfigurable &get_layout_per_display_params() { return m_layout_per_display_params; };
 
-	void set_romlist_size( int s ) { m_romlist_size=s; };
+	void set_romlist_size( int size ) { m_romlist_size = size; m_display_config_changed = false; };
 	int get_romlist_size() const { return m_romlist_size; };
+	void notify_display_config_changed() { m_display_config_changed = true; };
+	// bool display_config_changed() { bool res = m_display_config_changed; m_display_config_changed = false; return res; }; // the name is confusing it's not a function but a bool return value
+	bool display_config_changed() { return m_display_config_changed; }; // the name is confusing it's not a function but a bool return value
 
 private:
 	std::string m_info[LAST_INDEX];
@@ -302,6 +305,7 @@ private:
 	std::vector< FeFilter > m_filters;
 	FeFilter m_global_filter;
 	int m_romlist_size;
+	bool m_display_config_changed;
 };
 
 //

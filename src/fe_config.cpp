@@ -1250,6 +1250,7 @@ bool FeDisplayEditMenu::save( FeConfigContext &ctx )
 	FeDisplayInfo *display = ctx.fe_settings.get_display( m_index );
 	if ( display )
 	{
+		ctx.fe_settings.notify_display_size_recount( m_index );
 		for ( int i=0; i< FeDisplayInfo::LAST_INDEX; i++ )
 		{
 			if (( i == FeDisplayInfo::InCycle )

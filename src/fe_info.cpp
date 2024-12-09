@@ -599,7 +599,8 @@ FeDisplayInfo::FeDisplayInfo( const std::string &n )
 	m_filter_index( 0 ),
 	m_current_config_filter( NULL ),
 	m_global_filter( "" ),
-	m_romlist_size( 0 )
+	m_romlist_size( -1 ),
+	m_display_config_changed( false )
 {
 	m_info[ Name ] = n;
 	m_info[ InCycle ] = "yes";
@@ -700,7 +701,7 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 {
 	// state string is in format:
 	//
-	// "[curr_rom];[curr_layout_filename];[curr_filter];"
+	// "[curr_rom];[curr_layout_filename];[curr_filter];[display_size];"
 	//
 	// With [curr_rom] = "[rom_index filter0],[rom_index filter1],..."
 	//
@@ -748,6 +749,8 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 	if ( m_filter_index < 0 )
 		m_filter_index = 0;
 
+	token_helper( state_string, pos, val );
+	m_romlist_size = as_int( val );
 	return 0;
 }
 
@@ -769,7 +772,8 @@ std::string FeDisplayInfo::state_as_output() const
 	}
 
 	state << ";" << m_current_layout_file << ";"
-		<< m_filter_index << ";";
+		<< m_filter_index << ";"
+		<< m_romlist_size << ";";
 
 	return state.str();
 }

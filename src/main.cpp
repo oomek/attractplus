@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 	bool launch_game = false;
 	bool process_console = false;
 	FeLogLevel log_level = FeLog_Info;
-
+	sf::Clock clock;
 #ifdef USE_LIBCURL
 	curl_global_init( CURL_GLOBAL_ALL );
 #endif
@@ -107,13 +107,13 @@ int main(int argc, char *argv[])
 	//
 	fe_print_version();
 	FeLog() << std::endl;
-
+	FeLog() << clock.getElapsedTime().asMilliseconds() << "ms 1" << std::endl; clock.restart();
 	if ( !sf::Shader::isAvailable() )
 	{
 		FeLog() << "Error, Attract-Mode Plus requires shader support."  << std::endl;
 		return 1;
 	}
-
+	FeLog() << clock.getElapsedTime().asMilliseconds() << "ms 2" << std::endl; clock.restart();
 #ifdef SFML_SYSTEM_WINDOWS
 	// Detect an nvidia card and if it's found create an nvidia profile
 	// for Attract Mode with optimizations
@@ -122,9 +122,9 @@ int main(int argc, char *argv[])
 				<< "In order for the changes to take effect, please restart Attract Mode\n" << std::endl;
 	FeDebug() << std::endl;
 #endif
-
+	FeLog() << clock.getElapsedTime().asMilliseconds() << "ms 3" << std::endl; clock.restart();
 	feSettings.load();
-
+	FeLog() << clock.getElapsedTime().asMilliseconds() << "ms 4" << std::endl; clock.restart();
 	//
 	// Set up music/sound playing objects
 	//
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 
 	if ( !config_mode )
 	{
-		feOverlay.update_romlists();
+		feOverlay.update_display_sizes();
 
 		// start the intro now
 		if ( !feVM.load_intro() )
@@ -231,7 +231,8 @@ int main(int argc, char *argv[])
 
 			if ( feOverlay.config_dialog() )
 			{
-				feOverlay.update_romlists();
+				FeLog() << "AAAAAAAAAAAA" << std::endl;
+				feOverlay.update_display_sizes();
 
 				// Settings changed, reload
 				//
@@ -755,9 +756,7 @@ int main(int argc, char *argv[])
 				case FeInputMap::EditGame:
 					if ( feOverlay.edit_game_dialog() )
 					{
-						if( feOverlay.romlists_changed() )
-							feOverlay.update_romlists();
-
+						feOverlay.update_display_sizes();
 						feVM.update_to_new_list();
 					}
 

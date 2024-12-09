@@ -28,6 +28,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <sys/stat.h>
 
 typedef std::list<FeRomInfo> FeRomInfoListType;
 extern const char *FE_ROMLIST_FILE_EXTENSION;
@@ -77,6 +78,7 @@ public:
 	std::map< std::string, std::vector < FeRomInfo * > > clone_group;
 
 	void clear() { filter_list.clear(); clone_group.clear(); };
+	int size() const { return filter_list.size(); };
 
 };
 
@@ -85,6 +87,7 @@ class FeRomList : public FeBaseConfigurable
 private:
 	FeRomInfoListType m_list; // this is where we keep the info on all the games available for the current display
 	std::vector< FeFilterEntry > m_filtered_list;
+	FeFilterEntry m_global_list;
 	std::vector<FeEmulatorInfo> m_emulators; // we keep the emulator info here because we need it for checking file availability
 
 	std::map<std::string, bool> m_tags; // bool is flag of whether the tag has been changed
@@ -99,7 +102,7 @@ private:
 	bool m_availability_checked;
 	bool m_played_stats_checked;
 	bool m_group_clones;
-	int m_global_filtered_out_count; // for keeping stats during load
+	time_t m_timestamp;
 
 	FeRomList( const FeRomList & );
 	FeRomList &operator=( const FeRomList & );
@@ -127,6 +130,7 @@ public:
 		bool skip_filters=false );
 
 	void create_filters( FeDisplayInfo &display ); // called by load_romlist()
+	void create_global_filter( FeDisplayInfo &display );
 
 	int process_setting( const std::string &setting,
 		const std::string &value,
@@ -148,6 +152,7 @@ public:
 	void get_clone_group( int filter_idx, int idx, std::vector < FeRomInfo * > &group );
 
 	FeRomInfoListType &get_list() { return m_list; };
+	FeFilterEntry &get_global_list() { return m_global_list; };
 
 	void get_file_availability();
 
@@ -166,7 +171,8 @@ public:
 	void delete_emulator( const std::string & );
 	void clear_emulators() { m_emulators.clear(); }
 
-	const std::string get_config_path() const { return m_config_path; };
+	const std::string &get_config_path() const { return m_config_path; }
+	int get_timestamp() const { return m_timestamp; };
 };
 
 #endif
