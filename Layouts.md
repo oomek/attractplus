@@ -786,7 +786,7 @@ Parameters:
      containing the selection to retrieve the filename for.  i.e.
      -1=previous filter, 0=current filter.  Default value is 0.
    * flags - flags to control the filename that gets returned.  Can be set
-     to any combination of none or more of the following (i.e. `Art.ImageOnly
+     to any combination of none or more of the following (i.e. `Art.ImagesOnly
      | Art.FullList`):
       - `Art.Default` - return single match, video or image
       - `Art.ImagesOnly` - Override Art.Default, only return an image match (no
@@ -1370,7 +1370,7 @@ Properties:
    * `height` - Get/set the layout height.  Default value is `ScreenHeight`.
    * `font` - Get/set the filename of the font which will be used for
      text and listbox objects in this layout.
-   * `base_rotation` - Get the base orientation of Attract Mode wchich is set
+   * `base_rotation` - Get the base orientation of Attract Mode which is set
      in General Settings. This property cannot be set from the script.
      This can be one of the following values:
       - `RotateScreen.None` (default)
@@ -1378,7 +1378,7 @@ Properties:
       - `RotateScreen.Flip`
       - `RotateScreen.Left`
    * `toggle_rotation` - Get/set the "toggle" orientation of the layout.
-     The toggle rotation is added to the rotation sen in general settings
+     The toggle rotation is added to the rotation set in general settings
      to determine what the actual rotation is at any given time.
      The user can change this value using the Rotation Toggle inputs.
      This can be one of the following values:
@@ -1503,9 +1503,12 @@ Member Functions:
    * `edit_dialog( msg, text )` - Prompt the user to input/edit text.  The
      `msg` parameter is the prompt caption.  `text` is the initial text to be
      edited.  The return value a the string of text as edited by the user.
-   * `splash_message( msg, second_msg="" )` - immediately provide text feedback
-     to the user.  This could be useful during computationally-intensive
-     operations.
+   * `splash_message( msg, replace, footer_msg )`
+   * `splash_message( msg, replace )`
+   * `splash_message( msg )` - immediately provide text feedback to the user.
+     This could be useful during computationally-intensive operations.
+     The `msg` parameter may contain a `$1` placeholder that gets replaced by `replace`.
+     The `footer_msg` text is displayed in the footer.
 
 &nbsp;
 <a name="Display"></a>
@@ -1598,6 +1601,8 @@ Member Functions:
      (see [`fe.add_listbox()`](#add_listbox) for parameters and return value).
    * `add_surface()` - add a surface to the end of this monitor's draw list
      (see [`fe.add_surface()`](#add_surface) for parameters and return value).
+   * `add_rectangle()` - add a rectangle to the end of this monitor's draw list
+     (see [`fe.add_rectangle()`](#add_rectangle) for parameters and return value).
 
 Notes:
 
@@ -1793,6 +1798,9 @@ Member Functions:
    * `add_surface()` - [surface only] add a surface to the end of this
      surface's draw list (see [`fe.add_surface()`](#add_surface) for parameters
      and return value).
+   * `add_rectangle()` - [surface only] add a rectangle to the end of this
+	  surface's draw list (see [`fe.add_rectangle()`](#add_rectangle) for parameters
+	  and return value).
 
 &nbsp;
 <a name="ImageNotes"></a>
