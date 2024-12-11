@@ -168,6 +168,13 @@ bool process_exists( unsigned int pid );
 //
 // Utility functions for file processing:
 //
+
+// Replaces invalid filename characters with a dash
+std::string sanitize_filename( const std::string &file );
+
+// Returns the modified time of the file
+time_t modified_time( const std::string &file );
+
 // return true if file exists (file or directory)
 bool file_exists( const std::string &file );
 

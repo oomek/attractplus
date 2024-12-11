@@ -25,6 +25,7 @@
 #include "fe_settings.hpp"
 #include "fe_util.hpp"
 #include "fe_vm.hpp"
+#include "fe_cache.hpp"
 
 #include <SFML/Graphics/Shader.hpp>
 #ifndef NO_MOVIE
@@ -1250,6 +1251,9 @@ bool FeDisplayEditMenu::save( FeConfigContext &ctx )
 	FeDisplayInfo *display = ctx.fe_settings.get_display( m_index );
 	if ( display )
 	{
+		// Clear this displays cache when its settings have changed
+		FeCache::clear_display_cache( *display );
+
 		for ( int i=0; i< FeDisplayInfo::LAST_INDEX; i++ )
 		{
 			if (( i == FeDisplayInfo::InCycle )

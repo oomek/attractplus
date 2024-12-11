@@ -23,10 +23,15 @@
 #ifndef FE_INFO_HPP
 #define FE_INFO_HPP
 
+#ifndef FE_VERSION_NUM
+#define FE_VERSION_NUM 1
+#endif
+
 #include "fe_base.hpp"
 #include <map>
 #include <vector>
 #include "nowide/fstream.hpp"
+#include "cereal/cereal.hpp"
 
 extern const char *FE_STAT_FILE_EXTENSION;
 extern const char FE_TAGS_SEP;
@@ -99,12 +104,22 @@ public:
 
 	bool operator==( const FeRomInfo & ) const;      // compares romname and emulator only
 	bool full_comparison( const FeRomInfo & ) const; // copares all fields that get loaded from the romlist file
+	int index; // Stores the m_list index, after global_filter applied
+
+	template<class Archive>
+	void serialize(Archive & archive, std::uint32_t const version)
+	{
+		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomInfo cache";
+		archive( m_info, index );
+	}
 
 private:
 	std::string get_info_escaped( int ) const;
 
-	std::string m_info[LAST_INDEX];
+	std::vector<std::string> m_info;
 };
+
+CEREAL_CLASS_VERSION( FeRomInfo, FE_VERSION_NUM );
 
 //
 // Class for a single rule in a list filter
@@ -194,7 +209,8 @@ public:
 	void set_reverse_order( bool r ) { m_reverse_order=r; }
 	void set_list_limit( int p ) { m_list_limit=p; }
 
-	bool test_for_target( FeRomInfo::Index target ) const; // do changes to the specified target affect this filter?
+	// Returns true if the target RomInfo is used by sort or filter rule
+	bool test_for_target( FeRomInfo::Index target ) const;
 
 	void clear();
 

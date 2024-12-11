@@ -23,11 +23,22 @@
 #ifndef FE_ROMLIST_HPP
 #define FE_ROMLIST_HPP
 
+#ifndef FE_VERSION_NUM
+#define FE_VERSION_NUM 1
+#endif
+
 #include "fe_info.hpp"
 
 #include <map>
 #include <set>
 #include <list>
+
+#include "cereal/cereal.hpp"
+#include <cereal/types/list.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/polymorphic.hpp>
 
 typedef std::list<FeRomInfo> FeRomInfoListType;
 extern const char *FE_ROMLIST_FILE_EXTENSION;
@@ -67,18 +78,38 @@ public:
 
 class FeFilterEntry
 {
+private:
+	// Stores indexes to the m_list entries, populated by to_indexes
+	std::vector<int> filter_list_indexes;
+
+	// If clone grouping is on, this stores each clone groups indexes, populated by to_indexes
+	std::map<std::string, std::vector<int>> clone_group_indexes;
+
 public:
-	// for each filter, store a pointer to the m_list entries in that filter
-	//
-	std::vector < FeRomInfo * > filter_list;
+	// Stores a pointer to the m_list entries
+	std::vector<FeRomInfo*> filter_list;
+	// If clone grouping is on, this stores each clone groups pointers
+	std::map<std::string, std::vector<FeRomInfo*>> clone_group;
 
-	// If clone grouping is on, this stores each clone group
-	//
-	std::map< std::string, std::vector < FeRomInfo * > > clone_group;
+	void clear() {
+		filter_list.clear();
+		clone_group.clear();
+		filter_list_indexes.clear();
+		clone_group_indexes.clear();
+	};
 
-	void clear() { filter_list.clear(); clone_group.clear(); };
+	void to_indexes();
+	void from_indexes( std::vector<FeRomInfo*> &m_list );
 
+	template<class Archive>
+	void serialize( Archive &archive, std::uint32_t const version )
+	{
+		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomList cache";
+		archive( filter_list_indexes, clone_group_indexes );
+	}
 };
+
+CEREAL_CLASS_VERSION( FeFilterEntry, FE_VERSION_NUM );
 
 class FeRomList : public FeBaseConfigurable
 {
@@ -89,7 +120,7 @@ private:
 
 	std::map<std::string, bool> m_tags; // bool is flag of whether the tag has been changed
 	std::set<std::string> m_extra_favs; // store for favourites that are filtered out by global filter
-	std::multimap< std::string, const char * > m_extra_tags; // store for tags that are filtered out by global filter
+	std::multimap<std::string, std::string> m_extra_tags; // store for tags that are filtered out by global filter
 	FeFilter *m_global_filter_ptr; // this will only get set if we are globally filtering out games during the initial load
 
 	std::string m_romlist_name;
@@ -100,6 +131,7 @@ private:
 	bool m_played_stats_checked;
 	bool m_group_clones;
 	int m_global_filtered_out_count; // for keeping stats during load
+	time_t m_modified_time;
 
 	FeRomList( const FeRomList & );
 	FeRomList &operator=( const FeRomList & );
@@ -164,6 +196,15 @@ public:
 	FeEmulatorInfo *create_emulator( const std::string &, const std::string & );
 	void delete_emulator( const std::string & );
 	void clear_emulators() { m_emulators.clear(); }
+
+	template<class Archive>
+	void serialize( Archive &archive, std::uint32_t const version )
+	{
+		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomList cache";
+		archive( m_list, m_tags, m_extra_tags, m_extra_favs, m_group_clones, m_modified_time );
+	}
 };
+
+CEREAL_CLASS_VERSION( FeRomList, FE_VERSION_NUM );
 
 #endif
