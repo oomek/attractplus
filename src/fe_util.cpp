@@ -30,10 +30,12 @@
 #include "nowide/cstdio.hpp"
 #include "nowide/cstdlib.hpp"
 #include "nowide/convert.hpp"
+#include "nowide/stat.hpp"
 #include <sstream>
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <regex>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -249,6 +251,18 @@ bool base_compare( const std::string &path,
 	}
 
 	return true;
+}
+
+std::string sanitize_filename( const std::string &file )
+{
+	return std::regex_replace( file, std::regex( "[\\\\/:*?\"<>|]" ), "-" );
+}
+
+time_t modified_time( const std::string &file )
+{
+	nowide::stat_t buffer;
+	nowide::stat(file.c_str(), &buffer);
+	return buffer.st_mtime;
 }
 
 bool file_exists( const std::string &file )

@@ -22,6 +22,7 @@
 
 #include "fe_romlist.hpp"
 #include "fe_util.hpp"
+#include "fe_cache.hpp"
 
 #include <iostream>
 #include "nowide/fstream.hpp"
@@ -39,6 +40,14 @@ const char *FE_ROMLIST_SUBDIR	= "romlists/";
 const char *FE_STATS_SUBDIR                     = "stats/";
 
 SQRex *FeRomListSorter::m_rex = NULL;
+
+namespace
+{
+	bool fe_not_clone( const FeRomInfo &r )
+	{
+		return r.get_info( FeRomInfo::Cloneof ).empty();
+	}
+};
 
 void FeRomListSorter::init_title_rex( const std::string &re_mask )
 {
@@ -190,20 +199,48 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool group_clones,
 	bool load_stats	)
 {
-	m_romlist_name = romlist_name;
+	sf::Clock load_timer;
+	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
+	time_t mtime = modified_time( romlist_path );
 
-	m_list.clear();
+	// Reset all properties here in case cache load returns early
+	m_romlist_name = romlist_name;
+	m_fav_changed = false;
+	m_tags_changed = false;
 	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
 
+	// Attempt to load display display cache
+	if ( FeCache::load_romlist_cache( display, *this ) )
+	{
+		// Only use cache if m_group_clones and m_modified_time matches
+		if ( ( m_group_clones == group_clones ) && ( m_modified_time == mtime ) )
+		{
+			FeLog() << " - Loaded romlist '" << m_romlist_name << "' in "
+				<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
+				<< m_list.size() << " entries from cache"
+				<< ")" << std::endl;
+
+			create_filters( display );
+			return true;
+		}
+
+		// Otherwise clear cache for this display and rebuild
+		FeCache::clear_display_cache( display );
+	}
+
+	// These properties get loaded from cache
+	// - If the cache has expired they must be clear before re-populating
 	m_group_clones = group_clones;
+	m_modified_time = mtime;
+	m_list.clear();
+	m_tags.clear();
+	m_extra_favs.clear();
+	m_extra_tags.clear();
 
 	int global_filtered_out_count = 0;
 
-	sf::Clock load_timer;
-
-	bool retval = FeBaseConfigurable::load_from_file(
-			path + m_romlist_name + FE_ROMLIST_FILE_EXTENSION, ";" );
+	bool retval = FeBaseConfigurable::load_from_file( romlist_path, ";" );
 
 	//
 	// Create rom name to romlist entry lookup map
@@ -216,9 +253,6 @@ bool FeRomList::load_romlist( const std::string &path,
 	//
 	// Load favourites
 	//
-	m_extra_favs.clear();
-	m_fav_changed=false;
-
 	std::string load_name( m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + FE_FAVOURITE_FILE_EXTENSION );
 	nowide::ifstream myfile( load_name.c_str() );
 
@@ -248,9 +282,6 @@ bool FeRomList::load_romlist( const std::string &path,
 	//
 	// Load tags
 	//
-	m_tags.clear();
-	m_extra_tags.clear();
-	m_tags_changed=false;
 	load_name = m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + "/";
 
 	if ( directory_exists( load_name ) )
@@ -285,7 +316,7 @@ bool FeRomList::load_romlist( const std::string &path,
 					if ( rm_itr != rom_map.end() )
 						(*rm_itr).second->append_tag( (*itt).first.c_str() );
 					else
-						m_extra_tags.insert( std::pair<std::string,const char*>(rname, (*itt).first.c_str() ) );
+						m_extra_tags.insert( std::pair<std::string, std::string>( rname, (*itt).first ) );
 				}
 			}
 
@@ -294,23 +325,22 @@ bool FeRomList::load_romlist( const std::string &path,
 	}
 
 	// Apply global filter
-	FeFilter *first_filter = display.get_global_filter();
-	if ( first_filter )
+	FeFilter *global_filter = display.get_global_filter();
+	if ( global_filter )
 	{
-		first_filter->init();
+		global_filter->init();
 
-		if ( first_filter->test_for_target( FeRomInfo::FileIsAvailable )
-				|| ( first_filter->get_sort_by() == FeRomInfo::FileIsAvailable ))
+		if ( global_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
 			get_file_availability();
 
-		if ( first_filter->test_for_target( FeRomInfo::PlayedCount )
-				|| first_filter->test_for_target( FeRomInfo::PlayedTime ) )
+		if ( global_filter->test_for_target( FeRomInfo::PlayedCount )
+				|| global_filter->test_for_target( FeRomInfo::PlayedTime ) )
 			get_played_stats();
 
 		FeRomInfoListType::iterator last_it=m_list.begin();
 		for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
 		{
-			if ( first_filter->apply_filter( *it ) )
+			if ( global_filter->apply_filter( *it ) )
 			{
 				if ( last_it != it )
 					it = m_list.erase( last_it, it );
@@ -346,7 +376,7 @@ bool FeRomList::load_romlist( const std::string &path,
 
 						std::map<std::string, bool>::iterator itt = m_tags.find( one_tag );
 						if ( itt != m_tags.end() )
-							m_extra_tags.insert( std::pair<std::string,const char *>( name, (*itt).first.c_str() ) );
+							m_extra_tags.insert( std::pair<std::string, std::string>( name, (*itt).first ) );
 					}
 				}
 
@@ -359,41 +389,41 @@ bool FeRomList::load_romlist( const std::string &path,
 			m_list.erase( last_it, m_list.end() );
 	}
 
-	FeLog() << " - Loaded master romlist '" << m_romlist_name
-			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
-			<< " discarded)" << std::endl;
+	if ( m_group_clones )
+	{
+		// If grouping by clones partition list so clones are at the end.
+		std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
+	}
+
+	int index = 0;
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
+	{
+		// Store index value for caching, removes the need for additional searches
+		(*it).index = index++;
+	}
+
+	bool saved_cache = FeCache::save_romlist_cache( display, *this );
+
+	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in "
+		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
+		<< m_list.size() << " kept, "
+		<< global_filtered_out_count << " discarded"
+		<< (saved_cache ? ", cached" : "")
+		<< ")" << std::endl;
 
 	create_filters( display );
 	return retval;
 }
 
-namespace
-{
-	bool fe_not_clone( const FeRomInfo &r )
-	{
-		return r.get_info( FeRomInfo::Cloneof ).empty();
-	}
-};
-
 void FeRomList::build_single_filter_list( FeFilter *f,
 	FeFilterEntry &result )
 {
-	if ( m_group_clones )
-	{
-		// If we are grouping by clones, partition the list so that clones
-		// are at the back of the list.
-		//
-		std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
-	}
-
 	if ( f )
 	{
 		if ( f->get_size() > 0 ) // if this is non zero then we've loaded before and know how many to expect
 			result.filter_list.reserve( f->get_size() );
 
-		if (( f->test_for_target( FeRomInfo::FileIsAvailable ) )
-				|| ( f->get_sort_by() == FeRomInfo::FileIsAvailable ))
+		if ( f->test_for_target( FeRomInfo::FileIsAvailable ) )
 			get_file_availability();
 
 		if ( f->test_for_target( FeRomInfo::PlayedCount )
@@ -535,32 +565,39 @@ void FeRomList::create_filters(
 {
 	sf::Clock load_timer;
 
-	//
-	// Apply filters
-	//
+	// Prepare an indexed lookup for faster filter cache loading
+	std::vector<FeRomInfo*> lookup = FeCache::get_romlist_lookup( m_list );
+
+	int filters_cached = 0;
+
+	// If no filters configured create a single filter containing entire romlist
 	int filters_count = display.get_filter_count();
+	if ( filters_count == 0 ) filters_count = 1;
 
-	//
-	// If the display doesn't have any filters configured, we create a single "filter" in the romlist object
-	// with every romlist entry in it
-	//
-	if ( filters_count == 0 )
-		filters_count = 1;
-
+	// Apply filters
 	m_filtered_list.clear();
 	m_filtered_list.reserve( filters_count );
-
 	for ( int i=0; i<filters_count; i++ )
 	{
 		m_filtered_list.push_back( FeFilterEntry()  );
 
-		build_single_filter_list( display.get_filter( i ),
-			m_filtered_list[i] );
+		// Skip building the filter if it successfully loads from cache
+		if ( FeCache::load_filter_cache( display, m_filtered_list[i], i, lookup ) )
+		{
+			filters_cached++;
+			continue;
+		}
+
+		build_single_filter_list( display.get_filter( i ), m_filtered_list[i] );
+		FeCache::save_filter_cache( display, m_filtered_list[i], i );
 	}
 
-	FeLog() << " - Constructed " << filters_count << " filters in "
-			<< load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << filters_count * m_list.size() << " comparisons)" << std::endl;
+	FeLog() << " - Loaded filters in "
+		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
+		<< filters_count << " filters, "
+		<< filters_cached << " from cache, "
+		<< ((filters_count - filters_cached) * m_list.size()) << " comparisons"
+		<< ")" << std::endl;
 }
 
 int FeRomList::process_setting( const std::string &setting,
@@ -625,7 +662,7 @@ void FeRomList::save_tags()
 	//
 	std::multimap< std::string, const char * > tag_to_rom_map;
 
-	for ( std::multimap< std::string, const char * >::const_iterator ite = m_extra_tags.begin(); ite != m_extra_tags.end(); ++ite )
+	for ( std::multimap<std::string, std::string>::iterator ite = m_extra_tags.begin(); ite != m_extra_tags.end(); ++ite )
 	{
 		tag_to_rom_map.insert(
 				std::pair<std::string,const char *>(
@@ -694,6 +731,7 @@ bool FeRomList::set_fav( FeRomInfo &r, FeDisplayInfo &display, bool fav )
 	r.set_info( FeRomInfo::Favourite, fav ? "1" : "" );
 	m_fav_changed=true;
 
+	FeCache::invalidate( display, FeRomInfo::Favourite );
 	return fix_filters( display, FeRomInfo::Favourite );
 }
 
@@ -771,6 +809,7 @@ bool FeRomList::set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::stri
 			itt = m_tags.insert( itt, std::pair<std::string,bool>( tag, true ) );
 	}
 
+	FeCache::invalidate( display, FeRomInfo::Tags );
 	return fix_filters( display, FeRomInfo::Tags );
 }
 
@@ -782,7 +821,7 @@ bool FeRomList::fix_filters( FeDisplayInfo &display, FeRomInfo::Index target )
 		FeFilter *f = display.get_filter( i );
 		ASSERT( f );
 
-		if ( f->test_for_target( target ) || ( f->get_sort_by() == target ) )
+		if ( f->test_for_target( target ) )
 		{
 			m_filtered_list[i].clear();
 			build_single_filter_list( f, m_filtered_list[i] );
@@ -966,4 +1005,18 @@ void FeRomList::delete_emulator( const std::string & emu )
 			break;
 		}
 	}
+}
+
+// Update romlist index array to match the m_list
+void FeFilterEntry::to_indexes()
+{
+	FeCache::filter_list_to_indexes( filter_list_indexes, filter_list );
+	FeCache::clone_group_to_indexes( clone_group_indexes, clone_group );
+}
+
+// Update romlist m_list to match the index array
+void FeFilterEntry::from_indexes( std::vector<FeRomInfo*> &lookup )
+{
+	FeCache::indexes_to_filter_list( filter_list, filter_list_indexes, lookup );
+	FeCache::indexes_to_clone_group( clone_group, clone_group_indexes, lookup );
 }

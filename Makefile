@@ -166,6 +166,7 @@ _DEP =\
 	fe_rectangle.hpp \
 	fe_vm.hpp \
 	fe_blend.hpp \
+	fe_cache.hpp \
 	path_cache.hpp \
 	image_loader.hpp \
 	base64.hpp \
@@ -203,6 +204,7 @@ _OBJ =\
 	fe_vm.o \
 	fe_blend.o \
 	zip.o \
+	fe_cache.o \
 	path_cache.o \
 	image_loader.o \
 	base64.o \
@@ -430,7 +432,7 @@ else
  LIBS += -l:libboost_filesystem.a -l:libboost_system.a
 endif
 
-CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include
+CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include -I$(EXTLIBS_DIR)/cereal
 SQUIRREL = $(OBJ_DIR)/libsquirrel.a $(OBJ_DIR)/libsqstdlib.a
 
 # Our nowide "lib" is only needed on Windows systems
