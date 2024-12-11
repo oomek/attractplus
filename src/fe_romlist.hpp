@@ -28,6 +28,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <cereal/types/vector.hpp>
 
 typedef std::list<FeRomInfo> FeRomInfoListType;
 extern const char *FE_ROMLIST_FILE_EXTENSION;
@@ -78,6 +79,12 @@ public:
 
 	void clear() { filter_list.clear(); clone_group.clear(); };
 
+	// data to serialize for caching
+	template<class Archive>
+	void serialize(Archive & archive)
+	{
+		archive( CEREAL_NVP(filter_list) );
+	}
 };
 
 class FeRomList : public FeBaseConfigurable
@@ -89,7 +96,8 @@ private:
 
 	std::map<std::string, bool> m_tags; // bool is flag of whether the tag has been changed
 	std::set<std::string> m_extra_favs; // store for favourites that are filtered out by global filter
-	std::multimap< std::string, const char * > m_extra_tags; // store for tags that are filtered out by global filter
+	std::multimap< std::string, std::string > m_extra_tags; // store for tags that are filtered out by global filter
+
 	FeFilter *m_global_filter_ptr; // this will only get set if we are globally filtering out games during the initial load
 
 	std::string m_romlist_name;

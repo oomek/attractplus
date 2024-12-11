@@ -26,17 +26,30 @@
 #include <iostream>
 #include "nowide/fstream.hpp"
 #include <algorithm>
+#include <string>
+#include <array>
 
 #include <squirrel.h>
 #include <sqstdstring.h>
 
 #include <SFML/System/Clock.hpp>
 
-const char *FE_ROMLIST_FILE_EXTENSION	= ".txt";
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/list.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/utility.hpp>
+#include <cereal/types/polymorphic.hpp>
+
+const char *FE_ROMLIST_FILE_EXTENSION = ".txt";
 const char *FE_FAVOURITE_FILE_EXTENSION = ".tag";
 
-const char *FE_ROMLIST_SUBDIR	= "romlists/";
-const char *FE_STATS_SUBDIR                     = "stats/";
+const char *FE_ROMLIST_SUBDIR = "romlists/";
+const char *FE_CACHE_SUBDIR = "cache/";
+const char *FE_STATS_SUBDIR = "stats/";
+
 
 SQRex *FeRomListSorter::m_rex = NULL;
 
@@ -155,6 +168,7 @@ FeRomList::FeRomList( const std::string &config_path )
 	m_played_stats_checked( false ),
 	m_group_clones( false )
 {
+	confirm_directory( m_config_path, FE_CACHE_SUBDIR );
 }
 
 FeRomList::~FeRomList()
@@ -193,6 +207,12 @@ bool FeRomList::load_romlist( const std::string &path,
 	m_romlist_name = romlist_name;
 
 	m_list.clear();
+	m_tags.clear();
+	m_extra_favs.clear();
+	m_extra_tags.clear();
+
+	m_fav_changed=false;
+	m_tags_changed=false;
 	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
 
@@ -216,9 +236,6 @@ bool FeRomList::load_romlist( const std::string &path,
 	//
 	// Load favourites
 	//
-	m_extra_favs.clear();
-	m_fav_changed=false;
-
 	std::string load_name( m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + FE_FAVOURITE_FILE_EXTENSION );
 	nowide::ifstream myfile( load_name.c_str() );
 
@@ -248,9 +265,6 @@ bool FeRomList::load_romlist( const std::string &path,
 	//
 	// Load tags
 	//
-	m_tags.clear();
-	m_extra_tags.clear();
-	m_tags_changed=false;
 	load_name = m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + "/";
 
 	if ( directory_exists( load_name ) )
@@ -285,7 +299,7 @@ bool FeRomList::load_romlist( const std::string &path,
 					if ( rm_itr != rom_map.end() )
 						(*rm_itr).second->append_tag( (*itt).first.c_str() );
 					else
-						m_extra_tags.insert( std::pair<std::string,const char*>(rname, (*itt).first.c_str() ) );
+						m_extra_tags.insert( std::pair<std::string, std::string>(rname, (*itt).first.c_str() ) );
 				}
 			}
 
@@ -346,7 +360,7 @@ bool FeRomList::load_romlist( const std::string &path,
 
 						std::map<std::string, bool>::iterator itt = m_tags.find( one_tag );
 						if ( itt != m_tags.end() )
-							m_extra_tags.insert( std::pair<std::string,const char *>( name, (*itt).first.c_str() ) );
+							m_extra_tags.insert( std::pair<std::string, std::string>( name, (*itt).first.c_str() ) );
 					}
 				}
 
@@ -363,6 +377,63 @@ bool FeRomList::load_romlist( const std::string &path,
 			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
 			<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
 			<< " discarded)" << std::endl;
+
+
+	// std::string entry[10] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+	// std::string entry[10] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+	// std::string m_info[LAST_INDEX];
+	// std::list<std::string[10]> text; //  = { entry };
+	// text.push_back(entry);
+	// std::list<std::string> text = { "123" };
+	// 	{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
+	// 	{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	// };
+	// std::string cache_filename = "cache.json";
+	std::string cache_filename = "cache/cache.bin";
+
+	nowide::ofstream outfile( cache_filename, std::ios::binary );
+	if ( outfile.is_open() )
+	{
+		sf::Clock save_timer;
+
+		{
+			// cereal::JSONOutputArchive oarchive(outfile);
+			cereal::BinaryOutputArchive oarchive(outfile);
+			oarchive( m_list, m_tags, m_extra_tags, m_extra_favs );
+			// oarchive( m_extra_tags );
+			// oarchive( text );
+		}
+		outfile.close();
+
+		FeLog() << " - Cached master romlist '" << m_romlist_name
+				<< "' in " << save_timer.getElapsedTime().asMilliseconds()
+				<< " ms" << std::endl;
+	}
+
+	m_list.clear();
+	m_tags.clear();
+	m_extra_tags.clear();
+	m_extra_favs.clear();
+	// text.clear();
+
+	nowide::ifstream infile( cache_filename, std::ios::binary );
+	if ( infile.is_open() )
+	{
+		sf::Clock cache_timer;
+
+		{
+			// cereal::JSONInputArchive iarchive(infile);
+			cereal::BinaryInputArchive iarchive(infile);
+			iarchive( m_list, m_tags, m_extra_tags, m_extra_favs );
+			// iarchive( m_extra_tags );
+			// iarchive( text );
+		}
+		infile.close();
+
+		FeLog() << " - Loaded master romlist '" << m_romlist_name
+			<< "' in " << cache_timer.getElapsedTime().asMilliseconds()
+			<< " ms (" << m_list.size() << " entries, from cache)" << std::endl;
+	}
 
 	create_filters( display );
 	return retval;
@@ -556,6 +627,31 @@ void FeRomList::create_filters(
 
 		build_single_filter_list( display.get_filter( i ),
 			m_filtered_list[i] );
+
+		// FeLog() << "List " << i << std::endl;
+		// std::stringstream ss;
+		// {
+			// cereal::JSONOutputArchive oarchive(ss);
+			// // oarchive(m_filtered_list[i].filter_list); // , m_filtered_list[i].clone_group);
+			// oarchive(m_filtered_list[i].test_list);
+
+			// cereal::JSONOutputArchive archive( std::cout );
+			// // bool arr[] = {true, false};
+			// // std::vector<int> vec = {1, 2, 3, 4, 5};
+
+			// FeRomInfo rom;
+			// archive( rom );
+
+			// std::string m_info[3];// = ["a", "b", "c"];
+			// m_info[0] = "abc";
+			// m_info[1] = "def";
+			// m_info[2] = "ghi";
+
+			// // archive( CEREAL_NVP(vec), arr );
+			// archive( m_info );
+			// archive( m_filtered_list[i] );
+
+		// }
 	}
 
 	FeLog() << " - Constructed " << filters_count << " filters in "
@@ -625,7 +721,7 @@ void FeRomList::save_tags()
 	//
 	std::multimap< std::string, const char * > tag_to_rom_map;
 
-	for ( std::multimap< std::string, const char * >::const_iterator ite = m_extra_tags.begin(); ite != m_extra_tags.end(); ++ite )
+	for ( std::multimap< std::string, std::string >::const_iterator ite = m_extra_tags.begin(); ite != m_extra_tags.end(); ++ite )
 	{
 		tag_to_rom_map.insert(
 				std::pair<std::string,const char *>(

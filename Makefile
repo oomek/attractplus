@@ -418,13 +418,13 @@ LIBS += -lfreetype
 ifeq ($(FE_WINDOWS_COMPILE),1)
  LIBS += -lboost_system-mt -lboost_filesystem-mt
 else ifeq ($(FE_MACOSX_COMPILE),1)
- LIBS +=-L$(shell brew --prefix)/lib 
+ LIBS +=-L$(shell brew --prefix)/lib
  LIBS += -lboost_system -lboost_filesystem
 else
  LIBS += -l:libboost_filesystem.a -l:libboost_system.a
 endif
 
-CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include
+CFLAGS += -I$(EXTLIBS_DIR)/squirrel/include -I$(EXTLIBS_DIR)/sqrat/include -I$(EXTLIBS_DIR)/nowide -I$(EXTLIBS_DIR)/nvapi -I$(EXTLIBS_DIR)/rapidjson/include -I$(EXTLIBS_DIR)/cereal
 SQUIRREL = $(OBJ_DIR)/libsquirrel.a $(OBJ_DIR)/libsqstdlib.a
 
 # Our nowide "lib" is only needed on Windows systems

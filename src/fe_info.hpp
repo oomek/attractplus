@@ -100,6 +100,13 @@ public:
 	bool operator==( const FeRomInfo & ) const;      // compares romname and emulator only
 	bool full_comparison( const FeRomInfo & ) const; // copares all fields that get loaded from the romlist file
 
+	// data to serialize for caching
+	template<class Archive>
+	void serialize(Archive & archive)
+	{
+		archive( m_info );
+	}
+
 private:
 	std::string get_info_escaped( int ) const;
 
