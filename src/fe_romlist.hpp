@@ -28,7 +28,12 @@
 #include <map>
 #include <set>
 #include <list>
+
+#include <cereal/types/list.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/polymorphic.hpp>
 
 typedef std::list<FeRomInfo> FeRomInfoListType;
 extern const char *FE_ROMLIST_FILE_EXTENSION;
@@ -66,6 +71,21 @@ public:
 	bool operator()( const FeRomInfo *one, const FeRomInfo *two ) const { return m_sorter.operator()(*one,*two); };
 };
 
+class FeRomList;
+
+class FeFilterLookup
+{
+public:
+	std::vector<int> m_filter_list;
+	std::map<std::string, std::vector<int>> m_clone_group;
+
+	template<class Archive>
+	void serialize( Archive &archive )
+	{
+		archive( m_filter_list, m_clone_group );
+	}
+};
+
 class FeFilterEntry
 {
 public:
@@ -79,12 +99,8 @@ public:
 
 	void clear() { filter_list.clear(); clone_group.clear(); };
 
-	// data to serialize for caching
-	template<class Archive>
-	void serialize(Archive & archive)
-	{
-		archive( CEREAL_NVP(filter_list) );
-	}
+	FeFilterLookup to_lookup( FeRomList &romlist );
+	void from_lookup( FeFilterLookup &lookup, FeRomList &romlist );
 };
 
 class FeRomList : public FeBaseConfigurable
@@ -99,6 +115,7 @@ private:
 	std::multimap< std::string, std::string > m_extra_tags; // store for tags that are filtered out by global filter
 
 	FeFilter *m_global_filter_ptr; // this will only get set if we are globally filtering out games during the initial load
+	FeDisplayInfo *m_display;
 
 	std::string m_romlist_name;
 	const std::string &m_config_path;
@@ -155,6 +172,9 @@ public:
 	void get_clone_group( int filter_idx, int idx, std::vector < FeRomInfo * > &group );
 
 	FeRomInfoListType &get_list() { return m_list; };
+	std::vector<FeFilterEntry> &get_filtered_list() { return m_filtered_list; };
+	const std::string &get_config_path() { return m_config_path; };
+	FeDisplayInfo get_display() { return *m_display; };
 
 	void get_file_availability();
 
@@ -172,6 +192,12 @@ public:
 	FeEmulatorInfo *create_emulator( const std::string &, const std::string & );
 	void delete_emulator( const std::string & );
 	void clear_emulators() { m_emulators.clear(); }
+
+	template<class Archive>
+	void serialize( Archive &archive )
+	{
+		archive( m_list, m_tags, m_extra_tags, m_extra_favs );
+	}
 };
 
 #endif

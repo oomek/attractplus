@@ -161,6 +161,7 @@ _DEP =\
 	fe_rectangle.hpp \
 	fe_vm.hpp \
 	fe_blend.hpp \
+	fe_cache.hpp \
 	path_cache.hpp \
 	image_loader.hpp \
 	base64.hpp \
@@ -197,6 +198,7 @@ _OBJ =\
 	fe_vm.o \
 	fe_blend.o \
 	zip.o \
+	fe_cache.o \
 	path_cache.o \
 	image_loader.o \
 	base64.o \

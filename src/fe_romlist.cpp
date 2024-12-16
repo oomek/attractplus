@@ -22,34 +22,22 @@
 
 #include "fe_romlist.hpp"
 #include "fe_util.hpp"
+#include "fe_cache.hpp"
 
 #include <iostream>
 #include "nowide/fstream.hpp"
 #include <algorithm>
-#include <string>
-#include <array>
 
 #include <squirrel.h>
 #include <sqstdstring.h>
 
 #include <SFML/System/Clock.hpp>
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
-#include <cereal/types/list.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/set.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/polymorphic.hpp>
-
-const char *FE_ROMLIST_FILE_EXTENSION = ".txt";
+const char *FE_ROMLIST_FILE_EXTENSION	= ".txt";
 const char *FE_FAVOURITE_FILE_EXTENSION = ".tag";
 
-const char *FE_ROMLIST_SUBDIR = "romlists/";
-const char *FE_CACHE_SUBDIR = "cache/";
-const char *FE_STATS_SUBDIR = "stats/";
-
+const char *FE_ROMLIST_SUBDIR	= "romlists/";
+const char *FE_STATS_SUBDIR                     = "stats/";
 
 SQRex *FeRomListSorter::m_rex = NULL;
 
@@ -168,7 +156,6 @@ FeRomList::FeRomList( const std::string &config_path )
 	m_played_stats_checked( false ),
 	m_group_clones( false )
 {
-	confirm_directory( m_config_path, FE_CACHE_SUBDIR );
 }
 
 FeRomList::~FeRomList()
@@ -198,29 +185,40 @@ void FeRomList::mark_favs_and_tags_changed()
 	m_tags_changed=true;
 }
 
-bool FeRomList::load_romlist( const std::string &path,
+bool FeRomList::load_romlist(
+	const std::string &path,
 	const std::string &romlist_name,
 	FeDisplayInfo &display,
 	bool group_clones,
-	bool load_stats	)
+	bool load_stats
+)
 {
+	sf::Clock load_timer;
+
 	m_romlist_name = romlist_name;
+	m_fav_changed = false;
+	m_tags_changed = false;
+	m_availability_checked = false;
+	m_played_stats_checked = !load_stats;
+	m_group_clones = group_clones;
+	m_display = &display;
+
+	if ( FeCache::load_cached_romlist( *this ) )
+	{
+		FeLog() << " - Loaded master romlist '" << m_romlist_name
+			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
+			<< " ms (" << m_list.size() << " entries, from cache)" << std::endl;
+
+		create_filters( display );
+		return true;
+	}
 
 	m_list.clear();
 	m_tags.clear();
 	m_extra_favs.clear();
 	m_extra_tags.clear();
 
-	m_fav_changed=false;
-	m_tags_changed=false;
-	m_availability_checked = false;
-	m_played_stats_checked = !load_stats;
-
-	m_group_clones = group_clones;
-
 	int global_filtered_out_count = 0;
-
-	sf::Clock load_timer;
 
 	bool retval = FeBaseConfigurable::load_from_file(
 			path + m_romlist_name + FE_ROMLIST_FILE_EXTENSION, ";" );
@@ -378,61 +376,13 @@ bool FeRomList::load_romlist( const std::string &path,
 			<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
 			<< " discarded)" << std::endl;
 
+	load_timer.restart();
 
-	// std::string entry[10] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
-	// std::string entry[10] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
-	// std::string m_info[LAST_INDEX];
-	// std::list<std::string[10]> text; //  = { entry };
-	// text.push_back(entry);
-	// std::list<std::string> text = { "123" };
-	// 	{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"},
-	// 	{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
-	// };
-	// std::string cache_filename = "cache.json";
-	std::string cache_filename = "cache/cache.bin";
-
-	nowide::ofstream outfile( cache_filename, std::ios::binary );
-	if ( outfile.is_open() )
+	if ( FeCache::save_cached_romlist( *this ) )
 	{
-		sf::Clock save_timer;
-
-		{
-			// cereal::JSONOutputArchive oarchive(outfile);
-			cereal::BinaryOutputArchive oarchive(outfile);
-			oarchive( m_list, m_tags, m_extra_tags, m_extra_favs );
-			// oarchive( m_extra_tags );
-			// oarchive( text );
-		}
-		outfile.close();
-
 		FeLog() << " - Cached master romlist '" << m_romlist_name
-				<< "' in " << save_timer.getElapsedTime().asMilliseconds()
+				<< "' in " << load_timer.getElapsedTime().asMilliseconds()
 				<< " ms" << std::endl;
-	}
-
-	m_list.clear();
-	m_tags.clear();
-	m_extra_tags.clear();
-	m_extra_favs.clear();
-	// text.clear();
-
-	nowide::ifstream infile( cache_filename, std::ios::binary );
-	if ( infile.is_open() )
-	{
-		sf::Clock cache_timer;
-
-		{
-			// cereal::JSONInputArchive iarchive(infile);
-			cereal::BinaryInputArchive iarchive(infile);
-			iarchive( m_list, m_tags, m_extra_tags, m_extra_favs );
-			// iarchive( m_extra_tags );
-			// iarchive( text );
-		}
-		infile.close();
-
-		FeLog() << " - Loaded master romlist '" << m_romlist_name
-			<< "' in " << cache_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_list.size() << " entries, from cache)" << std::endl;
 	}
 
 	create_filters( display );
@@ -606,6 +556,16 @@ void FeRomList::create_filters(
 {
 	sf::Clock load_timer;
 
+	m_filtered_list.clear();
+
+	if ( FeCache::load_cached_filters( *this ) )
+	{
+		FeLog() << " - Constructed " << m_filtered_list.size() << " filters in "
+			<< load_timer.getElapsedTime().asMilliseconds()
+			<< " ms (from cache)" << std::endl;
+		return;
+	}
+
 	//
 	// Apply filters
 	//
@@ -618,7 +578,6 @@ void FeRomList::create_filters(
 	if ( filters_count == 0 )
 		filters_count = 1;
 
-	m_filtered_list.clear();
 	m_filtered_list.reserve( filters_count );
 
 	for ( int i=0; i<filters_count; i++ )
@@ -627,36 +586,18 @@ void FeRomList::create_filters(
 
 		build_single_filter_list( display.get_filter( i ),
 			m_filtered_list[i] );
-
-		// FeLog() << "List " << i << std::endl;
-		// std::stringstream ss;
-		// {
-			// cereal::JSONOutputArchive oarchive(ss);
-			// // oarchive(m_filtered_list[i].filter_list); // , m_filtered_list[i].clone_group);
-			// oarchive(m_filtered_list[i].test_list);
-
-			// cereal::JSONOutputArchive archive( std::cout );
-			// // bool arr[] = {true, false};
-			// // std::vector<int> vec = {1, 2, 3, 4, 5};
-
-			// FeRomInfo rom;
-			// archive( rom );
-
-			// std::string m_info[3];// = ["a", "b", "c"];
-			// m_info[0] = "abc";
-			// m_info[1] = "def";
-			// m_info[2] = "ghi";
-
-			// // archive( CEREAL_NVP(vec), arr );
-			// archive( m_info );
-			// archive( m_filtered_list[i] );
-
-		// }
 	}
 
 	FeLog() << " - Constructed " << filters_count << " filters in "
 			<< load_timer.getElapsedTime().asMilliseconds()
 			<< " ms (" << filters_count * m_list.size() << " comparisons)" << std::endl;
+
+	load_timer.restart();
+	if ( FeCache::save_cached_filters( *this ) )
+	{
+		FeLog() << " - Cached filters in "
+			<< load_timer.getElapsedTime().asMilliseconds() << " ms" << std::endl;
+	}
 }
 
 int FeRomList::process_setting( const std::string &setting,
@@ -1062,4 +1003,18 @@ void FeRomList::delete_emulator( const std::string & emu )
 			break;
 		}
 	}
+}
+
+FeFilterLookup FeFilterEntry::to_lookup( FeRomList &romlist )
+{
+	FeFilterLookup lookup;
+	lookup.m_filter_list = FeCache::get_filter_list_indexes(filter_list, romlist.get_list());
+	lookup.m_clone_group = FeCache::get_clone_group_indexes(clone_group, romlist.get_list());
+	return lookup;
+}
+
+void FeFilterEntry::from_lookup(FeFilterLookup &lookup, FeRomList &romlist)
+{
+	FeCache::insert_filter_list_indexes(lookup.m_filter_list, filter_list, romlist.get_list());
+	FeCache::insert_clone_group_indexes(lookup.m_clone_group, clone_group, romlist.get_list());
 }

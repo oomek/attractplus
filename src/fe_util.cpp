@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <regex>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -249,6 +250,11 @@ bool base_compare( const std::string &path,
 	}
 
 	return true;
+}
+
+std::string sanitize_filename( const std::string &file )
+{
+	return std::regex_replace( file, std::regex( "[\\\\/:*?\"<>|]" ), "-" );
 }
 
 bool file_exists( const std::string &file )
