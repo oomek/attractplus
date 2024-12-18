@@ -136,6 +136,7 @@ Previous Favourite;次のお気に入り
 Previous Filter;前のフィルター
 Previous Letter;前の文字
 Random Game;任意のゲーム選択
+Reload;リロード
 Remove Input;キー削除
 Replay Last Game;最後にプレイしたゲームを再プレイ
 Right;90°
@@ -220,6 +221,7 @@ _help_control_prev_favourite;前のお気に入りゲームに移動するキー
 _help_control_prev_filter;前のフィルターに移動するキーを設定します
 _help_control_prev_letter;前のアルファベットに移動するキーを設定します
 _help_control_random_game;任意のゲームを選択するキーを設定します
+_help_control_reload;現在のレイアウトを再ロードするコントロールを設定します
 _help_control_replay_last_game;最後にプレイしたゲームを再びプレイするキーを設定します
 _help_control_screen_saver;スクリーンショットを起動するキーを設定します
 _help_control_screenshot;スクリーンショットを撮るキーを設定します
