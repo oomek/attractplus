@@ -39,17 +39,13 @@ public:
 	static bool save_display_cache(
 		const std::string config_path,
 		FeDisplayInfo &display,
-		FeRomList &romlist,
-		bool group_clones,
-		time_t mtime
+		FeRomList &romlist
 	);
 
 	static bool load_display_cache(
 		const std::string config_path,
 		FeDisplayInfo &display,
-		FeRomList &romlist,
-		bool group_clones,
-		time_t mtime
+		FeRomList &romlist
 	);
 
 	static bool clear_display_cache(

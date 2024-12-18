@@ -192,6 +192,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool load_stats	)
 {
 	sf::Clock load_timer;
+	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
 
 	m_romlist_name = romlist_name;
 	m_fav_changed = false;
@@ -199,11 +200,9 @@ bool FeRomList::load_romlist( const std::string &path,
 	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
 	m_group_clones = group_clones;
+	m_modified_time = modified_time( romlist_path );
 
-	std::string romlist_path = path + m_romlist_name + FE_ROMLIST_FILE_EXTENSION;
-	time_t mtime = modified_time( romlist_path );
-
-	if ( FeCache::load_display_cache( m_config_path, display, *this, group_clones, mtime ) )
+	if ( FeCache::load_display_cache( m_config_path, display, *this ) )
 	{
 		FeLog() << " - Loaded master romlist '" << m_romlist_name
 			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
@@ -376,7 +375,7 @@ bool FeRomList::load_romlist( const std::string &path,
 
 	load_timer.restart();
 
-	if ( FeCache::save_display_cache( m_config_path, display, *this, group_clones, mtime ) )
+	if ( FeCache::save_display_cache( m_config_path, display, *this ) )
 	{
 		FeLog() << " - Cached master romlist '" << m_romlist_name
 				<< "' in " << load_timer.getElapsedTime().asMilliseconds()

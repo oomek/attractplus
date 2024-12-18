@@ -131,6 +131,7 @@ private:
 	bool m_played_stats_checked;
 	bool m_group_clones;
 	int m_global_filtered_out_count; // for keeping stats during load
+	time_t m_modified_time;
 
 	FeRomList( const FeRomList & );
 	FeRomList &operator=( const FeRomList & );
@@ -179,6 +180,8 @@ public:
 
 	FeRomInfoListType &get_list() { return m_list; };
 	std::vector<FeFilterEntry> &get_filtered_list() { return m_filtered_list; };
+	bool &get_group_clones() { return m_group_clones; };
+	time_t &get_modified_time() { return m_modified_time; };
 
 	void get_file_availability();
 
@@ -201,7 +204,7 @@ public:
 	void serialize( Archive &archive, std::uint32_t const version )
 	{
 		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomList cache";
-		archive( m_list, m_tags, m_extra_tags, m_extra_favs );
+		archive( m_list, m_tags, m_extra_tags, m_extra_favs, m_group_clones, m_modified_time );
 	}
 };
 

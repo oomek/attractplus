@@ -155,9 +155,7 @@ void FeCache::indexes_to_clone_group(
 bool FeCache::save_display_cache(
 	const std::string config_path,
 	FeDisplayInfo &display,
-	FeRomList &romlist,
-	bool group_clones,
-	time_t mtime
+	FeRomList &romlist
 )
 {
 	std::string filename = get_display_cache_filename( config_path, display );
@@ -167,10 +165,9 @@ bool FeCache::save_display_cache(
 
 	try
 	{
-		{
-			// extra block needed to flush scope
+		{	// block flushes archive
 			OutputArchive archive( file );
-			archive( romlist, group_clones, mtime );
+			archive( romlist );
 		}
 		file.close();
 		return true;
@@ -189,9 +186,7 @@ bool FeCache::save_display_cache(
 bool FeCache::load_display_cache(
 	const std::string config_path,
 	FeDisplayInfo &display,
-	FeRomList &romlist,
-	bool group_clones,
-	time_t mtime
+	FeRomList &romlist
 )
 {
 	std::string filename = get_display_cache_filename( config_path, display );
@@ -201,15 +196,14 @@ bool FeCache::load_display_cache(
 
 	try
 	{
-		{
-			// extra block needed to flush scope
-			time_t time;
-			bool group;
+		time_t time = romlist.get_modified_time();
+		bool group = romlist.get_group_clones();
+		{	// block flushes archive
 			InputArchive archive( file );
-			archive( romlist, group, time );
-			if ( time != mtime ) throw "Romlist modified";
-			if ( group != group_clones ) throw "Group modified";
+			archive( romlist );
 		}
+		if ( romlist.get_modified_time() != time ) throw "Romlist modified";
+		if ( romlist.get_group_clones() != group ) throw "Group modified";
 		file.close();
 		return true;
 	}
@@ -231,13 +225,9 @@ bool FeCache::clear_display_cache(
 	FeDisplayInfo &display
 )
 {
-	std::string display_filename = get_display_cache_filename( config_path, display );
-	bool exists = file_exists( display_filename );
-	if ( exists )
-	{
-		delete_file( display_filename );
-		FeLog() << " - Cleared display cache '" << display.get_name() << "'" << std::endl;
-	}
+	std::string filename = get_display_cache_filename( config_path, display );
+	bool exists = file_exists( filename );
+	if ( exists ) delete_file( filename );
 	return clear_filters_cache( config_path, display ) || exists;
 }
 
@@ -259,16 +249,14 @@ bool FeCache::save_filters_cache(
 
 	try
 	{
-		{
-			std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
-
-			FeRomInfoListType &m_list = romlist.get_list();
-			std::for_each(
-				filtered_list.begin(),
-				filtered_list.end(),
-				[ &m_list ]( FeFilterEntry &it ) { it.to_indexes( m_list ); }
-			);
-
+		std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
+		FeRomInfoListType &m_list = romlist.get_list();
+		std::for_each(
+			filtered_list.begin(),
+			filtered_list.end(),
+			[ &m_list ]( FeFilterEntry &it ) { it.to_indexes( m_list ); }
+		);
+		{	// block flushes archive
 			OutputArchive archive( file );
 			archive( filtered_list );
 		}
@@ -299,19 +287,17 @@ bool FeCache::load_filters_cache(
 
 	try
 	{
-		{
-			std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
-
+		std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
+		{	// block flushes archive
 			InputArchive archive( file );
 			archive( filtered_list );
-
-			FeRomInfoListType &m_list = romlist.get_list();
-			std::for_each(
-				filtered_list.begin(),
-				filtered_list.end(),
-				[ &m_list ]( FeFilterEntry &it ) { it.from_indexes( m_list ); }
-			);
 		}
+		FeRomInfoListType &m_list = romlist.get_list();
+		std::for_each(
+			filtered_list.begin(),
+			filtered_list.end(),
+			[ &m_list ]( FeFilterEntry &it ) { it.from_indexes( m_list ); }
+		);
 		file.close();
 		return true;
 	}
@@ -331,13 +317,9 @@ bool FeCache::clear_filters_cache(
 	FeDisplayInfo &display
 )
 {
-	std::string filters_filename = get_filters_cache_filename( config_path, display );
-	bool exists = file_exists( filters_filename );
-	if ( exists )
-	{
-		delete_file( filters_filename );
-		FeLog() << " - Cleared filters cache '" << display.get_name() << "'" << std::endl;
-	}
+	std::string filename = get_filters_cache_filename( config_path, display );
+	bool exists = file_exists( filename );
+	if ( exists ) delete_file( filename );
 	return exists;
 }
 
