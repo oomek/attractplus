@@ -9,33 +9,81 @@
 class FeCache
 {
 public:
-	static std::vector<int> get_filter_list_indexes(
-		std::vector<FeRomInfo*> &list,
-		FeRomInfoListType &m_list
-	);
 
-	static std::map<std::string, std::vector<int>> get_clone_group_indexes(
-		std::map<std::string, std::vector<FeRomInfo*>> &map,
-		FeRomInfoListType &m_list
-	);
-
-	static void insert_filter_list_indexes(
+	static void filter_list_to_indexes(
 		std::vector<int> &indexes,
 		std::vector<FeRomInfo*> &list,
 		FeRomInfoListType &m_list
 	);
 
-	static void insert_clone_group_indexes(
+	static void clone_group_to_indexes(
 		std::map<std::string, std::vector<int>> &indexes,
 		std::map<std::string, std::vector<FeRomInfo*>> &map,
 		FeRomInfoListType &m_list
 	);
 
-	static bool save_cached_romlist( FeRomList &romlist );
-	static bool load_cached_romlist( FeRomList &romlist );
+	static void indexes_to_filter_list(
+		std::vector<FeRomInfo*> &list,
+		std::vector<int> &indexes,
+		FeRomInfoListType &m_list
+	);
 
-	static bool save_cached_filters( FeRomList &romlist );
-	static bool load_cached_filters( FeRomList &romlist );
+	static void indexes_to_clone_group(
+		std::map<std::string, std::vector<FeRomInfo*>> &map,
+		std::map<std::string, std::vector<int>> &indexes,
+		FeRomInfoListType &m_list
+	);
+
+	// ----------------------------------------------------------------------------------
+
+	static bool save_display_cache(
+		const std::string config_path,
+		FeDisplayInfo &display,
+		FeRomList &romlist,
+		bool group_clones,
+		time_t mtime
+	);
+
+	static bool load_display_cache(
+		const std::string config_path,
+		FeDisplayInfo &display,
+		FeRomList &romlist,
+		bool group_clones,
+		time_t mtime
+	);
+
+	static bool clear_display_cache(
+		const std::string config_path,
+		FeDisplayInfo &display
+	);
+
+	// ----------------------------------------------------------------------------------
+
+	static bool save_filters_cache(
+		const std::string config_path,
+		FeDisplayInfo &display,
+		FeRomList &romlist
+	);
+
+	static bool load_filters_cache(
+		const std::string config_path,
+		FeDisplayInfo &display,
+		FeRomList &romlist
+	);
+
+	static bool clear_filters_cache(
+		const std::string config_path,
+		FeDisplayInfo &display
+	);
+
+	// ----------------------------------------------------------------------------------
+
+	static bool fix_cache(
+		const std::string config_path,
+		FeDisplayInfo &display,
+		FeRomInfo::Index target
+	);
+
 };
 
 #endif

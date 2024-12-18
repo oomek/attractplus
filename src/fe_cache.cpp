@@ -1,59 +1,117 @@
 #include "fe_cache.hpp"
 
-#include <cereal/archives/binary.hpp>
+#define FE_CACHE_BINARY
+
+#ifdef FE_CACHE_BINARY
+	#include <cereal/archives/binary.hpp>
+	typedef cereal::BinaryOutputArchive OutputArchive;
+	typedef cereal::BinaryInputArchive InputArchive;
+	const char *FE_CACHE_EXT = ".bin";
+#else
+	#include <cereal/archives/json.hpp>
+	typedef cereal::JSONOutputArchive OutputArchive;
+	typedef cereal::JSONInputArchive InputArchive;
+	const char *FE_CACHE_EXT = ".json";
+#endif // FE_CACHE_BINARY
 
 const char *FE_CACHE_SUBDIR = "cache/";
+const char *FE_CACHE_ROMLIST = ".romlist";
+const char *FE_CACHE_FILTERS = ".filters";
 
 //
-// Converts pointers to indexes for caching
+// Returns cache base dir
 //
-std::vector<int> FeCache::get_filter_list_indexes(
+std::string get_cache_dir( const std::string config_path )
+{
+	return config_path + FE_CACHE_SUBDIR;
+}
+
+//
+// Returns sanitized filename for romlist cache
+//
+std::string get_display_cache_filename(
+	const std::string config_path,
+	FeDisplayInfo &display
+)
+{
+	return get_cache_dir( config_path )
+		+ sanitize_filename( display.get_name() )
+		+ FE_CACHE_ROMLIST
+		+ FE_CACHE_EXT;
+}
+
+//
+// Returns sanitized filename for filter cache
+//
+std::string get_filters_cache_filename(
+	const std::string config_path,
+	FeDisplayInfo &display
+)
+{
+	return get_cache_dir( config_path )
+		+ sanitize_filename( display.get_name() )
+		+ FE_CACHE_FILTERS
+		+ FE_CACHE_EXT;
+}
+
+// -------------------------------------------------------------------------------------
+
+//
+// Converts FeRomInfo pointers to indexes for caching
+//
+void FeCache::filter_list_to_indexes(
+	std::vector<int> &indexes,
 	std::vector<FeRomInfo*> &list,
 	FeRomInfoListType &m_list
 )
 {
 	FeRomInfoListType::iterator a = m_list.begin();
 	FeRomInfoListType::iterator b = m_list.end();
-	std::vector<int> indexes;
+	indexes.clear();
+	indexes.reserve( list.size() );
+
 	std::transform(
 		list.begin(),
 		list.end(),
 		std::back_inserter( indexes ),
-		[ &a, &b ]( FeRomInfo* it ) { return std::distance( a, std::find( a, b, *it ) ); }
+		[ &a, &b ]( FeRomInfo* info ) { return std::distance( a, std::find( a, b, *info ) ); }
 	);
-	return indexes;
 }
 
 //
-// Converts mapped pointers to indexes for caching
+// Converts mapped FeRomInfo pointers to indexes for caching
 //
-std::map<std::string, std::vector<int>> FeCache::get_clone_group_indexes(
+void FeCache::clone_group_to_indexes(
+	std::map<std::string, std::vector<int>> &indexes,
 	std::map<std::string, std::vector<FeRomInfo*>> &map,
 	FeRomInfoListType &m_list
 )
 {
-	std::map<std::string, std::vector<int>> indexes;
-	for (
-		std::map<std::string, std::vector<FeRomInfo*>>::iterator it = map.begin();
-		it != map.end();
-		++it
-	)
-	{
-		indexes[it->first] = get_filter_list_indexes(it->second, m_list);
-	}
-	return indexes;
+	indexes.clear();
+
+	std::for_each(
+		map.begin(),
+		map.end(),
+		[ &indexes, &m_list ]( std::pair<std::string, std::vector<FeRomInfo*>> it )
+		{
+			indexes[ it.first ] = std::vector<int>();
+			filter_list_to_indexes( indexes[ it.first ], it.second, m_list );
+		}
+	);
 }
 
-/**
- * Converts indexes to pointers, and inserts into list
- */
-void FeCache::insert_filter_list_indexes(
-	std::vector<int> &indexes,
+//
+// Restores indexes back to FeRomInfo pointers and inserts into list
+//
+void FeCache::indexes_to_filter_list(
 	std::vector<FeRomInfo*> &list,
+	std::vector<int> &indexes,
 	FeRomInfoListType &m_list
 )
 {
-	std::vector<FeRomInfo*> filtered_list;
+	list.clear();
+	list.reserve( indexes.size() );
+
 	std::transform(
 		indexes.begin(),
 		indexes.end(),
@@ -67,57 +125,24 @@ void FeCache::insert_filter_list_indexes(
 	);
 }
 
-/**
- * Converts mapped indexes to pointers, and inserts into map
- */
-void FeCache::insert_clone_group_indexes(
-	std::map<std::string, std::vector<int>> &indexes,
+//
+// Restores mapped indexes back to FeRomInfo pointers and inserts into map
+//
+void FeCache::indexes_to_clone_group(
 	std::map<std::string, std::vector<FeRomInfo*>> &map,
+	std::map<std::string, std::vector<int>> &indexes,
 	FeRomInfoListType &m_list
 )
 {
-	for (
-		std::map<std::string, std::vector<int>>::iterator it = indexes.begin();
-		it != indexes.end();
-		++it
-	)
-	{
-		map[it->first] = std::vector<FeRomInfo*>();
-		insert_filter_list_indexes(it->second, map[it->first], m_list);
-	}
-}
+	map.clear();
 
-/**
- * Converts all filters to lookups for caching
- */
-std::vector<FeFilterLookup> filters_to_lookups(FeRomList &romlist)
-{
-	std::vector<FeFilterLookup> lookups;
-	std::vector<FeFilterEntry> filtered_list = romlist.get_filtered_list();
-	std::transform(
-		filtered_list.begin(),
-		filtered_list.end(),
-		std::back_inserter( lookups ),
-		[ &romlist ]( FeFilterEntry entry ) { return entry.to_lookup( romlist ); }
-	);
-	return lookups;
-}
-
-/**
- * Converts all lookups to filters for cache loading
- */
-void lookups_to_filters( std::vector<FeFilterLookup> &lookups, FeRomList &romlist )
-{
-	std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
-	std::transform(
-		lookups.begin(),
-		lookups.end(),
-		std::back_inserter( filtered_list ),
-		[ &romlist ]( FeFilterLookup lookup )
+	std::for_each(
+		indexes.begin(),
+		indexes.end(),
+		[ &map, &m_list ]( std::pair<std::string, std::vector<int>> it )
 		{
-			FeFilterEntry entry = FeFilterEntry();
-			entry.from_lookup( lookup, romlist );
-			return entry;
+			map[ it.first ] = std::vector<FeRomInfo*>();
+			indexes_to_filter_list( map[ it.first ], it.second, m_list );
 		}
 	);
 }
@@ -125,22 +150,18 @@ void lookups_to_filters( std::vector<FeFilterLookup> &lookups, FeRomList &romlis
 // -------------------------------------------------------------------------------------
 
 //
-// Returns sanitized filename for romlist cache
-//
-std::string get_cached_romlist_filename( FeRomList &romlist )
-{
-	return FE_CACHE_SUBDIR
-		+ sanitize_filename( romlist.get_display().get_name() )
-		+ ".romlist.bin";
-}
-
-//
 // Saves romlist data to cache file
 //
-bool FeCache::save_cached_romlist( FeRomList &romlist )
+bool FeCache::save_display_cache(
+	const std::string config_path,
+	FeDisplayInfo &display,
+	FeRomList &romlist,
+	bool group_clones,
+	time_t mtime
+)
 {
-	std::string filename = get_cached_romlist_filename( romlist );
-	confirm_directory( romlist.get_config_path(), FE_CACHE_SUBDIR );
+	std::string filename = get_display_cache_filename( config_path, display );
+	confirm_directory( config_path, FE_CACHE_SUBDIR );
 	nowide::ofstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 
@@ -148,8 +169,8 @@ bool FeCache::save_cached_romlist( FeRomList &romlist )
 	{
 		{
 			// extra block needed to flush scope
-			cereal::BinaryOutputArchive archive( file );
-			romlist.serialize( archive );
+			OutputArchive archive( file );
+			archive( romlist, group_clones, mtime );
 		}
 		file.close();
 		return true;
@@ -157,7 +178,7 @@ bool FeCache::save_cached_romlist( FeRomList &romlist )
 	catch (...)
 	{
 		file.close();
-		delete_file( filename );
+		clear_display_cache( config_path, display );
 		return false;
 	}
 }
@@ -165,9 +186,15 @@ bool FeCache::save_cached_romlist( FeRomList &romlist )
 //
 // Loads cache file and updates romlist data
 //
-bool FeCache::load_cached_romlist( FeRomList &romlist )
+bool FeCache::load_display_cache(
+	const std::string config_path,
+	FeDisplayInfo &display,
+	FeRomList &romlist,
+	bool group_clones,
+	time_t mtime
+)
 {
-	std::string filename = get_cached_romlist_filename( romlist );
+	std::string filename = get_display_cache_filename( config_path, display );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
@@ -176,8 +203,12 @@ bool FeCache::load_cached_romlist( FeRomList &romlist )
 	{
 		{
 			// extra block needed to flush scope
-			cereal::BinaryInputArchive archive( file );
-			romlist.serialize( archive );
+			time_t time;
+			bool group;
+			InputArchive archive( file );
+			archive( romlist, group, time );
+			if ( time != mtime ) throw "Romlist modified";
+			if ( group != group_clones ) throw "Group modified";
 		}
 		file.close();
 		return true;
@@ -185,39 +216,61 @@ bool FeCache::load_cached_romlist( FeRomList &romlist )
 	catch ( ... )
 	{
 		file.close();
-		delete_file( filename );
+		clear_display_cache( config_path, display );
 		return false;
 	}
+}
+
+//
+// Clears cached display as well as its filters
+// - Used when the Display settings have changed
+// - Used when the Global Filter results have changed (due to Favourites, PlayedTime, PlayedCount changing)
+//
+bool FeCache::clear_display_cache(
+	const std::string config_path,
+	FeDisplayInfo &display
+)
+{
+	std::string display_filename = get_display_cache_filename( config_path, display );
+	bool exists = file_exists( display_filename );
+	if ( exists )
+	{
+		delete_file( display_filename );
+		FeLog() << " - Cleared display cache '" << display.get_name() << "'" << std::endl;
+	}
+	return clear_filters_cache( config_path, display ) || exists;
 }
 
 // -------------------------------------------------------------------------------------
 
 //
-// Returns sanitized filename for filter cache
+// Saves filter data cache file
 //
-std::string get_cached_filters_filename( FeRomList &romlist )
+bool FeCache::save_filters_cache(
+	const std::string config_path,
+	FeDisplayInfo &display,
+	FeRomList &romlist
+)
 {
-	return FE_CACHE_SUBDIR
-		+ sanitize_filename( romlist.get_display().get_name() )
-		+ ".filters.bin";
-}
-
-//
-// Saves filter data to cache file
-//
-bool FeCache::save_cached_filters( FeRomList &romlist )
-{
-	std::string filename = get_cached_filters_filename( romlist );
-	confirm_directory( romlist.get_config_path(), FE_CACHE_SUBDIR );
+	std::string filename = get_filters_cache_filename( config_path, display );
+	confirm_directory( config_path, FE_CACHE_SUBDIR );
 	nowide::ofstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 
 	try
 	{
 		{
-			// extra block needed to flush scope
-			cereal::BinaryOutputArchive archive( file );
-			archive( filters_to_lookups ( romlist ) );
+			std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
+
+			FeRomInfoListType &m_list = romlist.get_list();
+			std::for_each(
+				filtered_list.begin(),
+				filtered_list.end(),
+				[ &m_list ]( FeFilterEntry &it ) { it.to_indexes( m_list ); }
+			);
+
+			OutputArchive archive( file );
+			archive( filtered_list );
 		}
 		file.close();
 		return true;
@@ -225,18 +278,21 @@ bool FeCache::save_cached_filters( FeRomList &romlist )
 	catch (...)
 	{
 		file.close();
-		delete_file( filename );
+		clear_filters_cache( config_path, display );
 		return false;
 	}
-	return false;
 }
 
 //
-// Loads cache file and updates filter data
+// Loads filter cache and updates romlist filter data
 //
-bool FeCache::load_cached_filters( FeRomList &romlist )
+bool FeCache::load_filters_cache(
+	const std::string config_path,
+	FeDisplayInfo &display,
+	FeRomList &romlist
+)
 {
-	std::string filename = get_cached_filters_filename( romlist );
+	std::string filename = get_filters_cache_filename( config_path, display );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
@@ -244,11 +300,17 @@ bool FeCache::load_cached_filters( FeRomList &romlist )
 	try
 	{
 		{
-			// extra block needed to flush scope
-			std::vector<FeFilterLookup> lookups;
-			cereal::BinaryInputArchive archive( file );
-			archive( lookups );
-			lookups_to_filters( lookups, romlist );
+			std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
+
+			InputArchive archive( file );
+			archive( filtered_list );
+
+			FeRomInfoListType &m_list = romlist.get_list();
+			std::for_each(
+				filtered_list.begin(),
+				filtered_list.end(),
+				[ &m_list ]( FeFilterEntry &it ) { it.from_indexes( m_list ); }
+			);
 		}
 		file.close();
 		return true;
@@ -256,8 +318,53 @@ bool FeCache::load_cached_filters( FeRomList &romlist )
 	catch ( ... )
 	{
 		file.close();
-		delete_file( filename );
+		clear_filters_cache( config_path, display );
 		return false;
 	}
+}
+
+//
+// Clears cached filter
+//
+bool FeCache::clear_filters_cache(
+	const std::string config_path,
+	FeDisplayInfo &display
+)
+{
+	std::string filters_filename = get_filters_cache_filename( config_path, display );
+	bool exists = file_exists( filters_filename );
+	if ( exists )
+	{
+		delete_file( filters_filename );
+		FeLog() << " - Cleared filters cache '" << display.get_name() << "'" << std::endl;
+	}
+	return exists;
+}
+
+// -------------------------------------------------------------------------------------
+
+//
+// Clears cache for all items that use the given RomInfo target
+//
+bool FeCache::fix_cache(
+	const std::string config_path,
+	FeDisplayInfo &display,
+	FeRomInfo::Index target
+)
+{
+	FeFilter *global_filter = display.get_global_filter();
+	if ( global_filter && ( global_filter->test_for_target( target ) ) )
+	{
+		return clear_display_cache( config_path, display );
+	}
+
+	for ( int i=0; i<display.get_filter_count(); i++ )
+	{
+		if ( display.get_filter( i )->test_for_target( target ) )
+		{
+			return clear_filters_cache( config_path, display );
+		}
+	}
+
 	return false;
 }

@@ -557,6 +557,9 @@ void FeFilter::save( nowide::ofstream &f, const char *filter_tag ) const
 
 bool FeFilter::test_for_target( FeRomInfo::Index target ) const
 {
+	if ( get_sort_by() == target )
+		return true;
+
 	for ( std::vector<FeRule>::const_iterator itr=m_rules.begin(); itr!=m_rules.end(); ++itr )
 	{
 		if ( (*itr).get_target() == target )
