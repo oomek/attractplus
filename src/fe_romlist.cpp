@@ -200,17 +200,22 @@ bool FeRomList::load_romlist( const std::string &path,
 	m_tags_changed = false;
 	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
-	m_group_clones = group_clones;
-	m_modified_time = mtime;
 
 	if ( FeCache::load_display_cache( m_config_path, display, *this ) )
 	{
-		FeLog() << " - Loaded master romlist '" << m_romlist_name
-			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_list.size() << " entries, cache)" << std::endl;
+		if ( ( m_group_clones == group_clones ) && ( m_modified_time == mtime ) )
+		{
+			FeLog() << " - Loaded romlist '" << m_romlist_name
+				<< "' in " << load_timer.getElapsedTime().asMilliseconds()
+				<< " ms (" << m_list.size() << " entries, cached)" << std::endl;
 
-		create_filters( display );
-		return true;
+			create_filters( display );
+			return true;
+		}
+		else
+		{
+			FeCache::clear_filters_cache( m_config_path, display );
+		}
 	}
 
 	m_group_clones = group_clones;
@@ -371,16 +376,16 @@ bool FeRomList::load_romlist( const std::string &path,
 			m_list.erase( last_it, m_list.end() );
 	}
 
-	FeLog() << " - Loaded master romlist '" << m_romlist_name
+	FeLog() << " - Loaded romlist '" << m_romlist_name
 			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_list.size() << " entries kept, " << global_filtered_out_count
+			<< " ms (" << m_list.size() << " kept, " << global_filtered_out_count
 			<< " discarded)" << std::endl;
 
 	load_timer.restart();
 
 	if ( FeCache::save_display_cache( m_config_path, display, *this ) )
 	{
-		FeLog() << " - Cached master romlist '" << m_romlist_name
+		FeLog() << " - Cached romlist '" << m_romlist_name
 				<< "' in " << load_timer.getElapsedTime().asMilliseconds()
 				<< " ms" << std::endl;
 	}
@@ -557,9 +562,9 @@ void FeRomList::create_filters(
 
 	if ( FeCache::load_filters_cache( m_config_path, display, *this ) )
 	{
-		FeLog() << " - Constructed " << m_filtered_list.size() << " filters in "
+		FeLog() << " - Loaded filters in "
 			<< load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (cache)" << std::endl;
+			<< " ms (" << m_filtered_list.size() << " filters, cached)" << std::endl;
 		return;
 	}
 
@@ -586,16 +591,18 @@ void FeRomList::create_filters(
 			m_filtered_list[i] );
 	}
 
-	FeLog() << " - Constructed " << filters_count << " filters in "
+	FeLog() << " - Loaded filters in "
 			<< load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << filters_count * m_list.size() << " comparisons)" << std::endl;
+			<< " ms (" << filters_count << " filters, "
+			<< filters_count * m_list.size() << " comparisons)" << std::endl;
 
 	load_timer.restart();
 
 	if ( FeCache::save_filters_cache( m_config_path, display, *this ) )
 	{
-		FeLog() << " - Cached " << filters_count << " filters in "
-			<< load_timer.getElapsedTime().asMilliseconds() << " ms" << std::endl;
+		FeLog() << " - Cached filters in "
+			<< load_timer.getElapsedTime().asMilliseconds()
+			<< " ms" << std::endl;
 	}
 }
 

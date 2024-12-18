@@ -180,8 +180,6 @@ public:
 
 	FeRomInfoListType &get_list() { return m_list; };
 	std::vector<FeFilterEntry> &get_filtered_list() { return m_filtered_list; };
-	bool &get_group_clones() { return m_group_clones; };
-	time_t &get_modified_time() { return m_modified_time; };
 
 	void get_file_availability();
 

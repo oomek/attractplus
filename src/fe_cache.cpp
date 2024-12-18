@@ -196,14 +196,10 @@ bool FeCache::load_display_cache(
 
 	try
 	{
-		time_t time = romlist.get_modified_time();
-		bool group = romlist.get_group_clones();
 		{	// block flushes archive
 			InputArchive archive( file );
 			archive( romlist );
 		}
-		if ( romlist.get_modified_time() != time ) throw "Romlist modified";
-		if ( romlist.get_group_clones() != group ) throw "Group modified";
 		file.close();
 		return true;
 	}
