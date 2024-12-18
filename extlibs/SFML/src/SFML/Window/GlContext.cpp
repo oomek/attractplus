@@ -338,6 +338,7 @@ void GlContext::initResource()
         if (sharedContext)
         {
             // Increment the resources counter
+            sf::err() << "GlContext::initResource(): sharedContext CREATED resourceCount = " << resourceCount << std::endl;
             resourceCount++;
 
             return;
@@ -356,6 +357,7 @@ void GlContext::initResource()
 
     // Increment the resources counter
     resourceCount++;
+    sf::err() << "GlContext::initResource(): resourceCount = " << resourceCount << std::endl;
 }
 
 
@@ -374,6 +376,7 @@ void GlContext::cleanupResource()
 
     // If there's no more resource alive, we can trigger the global context cleanup
     if (resourceCount == 0)
+    // if ((resourceCount == 0) || (resourceCount == 1 && sharedContext))
     {
         if (!sharedContext)
             return;
@@ -381,7 +384,9 @@ void GlContext::cleanupResource()
         // Destroy the shared context
         delete sharedContext;
         sharedContext = NULL;
+        sf::err() << "GlContext::initResource(): sharedContext DESTROYED resourceCount = " << resourceCount << std::endl;
     }
+    sf::err() << "GlContext::cleanupResource(): resourceCount = " << resourceCount << std::endl;
 }
 
 
@@ -443,6 +448,8 @@ GlContext* GlContext::create()
     using GlContextImpl::mutex;
     using GlContextImpl::sharedContext;
 
+    err() << "GlContext::create() shared:" << sharedContext << std::endl;
+
     // Make sure that there's an active context (context creation may need extensions, and thus a valid context)
     assert(sharedContext != NULL);
 
@@ -454,12 +461,14 @@ GlContext* GlContext::create()
     // to ensure we have exclusive access to the shared context
     // in order to make sure it is not active during context creation
     {
+        err() << "GlContext::create() 1" << std::endl;
         sharedContext->setActive(true);
-
+        err() << "GlContext::create() 2" << std::endl;
         // Create the context
         context = new ContextType(sharedContext);
-
+        err() << "GlContext::create() 3" << std::endl;
         sharedContext->setActive(false);
+        err() << "GlContext::create() 4" << std::endl;
     }
 
     context->initialize(ContextSettings());

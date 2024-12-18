@@ -56,6 +56,7 @@ m_size(mode.width, mode.height)
 ////////////////////////////////////////////////////////////
 WindowImplDRM::~WindowImplDRM()
 {
+    sf::err() << "WindowImplDRM::~WindowImplDRM()" << std::endl;
     sf::priv::InputImpl::restoreTerminalConfig();
 }
 

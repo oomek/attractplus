@@ -132,6 +132,8 @@ namespace
         waitingForFlip = 0;
 
         initialized = false;
+
+        sf::err() << "DRMContext cleanup(): " << contextCount << std::endl;
     }
 
     void drmFbDestroyCallback(gbm_bo* bo, void* data)
@@ -543,6 +545,7 @@ m_scanOut    (false)
         createSurface(drmNode.mode->hdisplay, drmNode.mode->vdisplay, false);
     else // create a surface to force the GL to initialize (seems to be required for glGetString() etc )
         createSurface(1, 1, false);
+    sf::err() << "DRMContext created: " << contextCount << std::endl;
 }
 
 
@@ -581,6 +584,7 @@ m_scanOut    (false)
 
     if (owner)
         createSurface(drmNode.mode->hdisplay, drmNode.mode->vdisplay, true);
+    sf::err() << "DRMContext created: " << contextCount << std::endl;
 }
 
 
@@ -612,6 +616,7 @@ m_scanOut    (false)
     // Create EGL context
     createContext(shared);
     createSurface(drmNode.mode->hdisplay, drmNode.mode->vdisplay, false);
+    sf::err() << "DRMContext created: " << contextCount << std::endl;
 }
 
 
@@ -651,6 +656,7 @@ DRMContext::~DRMContext()
         gbm_surface_destroy(m_gbmSurface);
 
     contextCount--;
+    sf::err() << "DRMContext destroyed: " << contextCount << std::endl;
     if (contextCount == 0)
         cleanup();
 }
@@ -735,7 +741,7 @@ void DRMContext::createContext(DRMContext* shared)
 {
     const EGLint contextVersion[] =
     {
-        EGL_CONTEXT_CLIENT_VERSION, 1,
+        EGL_CONTEXT_CLIENT_VERSION, 2,
         EGL_NONE
     };
 

@@ -336,7 +336,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	}
 
 	m_movie = new FeMedia( FeMedia::AudioVideo );
-	m_texture = new sf::Texture; // TODO: not destroyed, memory leak?
+	// m_texture = new sf::Texture; // TODO: not destroyed, memory leak?
 	res = m_movie->open( "", loaded_name, m_texture );
 
 	if ( !res )
