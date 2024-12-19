@@ -1,0 +1,77 @@
+name: Linux x86_64
+
+on:
+  push:
+    tags-ignore:
+      - '**'
+    branches:
+      - '**'
+    pull_request:
+      paths:
+        - '**'
+  workflow_dispatch:
+  #workflow_call:
+
+jobs:
+  buildAMx86:
+    name: ${{ matrix.platform.name }} ${{ matrix.config.name }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        platform:
+        - { name: Linux x64 KMS, targetos: linux-x86, amflags: USE_DRM=1 }
+        - { name: Linux x64 X11, targetos: linux-x86 }
+        config:
+        - { name: shared, amflags: STATIC=0 }
+        - { name: static, amflags: STATIC=1 }
+
+        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04 ]
+
+        exclude:
+          - platform: { targetos: linux-x86 }
+            config: { name: shared }
+
+    steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v4
+      with:
+        path: am
+
+    - name: Prepare
+      id: vars
+      run: |
+        which nproc && nbproc=$(nproc) || nbproc=$(getconf _NPROCESSORS_ONLN)
+        echo "nbproc=${nbproc}" >> $GITHUB_OUTPUT
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+
+    - name: Install Linux Dependencies
+      run: |
+        sudo apt update
+        sudo apt install build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libegl1-mesa-dev libgbm-dev libdrm-dev libcurl4-gnutls-dev libboost-system-dev libboost-filesystem-dev
+
+    - name: Build AM+
+      run: |
+        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}} ${{env.cross_toolchain}}
+
+    - name: Prepare artifacts
+      run: |
+        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
+        for e in "${GITHUB_WORKSPACE}"/am/*.exe ; do
+          echo "Gathering dll infos for $e ..."
+          which mingw-ldd || continue
+          for dll in $(mingw-ldd "$e" --dll-lookup-dirs /usr/lib/mxe/usr/x86_64-w64-mingw32.shared/bin/ "${GITHUB_WORKSPACE}"/sfml/install/lib/ | grep -v 'not found$' | tr -d ' ' | cut -d '>' -f 2) ; do
+            cp "$dll" "${GITHUB_WORKSPACE}"/artifacts/
+          done
+        done
+        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
+        cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
+        cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{matrix.platform.name}}-${{matrix.config.name}}-${{matrix.os}}
+        path: ./artifacts/

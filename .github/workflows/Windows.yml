@@ -1,0 +1,95 @@
+name: Windows MXE
+
+on:
+  push:
+    tags-ignore:
+      - '**'
+    branches:
+      - '**'
+    pull_request:
+      paths:
+        - '**'
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  PKG_CONFIG_PATH_x86_64_w64_mingw32_static: /usr/lib/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/
+
+jobs:
+  buildAMWindows:
+    name: Windows MXE build
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v4
+      with:
+        path: am
+
+    - name: Prepare
+      id: vars
+      run: |
+        which nproc && nbproc=$(nproc) || nbproc=$(getconf _NPROCESSORS_ONLN)
+        echo "nbproc=${nbproc}" >> $GITHUB_OUTPUT
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+
+    - name: Install Linux MXE for Windows cross-building
+      run: |
+        sudo apt-get install \
+          software-properties-common \
+          lsb-release
+        sudo apt-key adv \
+          --keyserver keyserver.ubuntu.com \
+          --recv-keys 86B72ED9 && \
+        sudo add-apt-repository \
+          "deb [arch=amd64] https://pkg.mxe.cc/repos/apt `lsb_release -sc` main" && \
+        sudo apt-get update
+        sudo apt-get install \
+          mxe-x86-64-w64-mingw32.static-cc \
+          mxe-x86-64-w64-mingw32.static-openal \
+          mxe-x86-64-w64-mingw32.static-flac \
+          mxe-x86-64-w64-mingw32.static-vorbis \
+          mxe-x86-64-w64-mingw32.static-freetype \
+          mxe-x86-64-w64-mingw32.static-freetype-bootstrap \
+          mxe-x86-64-w64-mingw32.static-libarchive \
+          mxe-x86-64-w64-mingw32.static-curl \
+          mxe-x86-64-w64-mingw32.static-openjpeg \
+          mxe-x86-64-w64-mingw32.static-boost
+        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-gcc_11.2.0-focal.deb
+        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-brotli_1.1.0.deb
+        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-ffmpeg_7.0.2.deb
+        sudo ln -s /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-gcc /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-cc
+        sudo pip install mingw-ldd
+        echo "/usr/lib/mxe/usr/bin" >> $GITHUB_PATH
+        echo "cross_prefix=x86_64-w64-mingw32.static-" >> $GITHUB_ENV
+        echo "cross_toolchain=TOOLCHAIN=x86_64-w64-mingw32.static" >> $GITHUB_ENV
+
+    - name: Build AM+
+      run: |
+        make -C am -j$(nproc) VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} CROSS=1 FE_WINDOWS_COMPILE=1 STATIC=1 TOOLCHAIN=x86_64-w64-mingw32.static
+
+    - name: Build AM+ attract-console.exe (Windows only)
+      run: |
+        make -C am smallclean CROSS=1 FE_WINDOWS_COMPILE=1 STATIC=1 TOOLCHAIN=x86_64-w64-mingw32.static
+        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} CROSS=1 FE_WINDOWS_COMPILE=1 STATIC=1 TOOLCHAIN=x86_64-w64-mingw32.static WINDOWS_CONSOLE=1
+
+    - name: Prepare artifacts
+      run: |
+        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
+        for e in "${GITHUB_WORKSPACE}"/am/*.exe ; do
+          echo "Gathering dll infos for $e ..."
+          which mingw-ldd || continue
+          for dll in $(mingw-ldd "$e" --dll-lookup-dirs /usr/lib/mxe/usr/x86_64-w64-mingw32.shared/bin/ "${GITHUB_WORKSPACE}"/sfml/install/lib/ | grep -v 'not found$' | tr -d ' ' | cut -d '>' -f 2) ; do
+            cp "$dll" "${GITHUB_WORKSPACE}"/artifacts/
+          done
+        done
+        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
+        cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
+        cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows
+        path: ./artifacts/

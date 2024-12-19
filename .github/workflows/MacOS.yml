@@ -1,0 +1,55 @@
+name: MacOS
+
+on:
+  push:
+    tags-ignore:
+      - '**'
+    branches:
+      - '**'
+    pull_request:
+      paths:
+        - '**'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+
+  buildMacOS:
+    name: MacOS build
+    runs-on: macos-latest
+    steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v4
+      with:
+        path: am
+    - name: Prepare
+      id: vars
+      run: |
+        which nproc && nbproc=$(nproc) || nbproc=$(getconf _NPROCESSORS_ONLN)
+        echo "nbproc=${nbproc}" >> $GITHUB_OUTPUT
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+    - name: Install MacOS brew
+      run: |
+        brew update
+        brew upgrade
+        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo boost sfml
+    #~ - name: MacOS switch to GCC
+      #~ run: |
+        #~ echo "CC=/usr/local/bin/gcc-10" >> $GITHUB_ENV
+        #~ echo "CXX=/usr/local/bin/g++-10" >> $GITHUB_ENV
+        #~ echo "AR=/usr/local/bin/ar-10" >> $GITHUB_ENV
+    - name: Build AM+
+      run: |
+        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} prefix=.. USE_SYSTEM_SFML=1 STATIC=0
+    - name: Prepare artifacts
+      run: |
+        git -C am/ fetch --unshallow
+        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
+        bash am/util/osx/appbuilder.sh
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: MacOS
+        path: ./artifacts/

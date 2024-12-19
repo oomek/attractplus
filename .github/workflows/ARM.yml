@@ -1,0 +1,66 @@
+name: ARM
+
+on:
+  push:
+    tags-ignore:
+      - '**'
+    branches:
+      - '**'
+    pull_request:
+      paths:
+        - '**'
+  workflow_dispatch:
+  #workflow_call:
+
+jobs:
+  buildAMarm:
+    name: ${{ matrix.platform.name }} ${{ matrix.config.name }} on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform:
+        - { name: armv7,   arch: arm32v7, pf: arm/v7,  shell: bash, amflags: USE_DRM=1 USE_MMAL=1}
+        - { name: aarch64, arch: arm64v8, pf: aarch64, shell: bash, amflags: USE_DRM=1}
+        config:
+        - { name: shared, amflags: STATIC=0 }
+        - { name: static, amflags: STATIC=1 }
+        os: [ buster, bullseye, bookworm ]
+        exclude:
+          - config: { name: shared }
+
+    steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v4
+      with:
+        path: am
+    - name: Prepare
+      id: vars
+      run: |
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+    - name: Build AM+
+      uses: uraimo/run-on-arch-action@v2
+      with:
+        arch: ${{ matrix.platform.name }}
+        distro: ${{ matrix.os }}
+        githubToken: ${{ github.token }}
+        dockerRunArgs: |
+          --volume "${GITHUB_WORKSPACE}/am:/am"
+        install: |
+          apt-get update -y -q
+          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libboost-filesystem-dev libboost-system-dev
+        run: |
+          make -C am -j$(nproc) VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}}
+    - name: Prepare artifacts
+      run: |
+        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
+        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
+        cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
+        cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{matrix.platform.name}}-${{matrix.os}}
+        path: ./artifacts/

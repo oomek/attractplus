@@ -1,0 +1,158 @@
+name: Realase
+
+on:
+  push:
+    tags:
+      - '**'
+
+env:
+  PKG_CONFIG_PATH_x86_64_w64_mingw32_static: /usr/lib/mxe/usr/x86_64-w64-mingw32.static/lib/pkgconfig/
+
+jobs:
+  PackageAMx86:
+    name: Package ${{ matrix.platform.name }} ${{ matrix.config.name }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        platform:
+        - { name: Linux x64 KMS, targetos: linux-x86, amflags: USE_DRM=1 }
+        #- { name: Linux x64 X11, targetos: linux-x86 }
+        config:
+        - { name: shared, amflags: STATIC=0 }
+        - { name: static, amflags: STATIC=1 }
+
+        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04 ]
+
+        exclude:
+          - platform: { targetos: linux-x86 }
+            config: { name: shared }
+
+    steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v4
+      with:
+        path: am
+
+    - name: Prepare
+      id: vars
+      run: |
+        deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+        echo "deb_version=${deb_version}" >> $GITHUB_OUTPUT
+
+    - name: Package AM+
+      uses: jtdor/build-deb-action@v1
+      env:
+        DEB_BUILD_OPTIONS: noautodbgsym
+      with:
+        buildpackage-opts: --build=binary --no-pre-clean --no-sign
+        source-dir: am
+
+    - name: Rename AM+
+      run: |
+        find ./ -name '*.deb'
+        version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
+        cp "./debian/artifacts/attractplus_${version}_amd64.deb" "attractplus_${version}_${{ matrix.os }}_amd64.deb"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_amd64.deb"
+        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_amd64"
+        compression-level: 0
+
+  PackageAMarm:
+    name: Package ${{ matrix.platform.name }} ${{ matrix.config.name }} on ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform:
+        - { name: armv7,   arch: armhf }
+        - { name: aarch64, arch: arm64 }
+        config:
+        - { name: shared, amflags: STATIC=0 }
+        - { name: static, amflags: STATIC=1 }
+        os: [ buster, bullseye, bookworm ]
+        exclude:
+          - config: { name: shared }
+
+    steps:
+    - name: AM+ - Checkout
+      uses: actions/checkout@v4
+      with:
+        path: am
+
+    - name: Prepare
+      id: vars
+      run: |
+        deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
+        fe_version=
+        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
+        echo "deb_version=${deb_version}" >> $GITHUB_OUTPUT
+
+    - name: Package AM+
+      uses: jtdor/build-deb-action@v1
+      env:
+        DEB_BUILD_OPTIONS: noautodbgsym
+      with:
+        buildpackage-opts: --build=binary --no-sign --no-pre-clean
+        source-dir: am
+        host-arch: ${{ matrix.platform.arch }}
+        docker-image: debian:${{ matrix.os }}-slim
+
+    - name: Rename AM+
+      run: |
+        find ./ -name '*.deb'
+        version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
+        cp "./debian/artifacts/attractplus_${version}_${{ matrix.platform.arch }}.deb" "attractplus_${version}_${{ matrix.os }}_${{ matrix.platform.arch }}.deb"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}.deb"
+        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}"
+        compression-level: 0
+  
+  Windows:
+    uses: ./.github/workflows/Windows.yml
+
+  MacOS:
+    uses: ./.github/workflows/MacOS.yml
+
+  Release:
+    name: Release to Github
+    needs: [PackageAMx86, PackageAMarm, Windows, MacOS]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare artifacts
+      id: prepare_artifacts
+      run: |
+        tag="${GITHUB_REF#refs/*/}"
+        echo "current_tag=${tag}" >> $GITHUB_OUTPUT
+        mkdir -p "${GITHUB_WORKSPACE}"/artifacts_for_release
+        find "${GITHUB_WORKSPACE}"/artifacts/ -type f -name '*.deb' -exec cp -v "{}" "${GITHUB_WORKSPACE}"/artifacts_for_release \;
+        7z a "${GITHUB_WORKSPACE}"/artifacts_for_release/"attractplus_${GITHUB_REF#refs/*/}_Windows.7z" ./artifacts/Windows/*
+        7z a "${GITHUB_WORKSPACE}"/artifacts_for_release/"attractplus_${GITHUB_REF#refs/*/}_MacOS.7z" ./artifacts/MacOS/*
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: Attract Mode Plus ${{ steps.prepare_artifacts.outputs.current_tag }}
+        draft: true
+        prerelease: false
+        files: |
+          artifacts_for_release/attractplus*.7z
+          artifacts_for_release/attractplus*.deb
