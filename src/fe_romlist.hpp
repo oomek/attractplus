@@ -98,8 +98,8 @@ public:
 		clone_group_indexes.clear();
 	};
 
-	void to_indexes( FeRomInfoListType &m_list );
-	void from_indexes( FeRomInfoListType &m_list );
+	void to_indexes();
+	void from_indexes( std::vector<FeRomInfo*> &m_list );
 
 	template<class Archive>
 	void serialize( Archive &archive, std::uint32_t const version )

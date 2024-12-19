@@ -69,10 +69,12 @@ const char *FeRomInfo::indexStrings[] =
 
 FeRomInfo::FeRomInfo()
 {
+	m_info = std::vector<std::string>(LAST_INDEX);
 }
 
 FeRomInfo::FeRomInfo( const std::string &rn )
 {
+	m_info = std::vector<std::string>(LAST_INDEX);
 	m_info[Romname] = rn;
 }
 

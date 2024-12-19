@@ -54,6 +54,23 @@ std::string get_filters_cache_filename(
 		+ FE_CACHE_EXT;
 }
 
+//
+// Returns romlist m_list as a vector containing pointers
+//
+std::vector<FeRomInfo*> get_romlist_lookup(
+	FeRomList &romlist
+)
+{
+	FeRomInfoListType &m_list = romlist.get_list();
+	std::vector<FeRomInfo*> v;
+	v.reserve(m_list.size());
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
+	{
+		v.push_back(&(*it));
+	}
+	return v;
+}
+
 // -------------------------------------------------------------------------------------
 
 //
@@ -61,12 +78,9 @@ std::string get_filters_cache_filename(
 //
 void FeCache::filter_list_to_indexes(
 	std::vector<int> &indexes,
-	std::vector<FeRomInfo*> &list,
-	FeRomInfoListType &m_list
+	std::vector<FeRomInfo*> &list
 )
 {
-	FeRomInfoListType::iterator a = m_list.begin();
-	FeRomInfoListType::iterator b = m_list.end();
 	indexes.clear();
 	indexes.reserve( list.size() );
 
@@ -74,7 +88,7 @@ void FeCache::filter_list_to_indexes(
 		list.begin(),
 		list.end(),
 		std::back_inserter( indexes ),
-		[ &a, &b ]( FeRomInfo* info ) { return std::distance( a, std::find( a, b, *info ) ); }
+		[]( FeRomInfo* info ) { return info->index; }
 	);
 }
 
@@ -83,8 +97,7 @@ void FeCache::filter_list_to_indexes(
 //
 void FeCache::clone_group_to_indexes(
 	std::map<std::string, std::vector<int>> &indexes,
-	std::map<std::string, std::vector<FeRomInfo*>> &map,
-	FeRomInfoListType &m_list
+	std::map<std::string, std::vector<FeRomInfo*>> &map
 )
 {
 	indexes.clear();
@@ -92,10 +105,10 @@ void FeCache::clone_group_to_indexes(
 	std::for_each(
 		map.begin(),
 		map.end(),
-		[ &indexes, &m_list ]( std::pair<std::string, std::vector<FeRomInfo*>> it )
+		[ &indexes ]( std::pair<std::string, std::vector<FeRomInfo*>> it )
 		{
 			indexes[ it.first ] = std::vector<int>();
-			filter_list_to_indexes( indexes[ it.first ], it.second, m_list );
+			filter_list_to_indexes( indexes[ it.first ], it.second );
 		}
 	);
 }
@@ -106,7 +119,7 @@ void FeCache::clone_group_to_indexes(
 void FeCache::indexes_to_filter_list(
 	std::vector<FeRomInfo*> &list,
 	std::vector<int> &indexes,
-	FeRomInfoListType &m_list
+	std::vector<FeRomInfo*> &lookup
 )
 {
 	list.clear();
@@ -116,12 +129,7 @@ void FeCache::indexes_to_filter_list(
 		indexes.begin(),
 		indexes.end(),
 		std::back_inserter( list ),
-		[ &m_list ]( int index )
-		{
-			FeRomInfoListType::iterator it = m_list.begin();
-			std::advance( it, index );
-			return &( *it );
-		}
+		[ &lookup ]( int index ) { return lookup[index]; }
 	);
 }
 
@@ -131,7 +139,7 @@ void FeCache::indexes_to_filter_list(
 void FeCache::indexes_to_clone_group(
 	std::map<std::string, std::vector<FeRomInfo*>> &map,
 	std::map<std::string, std::vector<int>> &indexes,
-	FeRomInfoListType &m_list
+	std::vector<FeRomInfo*> &lookup
 )
 {
 	map.clear();
@@ -139,10 +147,10 @@ void FeCache::indexes_to_clone_group(
 	std::for_each(
 		indexes.begin(),
 		indexes.end(),
-		[ &map, &m_list ]( std::pair<std::string, std::vector<int>> it )
+		[ &map, &lookup ]( std::pair<std::string, std::vector<int>> it )
 		{
 			map[ it.first ] = std::vector<FeRomInfo*>();
-			indexes_to_filter_list( map[ it.first ], it.second, m_list );
+			indexes_to_filter_list( map[ it.first ], it.second, lookup );
 		}
 	);
 }
@@ -245,13 +253,14 @@ bool FeCache::save_filters_cache(
 
 	try
 	{
+		// Update entry indexes, which is what will be cached
 		std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
-		FeRomInfoListType &m_list = romlist.get_list();
 		std::for_each(
 			filtered_list.begin(),
 			filtered_list.end(),
-			[ &m_list ]( FeFilterEntry &it ) { it.to_indexes( m_list ); }
+			[]( FeFilterEntry &it ) { it.to_indexes(); }
 		);
+
 		{	// block flushes archive
 			OutputArchive archive( file );
 			archive( filtered_list );
@@ -288,11 +297,13 @@ bool FeCache::load_filters_cache(
 			InputArchive archive( file );
 			archive( filtered_list );
 		}
-		FeRomInfoListType &m_list = romlist.get_list();
+
+		// Convert entry indexes back into pointers
+		std::vector<FeRomInfo*> v = get_romlist_lookup( romlist );
 		std::for_each(
 			filtered_list.begin(),
 			filtered_list.end(),
-			[ &m_list ]( FeFilterEntry &it ) { it.from_indexes( m_list ); }
+			[ &v ]( FeFilterEntry &it ) { it.from_indexes( v ); }
 		);
 		file.close();
 		return true;

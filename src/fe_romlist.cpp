@@ -376,6 +376,12 @@ bool FeRomList::load_romlist( const std::string &path,
 			m_list.erase( last_it, m_list.end() );
 	}
 
+	int index = 0;
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
+	{
+		(*it).index = index++; // Index for caching, removes need for additional searches
+	}
+
 	FeLog() << " - Loaded romlist '" << m_romlist_name
 			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
 			<< " ms (" << m_list.size() << " kept, " << global_filtered_out_count
@@ -1013,15 +1019,15 @@ void FeRomList::delete_emulator( const std::string & emu )
 }
 
 // Update indexes to match m_list pointers
-void FeFilterEntry::to_indexes( FeRomInfoListType &m_list )
+void FeFilterEntry::to_indexes()
 {
-	FeCache::filter_list_to_indexes( filter_list_indexes, filter_list, m_list );
-	FeCache::clone_group_to_indexes( clone_group_indexes, clone_group, m_list );
+	FeCache::filter_list_to_indexes( filter_list_indexes, filter_list );
+	FeCache::clone_group_to_indexes( clone_group_indexes, clone_group );
 }
 
 // Update m_list pointers to match indexes
-void FeFilterEntry::from_indexes( FeRomInfoListType &m_list )
+void FeFilterEntry::from_indexes( std::vector<FeRomInfo*> &lookup )
 {
-	FeCache::indexes_to_filter_list( filter_list, filter_list_indexes, m_list );
-	FeCache::indexes_to_clone_group( clone_group, clone_group_indexes, m_list );
+	FeCache::indexes_to_filter_list( filter_list, filter_list_indexes, lookup );
+	FeCache::indexes_to_clone_group( clone_group, clone_group_indexes, lookup );
 }

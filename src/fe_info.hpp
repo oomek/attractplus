@@ -104,6 +104,7 @@ public:
 
 	bool operator==( const FeRomInfo & ) const;      // compares romname and emulator only
 	bool full_comparison( const FeRomInfo & ) const; // copares all fields that get loaded from the romlist file
+	int index; // Stores the m_list index, after global_filter applied
 
 	template<class Archive>
 	void serialize(Archive & archive, std::uint32_t const version)
@@ -115,7 +116,7 @@ public:
 private:
 	std::string get_info_escaped( int ) const;
 
-	std::string m_info[LAST_INDEX];
+	std::vector<std::string> m_info;
 };
 
 CEREAL_CLASS_VERSION( FeRomInfo, FE_VERSION_NUM );

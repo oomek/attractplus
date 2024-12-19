@@ -12,26 +12,24 @@ public:
 
 	static void filter_list_to_indexes(
 		std::vector<int> &indexes,
-		std::vector<FeRomInfo*> &list,
-		FeRomInfoListType &m_list
+		std::vector<FeRomInfo*> &list
 	);
 
 	static void clone_group_to_indexes(
 		std::map<std::string, std::vector<int>> &indexes,
-		std::map<std::string, std::vector<FeRomInfo*>> &map,
-		FeRomInfoListType &m_list
+		std::map<std::string, std::vector<FeRomInfo*>> &map
 	);
 
 	static void indexes_to_filter_list(
 		std::vector<FeRomInfo*> &list,
 		std::vector<int> &indexes,
-		FeRomInfoListType &m_list
+		std::vector<FeRomInfo*> &lookup
 	);
 
 	static void indexes_to_clone_group(
 		std::map<std::string, std::vector<FeRomInfo*>> &map,
 		std::map<std::string, std::vector<int>> &indexes,
-		FeRomInfoListType &m_list
+		std::vector<FeRomInfo*> &lookup
 	);
 
 	// ----------------------------------------------------------------------------------
