@@ -112,12 +112,17 @@ public:
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
+	static std::vector<std::string> uiColorTokens;
+	static std::vector<std::string> uiColorDispTokens;
+
+	// These values must align with `FeSettings::configSettingStrings`
 	enum ConfigSettingIndex
 	{
 		Language=0,
 		ExitCommand,
 		ExitMessage,
 		UIFontSize,
+		UIColor,
 		ScreenSaverTimeout,
 		DisplaysMenuExit,
 		HideBrackets,
@@ -248,6 +253,7 @@ private:
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
+	std::string m_ui_color;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
@@ -499,6 +505,7 @@ public:
 	int get_anisotropic() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
+	std::string get_ui_color() const;
 	int get_screen_saver_timeout() const;
 
 	bool get_current_fav();
