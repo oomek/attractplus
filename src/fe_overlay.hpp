@@ -42,19 +42,25 @@ private:
 	FeWindow &m_wnd;
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
-	const sf::Color m_textColour;
-	const sf::Color m_bgColour;
-	const sf::Color m_selFrameColour;
-	const sf::Color m_selBgColour;
-	const sf::Color m_lineColour;
-	const sf::Color m_headingBgColour;
+	sf::Color m_bg_colour;
+	sf::Color m_edge_bg_color;
+	sf::Color m_edge_line_colour;
+	sf::Color m_sel_focus_colour;
+	sf::Color m_sel_text_colour;
+	sf::Color m_sel_blur_colour;
+	sf::Color m_header_text_colour;
+	sf::Color m_footer_text_colour;
+	sf::Color m_text_colour;
 	bool m_overlay_is_on;
 	sf::Vector2i m_screen_size;
 	sf::Vector2f m_text_scale;
 	int m_text_size;
-	int m_heading_size;
+	int m_header_size;
 	int m_footer_size;
+	int m_edge_size;
 	int m_line_size;
+	int m_fade_alpha;
+	const sf::Font *m_font;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -67,6 +73,13 @@ private:
 	void input_map_dialog( const std::string &msg_str, FeInputMapEntry &res,
 			FeInputMap::Command &conflict );
 	int display_config_dialog( FeBaseConfigMenu *, bool & );
+	int display_config_dialog(
+		FeBaseConfigMenu *m,
+		bool &parent_setting_changed,
+		int default_sel,
+		FeInputMap::Command extra_exit
+	);
+
 
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
@@ -121,6 +134,7 @@ public:
 	bool common_exit();
 
 	void init();
+	void style_init();
 };
 
 #endif

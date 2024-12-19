@@ -1932,6 +1932,50 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 			"_help_language" );
 	ctx.back_opt().append_vlist( disp_lang_list );
 
+	std::string uicol_value = ctx.fe_settings.get_ui_color();
+	std::vector<std::string>::iterator uicol_item = FeSettings::uiColorTokens.begin();
+
+	if ( !uicol_value.empty() )
+	{
+		// Find the selected ui colour
+		uicol_item = std::find(
+			FeSettings::uiColorTokens.begin(),
+			FeSettings::uiColorTokens.end(),
+			uicol_value
+		);
+
+		// If not found this indicates a custom colour - add it to the options
+		if ( uicol_item == FeSettings::uiColorTokens.end() )
+		{
+			FeSettings::uiColorTokens.push_back( uicol_value );
+			FeSettings::uiColorDispTokens.push_back( "(Custom)" );
+			uicol_item = --FeSettings::uiColorTokens.end();
+		}
+	}
+
+	// Populate the ui colour options
+	std::vector < std::string > ui_cols;
+	for (
+		std::vector<std::string>::iterator it=FeSettings::uiColorDispTokens.begin();
+		it != FeSettings::uiColorDispTokens.end();
+		++it
+	)
+	{
+		ui_cols.push_back( std::string() );
+		ctx.fe_settings.get_translation( *it, ui_cols.back() );
+	}
+
+	std::string uicol;
+	ctx.fe_settings.get_translation(
+		FeSettings::uiColorDispTokens[uicol_item - FeSettings::uiColorTokens.begin()],
+		uicol
+	);
+
+	// Add the ui colour setting
+	ctx.add_optl( Opt::LIST, "Menu Colour", uicol, "_help_ui_color" );
+	ctx.back_opt().append_vlist( ui_cols );
+	ctx.back_opt().trigger_reload = true; // flag the ui to reload if this option changes
+
 #if !defined(FORCE_FULLSCREEN)
 	std::string winmode;
 	ctx.fe_settings.get_translation( FeSettings::windowModeDispTokens[ ctx.fe_settings.get_window_mode() ], winmode );
@@ -2112,6 +2156,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	int index_l = ctx.opt_list[i++].get_vindex();
 	std::string new_l = m_languages[ index_l ].language;
 	ctx.fe_settings.set_language( new_l );
+
+	ctx.fe_settings.set_info( FeSettings::UIColor,
+			FeSettings::uiColorTokens[ ctx.opt_list[i++].get_vindex() ] );
 
 #if !defined(FORCE_FULLSCREEN)
 	ctx.fe_settings.set_info( FeSettings::WindowMode,

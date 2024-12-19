@@ -60,6 +60,7 @@ private:
 
 public:
 	int type;		// see Opt namespace for values
+	bool trigger_reload = false;
 	std::string setting;	// the name of the setting
 	std::string help_msg;	// the help message for this option
 	std::vector<std::string> values_list; // list options

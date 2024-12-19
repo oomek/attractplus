@@ -256,6 +256,36 @@ const char *FeSettings::startupDispTokens[] =
 	NULL
 };
 
+std::vector<std::string> FeSettings::uiColorTokens =
+{
+	"#2850A0", // Blue (Default)
+	"#00BBFF", // Cyan
+	"#00CC44", // Green
+	"#444444", // Grey
+	"#4400BB", // Indigo
+	"#FF8800", // Orange
+	"#FF4488", // Pink
+	"#8822BB", // Purple
+	"#BB0011", // Red
+	"#BBBBBB", // White
+	"#FFCC00" // Yellow
+};
+
+std::vector<std::string> FeSettings::uiColorDispTokens =
+{
+	"Blue",
+	"Cyan",
+	"Green",
+	"Grey",
+	"Indigo",
+	"Orange",
+	"Pink",
+	"Purple",
+	"Red",
+	"White",
+	"Yellow"
+};
+
 FeSettings::FeSettings( const std::string &config_path )
 	:  m_rl( m_config_path ),
 	m_inputmap(),
@@ -313,7 +343,8 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_power_saving( false ),
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
-	m_ui_font_size( 0 )
+	m_ui_font_size( 0 ),
+	m_ui_color( FeSettings::uiColorTokens[0] )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
@@ -398,12 +429,14 @@ void FeSettings::load()
 		get_translation( "Displays Menu", m_menu_prompt );
 }
 
+// These values must align with fe_settings enum ConfigSettingIndex
 const char *FeSettings::configSettingStrings[] =
 {
 	"language",
 	"exit_command",
 	"exit_message",
 	"ui_font_size",
+	"ui_color",
 	"screen_saver_timeout",
 	"displays_menu_exit",
 	"hide_brackets",
@@ -2741,6 +2774,11 @@ FeSettings::StartupModeType FeSettings::get_startup_mode() const
 	return m_startup_mode;
 }
 
+std::string FeSettings::get_ui_color() const
+{
+	return m_ui_color;
+}
+
 int FeSettings::get_screen_saver_timeout() const
 {
 	return m_ssaver_time;
@@ -2839,6 +2877,9 @@ const std::string FeSettings::get_info( int index ) const
 
 	case MenuLayout:
 		return m_menu_layout;
+
+	case UIColor:
+		return m_ui_color;
 
 	default:
 		break;
@@ -3152,6 +3193,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case MenuPrompt:
 		m_menu_prompt = value;
+		break;
+
+	case UIColor:
+		m_ui_color = value;
 		break;
 
 	default:

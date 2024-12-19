@@ -122,6 +122,7 @@ Layout Options;布局选项
 Left;270度（向左）
 List Limit;列表大小限制
 Manufacturer;制造商
+Menu Colour;菜单颜色
 Menu Prompt;标题
 Menu Style / Layout;主题
 Mouse Threshold;鼠标的阈值
@@ -446,6 +447,7 @@ _help_sound;Configure sound volumes, sound event mappings and the ambient soundt
 _help_sound_sel;Assign a sound to this event/action
 _help_startup_mode;Set what should happen when Attract-Mode first starts up
 _help_track_usage;Configure whether Attract-Mode should track usage (played time and play count for each game)
+_help_ui_color;Select the colour to use in Attract-Mode's user interface
 _help_video_decoder;Configure the decoder to use for video playback (if multiple decoders are available)
 _help_volume;Valid volume settings are from 0 (mute) to 100
 _help_window_mode;Set whether Attract-Mode fills the screen or runs in a window

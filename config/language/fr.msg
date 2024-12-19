@@ -367,6 +367,7 @@ Joystick $1;Joystick $1
 Joystick Mappings;Joystick Mappings
 Launch Last Game;Launch Last Game
 Layout File;Layout File
+Menu Colour;Couleur des menus
 Menu Prompt;Menu Prompt
 Menu Style / Layout;Menu Style / Layout
 Next Game;Next Game
@@ -439,4 +440,5 @@ _help_shortcut_delete;Delete this shortcut from the Romlist
 _help_shortcut_label_edit;Edit this shortcut's label
 _help_shortcut_target_edit;Edit this shortcut's target
 _help_startup_mode;Set what should happen when Attract-Mode first starts up
+_help_ui_color;Select the colour to use in Attract-Mode's user interface
 _help_video_decoder;Configure the decoder to use for video playback (if multiple decoders are available)

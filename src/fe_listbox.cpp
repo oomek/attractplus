@@ -234,25 +234,9 @@ void FeListBox::setTextScale( const sf::Vector2f &scale )
 		m_texts[i].setTextScale( scale );
 }
 
-FeTextPrimitive *FeListBox::setEditMode( bool e, sf::Color c, int thickness )
+FeTextPrimitive *FeListBox::getMiddleText()
 {
-	if ( m_texts.size() > 0 )
-	{
-		int sel = m_texts.size() / 2;
-		if ( e )
-		{
-			m_texts[ sel ].setBgOutlineColor( c );
-			m_texts[ sel ].setBgOutlineThickness( -thickness );
-
-			return &( m_texts[ sel ] );
-		}
-		else
-		{
-			m_texts[ sel ].setBgOutlineColor( sf::Color::Transparent );
-			m_texts[ sel ].setBgOutlineThickness( 0 );
-		}
-	}
-	return NULL;
+	return ( m_texts.size() > 0 ) ? &m_texts[ m_texts.size() / 2 ] : NULL;
 }
 
 void FeListBox::setCustomSelection( const int index )

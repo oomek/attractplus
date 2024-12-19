@@ -1846,3 +1846,16 @@ std::string get_focus_process()
 	return retval;
 }
 
+bool hex_to_color( std::string hex, sf::Color &dest_color )
+{
+	try
+	{
+		std::string h = ( hex[0] == '#' ) ? hex.substr(1) : hex;
+		dest_color = sf::Color( std::stoul( "0x" + h + "FF", nullptr, 16 ) );
+		return true;
+	}
+	catch ( ... )
+	{
+		return false;
+	}
+}
