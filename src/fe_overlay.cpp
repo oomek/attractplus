@@ -201,84 +201,10 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	: m_wnd( wnd ),
 	m_feSettings( fes ),
 	m_fePresent( fep ),
-
-	// m_fade_alpha( 64 ),
-	// m_padding_size( 4 ),
-	// m_header_scale( 1.5 ),
-	// m_footer_scale( 0.75 ),
-
-	// m_text_colour( sf::Color::White ),
-	// m_bg_colour( sf::Color( 0, 0, 0, 230 ) ),
-
-	// m_sel_frame_colour( sf::Color( 30, 60, 120, 255 ) ),
-	// m_sel_bg_colour( sf::Color( 20, 40, 80, 255 ) ),
-	// m_sel_text_colour( sf::Color::White ),
-
-	// m_letterbox_frame_colour( sf::Color( 40, 80, 160, 192 ) ),
-	// m_letterbox_bg_color( sf::Color( 10, 20, 40, 255 ) ),
-
-	// m_header_text_colour( sf::Color::White ),
-	// m_footer_text_colour( sf::Color::White ),
-
 	m_fade_alpha( 80 ),
 	m_padding_size( 0 ),
 	m_header_scale( 1.4 ),
 	m_footer_scale( 0.65 ),
-
-	// m_base_bg_colour( sf::Color( 0, 0, 0, 255 ) ),
-	// m_base_fg_colour( sf::Color( 30, 60, 120, 255 ) ),
-	// m_base_text_colour( sf::Color( 255, 255, 255, 255 ) ),
-
-	m_base_bg_colour( sf::Color( 255, 255, 255, 255 ) ),
-	m_base_fg_colour( sf::Color( 255, 0, 0, 255 ) ),
-	m_base_text_colour( sf::Color( 0, 0, 0, 255 ) ),
-
-	// m_sel_bg_colour( sf::Color( 30, 60, 120, 200 ) ),
-	// m_sel_text_colour( sf::Color( 255, 255, 255, 255 ) ),
-
-	// m_letterbox_frame_colour( sf::Color( 30, 60, 120, 255 ) ),
-	// m_letterbox_bg_color( sf::Color( 30, 60, 120, 100 ) ),
-
-	// m_header_text_colour( sf::Color( 255, 255, 255, 255 ) ),
-	// m_footer_text_colour( sf::Color( 255, 255, 255, 255 ) ),
-
-
-	// m_fade_alpha( 64 ),
-	// m_padding_size( 0 ),
-	// m_header_scale( 1.4 ),
-	// m_footer_scale( 0.65 ),
-
-	// m_bg_colour( sf::Color( 0, 0, 0, 230 ) ),
-	// m_text_colour( sf::Color( 255, 255, 255, 200 ) ),
-
-	// m_sel_frame_colour( sf::Color( 120, 15, 0, 255 ) ),
-	// m_sel_bg_colour( sf::Color( 80, 10, 0, 255 ) ),
-	// m_sel_text_colour( sf::Color( 255, 255, 255, 255 ) ),
-
-	// m_letterbox_frame_colour( sf::Color( 160, 20, 0, 230 ) ),
-	// m_letterbox_bg_color( sf::Color( 40, 5, 0, 230 ) ),
-
-	// m_header_text_colour( sf::Color( 255, 255, 255, 200 ) ),
-	// m_footer_text_colour( sf::Color( 240, 30, 0, 200 ) ),
-
-	// m_fade_alpha( 128 ),
-	// m_padding_size( 0 ),
-	// m_header_scale( 1.5 ),
-	// m_footer_scale( 0.65 ),
-
-	// m_bg_colour( sf::Color( 255, 255, 255, 230 ) ),
-	// m_text_colour( sf::Color( 0, 0, 0, 255) ),
-
-	// m_sel_frame_colour( sf::Color( 255, 0, 0, 255 ) ),
-	// m_sel_bg_colour( sf::Color( 200, 0, 0, 255 ) ),
-	// m_sel_text_colour( sf::Color( 255, 255, 0, 255 ) ),
-
-	// m_letterbox_frame_colour( sf::Color( 0, 0, 0, 0 ) ),
-	// m_letterbox_bg_color( sf::Color( 0, 0, 255, 255 ) ),
-
-	// m_header_text_colour( sf::Color( 255, 0, 255, 255 ) ),
-	// m_footer_text_colour( sf::Color( 0, 255, 255, 255 ) ),
-
 	m_overlay_is_on( false )
 {
 	init();
@@ -286,18 +212,33 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 
 void FeOverlay::init()
 {
-	m_bg_colour = m_base_bg_colour * sf::Color( 255, 255, 255, 230 );
-	m_text_colour = m_base_text_colour * sf::Color( 255, 255, 255, 220 );
-	m_sel_frame_colour = m_base_fg_colour;
+	std::string theme_bg_color = m_feSettings.get_info(FeSettings::ThemeBgColor);
+	std::string theme_fg_color = m_feSettings.get_info(FeSettings::ThemeFgColor);
+	std::string theme_text_color = m_feSettings.get_info(FeSettings::ThemeTextColor);
 
-	m_sel_bg_colour = m_base_fg_colour * sf::Color( 255, 255, 255, 200 );
-	m_sel_text_colour = m_base_text_colour;
+	sf::Color bg_colour = sf::Color( 0, 0, 0, 230 );
+	sf::Color fg_colour = sf::Color( 30, 60, 120, 255 );
+	sf::Color text_colour = sf::Color( 255, 255, 255, 255 );
 
-	m_letterbox_frame_colour = m_base_fg_colour;
-	m_letterbox_bg_color = m_base_fg_colour * sf::Color( 255, 255, 255, 100 );
+	if (!theme_bg_color.empty())
+		try { bg_colour = sf::Color( std::stoul( theme_bg_color, nullptr, 16 ) ); } catch ( ... ) {}
+	if (!theme_fg_color.empty())
+		try { fg_colour = sf::Color( std::stoul( theme_fg_color, nullptr, 16 ) ); } catch ( ... ) {}
+	if (!theme_text_color.empty())
+		try { text_colour = sf::Color( std::stoul( theme_text_color, nullptr, 16 ) ); } catch ( ... ) {}
 
-	m_header_text_colour = m_base_text_colour;
-	m_footer_text_colour = m_base_text_colour;
+	m_bg_colour = bg_colour;
+	m_text_colour = text_colour * sf::Color( 255, 255, 255, 220 );
+
+	m_sel_frame_colour = fg_colour;
+	m_sel_bg_colour = fg_colour * sf::Color( 255, 255, 255, 200 );
+	m_sel_text_colour = text_colour;
+
+	m_letterbox_frame_colour = fg_colour;
+	m_letterbox_bg_color = fg_colour * sf::Color( 255, 255, 255, 100 );
+
+	m_header_text_colour = text_colour;
+	m_footer_text_colour = text_colour;
 
 	m_screen_size = m_fePresent.get_screen_size();
 	float scale_x = m_fePresent.get_layout_scale_x();
@@ -1298,10 +1239,9 @@ int FeOverlay::display_config_dialog(
 			// event loop
 			//
 			sdialog.setSelColor( m_text_colour );
-			// FeTextPrimitive *tp = vdialog.setEditMode( true, m_sel_frame_colour, m_line_size );
 			vdialog.setSelColor( m_sel_text_colour );
 			vdialog.setSelBgColor( m_sel_frame_colour );
-			FeTextPrimitive *tp = vdialog.setEditMode( m_sel_frame_colour );
+			FeTextPrimitive *tp = vdialog.getMiddleText();
 
 			if ( tp == NULL )
 				continue;
@@ -1360,12 +1300,8 @@ int FeOverlay::display_config_dialog(
 
 			tp->setString( ctx.right_list[ctx.curr_sel] );
 			sdialog.setSelColor( m_sel_text_colour );
-			// vdialog.setEditMode( false, m_text_colour, 0 );
-
 			vdialog.setSelColor( m_text_colour );
 			vdialog.setSelBgColor( m_sel_bg_colour );
-
-			// vdialog.setEditMode( m_sel_bg_colour );
 		}
 	}
 	return ctx.curr_sel;

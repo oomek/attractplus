@@ -182,6 +182,10 @@ private:
 	std::string m_menu_layout;		// 'Displays Menu' layout.  if blank, use built-in menu
 	std::string m_menu_layout_file;		// 'Displays Menu" toggled layout file
 
+	std::string m_theme_bg_color;
+	std::string m_theme_fg_color;
+	std::string m_theme_text_color;
+
 	std::string m_last_game_overview_path;  // cache the last loaded game overview path
 	std::string m_last_game_overview_text;  // cache the last loaded game overview text
 
@@ -252,9 +256,6 @@ private:
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
-	sf::Color m_theme_bg_color;
-	sf::Color m_theme_fg_color;
-	sf::Color m_theme_text_color;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );

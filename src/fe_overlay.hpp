@@ -42,10 +42,6 @@ private:
 	FeWindow &m_wnd;
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
-	sf::Color m_base_text_colour;
-	sf::Color m_base_bg_colour;
-	sf::Color m_base_fg_colour;
-
 	sf::Color m_text_colour;
 	sf::Color m_bg_colour;
 	sf::Color m_sel_frame_colour;

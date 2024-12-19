@@ -3157,6 +3157,18 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_menu_prompt = value;
 		break;
 
+	case ThemeBgColor:
+		m_theme_bg_color = value;
+		break;
+
+	case ThemeFgColor:
+		m_theme_fg_color = value;
+		break;
+
+	case ThemeTextColor:
+		m_theme_text_color = value;
+		break;
+
 	default:
 		return false;
 	}
