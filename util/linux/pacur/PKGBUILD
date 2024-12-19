@@ -1,18 +1,18 @@
 targets=(
-    "archlinux"
-    "ubuntu-cosmic"
-    "ubuntu-bionic"
-    "ubuntu-xenial"
-    "ubuntu-trusty"
+    "ubuntu-noble"
+    "ubuntu-jammy"
+    "ubuntu-focal"
     "debian-stretch"
-    "debian-jessie"
+    "debian-buster"
+    "debian-bullseye"
+    "debian-bookworm"
 )
-pkgname="attract"
-pkgver="2.5.0"
+pkgname="attractplus"
+pkgver="3.0.9"
 pkgrel="1"
 pkgdesc="Attract-Mode emulator frontend"
 pkgdesclong=(
- "Attract-Mode is a graphical frontend for command line emulators such as MAME,"
+ "Attract-Mode Plus is a graphical frontend for command line emulators such as MAME,"
  "MESS and Nestopia. It hides the underlying operating system and is intended"
  "to be controlled with a joystick, gamepad or spin dial, making it ideal for"
  "use in arcade cabinets. Attract-Mode is open source and runs on Linux, OS X"
@@ -23,26 +23,36 @@ arch="amd64"
 license=("GPLv3")
 section="games"
 priority="optional"
-url="https://github.com/mickelson/${pkgname}"
+url="https://github.com/oomek/${pkgname}"
 
 jpeglib="libjpeg62-turbo-dev"
 jpeglib:ubuntu="libjpeg-turbo8-dev"
 
-makedepends=(
+makedepends:ubuntu=(
+    "cmake"
     "pkg-config"
-    "libsfml-dev"
     "libavutil-dev"
     "libavcodec-dev"
     "libavformat-dev"
     "libswscale-dev"
-    "libavresample-dev"
     "libarchive-dev"
     "libfreetype6-dev"
     "libglu1-mesa-dev"
     "libopenal-dev"
     "libxinerama-dev"
     "libcurl4-gnutls-dev"
-    "${jpeglib}"
+    "libudev-dev"
+    "libvorbis-dev"
+    "libflac-dev"
+    "libfreetype6-dev"
+    "libjpeg-dev"
+    "libdrm-dev"
+    "libgbm-dev"
+    "libcurl4-gnutls-dev"
+    "libboost-system-dev"
+    "libboost-filesystem-dev"
+    "libexpat1-dev"
+    "libegl-dev"
 )
 
 makedepends:archlinux=(
@@ -56,22 +66,38 @@ makedepends:archlinux=(
     "curl"
 )
 
-depends:ubuntu-cosmic=(
-	"libsfml-graphics2.5"
-	"libsfml-window2.5"
-	"libsfml-network2.5"
-	"libsfml-system2.5"
-	"libavutil55"
-	"libavcodec57"
-	"libavformat57"
-	"libswscale4"
-	"libavresample3"
+depends:ubuntu-noble=(
+	"libavutil58"
+	"libavcodec60"
+	"libavformat60"
+	"libswscale7"
+	"libswresample4"
 	"libfreetype6"
 	"libglu1-mesa"
 	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg-turbo8"
+	"libdrm2"
+	"libgbm1"
+	"libegl1"
+)
+
+depends:ubuntu-jammy=(
+	"libavutil56"
+	"libavcodec58"
+	"libavformat58"
+	"libswscale5"
+	"libswresample3"
+	"libfreetype6"
+	"libglu1-mesa"
+	"libopenal1"
+	"libxinerama1"
+	"libcurl4"
+	"libjpeg-turbo8"
+	"libdrm2"
+	"libgbm1"
+	"libegl1"
 )
 
 depends:ubuntu-bionic=(
@@ -92,65 +118,7 @@ depends:ubuntu-bionic=(
 	"libjpeg-turbo8"
 )
 
-depends:ubuntu-xenial=(
-	"libsfml-graphics2.3v5"
-	"libsfml-window2.3v5"
-	"libsfml-network2.3v5"
-	"libsfml-system2.3v5"
-	"libavutil-ffmpeg54"
-	"libavcodec-ffmpeg56"
-	"libavformat-ffmpeg56"
-	"libswscale-ffmpeg3"
-	"libavresample-ffmpeg2"
-	"libfreetype6"
-	"libglu1-mesa"
-	"libopenal1"
-	"libxinerama1"
-	"libcurl4"
-	"libjpeg-turbo8"
-)
-
-depends:ubuntu-trusty=(
-	"libsfml-graphics2"
-	"libsfml-window2"
-	"libsfml-network2"
-	"libsfml-system2"
-	"libavutil52"
-	"libavcodec54"
-	"libavformat54"
-	"libswscale2"
-	"libavresample1"
-	"libfreetype6"
-	"libglu1-mesa"
-	"libopenal1"
-	"libxinerama1"
-	"libcurl4"
-	"libjpeg-turbo8"
-)
-
-depends:debian-stretch=(
-	"libsfml-graphics2.4"
-	"libsfml-window2.4"
-	"libsfml-network2.4"
-	"libsfml-system2.4"
-	"libavutil55"
-	"libavcodec57"
-	"libavformat57"
-	"libswscale4"
-	"libavresample3"
-	"libfreetype6"
-	"libglu1-mesa"
-	"libopenal1"
-	"libxinerama1"
-	"libcurl4"
-	"libjpeg62-turbo"
-)
-
-depends:debian-jessie=(
-	"libsfml-graphics2"
-	"libsfml-window2"
-	"libsfml-network2"
-	"libsfml-system2"
+depends:debian-buster=(
 	"libavutil54"
 	"libavcodec56"
 	"libavformat56"
@@ -164,8 +132,36 @@ depends:debian-jessie=(
 	"libjpeg62-turbo"
 )
 
+depends:debian-bookworm=(
+	"libavutil57"
+	"libavcodec59"
+	"libavformat59"
+	"libswscale6"
+	"libswresample4"
+	"libfreetype6"
+	"libglu1-mesa"
+	"libopenal1"
+	"libxinerama1"
+	"libcurl4"
+	"libjpeg62-turbo"
+)
+
+depends:debian-bullseye=(
+	"libavutil56"
+	"libavcodec58"
+	"libavformat58"
+	"libswscale5"
+	"libavresample4"
+	"libfreetype6"
+	"libglu1-mesa"
+	"libopenal1"
+	"libxinerama1"
+	"libcurl4"
+	"libjpeg62-turbo"
+)
+
 sources=(
-    "${url}/archive/v${pkgver}.tar.gz"
+    "${url}/archive/refs/tags/${pkgver}.tar.gz"
 )
 hashsums() {
     skip
@@ -176,19 +172,19 @@ build() {
     export GOPATH="${srcdir}/go"
     mv "${pkgname}-${pkgver}" "go/src"
     cd "go/src/${pkgname}-${pkgver}"
-    make -j8 prefix=/usr
+    make -j8 STATIC=1 USE_DRM=1
 }
 
 package() {
     cd "${srcdir}/go/src/${pkgname}-${pkgver}"
     mkdir -p "${pkgdir}/usr/bin"
-    mkdir -p "${pkgdir}/usr/share/attract"
+    mkdir -p "${pkgdir}/usr/share/attractplus"
     mkdir -p "${pkgdir}/usr/share/icons/hicolor/512x512/apps"
     mkdir -p "${pkgdir}/usr/share/applications"
     mkdir -p "${pkgdir}/usr/share/appdata"
     cp ${pkgname} ${pkgdir}/usr/bin/${pkgname}
-    cp util/linux/attract-mode.png ${pkgdir}/usr/share/icons/hicolor/512x512/apps
-    cp util/linux/attract-mode.desktop ${pkgdir}/usr/share/applications
-    cp util/linux/attract-mode.appdata.xml ${pkgdir}/usr/share/appdata
-    cp -r config/* ${pkgdir}/usr/share/attract
+    cp util/linux/attract-mode-plus.png ${pkgdir}/usr/share/icons/hicolor/512x512/apps
+    cp util/linux/attract-mode-plus.desktop ${pkgdir}/usr/share/applications
+    cp util/linux/attract-mode-plus.appdata.xml ${pkgdir}/usr/share/appdata
+    cp -r config/* ${pkgdir}/usr/share/attractplus
 }

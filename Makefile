@@ -115,6 +115,10 @@ override PKG_CONFIG_MXE :=$(subst -,_,$(PKG_CONFIG_MXE))
 override WINDRES := $(TOOLCHAIN)-$(WINDRES)
 endif
 
+# Debian packager doesn't set STRIP when crosscompiling
+ifneq ($(DEB_HOST_GNU_TYPE),)
+override STRIP := $(DEB_HOST_GNU_TYPE)-strip
+endif
 
 prefix ?= /usr/local
 datarootdir=$(prefix)/share

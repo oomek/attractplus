@@ -1,17 +1,19 @@
-Source: attract
+Source: attractplus
 Section: games
 Priority: optional
 Maintainer: Andrew Mickelson <andrew@attractmode.org>
-Build-Depends: debhelper (>= 9), pkgconf, git,
+Build-Depends: debhelper (>= 10), pkgconf, git,
  libarchive-dev, libavcodec-dev, libavformat-dev, libswresample-dev,
  libavutil-dev, libfontconfig-dev, libfreetype6-dev, libglu-dev,
- libjpeg62-turbo-dev | libjpeg-turbo8-dev,
- libxrandr-dev, libopenal-dev, libsfml-dev, libswscale-dev, libxinerama-dev,
- libcurl4-openssl-dev | libcurl4-nss-dev | libcurl4-gnutls-dev
+ libjpeg62-turbo-dev | libjpeg-turbo8-dev, cmake, libudev-dev,
+ libxrandr-dev, libopenal-dev, libswscale-dev, libxinerama-dev,
+ libcurl4-openssl-dev | libcurl4-nss-dev | libcurl4-gnutls-dev,
+ libexpat1-dev, libgl1-mesa-dev, libgbm-dev, libdrm-dev, libvorbis-dev,
+ libflac-dev, libboost-system-dev, libboost-filesystem-dev
 Standards-Version: 3.9.5
 Homepage: http://attractmode.org
 
-Package: attract
+Package: attractplus
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Attract-Mode emulator frontend

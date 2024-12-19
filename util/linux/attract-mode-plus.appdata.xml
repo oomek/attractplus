@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop">
-  <id>attract-mode.desktop</id>
+  <id>attract-mode-plus.desktop</id>
   <metadata_license>CC0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <name>Attract-Mode</name>
+  <name>Attract-Mode-Plus</name>
   <summary>A graphical frontend for emulators</summary>
 
   <description>
@@ -33,7 +33,7 @@
   <url type="homepage">http://attractmode.org/</url>
 
   <provides>
-    <binary>attract</binary>
+    <binary>attractplus</binary>
   </provides>
   <categories>
     <category>Game</category>
