@@ -398,6 +398,7 @@ void FeSettings::load()
 		get_translation( "Displays Menu", m_menu_prompt );
 }
 
+// These values must align with fe_settings enum `ConfigSettingIndex`
 const char *FeSettings::configSettingStrings[] =
 {
 	"language",
@@ -440,6 +441,9 @@ const char *FeSettings::configSettingStrings[] =
 	"menu_prompt",
 	"menu_layout",
 	"image_cache_mbytes",
+	"theme_bg_color",
+	"theme_fg_color",
+	"theme_text_color",
 	NULL
 };
 
@@ -2776,9 +2780,7 @@ const std::string FeSettings::get_info( int index ) const
 	case ExitMessage:
 		return m_exit_message;
 	case UIFontSize:
-		if ( m_ui_font_size > 0 )
-			return as_str( m_ui_font_size );
-		break;
+		return ( m_ui_font_size > 0 ) ? as_str( m_ui_font_size ) : FE_EMPTY_STRING;
 	case ScreenSaverTimeout:
 		return as_str( m_ssaver_time );
 	case MouseThreshold:
@@ -2805,7 +2807,6 @@ const std::string FeSettings::get_info( int index ) const
 		return startupTokens[ m_startup_mode ];
 	case ThegamesdbKey:
 		return m_tgdb_key;
-
 	case DisplaysMenuExit:
 	case HideBrackets:
 	case GroupClones:
@@ -2833,17 +2834,19 @@ const std::string FeSettings::get_info( int index ) const
 #else
 		return FeMedia::get_current_decoder();
 #endif
-
 	case MenuPrompt:
 		return m_menu_prompt;
-
 	case MenuLayout:
 		return m_menu_layout;
-
+	case ThemeBgColor:
+		return m_theme_bg_color;
+	case ThemeFgColor:
+		return m_theme_fg_color;
+	case ThemeTextColor:
+		return m_theme_text_color;
 	default:
-		break;
+		return FE_EMPTY_STRING;
 	}
-	return FE_EMPTY_STRING;
 }
 
 bool FeSettings::get_info_bool( int index ) const

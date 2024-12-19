@@ -42,19 +42,30 @@ private:
 	FeWindow &m_wnd;
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
-	const sf::Color m_textColour;
-	const sf::Color m_bgColour;
-	const sf::Color m_selFrameColour;
-	const sf::Color m_selBgColour;
-	const sf::Color m_lineColour;
-	const sf::Color m_headingBgColour;
+	sf::Color m_base_text_colour;
+	sf::Color m_base_bg_colour;
+	sf::Color m_base_fg_colour;
+
+	sf::Color m_text_colour;
+	sf::Color m_bg_colour;
+	sf::Color m_sel_frame_colour;
+	sf::Color m_sel_bg_colour;
+	sf::Color m_sel_text_colour;
+	sf::Color m_letterbox_frame_colour;
+	sf::Color m_letterbox_bg_color;
+	sf::Color m_header_text_colour;
+	sf::Color m_footer_text_colour;
 	bool m_overlay_is_on;
 	sf::Vector2i m_screen_size;
 	sf::Vector2f m_text_scale;
+	float m_header_scale;
+	float m_footer_scale;
 	int m_text_size;
-	int m_heading_size;
+	int m_header_size;
 	int m_footer_size;
 	int m_line_size;
+	int m_fade_alpha;
+	int m_padding_size;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );

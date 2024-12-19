@@ -112,6 +112,7 @@ public:
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
+	// These values must align with `FeSettings::configSettingStrings`
 	enum ConfigSettingIndex
 	{
 		Language=0,
@@ -154,6 +155,9 @@ public:
 		MenuPrompt, // 'Displays Menu' prompt
 		MenuLayout, // 'Displays Menu' layout
 		ImageCacheMBytes,
+		ThemeBgColor,
+		ThemeFgColor,
+		ThemeTextColor,
 		LAST_INDEX
 	};
 
@@ -248,6 +252,9 @@ private:
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
+	sf::Color m_theme_bg_color;
+	sf::Color m_theme_fg_color;
+	sf::Color m_theme_text_color;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
