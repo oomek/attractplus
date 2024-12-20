@@ -17,6 +17,7 @@
 const char *FE_CACHE_SUBDIR = "cache/";
 const char *FE_CACHE_ROMLIST = ".romlist";
 const char *FE_CACHE_FILTERS = ".filters";
+const std::string FE_EMPTY_STRING;
 
 //
 // Returns cache base dir
@@ -34,8 +35,10 @@ std::string get_display_cache_filename(
 	FeDisplayInfo &display
 )
 {
+	std::string name = display.get_name();
+	if ( name.empty() ) return FE_EMPTY_STRING;
 	return get_cache_dir( config_path )
-		+ sanitize_filename( display.get_name() )
+		+ sanitize_filename( name )
 		+ FE_CACHE_ROMLIST
 		+ FE_CACHE_EXT;
 }
@@ -48,8 +51,10 @@ std::string get_filters_cache_filename(
 	FeDisplayInfo &display
 )
 {
+	std::string name = display.get_name();
+	if ( name.empty() ) return FE_EMPTY_STRING;
 	return get_cache_dir( config_path )
-		+ sanitize_filename( display.get_name() )
+		+ sanitize_filename( name )
 		+ FE_CACHE_FILTERS
 		+ FE_CACHE_EXT;
 }
@@ -167,6 +172,7 @@ bool FeCache::save_display_cache(
 )
 {
 	std::string filename = get_display_cache_filename( config_path, display );
+	if ( filename.empty() ) return false;
 	confirm_directory( config_path, FE_CACHE_SUBDIR );
 	nowide::ofstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
@@ -247,6 +253,7 @@ bool FeCache::save_filters_cache(
 )
 {
 	std::string filename = get_filters_cache_filename( config_path, display );
+	if ( filename.empty() ) return false;
 	confirm_directory( config_path, FE_CACHE_SUBDIR );
 	nowide::ofstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
