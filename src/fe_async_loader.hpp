@@ -8,14 +8,19 @@
 #include <mutex>
 #include <condition_variable>
 
+#include "fe_settings.hpp"
+
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
+#include "mdk/Player.h"
+using namespace MDK_NS;
 
 enum EntryType
 {
 	TextureType,
+	VideoType,
 	FontType,
 	SoundBufferType
 };
@@ -70,6 +75,26 @@ private:
 };
 
 
+class FeAsyncLoaderEntryVideo : public FeAsyncLoaderEntryBase
+{
+	friend class FeAsyncLoader;
+
+public:
+	static const EntryType type;
+	FeAsyncLoaderEntryVideo() : m_texture_size(0, 0) {};
+	~FeAsyncLoaderEntryVideo() {};
+
+	void *get_resource_pointer() override { return &m_texture; };
+	bool load_from_file( const std::string file ) override;
+
+	// sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
+	// size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
+
+private:
+	sf::RenderTexture m_texture;
+	sf::Vector2u m_texture_size;
+	Player m_player;
+};
 
 class FeAsyncLoaderEntryFont : public FeAsyncLoaderEntryBase
 {
@@ -124,21 +149,23 @@ public:
 	static FeAsyncLoader &get_al();
 	static void clear();
 
-	void load_resource( const std::string, const EntryType );
+	bool load_resource( const std::string, const EntryType );
 
 	template <typename T>
-	void add_resource( const std::string file, bool async );
+	bool add_resource( const std::string file, bool async );
 
 	template <typename T>
 	T *get_resource( const std::string file );
 
 	void release_resource( const std::string );
 
-	void add_resource_texture( const std::string file, bool async );
+	bool add_resource_texture( const std::string file, bool async );
+	bool add_resource_video( const std::string file, bool async );
 	void add_resource_font( const std::string file, bool async );
 	void add_resource_sound( const std::string file, bool async );
 
 	sf::Texture *get_resource_texture( const std::string file );
+	sf::Texture *get_resource_video( const std::string file );
 	sf::Font *get_resource_font( const std::string file );
 	sf::SoundBuffer *get_resource_sound( const std::string file );
 

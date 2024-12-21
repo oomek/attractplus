@@ -20,6 +20,7 @@
 #include <thread>
 
 const EntryType FeAsyncLoaderEntryTexture::type = TextureType;
+const EntryType FeAsyncLoaderEntryVideo::type = VideoType;
 const EntryType FeAsyncLoaderEntryFont::type = FontType;
 const EntryType FeAsyncLoaderEntrySoundBuffer::type = SoundBufferType;
 
@@ -191,13 +192,15 @@ void FeAsyncLoader::thread_loop()
 
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
-void FeAsyncLoader::load_resource( const std::string file, const EntryType type )
+bool FeAsyncLoader::load_resource( const std::string file, const EntryType type )
 {
-	if ( file.empty() ) return;
+	if ( file.empty() ) return false;
 	FeAsyncLoaderEntryBase *tmp_entry_ptr = nullptr;
 
 	if ( type == TextureType )
 		tmp_entry_ptr = static_cast<FeAsyncLoaderEntryBase*>( new FeAsyncLoaderEntryTexture() );
+	else if ( type == VideoType )
+		tmp_entry_ptr = static_cast<FeAsyncLoaderEntryBase*>( new FeAsyncLoaderEntryVideo() );
 	else if ( type == FontType )
 		tmp_entry_ptr = static_cast<FeAsyncLoaderEntryBase*>( new FeAsyncLoaderEntryFont() );
 	else if ( type == SoundBufferType )
@@ -207,13 +210,17 @@ void FeAsyncLoader::load_resource( const std::string file, const EntryType type 
 	{
 		m_resources_cached.push_front( kvp_t( file, tmp_entry_ptr ) );
 		m_resources_map[file] = m_resources_cached.begin();
+		return true;
 	}
 	else
+	{
 		delete tmp_entry_ptr;
+		return false;
+	}
 }
 
 template <typename T>
-void FeAsyncLoader::add_resource( const std::string input_file, bool async )
+bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 {
 	std::string file = clean_path( input_file );
 
@@ -226,8 +233,10 @@ void FeAsyncLoader::add_resource( const std::string input_file, bool async )
 	{
 		if ( !async )
 		{
-			load_resource( file, T::type );
-			return;
+			if ( load_resource( file, T::type ))
+				return true;
+			else
+				return false;
 		}
 		m_done = false;
 		m_queue.push( std::make_pair( file, T::type ));
@@ -236,11 +245,31 @@ void FeAsyncLoader::add_resource( const std::string input_file, bool async )
 	}
 }
 
-void FeAsyncLoader::add_resource_texture( const std::string file, bool async )
+bool FeAsyncLoader::add_resource_texture( const std::string file, bool async )
 {
 	// TODO: remove async from the script, always true?
 	// sf::Clock clk;
-	add_resource<FeAsyncLoaderEntryTexture>( file, async );
+	// if ( tail_compare( file, FE_VID_EXTENSIONS ) )
+	// {
+	// 	FeLog() << "It's a video: " << file << std::endl;
+	// 	return false;
+	// }
+	// else
+		return add_resource<FeAsyncLoaderEntryTexture>( file, async );
+	// FeLog() << clk.getElapsedTime().asMicroseconds() << std::endl;
+}
+
+bool FeAsyncLoader::add_resource_video( const std::string file, bool async )
+{
+	// TODO: remove async from the script, always true?
+	// sf::Clock clk;
+	// if ( tail_compare( file, FE_VID_EXTENSIONS ) )
+	// {
+	// 	FeLog() << "It's a video: " << file << std::endl;
+	// 	return false;
+	// }
+	// else
+		return add_resource<FeAsyncLoaderEntryVideo>( file, async );
 	// FeLog() << clk.getElapsedTime().asMicroseconds() << std::endl;
 }
 
@@ -266,6 +295,7 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 
 	if ( it != m_resources_map.end() )
 	{
+		FeLog() << "FeAsyncLoader::get_resource( " << file << " ) FOUND" << std::endl;
 		ulock_t lock( m_mutex );
 		if ( it->second->second->get_ref() > 0 )
 			// Promote in active list
@@ -280,14 +310,37 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 	}
 	else
 	{
-		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) not found" << std::endl;
-		add_resource_texture( file, false ); // add_resource<T>( file, false ) this needs type FeAsyncLoaderEntryTexture but is sf::Texture
-		// FeLog() << "get_resource() NOT FOUND " << clk.getElapsedTime().asMicroseconds() << std::endl;
-		return get_resource<T>( file );
+		FeLog() << "FeAsyncLoader::get_resource( " << file << " ) NOT FOUND" << std::endl;
+		// if ( add_resource_texture( file, false )) //TODO this is wrong, calls texture in a template function
+		// 	return get_resource<T>( file );
+		// else
+		// 	return nullptr;
+
+		bool added = false;
+		if ( tail_compare( file, FE_ART_EXTENSIONS ))
+			added = add_resource<FeAsyncLoaderEntryTexture>(file, false);
+		else if ( tail_compare( file, FE_VID_EXTENSIONS ))
+			added = add_resource<FeAsyncLoaderEntryVideo>(file, false);
+		else if ( tail_compare(file, FE_SOUND_EXTENSIONS ))
+			added = add_resource<FeAsyncLoaderEntrySoundBuffer>(file, false);
+		else if ( tail_compare( file, FE_FONT_EXTENSIONS ))
+			added = add_resource<FeAsyncLoaderEntryFont>(file, false);
+		else
+			FeLog() << "Error: unsupported file type" << std::endl;
+
+		if (added)
+			return get_resource<T>(file);
+		else
+			return nullptr;
 	}
 }
 
 sf::Texture *FeAsyncLoader::get_resource_texture( const std::string file )
+{
+	return get_resource<sf::Texture>( file );
+}
+
+sf::Texture *FeAsyncLoader::get_resource_video( const std::string file )
 {
 	return get_resource<sf::Texture>( file );
 }
@@ -315,4 +368,27 @@ void FeAsyncLoader::release_resource( const std::string file )
 			if ( it->second->second->dec_ref() )
 				// Move to cache list if ref count is 0
 				m_resources_cached.splice( m_resources_cached.begin(), m_resources_active, it->second );
+}
+
+bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
+{
+	m_player.setMedia( file.c_str() );
+	m_player.prepare();
+	m_player.setPreloadImmediately( true );
+	m_player.setLoop(std::numeric_limits<int>::max());
+
+	for(;;)
+	{
+		if ( m_player.mediaStatus() > MediaStatus::Buffering ) break;
+		if ( m_player.mediaStatus() == MediaStatus::Invalid ) return false;
+	}
+	auto video_info = m_player.mediaInfo().video[0];
+	m_player.setVideoSurfaceSize( video_info.codec.width * video_info.codec.par, video_info.codec.height );
+	m_texture.create( video_info.codec.width * video_info.codec.par, video_info.codec.height );
+
+	if ( get_OS_string() == "Linux" )
+		m_player.setAudioBackends( {"ALSA"} );
+
+	m_player.set( State::Playing );
+	return true;
 }

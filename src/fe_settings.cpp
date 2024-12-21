@@ -62,6 +62,38 @@ const char *FE_ART_EXTENSIONS[]		=
 	NULL
 };
 
+const char *FE_VID_EXTENSIONS[] =
+{
+	".mp4",
+	".avi",
+	".mkv",
+	".flv",
+	".mov",
+	".wmv",
+	".webm",
+	".mpeg",
+	".mpg",
+	".m4v",
+	NULL
+};
+
+const char *FE_SOUND_EXTENSIONS[] =
+{
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".flac",
+    ".aac",
+    NULL
+};
+
+const char *FE_FONT_EXTENSIONS[] =
+{
+    ".ttf",
+    ".otf",
+    NULL
+};
+
 #ifdef DATA_PATH
 const char *FE_DATA_PATH = DATA_PATH;
 #else
@@ -3769,7 +3801,11 @@ bool gather_artwork_filenames(
 		for ( std::vector<std::string>::iterator itn = vid_contents.begin();
 				itn != vid_contents.end(); )
 		{
-			if ( FeMedia::is_supported_media_file( *itn ) )
+			const char **ext = FE_VID_EXTENSIONS;
+			while ( *ext != NULL && !tail_compare( *itn, *ext ))
+				++ext;
+
+			if ( *ext != NULL )
 				++itn;
 			else
 				itn = vid_contents.erase( itn );
@@ -3806,7 +3842,11 @@ bool gather_artwork_filenames(
 			for ( std::vector<std::string>::iterator itn = vid_contents.begin();
 					itn != vid_contents.end(); )
 			{
-				if ( FeMedia::is_supported_media_file( *itn ) )
+				const char **ext = FE_VID_EXTENSIONS;
+				while ( *ext != NULL && !tail_compare( *itn, *ext ))
+					++ext;
+
+				if ( *ext != NULL )
 					++itn;
 				else
 					itn = vid_contents.erase( itn );

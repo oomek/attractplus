@@ -418,6 +418,18 @@ endif
 
 LIBS += -lfreetype -lpthread
 
+# MDK linking
+CFLAGS += -I$(EXTLIBS_DIR)/mdk/include
+ifneq ($(FE_WINDOWS_COMPILE),1)
+ ifneq ($(FE_MACOSX_COMPILE),1)
+  LIBS +=-L$(EXTLIBS_DIR)/mdk/lib/linux/
+  LIBS += -l:libmdk.so.0 -l:libc++.so.1 -l:libffmpeg.so.7
+ endif
+else
+  LIBS +=-L$(EXTLIBS_DIR)/mdk/lib/windows/
+  LIBS += -lmdk
+endif
+
 # Boost static linking
 ifeq ($(FE_WINDOWS_COMPILE),1)
  LIBS += -lboost_system-mt -lboost_filesystem-mt

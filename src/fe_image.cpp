@@ -382,15 +382,16 @@ bool FeTextureContainer::try_to_load(
 	const std::string &filename,
 	bool is_image )
 {
+	FeLog() << "FeTextureContainer::try_to_load( " << filename << " )" << std::endl;
 	std::string loaded_name;
 
-#ifndef NO_MOVIE
-	if ( !is_image && FeMedia::is_supported_media_file( filename ) )
-		return load_with_ffmpeg( filename, false );
-#endif
+// #ifndef NO_MOVIE
+	// if ( !is_image && FeMedia::is_supported_media_file( filename ) )
+		// return load_with_ffmpeg( filename, false ); // TODO remove and handle video loading in AsyncLoader
+// #endif
 
 	FeAsyncLoader &al = FeAsyncLoader::get_al();
-	unsigned char *data = NULL;
+	// unsigned char *data = NULL;
 
 	loaded_name = filename;
 	if ( loaded_name.compare( m_file_name ) == 0 )
@@ -405,9 +406,26 @@ bool FeTextureContainer::try_to_load(
 	}
 
 	// sf::Clock clk;
-	m_texture = al.get_resource_texture( loaded_name );
-	if ( m_mipmap ) m_texture->generateMipmap();
-	m_texture->setSmooth( m_smooth );
+
+	if ( is_image )
+	{
+		FeLog() << " al.get_resource_texture() " << loaded_name << std::endl;
+		m_texture = al.get_resource_texture( loaded_name );
+	}
+	else
+	{
+		FeLog() << " al.get_resource_video() " << loaded_name << std::endl;
+		m_texture = al.get_resource_video( loaded_name );
+	}
+
+	if ( m_texture != NULL )
+	{
+		if ( m_mipmap ) m_texture->generateMipmap();
+		m_texture->setSmooth( m_smooth );
+	}
+	else
+		//  m_texture = &m_empty_texture;
+		clear_texture(); // TODO: check if needed
 
 	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -526,7 +544,8 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	{
 		std::string filename = *itr;
 
-		if ( try_to_load( filename ) )
+		FeLog() << "Loading video: " << filename << std::endl; // TODO FE_ART_EXTENSIONS containing video extensions is not a good approach
+		if ( try_to_load( filename ) ) // loading video is_image = false
 		{
 			loaded = true;
 			break;
@@ -547,8 +566,8 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 				itr != image_list.end(); ++itr )
 			{
 				std::string filename = *itr;
-
-				if ( try_to_load( filename, true ) )
+				FeLog() << "Loading image: " << filename << std::endl;
+				if ( try_to_load( filename, true ) ) // loading video is_image = true
 				{
 					loaded = true;
 					break;

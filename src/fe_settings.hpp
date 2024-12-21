@@ -40,6 +40,9 @@
 #endif
 
 extern const char *FE_ART_EXTENSIONS[];
+extern const char *FE_VID_EXTENSIONS[];
+extern const char *FE_SOUND_EXTENSIONS[];
+extern const char *FE_FONT_EXTENSIONS[];
 
 extern const char *FE_CFG_FILE;
 
