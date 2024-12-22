@@ -256,7 +256,9 @@ FeTextureContainer::FeTextureContainer(
 	m_mipmap( false ),
 	m_smooth( false ),
 	m_volume( 100.0 ),
-	m_texture( &m_empty_texture )
+	m_texture( &m_empty_texture ),
+	m_video_texture( NULL ),
+	m_player( NULL )
 {
 	if ( is_artwork )
 	{
@@ -409,7 +411,7 @@ bool FeTextureContainer::try_to_load(
 
 	if ( is_image )
 	{
-		FeLog() << " al.get_resource_texture() " << loaded_name << std::endl;
+		// FeLog() << " al.get_resource_texture() " << loaded_name << std::endl;
 		m_texture = al.get_resource_texture( loaded_name );
 	}
 	else
@@ -436,7 +438,7 @@ bool FeTextureContainer::try_to_load(
 
 	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
-	FeLog() << "try_to_load: " << clk.getElapsedTime().asMilliseconds() << std::endl;
+	// FeLog() << "try_to_load elapsed: " << clk.getElapsedTime().asMilliseconds() << std::endl;
 	m_file_name = loaded_name;
 	return true;
 
