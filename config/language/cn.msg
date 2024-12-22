@@ -152,6 +152,7 @@ Previous Game;上一游戏
 Previous Letter;上一关键词
 Previous Page;上一页
 Random Game;随机游戏
+Reload;重新加载
 Remove '$1' from Favourites?;从收藏中先锋队 '$1'？
 Remove Input;移除-设置按键
 Replay Last Game;重新上一次的游戏
@@ -334,6 +335,7 @@ _help_control_prev_game;Set the control(s) that move to the previous game
 _help_control_prev_letter;Set the control(s) that move to the previous letter
 _help_control_prev_page;Set the control(s) that move the selection down one page
 _help_control_random_game;Set the control(s) that select a random game from the current list
+_help_control_reload;Set the control(s) that reloads the current layout
 _help_control_replay_last_game;Set the control(s) that relaunch the last game played
 _help_control_right;Set the control(s) that move the selection right
 _help_control_screen_saver;Set the control(s) that launch screen saver mode

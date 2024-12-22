@@ -137,6 +137,7 @@ Previous Filter;Filtro anterior
 Previous Letter;Letra previa
 Previous Page;Página posterior
 Random Game;Juego aleatorio
+Reload;Recargar
 Remove Input;Eliminar control
 Replay Last Game;Repetir el último juego
 Right;Derecha
@@ -225,6 +226,7 @@ _help_control_prev_filter;Configurar el(los) control(es) que mueven hacia el fil
 _help_control_prev_letter;Configura el(los) control(es) que mueve hacia la letra previa
 _help_control_prev_page;Configurar el(los) control(es) que mueven hacia arriba una página la selección
 _help_control_random_game;Configura el(los) control(es) que selecciona un jego aleatorio de la lista actual
+_help_control_reload;Configura el(los) control(es) que recargan el diseño actual
 _help_control_replay_last_game;Configura el(los) control(es) que relanza el último juego jugado
 _help_control_screen_saver;Configura el(los) control(es) que lanzan el protector de pantalla
 _help_control_screenshot;Configura el(los) control(es) que toma una captura de pantalla del frontend
