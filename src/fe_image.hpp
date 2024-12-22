@@ -28,6 +28,9 @@
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 
+#include "mdk/Player.h"
+using namespace MDK_NS;
+
 class FeSettings;
 class FeMedia;
 class FeImage;
@@ -206,6 +209,8 @@ private:
 	void clear_texture();
 
 	sf::Texture *m_texture;
+	sf::RenderTexture *m_video_texture;
+	Player *m_player;
 	sf::Texture m_empty_texture;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)

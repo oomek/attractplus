@@ -295,7 +295,7 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 
 	if ( it != m_resources_map.end() )
 	{
-		FeLog() << "FeAsyncLoader::get_resource( " << file << " ) FOUND" << std::endl;
+		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) FOUND" << std::endl;
 		ulock_t lock( m_mutex );
 		if ( it->second->second->get_ref() > 0 )
 			// Promote in active list
@@ -310,7 +310,7 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 	}
 	else
 	{
-		FeLog() << "FeAsyncLoader::get_resource( " << file << " ) NOT FOUND" << std::endl;
+		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) NOT FOUND" << std::endl;
 		// if ( add_resource_texture( file, false )) //TODO this is wrong, calls texture in a template function
 		// 	return get_resource<T>( file );
 		// else
@@ -340,9 +340,9 @@ sf::Texture *FeAsyncLoader::get_resource_texture( const std::string file )
 	return get_resource<sf::Texture>( file );
 }
 
-sf::Texture *FeAsyncLoader::get_resource_video( const std::string file )
+sf::RenderTexture *FeAsyncLoader::get_resource_video( const std::string file )
 {
-	return get_resource<sf::Texture>( file );
+	return get_resource<sf::RenderTexture>( file );
 }
 
 sf::Font *FeAsyncLoader::get_resource_font( const std::string file )
@@ -357,6 +357,7 @@ sf::SoundBuffer *FeAsyncLoader::get_resource_sound( const std::string file )
 
 void FeAsyncLoader::release_resource( const std::string file )
 {
+
 	// FeLog() << "FeAsyncLoader::release_resource( " << file << " )" << std::endl;
 	if ( file.empty() ) return;
 
@@ -368,6 +369,19 @@ void FeAsyncLoader::release_resource( const std::string file )
 			if ( it->second->second->dec_ref() )
 				// Move to cache list if ref count is 0
 				m_resources_cached.splice( m_resources_cached.begin(), m_resources_active, it->second );
+	// Stop the playback if it's a video resource
+	if (it != m_resources_map.end() && static_cast<FeAsyncLoaderEntryVideo*>(it->second->second)->type == FeAsyncLoaderEntryVideo::type)
+	{
+		Player* player = static_cast<FeAsyncLoaderEntryVideo*>(it->second->second)->get_player();
+		sf::Clock clk;
+		if (player != nullptr)
+		{
+			// FeLog() << "! player->set(State::Stopped) " << std::endl;
+			player->set( State::Paused );
+			player->seek( 0, SeekFlag::Frame );
+			// FeLog() << "! player->set(State::Stopped) time:" << clk.getElapsedTime().asMilliseconds() << std::endl;
+		}
+	}
 }
 
 bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
@@ -391,4 +405,14 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 
 	m_player.set( State::Playing );
 	return true;
+}
+
+Player* FeAsyncLoader::get_player( const std::string& file )
+{
+	ulock_t lock( m_mutex );
+	map_iterator_t it = m_resources_map.find ( file );
+	if ( it != m_resources_map.end() )
+		return static_cast<FeAsyncLoaderEntryVideo*>( it->second->second )->get_player();
+	else
+    	return nullptr;
 }

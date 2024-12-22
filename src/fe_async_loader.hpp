@@ -86,6 +86,8 @@ public:
 
 	void *get_resource_pointer() override { return &m_texture; };
 	bool load_from_file( const std::string file ) override;
+	Player* get_player() { return &m_player; };
+	Player* get_player( const std::string& file );
 
 	// sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
 	// size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
@@ -165,9 +167,11 @@ public:
 	void add_resource_sound( const std::string file, bool async );
 
 	sf::Texture *get_resource_texture( const std::string file );
-	sf::Texture *get_resource_video( const std::string file );
+	sf::RenderTexture *get_resource_video( const std::string file );
 	sf::Font *get_resource_font( const std::string file );
 	sf::SoundBuffer *get_resource_sound( const std::string file );
+
+	Player* get_player(const std::string& file);
 
 	bool done();
 

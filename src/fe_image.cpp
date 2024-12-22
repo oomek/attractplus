@@ -382,7 +382,7 @@ bool FeTextureContainer::try_to_load(
 	const std::string &filename,
 	bool is_image )
 {
-	FeLog() << "FeTextureContainer::try_to_load( " << filename << " )" << std::endl;
+	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " )" << std::endl;
 	std::string loaded_name;
 
 // #ifndef NO_MOVIE
@@ -396,7 +396,7 @@ bool FeTextureContainer::try_to_load(
 	loaded_name = filename;
 	if ( loaded_name.compare( m_file_name ) == 0 )
 		return true;
-
+	sf::Clock clk;
 	clear();
 
 	if ( !FePathCache::file_exists( loaded_name ) )
@@ -414,10 +414,11 @@ bool FeTextureContainer::try_to_load(
 	}
 	else
 	{
-		FeLog() << " al.get_resource_video() " << loaded_name << std::endl;
-		m_texture = al.get_resource_video( loaded_name );
+		// FeLog() << " al.get_resource_video() " << loaded_name << std::endl;
+		m_video_texture = al.get_resource_video( loaded_name );
+		// m_video_texture->display();
+		m_player = al.get_player( loaded_name );
 	}
-
 	if ( m_texture != NULL )
 	{
 		if ( m_mipmap ) m_texture->generateMipmap();
@@ -429,6 +430,7 @@ bool FeTextureContainer::try_to_load(
 
 	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
+	FeLog() << "try_to_load: " << clk.getElapsedTime().asMilliseconds() << std::endl;
 	m_file_name = loaded_name;
 	return true;
 
@@ -454,7 +456,10 @@ bool FeTextureContainer::try_to_load(
 
 const sf::Texture &FeTextureContainer::get_texture()
 {
-	return *m_texture;
+	if ( m_player )
+		return m_video_texture->getTexture();
+	else
+		return *m_texture;
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -544,7 +549,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	{
 		std::string filename = *itr;
 
-		FeLog() << "Loading video: " << filename << std::endl; // TODO FE_ART_EXTENSIONS containing video extensions is not a good approach
+		// FeLog() << "Loading video: " << filename << std::endl; // TODO FE_ART_EXTENSIONS containing video extensions is not a good approach
 		if ( try_to_load( filename ) ) // loading video is_image = false
 		{
 			loaded = true;
@@ -583,6 +588,8 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
+	if ( m_player )
+		if ( m_player->state() != State::Playing ) m_player->set( State::Playing );
 	//
 	// We have an m_entry if the image is being loaded in the background
 	//
@@ -603,51 +610,59 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
 
-#ifndef NO_MOVIE
-	if (( m_movie ) && ( m_movie_status > 0 ))
+// #ifndef NO_MOVIE
+// 	if (( m_movie ) && ( m_movie_status > 0 ))
+// 	{
+// 		if ( m_movie_status < PLAY_COUNT )
+// 		{
+// 			//
+// 			// We skip the first few "ticks" after the movie
+// 			// is first loaded because the user may just be
+// 			// scrolling rapidly through the game list (there
+// 			// are ticks between each selection scrolling by)
+// 			//
+// 			m_movie_status++;
+// 			return false;
+// 		}
+// 		else if ( m_movie_status == PLAY_COUNT )
+// 		{
+// 			m_movie_status++;
+
+// 			//
+// 			// Start playing now if this is a video...
+// 			//
+// 			if ( m_video_flags & VF_NoAudio )
+// 				m_movie->setVolume( 0.f );
+// 			else
+// 				m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
+
+// 			m_movie->play();
+// 		}
+
+// 		// restart looped video
+// 		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
+// 		{
+// 			m_movie->stop();
+// 			m_movie->play();
+
+// 			FeDebug() << "Restarted looped video" << std::endl;
+// 		}
+
+// 		if ( m_movie->tick() )
+// 		{
+// 			if ( m_mipmap ) m_texture->generateMipmap();
+// 			return true;
+// 		}
+// 	}
+// #endif
+
+	if ( m_player )
 	{
-		if ( m_movie_status < PLAY_COUNT )
-		{
-			//
-			// We skip the first few "ticks" after the movie
-			// is first loaded because the user may just be
-			// scrolling rapidly through the game list (there
-			// are ticks between each selection scrolling by)
-			//
-			m_movie_status++;
-			return false;
-		}
-		else if ( m_movie_status == PLAY_COUNT )
-		{
-			m_movie_status++;
-
-			//
-			// Start playing now if this is a video...
-			//
-			if ( m_video_flags & VF_NoAudio )
-				m_movie->setVolume( 0.f );
-			else
-				m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
-
-			m_movie->play();
-		}
-
-		// restart looped video
-		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
-		{
-			m_movie->stop();
-			m_movie->play();
-
-			FeDebug() << "Restarted looped video" << std::endl;
-		}
-
-		if ( m_movie->tick() )
-		{
-			if ( m_mipmap ) m_texture->generateMipmap();
-			return true;
-		}
+		m_video_texture->setActive( true );
+		m_player->renderVideo();
+		m_video_texture->display();
+		m_video_texture->setActive( false );
 	}
-#endif
 
 	return false;
 }
@@ -860,7 +875,10 @@ void FeTextureContainer::clear()
 {
 	m_movie_status = -1;
 	FeAsyncLoader &al = FeAsyncLoader::get_al();
+	// sf::Clock clk;
 	al.release_resource( m_file_name );
+	// FeLog() << "FeTextureContainer::clear() " << clk.getElapsedTime().asMilliseconds() << std::endl;
+	m_player = NULL;
 	m_file_name.clear();
 
 #ifndef NO_MOVIE
