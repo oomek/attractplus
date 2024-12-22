@@ -243,6 +243,7 @@ bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 		lock.unlock();
 		m_condition.notify_one();
 	}
+	return true;
 }
 
 bool FeAsyncLoader::add_resource_texture( const std::string file, bool async )
@@ -372,14 +373,12 @@ void FeAsyncLoader::release_resource( const std::string file )
 	// Stop the playback if it's a video resource
 	if (it != m_resources_map.end() && static_cast<FeAsyncLoaderEntryVideo*>(it->second->second)->type == FeAsyncLoaderEntryVideo::type)
 	{
-		Player* player = static_cast<FeAsyncLoaderEntryVideo*>(it->second->second)->get_player();
+		Player* player = get_player( file );
 		sf::Clock clk;
-		if (player != nullptr)
+		if ( player != nullptr )
 		{
-			// FeLog() << "! player->set(State::Stopped) " << std::endl;
+			player->seek( 0 );
 			player->set( State::Paused );
-			player->seek( 0, SeekFlag::Frame );
-			// FeLog() << "! player->set(State::Stopped) time:" << clk.getElapsedTime().asMilliseconds() << std::endl;
 		}
 	}
 }
@@ -389,7 +388,7 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 	m_player.setMedia( file.c_str() );
 	m_player.prepare();
 	m_player.setPreloadImmediately( true );
-	m_player.setLoop(std::numeric_limits<int>::max());
+	// m_player.setLoop(std::numeric_limits<int>::max());
 
 	for(;;)
 	{
@@ -409,10 +408,16 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 
 Player* FeAsyncLoader::get_player( const std::string& file )
 {
-	ulock_t lock( m_mutex );
 	map_iterator_t it = m_resources_map.find ( file );
 	if ( it != m_resources_map.end() )
-		return static_cast<FeAsyncLoaderEntryVideo*>( it->second->second )->get_player();
-	else
-    	return nullptr;
+	{
+		FeAsyncLoaderEntryBase* entry = it->second->second;
+		if ( entry != nullptr )
+		{
+			FeAsyncLoaderEntryVideo* video_entry = dynamic_cast<FeAsyncLoaderEntryVideo*>( entry );
+			if ( video_entry )
+				return video_entry->get_player();
+		}
+	}
+	return nullptr;
 }

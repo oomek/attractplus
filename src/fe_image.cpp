@@ -428,6 +428,12 @@ bool FeTextureContainer::try_to_load(
 		//  m_texture = &m_empty_texture;
 		clear_texture(); // TODO: check if needed
 
+	if ( m_video_texture != NULL )
+	{
+		if ( m_mipmap ) m_video_texture->generateMipmap();
+		m_video_texture->setSmooth( m_smooth );
+	}
+
 	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
 	FeLog() << "try_to_load: " << clk.getElapsedTime().asMilliseconds() << std::endl;
@@ -589,7 +595,9 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
 	if ( m_player )
-		if ( m_player->state() != State::Playing ) m_player->set( State::Playing );
+		if ( m_player->state() != State::Playing )
+			m_player->set( State::Playing );
+
 	//
 	// We have an m_entry if the image is being loaded in the background
 	//
@@ -880,6 +888,7 @@ void FeTextureContainer::clear()
 	// FeLog() << "FeTextureContainer::clear() " << clk.getElapsedTime().asMilliseconds() << std::endl;
 	m_player = NULL;
 	m_file_name.clear();
+	m_video_texture = NULL;
 
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
