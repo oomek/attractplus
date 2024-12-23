@@ -47,8 +47,8 @@ private:
 	sf::Color m_sel_frame_colour;
 	sf::Color m_sel_bg_colour;
 	sf::Color m_sel_text_colour;
-	sf::Color m_letterbox_frame_colour;
-	sf::Color m_letterbox_bg_color;
+	sf::Color m_border_colour;
+	sf::Color m_edge_color;
 	sf::Color m_header_text_colour;
 	sf::Color m_footer_text_colour;
 	bool m_overlay_is_on;
@@ -128,6 +128,7 @@ public:
 	bool common_exit();
 
 	void init();
+	sf::Color get_color( int setting, sf::Color &def_col );
 };
 
 #endif

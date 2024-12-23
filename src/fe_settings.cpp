@@ -442,8 +442,14 @@ const char *FeSettings::configSettingStrings[] =
 	"menu_layout",
 	"image_cache_mbytes",
 	"theme_bg_color",
-	"theme_fg_color",
+	"theme_edge_color",
+	"theme_border_color",
+	"theme_header_color",
+	"theme_footer_color",
 	"theme_text_color",
+	"theme_sel_bg_color",
+	"theme_sel_text_color",
+	"theme_edit_bg_color",
 	NULL
 };
 
@@ -2840,10 +2846,22 @@ const std::string FeSettings::get_info( int index ) const
 		return m_menu_layout;
 	case ThemeBgColor:
 		return m_theme_bg_color;
-	case ThemeFgColor:
-		return m_theme_fg_color;
+	case ThemeEdgeColor:
+		return m_theme_edge_color;
+	case ThemeBorderColor:
+		return m_theme_border_color;
+	case ThemeHeaderColor:
+		return m_theme_header_color;
+	case ThemeFooterColor:
+		return m_theme_footer_color;
 	case ThemeTextColor:
 		return m_theme_text_color;
+	case ThemeSelBgColor:
+		return m_theme_sel_bg_color;
+	case ThemeSelTextColor:
+		return m_theme_sel_text_color;
+	case ThemeEditBgColor:
+		return m_theme_edit_bg_color;
 	default:
 		return FE_EMPTY_STRING;
 	}
@@ -3160,13 +3178,29 @@ bool FeSettings::set_info( int index, const std::string &value )
 	case ThemeBgColor:
 		m_theme_bg_color = value;
 		break;
-
-	case ThemeFgColor:
-		m_theme_fg_color = value;
+	case ThemeEdgeColor:
+		m_theme_edge_color = value;
 		break;
-
+	case ThemeBorderColor:
+		m_theme_border_color = value;
+		break;
+	case ThemeHeaderColor:
+		m_theme_header_color = value;
+		break;
+	case ThemeFooterColor:
+		m_theme_footer_color = value;
+		break;
 	case ThemeTextColor:
 		m_theme_text_color = value;
+		break;
+	case ThemeSelBgColor:
+		m_theme_sel_bg_color = value;
+		break;
+	case ThemeSelTextColor:
+		m_theme_sel_text_color = value;
+		break;
+	case ThemeEditBgColor:
+		m_theme_edit_bg_color = value;
 		break;
 
 	default:

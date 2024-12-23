@@ -156,8 +156,14 @@ public:
 		MenuLayout, // 'Displays Menu' layout
 		ImageCacheMBytes,
 		ThemeBgColor,
-		ThemeFgColor,
+		ThemeEdgeColor,
+		ThemeBorderColor,
+		ThemeHeaderColor,
+		ThemeFooterColor,
 		ThemeTextColor,
+		ThemeSelBgColor,
+		ThemeSelTextColor,
+		ThemeEditBgColor,
 		LAST_INDEX
 	};
 
@@ -183,8 +189,14 @@ private:
 	std::string m_menu_layout_file;		// 'Displays Menu" toggled layout file
 
 	std::string m_theme_bg_color;
-	std::string m_theme_fg_color;
+	std::string m_theme_edge_color;
+	std::string m_theme_border_color;
+	std::string m_theme_header_color;
+	std::string m_theme_footer_color;
 	std::string m_theme_text_color;
+	std::string m_theme_sel_bg_color;
+	std::string m_theme_sel_text_color;
+	std::string m_theme_edit_bg_color;
 
 	std::string m_last_game_overview_path;  // cache the last loaded game overview path
 	std::string m_last_game_overview_text;  // cache the last loaded game overview text

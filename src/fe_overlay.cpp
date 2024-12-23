@@ -210,35 +210,37 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	init();
 }
 
+sf::Color FeOverlay::get_color(int setting, sf::Color &def_col)
+{
+	std::string v = m_feSettings.get_info(setting);
+	if ( !v.empty() ) return sf::Color( std::stoul( v, nullptr, 16 ) );
+	return def_col;
+}
+
 void FeOverlay::init()
 {
-	std::string theme_bg_color = m_feSettings.get_info(FeSettings::ThemeBgColor);
-	std::string theme_fg_color = m_feSettings.get_info(FeSettings::ThemeFgColor);
-	std::string theme_text_color = m_feSettings.get_info(FeSettings::ThemeTextColor);
+	sf::Color bg_color = get_color( FeSettings::ThemeBgColor, sf::Color( 0, 0, 0, 230 ) );
+	sf::Color edge_color = get_color( FeSettings::ThemeEdgeColor, sf::Color( 30, 60, 120, 100 ) );
+	sf::Color border_color = get_color( FeSettings::ThemeBorderColor, sf::Color( 30, 60, 120, 0 ) );
+	sf::Color header_color = get_color( FeSettings::ThemeHeaderColor, sf::Color( 255, 255, 255, 255 ) );
+	sf::Color footer_color = get_color( FeSettings::ThemeFooterColor, sf::Color( 255, 255, 255, 255 ) );
+	sf::Color text_color = get_color( FeSettings::ThemeTextColor, sf::Color( 255, 255, 255, 255 ) );
+	sf::Color sel_bg_color = get_color( FeSettings::ThemeSelBgColor, sf::Color( 30, 60, 120, 255 ) );
+	sf::Color sel_text_color = get_color( FeSettings::ThemeSelTextColor, sf::Color( 255, 255, 255, 255 ) );
+	sf::Color edit_bg_color = get_color( FeSettings::ThemeEditBgColor, sf::Color( 30, 60, 120, 255 ) );
 
-	sf::Color bg_colour = sf::Color( 0, 0, 0, 230 );
-	sf::Color fg_colour = sf::Color( 30, 60, 120, 255 );
-	sf::Color text_colour = sf::Color( 255, 255, 255, 255 );
+	m_bg_colour = bg_color;
+	m_text_colour = text_color * sf::Color( 255, 255, 255, 220 );
 
-	if (!theme_bg_color.empty())
-		try { bg_colour = sf::Color( std::stoul( theme_bg_color, nullptr, 16 ) ); } catch ( ... ) {}
-	if (!theme_fg_color.empty())
-		try { fg_colour = sf::Color( std::stoul( theme_fg_color, nullptr, 16 ) ); } catch ( ... ) {}
-	if (!theme_text_color.empty())
-		try { text_colour = sf::Color( std::stoul( theme_text_color, nullptr, 16 ) ); } catch ( ... ) {}
+	m_sel_frame_colour = sel_bg_color;
+	m_sel_bg_colour = sel_bg_color * sf::Color( 255, 255, 255, 200 );
+	m_sel_text_colour = text_color;
 
-	m_bg_colour = bg_colour;
-	m_text_colour = text_colour * sf::Color( 255, 255, 255, 220 );
+	m_border_colour = sel_bg_color;
+	m_edge_color = sel_bg_color * sf::Color( 255, 255, 255, 100 );
 
-	m_sel_frame_colour = fg_colour;
-	m_sel_bg_colour = fg_colour * sf::Color( 255, 255, 255, 200 );
-	m_sel_text_colour = text_colour;
-
-	m_letterbox_frame_colour = fg_colour;
-	m_letterbox_bg_color = fg_colour * sf::Color( 255, 255, 255, 100 );
-
-	m_header_text_colour = text_colour;
-	m_footer_text_colour = text_colour;
+	m_header_text_colour = text_color;
+	m_footer_text_colour = text_color;
 
 	m_screen_size = m_fePresent.get_screen_size();
 	float scale_x = m_fePresent.get_layout_scale_x();
@@ -400,11 +402,11 @@ int FeOverlay::common_list_dialog(
 
 		FeTextPrimitive heading( m_fePresent.get_default_font(),
 			m_header_text_colour,
-			m_letterbox_bg_color,
+			m_edge_color,
 			m_header_size );
 
 		heading.setSize( m_screen_size.x, m_screen_size.y / 8 );
-		heading.setBgOutlineColor( m_letterbox_frame_colour );
+		heading.setBgOutlineColor( m_border_colour );
 		heading.setBgOutlineThickness( m_line_size );
 		heading.setTextScale( m_text_scale );
 		heading.setString( title );
@@ -504,7 +506,7 @@ int FeOverlay::languages_dialog()
 
 	FeTextPrimitive heading( m_fePresent.get_default_font(), m_text_colour, sf::Color::Transparent, m_header_size );
 	heading.setSize( m_screen_size.x, m_screen_size.y / 8 );
-	heading.setBgOutlineColor( m_letterbox_frame_colour );
+	heading.setBgOutlineColor( m_border_colour );
 	heading.setBgOutlineThickness( m_line_size );
 	heading.setTextScale( m_text_scale );
 
@@ -1042,11 +1044,11 @@ int FeOverlay::display_config_dialog(
 
 	FeTextPrimitive heading( font,
 		m_header_text_colour,
-		m_letterbox_bg_color,
+		m_edge_color,
 		m_header_size );
 
 	heading.setSize( m_screen_size.x, slice );
-	heading.setBgOutlineColor( m_letterbox_frame_colour );
+	heading.setBgOutlineColor( m_border_colour );
 	heading.setBgOutlineThickness( m_line_size );
 	heading.setTextScale( m_text_scale );
 	heading.setString( ctx.title );
@@ -1107,12 +1109,12 @@ int FeOverlay::display_config_dialog(
 
 	FeTextPrimitive footer( font,
 		m_footer_text_colour,
-		m_letterbox_bg_color,
+		m_edge_color,
 		m_footer_size );
 
 	footer.setPosition( 0, m_screen_size.y - slice );
 	footer.setSize( m_screen_size.x, slice );
-	footer.setBgOutlineColor( m_letterbox_frame_colour );
+	footer.setBgOutlineColor( m_border_colour );
 	footer.setBgOutlineThickness( m_line_size );
 	footer.setWordWrap( true );
 	footer.setTextScale( m_text_scale );
