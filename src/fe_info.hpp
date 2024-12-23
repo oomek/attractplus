@@ -110,7 +110,7 @@ public:
 	void serialize(Archive & archive, std::uint32_t const version)
 	{
 		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomInfo cache";
-		archive( m_info );
+		archive( m_info, index );
 	}
 
 private:
