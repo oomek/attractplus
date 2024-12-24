@@ -161,10 +161,7 @@ public:
 
 	void release_resource( const std::string );
 
-	bool add_resource_texture( const std::string file, bool async );
-	bool add_resource_video( const std::string file, bool async );
-	void add_resource_font( const std::string file, bool async );
-	void add_resource_sound( const std::string file, bool async );
+	bool add_to_cache( const std::string file );
 
 	sf::Texture *get_resource_texture( const std::string file );
 	sf::RenderTexture *get_resource_video( const std::string file );

@@ -247,42 +247,18 @@ bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 	return true;
 }
 
-bool FeAsyncLoader::add_resource_texture( const std::string file, bool async )
+bool FeAsyncLoader::add_to_cache( const std::string file )
 {
-	// TODO: remove async from the script, always true?
-	// sf::Clock clk;
-	// if ( tail_compare( file, FE_VID_EXTENSIONS ) )
-	// {
-	// 	FeLog() << "It's a video: " << file << std::endl;
-	// 	return false;
-	// }
-	// else
-		return add_resource<FeAsyncLoaderEntryTexture>( file, async );
-	// FeLog() << clk.getElapsedTime().asMicroseconds() << std::endl;
-}
-
-bool FeAsyncLoader::add_resource_video( const std::string file, bool async )
-{
-	// TODO: remove async from the script, always true?
-	// sf::Clock clk;
-	// if ( tail_compare( file, FE_VID_EXTENSIONS ) )
-	// {
-	// 	FeLog() << "It's a video: " << file << std::endl;
-	// 	return false;
-	// }
-	// else
-		return add_resource<FeAsyncLoaderEntryVideo>( file, async );
-	// FeLog() << clk.getElapsedTime().asMicroseconds() << std::endl;
-}
-
-void FeAsyncLoader::add_resource_font( const std::string file, bool async )
-{
-	add_resource<FeAsyncLoaderEntryFont>( file, async );
-}
-
-void FeAsyncLoader::add_resource_sound( const std::string file, bool async )
-{
-	add_resource<FeAsyncLoaderEntrySoundBuffer>( file, async );
+	if ( tail_compare( file, FE_ART_EXTENSIONS ))
+		return add_resource<FeAsyncLoaderEntryTexture>( file, true );
+	else if ( tail_compare(file, FE_VID_EXTENSIONS ))
+		return add_resource<FeAsyncLoaderEntryVideo>( file, true );
+	else if ( tail_compare(file, FE_FONT_EXTENSIONS ))
+		return add_resource<FeAsyncLoaderEntryFont>( file, true );
+	else if ( tail_compare(file, FE_SOUND_EXTENSIONS ))
+		return add_resource<FeAsyncLoaderEntrySoundBuffer>( file, true );
+	else
+		return false;
 }
 
 template <typename T>
