@@ -993,6 +993,7 @@ bool FeVM::on_new_layout()
 		.Func( _SC("cached_ref_count"),  &FeAsyncLoader::get_cached_ref_count )
 		.Func( _SC("active_ref_count"),  &FeAsyncLoader::get_active_ref_count )
 		.Func( _SC("load_image"),  &FeAsyncLoader::add_resource_texture )
+		.Func( _SC("load_video"),  &FeAsyncLoader::add_resource_video )
 		.Func( _SC("load_font"),  &FeAsyncLoader::add_resource_font )
 		.Func( _SC("load_sound"),  &FeAsyncLoader::add_resource_sound )
 	);

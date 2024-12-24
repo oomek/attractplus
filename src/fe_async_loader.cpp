@@ -223,6 +223,7 @@ template <typename T>
 bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 {
 	std::string file = clean_path( input_file );
+	std::replace( file.begin(), file.end(), '\\', '/' );
 
 	if ( is_relative_path( file ))
 		file = FePresent::script_get_base_path() + file;
@@ -359,8 +360,8 @@ sf::SoundBuffer *FeAsyncLoader::get_resource_sound( const std::string file )
 void FeAsyncLoader::release_resource( const std::string file )
 {
 
-	// FeLog() << "FeAsyncLoader::release_resource( " << file << " )" << std::endl;
 	if ( file.empty() ) return;
+	// FeLog() << "FeAsyncLoader::release_resource( " << file << " )" << std::endl;
 
 	ulock_t lock( m_mutex );
 	map_iterator_t it = m_resources_map.find( file );
@@ -385,6 +386,7 @@ void FeAsyncLoader::release_resource( const std::string file )
 
 bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
+	sf::Clock clk;
 	m_player.setMedia( file.c_str() );
 	m_player.prepare();
 	m_player.setPreloadImmediately( true );
@@ -402,7 +404,8 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 	if ( get_OS_string() == "Linux" )
 		m_player.setAudioBackends( {"ALSA"} );
 
-	m_player.set( State::Playing );
+	// m_player.set( State::Playing );
+	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " ) " << clk.getElapsedTime().asMilliseconds() << std::endl;
 	return true;
 }
 

@@ -210,7 +210,7 @@ private:
 
 	sf::Texture *m_texture;
 	sf::RenderTexture *m_video_texture;
-	Player *m_player;
+	Player *m_video_player;
 	sf::Texture m_empty_texture;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)

@@ -258,7 +258,7 @@ FeTextureContainer::FeTextureContainer(
 	m_volume( 100.0 ),
 	m_texture( &m_empty_texture ),
 	m_video_texture( NULL ),
-	m_player( NULL )
+	m_video_player( NULL )
 {
 	if ( is_artwork )
 	{
@@ -276,6 +276,8 @@ FeTextureContainer::FeTextureContainer(
 
 FeTextureContainer::~FeTextureContainer()
 {
+	clear();
+
 #ifndef NO_MOVIE
 	if ( m_movie )
 	{
@@ -384,7 +386,6 @@ bool FeTextureContainer::try_to_load(
 	const std::string &filename,
 	bool is_image )
 {
-	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " )" << std::endl;
 	std::string loaded_name;
 
 // #ifndef NO_MOVIE
@@ -418,8 +419,18 @@ bool FeTextureContainer::try_to_load(
 	{
 		// FeLog() << " al.get_resource_video() " << loaded_name << std::endl;
 		m_video_texture = al.get_resource_video( loaded_name );
-		// m_video_texture->display();
-		m_player = al.get_player( loaded_name );
+		m_video_texture->clear();
+		m_video_texture->display();
+		m_video_player = al.get_player( loaded_name );
+		if ( m_video_player )
+		{
+			FePresent *fep = FePresent::script_get_fep();
+			if ( fep )
+				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0  );
+
+			if ( !( m_video_flags & VF_NoAutoStart ))
+				m_video_player->set( State::Playing );
+		}
 	}
 	if ( m_texture != NULL )
 	{
@@ -464,7 +475,7 @@ bool FeTextureContainer::try_to_load(
 
 const sf::Texture &FeTextureContainer::get_texture()
 {
-	if ( m_player )
+	if ( m_video_player )
 		return m_video_texture->getTexture();
 	else
 		return *m_texture;
@@ -579,7 +590,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 				itr != image_list.end(); ++itr )
 			{
 				std::string filename = *itr;
-				FeLog() << "Loading image: " << filename << std::endl;
+				// FeLog() << "Loading image: " << filename << std::endl;
 				if ( try_to_load( filename, true ) ) // loading video is_image = true
 				{
 					loaded = true;
@@ -596,9 +607,9 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
-	if ( m_player )
-		if ( m_player->state() != State::Playing )
-			m_player->set( State::Playing );
+	// if ( m_video_player )
+	// 	if ( m_video_player->state() != State::Playing )
+	// 		m_video_player->set( State::Playing );
 
 	//
 	// We have an m_entry if the image is being loaded in the background
@@ -666,12 +677,15 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 // 	}
 // #endif
 
-	if ( m_player )
+	if ( m_video_player )
 	{
-		m_video_texture->setActive( true );
-		m_player->renderVideo();
-		m_video_texture->display();
-		m_video_texture->setActive( false );
+		if ( m_video_player->state() == State::Playing )
+		{
+			m_video_texture->setActive( true );
+			m_video_player->renderVideo();
+			m_video_texture->display();
+			m_video_texture->setActive( false );
+		}
 	}
 
 	return false;
@@ -679,6 +693,31 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 void FeTextureContainer::set_play_state( bool play )
 {
+	// FeLog() << "FeTextureContainer::set_play_state(" << ( play ? "true" : "false" ) << ")" << std::endl;
+
+	if ( play == get_play_state() )
+		return;
+
+	if ( m_video_player )
+	{
+		if ( play == true )
+		{
+			// FeLog() << "set( State::Playing )" << std::endl;
+			m_video_texture->clear();
+			m_video_texture->display();
+			m_video_player->set( State::Playing );
+			// FeLog() << "FeTextureContainer::set_play_state().seek(0) " << m_file_name << std::endl;
+		}
+		else
+		{
+			// FeLog() << "set( State::Paused )" << std::endl;
+			m_video_player->set( State::Paused );
+			m_video_player->seek( 0 );
+		}
+	}
+
+	return;
+
 #ifndef NO_MOVIE
 	if (m_movie)
 	{
@@ -714,6 +753,11 @@ void FeTextureContainer::set_play_state( bool play )
 
 bool FeTextureContainer::get_play_state() const
 {
+	if ( m_video_player )
+		return m_video_player->state() == State::Playing;
+
+	return false;
+
 #ifndef NO_MOVIE
 	if ( m_movie )
 	{
@@ -730,10 +774,14 @@ bool FeTextureContainer::get_play_state() const
 
 void FeTextureContainer::set_vol( float vol )
 {
-#ifndef NO_MOVIE
-	if ( (m_movie) && !(m_video_flags & VF_NoAudio) )
-		m_movie->setVolume( m_volume * vol / 100.0 );
-#endif
+	FeLog() << "FeTextureContainer::set_vol(" << vol << ")" << std::endl;
+	if ( m_video_player && !( m_video_flags & VF_NoAudio ))
+	{
+		FePresent *fep = FePresent::script_get_fep();
+			if ( fep )
+				// m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0  );
+				m_video_player->setVolume( m_volume * vol / 10000.0  );
+	}
 }
 
 void FeTextureContainer::set_index_offset( int io, bool do_update )
@@ -772,20 +820,18 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 {
 	m_video_flags = f;
 
-#ifndef NO_MOVIE
-	if ( m_movie )
+	if ( m_video_player )
 	{
-		if (m_video_flags & VF_NoAudio)
-			m_movie->setVolume( 0.f );
+		if ( m_video_flags & VF_NoAudio )
+			m_video_player->setVolume( 0.f );
 		else
 		{
 			float volume( 100.f );
 			FePresent *fep = FePresent::script_get_fep();
 			if ( fep )
-				m_movie->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
+				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0 );
 		}
 	}
-#endif
 }
 
 FeVideoFlags FeTextureContainer::get_video_flags() const
@@ -795,26 +841,23 @@ FeVideoFlags FeTextureContainer::get_video_flags() const
 
 int FeTextureContainer::get_video_duration() const
 {
-#ifndef NO_MOVIE
-	if ( m_movie )
-		return m_movie->get_duration().asMilliseconds();
-#endif
+	if ( m_video_player )
+		return m_video_player->mediaInfo().duration;
 
 	return 0;
 }
 
 int FeTextureContainer::get_video_time() const
 {
-#ifndef NO_MOVIE
-	if ( m_movie )
-		return m_movie->get_video_time().asMilliseconds();
-#endif
+	if ( m_video_player )
+		return m_video_player->position();
 
 	return 0;
 }
 
 void FeTextureContainer::load_file( const char *n )
 {
+	// FeLog() << "FeTextureContainer::load_file( " << n << " )" << std::endl;
 	// TODO: add support for relative paths that works with if( m_file_name == filename ) and cache
 	std::string filename = clean_path( n );
 
@@ -883,14 +926,19 @@ FeTextureContainer *FeTextureContainer::get_derived_texture_container()
 
 void FeTextureContainer::clear()
 {
+	// FeLog() << "FeTextureContainer::clear() " << m_file_name << std::endl;
 	m_movie_status = -1;
 	FeAsyncLoader &al = FeAsyncLoader::get_al();
-	// sf::Clock clk;
+	if ( m_video_player )
+	{
+		// m_video_player->setVolume( 0 );
+		// m_video_player->seek( 0 );
+		// m_video_player->set( State::Stopped );
+	}
 	al.release_resource( m_file_name );
-	// FeLog() << "FeTextureContainer::clear() " << clk.getElapsedTime().asMilliseconds() << std::endl;
-	m_player = NULL;
 	m_file_name.clear();
 	m_video_texture = NULL;
+	m_video_player = NULL;
 
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
@@ -955,11 +1003,10 @@ float FeTextureContainer::get_volume() const
 
 float FeTextureContainer::get_sample_aspect_ratio() const
 {
-#ifndef NO_MOVIE
-	if ( m_movie )
-		return m_movie->get_aspect_ratio();
-#endif
-		return 1.0;
+	if ( m_video_player )
+		return m_video_player->mediaInfo().video[0].codec.par;
+
+	return 1.0;
 }
 
 void FeTextureContainer::release_audio( bool state )
