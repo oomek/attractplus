@@ -1409,8 +1409,6 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 		ASSERT( DefaultVM::Get() );
 		set_for_callback( *itr );
 
-		m_suppress_navigation = false;
-
 		try
 		{
 			Function &func = (*itr).get_fn();

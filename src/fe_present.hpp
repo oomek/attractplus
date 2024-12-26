@@ -303,6 +303,8 @@ public:
 	virtual int get_script_id()=0;
 	virtual void set_script_id( int )=0;
 	virtual bool setup_wizard()=0;
+	virtual void suppress_navigation()=0;
+	virtual void release_navigation()=0;
 	virtual bool is_navigation_suppressed()=0;
 };
 

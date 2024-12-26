@@ -960,6 +960,8 @@ void FePresent::change_selection( int step, bool end_navigation )
 			update_to( EndNavigation, false );
 			on_transition( EndNavigation, 0 );
 		}
+
+		release_navigation();
 }
 
 bool FePresent::reset_screen_saver()

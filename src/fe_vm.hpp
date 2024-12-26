@@ -142,6 +142,7 @@ public:
 
 	bool script_handle_event( FeInputMap::Command c );
 	void suppress_navigation() { m_suppress_navigation = true; };
+	void release_navigation() { m_suppress_navigation = false; };
 	bool is_navigation_suppressed() { return m_suppress_navigation; };
 	void set_suppressed_navigation_step( int step ) { m_suppressed_navigation_step = step; };
 
