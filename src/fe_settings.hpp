@@ -112,6 +112,9 @@ public:
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
+	static const char *themeColorTokens[];
+	static const char *themeColorDispTokens[];
+
 	// These values must align with `FeSettings::configSettingStrings`
 	enum ConfigSettingIndex
 	{
@@ -155,15 +158,7 @@ public:
 		MenuPrompt, // 'Displays Menu' prompt
 		MenuLayout, // 'Displays Menu' layout
 		ImageCacheMBytes,
-		ThemeBgColor,
-		ThemeEdgeColor,
-		ThemeBorderColor,
-		ThemeHeaderColor,
-		ThemeFooterColor,
-		ThemeTextColor,
-		ThemeSelBgColor,
-		ThemeSelTextColor,
-		ThemeEditBgColor,
+		ThemeColor,
 		LAST_INDEX
 	};
 
@@ -188,21 +183,12 @@ private:
 	std::string m_menu_layout;		// 'Displays Menu' layout.  if blank, use built-in menu
 	std::string m_menu_layout_file;		// 'Displays Menu" toggled layout file
 
-	std::string m_theme_bg_color;
-	std::string m_theme_edge_color;
-	std::string m_theme_border_color;
-	std::string m_theme_header_color;
-	std::string m_theme_footer_color;
-	std::string m_theme_text_color;
-	std::string m_theme_sel_bg_color;
-	std::string m_theme_sel_text_color;
-	std::string m_theme_edit_bg_color;
-
 	std::string m_last_game_overview_path;  // cache the last loaded game overview path
 	std::string m_last_game_overview_text;  // cache the last loaded game overview text
 
 	// configured API key to use for for thegamesdb.net scraping.  If blank, AM's standard public key is used
 	std::string m_tgdb_key;
+	std::string m_theme_color;
 
 	std::vector<FeDisplayInfo> m_displays;
 	std::vector<FePlugInfo> m_plugins;
@@ -519,6 +505,7 @@ public:
 	int get_anisotropic() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
+	std::string get_theme_color() const;
 	int get_screen_saver_timeout() const;
 
 	bool get_current_fav();

@@ -26,6 +26,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
 #include "fe_window.hpp"
+#include "fe_vm.hpp"
 
 class FeSettings;
 class FeInputMapEntry;
@@ -42,26 +43,24 @@ private:
 	FeWindow &m_wnd;
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
-	sf::Color m_text_colour;
 	sf::Color m_bg_colour;
-	sf::Color m_sel_frame_colour;
+	sf::Color m_edge_bg_color;
+	sf::Color m_edge_line_colour;
 	sf::Color m_sel_bg_colour;
 	sf::Color m_sel_text_colour;
-	sf::Color m_border_colour;
-	sf::Color m_edge_color;
+	sf::Color m_sel_edit_colour;
 	sf::Color m_header_text_colour;
 	sf::Color m_footer_text_colour;
+	sf::Color m_text_colour;
 	bool m_overlay_is_on;
 	sf::Vector2i m_screen_size;
 	sf::Vector2f m_text_scale;
-	float m_header_scale;
-	float m_footer_scale;
 	int m_text_size;
 	int m_header_size;
 	int m_footer_size;
+	int m_edge_size;
 	int m_line_size;
 	int m_fade_alpha;
-	int m_padding_size;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -74,6 +73,7 @@ private:
 	void input_map_dialog( const std::string &msg_str, FeInputMapEntry &res,
 			FeInputMap::Command &conflict );
 	int display_config_dialog( FeBaseConfigMenu *, bool & );
+	int display_config_dialog( FeBaseConfigMenu *, bool &, int );
 
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
@@ -128,7 +128,6 @@ public:
 	bool common_exit();
 
 	void init();
-	sf::Color get_color( int setting, sf::Color &def_col );
 };
 
 #endif

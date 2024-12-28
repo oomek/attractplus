@@ -256,6 +256,22 @@ const char *FeSettings::startupDispTokens[] =
 	NULL
 };
 
+const char *FeSettings::themeColorTokens[] =
+{
+	"880000",
+	"008800",
+	"224488",
+	NULL
+};
+
+const char *FeSettings::themeColorDispTokens[] =
+{
+	"Red",
+	"Green",
+	"Blue",
+	NULL
+};
+
 FeSettings::FeSettings( const std::string &config_path )
 	:  m_rl( m_config_path ),
 	m_inputmap(),
@@ -313,7 +329,8 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_power_saving( false ),
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
-	m_ui_font_size( 0 )
+	m_ui_font_size( 0 ),
+	m_theme_color( "224488" )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
@@ -398,7 +415,7 @@ void FeSettings::load()
 		get_translation( "Displays Menu", m_menu_prompt );
 }
 
-// These values must align with fe_settings enum `ConfigSettingIndex`
+// These values must align with fe_settings enum ConfigSettingIndex
 const char *FeSettings::configSettingStrings[] =
 {
 	"language",
@@ -441,15 +458,7 @@ const char *FeSettings::configSettingStrings[] =
 	"menu_prompt",
 	"menu_layout",
 	"image_cache_mbytes",
-	"theme_bg_color",
-	"theme_edge_color",
-	"theme_border_color",
-	"theme_header_color",
-	"theme_footer_color",
-	"theme_text_color",
-	"theme_sel_bg_color",
-	"theme_sel_text_color",
-	"theme_edit_bg_color",
+	"theme_color",
 	NULL
 };
 
@@ -541,6 +550,10 @@ int FeSettings::process_setting( const std::string &setting,
 
 						case StartupMode:
 							valid = startupTokens;
+							break;
+
+						case ThemeColor:
+							valid = themeColorTokens;
 							break;
 
 						default:
@@ -2751,6 +2764,11 @@ FeSettings::StartupModeType FeSettings::get_startup_mode() const
 	return m_startup_mode;
 }
 
+std::string FeSettings::get_theme_color() const
+{
+	return m_theme_color;
+}
+
 int FeSettings::get_screen_saver_timeout() const
 {
 	return m_ssaver_time;
@@ -2786,7 +2804,9 @@ const std::string FeSettings::get_info( int index ) const
 	case ExitMessage:
 		return m_exit_message;
 	case UIFontSize:
-		return ( m_ui_font_size > 0 ) ? as_str( m_ui_font_size ) : FE_EMPTY_STRING;
+		if ( m_ui_font_size > 0 )
+			return as_str( m_ui_font_size );
+		break;
 	case ScreenSaverTimeout:
 		return as_str( m_ssaver_time );
 	case MouseThreshold:
@@ -2840,31 +2860,20 @@ const std::string FeSettings::get_info( int index ) const
 #else
 		return FeMedia::get_current_decoder();
 #endif
+
 	case MenuPrompt:
 		return m_menu_prompt;
+
 	case MenuLayout:
 		return m_menu_layout;
-	case ThemeBgColor:
-		return m_theme_bg_color;
-	case ThemeEdgeColor:
-		return m_theme_edge_color;
-	case ThemeBorderColor:
-		return m_theme_border_color;
-	case ThemeHeaderColor:
-		return m_theme_header_color;
-	case ThemeFooterColor:
-		return m_theme_footer_color;
-	case ThemeTextColor:
-		return m_theme_text_color;
-	case ThemeSelBgColor:
-		return m_theme_sel_bg_color;
-	case ThemeSelTextColor:
-		return m_theme_sel_text_color;
-	case ThemeEditBgColor:
-		return m_theme_edit_bg_color;
+
+	case ThemeColor:
+		return m_theme_color;
+
 	default:
-		return FE_EMPTY_STRING;
+		break;
 	}
+	return FE_EMPTY_STRING;
 }
 
 bool FeSettings::get_info_bool( int index ) const
@@ -3175,32 +3184,8 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_menu_prompt = value;
 		break;
 
-	case ThemeBgColor:
-		m_theme_bg_color = value;
-		break;
-	case ThemeEdgeColor:
-		m_theme_edge_color = value;
-		break;
-	case ThemeBorderColor:
-		m_theme_border_color = value;
-		break;
-	case ThemeHeaderColor:
-		m_theme_header_color = value;
-		break;
-	case ThemeFooterColor:
-		m_theme_footer_color = value;
-		break;
-	case ThemeTextColor:
-		m_theme_text_color = value;
-		break;
-	case ThemeSelBgColor:
-		m_theme_sel_bg_color = value;
-		break;
-	case ThemeSelTextColor:
-		m_theme_sel_text_color = value;
-		break;
-	case ThemeEditBgColor:
-		m_theme_edit_bg_color = value;
+	case ThemeColor:
+		m_theme_color = value;
 		break;
 
 	default:

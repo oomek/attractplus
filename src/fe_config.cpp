@@ -1932,6 +1932,36 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 			"_help_language" );
 	ctx.back_opt().append_vlist( disp_lang_list );
 
+
+	int themecol_i=0;
+	std::string themecol;
+	std::string themecol_value = ctx.fe_settings.get_theme_color();
+	while ( FeSettings::themeColorTokens[themecol_i] != NULL )
+	{
+		if ( themecol_value.compare( FeSettings::themeColorTokens[themecol_i] ) == 0 )
+		{
+			ctx.fe_settings.get_translation( FeSettings::themeColorDispTokens[themecol_i], themecol );
+			break;
+		}
+		themecol_i++;
+	}
+	i=0;
+	std::vector < std::string > theme_cols;
+	while ( FeSettings::themeColorDispTokens[i] != NULL )
+	{
+		theme_cols.push_back( std::string() );
+		ctx.fe_settings.get_translation( FeSettings::themeColorDispTokens[ i ], theme_cols.back() );
+		i++;
+	}
+	if ( FeSettings::themeColorTokens[themecol_i] == NULL )
+	{
+		ctx.fe_settings.get_translation( "Custom", themecol );
+		theme_cols.push_back( std::string() );
+		ctx.fe_settings.get_translation( "Custom", theme_cols.back() );
+	}
+	ctx.add_optl( Opt::LIST_RELOAD, "Theme Color", themecol, "_help_theme_color" );
+	ctx.back_opt().append_vlist( theme_cols );
+
 #if !defined(FORCE_FULLSCREEN)
 	std::string winmode;
 	ctx.fe_settings.get_translation( FeSettings::windowModeDispTokens[ ctx.fe_settings.get_window_mode() ], winmode );
@@ -2112,6 +2142,13 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	int index_l = ctx.opt_list[i++].get_vindex();
 	std::string new_l = m_languages[ index_l ].language;
 	ctx.fe_settings.set_language( new_l );
+
+	int size_tc = 0;
+	while ( FeSettings::themeColorTokens[ size_tc ] != NULL ) size_tc++;
+	int index_tc = ctx.opt_list[i++].get_vindex();
+	if ( index_tc < size_tc )
+		ctx.fe_settings.set_info( FeSettings::ThemeColor,
+			FeSettings::themeColorTokens[ index_tc ] );
 
 #if !defined(FORCE_FULLSCREEN)
 	ctx.fe_settings.set_info( FeSettings::WindowMode,
