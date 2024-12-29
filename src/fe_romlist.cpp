@@ -41,6 +41,14 @@ const char *FE_STATS_SUBDIR                     = "stats/";
 
 SQRex *FeRomListSorter::m_rex = NULL;
 
+namespace
+{
+	bool fe_not_clone( const FeRomInfo &r )
+	{
+		return r.get_info( FeRomInfo::Cloneof ).empty();
+	}
+};
+
 void FeRomListSorter::init_title_rex( const std::string &re_mask )
 {
 	ASSERT( m_rex == NULL );
@@ -201,8 +209,10 @@ bool FeRomList::load_romlist( const std::string &path,
 	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
 
+	// Attempt to load display display cache
 	if ( FeCache::load_display_cache( m_config_path, display, *this ) )
 	{
+		// Abort if group_clones setting has changed, or romlist has been modified
 		if ( ( m_group_clones == group_clones ) && ( m_modified_time == mtime ) )
 		{
 			FeLog() << " - Loaded romlist '" << m_romlist_name
@@ -212,10 +222,7 @@ bool FeRomList::load_romlist( const std::string &path,
 			create_filters( display );
 			return true;
 		}
-		else
-		{
-			FeCache::clear_filters_cache( m_config_path, display );
-		}
+		FeCache::clear_display_cache( m_config_path, display );
 	}
 
 	m_group_clones = group_clones;
@@ -376,10 +383,17 @@ bool FeRomList::load_romlist( const std::string &path,
 			m_list.erase( last_it, m_list.end() );
 	}
 
+	if ( m_group_clones )
+	{
+		// If grouping by clones partition list so clones are at the end.
+		std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
+	}
+
 	int index = 0;
 	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
 	{
-		(*it).index = index++; // Index for caching, removes need for additional searches
+		// Index value used for caching, removes the need for additional searches
+		(*it).index = index++;
 	}
 
 	FeLog() << " - Loaded romlist '" << m_romlist_name
@@ -389,6 +403,7 @@ bool FeRomList::load_romlist( const std::string &path,
 
 	load_timer.restart();
 
+	// Save the filtered cache for use on next load
 	if ( FeCache::save_display_cache( m_config_path, display, *this ) )
 	{
 		FeLog() << " - Cached romlist '" << m_romlist_name
@@ -400,25 +415,9 @@ bool FeRomList::load_romlist( const std::string &path,
 	return retval;
 }
 
-namespace
-{
-	bool fe_not_clone( const FeRomInfo &r )
-	{
-		return r.get_info( FeRomInfo::Cloneof ).empty();
-	}
-};
-
 void FeRomList::build_single_filter_list( FeFilter *f,
 	FeFilterEntry &result )
 {
-	if ( m_group_clones )
-	{
-		// If we are grouping by clones, partition the list so that clones
-		// are at the back of the list.
-		//
-		std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
-	}
-
 	if ( f )
 	{
 		if ( f->get_size() > 0 ) // if this is non zero then we've loaded before and know how many to expect
@@ -566,6 +565,7 @@ void FeRomList::create_filters(
 {
 	sf::Clock load_timer;
 
+	// Attempt to load the cached filter lists
 	if ( FeCache::load_filters_cache( m_config_path, display, *this ) )
 	{
 		FeLog() << " - Loaded filters in "
@@ -604,6 +604,7 @@ void FeRomList::create_filters(
 
 	load_timer.restart();
 
+	// Save the filtered lists for next load
 	if ( FeCache::save_filters_cache( m_config_path, display, *this ) )
 	{
 		FeLog() << " - Cached filters in "
@@ -839,6 +840,7 @@ bool FeRomList::fix_filters( FeDisplayInfo &display, FeRomInfo::Index target )
 		}
 	}
 
+	// Fix the cache if it uses the given target in its rules/sort
 	FeCache::fix_cache( m_config_path, display, target );
 	return retval;
 }
@@ -1018,14 +1020,14 @@ void FeRomList::delete_emulator( const std::string & emu )
 	}
 }
 
-// Update indexes to match m_list pointers
+// Update romlist index array to match the m_list
 void FeFilterEntry::to_indexes()
 {
 	FeCache::filter_list_to_indexes( filter_list_indexes, filter_list );
 	FeCache::clone_group_to_indexes( clone_group_indexes, clone_group );
 }
 
-// Update m_list pointers to match indexes
+// Update romlist m_list to match the index array
 void FeFilterEntry::from_indexes( std::vector<FeRomInfo*> &lookup )
 {
 	FeCache::indexes_to_filter_list( filter_list, filter_list_indexes, lookup );
