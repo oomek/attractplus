@@ -236,7 +236,7 @@ void FeListBox::setTextScale( const sf::Vector2f &scale )
 
 FeTextPrimitive *FeListBox::getMiddleText()
 {
-	return ( m_texts.size() > 0 ) ? &( m_texts[ m_texts.size() / 2 ] ) : NULL;
+	return ( m_texts.size() > 0 ) ? &m_texts[ m_texts.size() / 2 ] : NULL;
 }
 
 void FeListBox::setCustomSelection( const int index )

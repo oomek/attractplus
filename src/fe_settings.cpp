@@ -256,19 +256,35 @@ const char *FeSettings::startupDispTokens[] =
 	NULL
 };
 
-const char *FeSettings::themeColorTokens[] =
+const char *FeSettings::uiColorTokens[] =
 {
-	"880000",
-	"008800",
-	"224488",
+	"#2244BB", // Blue (Default)
+	"#00BBFF", // Cyan
+	"#00CC44", // Green
+	"#444444", // Grey
+	"#4400BB", // Indigo
+	"#FF8800", // Orange
+	"#FF4488", // Pink
+	"#8822BB", // Purple
+	"#BB0011", // Red
+	"#BBBBBB", // White
+	"#FFCC00", // Yellow
 	NULL
 };
 
-const char *FeSettings::themeColorDispTokens[] =
+const char *FeSettings::uiColorDispTokens[] =
 {
-	"Red",
-	"Green",
 	"Blue",
+	"Cyan",
+	"Green",
+	"Grey",
+	"Indigo",
+	"Orange",
+	"Pink",
+	"Purple",
+	"Red",
+	"White",
+	"Yellow",
 	NULL
 };
 
@@ -330,7 +346,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
 	m_ui_font_size( 0 ),
-	m_theme_color( "224488" )
+	m_ui_color( FeSettings::uiColorTokens[0] )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
@@ -422,6 +438,7 @@ const char *FeSettings::configSettingStrings[] =
 	"exit_command",
 	"exit_message",
 	"ui_font_size",
+	"ui_color",
 	"screen_saver_timeout",
 	"displays_menu_exit",
 	"hide_brackets",
@@ -458,7 +475,6 @@ const char *FeSettings::configSettingStrings[] =
 	"menu_prompt",
 	"menu_layout",
 	"image_cache_mbytes",
-	"theme_color",
 	NULL
 };
 
@@ -552,8 +568,8 @@ int FeSettings::process_setting( const std::string &setting,
 							valid = startupTokens;
 							break;
 
-						case ThemeColor:
-							valid = themeColorTokens;
+						case UIColor:
+							valid = uiColorTokens;
 							break;
 
 						default:
@@ -2764,9 +2780,9 @@ FeSettings::StartupModeType FeSettings::get_startup_mode() const
 	return m_startup_mode;
 }
 
-std::string FeSettings::get_theme_color() const
+std::string FeSettings::get_ui_color() const
 {
-	return m_theme_color;
+	return m_ui_color;
 }
 
 int FeSettings::get_screen_saver_timeout() const
@@ -2833,6 +2849,7 @@ const std::string FeSettings::get_info( int index ) const
 		return startupTokens[ m_startup_mode ];
 	case ThegamesdbKey:
 		return m_tgdb_key;
+
 	case DisplaysMenuExit:
 	case HideBrackets:
 	case GroupClones:
@@ -2867,8 +2884,8 @@ const std::string FeSettings::get_info( int index ) const
 	case MenuLayout:
 		return m_menu_layout;
 
-	case ThemeColor:
-		return m_theme_color;
+	case UIColor:
+		return m_ui_color;
 
 	default:
 		break;
@@ -3184,8 +3201,8 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_menu_prompt = value;
 		break;
 
-	case ThemeColor:
-		m_theme_color = value;
+	case UIColor:
+		m_ui_color = value;
 		break;
 
 	default:

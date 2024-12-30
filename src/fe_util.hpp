@@ -26,6 +26,7 @@
 #include <vector>
 #include <string>
 #include <SFML/Config.hpp>
+#include <SFML/Graphics.hpp>
 
 #ifdef FE_DEBUG
 #include <cassert>
@@ -360,3 +361,10 @@ void hide_console();
 #endif
 
 #endif
+
+//
+// Hex string to sf::Color
+// - On invalid hex the dest_color will not be changed
+// - Returns true on success
+//
+bool hex_to_color( std::string hex, sf::Color &dest_color );

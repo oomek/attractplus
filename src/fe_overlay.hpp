@@ -26,7 +26,6 @@
 #include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
 #include "fe_window.hpp"
-#include "fe_vm.hpp"
 
 class FeSettings;
 class FeInputMapEntry;
@@ -61,6 +60,7 @@ private:
 	int m_edge_size;
 	int m_line_size;
 	int m_fade_alpha;
+	const sf::Font *m_font;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -128,6 +128,7 @@ public:
 	bool common_exit();
 
 	void init();
+	void style_init();
 };
 
 #endif

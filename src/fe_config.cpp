@@ -1932,35 +1932,44 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 			"_help_language" );
 	ctx.back_opt().append_vlist( disp_lang_list );
 
-
-	int themecol_i=0;
-	std::string themecol;
-	std::string themecol_value = ctx.fe_settings.get_theme_color();
-	while ( FeSettings::themeColorTokens[themecol_i] != NULL )
+	// Find the index of the selected UI colour
+	// - Will be index for NULL if not found, indicating a custom colour
+	int uicol_index=0;
+	std::string uicol;
+	std::string uicol_value = ctx.fe_settings.get_ui_color();
+	while ( FeSettings::uiColorTokens[uicol_index] != NULL )
 	{
-		if ( themecol_value.compare( FeSettings::themeColorTokens[themecol_i] ) == 0 )
+		if ( uicol_value.compare( FeSettings::uiColorTokens[uicol_index] ) == 0 )
 		{
-			ctx.fe_settings.get_translation( FeSettings::themeColorDispTokens[themecol_i], themecol );
+			ctx.fe_settings.get_translation( FeSettings::uiColorDispTokens[uicol_index], uicol );
 			break;
 		}
-		themecol_i++;
+		uicol_index++;
 	}
+
+	// Populate the ui colour options
 	i=0;
-	std::vector < std::string > theme_cols;
-	while ( FeSettings::themeColorDispTokens[i] != NULL )
+	std::vector < std::string > ui_cols;
+	while ( FeSettings::uiColorDispTokens[i] != NULL )
 	{
-		theme_cols.push_back( std::string() );
-		ctx.fe_settings.get_translation( FeSettings::themeColorDispTokens[ i ], theme_cols.back() );
+		ui_cols.push_back( std::string() );
+		ctx.fe_settings.get_translation( FeSettings::uiColorDispTokens[ i ], ui_cols.back() );
 		i++;
 	}
-	if ( FeSettings::themeColorTokens[themecol_i] == NULL )
+
+	// If a custom colour is set, add a "Custom" entry
+	// - When the custom option is changed it will not re-appear
+	if ( FeSettings::uiColorTokens[uicol_index] == NULL )
 	{
-		ctx.fe_settings.get_translation( "Custom", themecol );
-		theme_cols.push_back( std::string() );
-		ctx.fe_settings.get_translation( "Custom", theme_cols.back() );
+		ui_cols.push_back( std::string() );
+		ctx.fe_settings.get_translation( "(Custom)", ui_cols.back() );
+		ctx.fe_settings.get_translation( "(Custom)", uicol );
 	}
-	ctx.add_optl( Opt::LIST_RELOAD, "Theme Color", themecol, "_help_theme_color" );
-	ctx.back_opt().append_vlist( theme_cols );
+
+	// Add the ui colour setting
+	ctx.add_optl( Opt::LIST, "Menu Colour", uicol, "_help_ui_color" );
+	ctx.back_opt().append_vlist( ui_cols );
+	ctx.back_opt().opaque_str = "ui_reload"; // flag the ui to reload if this option changes
 
 #if !defined(FORCE_FULLSCREEN)
 	std::string winmode;
@@ -2143,12 +2152,13 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	std::string new_l = m_languages[ index_l ].language;
 	ctx.fe_settings.set_language( new_l );
 
-	int size_tc = 0;
-	while ( FeSettings::themeColorTokens[ size_tc ] != NULL ) size_tc++;
-	int index_tc = ctx.opt_list[i++].get_vindex();
-	if ( index_tc < size_tc )
-		ctx.fe_settings.set_info( FeSettings::ThemeColor,
-			FeSettings::themeColorTokens[ index_tc ] );
+	// Only update ui colour if a valid selection is made, otherwise keep the current custom value
+	int size_uic = 0;
+	while ( FeSettings::uiColorTokens[ size_uic ] != NULL ) size_uic++;
+	int index_uic = ctx.opt_list[i++].get_vindex();
+	if ( index_uic < size_uic )
+		ctx.fe_settings.set_info( FeSettings::UIColor,
+			FeSettings::uiColorTokens[ index_uic ] );
 
 #if !defined(FORCE_FULLSCREEN)
 	ctx.fe_settings.set_info( FeSettings::WindowMode,

@@ -112,8 +112,8 @@ public:
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
-	static const char *themeColorTokens[];
-	static const char *themeColorDispTokens[];
+	static const char *uiColorTokens[];
+	static const char *uiColorDispTokens[];
 
 	// These values must align with `FeSettings::configSettingStrings`
 	enum ConfigSettingIndex
@@ -122,6 +122,7 @@ public:
 		ExitCommand,
 		ExitMessage,
 		UIFontSize,
+		UIColor,
 		ScreenSaverTimeout,
 		DisplaysMenuExit,
 		HideBrackets,
@@ -158,7 +159,6 @@ public:
 		MenuPrompt, // 'Displays Menu' prompt
 		MenuLayout, // 'Displays Menu' layout
 		ImageCacheMBytes,
-		ThemeColor,
 		LAST_INDEX
 	};
 
@@ -188,7 +188,6 @@ private:
 
 	// configured API key to use for for thegamesdb.net scraping.  If blank, AM's standard public key is used
 	std::string m_tgdb_key;
-	std::string m_theme_color;
 
 	std::vector<FeDisplayInfo> m_displays;
 	std::vector<FePlugInfo> m_plugins;
@@ -254,6 +253,7 @@ private:
 	bool m_loaded_game_extras;
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
+	std::string m_ui_color;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
@@ -505,7 +505,7 @@ public:
 	int get_anisotropic() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
-	std::string get_theme_color() const;
+	std::string get_ui_color() const;
 	int get_screen_saver_timeout() const;
 
 	bool get_current_fav();

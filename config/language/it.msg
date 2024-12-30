@@ -129,7 +129,7 @@ Hide Brackets in Game Title;Nascondere le parentesi nei titoli
 Info Source/Scraper;Sorgente informazioni/Recupero
 Intro;Video introduttivo
 Joystick Threshold;Soglia del joystick
-Jump to Next Display;Salta al display successivo 
+Jump to Next Display;Salta al display successivo
 Language;Lingua
 Launch Last Game;Esegui l'ultimo gioco
 Layout;Tema
@@ -137,6 +137,7 @@ Layout Options;Opzioni del tema
 Left;Sinistra
 List Limit;Límite della lista
 Manufacturer;Produttore
+Menu Colour;Colore del menù
 Menu Prompt;Titolo del menù
 Menu Style / Layout;Tema del menù
 Mouse Threshold;Soglia del mouse
@@ -374,6 +375,7 @@ _help_sound;Configura il volume dei suoni, l'associazione dei suoni agli eventi 
 _help_sound_sel;Assegna un suono a questo evento/azione
 _help_startup_mode;Configura come si deve comportare Attract-Mode quando viene eseguito
 _help_track_usage;Configura se Attract-Mode deve gestire le statistiche di utilizzo (tempo complessivo e numero di partite giocate per ciascun titolo)
+_help_ui_color;Seleziona il colore da utilizzare nell'interfaccia utente di Attract-Mode
 _help_video_decoder;Configura il decoder da utilizzare per riprodurre i video (nel caso siano disponibili più decoder)
 _help_volume;I valori consentiti per il volume vanno da 0 (silenzio) a 100 (massimo)
 _help_window_mode;Configura se il frontend deve lavorare a tutto schermo o essere eseguito in una finestra

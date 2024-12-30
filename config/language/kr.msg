@@ -148,6 +148,7 @@ Layout Options;레이아웃 별 옵션
 Left;270도
 List Limit;목록 크기 제한
 Manufacturer;제작사(Manufacturer)
+Menu Colour;메뉴 색상
 Menu Prompt;화면에 표시할 메뉴 이름
 Menu Style / Layout;메뉴 스타일 / 레이아웃
 Mouse Threshold;마우스 민감도
@@ -389,6 +390,7 @@ _help_sound;효과음, 배경음악, 볼륨 조절 등을 설정합니다
 _help_sound_sel;해당 상황에 재생할 소리를 지정합니다
 _help_startup_mode;프로그램이 처음 실행될 때 무엇을 해야하는 지를 설정합니다
 _help_track_usage;플레이 내역 (플레이 횟수, 시간) 을 기록할지 설정합니다.
+_help_ui_color;Attract-Mode의 사용자 인터페이스에 사용할 색상을 선택하세요.
 _help_video_decoder;영상을 재생하는 데 사용할 디코더를 선택합니다
 _help_volume;음량을 설정합니다. 0 에서 100 까지 이며, 0 이 음소거 입니다.
 _help_window_mode;창 모드로 동작할지 전체 화면으로 동작할지를 설정합니다.

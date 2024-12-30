@@ -153,6 +153,7 @@ Layout Options;畫面佈局選項
 Left;左移
 List Limit;清單大小限制
 Manufacturer;製作廠商
+Menu Colour;選單顏色
 Menu Prompt;選單提示
 Menu Style / Layout;選單樣式 / 畫面佈局
 Mouse Threshold;滑鼠靈敏度
@@ -407,6 +408,7 @@ _help_sound;設定聲音音量、操作事件聲音對映及環境音效
 _help_sound_sel;分配這個操作事件所要使用的音訊檔案
 _help_startup_mode;設定 Attract-Mode 啟動時所要顯示的選單項目
 _help_track_usage;設定 Attract-Mode 是否要記錄使用狀況 (每個遊戲的遊戲時間及遊戲次數)
+_help_ui_color;選擇在 Attract-Mode 的使用者介面中使用的顏色
 _help_video_decoder;設定視訊播放時所要使用的解碼器 (若存在多個解碼器)
 _help_volume;音量值為 0 到 100 (0 為靜音)
 _help_window_mode;設定 Attract-Mode 所要使用的顯示模式
