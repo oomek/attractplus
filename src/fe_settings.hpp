@@ -112,8 +112,8 @@ public:
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
-	static const char *uiColorTokens[];
-	static const char *uiColorDispTokens[];
+	static std::vector<std::string> uiColorTokens;
+	static std::vector<std::string> uiColorDispTokens;
 
 	// These values must align with `FeSettings::configSettingStrings`
 	enum ConfigSettingIndex

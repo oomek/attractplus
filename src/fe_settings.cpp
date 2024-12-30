@@ -256,7 +256,7 @@ const char *FeSettings::startupDispTokens[] =
 	NULL
 };
 
-const char *FeSettings::uiColorTokens[] =
+std::vector<std::string> FeSettings::uiColorTokens =
 {
 	"#2244BB", // Blue (Default)
 	"#00BBFF", // Cyan
@@ -268,11 +268,10 @@ const char *FeSettings::uiColorTokens[] =
 	"#8822BB", // Purple
 	"#BB0011", // Red
 	"#BBBBBB", // White
-	"#FFCC00", // Yellow
-	NULL
+	"#FFCC00" // Yellow
 };
 
-const char *FeSettings::uiColorDispTokens[] =
+std::vector<std::string> FeSettings::uiColorDispTokens =
 {
 	"Blue",
 	"Cyan",
@@ -284,8 +283,7 @@ const char *FeSettings::uiColorDispTokens[] =
 	"Purple",
 	"Red",
 	"White",
-	"Yellow",
-	NULL
+	"Yellow"
 };
 
 FeSettings::FeSettings( const std::string &config_path )
@@ -566,10 +564,6 @@ int FeSettings::process_setting( const std::string &setting,
 
 						case StartupMode:
 							valid = startupTokens;
-							break;
-
-						case UIColor:
-							valid = uiColorTokens;
 							break;
 
 						default:
