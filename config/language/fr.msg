@@ -270,6 +270,7 @@ _help_input_delete;Enlever ce contrôle
 _help_intro;Configurer l'intro
 _help_joystick_threshold;Seuil d'amplitude des mouvements du joystick, de 1 à 100 (100=moins sensible)
 _help_language;Sélectionner la langue
+_help_menu_toggle;Activez le basculement entre les menus à l'aide d'un seul bouton, ce qui élimine le besoin d'un bouton Retour. Permet également de basculer entre les menus ouverts
 _help_misc;Configurations diverses
 _help_mouse_threshold;Seuil d'amplitude des mouvements de la souris, de 1 à 100 (100=moins sensible)
 _help_plugin_command;Exécutable associé à ce plug-in
@@ -372,6 +373,7 @@ Layout File;Layout File
 Menu Colour;Couleur des menus
 Menu Prompt;Menu Prompt
 Menu Style / Layout;Menu Style / Layout
+Menu Toggle;Basculement de menu
 Next Game;Next Game
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
 Overview;Overview

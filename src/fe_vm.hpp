@@ -118,6 +118,7 @@ public:
 
 	void flag_redraw() { m_redraw_triggered = true; };
 	void flag_sort_zorder() { m_sort_zorder_triggered = true; };
+	void post_command( FeInputMap::Command c );
 	bool poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui );
 	void clear(); // override of base class clear()
 
@@ -144,6 +145,7 @@ public:
 	//
 	// overlay functions used from scripts
 	//
+	int list_dialog( Sqrat::Array, const char *, int, int, FeInputMap::Command );
 	int list_dialog( Sqrat::Array, const char *, int, int );
 	int list_dialog( Sqrat::Array, const char *, int );
 	int list_dialog( Sqrat::Array, const char * );

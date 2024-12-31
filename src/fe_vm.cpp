@@ -340,6 +340,11 @@ void FeVM::set_overlay( FeOverlay *feo )
 	m_overlay = feo;
 }
 
+void FeVM::post_command( FeInputMap::Command c )
+{
+	m_posted_commands.push( c );
+}
+
 bool FeVM::poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui )
 {
 	from_ui=false;
@@ -1398,7 +1403,13 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 	return false;
 }
 
-int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int cancel_sel )
+int FeVM::list_dialog(
+	Sqrat::Array t,
+	const char *title,
+	int default_sel,
+	int cancel_sel,
+	FeInputMap::Command extra_exit
+)
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
@@ -1416,37 +1427,54 @@ int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int c
 		list_entries.push_back( value );
 	}
 
+	int retval;
+
 	if ( list_entries.size() > 2 )
 	{
-		return m_overlay->common_list_dialog(
+		retval = m_overlay->common_list_dialog(
 				std::string( title ),
 				list_entries,
 				default_sel,
-				cancel_sel );
+				cancel_sel,
+				extra_exit );
 	}
 	else
 	{
-		return m_overlay->common_basic_dialog(
+		retval = m_overlay->common_basic_dialog(
 				std::string( title ),
 				list_entries,
 				default_sel,
-				cancel_sel );
+				cancel_sel,
+				extra_exit );
 	}
+
+	if ( m_overlay->get_menu_command() > 0 )
+	{
+		post_command( m_overlay->get_menu_command() );
+		m_overlay->clear_menu_command();
+	}
+
+	return retval;
+}
+
+int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int cancel_sel )
+{
+	return list_dialog( t, title, default_sel, cancel_sel, FeInputMap::LAST_COMMAND );
 }
 
 int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel )
 {
-	return list_dialog( t, title, default_sel, -1 );
+	return list_dialog( t, title, default_sel, -1, FeInputMap::LAST_COMMAND );
 }
 
 int FeVM::list_dialog( Sqrat::Array t, const char *title )
 {
-	return list_dialog( t, title, 0, -1 );
+	return list_dialog( t, title, 0, -1, FeInputMap::LAST_COMMAND );
 }
 
 int FeVM::list_dialog( Sqrat::Array t )
 {
-	return list_dialog( t, NULL, 0, -1 );
+	return list_dialog( t, NULL, 0, -1, FeInputMap::LAST_COMMAND );
 }
 
 const char *FeVM::edit_dialog( const char *msg, const char *txt )
@@ -2678,7 +2706,7 @@ void FeVM::cb_signal( const char *sig )
 		// Post the command so it can be handled the next time we are
 		// processing events...
 		//
-		fev->m_posted_commands.push( c );
+		fev->post_command( c );
 		return;
 	}
 
@@ -2707,11 +2735,11 @@ void FeVM::cb_signal( const char *sig )
 		fev->m_window.on_exit();
 		fev->m_window.initial_create();
 		fev->init_monitors();
-		fev->m_posted_commands.push( FeInputMap::Reload );
+		fev->post_command( FeInputMap::Reload );
 		break;
 
 	case 1: // "reload"
-		fev->m_posted_commands.push( FeInputMap::Reload );
+		fev->post_command( FeInputMap::Reload );
 		break;
 
 	default:
@@ -2733,7 +2761,7 @@ void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
 		idx = 0;
 
 	if ( fes->set_display( idx, stack_previous ) || reload )
-		fev->m_posted_commands.push( FeInputMap::Reload );
+		fev->post_command( FeInputMap::Reload );
 	else
 		fev->update_to_new_list( 0, true );
 }
