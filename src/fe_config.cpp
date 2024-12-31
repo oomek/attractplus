@@ -2052,6 +2052,12 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	ctx.add_optl( Opt::LIST,
+			"Menu Toggle",
+			ctx.fe_settings.get_info_bool( FeSettings::MenuToggle ) ? bool_opts[0] : bool_opts[1],
+			"_help_menu_toggle" );
+	ctx.back_opt().append_vlist( bool_opts );
+
+	ctx.add_optl( Opt::LIST,
 			"Track Usage",
 			ctx.fe_settings.get_info_bool( FeSettings::TrackUsage ) ? bool_opts[0] : bool_opts[1],
 			"_help_track_usage" );
@@ -2176,6 +2182,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 
 	ctx.fe_settings.set_info( FeSettings::StartupMode,
 			FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
+
+	ctx.fe_settings.set_info( FeSettings::MenuToggle,
+			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
 
 	ctx.fe_settings.set_info( FeSettings::TrackUsage,
 			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
@@ -2770,6 +2779,9 @@ bool FeEditGameMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *&
 {
 	switch ( ctx.curr_opt().opaque )
 	{
+	case -1:
+		return true;
+
 	case 1: // Favourite
 		{
 			bool new_state = !ctx.fe_settings.get_current_fav();
