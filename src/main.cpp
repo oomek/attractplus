@@ -890,17 +890,27 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::ToggleTags:
-					if ( feOverlay.tags_dialog() < 0 )
-						exit_selected = true;
-
+					feOverlay.tags_dialog();
 					redraw = true;
 					break;
 
 				default:
 					break;
 				}
+
+				// Overlay menu_commands are populated when the `MenuToggle` setting is true
+				// - They allow other menu commands to behave as a menu exit
+				// - Post the commands back onto the queue to switch to the next menu
+				if ( feOverlay.get_menu_command() > 0 )
+				{
+					feVM.post_command( feOverlay.get_menu_command() );
+					feOverlay.clear_menu_command();
+				}
 			}
 		}
+
+		// End loop early and go directly to config, preventing a layout frame drawn between menu switching
+		if ( config_mode ) continue;
 
 		//
 		// Determine if we have to do anything because a key is being held down

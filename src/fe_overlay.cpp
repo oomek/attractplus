@@ -519,61 +519,64 @@ int FeOverlay::languages_dialog()
 
 int FeOverlay::tags_dialog()
 {
-	std::vector< std::pair<std::string, bool> > tags_list;
-	m_feSettings.get_current_tags_list( tags_list );
+	int sel = 0;
+	bool tags_changed = false;
 
-	std::vector<std::string> list;
-
-	for ( std::vector< std::pair<std::string, bool> >::iterator itr=tags_list.begin();
-			itr!=tags_list.end(); ++itr )
+	// Remain in tags dialog until exited
+	while ( sel >= 0 )
 	{
-		std::string msg;
-		m_feSettings.get_translation(
-				(*itr).second ? "Remove tag: '$1'" : "Add tag: '$1'",
+		std::vector< std::pair<std::string, bool> > tags_list;
+		m_feSettings.get_current_tags_list( tags_list );
+
+		std::vector<std::string> list;
+
+		for ( std::vector< std::pair<std::string, bool> >::iterator itr=tags_list.begin();
+				itr!=tags_list.end(); ++itr )
+		{
+			std::string msg;
+			m_feSettings.get_translation(
+				(*itr).second ? "» $1 «" : "$1",
 				(*itr).first,
 				msg );
 
-		list.push_back( msg );
-	}
+			list.push_back( msg );
+		}
 
-	list.push_back( std::string() );
-	m_feSettings.get_translation( "Create new tag", list.back() );
+		list.push_back( std::string() );
+		m_feSettings.get_translation( "Create new tag", list.back() );
 
-	list.push_back( std::string() );
-	m_feSettings.get_translation( "Back", list.back() );
+		std::string temp;
+		m_feSettings.get_translation( "Tags", temp );
 
-	std::string temp;
-	m_feSettings.get_translation( "Tags", temp );
+		sel = common_list_dialog( temp, list, sel, -1, FeInputMap::ToggleTags );
 
-	int sel = common_list_dialog( temp,
-		list, 0,
-		list.size() - 1,
-		FeInputMap::ToggleTags );
-
-	if ( sel == (int)tags_list.size() )
-	{
-		std::string title;
-		m_feSettings.get_translation( "Enter new tag name", title );
-
-		std::string name;
-		edit_dialog( title, name );
-
-		if ( !name.empty() )
+		if ( sel == (int)tags_list.size() )
 		{
-			if ( m_feSettings.set_current_tag( name, true ) )
+			std::string title;
+			m_feSettings.get_translation( "Enter new tag name", title );
+
+			std::string name;
+			edit_dialog( title, name );
+
+			if ( !name.empty() && m_feSettings.set_current_tag( name, true ) )
 			{
-				m_fePresent.update_to_new_list( 0, true ); // changing tag status altered our current list
-				m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
+				tags_changed = true;
+			}
+		}
+		else if (( sel >= 0 ) && ( sel < (int)tags_list.size() ))
+		{
+			if ( m_feSettings.set_current_tag( tags_list[sel].first, !(tags_list[sel].second) ) )
+			{
+				tags_changed = true;
 			}
 		}
 	}
-	else if (( sel >=0 ) && ( sel < (int)tags_list.size() ))
+
+	// Changing tag status altered our current list
+	if ( tags_changed )
 	{
-		if ( m_feSettings.set_current_tag( tags_list[sel].first, !(tags_list[sel].second) ) )
-		{
-			m_fePresent.update_to_new_list( 0, true ); // changing tag status altered our current list
-			m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
-		}
+		m_fePresent.update_to_new_list( 0, true );
+		m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 	}
 
 	return sel;
@@ -1117,6 +1120,7 @@ int FeOverlay::display_config_dialog(
 	while ( true )
 	{
 		FeEventLoopCtx c( draw_list, ctx.curr_sel, ctx.exit_sel, ctx.left_list.size() - 1 );
+		c.extra_exit = FeInputMap::Configure;
 
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
@@ -1226,6 +1230,7 @@ int FeOverlay::display_config_dialog(
 					int new_value = original_value;
 
 					FeEventLoopCtx c( draw_list, new_value, -1, ctx.curr_opt().values_list.size() - 1 );
+					c.extra_exit = FeInputMap::Configure;
 
 					vdialog.setCustomText( new_value, ctx.curr_opt().values_list );
 					sdialog.set_a( 64 );
@@ -1336,6 +1341,8 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 {
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
+	clear_menu_command();
+	bool menu_toggle = m_feSettings.get_info_bool( FeSettings::MenuToggle );
 	bool redraw=true;
 
 	while ( m_wnd.isOpen() )
@@ -1360,6 +1367,22 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 
 			switch( c )
 			{
+			case FeInputMap::Configure:
+				if ( !menu_toggle ) break;
+				m_menu_command = c;
+				ctx.sel = ctx.default_sel;
+				return true;
+			case FeInputMap::ToggleTags:
+			case FeInputMap::DisplaysMenu:
+			case FeInputMap::FiltersMenu:
+				if ( !menu_toggle || ctx.extra_exit == FeInputMap::Configure ) break;
+				m_menu_command = c;
+				ctx.sel = ctx.default_sel;
+				return true;
+			case FeInputMap::Exit:
+				if ( !menu_toggle ) break;
+				ctx.sel = ctx.default_sel;
+				return true;
 			case FeInputMap::Back:
 				ctx.sel = ctx.default_sel;
 				return true;

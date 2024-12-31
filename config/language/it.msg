@@ -129,7 +129,7 @@ Hide Brackets in Game Title;Nascondere le parentesi nei titoli
 Info Source/Scraper;Sorgente informazioni/Recupero
 Intro;Video introduttivo
 Joystick Threshold;Soglia del joystick
-Jump to Next Display;Salta al display successivo 
+Jump to Next Display;Salta al display successivo
 Language;Lingua
 Launch Last Game;Esegui l'ultimo gioco
 Layout;Tema
@@ -139,6 +139,7 @@ List Limit;Límite della lista
 Manufacturer;Produttore
 Menu Prompt;Titolo del menù
 Menu Style / Layout;Tema del menù
+Menu Toggle;Menu Alterna
 Mouse Threshold;Soglia del mouse
 Movie Volume;Volume dei video
 Name;Nome
@@ -350,6 +351,7 @@ _help_input_delete;Cancella questa associazione dei tasti
 _help_intro;Configura il video di introduzione
 _help_joystick_threshold;Umbral para los movimientos de palanca registrados, de 1 a 100 (100=menos sensible)
 _help_language;Seleziona la lingua dell'interfaccia di Attract-Mode
+_help_menu_toggle;Abilita la commutazione dei menu con un solo pulsante e il passaggio tra i menu aperti
 _help_misc;Configurazioni varie
 _help_mouse_threshold;Sogla per il riconoscimento dei movimenti del mouse, accetta un valore da 1 a 100 (100 = meno sensibile)
 _help_multiple_monitors;Abilita l'utilizzo di monitor multipli

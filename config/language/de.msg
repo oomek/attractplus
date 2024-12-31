@@ -280,6 +280,7 @@ _help_input_add;Dieser Aktion ein neues Steuerungs-Mapping zuordnen
 _help_input_delete;Dieses Steuerungs-Mapping löschen
 _help_intro;Intro konfigurieren
 _help_joystick_threshold;Der Schwellwert um Joystick-Bewegungen noch zu erkennen, von 1 bis 100 (100=am wenigsten empfindlich)
+_help_menu_toggle;Aktivieren Sie das Umschalten von Menüs mit nur einer Taste und das Wechseln zwischen geöffneten Menüs
 _help_misc;Konfiguriere sonstige Einstellungen
 _help_mouse_threshold;Der Schwellwert um Maus-Bewegungen noch zu erkennen, von 1 bis 100 (100=am wenigsten empfindlich)
 _help_plugin_command;Die ausführbare Datei, welche mit diesem Plug-in verknüpft ist
@@ -367,6 +368,7 @@ Launch Last Game;zuletzt gespieltes Spiel starten
 Layout File;Themendatei
 Menu Prompt;Eingabeaufforderung
 Menu Style / Layout;Menüstil / Thema
+Menu Toggle;Menü umschalten
 Next Game;nächstes Spiel
 Non-Blocking Mode Wait;Klippo-Modus Wartezeit
 Overview;Übersicht

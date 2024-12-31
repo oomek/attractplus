@@ -124,6 +124,7 @@ List Limit;列表大小限制
 Manufacturer;制造商
 Menu Prompt;标题
 Menu Style / Layout;主题
+Menu Toggle;菜单切换
 Mouse Threshold;鼠标的阈值
 Movie Volume;视频音量
 Name;名称
@@ -416,6 +417,7 @@ _help_joystick_map;Map the frontend's joystick slots to specifically named joyst
 _help_joystick_threshold;The threshold for registering joystick moves, from 1 to 100 (100=least sensitive)
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_menu_toggle;Enable single-button menu toggling, and switching between open menus
 _help_misc;Configure general settings
 _help_mouse_threshold;The threshold for registering mouse moves, from 1 to 100 (100=least sensitive)
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games

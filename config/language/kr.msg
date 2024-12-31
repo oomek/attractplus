@@ -150,6 +150,7 @@ List Limit;목록 크기 제한
 Manufacturer;제작사(Manufacturer)
 Menu Prompt;화면에 표시할 메뉴 이름
 Menu Style / Layout;메뉴 스타일 / 레이아웃
+Menu Toggle;메뉴 토글
 Mouse Threshold;마우스 민감도
 Movie Volume;동영상 음량
 Name;이름
@@ -361,6 +362,7 @@ _help_input_delete;해당 입력 키를 삭제합니다
 _help_intro;인트로 영상을 설정합니다
 _help_joystick_threshold;조이스틱 입력 민감도를 설정합니다. 1에서 100까지이며, 클수록 덜 민감합니다
 _help_language;언어를 설정합니다
+_help_menu_toggle;단일 버튼 메뉴 전환 및 열린 메뉴 간 전환 활성화
 _help_misc;그 외 여러 가지 설정을 변경합니다
 _help_mouse_threshold;마우스 입력 민감도를 설정합니다. 1 에서 100까지이며, 클수록 덜 민감합니다
 _help_multiple_monitors;다중 모니터 환경을 사용할 지 여부를 설정합니다

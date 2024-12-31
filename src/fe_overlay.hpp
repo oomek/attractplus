@@ -55,6 +55,7 @@ private:
 	int m_heading_size;
 	int m_footer_size;
 	int m_line_size;
+	FeInputMap::Command m_menu_command;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -92,6 +93,9 @@ public:
 	bool layout_options_dialog();
 	int languages_dialog();
 	int tags_dialog();
+
+	FeInputMap::Command get_menu_command() { return m_menu_command; }
+	void clear_menu_command() { m_menu_command = (FeInputMap::Command)-1; }
 
 	int common_list_dialog(
 		const std::string &title,
