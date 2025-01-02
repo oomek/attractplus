@@ -161,6 +161,8 @@ public:
 
 	void release_resource( const std::string );
 
+	void stop_cached_videos();
+
 	bool add_to_cache( const std::string file );
 
 	sf::Texture *get_resource_texture( const std::string file );

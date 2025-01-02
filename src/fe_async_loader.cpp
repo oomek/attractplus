@@ -71,19 +71,16 @@ void FeAsyncLoader::clear()
 
 int FeAsyncLoader::get_cached_size()
 {
-	ulock_t lock( m_mutex );
 	return m_resources_cached.size();
 }
 
 int FeAsyncLoader::get_active_size()
 {
-	ulock_t lock( m_mutex );
 	return m_resources_active.size();
 }
 
 int FeAsyncLoader::get_queue_size()
 {
-	ulock_t lock( m_mutex );
 	return m_queue.size();
 }
 
@@ -347,15 +344,23 @@ void FeAsyncLoader::release_resource( const std::string file )
 			if ( it->second->second->dec_ref() )
 				// Move to cache list if ref count is 0
 				m_resources_cached.splice( m_resources_cached.begin(), m_resources_active, it->second );
-	// Stop the playback if it's a video resource
-	if (it != m_resources_map.end() && static_cast<FeAsyncLoaderEntryVideo*>(it->second->second)->type == FeAsyncLoaderEntryVideo::type)
+}
+
+void FeAsyncLoader::stop_cached_videos()
+{
+	for ( auto it = m_resources_cached.begin(); it != m_resources_cached.end(); it++ )
 	{
-		Player* player = get_player( file );
-		sf::Clock clk;
-		if ( player != nullptr )
+		if ( static_cast<FeAsyncLoaderEntryVideo*>( it->second )->type == FeAsyncLoaderEntryVideo::type )
 		{
-			player->seek( 0 );
-			player->set( State::Paused );
+			Player* player = get_player( it->first );
+			if ( player != nullptr )
+			{
+				if ( player->state() != State::Paused )
+				{
+					player->seek( 0 );
+					player->set( State::Paused );
+				}
+			}
 		}
 	}
 }

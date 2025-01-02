@@ -31,6 +31,7 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "base64.hpp"
+#include "fe_async_loader.hpp"
 
 #include "BarlowCJK.ttf.h"
 
@@ -962,6 +963,7 @@ void FePresent::change_selection( int step, bool end_navigation )
 		}
 
 		release_navigation();
+		FeAsyncLoader::get_al().stop_cached_videos();
 }
 
 bool FePresent::reset_screen_saver()
