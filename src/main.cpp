@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 			int old_mode = feSettings.get_window_mode();
 			int old_aa = feSettings.get_antialiasing();
 
-			if ( feOverlay.config_dialog( 0, FeInputMap::Configure ) )
+			if ( feOverlay.config_dialog( -1, FeInputMap::Configure ) )
 			{
 				// Settings changed, reload
 				//

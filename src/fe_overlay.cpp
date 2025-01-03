@@ -1097,6 +1097,7 @@ int FeOverlay::display_config_dialog(
 	footer.setTextScale( m_text_scale );
 	draw_list.push_back( &footer );
 
+	// A passed selection will override the context default_sel - useful when reloading the menu
 	ctx.curr_sel = default_sel >= 0 ? default_sel : ctx.default_sel;
 	if ( ctx.curr_sel >= (int)ctx.left_list.size() )
 		ctx.curr_sel = 0;
@@ -1186,7 +1187,7 @@ int FeOverlay::display_config_dialog(
 				if ( sm )
 				{
 					bool test( false );
-					int sm_ret = display_config_dialog( sm, test, ctx.curr_sel, extra_exit );
+					int sm_ret = display_config_dialog( sm, test, -1, extra_exit );
 					if ( sm_ret < 0 )
 					{
 						return sm_ret;
