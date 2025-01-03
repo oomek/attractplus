@@ -65,9 +65,18 @@ private:
 		sf::Vector2f &text_scale,
 		int &char_size ) const;
 
-	void input_map_dialog( const std::string &msg_str, FeInputMapEntry &res,
-			FeInputMap::Command &conflict );
-	int display_config_dialog( FeBaseConfigMenu *, bool & );
+	void input_map_dialog(
+		const std::string &msg_str,
+		FeInputMapEntry &res,
+		FeInputMap::Command &conflict
+	);
+
+	int display_config_dialog(
+		FeBaseConfigMenu *m,
+		bool &parent_setting_changed,
+		int default_sel,
+		FeInputMap::Command extra_exit
+	);
 
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
@@ -88,11 +97,11 @@ public:
 		bool default_yes = false,
 		FeInputMap::Command default_exit = FeInputMap::Exit);
 
-	bool config_dialog();
-	bool edit_game_dialog();
-	bool layout_options_dialog();
+	bool config_dialog( int default_sel, FeInputMap::Command extra_exit );
+	bool edit_game_dialog( int default_sel, FeInputMap::Command extra_exit );
+	bool layout_options_dialog( int default_sel, FeInputMap::Command extra_exit );
 	int languages_dialog();
-	int tags_dialog();
+	int tags_dialog( int default_sel, FeInputMap::Command extra_exit );
 
 	FeInputMap::Command get_menu_command() { return m_menu_command; }
 	void clear_menu_command() { m_menu_command = (FeInputMap::Command)-1; }

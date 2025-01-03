@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 			int old_mode = feSettings.get_window_mode();
 			int old_aa = feSettings.get_antialiasing();
 
-			if ( feOverlay.config_dialog() )
+			if ( feOverlay.config_dialog( 0, FeInputMap::Configure ) )
 			{
 				// Settings changed, reload
 				//
@@ -681,8 +681,8 @@ int main(int argc, char *argv[])
 
 						feSettings.get_translation(  "Insert Menu Entry", temp );
 
-						int sel = feOverlay.common_list_dialog(
-							temp, options, 0, 0 );
+						int sel = feOverlay.common_list_dialog( temp, options, 0, -1, c );
+						if (sel == -1) break;
 
 						std::string emu_name;
 						std::string def_name;
@@ -741,7 +741,7 @@ int main(int argc, char *argv[])
 						// dialog
 						feVM.update_to_new_list();
 
-						if ( feOverlay.edit_game_dialog() )
+						if ( feOverlay.edit_game_dialog( 0, c ) )
 							feVM.update_to_new_list();
 
 						redraw=true;
@@ -749,14 +749,14 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::EditGame:
-					if ( feOverlay.edit_game_dialog() )
+					if ( feOverlay.edit_game_dialog( 0, c ) )
 						feVM.update_to_new_list();
 
 					redraw=true;
 					break;
 
 				case FeInputMap::LayoutOptions:
-					if ( feOverlay.layout_options_dialog() )
+					if ( feOverlay.layout_options_dialog( 0, c ) )
 						feVM.load_layout();
 
 					redraw=true;
@@ -808,7 +808,7 @@ int main(int argc, char *argv[])
 								disp_names,
 								current_idx,
 								-1,
-								FeInputMap::DisplaysMenu );
+								c );
 
 							if ( sel_idx == exit_opt )
 							{
@@ -841,7 +841,7 @@ int main(int argc, char *argv[])
 										names_list,
 										feSettings.get_current_filter_index(),
 										-1,
-										FeInputMap::FiltersMenu );
+										c );
 
 						if ( filter_index >= 0 )
 						{
@@ -890,7 +890,7 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::ToggleTags:
-					feOverlay.tags_dialog();
+					feOverlay.tags_dialog( 0, c );
 					redraw = true;
 					break;
 

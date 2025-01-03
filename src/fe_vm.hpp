@@ -145,6 +145,7 @@ public:
 	//
 	// overlay functions used from scripts
 	//
+	int list_dialog( Sqrat::Array, const char *, int, int, FeInputMap::Command );
 	int list_dialog( Sqrat::Array, const char *, int, int );
 	int list_dialog( Sqrat::Array, const char *, int );
 	int list_dialog( Sqrat::Array, const char * );

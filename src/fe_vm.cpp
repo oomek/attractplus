@@ -1395,7 +1395,13 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 	return false;
 }
 
-int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int cancel_sel )
+int FeVM::list_dialog(
+	Sqrat::Array t,
+	const char *title,
+	int default_sel,
+	int cancel_sel,
+	FeInputMap::Command extra_exit
+)
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
@@ -1421,7 +1427,8 @@ int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int c
 				std::string( title ),
 				list_entries,
 				default_sel,
-				cancel_sel );
+				cancel_sel,
+				extra_exit );
 	}
 	else
 	{
@@ -1429,7 +1436,8 @@ int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int c
 				std::string( title ),
 				list_entries,
 				default_sel,
-				cancel_sel );
+				cancel_sel,
+				extra_exit );
 	}
 
 	if ( m_overlay->get_menu_command() > 0 )
@@ -1441,19 +1449,24 @@ int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int c
 	return retval;
 }
 
+int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int cancel_sel )
+{
+	return list_dialog( t, title, default_sel, cancel_sel, FeInputMap::LAST_COMMAND );
+}
+
 int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel )
 {
-	return list_dialog( t, title, default_sel, -1 );
+	return list_dialog( t, title, default_sel, -1, FeInputMap::LAST_COMMAND );
 }
 
 int FeVM::list_dialog( Sqrat::Array t, const char *title )
 {
-	return list_dialog( t, title, 0, -1 );
+	return list_dialog( t, title, 0, -1, FeInputMap::LAST_COMMAND );
 }
 
 int FeVM::list_dialog( Sqrat::Array t )
 {
-	return list_dialog( t, NULL, 0, -1 );
+	return list_dialog( t, NULL, 0, -1, FeInputMap::LAST_COMMAND );
 }
 
 const char *FeVM::edit_dialog( const char *msg, const char *txt )
