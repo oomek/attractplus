@@ -1031,7 +1031,7 @@ bool FeVM::on_new_layout()
 	fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 	fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
-	fe.Func<void (*)()>(_SC("suppress_navigation"), &FeVM::cb_suppress_navigation);
+	fe.Func<void (*)(bool)>(_SC("suppress_navigation"), &FeVM::cb_suppress_navigation);
 
 #ifdef USE_LIBCURL
 	fe.Func<bool (*)(const char *, const char *)>(_SC("get_url"), &FeVM::get_url);
@@ -2441,11 +2441,11 @@ void FeVM::print_to_console( const char *str )
 	FeLog() << str << std::endl;
 };
 
-void FeVM::cb_suppress_navigation()
+void FeVM::cb_suppress_navigation( bool value )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
-	fev->suppress_navigation();
+	fev->suppress_navigation( value );
 };
 
 bool FeVM::cb_plugin_command( const char *command,

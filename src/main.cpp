@@ -1014,11 +1014,10 @@ int main(int argc, char *argv[])
 							feVM.set_suppressed_navigation_step( step );
 							step = 0;
 						}
-						else
-							feVM.set_suppressed_navigation_step( 0 );
 
 						if ( step != 0 )
 						{
+							feVM.suppress_navigation( false );
 							feVM.change_selection( step, false );
 							redraw=true;
 						}

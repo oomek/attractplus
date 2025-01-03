@@ -141,7 +141,7 @@ public:
 	void set_script_id( int id ) { m_script_id=id; };
 
 	bool script_handle_event( FeInputMap::Command c );
-	void suppress_navigation() { m_suppress_navigation = true; };
+	void suppress_navigation( bool suppress ) { m_suppress_navigation = suppress; m_suppressed_navigation_step = 0; };
 	void release_navigation() { m_suppress_navigation = false; };
 	bool is_navigation_suppressed() { return m_suppress_navigation; };
 	void set_suppressed_navigation_step( int step ) { m_suppressed_navigation_step = step; };
@@ -216,7 +216,7 @@ public:
 	static void do_nut(const char *);
 	static bool load_module( const char *module_file );
 	static void print_to_console( const char *str );
-	static void cb_suppress_navigation();
+	static void cb_suppress_navigation( bool );
 #ifdef USE_LIBCURL
 	static bool get_url( const char *url, const char *path );
 #endif

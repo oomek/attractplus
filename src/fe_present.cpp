@@ -1075,11 +1075,12 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		m_suppressed_navigation_step = step;
 		step = 0;
 	}
-	else
-		m_suppressed_navigation_step = 0;
 
 	if ( step != 0 )
+	{
+		suppress_navigation( false );
 		change_selection( step, false );
+	}
 
 	return true;
 }
