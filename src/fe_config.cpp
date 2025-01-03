@@ -1974,7 +1974,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	// Add the ui colour setting
 	ctx.add_optl( Opt::LIST, "Menu Colour", uicol, "_help_ui_color" );
 	ctx.back_opt().append_vlist( ui_cols );
-	ctx.back_opt().opaque_str = "ui_reload"; // flag the ui to reload if this option changes
+	ctx.back_opt().trigger_reload = true; // flag the ui to reload if this option changes
 
 #if !defined(FORCE_FULLSCREEN)
 	std::string winmode;

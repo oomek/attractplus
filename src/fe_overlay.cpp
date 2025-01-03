@@ -1025,8 +1025,6 @@ int FeOverlay::display_config_dialog(
 	FeInputMap::Command extra_exit )
 {
 	style_init();
-	std::string uicol = m_feSettings.get_info( FeSettings::UIColor );
-
 	FeConfigContextImp ctx( m_feSettings, *this );
 	ctx.update_to_menu( m );
 
@@ -1208,33 +1206,18 @@ int FeOverlay::display_config_dialog(
 			case Opt::SUBMENU:
 				if ( sm )
 				{
-					bool test( false );
-					int sm_ret = display_config_dialog( sm, test );
-					if ( sm_ret < 0 )
-					{
-						return sm_ret;
-					}
+					bool submenu_setting_changed( false );
+					int sm_ret = display_config_dialog( sm, submenu_setting_changed );
+					if ( sm_ret < 0 ) return sm_ret;
 
-					if ( test )
+					if ( submenu_setting_changed )
 					{
 						ctx.save_req = true;
-
-						// If UIColor changed by submenu then reload ui
-						if ( uicol != m_feSettings.get_info( FeSettings::UIColor ) )
-						{
-							if ( m->save( ctx ) ) parent_setting_changed = true;
-							return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
-						}
+						if ( m->save( ctx ) ) parent_setting_changed = true;
 					}
 
-					//
-					// The submenu may have changed stuff in this menu, need
-					// to update our variables as a result
-					//
-					ctx.update_to_menu( m );
-
-					sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
-					vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
+					// The submenu may have modified stuff in this menu - reload to display changes
+					return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 				}
 				break;
 			case Opt::EXIT:
@@ -1313,17 +1296,11 @@ int FeOverlay::display_config_dialog(
 			vdialog.setSelColor( m_text_colour );
 			vdialog.setSelBgColor( m_sel_bg_colour );
 
-			// If flagged as "ui_reload" save & reload to show ui changes instantly
-			if ( ctx.save_req )
+			// If trigger_reload, save & reload to show ui changes instantly
+			if ( ctx.save_req && ctx.opt_list[ctx.curr_sel].trigger_reload )
 			{
-				for ( int i=0; i < (int)ctx.opt_list.size(); i++ )
-				{
-					if ( ctx.opt_list[i].opaque_str == "ui_reload" )
-					{
-						if ( m->save( ctx ) ) parent_setting_changed = true;
-						return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
-					}
-				}
+				if ( m->save( ctx ) ) parent_setting_changed = true;
+				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 			}
 		}
 	}
