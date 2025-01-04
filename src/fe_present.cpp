@@ -987,6 +987,7 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		return true;
 
 	int step = 0;
+	int filter_step = 0;
 
 	switch( c )
 	{
@@ -1037,16 +1038,7 @@ bool FePresent::handle_event( FeInputMap::Command c )
 
 	case FeInputMap::NextFilter:
 	case FeInputMap::PrevFilter:
-		{
-			int offset = ( c == FeInputMap::NextFilter ) ? 1 : -1;
-			if ( m_feSettings->navigate_filter( offset ) )
-				load_layout();
-			else
-			{
-				update_to( ToNewList, false );
-				on_transition( ToNewList, offset );
-			}
-		}
+			filter_step = ( c == FeInputMap::NextFilter ) ? 1 : -1;
 		break;
 
 	case FeInputMap::ToggleLayout:
@@ -1072,7 +1064,9 @@ bool FePresent::handle_event( FeInputMap::Command c )
 
 	if ( is_navigation_suppressed() )
 	{
-		m_suppressed_navigation_step = step;
+		if ( filter_step != 0 ) m_suppressed_navigation_step = filter_step;
+		else if ( step != 0 ) m_suppressed_navigation_step = step;
+		filter_step = 0;
 		step = 0;
 	}
 
@@ -1080,6 +1074,17 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	{
 		suppress_navigation( false );
 		change_selection( step, false );
+	}
+
+	if ( filter_step != 0 )
+	{
+		if ( m_feSettings->navigate_filter( filter_step ))
+			load_layout();
+		else
+		{
+			update_to( ToNewList, false );
+			on_transition( ToNewList, filter_step );
+		}
 	}
 
 	return true;
