@@ -999,6 +999,15 @@ int FeOverlay::display_config_dialog(
 	FeBaseConfigMenu *m,
 	bool &parent_setting_changed )
 {
+	return display_config_dialog( m, parent_setting_changed, -1, FeInputMap::LAST_COMMAND );
+}
+
+int FeOverlay::display_config_dialog(
+	FeBaseConfigMenu *m,
+	bool &parent_setting_changed,
+	int default_sel,
+	FeInputMap::Command extra_exit )
+{
 	FeConfigContextImp ctx( m_feSettings, *this );
 	ctx.update_to_menu( m );
 
@@ -1092,7 +1101,8 @@ int FeOverlay::display_config_dialog(
 	footer.setTextScale( m_text_scale );
 	draw_list.push_back( &footer );
 
-	ctx.curr_sel = ctx.default_sel;
+	// A passed selection will override the context default_sel - useful when reloading the menu
+	ctx.curr_sel = default_sel >= 0 ? default_sel : ctx.default_sel;
 	if ( ctx.curr_sel >= (int)ctx.left_list.size() )
 		ctx.curr_sel = 0;
 
@@ -1271,6 +1281,13 @@ int FeOverlay::display_config_dialog(
 			tp->setString( ctx.right_list[ctx.curr_sel] );
 			sdialog.setSelColor( m_textColour );
 			vdialog.setEditMode( false, m_textColour, 0 );
+
+			// If trigger_reload, save & reload to show ui changes instantly
+			if ( ctx.save_req && ctx.opt_list[ctx.curr_sel].trigger_reload )
+			{
+				if ( m->save( ctx ) ) parent_setting_changed = true;
+				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
+			}
 		}
 	}
 	return ctx.curr_sel;

@@ -2393,23 +2393,26 @@ void FeLayoutEditMenu::get_options( FeConfigContext &ctx )
 		}
 		else
 		{
-			// User config params are always loaded from layout.nut
-			//
+			// Default to layout.nut for the config params - may be overridden below
 			m_file_name = FE_LAYOUT_FILE_BASE;
-			m_file_name += FE_LAYOUT_FILE_EXTENSION;
 
 			if (( m_display ) && ( file_list.size() > 1 ))
 			{
 				// Since there are multiple layout files available, add a config
 				// option allowing the user to select which one to use.
 				std::string lf = m_display->get_current_layout_file();
-				if ( lf.empty() )
-					lf = FE_LAYOUT_FILE_BASE;
+				if ( lf.empty() ) lf = FE_LAYOUT_FILE_BASE;
+
+				// Load user config params from the current layout
+				m_file_name = lf;
 
 				ctx.add_optl( Opt::LIST, "Layout File", lf, "_help_layout_file" );
 				ctx.back_opt().append_vlist( file_list );
 				ctx.back_opt().opaque = 500;
+				ctx.back_opt().trigger_reload = true;
 			}
+
+			m_file_name += FE_LAYOUT_FILE_EXTENSION;
 		}
 
 		m_configurable = m_layout;     // parent member
@@ -2444,6 +2447,40 @@ bool FeLayoutEditMenu::save( FeConfigContext &ctx )
 		first_idx = 2;
 		m_display->set_current_layout_file( ctx.opt_list[1].get_value() );
 	}
+
+	// get param labels of current options
+	std::vector<std::string> curr_labels;
+	std::transform(
+		ctx.opt_list.begin(), ctx.opt_list.end(),
+		std::back_inserter( curr_labels ),
+		[]( FeMenuOpt opt ) { return opt.opaque_str; }
+	);
+	std::sort(curr_labels.begin(), curr_labels.end());
+
+	// get param labels of saved options
+	std::vector<std::string> prev_labels;
+	m_layout->get_param_labels(prev_labels);
+	std::sort(prev_labels.begin(), prev_labels.end());
+
+	// get diff of saved labels not in the current list
+	std::vector<std::string> diff_labels;
+	std::set_difference(
+		prev_labels.begin(), prev_labels.end(),
+		curr_labels.begin(), curr_labels.end(),
+		std::inserter( diff_labels, diff_labels.begin() )
+	);
+
+	// add diff options to prevent un-edited value from being removed
+	std::for_each(
+		diff_labels.begin(),
+		diff_labels.end(),
+		[ &ctx, this ]( std::string label )
+		{
+			std::string value;
+			m_layout->get_param( label, value );
+			ctx.opt_list.push_back( FeMenuOpt( Opt::EDIT, "", value, "", 0, label ) );
+		}
+	);
 
 	return FeScriptConfigMenu::save_helper( ctx, first_idx );
 }

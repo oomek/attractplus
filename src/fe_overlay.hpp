@@ -67,6 +67,12 @@ private:
 	void input_map_dialog( const std::string &msg_str, FeInputMapEntry &res,
 			FeInputMap::Command &conflict );
 	int display_config_dialog( FeBaseConfigMenu *, bool & );
+	int display_config_dialog(
+		FeBaseConfigMenu *m,
+		bool &parent_setting_changed,
+		int default_sel,
+		FeInputMap::Command extra_exit
+	);
 
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
