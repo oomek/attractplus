@@ -16,28 +16,33 @@
 
 const char *FE_CACHE_SUBDIR = "cache/";
 const char *FE_CACHE_ROMLIST = ".romlist";
-const char *FE_CACHE_FILTERS = ".filters";
+const char *FE_CACHE_FILTER = ".filter";
 const std::string FE_EMPTY_STRING;
 
+std::string FeCache::m_config_path;
+
+// -------------------------------------------------------------------------------------
+
 //
-// Returns cache base dir
+// Create path for config files
 //
-std::string get_cache_dir( const std::string config_path )
+void FeCache::set_config_path( std::string path )
 {
-	return config_path + FE_CACHE_SUBDIR;
+	m_config_path = path;
+	confirm_directory( m_config_path, FE_CACHE_SUBDIR );
 }
 
 //
 // Returns sanitized filename for romlist cache
 //
-std::string get_display_cache_filename(
-	const std::string config_path,
+std::string FeCache::get_romlist_cache_filename(
 	FeDisplayInfo &display
 )
 {
 	std::string name = display.get_name();
 	if ( name.empty() ) return FE_EMPTY_STRING;
-	return get_cache_dir( config_path )
+	return m_config_path
+		+ FE_CACHE_SUBDIR
 		+ sanitize_filename( name )
 		+ FE_CACHE_ROMLIST
 		+ FE_CACHE_EXT;
@@ -46,34 +51,19 @@ std::string get_display_cache_filename(
 //
 // Returns sanitized filename for filter cache
 //
-std::string get_filters_cache_filename(
-	const std::string config_path,
-	FeDisplayInfo &display
+std::string FeCache::get_filter_cache_filename(
+	FeDisplayInfo &display,
+	int filter_index
 )
 {
 	std::string name = display.get_name();
 	if ( name.empty() ) return FE_EMPTY_STRING;
-	return get_cache_dir( config_path )
+	return m_config_path
+		+ FE_CACHE_SUBDIR
 		+ sanitize_filename( name )
-		+ FE_CACHE_FILTERS
+		+ FE_CACHE_FILTER
+		+ "." + as_str(filter_index)
 		+ FE_CACHE_EXT;
-}
-
-//
-// Returns romlist m_list as a vector containing pointers
-//
-std::vector<FeRomInfo*> get_romlist_lookup(
-	FeRomList &romlist
-)
-{
-	FeRomInfoListType &m_list = romlist.get_list();
-	std::vector<FeRomInfo*> v;
-	v.reserve(m_list.size());
-	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
-	{
-		v.push_back(&(*it));
-	}
-	return v;
 }
 
 // -------------------------------------------------------------------------------------
@@ -160,20 +150,103 @@ void FeCache::indexes_to_clone_group(
 	);
 }
 
+//
+// Returns romlist romInfoList as an indexed vector of pointers
+// - Must only be used after romlist filtered, sorted and group_cloned ordered
+//
+std::vector<FeRomInfo*> FeCache::get_romlist_lookup(
+	FeRomInfoListType &m_list
+)
+{
+	std::vector<FeRomInfo*> v;
+	v.reserve(m_list.size());
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
+	{
+		v.push_back(&(*it));
+	}
+	return v;
+}
+
 // -------------------------------------------------------------------------------------
 
 //
-// Saves romlist data to cache file
+// Clears all cache belonging to the given display (romlist and all filters)
 //
-bool FeCache::save_display_cache(
-	const std::string config_path,
+void FeCache::clear_display_cache(
+	FeDisplayInfo &display
+)
+{
+	clear_romlist_cache( display );
+
+	int filters_count = display.get_filter_count();
+	if ( filters_count == 0 ) filters_count = 1;
+	for ( int i=0; i<filters_count; i++ ) clear_filter_cache( display, i );
+}
+
+//
+// Clears cached romlist file
+//
+void FeCache::clear_romlist_cache(
+	FeDisplayInfo &display
+)
+{
+	std::string filename = get_romlist_cache_filename( display );
+	if ( file_exists( filename ) ) delete_file( filename );
+}
+
+//
+// Clears cached filter file
+//
+void FeCache::clear_filter_cache(
+	FeDisplayInfo &display,
+	int filter_index
+)
+{
+	std::string filename = get_filter_cache_filename( display, filter_index );
+	if ( file_exists( filename ) ) delete_file( filename );
+}
+
+//
+// Clears cache for all lists that use the given RomInfo target
+// - Favourite, Tags, PlayedCount, PlayedTime
+//
+void FeCache::invalidate(
+	FeDisplayInfo &display,
+	FeRomInfo::Index target
+)
+{
+	// Check whether the global filter uses the given RomInfo
+	FeFilter *global_filter = display.get_global_filter();
+	bool romlist_changed = global_filter && global_filter->test_for_target( target );
+
+	// Always clear the romlist, since it stores tags & stats that need updating
+	clear_romlist_cache( display );
+
+	int filters_count = display.get_filter_count();
+	if ( filters_count == 0 ) filters_count = 1;
+
+	for ( int i=0; i<filters_count; i++ )
+	{
+		// If the romlist has changed, or the filter uses the given RomInfo, then clear it
+		if ( romlist_changed || display.get_filter( i )->test_for_target( target ) )
+		{
+			clear_filter_cache( display, i );
+		}
+	}
+}
+
+// -------------------------------------------------------------------------------------
+
+//
+// Saves romlist to cache file
+//
+bool FeCache::save_romlist_cache(
 	FeDisplayInfo &display,
 	FeRomList &romlist
 )
 {
-	std::string filename = get_display_cache_filename( config_path, display );
+	std::string filename = get_romlist_cache_filename( display );
 	if ( filename.empty() ) return false;
-	confirm_directory( config_path, FE_CACHE_SUBDIR );
 	nowide::ofstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 
@@ -189,21 +262,20 @@ bool FeCache::save_display_cache(
 	catch (...)
 	{
 		file.close();
-		clear_display_cache( config_path, display );
+		clear_romlist_cache( display );
 		return false;
 	}
 }
 
 //
-// Loads cache file and updates romlist data
+// Loads cache file and updates romlist
 //
-bool FeCache::load_display_cache(
-	const std::string config_path,
+bool FeCache::load_romlist_cache(
 	FeDisplayInfo &display,
 	FeRomList &romlist
 )
 {
-	std::string filename = get_display_cache_filename( config_path, display );
+	std::string filename = get_romlist_cache_filename( display );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
@@ -220,57 +292,35 @@ bool FeCache::load_display_cache(
 	catch ( ... )
 	{
 		file.close();
-		clear_display_cache( config_path, display );
+		clear_romlist_cache( display );
 		return false;
 	}
-}
-
-//
-// Clears cached display as well as its filters
-// - Used when the Display settings have changed
-// - Used when the Global Filter results have changed (due to Favourites, PlayedTime, PlayedCount changing)
-//
-bool FeCache::clear_display_cache(
-	const std::string config_path,
-	FeDisplayInfo &display
-)
-{
-	std::string filename = get_display_cache_filename( config_path, display );
-	bool exists = file_exists( filename );
-	if ( exists ) delete_file( filename );
-	return clear_filters_cache( config_path, display ) || exists;
 }
 
 // -------------------------------------------------------------------------------------
 
 //
-// Saves filter data cache file
+// Saves filter to cache file
 //
-bool FeCache::save_filters_cache(
-	const std::string config_path,
+bool FeCache::save_filter_cache(
 	FeDisplayInfo &display,
-	FeRomList &romlist
+	FeFilterEntry &entry,
+	int filter_index
 )
 {
-	std::string filename = get_filters_cache_filename( config_path, display );
+	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( filename.empty() ) return false;
-	confirm_directory( config_path, FE_CACHE_SUBDIR );
 	nowide::ofstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 
 	try
 	{
 		// Update entry indexes, which is what will be cached
-		std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
-		std::for_each(
-			filtered_list.begin(),
-			filtered_list.end(),
-			[]( FeFilterEntry &it ) { it.to_indexes(); }
-		);
+		entry.to_indexes();
 
 		{	// block flushes archive
 			OutputArchive archive( file );
-			archive( filtered_list );
+			archive( entry );
 		}
 		file.close();
 		return true;
@@ -278,89 +328,42 @@ bool FeCache::save_filters_cache(
 	catch (...)
 	{
 		file.close();
-		clear_filters_cache( config_path, display );
+		clear_filter_cache( display, filter_index );
 		return false;
 	}
 }
 
 //
-// Loads filter cache and updates romlist filter data
+// Loads cache file and updates romlist filter
 //
-bool FeCache::load_filters_cache(
-	const std::string config_path,
+bool FeCache::load_filter_cache(
 	FeDisplayInfo &display,
-	FeRomList &romlist
+	FeFilterEntry &entry,
+	int filter_index,
+	std::vector<FeRomInfo*> &lookup
 )
 {
-	std::string filename = get_filters_cache_filename( config_path, display );
+	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 
 	try
 	{
-		std::vector<FeFilterEntry> &filtered_list = romlist.get_filtered_list();
 		{	// block flushes archive
 			InputArchive archive( file );
-			archive( filtered_list );
+			archive( entry );
 		}
 
 		// Convert entry indexes back into pointers
-		std::vector<FeRomInfo*> v = get_romlist_lookup( romlist );
-		std::for_each(
-			filtered_list.begin(),
-			filtered_list.end(),
-			[ &v ]( FeFilterEntry &it ) { it.from_indexes( v ); }
-		);
+		entry.from_indexes( lookup );
 		file.close();
 		return true;
 	}
 	catch ( ... )
 	{
 		file.close();
-		clear_filters_cache( config_path, display );
+		clear_filter_cache( display, filter_index );
 		return false;
 	}
-}
-
-//
-// Clears cached filter
-//
-bool FeCache::clear_filters_cache(
-	const std::string config_path,
-	FeDisplayInfo &display
-)
-{
-	std::string filename = get_filters_cache_filename( config_path, display );
-	bool exists = file_exists( filename );
-	if ( exists ) delete_file( filename );
-	return exists;
-}
-
-// -------------------------------------------------------------------------------------
-
-//
-// Clears cache for all items that use the given RomInfo target
-//
-bool FeCache::fix_cache(
-	const std::string config_path,
-	FeDisplayInfo &display,
-	FeRomInfo::Index target
-)
-{
-	FeFilter *global_filter = display.get_global_filter();
-	if ( global_filter && ( global_filter->test_for_target( target ) ) )
-	{
-		return clear_display_cache( config_path, display );
-	}
-
-	for ( int i=0; i<display.get_filter_count(); i++ )
-	{
-		if ( display.get_filter( i )->test_for_target( target ) )
-		{
-			return clear_filters_cache( config_path, display );
-		}
-	}
-
-	return false;
 }

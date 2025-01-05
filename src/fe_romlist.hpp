@@ -179,7 +179,6 @@ public:
 	void get_clone_group( int filter_idx, int idx, std::vector < FeRomInfo * > &group );
 
 	FeRomInfoListType &get_list() { return m_list; };
-	std::vector<FeFilterEntry> &get_filtered_list() { return m_filtered_list; };
 
 	void get_file_availability();
 

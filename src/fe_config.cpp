@@ -1252,7 +1252,7 @@ bool FeDisplayEditMenu::save( FeConfigContext &ctx )
 	if ( display )
 	{
 		// Clear this displays cache when its settings have changed
-		FeCache::clear_display_cache( ctx.fe_settings.get_config_dir(), *display );
+		FeCache::clear_display_cache( *display );
 
 		for ( int i=0; i< FeDisplayInfo::LAST_INDEX; i++ )
 		{

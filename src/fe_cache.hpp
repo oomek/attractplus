@@ -8,7 +8,26 @@
 
 class FeCache
 {
+private:
+
+	static std::string m_config_path;
+
 public:
+
+	static void set_config_path(
+		std::string path
+	);
+
+	static std::string get_romlist_cache_filename(
+		FeDisplayInfo &display
+	);
+
+	static std::string get_filter_cache_filename(
+		FeDisplayInfo &display,
+		int filter_index
+	);
+
+	// ----------------------------------------------------------------------------------
 
 	static void filter_list_to_indexes(
 		std::vector<int> &indexes,
@@ -32,50 +51,55 @@ public:
 		std::vector<FeRomInfo*> &lookup
 	);
 
+	static std::vector<FeRomInfo*> get_romlist_lookup(
+		FeRomInfoListType &m_list
+	);
+
 	// ----------------------------------------------------------------------------------
 
-	static bool save_display_cache(
-		const std::string config_path,
-		FeDisplayInfo &display,
-		FeRomList &romlist
-	);
-
-	static bool load_display_cache(
-		const std::string config_path,
-		FeDisplayInfo &display,
-		FeRomList &romlist
-	);
-
-	static bool clear_display_cache(
-		const std::string config_path,
+	static void clear_display_cache(
 		FeDisplayInfo &display
 	);
 
-	// ----------------------------------------------------------------------------------
-
-	static bool save_filters_cache(
-		const std::string config_path,
-		FeDisplayInfo &display,
-		FeRomList &romlist
-	);
-
-	static bool load_filters_cache(
-		const std::string config_path,
-		FeDisplayInfo &display,
-		FeRomList &romlist
-	);
-
-	static bool clear_filters_cache(
-		const std::string config_path,
+	static void clear_romlist_cache(
 		FeDisplayInfo &display
 	);
 
-	// ----------------------------------------------------------------------------------
+	static void clear_filter_cache(
+		FeDisplayInfo &display,
+		int filter_index
+	);
 
-	static bool fix_cache(
-		const std::string config_path,
+	static void invalidate(
 		FeDisplayInfo &display,
 		FeRomInfo::Index target
+	);
+
+	// ----------------------------------------------------------------------------------
+
+	static bool save_romlist_cache(
+		FeDisplayInfo &display,
+		FeRomList &romlist
+	);
+
+	static bool load_romlist_cache(
+		FeDisplayInfo &display,
+		FeRomList &romlist
+	);
+
+	// ----------------------------------------------------------------------------------
+
+	static bool save_filter_cache(
+		FeDisplayInfo &display,
+		FeFilterEntry &entry,
+		int filter_index
+	);
+
+	static bool load_filter_cache(
+		FeDisplayInfo &display,
+		FeFilterEntry &entry,
+		int filter_index,
+		std::vector<FeRomInfo*> &lookup
 	);
 
 };

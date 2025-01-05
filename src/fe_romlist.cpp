@@ -210,19 +210,22 @@ bool FeRomList::load_romlist( const std::string &path,
 	m_played_stats_checked = !load_stats;
 
 	// Attempt to load display display cache
-	if ( FeCache::load_display_cache( m_config_path, display, *this ) )
+	if ( FeCache::load_romlist_cache( display, *this ) )
 	{
-		// Abort if group_clones setting has changed, or romlist has been modified
+		// Only use cache if m_group_clones and m_modified_time matches
 		if ( ( m_group_clones == group_clones ) && ( m_modified_time == mtime ) )
 		{
-			FeLog() << " - Loaded romlist '" << m_romlist_name
-				<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-				<< " ms (" << m_list.size() << " entries, cached)" << std::endl;
+			FeLog() << " - Loaded romlist '" << m_romlist_name << "' in "
+				<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
+				<< m_list.size() << " entries from cache"
+				<< ")" << std::endl;
 
 			create_filters( display );
 			return true;
 		}
-		FeCache::clear_display_cache( m_config_path, display );
+
+		// Otherwise clear cache for this display and rebuild
+		FeCache::clear_display_cache( display );
 	}
 
 	m_group_clones = group_clones;
@@ -319,22 +322,22 @@ bool FeRomList::load_romlist( const std::string &path,
 	}
 
 	// Apply global filter
-	FeFilter *first_filter = display.get_global_filter();
-	if ( first_filter )
+	FeFilter *global_filter = display.get_global_filter();
+	if ( global_filter )
 	{
-		first_filter->init();
+		global_filter->init();
 
-		if ( first_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
+		if ( global_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
 			get_file_availability();
 
-		if ( first_filter->test_for_target( FeRomInfo::PlayedCount )
-				|| first_filter->test_for_target( FeRomInfo::PlayedTime ) )
+		if ( global_filter->test_for_target( FeRomInfo::PlayedCount )
+				|| global_filter->test_for_target( FeRomInfo::PlayedTime ) )
 			get_played_stats();
 
 		FeRomInfoListType::iterator last_it=m_list.begin();
 		for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
 		{
-			if ( first_filter->apply_filter( *it ) )
+			if ( global_filter->apply_filter( *it ) )
 			{
 				if ( last_it != it )
 					it = m_list.erase( last_it, it );
@@ -396,20 +399,14 @@ bool FeRomList::load_romlist( const std::string &path,
 		(*it).index = index++;
 	}
 
-	FeLog() << " - Loaded romlist '" << m_romlist_name
-			<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_list.size() << " kept, " << global_filtered_out_count
-			<< " discarded)" << std::endl;
+	bool saved_cache = FeCache::save_romlist_cache( display, *this );
 
-	load_timer.restart();
-
-	// Save the filtered cache for use on next load
-	if ( FeCache::save_display_cache( m_config_path, display, *this ) )
-	{
-		FeLog() << " - Cached romlist '" << m_romlist_name
-				<< "' in " << load_timer.getElapsedTime().asMilliseconds()
-				<< " ms" << std::endl;
-	}
+	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in "
+		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
+		<< m_list.size() << " kept, "
+		<< global_filtered_out_count << " discarded"
+		<< (saved_cache ? ", cached" : "")
+		<< ")" << std::endl;
 
 	create_filters( display );
 	return retval;
@@ -565,52 +562,39 @@ void FeRomList::create_filters(
 {
 	sf::Clock load_timer;
 
-	// Attempt to load the cached filter lists
-	if ( FeCache::load_filters_cache( m_config_path, display, *this ) )
-	{
-		FeLog() << " - Loaded filters in "
-			<< load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << m_filtered_list.size() << " filters, cached)" << std::endl;
-		return;
-	}
+	// Prepare an indexed lookup for filter cache loading
+	std::vector<FeRomInfo*> lookup = FeCache::get_romlist_lookup( m_list );
 
-	//
-	// Apply filters
-	//
+	int filters_cached = 0;
+
+	// If no filters configured create a single filter containing entire romlist
 	int filters_count = display.get_filter_count();
+	if ( filters_count == 0 ) filters_count = 1;
 
-	//
-	// If the display doesn't have any filters configured, we create a single "filter" in the romlist object
-	// with every romlist entry in it
-	//
-	if ( filters_count == 0 )
-		filters_count = 1;
-
+	// Apply filters
 	m_filtered_list.clear();
 	m_filtered_list.reserve( filters_count );
-
 	for ( int i=0; i<filters_count; i++ )
 	{
 		m_filtered_list.push_back( FeFilterEntry()  );
 
-		build_single_filter_list( display.get_filter( i ),
-			m_filtered_list[i] );
+		// Skip building the filter if it successfully loads from cache
+		if ( FeCache::load_filter_cache( display, m_filtered_list[i], i, lookup ) )
+		{
+			filters_cached++;
+			continue;
+		}
+
+		build_single_filter_list( display.get_filter( i ), m_filtered_list[i] );
+		FeCache::save_filter_cache( display, m_filtered_list[i], i );
 	}
 
 	FeLog() << " - Loaded filters in "
-			<< load_timer.getElapsedTime().asMilliseconds()
-			<< " ms (" << filters_count << " filters, "
-			<< filters_count * m_list.size() << " comparisons)" << std::endl;
-
-	load_timer.restart();
-
-	// Save the filtered lists for next load
-	if ( FeCache::save_filters_cache( m_config_path, display, *this ) )
-	{
-		FeLog() << " - Cached filters in "
-			<< load_timer.getElapsedTime().asMilliseconds()
-			<< " ms" << std::endl;
-	}
+		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
+		<< filters_count << " filters, "
+		<< filters_cached << " from cache, "
+		<< ((filters_count - filters_cached) * m_list.size()) << " comparisons"
+		<< ")" << std::endl;
 }
 
 int FeRomList::process_setting( const std::string &setting,
@@ -744,6 +728,7 @@ bool FeRomList::set_fav( FeRomInfo &r, FeDisplayInfo &display, bool fav )
 	r.set_info( FeRomInfo::Favourite, fav ? "1" : "" );
 	m_fav_changed=true;
 
+	FeCache::invalidate( display, FeRomInfo::Favourite );
 	return fix_filters( display, FeRomInfo::Favourite );
 }
 
@@ -821,6 +806,7 @@ bool FeRomList::set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::stri
 			itt = m_tags.insert( itt, std::pair<std::string,bool>( tag, true ) );
 	}
 
+	FeCache::invalidate( display, FeRomInfo::Tags );
 	return fix_filters( display, FeRomInfo::Tags );
 }
 
@@ -840,8 +826,6 @@ bool FeRomList::fix_filters( FeDisplayInfo &display, FeRomInfo::Index target )
 		}
 	}
 
-	// Fix the cache if it uses the given target in its rules/sort
-	FeCache::fix_cache( m_config_path, display, target );
 	return retval;
 }
 
