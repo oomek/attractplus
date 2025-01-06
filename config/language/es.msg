@@ -108,6 +108,7 @@ Jump to Next Display;Saltar a la siguiente pantalla
 Language;Idioma
 Layout;Tema
 Layout Options;Opciones de temas
+Layout Preview;Vista previa del diseño
 Left;Izquierda
 List Limit;Límite de lista
 Manufacturer;Fabricante
@@ -117,6 +118,7 @@ Name;Nombre
 Next Display;Pantalla siguiente
 Next Favourite;Siguiente favorito
 Next Filter;Filtro posterior
+Next Layout;Siguiente diseño
 Next Letter;Letra siguiente
 Next Page;Página anterior
 No;No
@@ -134,6 +136,7 @@ Press Input;Presionar control
 Previous Display;Pantalla previa
 Previous Favourite;Anterior favorito
 Previous Filter;Filtro anterior
+Previous Layout;Diseño anterior
 Previous Letter;Letra previa
 Previous Page;Página posterior
 Random Game;Juego aleatorio
@@ -230,7 +233,8 @@ _help_control_screen_saver;Configura el(los) control(es) que lanzan el protector
 _help_control_screenshot;Configura el(los) control(es) que toma una captura de pantalla del frontend
 _help_control_select;Configura los el(los) control(es) que lanzan la selción actual
 _help_control_toggle_flip;Configura el(los) control(es) que cambia si la pantalla debe ser rotada o no 180 grados
-_help_control_toggle_layout;Configura el(los) control(es) que cambia el script de tema a usar (Depende del tema que está usando si esto hace algo)
+_help_control_toggle_layout;Configura el(los) control(es) que pasan a la siguiente variante de diseño
+_help_control_prev_layout;Configura el(los) control(es) que se mueven a la variante de diseño anterior
 _help_control_toggle_movie;Configura el(los) control(es) que cambia si los videos son o no reproducidos
 _help_control_toggle_mute;Configura el(los) control(es) que silencia o no el sonido del frontend
 _help_control_toggle_rotate_left;Configura el(los) control(es) que cambia si la pantalla debe ser rotada o no 90 grados a la izquierda
@@ -441,6 +445,7 @@ _help_input_default_action;Set the default behaviour for this control
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen

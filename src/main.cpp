@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
 	bool launch_game = false;
 	bool process_console = false;
 	FeLogLevel log_level = FeLog_Info;
+	int layout_sel = 0;
 
 #ifdef USE_LIBCURL
 	curl_global_init( CURL_GLOBAL_ALL );
@@ -757,10 +758,11 @@ int main(int argc, char *argv[])
 
 				case FeInputMap::LayoutOptions:
 					{
-						int sel = 0;
-						while ( feOverlay.layout_options_dialog( sel, c ) )
+						bool preview = feSettings.get_info_bool( FeSettings::LayoutPreview );
+						while ( feOverlay.layout_options_dialog( preview, layout_sel, c ) )
 						{
 							feVM.load_layout();
+							if ( !preview ) break;
 						}
 						redraw = true;
 					}

@@ -280,6 +280,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_startup_mode( ShowLastSelection ),
 	m_confirm_favs( true ),
 	m_confirm_exit( true ),
+	m_layout_preview( false ),
 	m_track_usage( true ),
 	m_multimon( false ),
 #if defined(SFML_SYSTEM_LINUX) || defined(FORCE_FULLSCREEN)
@@ -418,6 +419,7 @@ const char *FeSettings::configSettingStrings[] =
 	"anti_aliasing",
 	"anisotropic",
 	"filter_wrap_mode",
+	"layout_preview",
 	"track_usage",
 	"multiple_monitors",
 	"smooth_images",
@@ -2081,7 +2083,7 @@ bool FeSettings::set_current_tag(
 	return m_rl.set_tag( *r, m_displays[m_current_display], tag, flag );
 }
 
-void FeSettings::toggle_layout()
+void FeSettings::toggle_layout( int increment )
 {
 	std::vector<std::string> list;
 
@@ -2099,8 +2101,8 @@ void FeSettings::toggle_layout()
 	if ( list.size() <= 1 ) // nothing to do if there isn't more than one file
 		return;
 
-	unsigned int index=0;
-	for ( unsigned int i=0; i< list.size(); i++ )
+	int index=0;
+	for ( int i=0; i< list.size(); i++ )
 	{
 		if ( layout_file.compare( list[i] ) == 0 )
 		{
@@ -2109,7 +2111,7 @@ void FeSettings::toggle_layout()
 		}
 	}
 
-	layout_file = list[ ( index + 1 ) % list.size() ];
+	layout_file = list[ ( index + increment + list.size() ) % list.size() ];
 
 	if ( m_current_display < 0 )
 		m_menu_layout_file = layout_file;
@@ -2831,6 +2833,7 @@ const std::string FeSettings::get_info( int index ) const
 	case GroupClones:
 	case ConfirmFavourites:
 	case ConfirmExit:
+	case LayoutPreview:
 	case TrackUsage:
 	case MultiMon:
 	case SmoothImages:
@@ -2880,6 +2883,8 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_confirm_favs;
 	case ConfirmExit:
 		return m_confirm_exit;
+	case LayoutPreview:
+		return m_layout_preview;
 	case TrackUsage:
 		return m_track_usage;
 	case MultiMon:
@@ -3073,6 +3078,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 			if ( filterWrapTokens[i] == NULL )
 				return false;
 		}
+		break;
+
+	case LayoutPreview:
+		m_layout_preview = config_str_to_bool( value );
 		break;
 
 	case TrackUsage:

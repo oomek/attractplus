@@ -129,11 +129,12 @@ Hide Brackets in Game Title;Nascondere le parentesi nei titoli
 Info Source/Scraper;Sorgente informazioni/Recupero
 Intro;Video introduttivo
 Joystick Threshold;Soglia del joystick
-Jump to Next Display;Salta al display successivo 
+Jump to Next Display;Salta al display successivo
 Language;Lingua
 Launch Last Game;Esegui l'ultimo gioco
 Layout;Tema
 Layout Options;Opzioni del tema
+Layout Preview;Anteprima del layout
 Left;Sinistra
 List Limit;Límite della lista
 Manufacturer;Produttore
@@ -146,6 +147,7 @@ Next Display;Display successivo
 Next Favourite;Preferito successivo
 Next Filter;Filtro successivo
 Next Game;Gioco successivo
+Next Layout;Disposizione successiva
 Next Letter;Lettera successiva
 Next Page;Pagina successiva
 No;No
@@ -165,6 +167,7 @@ Previous Display;Display precedente
 Previous Favourite;Preferito precedente
 Previous Filter;Filtro precedente
 Previous Game;Gioco precedente
+Previous Layout;Disposizione precedente
 Previous Letter;Lettera precedente
 Previous Page;Pagina precedente
 Random Game;Gioco casuale
@@ -282,7 +285,8 @@ _help_control_screen_saver;Configura i controlli per eseguire immediatamente il 
 _help_control_screenshot;Configura i controlli per realizzare uno screenshot
 _help_control_select;Configura i controlli per eseguire la selezione attuale
 _help_control_toggle_flip;Configura i controlli per ruotare display di 180 gradi
-_help_control_toggle_layout;Configura i controlli per cambiare la pagina del tema. Tale funzione dipende da come è stato costruito il tema stesso: con alcuni potrebbe non succedere nulla.
+_help_control_toggle_layout;Configura i controlli che passano alla variante di layout successiva
+_help_control_prev_layout;Configura i controlli che si spostano alla variante di layout precedente
 _help_control_toggle_movie;Configura i controlli per attivare/disattivare l'esecuzione dei video
 _help_control_toggle_mute;Configura i controlli che disabilitano e riabilitano l'audio del frontend
 _help_control_toggle_rotate_left;Configura i controlli per ruotare il display a sinistra di 90 gradi
@@ -451,6 +455,7 @@ _help_hide_console;Hide console on startup. Note that this only works if startin
 _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut

@@ -67,18 +67,6 @@ private:
 	void input_map_dialog( const std::string &msg_str, FeInputMapEntry &res,
 			FeInputMap::Command &conflict );
 	int display_config_dialog( FeBaseConfigMenu *, bool & );
-	int display_config_dialog(
-		FeBaseConfigMenu *m,
-		bool &parent_setting_changed,
-		int default_sel,
-		FeInputMap::Command extra_exit
-	);
-	int display_layout_dialog(
-		FeBaseConfigMenu *m,
-		bool &parent_setting_changed,
-		int &default_sel,
-		FeInputMap::Command extra_exit
-	);
 
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
@@ -101,7 +89,7 @@ public:
 
 	bool config_dialog();
 	bool edit_game_dialog();
-	bool layout_options_dialog( int &default_sel, FeInputMap::Command extra_exit );
+	bool layout_options_dialog( bool preview, int &default_sel, FeInputMap::Command extra_exit );
 	int languages_dialog();
 	int tags_dialog();
 

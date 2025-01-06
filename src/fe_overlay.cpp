@@ -947,9 +947,16 @@ bool FeOverlay::edit_game_dialog()
 	return true;
 }
 
-bool FeOverlay::layout_options_dialog( int &default_sel, FeInputMap::Command extra_exit )
+bool FeOverlay::layout_options_dialog(
+	bool preview,
+	int &default_sel,
+	FeInputMap::Command extra_exit
+)
 {
 	FeLayoutEditMenu m;
+	m.exit_on_change = preview;
+	m.curr_sel = default_sel;
+	m.extra_exit = extra_exit;
 
 	FeDisplayInfo *display = NULL;
 	FeScriptConfigurable *per_display = NULL;
@@ -978,11 +985,11 @@ bool FeOverlay::layout_options_dialog( int &default_sel, FeInputMap::Command ext
 	}
 
 	m.set_layout( layout, per_display, display );
-	m.save_on_change = true;
 
 	bool settings_changed=false;
-	default_sel = display_config_dialog( &m, settings_changed, default_sel, extra_exit );
-	if ( default_sel < 0 ) m_wnd.close();
+	int sel = display_config_dialog( &m, settings_changed );
+	if ( sel < 0 ) m_wnd.close();
+	default_sel = m.curr_sel;
 
 	if ( settings_changed )
 	{
@@ -999,15 +1006,6 @@ bool FeOverlay::layout_options_dialog( int &default_sel, FeInputMap::Command ext
 int FeOverlay::display_config_dialog(
 	FeBaseConfigMenu *m,
 	bool &parent_setting_changed )
-{
-	return display_config_dialog( m, parent_setting_changed, -1, FeInputMap::LAST_COMMAND );
-}
-
-int FeOverlay::display_config_dialog(
-	FeBaseConfigMenu *m,
-	bool &parent_setting_changed,
-	int default_sel,
-	FeInputMap::Command extra_exit )
 {
 	FeConfigContextImp ctx( m_feSettings, *this );
 	ctx.update_to_menu( m );
@@ -1102,8 +1100,7 @@ int FeOverlay::display_config_dialog(
 	footer.setTextScale( m_text_scale );
 	draw_list.push_back( &footer );
 
-	// A passed selection will override the context default_sel - useful when reloading the menu
-	ctx.curr_sel = default_sel >= 0 ? default_sel : ctx.default_sel;
+	ctx.curr_sel = m->curr_sel >= 0 ? m->curr_sel : ctx.default_sel;
 	if ( ctx.curr_sel >= (int)ctx.left_list.size() )
 		ctx.curr_sel = 0;
 
@@ -1132,6 +1129,7 @@ int FeOverlay::display_config_dialog(
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
 		{
+			m->curr_sel = ctx.curr_sel;
 			footer.setString( ctx.curr_opt().help_msg );
 
 			// we reset the entire Text because edit mode may
@@ -1283,19 +1281,19 @@ int FeOverlay::display_config_dialog(
 			sdialog.setSelColor( m_textColour );
 			vdialog.setEditMode( false, m_textColour, 0 );
 
-			// If trigger_reload, save & reload to show ui changes instantly
 			if ( ctx.save_req )
 			{
-				if ( m->save_on_change )
+				if ( m->exit_on_change )
 				{
-					m->save( ctx );
-					parent_setting_changed = true;
+					// Save & return so caller can apply changes
+					if ( m->save( ctx ) ) parent_setting_changed = true;
 					return ctx.curr_sel;
 				}
 				else if ( ctx.opt_list[ctx.curr_sel].trigger_reload )
 				{
+					// Save & reload to show ui changes
 					if ( m->save( ctx ) ) parent_setting_changed = true;
-					return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
+					return display_config_dialog( m, parent_setting_changed );
 				}
 			}
 		}

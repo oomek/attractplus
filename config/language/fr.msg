@@ -103,6 +103,7 @@ Jump to Next Display;Bascule sur la liste de roms suivante
 Language;Langue
 Layout;Thème
 Layout Options;Options du Layout
+Layout Preview;Aperçu de la mise en page
 Left;Gauche
 List Limit;taille maximum de la liste
 Manufacturer;Fabriquant
@@ -112,6 +113,7 @@ Name;Nom
 Next Display;Liste suivante
 Next Favourite;Favoris suivant
 Next Filter;Filtre suivant
+Next Layout;Mise en page suivante
 Next Letter;Lettre suivante
 Next Page;Page Précédente
 No;Non
@@ -128,6 +130,7 @@ Press Input;Appuyer sur le contrôle
 Previous Display;Liste précédente
 Previous Favourite;Favoris précédent
 Previous Filter;Filtre précédent
+Previous Layout;Disposition précédente
 Previous Letter;Lettre précédente
 Previous Page;Page Suivante
 Random Game;Jeu au hasard
@@ -218,7 +221,8 @@ _help_control_screen_saver;Définit le(s) contrôle(s) qui lance(nt) le mode "é
 _help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract Mode
 _help_control_select;Définit le(s) contrôle(s) qui valide(nt) la valeur sélectionnée
 _help_control_toggle_flip;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 180 degrés
-_help_control_toggle_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
+_help_control_toggle_layout;Définit le(s) contrôle(s) qui passe à la variante de mise en page suivante
+_help_control_prev_layout;Définit le(s) contrôle(s) qui passe à la variante de mise en page précédente
 _help_control_toggle_movie;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la lecture des vidéos.
 _help_control_toggle_mute;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) le son.
 _help_control_toggle_rotate_left;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la gauche
@@ -431,6 +435,7 @@ _help_input_action;
 _help_input_default_action;Set the default behaviour for this control
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen
