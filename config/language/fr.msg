@@ -113,7 +113,6 @@ Name;Nom
 Next Display;Liste suivante
 Next Favourite;Favoris suivant
 Next Filter;Filtre suivant
-Next Layout;Mise en page suivante
 Next Letter;Lettre suivante
 Next Page;Page Précédente
 No;Non
@@ -130,7 +129,6 @@ Press Input;Appuyer sur le contrôle
 Previous Display;Liste précédente
 Previous Favourite;Favoris précédent
 Previous Filter;Filtre précédent
-Previous Layout;Disposition précédente
 Previous Letter;Lettre précédente
 Previous Page;Page Suivante
 Random Game;Jeu au hasard
@@ -221,8 +219,7 @@ _help_control_screen_saver;Définit le(s) contrôle(s) qui lance(nt) le mode "é
 _help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract Mode
 _help_control_select;Définit le(s) contrôle(s) qui valide(nt) la valeur sélectionnée
 _help_control_toggle_flip;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 180 degrés
-_help_control_toggle_layout;Définit le(s) contrôle(s) qui passe à la variante de mise en page suivante
-_help_control_prev_layout;Définit le(s) contrôle(s) qui passe à la variante de mise en page précédente
+_help_control_toggle_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
 _help_control_toggle_movie;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la lecture des vidéos.
 _help_control_toggle_mute;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) le son.
 _help_control_toggle_rotate_left;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la gauche

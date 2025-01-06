@@ -166,7 +166,6 @@ Next Display;Next Display
 Next Favourite;Next Favourite
 Next Filter;Next Filter
 Next Game;Next Game
-Next Layout;Next Layout
 Next Letter;Next Letter
 Next Page;Next Page
 No;No
@@ -191,7 +190,6 @@ Previous Display;Previous Display
 Previous Favourite;Previous Favourite
 Previous Filter;Previous Filter
 Previous Game;Previous Game
-Previous Layout;Previous Layout
 Previous Letter;Previous Letter
 Previous Page;Previous Page
 Random Game;Random Game
@@ -313,8 +311,7 @@ _help_control_screen_saver;Set the control(s) that launch screen saver mode
 _help_control_screenshot;Set the control(s) that take a screenshot of the frontend
 _help_control_select;Set the control(s) that launch the current selection
 _help_control_toggle_flip;Set the control(s) that toggle whether the display should be rotated 180 degrees
-_help_control_toggle_layout;Set the control(s) that move to the next layout variant
-_help_control_prev_layout;Set the control(s) that move to the previous layout variant
+_help_control_toggle_layout;Set the control(s) that toggle the layout script to use (It depends on the layout you are using whether this does anything)
 _help_control_toggle_movie;Set the control(s) that toggle whether or not videos should be played
 _help_control_toggle_mute;Set the control(s) that mute/unmute frontend sound
 _help_control_toggle_rotate_left;Set the control(s) that toggle whether the display should be rotated 90 degrees to the left

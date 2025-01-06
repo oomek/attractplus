@@ -2083,7 +2083,7 @@ bool FeSettings::set_current_tag(
 	return m_rl.set_tag( *r, m_displays[m_current_display], tag, flag );
 }
 
-void FeSettings::toggle_layout( int increment )
+void FeSettings::toggle_layout()
 {
 	std::vector<std::string> list;
 
@@ -2101,8 +2101,8 @@ void FeSettings::toggle_layout( int increment )
 	if ( list.size() <= 1 ) // nothing to do if there isn't more than one file
 		return;
 
-	int index=0;
-	for ( int i=0; i< list.size(); i++ )
+	unsigned int index=0;
+	for ( unsigned int i=0; i< list.size(); i++ )
 	{
 		if ( layout_file.compare( list[i] ) == 0 )
 		{
@@ -2111,7 +2111,7 @@ void FeSettings::toggle_layout( int increment )
 		}
 	}
 
-	layout_file = list[ ( index + increment + list.size() ) % list.size() ];
+	layout_file = list[ ( index + 1 ) % list.size() ];
 
 	if ( m_current_display < 0 )
 		m_menu_layout_file = layout_file;

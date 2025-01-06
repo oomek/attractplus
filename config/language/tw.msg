@@ -163,7 +163,6 @@ Next Display;下一個顯示介面
 Next Favourite;下一個我的最愛
 Next Filter;下一個遊戲過濾
 Next Game;下一個遊戲
-Next Layout;下一個佈局
 Next Letter;下一個文字清單
 Next Page;下一頁
 No;否
@@ -188,7 +187,6 @@ Previous Display;上一個顯示介面
 Previous Favourite;上一個我的最愛
 Previous Filter;上一個遊戲過濾
 Previous Game;上一個遊戲
-Previous Layout;以前的佈局
 Previous Letter;上一個文字清單
 Previous Page;上一頁
 Random Game;隨機選取遊戲
@@ -307,8 +305,7 @@ _help_control_screen_saver;設定「進入螢幕保護模式」的控制鍵
 _help_control_screenshot;設定「螢幕截圖」的控制鍵
 _help_control_select;設定「執行當前選項」的控制鍵
 _help_control_toggle_flip;設定「將顯示畫面旋轉 180 度」的控制鍵
-_help_control_toggle_layout;設定「移至下一個佈局變體」的控件
-_help_control_prev_layout;設定「移至上一個佈局變體」的控件
+_help_control_toggle_layout;設定「切換畫面佈局」的控制鍵 (主題資料夾中含有多個畫面佈局檔案時才會進行切換)
 _help_control_toggle_movie;設定「切換影片播放」的控制鍵
 _help_control_toggle_mute;設定「切換聲音靜音」的控制鍵
 _help_control_toggle_rotate_left;設定「將顯示畫面向左旋轉 90 度」的控制鍵

@@ -404,7 +404,7 @@ public:
 	void get_exit_message( std::string &exit_message ) const;
 	void get_exit_question( std::string &exit_question ) const;
 
-	void toggle_layout( int increment );
+	void toggle_layout();
 	void set_current_layout_file( const std::string &layout_file );
 
 	int get_rom_index( int filter_index, int offset ) const;

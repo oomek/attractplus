@@ -147,7 +147,6 @@ Next Display;Display successivo
 Next Favourite;Preferito successivo
 Next Filter;Filtro successivo
 Next Game;Gioco successivo
-Next Layout;Disposizione successiva
 Next Letter;Lettera successiva
 Next Page;Pagina successiva
 No;No
@@ -167,7 +166,6 @@ Previous Display;Display precedente
 Previous Favourite;Preferito precedente
 Previous Filter;Filtro precedente
 Previous Game;Gioco precedente
-Previous Layout;Disposizione precedente
 Previous Letter;Lettera precedente
 Previous Page;Pagina precedente
 Random Game;Gioco casuale
@@ -285,8 +283,7 @@ _help_control_screen_saver;Configura i controlli per eseguire immediatamente il 
 _help_control_screenshot;Configura i controlli per realizzare uno screenshot
 _help_control_select;Configura i controlli per eseguire la selezione attuale
 _help_control_toggle_flip;Configura i controlli per ruotare display di 180 gradi
-_help_control_toggle_layout;Configura i controlli che passano alla variante di layout successiva
-_help_control_prev_layout;Configura i controlli che si spostano alla variante di layout precedente
+_help_control_toggle_layout;Configura i controlli per cambiare la pagina del tema. Tale funzione dipende da come è stato costruito il tema stesso: con alcuni potrebbe non succedere nulla.
 _help_control_toggle_movie;Configura i controlli per attivare/disattivare l'esecuzione dei video
 _help_control_toggle_mute;Configura i controlli che disabilitano e riabilitano l'audio del frontend
 _help_control_toggle_rotate_left;Configura i controlli per ruotare il display a sinistra di 90 gradi
