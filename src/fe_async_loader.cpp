@@ -81,12 +81,17 @@ int FeAsyncLoader::get_active_size()
 
 int FeAsyncLoader::get_queue_size()
 {
-	return m_queue.size();
+	return m_loader_queue_size.load();
+}
+
+int FeAsyncLoader::get_cleanup_size()
+{
+	return m_cleanup_size.load();
 }
 
 int FeAsyncLoader::get_cached_ref_count( int pos )
 {
-	ulock_t lock( m_mutex );
+	ulock_t lock( m_loader_mutex );
 	list_iterator_t it = m_resources_cached.begin();
 	std::advance( it, pos );
 	return it->second->get_ref();
@@ -94,7 +99,7 @@ int FeAsyncLoader::get_cached_ref_count( int pos )
 
 int FeAsyncLoader::get_active_ref_count( int pos )
 {
-	ulock_t lock( m_mutex );
+	ulock_t lock( m_loader_mutex );
 	list_iterator_t it = m_resources_active.begin();
 	std::advance( it, pos );
 	return (*it).second->get_ref();
@@ -109,8 +114,8 @@ bool FeAsyncLoader::done()
 {
 	if ( !m_done )
 	{
-		ulock_t lock( m_mutex );
-		if ( m_queue.size() == 0 )
+		ulock_t lock( m_loader_mutex );
+		if ( m_loader_queue.size() == 0 )
 		{
 			m_done = true;
 			return true;
@@ -122,18 +127,22 @@ bool FeAsyncLoader::done()
 
 void FeAsyncLoader::notify()
 {
-	m_condition.notify_one();
+	m_loader_condition.notify_one();
 }
 
 FeAsyncLoader::FeAsyncLoader()
-	: m_running( true ),
+	: m_loader_running( true ),
+	m_cleanup_running( true ),
 	m_done( true ),
 	m_resources_active{},
 	m_resources_cached{},
+	m_resources_cleanup{},
 	m_resources_map{},
-	m_queue{}
+	m_loader_queue{}
 {
-	m_thread = std::thread( &FeAsyncLoader::thread_loop, this );
+	// setLogHandler(nullptr);
+	m_loader_thread = std::thread( &FeAsyncLoader::loader_thread_loop, this );
+	m_cleanup_thread = std::thread( &FeAsyncLoader::cleanup_thread_loop, this );
 }
 
 FeAsyncLoader::~FeAsyncLoader()
@@ -141,7 +150,7 @@ FeAsyncLoader::~FeAsyncLoader()
 
 	while ( !m_resources_active.empty() )
 	{
-		ulock_t lock( m_mutex );
+		ulock_t lock( m_loader_mutex );
 		list_iterator_t last = --m_resources_active.end();
 		delete last->second;
 		m_resources_active.pop_back();
@@ -149,7 +158,7 @@ FeAsyncLoader::~FeAsyncLoader()
 
 	while ( !m_resources_cached.empty() )
 	{
-		ulock_t lock( m_mutex );
+		ulock_t lock( m_loader_mutex );
 		list_iterator_t last = --m_resources_cached.end();
 		delete last->second;
 		m_resources_cached.pop_back();
@@ -157,32 +166,67 @@ FeAsyncLoader::~FeAsyncLoader()
 
 	m_resources_map.clear();
 
-	// Stop and join the thread
-	m_running = false;
-	m_condition.notify_one();
-	m_thread.join();
+	// Stop and join the loader thread
+	m_loader_running = false;
+	m_loader_condition.notify_one();
+	m_loader_thread.join();
+
+	// Stop and join the cleanup thread
+	m_cleanup_running = false;
+	m_cleanup_condition.notify_one();
+	m_cleanup_thread.join();
 }
 
-void FeAsyncLoader::thread_loop()
+void FeAsyncLoader::loader_thread_loop()
 {
 	sf::Context ctx;
 
-	while ( m_running ) // TODO: make it atomic m_running.load() ?
+	while ( m_loader_running )
 	{
-		ulock_t lock( m_mutex );
+		ulock_t lock( m_loader_mutex );
 
-		if ( m_queue.size() == 0 )
-			m_condition.wait( lock );
+		if ( m_loader_queue.size() == 0 )
+			m_loader_condition.wait( lock );
 		else
 		{
 			lock.unlock();
 
-			if ( m_resources_map.find( m_queue.front().first ) == m_resources_map.end() )
-				load_resource( m_queue.front().first, m_queue.front().second );
+			if ( m_resources_map.find( m_loader_queue.front().first ) == m_resources_map.end() )
+				load_resource( m_loader_queue.front().first, m_loader_queue.front().second );
 
 			lock.lock();
-			m_queue.pop();
+			m_loader_queue.pop();
+			m_loader_queue_size--;
 			lock.unlock();
+		}
+	}
+}
+
+void FeAsyncLoader::cleanup_thread_loop()
+{
+	sf::Context ctx;
+
+	while ( m_cleanup_running )
+	{
+		ulock_t lock( m_cleanup_mutex );
+
+		if ( m_resources_cleanup.size() == 0 )
+			m_cleanup_condition.wait( lock );
+		else
+		{
+			lock.unlock();
+
+			sf::Clock clk;
+			for ( auto it = m_resources_cleanup.begin(); it != m_resources_cleanup.end(); ++it )
+			{
+				// get_player( it->first )->foreignGLContextDestroyed();
+				delete it->second;
+				m_cleanup_size--;
+			}
+			lock.lock();
+            m_resources_cleanup.clear();
+            lock.unlock();
+			FeLog() << "FeAsyncLoader::cleanup_thread_loop() " << clk.getElapsedTime().asMilliseconds() << " ms" << std::endl;
 		}
 	}
 }
@@ -225,7 +269,7 @@ bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 	if ( is_relative_path( file ))
 		file = FePresent::script_get_base_path() + file;
 
-	ulock_t lock( m_mutex );
+	ulock_t lock( m_loader_mutex );
 	map_iterator_t it = m_resources_map.find( file );
 	if ( it == m_resources_map.end() )
 	{
@@ -237,9 +281,10 @@ bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 				return false;
 		}
 		m_done = false;
-		m_queue.push( std::make_pair( file, T::type ));
+		m_loader_queue.push( std::make_pair( file, T::type ));
 		lock.unlock();
-		m_condition.notify_one();
+		m_loader_queue_size++;
+		m_loader_condition.notify_one();
 	}
 	return true;
 }
@@ -271,7 +316,7 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 	if ( it != m_resources_map.end() )
 	{
 		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) FOUND" << std::endl;
-		ulock_t lock( m_mutex );
+		ulock_t lock( m_loader_mutex );
 		if ( it->second->second->get_ref() > 0 )
 			// Promote in active list
 			m_resources_active.splice( m_resources_active.begin(), m_resources_active, it->second );
@@ -336,7 +381,7 @@ void FeAsyncLoader::release_resource( const std::string file )
 	if ( file.empty() ) return;
 	// FeLog() << "FeAsyncLoader::release_resource( " << file << " )" << std::endl;
 
-	ulock_t lock( m_mutex );
+	ulock_t lock( m_loader_mutex );
 	map_iterator_t it = m_resources_map.find( file );
 
 	if ( it != m_resources_map.end() )
@@ -348,20 +393,28 @@ void FeAsyncLoader::release_resource( const std::string file )
 
 void FeAsyncLoader::stop_cached_videos()
 {
-	for ( auto it = m_resources_cached.begin(); it != m_resources_cached.end(); it++ )
+	for ( auto it = m_resources_cached.begin(); it != m_resources_cached.end(); )
 	{
-		if ( static_cast<FeAsyncLoaderEntryVideo*>( it->second )->type == FeAsyncLoaderEntryVideo::type )
+		if ( dynamic_cast<FeAsyncLoaderEntryVideo*>( it->second ) != nullptr )
 		{
-			Player* player = get_player( it->first );
-			if ( player != nullptr )
+			// FeLog() << "FeAsyncLoader::stop_cached_videos( " << it->first << " )" << std::endl;
+			// ulock_t lock( m_cleanup_mutex );
+			m_resources_map.erase( it->first );
+			if ( Player* player = get_player( it->first ))
 			{
 				if ( player->state() != State::Paused )
 				{
 					player->seek( 0 );
 					player->set( State::Paused );
+					// player->setVideoSurfaceSize( -1, -1 );
 				}
 			}
+			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
+			m_cleanup_size++;
+			m_cleanup_condition.notify_one();
 		}
+		else
+			++it;
 	}
 }
 
@@ -369,6 +422,7 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
 	sf::Clock clk;
 	m_player.setMedia( file.c_str() );
+	// m_player.setDecoders(MediaType::Video, { "CUDA" } );
 	m_player.prepare();
 	m_player.setPreloadImmediately( true );
 	// m_player.setLoop(std::numeric_limits<int>::max());

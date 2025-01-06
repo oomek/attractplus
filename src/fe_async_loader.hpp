@@ -7,6 +7,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 #include "fe_settings.hpp"
 
@@ -147,6 +148,9 @@ public:
 
 	typedef std::unique_lock<std::mutex> ulock_t;
 
+	std::atomic<int> m_loader_queue_size{0};
+	std::atomic<int> m_cleanup_size{0};
+
 	~FeAsyncLoader();
 	static FeAsyncLoader &get_al();
 	static void clear();
@@ -180,6 +184,7 @@ public:
 	int get_cached_size();
 	int get_active_size();
 	int get_queue_size();
+	int get_cleanup_size();
 	int get_cached_ref_count( int );
 	int get_active_ref_count( int );
 
@@ -188,19 +193,25 @@ public:
 private:
 	FeAsyncLoader();
 	static FeAsyncLoader* m_loader;
-	std::thread m_thread;
-	std::mutex m_mutex;
-	std::condition_variable m_condition;
+	std::thread m_loader_thread;
+	std::thread m_cleanup_thread;
+	std::mutex m_loader_mutex;
+	std::mutex m_cleanup_mutex;
+	std::condition_variable m_loader_condition;
+	std::condition_variable m_cleanup_condition;
 
-	bool m_running;
+	bool m_loader_running;
+	bool m_cleanup_running;
 	bool m_done;
 	list_t m_resources_active;
 	list_t m_resources_cached;
+	list_t m_resources_cleanup;
 	map_t m_resources_map;
-	std::queue< std::pair< std::string, EntryType >> m_queue;
+	std::queue< std::pair< std::string, EntryType >> m_loader_queue;
 	static size_t m_cache_size;
 
-	void thread_loop();
+	void loader_thread_loop();
+	void cleanup_thread_loop();
 };
 
 #endif
