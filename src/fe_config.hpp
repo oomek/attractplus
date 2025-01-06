@@ -60,7 +60,7 @@ private:
 
 public:
 	int type;		// see Opt namespace for values
-	bool trigger_reload;
+	bool trigger_reload = false;
 	std::string setting;	// the name of the setting
 	std::string help_msg;	// the help message for this option
 	std::vector<std::string> values_list; // list options
@@ -189,6 +189,12 @@ public:
 	// Return true if save required on parent menu
 	//
 	virtual bool save( FeConfigContext &ctx );
+
+	// When true will save and return on every option change
+	// Used to create "live" menus such as Layout edit
+	// The menu should be re-displayed in main.cpp until user explicitely exits
+	//
+	bool save_on_change;
 };
 
 // Utility class where script parameters are being configured

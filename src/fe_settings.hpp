@@ -249,6 +249,11 @@ private:
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
 
+	std::string m_loaded_romlist_name;
+	int m_loaded_current_display;
+	bool m_loaded_group_clones;
+	bool m_loaded_track_usage;
+
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
 
