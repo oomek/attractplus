@@ -954,9 +954,6 @@ bool FeOverlay::layout_options_dialog(
 )
 {
 	FeLayoutEditMenu m;
-	m.exit_on_change = preview;
-	m.curr_sel = default_sel;
-	m.extra_exit = extra_exit;
 
 	FeDisplayInfo *display = NULL;
 	FeScriptConfigurable *per_display = NULL;
@@ -985,11 +982,13 @@ bool FeOverlay::layout_options_dialog(
 	}
 
 	m.set_layout( layout, per_display, display );
+	m.exit_on_change = preview;
 
 	bool settings_changed=false;
-	int sel = display_config_dialog( &m, settings_changed );
-	if ( sel < 0 ) m_wnd.close();
-	default_sel = m.curr_sel;
+	if ( display_config_dialog( &m, settings_changed, default_sel, extra_exit ) < 0 )
+		m_wnd.close();
+
+	default_sel = m.last_sel;
 
 	if ( settings_changed )
 	{
@@ -1006,6 +1005,15 @@ bool FeOverlay::layout_options_dialog(
 int FeOverlay::display_config_dialog(
 	FeBaseConfigMenu *m,
 	bool &parent_setting_changed )
+{
+	return display_config_dialog( m, parent_setting_changed, -1, FeInputMap::LAST_COMMAND );
+}
+
+int FeOverlay::display_config_dialog(
+	FeBaseConfigMenu *m,
+	bool &parent_setting_changed,
+	int default_sel,
+	FeInputMap::Command extra_exit )
 {
 	FeConfigContextImp ctx( m_feSettings, *this );
 	ctx.update_to_menu( m );
@@ -1100,9 +1108,11 @@ int FeOverlay::display_config_dialog(
 	footer.setTextScale( m_text_scale );
 	draw_list.push_back( &footer );
 
-	ctx.curr_sel = m->curr_sel >= 0 ? m->curr_sel : ctx.default_sel;
+	// A passed selection will override the context default_sel - useful when reloading the menu
+	ctx.curr_sel = default_sel >= 0 ? default_sel : ctx.default_sel;
 	if ( ctx.curr_sel >= (int)ctx.left_list.size() )
 		ctx.curr_sel = 0;
+	m->last_sel = ctx.curr_sel;
 
 	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
@@ -1125,11 +1135,13 @@ int FeOverlay::display_config_dialog(
 	while ( true )
 	{
 		FeEventLoopCtx c( draw_list, ctx.curr_sel, ctx.exit_sel, ctx.left_list.size() - 1 );
+		c.extra_exit = extra_exit;
 
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
 		{
-			m->curr_sel = ctx.curr_sel;
+			m->last_sel = ctx.curr_sel;
+
 			footer.setString( ctx.curr_opt().help_msg );
 
 			// we reset the entire Text because edit mode may
@@ -1183,13 +1195,13 @@ int FeOverlay::display_config_dialog(
 			switch (t)
 			{
 			case Opt::RELOAD:
-				return display_config_dialog( m, parent_setting_changed );
+				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 			case Opt::MENU:
 			case Opt::SUBMENU:
 				if ( sm )
 				{
 					bool test( false );
-					int sm_ret = display_config_dialog( sm, test );
+					int sm_ret = display_config_dialog( sm, test, -1, extra_exit );
 					if ( sm_ret < 0 )
 					{
 						return sm_ret;
@@ -1235,6 +1247,7 @@ int FeOverlay::display_config_dialog(
 					int new_value = original_value;
 
 					FeEventLoopCtx c( draw_list, new_value, -1, ctx.curr_opt().values_list.size() - 1 );
+					c.extra_exit = extra_exit;
 
 					vdialog.setCustomText( new_value, ctx.curr_opt().values_list );
 					sdialog.set_a( 64 );

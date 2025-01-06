@@ -196,11 +196,9 @@ public:
 	//
 	bool exit_on_change = false;
 
-	// Holds the last selection of this menu, excluding exit options
-	int curr_sel = -1;
-
-	// Holds the command used to display this menu, used to toggle it off again
-	FeInputMap::Command extra_exit = FeInputMap::LAST_COMMAND;
+	// Holds the last selection from layout_options_dialog (excluding exit)
+	// Can be used to re-enter the menu at the same option
+	int last_sel = 0;
 };
 
 // Utility class where script parameters are being configured
