@@ -756,10 +756,14 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::LayoutOptions:
-					if ( feOverlay.layout_options_dialog() )
-						feVM.load_layout();
-
-					redraw=true;
+					{
+						int sel = 0;
+						while ( feOverlay.layout_options_dialog( sel, c ) )
+						{
+							feVM.load_layout();
+						}
+						redraw = true;
+					}
 					break;
 
 				case FeInputMap::DisplaysMenu:

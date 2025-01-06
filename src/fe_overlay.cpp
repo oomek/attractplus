@@ -947,7 +947,7 @@ bool FeOverlay::edit_game_dialog()
 	return true;
 }
 
-bool FeOverlay::layout_options_dialog()
+bool FeOverlay::layout_options_dialog( int &default_sel, FeInputMap::Command extra_exit )
 {
 	FeLayoutEditMenu m;
 
@@ -978,10 +978,11 @@ bool FeOverlay::layout_options_dialog()
 	}
 
 	m.set_layout( layout, per_display, display );
+	m.save_on_change = true;
 
 	bool settings_changed=false;
-	if ( display_config_dialog( &m, settings_changed ) < 0 )
-		m_wnd.close();
+	default_sel = display_config_dialog( &m, settings_changed, default_sel, extra_exit );
+	if ( default_sel < 0 ) m_wnd.close();
 
 	if ( settings_changed )
 	{
@@ -1283,10 +1284,19 @@ int FeOverlay::display_config_dialog(
 			vdialog.setEditMode( false, m_textColour, 0 );
 
 			// If trigger_reload, save & reload to show ui changes instantly
-			if ( ctx.save_req && ctx.opt_list[ctx.curr_sel].trigger_reload )
+			if ( ctx.save_req )
 			{
-				if ( m->save( ctx ) ) parent_setting_changed = true;
-				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
+				if ( m->save_on_change )
+				{
+					m->save( ctx );
+					parent_setting_changed = true;
+					return ctx.curr_sel;
+				}
+				else if ( ctx.opt_list[ctx.curr_sel].trigger_reload )
+				{
+					if ( m->save( ctx ) ) parent_setting_changed = true;
+					return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
+				}
 			}
 		}
 	}
