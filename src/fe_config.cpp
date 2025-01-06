@@ -2008,6 +2008,12 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	ctx.add_optl( Opt::LIST,
+			"Layout Preview",
+			ctx.fe_settings.get_info_bool( FeSettings::LayoutPreview ) ? bool_opts[0] : bool_opts[1],
+			"_help_layout_preview" );
+	ctx.back_opt().append_vlist( bool_opts );
+
+	ctx.add_optl( Opt::LIST,
 			"Track Usage",
 			ctx.fe_settings.get_info_bool( FeSettings::TrackUsage ) ? bool_opts[0] : bool_opts[1],
 			"_help_track_usage" );
@@ -2129,6 +2135,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 
 	ctx.fe_settings.set_info( FeSettings::StartupMode,
 			FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
+
+	ctx.fe_settings.set_info( FeSettings::LayoutPreview,
+			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
 
 	ctx.fe_settings.set_info( FeSettings::TrackUsage,
 			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
@@ -2448,41 +2457,41 @@ bool FeLayoutEditMenu::save( FeConfigContext &ctx )
 		m_display->set_current_layout_file( ctx.opt_list[1].get_value() );
 	}
 
-	// get param labels of current options
-	std::vector<std::string> curr_labels;
-	std::transform(
-		ctx.opt_list.begin(), ctx.opt_list.end(),
-		std::back_inserter( curr_labels ),
-		[]( FeMenuOpt opt ) { return opt.opaque_str; }
-	);
-	std::sort(curr_labels.begin(), curr_labels.end());
-
-	// get param labels of saved options
+	// Make a list of saved params that are not in the current option list (ie: belong to variant layouts)
+	std::vector<std::pair<std::string, std::string>> prev_params;
 	std::vector<std::string> prev_labels;
 	m_layout->get_param_labels(prev_labels);
-	std::sort(prev_labels.begin(), prev_labels.end());
-
-	// get diff of saved labels not in the current list
-	std::vector<std::string> diff_labels;
-	std::set_difference(
-		prev_labels.begin(), prev_labels.end(),
-		curr_labels.begin(), curr_labels.end(),
-		std::inserter( diff_labels, diff_labels.begin() )
-	);
-
-	// add diff options to prevent un-edited value from being removed
 	std::for_each(
-		diff_labels.begin(),
-		diff_labels.end(),
-		[ &ctx, this ]( std::string label )
+		prev_labels.begin(), prev_labels.end(),
+		[ &ctx, &prev_params, this ]( std::string label )
 		{
-			std::string value;
-			m_layout->get_param( label, value );
-			ctx.opt_list.push_back( FeMenuOpt( Opt::EDIT, "", value, "", 0, label ) );
+			if (
+				std::find_if(
+					ctx.opt_list.begin(), ctx.opt_list.end(),
+					[ &label ]( FeMenuOpt opt ) { return opt.opaque_str == label; }
+				) == ctx.opt_list.end()
+			)
+			{
+				std::string value;
+				m_layout->get_param( label, value );
+				prev_params.push_back({ label, value });
+			}
 		}
 	);
 
-	return FeScriptConfigMenu::save_helper( ctx, first_idx );
+	// Save the current params
+	FeScriptConfigMenu::save_helper( ctx, first_idx );
+
+	// Save the other params
+	std::for_each(
+		prev_params.begin(), prev_params.end(),
+		[ this ]( std::pair<std::string, std::string> entry )
+		{
+			m_configurable->set_param( entry.first, entry.second );
+		}
+	);
+
+	return true;
 }
 
 void FeLayoutEditMenu::set_layout( FeLayoutInfo *layout,

@@ -132,6 +132,7 @@ public:
 		AntiAliasing,
 		Anisotropic,
 		FilterWrapMode,
+		LayoutPreview,
 		TrackUsage,
 		MultiMon,
 		SmoothImages,
@@ -222,6 +223,7 @@ private:
 	StartupModeType m_startup_mode;
 	bool m_confirm_favs;
 	bool m_confirm_exit;
+	bool m_layout_preview;
 	bool m_track_usage;
 	bool m_multimon;
 	WindowType m_window_mode;
@@ -402,7 +404,7 @@ public:
 	void get_exit_message( std::string &exit_message ) const;
 	void get_exit_question( std::string &exit_question ) const;
 
-	void toggle_layout();
+	void toggle_layout( int increment );
 	void set_current_layout_file( const std::string &layout_file );
 
 	int get_rom_index( int filter_index, int offset ) const;

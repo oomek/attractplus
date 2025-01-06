@@ -26,7 +26,7 @@ fe.layout.height = 720;
     tutorialtitle = fe.add_image("resources/tutorial_title.png", 1300, 350, 720, 80 ),
     tutorial1 = fe.add_text("", 15, fe.layout.height - 180, fe.layout.width, 30 ),
     tutorial2 = fe.add_text("", 20, fe.layout.height - 150, fe.layout.width, 90 ),
-    tutorial3 = fe.add_text("Press Toggle Layout key to see the next example", 0, fe.layout.height - 40, fe.layout.width, 30 )
+    tutorial3 = fe.add_text("Press Next Layout key to see the next example", 0, fe.layout.height - 40, fe.layout.width, 30 )
 }
 
 //these will set to visible for each layout that uses them

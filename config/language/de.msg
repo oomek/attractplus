@@ -108,6 +108,7 @@ Jump to Next Display;Springe zur nächsten Liste
 Language;Sprache
 Layout;Thema
 Layout Options;Themen Optionen
+Layout Preview;Layoutvorschau
 Left;Links
 List Limit;Limit für die Liste
 Manufacturer;Hersteller
@@ -117,6 +118,7 @@ Name;Name
 Next Display;Nächster Bildschirm
 Next Favourite;Nächster Favorit
 Next Filter;Nächster Filter
+Next Layout;Nächstes Layout
 Next Letter;Nächster Buchstabe
 Next Page;Nächste Seite
 No;Nein
@@ -134,6 +136,7 @@ Press Input;Steuerung betätigen
 Previous Display;Vorheriger Bildschirm
 Previous Favourite;Voriger Favorit
 Previous Filter;Vorheriger Filter
+Previous Layout;Vorheriges Layout
 Previous Letter;Voriger Buchstabe
 Previous Page;Vorherige Seite
 Random Game;Zufälliges Spiel
@@ -230,7 +233,8 @@ _help_control_screen_saver;Definiere die Taste(n), die den Bildschirmschoner sta
 _help_control_screenshot;Definiere die Taste(n), um ein Bildschirmphoto vom Frontend zu machen
 _help_control_select;Definiere die Taste(n), um die aktuelle Auswahl zu starten
 _help_control_toggle_flip;Definiere die Taste(n), die den Bildschirm um 180 Grad drehen
-_help_control_toggle_layout;Definiere die Taste(n), die das Thema wechseln (Dies funktioniert nicht bei allen Themen)
+_help_control_toggle_layout;Definiere die Taste(n), die zur nächsten Layoutvariante wechseln
+_help_control_prev_layout;Definiere die Taste(n), die zur vorherigen Layoutvariante wechseln
 _help_control_toggle_movie;Definiere die Taste(n) für Videos an/aus
 _help_control_toggle_mute;Definiere die Taste(n) für Frontend-Klänge an/aus
 _help_control_toggle_rotate_left;Definiere die Taste(n) für eine 90 Grad Drehung des Bildschirms gegen den Uhrzeigersinn
@@ -425,6 +429,7 @@ _help_input_default_action;Setze ein Standardverhalten für diese Eingabe
 _help_joystick_map;Hier kannst du das Frontend zwingen bestimmte Joystick ports immer denselben Joysticks/Gamepads zuzuweisen (So kannst du zum Beispiel 'Microsoft X-Box 360 pad' immer als Joystick 0 verwenden.)
 _help_language;Wähle die Sprache in der Attract-Mode angezeigt wird
 _help_layout_file;Manche Themen haben mehrere .NUT Dateien. Wähle welche standardgemäß verwendet werden soll
+_help_layout_preview;Zeigen Sie Änderungen an der Layoutkonfiguration sofort an
 _help_multiple_monitors;Wähle ob Attract-Mode mehrere Monitore verwendet. Ist 'No' gewählt, kann das Flackern beim Start einiger Spiele reduzieren
 _help_shortcut_artwork_name_edit;Hier kannst du Bilddateien einer Verknüpfung zuordnen. Das Frontend wird versuchen Bilddateien mit diesem Namen zu laden wenn die jeweilige Verknüpfung angezeigt wird
 _help_shortcut_delete;Lösche diese Verknüpfung aus der Romliste

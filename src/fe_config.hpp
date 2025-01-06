@@ -60,7 +60,7 @@ private:
 
 public:
 	int type;		// see Opt namespace for values
-	bool trigger_reload = false;
+	bool trigger_reload = false; // this option will trigger a ui reload on change
 	std::string setting;	// the name of the setting
 	std::string help_msg;	// the help message for this option
 	std::vector<std::string> values_list; // list options
@@ -190,11 +190,17 @@ public:
 	//
 	virtual bool save( FeConfigContext &ctx );
 
-	// When true will save and return on every option change
-	// Used to create "live" menus such as Layout edit
-	// The menu should be re-displayed in main.cpp until user explicitely exits
+	// When true will cause display_config_dialog to save and exit on every change
+	// Used to create "live" menus, such as Configure Layout
+	// main.cpp must then re-display the menu until user explicitly exits
 	//
-	bool save_on_change;
+	bool exit_on_change = false;
+
+	// Holds the last selection of this menu, excluding exit options
+	int curr_sel = -1;
+
+	// Holds the command used to display this menu, used to toggle it off again
+	FeInputMap::Command extra_exit = FeInputMap::LAST_COMMAND;
 };
 
 // Utility class where script parameters are being configured
