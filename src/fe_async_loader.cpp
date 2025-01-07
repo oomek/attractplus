@@ -177,6 +177,15 @@ FeAsyncLoader::~FeAsyncLoader()
 	m_cleanup_thread.join();
 }
 
+FeAsyncLoaderEntryVideo::FeAsyncLoaderEntryVideo()
+	: m_texture_size(0, 0)
+{
+	// m_player.setDecoders( MediaType::Video, {"MFT:d3d=0:fallback=1:copy=2"} );
+	// m_player.setDecoders( MediaType::Video, {"VAAPI:copy=0"} );
+	// m_player.setDecoders( MediaType::Video, {"FFmpeg:hwaccel=cuda:hwcontext=cuda"} );
+	// m_player.setDecoders( MediaType::Video, {"FFmpeg:threads=1:hwaccel=dxva2:sw_fallback=0"} );
+};
+
 void FeAsyncLoader::loader_thread_loop()
 {
 	sf::Context ctx;
@@ -219,10 +228,13 @@ void FeAsyncLoader::cleanup_thread_loop()
 			sf::Clock clk;
 			for ( auto it = m_resources_cleanup.begin(); it != m_resources_cleanup.end(); ++it )
 			{
+				// get_player( it->first )->setVideoSurfaceSize( -1, -1 );
 				// get_player( it->first )->foreignGLContextDestroyed();
 				delete it->second;
 				m_cleanup_size--;
 			}
+
+			// Player::foreignGLContextDestroyed();
 			lock.lock();
             m_resources_cleanup.clear();
             lock.unlock();
@@ -422,7 +434,6 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
 	sf::Clock clk;
 	m_player.setMedia( file.c_str() );
-	// m_player.setDecoders(MediaType::Video, { "CUDA" } );
 	m_player.prepare();
 	m_player.setPreloadImmediately( true );
 	// m_player.setLoop(std::numeric_limits<int>::max());

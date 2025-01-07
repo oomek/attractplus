@@ -82,7 +82,7 @@ class FeAsyncLoaderEntryVideo : public FeAsyncLoaderEntryBase
 
 public:
 	static const EntryType type;
-	FeAsyncLoaderEntryVideo() : m_texture_size(0, 0) {};
+	FeAsyncLoaderEntryVideo();
 	~FeAsyncLoaderEntryVideo() {};
 
 	void *get_resource_pointer() override { return &m_texture; };
