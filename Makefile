@@ -531,13 +531,17 @@ ifeq ($(STATIC),1)
 ifeq ($(FE_WINDOWS_COMPILE),1)
 else ifeq ($(FE_MACOSX_COMPILE),1)
 else
-	$(eval SFML_LIBS += -lGL -lGLU -lm -lz -ludev -lrt)
+		$(eval SFML_LIBS += -lGL -lGLU -lm -lz -ludev -lrt)
 endif
-else
+else ifneq ($(USE_SYSTEM_SFML), 1)
 	# SFML may not generate .pc files, so manually add libs
 	$(eval CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --cflags $(SFML_PC)))
 	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH)" $(PKG_CONFIG) --libs $(SFML_PC)))
 	#LIBS += -lsfml-graphics -lsfml-window -lsfml-system
+else
+	$(eval CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SFML_PC)))
+	$(eval SFML_LIBS += $(shell $(PKG_CONFIG) --libs $(SFML_PC)))
+	$(info SFML_lIBS=$(SFML_LIBS))
 endif
 	$(eval override LIBS = $(SFML_LIBS) $(LIBS))
 
@@ -553,8 +557,8 @@ $(RES_IMGS_DIR): $(OBJ_DIR)
 	$(MD) $@
 
 headerinfo: sfml
-	$(info flags:$(CFLAGS) $(FE_FLAGS))
-	$(info libs:$(LIBS))
+	$(info flags: $(CFLAGS) $(FE_FLAGS))
+	$(info libs: $(LIBS))
 
 #
 # Expat Library
