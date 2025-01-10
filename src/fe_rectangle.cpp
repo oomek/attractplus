@@ -38,11 +38,12 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
+	m_corner_radius( 0.f, 0.f ),
+	m_corner_radius_auto( true ),
+	m_corner_point_count( 12 ),
 	m_rect( sf::Vector2f( w, h ))
 {
 	setColor( sf::Color::White );
-	// setSize( w, h );
-	// setPosition( x, y );
 	m_rect.setTextureRect( sf::IntRect( sf::Vector2i( 0, 0 ), sf::Vector2i( 1, 1 )));
 	scale();
 }
@@ -335,6 +336,72 @@ void FeRectangle::set_blend_mode( int b )
 	m_blend_mode = (FeBlend::Mode)b;
 }
 
+float FeRectangle::get_corner_radius() const
+{
+	return m_corner_radius.x;
+}
+
+float FeRectangle::get_corner_radius_x() const
+{
+	return m_corner_radius.x;
+}
+
+float FeRectangle::get_corner_radius_y() const
+{
+	return m_corner_radius.y;
+}
+
+void FeRectangle::set_corner_radius_x( float rx )
+{
+	update_corner_radius( rx, m_corner_radius.y, false );
+}
+
+void FeRectangle::set_corner_radius_y( float ry )
+{
+	update_corner_radius( m_corner_radius.x, ry, false );
+}
+
+void FeRectangle::set_corner_radius( float rx, float ry )
+{
+	update_corner_radius( rx, ry, false );
+}
+
+void FeRectangle::set_corner_radius( float r )
+{
+	update_corner_radius( r, r, true );
+}
+
+void FeRectangle::update_corner_radius( float rx, float ry, bool r_auto )
+{
+	if ( rx < 0.0 ) rx = 0.0;
+	if ( rx > 0.5 ) rx = 0.5;
+	if ( ry < 0.0 ) ry = 0.0;
+	if ( ry > 0.5 ) ry = 0.5;
+	if ( rx != m_corner_radius.x || ry != m_corner_radius.y || r_auto != m_corner_radius_auto )
+	{
+		m_corner_radius.x = rx;
+		m_corner_radius.y = ry;
+		m_corner_radius_auto = r_auto;
+		scale();
+	}
+}
+
+int FeRectangle::get_corner_point_count() const
+{
+	return m_corner_point_count;
+}
+
+void FeRectangle::set_corner_point_count( int n )
+{
+	if ( n < 1 ) n = 1;
+	if ( n > 32 ) n = 32; // arbitrary limit
+	if ( n != m_corner_point_count )
+	{
+		m_corner_point_count = n;
+		scale();
+	}
+}
+
 sf::Vector2f FeRectangle::alignTypeToVector( int type )
 {
 	switch( type )
@@ -398,4 +465,16 @@ void FeRectangle::scale()
 	m_rect.setRotation( m_rotation );
 	m_rect.setSize( m_size );
 	m_rect.setOrigin(( m_origin.x + m_rotation_origin.x * m_size.x ), ( m_origin.y + m_rotation_origin.y * m_size.y ));
+	m_rect.setCornerPointCount( ( m_corner_radius.x > 0 && ( m_corner_radius_auto || m_corner_radius.y > 0 ) ) ? m_corner_point_count : 1 );
+
+	if ( m_corner_radius_auto )
+	{
+		// When setting a single radius value it's stored in m_corner_radius.x
+		float s = m_corner_radius.x * std::min( abs( m_size.x ), abs( m_size.y ) );
+		m_rect.setCornerRadius( sf::Vector2f( m_size.x > 0 ? s : -s, m_size.y > 0 ? s : -s ) );
+	}
+	else
+	{
+		m_rect.setCornerRadius( sf::Vector2f( m_corner_radius.x * m_size.x, m_corner_radius.y * m_size.y ) );
+	}
 }

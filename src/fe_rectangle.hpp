@@ -26,6 +26,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
+#include "rounded_rectangle_shape.hpp"
 
 class FeSettings;
 
@@ -77,6 +78,10 @@ public:
 	int get_olg() const;
 	int get_olb() const;
 	int get_ola() const;
+	float get_corner_radius() const;
+	float get_corner_radius_x() const;
+	float get_corner_radius_y() const;
+	int get_corner_point_count() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
@@ -93,6 +98,11 @@ public:
 	void set_olb( int b );
 	void set_ola( int a );
 	void set_olrgb( int r, int g, int b );
+	void set_corner_radius( float r );
+	void set_corner_radius( float rx, float ry );
+	void set_corner_radius_x( float rx );
+	void set_corner_radius_y( float ry );
+	void set_corner_point_count( int n );
 
 	int get_blend_mode() const;
 	void set_blend_mode( int b );
@@ -103,7 +113,7 @@ protected:
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 
 private:
-	sf::RectangleShape m_rect;
+	sf::RoundedRectangleShape m_rect;
 	FeRectangle( const FeRectangle & );
 	FeRectangle &operator=( const FeRectangle & );
 
@@ -116,8 +126,12 @@ private:
 	FeRectangle::Alignment m_rotation_origin_type;
 	FeBlend::Mode m_blend_mode;
 	float m_rotation;
+	int m_corner_point_count;
+	sf::Vector2f m_corner_radius;
+	bool m_corner_radius_auto;
 
 	void scale();
+	void update_corner_radius( float rx, float ry, bool r_auto );
 	sf::Vector2f alignTypeToVector( int a );
 };
 

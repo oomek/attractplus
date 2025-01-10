@@ -162,6 +162,7 @@ _DEP =\
 	tp.hpp \
 	fe_text.hpp \
 	fe_listbox.hpp \
+	rounded_rectangle_shape.hpp \
 	fe_rectangle.hpp \
 	fe_vm.hpp \
 	fe_blend.hpp \
@@ -197,6 +198,7 @@ _OBJ =\
 	tp.o \
 	fe_text.o \
 	fe_listbox.o \
+	rounded_rectangle_shape.o \
 	fe_rectangle.o \
 	fe_vm.o \
 	fe_blend.o \
@@ -422,7 +424,7 @@ LIBS += -lfreetype
 ifeq ($(FE_WINDOWS_COMPILE),1)
  LIBS += -lboost_system-mt -lboost_filesystem-mt
 else ifeq ($(FE_MACOSX_COMPILE),1)
- LIBS +=-L$(shell brew --prefix)/lib 
+ LIBS +=-L$(shell brew --prefix)/lib
  LIBS += -lboost_system -lboost_filesystem
 else
  LIBS += -l:libboost_filesystem.a -l:libboost_system.a
