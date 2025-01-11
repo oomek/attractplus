@@ -247,7 +247,7 @@ void FeOverlay::style_init()
 	m_edge_line_colour = theme_color * sf::Color( 192, 192, 192, 255 );
 
 	m_sel_text_colour = text_color;
-	m_sel_focus_colour = theme_color * sf::Color( 128, 128, 128, 255 );
+	m_sel_focus_colour = theme_color * sf::Color( 160, 160, 160, 255 );
 	m_sel_blur_colour = theme_color * sf::Color( 88, 88, 88, 255 );
 
 	m_header_text_colour = text_color;
