@@ -2143,14 +2143,14 @@ Properties:
      Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
    * `rotation_origin_y` - Get/set the y position of the midpoint for rotation.
      Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
-	* `corner_radius` - Get/set the corner radius as a fraction of the smallest side.
+   * `corner_radius` - Get/set the corner radius as a fraction of the smallest side.
 	  This property will preserve corner roundness when set.
 	  Range is [0.0 ... 0.5]. Default value is 0.0.
-	* `corner_radius_x` - Get/set the corner x radius as a fraction of the width.
+   * `corner_radius_x` - Get/set the corner x radius as a fraction of the width.
 	  Range is [0.0 ... 0.5]. Default value is 0.0.
-	* `corner_radius_y` - Get/set the corner y radius as a fraction of the height.
+   * `corner_radius_y` - Get/set the corner y radius as a fraction of the height.
 	  Range is [0.0 ... 0.5]. Default value is 0.0.
-	* `corner_points` - Get/set the number of points used to draw the corner radius.
+   * `corner_points` - Get/set the number of points used to draw the corner radius.
 	  More points produce smooth curves, while fewer points result in flat bevels.
 	  Range is [1 ... 32]. Default value is 12.
    * `shader` - Get/set the GLSL shader for this rectangle. This can only be set to
