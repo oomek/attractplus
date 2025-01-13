@@ -177,7 +177,7 @@ protected:
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
-	FeImage *add_surface(int w, int h, FePresentableParent &p);
+	FeImage *add_surface(float x, float y, int w, int h, FePresentableParent &p);
 	FeSound *add_sound(const char *n, bool reuse);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
 	float get_layout_width() const;

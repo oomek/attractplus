@@ -1793,9 +1793,14 @@ FeRectangle *FeImage::add_rectangle(float x, float y, float w, float h)
 
 FeImage *FeImage::add_surface(int w, int h)
 {
+	return add_surface( 0, 0, w, h );
+}
+
+FeImage *FeImage::add_surface(float x, float y, int w, int h)
+{
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
-		return p->add_surface( w, h );
+		return p->add_surface( x, y, w, h );
 
 	return NULL;
 }

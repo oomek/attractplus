@@ -325,10 +325,15 @@ FeRectangle *FePresentableParent::add_rectangle(float x, float y, float w, float
 
 FeImage *FePresentableParent::add_surface(int w, int h)
 {
+	return add_surface( 0, 0, w, h );
+}
+
+FeImage *FePresentableParent::add_surface(float x, float y, int w, int h)
+{
 	FePresent *fep = FePresent::script_get_fep();
 
 	if ( fep )
-		return fep->add_surface( w, h, *this );
+		return fep->add_surface( x, y, w, h, *this );
 
 	return NULL;
 }
