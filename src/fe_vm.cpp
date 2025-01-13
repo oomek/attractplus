@@ -751,7 +751,8 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_text"), &FeImage::add_text )
 		.Func( _SC("add_listbox"), &FeImage::add_listbox )
 		.Func( _SC("add_rectangle"), &FeImage::add_rectangle )
-		.Func( _SC("add_surface"), &FeImage::add_surface )
+		.Overload<FeImage * (FeImage::*)(float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeImage * (FeImage::*)(int, int)>(_SC("add_surface"), &FeImage::add_surface)
 	);
 
 	fe.Bind( _SC("Text"),
@@ -951,7 +952,8 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
 		.Func( _SC("add_rectangle"), &FePresentableParent::add_rectangle )
-		.Func( _SC("add_surface"), &FePresentableParent::add_surface )
+		.Overload<FeImage * (FePresentableParent::*)(float, float, int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
+		.Overload<FeImage * (FePresentableParent::*)(int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
 	);
 
 	fe.Bind( _SC("Monitor"),
@@ -987,7 +989,8 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
 	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
 	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
-	fe.Func<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeShader* (*)(int, const char *, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
@@ -2180,10 +2183,15 @@ FeRectangle* FeVM::cb_add_rectangle( float x, float y, float w, float h )
 
 FeImage* FeVM::cb_add_surface( int w, int h )
 {
+	return cb_add_surface( 0, 0, w, h );
+}
+
+FeImage* FeVM::cb_add_surface( float x, float y, int w, int h )
+{
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
-	FeImage *ret = fev->add_surface( w, h, fev->m_mon[0] );
+	FeImage *ret = fev->add_surface( x, y, w, h, fev->m_mon[0] );
 
 	// Add the surface to the "fe.obj" array in Squirrel
 	//

@@ -599,7 +599,7 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 	return new_rc;
 }
 
-FeImage *FePresent::add_surface( int w, int h, FePresentableParent &p )
+FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentableParent &p )
 {
 	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer( w, h );
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
@@ -608,7 +608,7 @@ FeImage *FePresent::add_surface( int w, int h, FePresentableParent &p )
 	//
 	// Set the default sprite size to the same as the texture itself
 	//
-	FeImage *new_image = new FeImage( p, new_surface, 0, 0, w, h );
+	FeImage *new_image = new FeImage( p, new_surface, x, y, w, h );
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_image->set_blend_mode( FeBlend::Premultiplied );
 

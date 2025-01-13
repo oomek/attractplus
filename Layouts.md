@@ -358,6 +358,7 @@ Return Value:
 #### `fe.add_surface()` ####
 
     fe.add_surface( w, h )
+    fe.add_surface( x, y, w, h )
 
 Add a surface to the end of Attract-Mode's draw list.  A surface is an off-
 screen texture upon which you can draw other image, artwork, text, listbox
@@ -369,6 +370,10 @@ The default blend mode for surfaces is `BlendMode.Premultiplied`
 
 Parameters:
 
+   * x - the x coordinate of the top left corner of the surface (in layout
+     coordinates).
+   * y - the y coordinate of the top left corner of the surface (in layout
+     coordinates).
    * w - the width of the surface texture (in pixels).
    * h - the height of the surface texture (in pixels).
 
