@@ -128,6 +128,7 @@ public:
 		HideBrackets,
 		GroupClones,
 		StartupMode,
+		MenuToggle,
 		ConfirmFavourites,
 		ConfirmExit,
 		MouseThreshold,
@@ -227,6 +228,7 @@ private:
 	StartupModeType m_startup_mode;
 	bool m_confirm_favs;
 	bool m_confirm_exit;
+	bool m_menu_toggle;
 	bool m_track_usage;
 	bool m_multimon;
 	WindowType m_window_mode;

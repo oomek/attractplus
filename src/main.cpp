@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
 	std::string config_path, log_file;
 	bool launch_game = false;
 	bool process_console = false;
+	int last_display_index = -1;
 	FeLogLevel log_level = FeLog_Info;
 
 #ifdef USE_LIBCURL
@@ -227,7 +228,7 @@ int main(int argc, char *argv[])
 			int old_mode = feSettings.get_window_mode();
 			int old_aa = feSettings.get_antialiasing();
 
-			if ( feOverlay.config_dialog() )
+			if ( feOverlay.config_dialog( -1, FeInputMap::Configure ) )
 			{
 				// Settings changed, reload
 				//
@@ -681,8 +682,8 @@ int main(int argc, char *argv[])
 
 						feSettings.get_translation(  "Insert Menu Entry", temp );
 
-						int sel = feOverlay.common_list_dialog(
-							temp, options, 0, 0 );
+						int sel = feOverlay.common_list_dialog( temp, options, 0, -1, c );
+						if (sel == -1) break;
 
 						std::string emu_name;
 						std::string def_name;
@@ -741,7 +742,7 @@ int main(int argc, char *argv[])
 						// dialog
 						feVM.update_to_new_list();
 
-						if ( feOverlay.edit_game_dialog() )
+						if ( feOverlay.edit_game_dialog( 0, c ) )
 							feVM.update_to_new_list();
 
 						redraw=true;
@@ -749,14 +750,14 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::EditGame:
-					if ( feOverlay.edit_game_dialog() )
+					if ( feOverlay.edit_game_dialog( 0, c ) )
 						feVM.update_to_new_list();
 
 					redraw=true;
 					break;
 
 				case FeInputMap::LayoutOptions:
-					if ( feOverlay.layout_options_dialog() )
+					if ( feOverlay.layout_options_dialog( 0, c ) )
 						feVM.load_layout();
 
 					redraw=true;
@@ -764,24 +765,42 @@ int main(int argc, char *argv[])
 
 				case FeInputMap::DisplaysMenu:
 					{
+						// If user has configured a custom layout for the display
 						if ( !feSettings.get_info( FeSettings::MenuLayout ).empty() )
 						{
-							//
-							// If user has configured a custom layout for the display
-							// menu, then setting display to -1 and loading will
-							// bring up the displays menu using that layout
-							//
-							feSettings.set_display(-1);
-							feVM.load_layout( true );
+							int display_index = feSettings.get_current_display_index();
 
+							if (display_index == -1 && last_display_index != -1)
+							{
+								// Already showing the custom display menu
+								if ( feSettings.get_info_bool( FeSettings::MenuToggle ) ) {
+									// Return to last display if menu_toggle option is set
+									display_index = last_display_index;
+									last_display_index = -1;
+								}
+								else
+								{
+									// Otherwise remain in the custom layout (do nothing)
+									break;
+								}
+							}
+							else
+							{
+								// Set display to -1 to load the custom display menu layout
+								last_display_index = display_index;
+								display_index = -1;
+							}
+
+							feSettings.set_display( display_index );
+							feVM.load_layout( true );
 							redraw=true;
 							break;
 						}
+
 						//
 						// If no custom layout is configured, then we simply show the
 						// displays menu the same way as any other popup menu...
 						//
-
 						std::vector<std::string> disp_names;
 						std::vector<int> disp_indices;
 						int current_idx;
@@ -808,7 +827,7 @@ int main(int argc, char *argv[])
 								disp_names,
 								current_idx,
 								-1,
-								FeInputMap::DisplaysMenu );
+								c );
 
 							if ( sel_idx == exit_opt )
 							{
@@ -841,7 +860,7 @@ int main(int argc, char *argv[])
 										names_list,
 										feSettings.get_current_filter_index(),
 										-1,
-										FeInputMap::FiltersMenu );
+										c );
 
 						if ( filter_index >= 0 )
 						{
@@ -890,17 +909,27 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::ToggleTags:
-					if ( feOverlay.tags_dialog() < 0 )
-						exit_selected = true;
-
+					feOverlay.tags_dialog( 0, c );
 					redraw = true;
 					break;
 
 				default:
 					break;
 				}
+
+				// Overlay menu_commands are populated when the `MenuToggle` setting is true
+				// - They allow other menu commands to behave as a menu exit
+				// - Post the commands back onto the queue to switch to the next menu
+				if ( feOverlay.get_menu_command() > 0 )
+				{
+					feVM.post_command( feOverlay.get_menu_command() );
+					feOverlay.clear_menu_command();
+				}
 			}
 		}
+
+		// End loop early and go directly to config, preventing a layout frame drawn between menu switching
+		if ( config_mode ) continue;
 
 		//
 		// Determine if we have to do anything because a key is being held down

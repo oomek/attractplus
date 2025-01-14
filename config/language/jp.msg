@@ -276,6 +276,7 @@ _help_input_add;入力キーを追加します
 _help_input_delete;入力キーを削除します
 _help_joystick_threshold;ジョイスティックの感度を設定します. (1から100まで), 高いほど鈍感です
 _help_language;言語を設定します
+_help_menu_toggle;ワンボタンメニュー切り替えを有効にすると、戻るボタンが不要になります。また、開いているメニュー間の切り替えも可能になります。
 _help_misc;その他を設定します
 _help_mouse_threshold;マウスの感度を設定します. (1から100まで), 高いほど鈍感です
 _help_plugin_command;プラグインのコマンドを設定します
@@ -372,6 +373,7 @@ Layout File;Layout File
 Menu Colour;メニューの色
 Menu Prompt;Menu Prompt
 Menu Style / Layout;Menu Style / Layout
+Menu Toggle;メニュートグル
 Next Game;Next Game
 Next Page;Next Page
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
