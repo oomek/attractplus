@@ -257,7 +257,6 @@ FeTextureContainer::FeTextureContainer(
 	m_smooth( false ),
 	m_volume( 100.0 ),
 	m_texture( &m_empty_texture ),
-	m_video_texture( NULL ),
 	m_video_player( NULL )
 {
 	if ( is_artwork )
@@ -418,9 +417,7 @@ bool FeTextureContainer::try_to_load(
 	else
 	{
 		// FeLog() << " al.get_resource_video() " << loaded_name << std::endl;
-		m_video_texture = al.get_resource_video( loaded_name );
-		m_video_texture->clear();
-		m_video_texture->display();
+		m_texture = al.get_resource_video( loaded_name );
 		m_video_player = al.get_player( loaded_name );
 		if ( m_video_player )
 		{
@@ -429,7 +426,7 @@ bool FeTextureContainer::try_to_load(
 				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0  );
 
 			if ( !( m_video_flags & VF_NoAutoStart ))
-				m_video_player->set( State::Playing );
+				m_video_player->play();
 		}
 	}
 	if ( m_texture != NULL )
@@ -437,15 +434,15 @@ bool FeTextureContainer::try_to_load(
 		if ( m_mipmap ) m_texture->generateMipmap();
 		m_texture->setSmooth( m_smooth );
 	}
-	else
+	// else
 		//  m_texture = &m_empty_texture;
-		clear_texture(); // TODO: check if needed
+		// clear_texture(); // TODO: check if needed
 
-	if ( m_video_texture != NULL )
-	{
-		if ( m_mipmap ) m_video_texture->generateMipmap();
-		m_video_texture->setSmooth( m_smooth );
-	}
+	// if ( m_texture != NULL )
+	// {
+	// 	if ( m_mipmap ) m_texture->generateMipmap();
+	// 	m_texture->setSmooth( m_smooth );
+	// }
 
 	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
 
@@ -475,10 +472,7 @@ bool FeTextureContainer::try_to_load(
 
 const sf::Texture &FeTextureContainer::get_texture()
 {
-	if ( m_video_player )
-		return m_video_texture->getTexture();
-	else
-		return *m_texture;
+	return *m_texture;
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -679,13 +673,8 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 	if ( m_video_player )
 	{
-		if ( m_video_player->state() == State::Playing )
-		{
-			m_video_texture->setActive( true );
-			m_video_player->renderVideo();
-			m_video_texture->display();
-			m_video_texture->setActive( false );
-		}
+		if ( m_video_player->is_playing() )
+			m_video_player->tick();
 	}
 
 	return false;
@@ -703,16 +692,13 @@ void FeTextureContainer::set_play_state( bool play )
 		if ( play == true )
 		{
 			// FeLog() << "set( State::Playing )" << std::endl;
-			m_video_texture->clear();
-			m_video_texture->display();
-			m_video_player->set( State::Playing );
+			m_video_player->play();
 			// FeLog() << "FeTextureContainer::set_play_state().seek(0) " << m_file_name << std::endl;
 		}
 		else
 		{
 			// FeLog() << "set( State::Paused )" << std::endl;
-			m_video_player->set( State::Paused );
-			m_video_player->seek( 0 );
+			m_video_player->stop();
 		}
 	}
 
@@ -754,7 +740,7 @@ void FeTextureContainer::set_play_state( bool play )
 bool FeTextureContainer::get_play_state() const
 {
 	if ( m_video_player )
-		return m_video_player->state() == State::Playing;
+		return m_video_player->is_playing();
 
 	return false;
 
@@ -842,7 +828,7 @@ FeVideoFlags FeTextureContainer::get_video_flags() const
 int FeTextureContainer::get_video_duration() const
 {
 	if ( m_video_player )
-		return m_video_player->mediaInfo().duration;
+		return m_video_player->get_duration().asMilliseconds();
 
 	return 0;
 }
@@ -850,7 +836,7 @@ int FeTextureContainer::get_video_duration() const
 int FeTextureContainer::get_video_time() const
 {
 	if ( m_video_player )
-		return m_video_player->position();
+		return m_video_player->get_video_time().asMilliseconds();
 
 	return 0;
 }
@@ -937,7 +923,6 @@ void FeTextureContainer::clear()
 	}
 	al.release_resource( m_file_name );
 	m_file_name.clear();
-	m_video_texture = NULL;
 	m_video_player = NULL;
 
 #ifndef NO_MOVIE
@@ -1004,7 +989,7 @@ float FeTextureContainer::get_volume() const
 float FeTextureContainer::get_sample_aspect_ratio() const
 {
 	if ( m_video_player )
-		return m_video_player->mediaInfo().video[0].codec.par;
+		return m_video_player->get_aspect_ratio();
 
 	return 1.0;
 }

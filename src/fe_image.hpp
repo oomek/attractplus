@@ -209,8 +209,7 @@ private:
 	void clear_texture();
 
 	sf::Texture *m_texture;
-	sf::RenderTexture *m_video_texture;
-	Player *m_video_player;
+	FeMedia *m_video_player;
 	sf::Texture m_empty_texture;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)

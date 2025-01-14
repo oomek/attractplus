@@ -178,7 +178,8 @@ FeAsyncLoader::~FeAsyncLoader()
 }
 
 FeAsyncLoaderEntryVideo::FeAsyncLoaderEntryVideo()
-	: m_texture_size(0, 0)
+	: m_texture_size( 0, 0 ),
+	m_media( FeMedia::AudioVideo )
 {
 	// m_player.setDecoders( MediaType::Video, {"MFT:d3d=0:fallback=1:copy=2"} );
 	// m_player.setDecoders( MediaType::Video, {"VAAPI:copy=0"} );
@@ -372,9 +373,9 @@ sf::Texture *FeAsyncLoader::get_resource_texture( const std::string file )
 	return get_resource<sf::Texture>( file );
 }
 
-sf::RenderTexture *FeAsyncLoader::get_resource_video( const std::string file )
+sf::Texture *FeAsyncLoader::get_resource_video( const std::string file )
 {
-	return get_resource<sf::RenderTexture>( file );
+	return get_resource<sf::Texture>( file );
 }
 
 sf::Font *FeAsyncLoader::get_resource_font( const std::string file )
@@ -412,14 +413,11 @@ void FeAsyncLoader::stop_cached_videos()
 			// FeLog() << "FeAsyncLoader::stop_cached_videos( " << it->first << " )" << std::endl;
 			// ulock_t lock( m_cleanup_mutex );
 			m_resources_map.erase( it->first );
-			if ( Player* player = get_player( it->first ))
+			if ( FeMedia* player = get_player( it->first ))
 			{
-				if ( player->state() != State::Paused )
-				{
-					player->seek( 0 );
-					player->set( State::Paused );
-					// player->setVideoSurfaceSize( -1, -1 );
-				}
+				FeLog() << "FeAsyncLoader::stop_cached_video( " << it->first << " )" << std::endl;
+				if ( player->is_playing() )
+					player->stop();
 			}
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
 			m_cleanup_size++;
@@ -430,32 +428,40 @@ void FeAsyncLoader::stop_cached_videos()
 	}
 }
 
+// bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
+// {
+	// sf::Clock clk;
+	// m_player.setMedia( file.c_str() );
+	// m_player.prepare();
+	// m_player.setPreloadImmediately( true );
+	// // m_player.setLoop(std::numeric_limits<int>::max());
+
+	// for(;;)
+	// {
+	// 	if ( m_player.mediaStatus() > MediaStatus::Buffering ) break;
+	// 	if ( m_player.mediaStatus() == MediaStatus::Invalid ) return false;
+	// }
+	// auto video_info = m_player.mediaInfo().video[0];
+	// m_player.setVideoSurfaceSize( video_info.codec.width * video_info.codec.par, video_info.codec.height );
+	// m_texture.create( video_info.codec.width * video_info.codec.par, video_info.codec.height );
+
+	// if ( get_OS_string() == "Linux" )
+	// 	m_player.setAudioBackends( {"ALSA"} );
+
+	// // m_player.set( State::Playing );
+	// // FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " ) " << clk.getElapsedTime().asMilliseconds() << std::endl;
+	// return true;
+// }
+
 bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
-	sf::Clock clk;
-	m_player.setMedia( file.c_str() );
-	m_player.prepare();
-	m_player.setPreloadImmediately( true );
-	// m_player.setLoop(std::numeric_limits<int>::max());
-
-	for(;;)
-	{
-		if ( m_player.mediaStatus() > MediaStatus::Buffering ) break;
-		if ( m_player.mediaStatus() == MediaStatus::Invalid ) return false;
-	}
-	auto video_info = m_player.mediaInfo().video[0];
-	m_player.setVideoSurfaceSize( video_info.codec.width * video_info.codec.par, video_info.codec.height );
-	m_texture.create( video_info.codec.width * video_info.codec.par, video_info.codec.height );
-
-	if ( get_OS_string() == "Linux" )
-		m_player.setAudioBackends( {"ALSA"} );
-
-	// m_player.set( State::Playing );
-	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " ) " << clk.getElapsedTime().asMilliseconds() << std::endl;
-	return true;
+	FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " )" << std::endl;
+	bool ret = m_media.open( "", file, &m_texture );
+	FeLog() << "FeAsyncLoaderEntryVideo::load_from_file() DONE" << std::endl;
+	return ret;
 }
 
-Player* FeAsyncLoader::get_player( const std::string& file )
+FeMedia* FeAsyncLoader::get_player( const std::string& file )
 {
 	map_iterator_t it = m_resources_map.find ( file );
 	if ( it != m_resources_map.end() )

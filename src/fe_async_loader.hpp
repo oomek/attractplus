@@ -10,6 +10,7 @@
 #include <atomic>
 
 #include "fe_settings.hpp"
+#include "media.hpp"
 
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics.hpp>
@@ -87,16 +88,14 @@ public:
 
 	void *get_resource_pointer() override { return &m_texture; };
 	bool load_from_file( const std::string file ) override;
-	Player* get_player() { return &m_player; };
-	Player* get_player( const std::string& file );
-
-	// sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
-	// size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
+	FeMedia* get_player() { return &m_media; };
+	FeMedia* get_player( const std::string& file );
 
 private:
-	sf::RenderTexture m_texture;
+	sf::Texture m_texture;
 	sf::Vector2u m_texture_size;
 	Player m_player;
+	FeMedia m_media;
 };
 
 class FeAsyncLoaderEntryFont : public FeAsyncLoaderEntryBase
@@ -170,11 +169,11 @@ public:
 	bool add_to_cache( const std::string file );
 
 	sf::Texture *get_resource_texture( const std::string file );
-	sf::RenderTexture *get_resource_video( const std::string file );
+	sf::Texture *get_resource_video( const std::string file );
 	sf::Font *get_resource_font( const std::string file );
 	sf::SoundBuffer *get_resource_sound( const std::string file );
 
-	Player* get_player(const std::string& file);
+	FeMedia* get_player(const std::string& file);
 
 	bool done();
 
