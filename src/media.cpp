@@ -862,11 +862,14 @@ sf::Time FeMedia::get_video_time()
 
 void FeMedia::play()
 {
-	if ( m_video )
-		m_video->play();
+	if ( !is_playing() )
+	{
+		if ( m_video )
+			m_video->play();
 
-	if ( m_audio )
-		sf::SoundStream::play();
+		if ( m_audio )
+			sf::SoundStream::play();
+	}
 }
 
 void FeMedia::signal_stop()
