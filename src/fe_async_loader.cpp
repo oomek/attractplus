@@ -417,7 +417,7 @@ void FeAsyncLoader::stop_cached_videos()
 			{
 				FeLog() << "FeAsyncLoader::stop_cached_video( " << it->first << " )" << std::endl;
 				if ( player->is_playing() )
-					player->stop();
+					player->signal_stop();
 			}
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
 			m_cleanup_size++;
@@ -455,9 +455,9 @@ void FeAsyncLoader::stop_cached_videos()
 
 bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
-	FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " )" << std::endl;
+	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " )" << std::endl;
 	bool ret = m_media.open( "", file, &m_texture );
-	FeLog() << "FeAsyncLoaderEntryVideo::load_from_file() DONE" << std::endl;
+	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file() DONE" << std::endl;
 	return ret;
 }
 

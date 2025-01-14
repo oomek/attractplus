@@ -1194,7 +1194,6 @@ bool FeMedia::open( const std::string &archive,
 				m_video->display_texture = outt;
 				if ( outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ) )
 					m_video->display_texture->create( m_video->disptex_width, m_video->disptex_height );
-				FeLog() << "Video: " << m_video->disptex_width << "x" << m_video->disptex_height << std::endl;
 
 				m_video->init_rgba_buffer();
 			}
