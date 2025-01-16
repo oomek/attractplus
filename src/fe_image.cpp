@@ -423,7 +423,7 @@ bool FeTextureContainer::try_to_load(
 		{
 			FePresent *fep = FePresent::script_get_fep();
 			if ( fep )
-				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0  );
+				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0  );
 
 			if ( !( m_video_flags & VF_NoAutoStart ))
 				m_video_player->play();
@@ -774,8 +774,7 @@ void FeTextureContainer::set_vol( float vol )
 	{
 		FePresent *fep = FePresent::script_get_fep();
 			if ( fep )
-				// m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0  );
-				m_video_player->setVolume( m_volume * vol / 10000.0  );
+				m_video_player->setVolume( m_volume * vol / 100.0  );
 	}
 }
 
@@ -824,7 +823,7 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 			float volume( 100.f );
 			FePresent *fep = FePresent::script_get_fep();
 			if ( fep )
-				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 10000.0 );
+				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
 		}
 	}
 }
