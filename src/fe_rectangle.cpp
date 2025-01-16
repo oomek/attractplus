@@ -25,6 +25,13 @@
 #include "fe_util.hpp"
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
+#include <cmath>
+
+namespace
+{
+	const float DELTA = 0.01; // Used to create non-zero rect size
+	const int MAX_CORNER_POINTS = 32; // Abitrary limit
+}
 
 FeRectangle::FeRectangle( FePresentableParent &p,
 	float x, float y, float w, float h )
@@ -39,9 +46,13 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
 	m_corner_radius( 0.f, 0.f ),
-	m_corner_radius_auto( true ),
+	m_corner_ratio( 0.f, 0.f ),
+	m_corner_ratio_x( false ),
+	m_corner_ratio_y( false ),
+	m_corner_auto( false ),
 	m_corner_point_count( 12 ),
-	m_rect( sf::Vector2f( w, h ))
+	m_corner_point_actual( -1 ),
+	m_rect( sf::Vector2f( w, h ), sf::Vector2f( 0, 0 ), 1 )
 {
 	setColor( sf::Color::White );
 	m_rect.setTextureRect( sf::IntRect( sf::Vector2i( 0, 0 ), sf::Vector2i( 1, 1 )));
@@ -353,36 +364,112 @@ float FeRectangle::get_corner_radius_y() const
 
 void FeRectangle::set_corner_radius_x( float rx )
 {
-	update_corner_radius( rx, m_corner_radius.y, false );
+	if ( m_corner_radius.x != rx || m_corner_ratio_x || m_corner_auto )
+	{
+		m_corner_auto = false;
+		m_corner_ratio_x = false;
+		m_corner_radius.x = rx;
+		update_corner_radius();
+	}
 }
 
 void FeRectangle::set_corner_radius_y( float ry )
 {
-	update_corner_radius( m_corner_radius.x, ry, false );
+	if ( m_corner_radius.y != ry || m_corner_ratio_y || m_corner_auto )
+	{
+		m_corner_auto = false;
+		m_corner_ratio_y = false;
+		m_corner_radius.y = ry;
+		update_corner_radius();
+	}
 }
 
 void FeRectangle::set_corner_radius( float rx, float ry )
 {
-	update_corner_radius( rx, ry, false );
+	if ( m_corner_radius.x != rx || m_corner_radius.y != ry || m_corner_ratio_x || m_corner_ratio_y || m_corner_auto )
+	{
+		m_corner_auto = false;
+		m_corner_ratio_x = false;
+		m_corner_ratio_y = false;
+		m_corner_radius.x = rx;
+		m_corner_radius.y = ry;
+		update_corner_radius();
+	}
 }
 
 void FeRectangle::set_corner_radius( float r )
 {
-	update_corner_radius( r, r, true );
+	if ( m_corner_radius.x != r || m_corner_radius.y != r || m_corner_ratio_x || m_corner_ratio_y || !m_corner_auto )
+	{
+		m_corner_auto = true;
+		m_corner_ratio_x = false;
+		m_corner_ratio_y = false;
+		m_corner_radius.x = r;
+		m_corner_radius.y = r;
+		update_corner_radius();
+	}
 }
 
-void FeRectangle::update_corner_radius( float rx, float ry, bool r_auto )
+float FeRectangle::get_corner_ratio() const
 {
-	if ( rx < 0.0 ) rx = 0.0;
-	if ( rx > 0.5 ) rx = 0.5;
-	if ( ry < 0.0 ) ry = 0.0;
-	if ( ry > 0.5 ) ry = 0.5;
-	if ( rx != m_corner_radius.x || ry != m_corner_radius.y || r_auto != m_corner_radius_auto )
+	return m_corner_ratio.x;
+}
+
+float FeRectangle::get_corner_ratio_x() const
+{
+	return m_corner_ratio.x;
+}
+
+float FeRectangle::get_corner_ratio_y() const
+{
+	return m_corner_ratio.y;
+}
+
+void FeRectangle::set_corner_ratio_x( float rx )
+{
+	if ( m_corner_ratio.x != rx || !m_corner_ratio_x || m_corner_auto )
 	{
-		m_corner_radius.x = rx;
-		m_corner_radius.y = ry;
-		m_corner_radius_auto = r_auto;
-		scale();
+		m_corner_auto = false;
+		m_corner_ratio_x = true;
+		m_corner_ratio.x = rx;
+		update_corner_ratio();
+	}
+}
+
+void FeRectangle::set_corner_ratio_y( float ry )
+{
+	if ( m_corner_ratio.y != ry || !m_corner_ratio_y || m_corner_auto )
+	{
+		m_corner_auto = false;
+		m_corner_ratio_y = true;
+		m_corner_ratio.y = ry;
+		update_corner_ratio();
+	}
+}
+
+void FeRectangle::set_corner_ratio( float rx, float ry )
+{
+	if ( m_corner_ratio.x != rx || m_corner_ratio.y != ry || !m_corner_ratio_x || !m_corner_ratio_y || m_corner_auto )
+	{
+		m_corner_auto = false;
+		m_corner_ratio_x = true;
+		m_corner_ratio_y = true;
+		m_corner_ratio.x = rx;
+		m_corner_ratio.y = ry;
+		update_corner_ratio();
+	}
+}
+
+void FeRectangle::set_corner_ratio( float r )
+{
+	if ( m_corner_ratio.x != r || m_corner_ratio.y != r || !m_corner_ratio_x || !m_corner_ratio_y || !m_corner_auto )
+	{
+		m_corner_auto = true;
+		m_corner_ratio_x = true;
+		m_corner_ratio_y = true;
+		m_corner_ratio.x = r;
+		m_corner_ratio.y = r;
+		update_corner_ratio();
 	}
 }
 
@@ -393,13 +480,67 @@ int FeRectangle::get_corner_point_count() const
 
 void FeRectangle::set_corner_point_count( int n )
 {
-	if ( n < 1 ) n = 1;
-	if ( n > 32 ) n = 32; // arbitrary limit
-	if ( n != m_corner_point_count )
+	m_corner_point_count = n;
+	update_corner_points();
+}
+
+void FeRectangle::update_corner_points()
+{
+	// Reduce to a single corner if x or y radius is zero
+	int n = ( m_corner_radius.x != 0 && m_corner_radius.y != 0 && m_corner_point_count > 0 ) ? m_corner_point_count : 1;
+	if ( n > MAX_CORNER_POINTS ) n = MAX_CORNER_POINTS;
+	if ( m_corner_point_actual != n )
 	{
-		m_corner_point_count = n;
-		scale();
+		m_corner_point_actual = n;
+		m_rect.setCornerPointCount( m_corner_point_actual );
 	}
+}
+
+void FeRectangle::update_corner_radius()
+{
+	// Ensure corners are < 0.5 rect size to prevent point overlap, which causes outline issues
+	float mx = std::max( DELTA, std::fabs( m_size.x ) - DELTA );
+	float my = std::max( DELTA, std::fabs( m_size.y ) - DELTA );
+	float mx2 = mx / 2;
+	float my2 = my / 2;
+	float cx = std::fabs( m_corner_radius.x );
+	float cy = std::fabs( m_corner_radius.y );
+	if ( m_corner_auto && cx > mx2 ) cy = mx2 / cx * cy;
+	if ( m_corner_auto && cy > my2 ) cx = my2 / cy * cx;
+	float rx = std::min( mx2, cx );
+	float ry = std::min( my2, cy );
+
+	// Flip corners to fix negative size rectangles
+	if ( m_size.x < 0 ) rx = -rx;
+	if ( m_size.y < 0 ) ry = -ry;
+
+	m_rect.setCornerRadius( sf::Vector2f( rx, ry ) );
+	update_corner_points();
+}
+
+void FeRectangle::update_corner_ratio()
+{
+	if ( m_corner_ratio_x || m_corner_ratio_y )
+	{
+		// Ensure ratio corners have a non-zero size to use, otherwise a zero result creates square outlines
+		float mx = std::max( DELTA, std::fabs( m_size.x ) );
+		float my = std::max( DELTA, std::fabs( m_size.y ) );
+
+		if ( m_corner_auto )
+		{
+			// If AUTO use the smallest side for the radius
+			float s = m_corner_ratio.x * std::min( mx, my );
+			m_corner_radius = sf::Vector2f( s, s );
+		}
+		else
+		{
+			// Otherwise calc ratios for each axis
+			if ( m_corner_ratio_x ) m_corner_radius.x = m_corner_ratio.x * mx;
+			if ( m_corner_ratio_y ) m_corner_radius.y = m_corner_ratio.y * my;
+		}
+	}
+
+	update_corner_radius();
 }
 
 sf::Vector2f FeRectangle::alignTypeToVector( int type )
@@ -457,24 +598,28 @@ void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) cons
 
 void FeRectangle::scale()
 {
-	sf::Vector2f final_pos = m_position;
+	sf::Vector2f pos = m_position;
+	sf::Vector2f size = m_size;
 
-	final_pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * m_size.x, ( m_rotation_origin.y -  m_anchor.y ) * m_size.y );
+	// update corners before checking if size needs adjusting
+	update_corner_ratio();
 
-	m_rect.setPosition( final_pos );
+	// If there's a corner ensure theres a non-zero area to draw it in
+	// - Fixes outline spike issue on zero-sized rectangles
+	if ( m_corner_radius.x != 0 || m_corner_radius.y != 0 )
+	{
+		// Use 2x Delta so corner can floor at 1x Delta (see above)
+		size.x = std::max( 2.0f * DELTA, std::fabs( m_size.x ) );
+		size.y = std::max( 2.0f * DELTA, std::fabs( m_size.y ) );
+		if (m_size.x < 0) size.x = -size.x;
+		if (m_size.y < 0) size.y = -size.y;
+	}
+
+	pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * size.x, ( m_rotation_origin.y -  m_anchor.y ) * size.y );
+
+	m_rect.setPosition( pos );
 	m_rect.setRotation( m_rotation );
-	m_rect.setSize( m_size );
-	m_rect.setOrigin(( m_origin.x + m_rotation_origin.x * m_size.x ), ( m_origin.y + m_rotation_origin.y * m_size.y ));
-	m_rect.setCornerPointCount( ( m_corner_radius.x > 0 && ( m_corner_radius_auto || m_corner_radius.y > 0 ) ) ? m_corner_point_count : 1 );
+	m_rect.setSize( size );
+	m_rect.setOrigin(( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y ));
 
-	if ( m_corner_radius_auto )
-	{
-		// When setting a single radius value it's stored in m_corner_radius.x
-		float s = m_corner_radius.x * std::min( abs( m_size.x ), abs( m_size.y ) );
-		m_rect.setCornerRadius( sf::Vector2f( m_size.x > 0 ? s : -s, m_size.y > 0 ? s : -s ) );
-	}
-	else
-	{
-		m_rect.setCornerRadius( sf::Vector2f( m_corner_radius.x * m_size.x, m_corner_radius.y * m_size.y ) );
-	}
 }

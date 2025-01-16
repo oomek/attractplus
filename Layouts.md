@@ -2148,16 +2148,23 @@ Properties:
      Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
    * `rotation_origin_y` - Get/set the y position of the midpoint for rotation.
      Range is [0.0 ... 1.0]. Default value is 0.0, centre is 0.5
-   * `corner_radius` - Get/set the corner radius as a fraction of the smallest side.
-	  This property will preserve corner roundness when set.
-	  Range is [0.0 ... 0.5]. Default value is 0.0.
-   * `corner_radius_x` - Get/set the corner x radius as a fraction of the width.
-	  Range is [0.0 ... 0.5]. Default value is 0.0.
-   * `corner_radius_y` - Get/set the corner y radius as a fraction of the height.
-	  Range is [0.0 ... 0.5]. Default value is 0.0.
+   * `corner_radius` - Get/set the corner radius (in layout coordinates).
+     This property will adjust the radius to preserve corner roundness when set.
+     Default value is 0.0.
+   * `corner_radius_x` - Get/set the corner x radius (in layout coordinates).
+     Default value is 0.0.
+   * `corner_radius_y` - Get/set the corner y radius (in layout coordinates).
+     Default value is 0.0.
+   * `corner_ratio` - Get/set the corner radius as a fraction of the smallest side.
+     This property will adjust the radius to preserve corner roundness when set.
+     Range is [0.0 ... 0.5]. Default value is 0.0.
+   * `corner_ratio_x` - Get/set the corner x radius as a fraction of the width.
+     Range is [0.0 ... 0.5]. Default value is 0.0.
+   * `corner_ratio_y` - Get/set the corner y radius as a fraction of the height.
+     Range is [0.0 ... 0.5]. Default value is 0.0.
    * `corner_points` - Get/set the number of points used to draw the corner radius.
-	  More points produce smooth curves, while fewer points result in flat bevels.
-	  Range is [1 ... 32]. Default value is 12.
+     More points produce smooth curves, while fewer points result in flat bevels.
+     Range is [1 ... 32]. Default value is 12.
    * `shader` - Get/set the GLSL shader for this rectangle. This can only be set to
      an instance of the class `fe.Shader` (see: `fe.add_shader()`).
    * `zorder` - Get/set the rectangles's order in the applicable draw list.  Objects
@@ -2186,8 +2193,9 @@ Member Functions:
      x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
    * `set_rotation_origin( x, y )` - Set the midpoint for rotation
      x and y are in [0.0 ... 1.0] range, centre is ( 0.5, 0.5 )
-	* `set_corner_radius( x, y )` - Set the corner x and y radius as a fraction of the width and height.
-	  Range is [0.0 ... 0.5].
+   * `set_corner_radius( x, y )` - Set the corner x and y radius (in layout coordinates).
+   * `set_corner_ratio( x, y )` - Set the corner x and y radius as a fraction of the
+     width and height.  Range is [0.0 ... 0.5].
 
 &nbsp;
 <a name="Sound"></a>
