@@ -78,9 +78,13 @@ public:
 	int get_olg() const;
 	int get_olb() const;
 	int get_ola() const;
+
 	float get_corner_radius() const;
 	float get_corner_radius_x() const;
 	float get_corner_radius_y() const;
+	float get_corner_ratio() const;
+	float get_corner_ratio_x() const;
+	float get_corner_ratio_y() const;
 	int get_corner_point_count() const;
 
 	void set_origin_x( float x );
@@ -98,10 +102,15 @@ public:
 	void set_olb( int b );
 	void set_ola( int a );
 	void set_olrgb( int r, int g, int b );
+
 	void set_corner_radius( float r );
 	void set_corner_radius( float rx, float ry );
 	void set_corner_radius_x( float rx );
 	void set_corner_radius_y( float ry );
+	void set_corner_ratio( float r );
+	void set_corner_ratio( float rx, float ry );
+	void set_corner_ratio_x( float rx );
+	void set_corner_ratio_y( float ry );
 	void set_corner_point_count( int n );
 
 	int get_blend_mode() const;
@@ -126,12 +135,19 @@ private:
 	FeRectangle::Alignment m_rotation_origin_type;
 	FeBlend::Mode m_blend_mode;
 	float m_rotation;
+
 	int m_corner_point_count;
+	int m_corner_point_actual;
 	sf::Vector2f m_corner_radius;
-	bool m_corner_radius_auto;
+	sf::Vector2f m_corner_ratio;
+	bool m_corner_ratio_x;
+	bool m_corner_ratio_y;
+	bool m_corner_auto;
 
 	void scale();
-	void update_corner_radius( float rx, float ry, bool r_auto );
+	void update_corner_radius();
+	void update_corner_ratio();
+	void update_corner_points();
 	sf::Vector2f alignTypeToVector( int a );
 };
 
