@@ -457,6 +457,9 @@ bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
 	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " )" << std::endl;
 	bool ret = m_media.open( "", file, &m_texture );
+	sf::Image img;
+	img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color( 0, 0, 0 ));
+	m_texture.update( img );
 	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file() DONE" << std::endl;
 	return ret;
 }
