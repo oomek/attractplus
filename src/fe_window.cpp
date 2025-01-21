@@ -701,6 +701,7 @@ void FeWindow::close()
 {
 	if ( m_window )
 	{
+		m_window->display(); // Crashing on Linux workaround
 		FeAsyncLoader::get_al().clear();
 		m_window->close();
 	}
