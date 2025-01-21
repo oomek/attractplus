@@ -133,7 +133,7 @@ void fe_print_version()
 #ifdef USE_LIBCURL
 		<< " +Curl"
 #endif
-		<< ") " << std::endl;
+		<< ")" << std::endl;
 #ifdef NO_MOVIE
 	FeLog() << "No Video, using SFML for Audio." << std::endl;
 #else

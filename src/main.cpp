@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
 	//
 	// Run the front-end
 	//
+	FeLog() << "--------------------------------------------------------------------------------" << std::endl;
 	fe_print_version();
 	FeLog() << std::endl;
 
