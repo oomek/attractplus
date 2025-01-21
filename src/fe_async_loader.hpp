@@ -195,8 +195,8 @@ private:
 	std::condition_variable m_loader_condition;
 	std::condition_variable m_cleanup_condition;
 
-	bool m_loader_running;
-	bool m_cleanup_running;
+	std::atomic<bool> m_loader_running;
+	std::atomic<bool> m_cleanup_running;
 	bool m_done;
 	list_t m_resources_active;
 	list_t m_resources_cached;
