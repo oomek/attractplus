@@ -28,9 +28,6 @@
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 
-#include "mdk/Player.h"
-using namespace MDK_NS;
-
 class FeSettings;
 class FeMedia;
 class FeImage;

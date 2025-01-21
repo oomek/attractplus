@@ -16,9 +16,6 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 
-#include "mdk/Player.h"
-using namespace MDK_NS;
-
 enum EntryType
 {
 	TextureType,
@@ -94,7 +91,6 @@ public:
 private:
 	sf::Texture m_texture;
 	sf::Vector2u m_texture_size;
-	Player m_player;
 	FeMedia m_media;
 };
 
