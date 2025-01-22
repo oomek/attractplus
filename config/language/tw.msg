@@ -150,6 +150,7 @@ Launch Last Game;最後執行的遊戲
 Layout;畫面佈局
 Layout File;畫面佈局檔案
 Layout Options;畫面佈局選項
+Layout Preview;佈局預覽
 Left;左移
 List Limit;清單大小限制
 Manufacturer;製作廠商
@@ -382,6 +383,7 @@ _help_joystick_map;指定電腦的搖桿裝置在 Attract-Mode 裡的搖桿順�
 _help_joystick_threshold;這個設定用來定位搖桿移動的靈敏度，數值從 1 到 100 (100 為最大值)。
 _help_language;選擇 Attract-Mode 使用者介面所要使用的語言
 _help_layout_file;一些畫面佈局主題提供多個 layout*.nut 檔案，須選擇要使用的畫面佈局檔案。
+_help_layout_preview;立即顯示佈局配置變更
 _help_menu_toggle;啟用單按鈕選單切換，無需後退按鈕。還允許在打開的選單之間切換
 _help_misc;設定一般設定
 _help_mouse_threshold;這個設定用來定位滑鼠移動的靈敏度，數值從 1 到 100 (100 為最大值)。

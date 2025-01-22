@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
 	bool process_console = false;
 	int last_display_index = -1;
 	FeLogLevel log_level = FeLog_Info;
+	int layout_sel = 0;
 
 #ifdef USE_LIBCURL
 	curl_global_init( CURL_GLOBAL_ALL );
@@ -758,10 +759,15 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::LayoutOptions:
-					if ( feOverlay.layout_options_dialog( 0, c ) )
-						feVM.load_layout();
-
-					redraw=true;
+					{
+						bool preview = feSettings.get_info_bool( FeSettings::LayoutPreview );
+						while ( feOverlay.layout_options_dialog( preview, layout_sel, c ) )
+						{
+							feVM.load_layout();
+							if ( !preview ) break;
+						}
+						redraw = true;
+					}
 					break;
 
 				case FeInputMap::DisplaysMenu:

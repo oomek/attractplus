@@ -2058,6 +2058,12 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.back_opt().append_vlist( bool_opts );
 
 	ctx.add_optl( Opt::LIST,
+			"Layout Preview",
+			ctx.fe_settings.get_info_bool( FeSettings::LayoutPreview ) ? bool_opts[0] : bool_opts[1],
+			"_help_layout_preview" );
+	ctx.back_opt().append_vlist( bool_opts );
+
+	ctx.add_optl( Opt::LIST,
 			"Track Usage",
 			ctx.fe_settings.get_info_bool( FeSettings::TrackUsage ) ? bool_opts[0] : bool_opts[1],
 			"_help_track_usage" );
@@ -2184,6 +2190,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 			FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
 
 	ctx.fe_settings.set_info( FeSettings::MenuToggle,
+			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
+
+	ctx.fe_settings.set_info( FeSettings::LayoutPreview,
 			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
 
 	ctx.fe_settings.set_info( FeSettings::TrackUsage,
@@ -2449,23 +2458,26 @@ void FeLayoutEditMenu::get_options( FeConfigContext &ctx )
 		}
 		else
 		{
-			// User config params are always loaded from layout.nut
-			//
+			// Default to layout.nut for the config params - may be overridden below
 			m_file_name = FE_LAYOUT_FILE_BASE;
-			m_file_name += FE_LAYOUT_FILE_EXTENSION;
 
 			if (( m_display ) && ( file_list.size() > 1 ))
 			{
 				// Since there are multiple layout files available, add a config
 				// option allowing the user to select which one to use.
 				std::string lf = m_display->get_current_layout_file();
-				if ( lf.empty() )
-					lf = FE_LAYOUT_FILE_BASE;
+				if ( lf.empty() ) lf = FE_LAYOUT_FILE_BASE;
+
+				// Load user config params from the current layout
+				m_file_name = lf;
 
 				ctx.add_optl( Opt::LIST, "Layout File", lf, "_help_layout_file" );
 				ctx.back_opt().append_vlist( file_list );
 				ctx.back_opt().opaque = 500;
+				ctx.back_opt().trigger_reload = true;
 			}
+
+			m_file_name += FE_LAYOUT_FILE_EXTENSION;
 		}
 
 		m_configurable = m_layout;     // parent member
@@ -2501,7 +2513,41 @@ bool FeLayoutEditMenu::save( FeConfigContext &ctx )
 		m_display->set_current_layout_file( ctx.opt_list[1].get_value() );
 	}
 
-	return FeScriptConfigMenu::save_helper( ctx, first_idx );
+	// Make a list of saved params that are not in the current option list (ie: belong to variant layouts)
+	std::vector<std::pair<std::string, std::string>> prev_params;
+	std::vector<std::string> prev_labels;
+	m_layout->get_param_labels(prev_labels);
+	std::for_each(
+		prev_labels.begin(), prev_labels.end(),
+		[ &ctx, &prev_params, this ]( std::string label )
+		{
+			if (
+				std::find_if(
+					ctx.opt_list.begin(), ctx.opt_list.end(),
+					[ &label ]( FeMenuOpt opt ) { return opt.opaque_str == label; }
+				) == ctx.opt_list.end()
+			)
+			{
+				std::string value;
+				m_layout->get_param( label, value );
+				prev_params.push_back({ label, value });
+			}
+		}
+	);
+
+	// Save the current params
+	bool retval = FeScriptConfigMenu::save_helper( ctx, first_idx );
+
+	// Save the other params
+	std::for_each(
+		prev_params.begin(), prev_params.end(),
+		[ this ]( std::pair<std::string, std::string> entry )
+		{
+			m_configurable->set_param( entry.first, entry.second );
+		}
+	);
+
+	return retval;
 }
 
 void FeLayoutEditMenu::set_layout( FeLayoutInfo *layout,

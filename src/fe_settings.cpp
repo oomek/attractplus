@@ -310,6 +310,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_startup_mode( ShowLastSelection ),
 	m_confirm_favs( true ),
 	m_confirm_exit( true ),
+	m_layout_preview( false ),
 	m_menu_toggle( false ),
 	m_track_usage( true ),
 	m_multimon( false ),
@@ -453,6 +454,7 @@ const char *FeSettings::configSettingStrings[] =
 	"anti_aliasing",
 	"anisotropic",
 	"filter_wrap_mode",
+	"layout_preview",
 	"track_usage",
 	"multiple_monitors",
 	"smooth_images",
@@ -694,12 +696,30 @@ void FeSettings::init_display()
 			list_path = temp;
 	}
 
-	if ( m_rl.load_romlist( list_path,
-				romlist_name,
-				m_displays[m_current_display],
-				m_group_clones,
-				m_track_usage ) == false )
-		FeLog() << "Error opening romlist: " << romlist_name << std::endl;
+	// Load the romlist only if the arguments have changed, otherwise use the existing one
+	if (
+		m_loaded_romlist_name != romlist_name
+		|| m_loaded_current_display != m_current_display
+		|| m_loaded_group_clones != m_group_clones
+		|| m_loaded_track_usage != m_track_usage
+	)
+	{
+		if (
+			m_rl.load_romlist( list_path,
+			romlist_name,
+			m_displays[m_current_display],
+			m_group_clones,
+			m_track_usage ) == false
+		)
+		{
+			FeLog() << "Error opening romlist: " << romlist_name << std::endl;
+		}
+
+		m_loaded_romlist_name = romlist_name;
+		m_loaded_current_display = m_current_display;
+		m_loaded_group_clones = m_group_clones;
+		m_loaded_track_usage = m_track_usage;
+	}
 
 	// Setup m_current_layout_params with all the parameters for our current layout, including
 	// the 'per_display' layout parameters that are stored separately but that get merged in here
@@ -2851,6 +2871,7 @@ const std::string FeSettings::get_info( int index ) const
 	case GroupClones:
 	case ConfirmFavourites:
 	case ConfirmExit:
+	case LayoutPreview:
 	case MenuToggle:
 	case TrackUsage:
 	case MultiMon:
@@ -2904,6 +2925,8 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_confirm_favs;
 	case ConfirmExit:
 		return m_confirm_exit;
+	case LayoutPreview:
+		return m_layout_preview;
 	case MenuToggle:
 		return m_menu_toggle;
 	case TrackUsage:
@@ -3103,6 +3126,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 			if ( filterWrapTokens[i] == NULL )
 				return false;
 		}
+		break;
+
+	case LayoutPreview:
+		m_layout_preview = config_str_to_bool( value );
 		break;
 
 	case TrackUsage:

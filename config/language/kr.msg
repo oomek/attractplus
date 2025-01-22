@@ -145,6 +145,7 @@ Language;언어 설정
 Launch Last Game;마지막 게임 실행
 Layout;레이아웃 이름
 Layout Options;레이아웃 별 옵션
+Layout Preview;레이아웃 미리보기
 Left;270도
 List Limit;목록 크기 제한
 Manufacturer;제작사(Manufacturer)
@@ -451,5 +452,6 @@ _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal i
 _help_input_action;
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen

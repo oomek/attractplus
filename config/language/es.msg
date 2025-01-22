@@ -108,6 +108,7 @@ Jump to Next Display;Saltar a la siguiente pantalla
 Language;Idioma
 Layout;Tema
 Layout Options;Opciones de temas
+Layout Preview;Vista previa del diseño
 Left;Izquierda
 List Limit;Límite de lista
 Manufacturer;Fabricante
@@ -446,6 +447,7 @@ _help_input_default_action;Set the default behaviour for this control
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen

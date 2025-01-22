@@ -134,6 +134,7 @@ Language;Lingua
 Launch Last Game;Esegui l'ultimo gioco
 Layout;Tema
 Layout Options;Opzioni del tema
+Layout Preview;Anteprima del layout
 Left;Sinistra
 List Limit;Límite della lista
 Manufacturer;Produttore
@@ -457,6 +458,7 @@ _help_hide_console;Hide console on startup. Note that this only works if startin
 _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut

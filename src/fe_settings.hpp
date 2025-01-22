@@ -138,6 +138,7 @@ public:
 		AntiAliasing,
 		Anisotropic,
 		FilterWrapMode,
+		LayoutPreview,
 		TrackUsage,
 		MultiMon,
 		SmoothImages,
@@ -228,6 +229,7 @@ private:
 	StartupModeType m_startup_mode;
 	bool m_confirm_favs;
 	bool m_confirm_exit;
+	bool m_layout_preview;
 	bool m_menu_toggle;
 	bool m_track_usage;
 	bool m_multimon;
@@ -256,6 +258,11 @@ private:
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
 	std::string m_ui_color;
+
+	std::string m_loaded_romlist_name;
+	int m_loaded_current_display;
+	bool m_loaded_group_clones;
+	bool m_loaded_track_usage;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
