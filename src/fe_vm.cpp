@@ -1396,6 +1396,7 @@ void FeVM::on_transition(
 #endif
 		}
 	}
+	notify_cleanup_videos();
 }
 
 bool FeVM::script_handle_event( FeInputMap::Command c )

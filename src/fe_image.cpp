@@ -854,6 +854,8 @@ void FeTextureContainer::load_file( const char *n )
 	if( m_file_name == filename )
 		return;
 
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep ) fep->notify_cleanup_videos();
 	clear();
 	clear_texture();
 

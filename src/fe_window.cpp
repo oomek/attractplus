@@ -140,6 +140,11 @@ FeWindow::~FeWindow()
 
 void FeWindow::display()
 {
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		if ( fep->pending_cleanup_videos() )
+			FeAsyncLoader::get_al().stop_cached_videos();
+
 	m_window->display();
 
 	// Starting from Windows Vista all non fullscreen window modes

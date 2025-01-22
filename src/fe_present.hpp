@@ -149,6 +149,7 @@ protected:
 	bool m_preserve_aspect;
 	bool m_custom_overlay;
 	int m_suppressed_navigation_step;
+	bool m_cleanup_videos;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	sf::Vector2i m_layoutSize;
@@ -232,6 +233,8 @@ public:
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required
 	bool video_tick(); // update videos only. return true if redraw required
 	void redraw(); // redraw the screen while doing computationally intensive loops
+	void notify_cleanup_videos() { m_cleanup_videos = true; };
+	bool pending_cleanup_videos() { bool ret = m_cleanup_videos; m_cleanup_videos = false; return ret; };
 
 	bool saver_activation_check();
 	void on_stop_frontend();

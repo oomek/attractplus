@@ -963,7 +963,6 @@ void FePresent::change_selection( int step, bool end_navigation )
 		}
 
 		release_navigation();
-		FeAsyncLoader::get_al().stop_cached_videos();
 }
 
 bool FePresent::reset_screen_saver()
