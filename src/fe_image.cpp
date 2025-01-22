@@ -673,12 +673,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 	if ( m_video_player )
 	{
-		// TODO: Crashing on navigation with loop disabled and the video has finished playing
-		if ( !(m_video_flags & VF_NoLoop) && !m_video_player->is_playing() )
- 		{
- 			m_video_player->stop();
- 			m_video_player->play();
-		}
 		if ( m_video_player->is_playing() )
 			if ( m_video_player->tick() )
 				if ( m_mipmap ) m_texture->generateMipmap();
