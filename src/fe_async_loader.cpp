@@ -147,7 +147,6 @@ FeAsyncLoader::FeAsyncLoader()
 
 FeAsyncLoader::~FeAsyncLoader()
 {
-
 	while ( !m_resources_active.empty() )
 	{
 		ulock_t lock( m_loader_mutex );
@@ -164,17 +163,27 @@ FeAsyncLoader::~FeAsyncLoader()
 		m_resources_cached.pop_back();
 	}
 
-	m_resources_map.clear();
+	while ( !m_resources_cleanup.empty() )
+	{
+		ulock_t lock( m_loader_mutex );
+		list_iterator_t last = --m_resources_cleanup.end();
+		delete last->second;
+		m_resources_cleanup.pop_back();
+	}
 
-	// Stop and join the loader thread
-	m_loader_running = false;
-	m_loader_condition.notify_one();
-	m_loader_thread.join();
+	m_resources_map.clear();
 
 	// Stop and join the cleanup thread
 	m_cleanup_running = false;
 	m_cleanup_condition.notify_one();
-	m_cleanup_thread.join();
+	if ( m_cleanup_thread.joinable() )
+		m_cleanup_thread.join();
+
+	// Stop and join the loader thread
+	m_loader_running = false;
+	m_loader_condition.notify_one();
+	if ( m_loader_thread.joinable() )
+		m_loader_thread.join();
 }
 
 FeAsyncLoaderEntryVideo::FeAsyncLoaderEntryVideo()
