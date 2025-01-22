@@ -973,7 +973,11 @@ bool FeOverlay::edit_game_dialog( int default_sel, FeInputMap::Command extra_exi
 	return true;
 }
 
-bool FeOverlay::layout_options_dialog( int default_sel, FeInputMap::Command extra_exit )
+bool FeOverlay::layout_options_dialog(
+	bool preview,
+	int &default_sel,
+	FeInputMap::Command extra_exit
+)
 {
 	FeLayoutEditMenu m;
 
@@ -1004,10 +1008,13 @@ bool FeOverlay::layout_options_dialog( int default_sel, FeInputMap::Command extr
 	}
 
 	m.set_layout( layout, per_display, display );
+	m.exit_on_change = preview;
 
 	bool settings_changed=false;
 	if ( display_config_dialog( &m, settings_changed, default_sel, extra_exit ) < 0 )
 		m_wnd.close();
+
+	default_sel = m.last_sel;
 
 	if ( settings_changed )
 	{
@@ -1125,6 +1132,7 @@ int FeOverlay::display_config_dialog(
 	ctx.curr_sel = default_sel >= 0 ? default_sel : ctx.default_sel;
 	if ( ctx.curr_sel >= (int)ctx.left_list.size() )
 		ctx.curr_sel = 0;
+	m->last_sel = ctx.curr_sel;
 
 	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
@@ -1153,6 +1161,8 @@ int FeOverlay::display_config_dialog(
 
 		while ( event_loop( c ) == false )
 		{
+			m->last_sel = ctx.curr_sel;
+
 			footer.setString( ctx.curr_opt().help_msg );
 
 			// we reset the entire Text because edit mode may
@@ -1311,10 +1321,20 @@ int FeOverlay::display_config_dialog(
 			vdialog.setSelBgColor( m_sel_blur_colour );
 
 			// If trigger_reload, save & reload to show ui changes instantly
-			if ( ctx.save_req && ctx.opt_list[ctx.curr_sel].trigger_reload )
+			if ( ctx.save_req )
 			{
-				if ( m->save( ctx ) ) parent_setting_changed = true;
-				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
+				if ( m->exit_on_change )
+				{
+					// Save & return so caller can apply changes
+					if ( m->save( ctx ) ) parent_setting_changed = true;
+					return ctx.curr_sel;
+				}
+				else if ( ctx.opt_list[ctx.curr_sel].trigger_reload )
+				{
+					// Save & reload to show ui changes
+					if ( m->save( ctx ) ) parent_setting_changed = true;
+					return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
+				}
 			}
 		}
 	}

@@ -119,6 +119,7 @@ Language;语言
 Launch Last Game;载入最后一次运行的游戏
 Layout;布局
 Layout Options;布局选项
+Layout Preview;布局预览
 Left;270度（向左）
 List Limit;列表大小限制
 Manufacturer;制造商
@@ -420,6 +421,7 @@ _help_joystick_map;Map the frontend's joystick slots to specifically named joyst
 _help_joystick_threshold;The threshold for registering joystick moves, from 1 to 100 (100=least sensitive)
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
+_help_layout_preview;Show layout configuration changes immediately
 _help_menu_toggle;Enable single-button menu toggling, which removes the need for a Back button. Also allows switching between open menus
 _help_misc;Configure general settings
 _help_mouse_threshold;The threshold for registering mouse moves, from 1 to 100 (100=least sensitive)
