@@ -24,7 +24,7 @@ const EntryType FeAsyncLoaderEntryVideo::type = VideoType;
 const EntryType FeAsyncLoaderEntryFont::type = FontType;
 const EntryType FeAsyncLoaderEntrySoundBuffer::type = SoundBufferType;
 
-size_t FeAsyncLoader::m_cache_size = 0;
+size_t FeAsyncLoader::s_cache_max_bytes = 0;
 
 // Destructor needs to be in the same compilation unit
 // so tmp_entry_ptr static_cast to derived will work
@@ -69,6 +69,23 @@ void FeAsyncLoader::clear()
 	}
 }
 
+size_t FeAsyncLoader::get_cache_current_bytes()
+{
+	return m_cache_current_bytes;
+}
+
+void FeAsyncLoader::inc_cache_bytes( size_t size )
+{
+	// ulock_t lock( m_loader_mutex );
+	m_cache_current_bytes += size;
+}
+
+void FeAsyncLoader::dec_cache_bytes( size_t size )
+{
+	// ulock_t lock( m_loader_mutex );
+	m_cache_current_bytes -= size;
+}
+
 int FeAsyncLoader::get_cached_size()
 {
 	return m_resources_cached.size();
@@ -105,11 +122,6 @@ int FeAsyncLoader::get_active_ref_count( int pos )
 	return (*it).second->get_ref();
 }
 
-void FeAsyncLoader::set_cache_size( size_t size )
-{
-	m_cache_size = size;
-}
-
 bool FeAsyncLoader::done()
 {
 	if ( !m_done )
@@ -138,7 +150,8 @@ FeAsyncLoader::FeAsyncLoader()
 	m_resources_cached{},
 	m_resources_cleanup{},
 	m_resources_map{},
-	m_loader_queue{}
+	m_loader_queue{},
+	m_cache_current_bytes( 0 )
 {
 	// setLogHandler(nullptr);
 	m_loader_thread = std::thread( &FeAsyncLoader::loader_thread_loop, this );
@@ -238,13 +251,10 @@ void FeAsyncLoader::cleanup_thread_loop()
 			sf::Clock clk;
 			for ( auto it = m_resources_cleanup.begin(); it != m_resources_cleanup.end(); ++it )
 			{
-				// get_player( it->first )->setVideoSurfaceSize( -1, -1 );
-				// get_player( it->first )->foreignGLContextDestroyed();
 				delete it->second;
 				m_cleanup_size--;
 			}
 
-			// Player::foreignGLContextDestroyed();
 			lock.lock();
             m_resources_cleanup.clear();
             lock.unlock();
@@ -432,6 +442,14 @@ void FeAsyncLoader::stop_cached_videos()
 			m_cleanup_size++;
 			m_cleanup_condition.notify_one();
 		}
+		else if ( m_cache_current_bytes > s_cache_max_bytes && dynamic_cast<FeAsyncLoaderEntryTexture*>( it->second ) != nullptr )
+		{
+			FeAsyncLoader::get_al().dec_cache_bytes( it->second->get_bytes() );
+			m_resources_map.erase( it->first );
+			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
+			m_cleanup_size++;
+			m_cleanup_condition.notify_one();
+		}
 		else
 			++it;
 	}
@@ -461,6 +479,13 @@ void FeAsyncLoader::stop_cached_videos()
 	// // FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " ) " << clk.getElapsedTime().asMilliseconds() << std::endl;
 	// return true;
 // }
+
+bool FeAsyncLoaderEntryTexture::load_from_file( const std::string file )
+{
+	bool ret = m_texture.loadFromFile( file );
+	FeAsyncLoader::get_al().inc_cache_bytes( m_texture.getSize().x * m_texture.getSize().y * 4 );
+	return ret;
+}
 
 bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {

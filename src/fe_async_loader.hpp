@@ -45,7 +45,7 @@ public:
 
 	// FeAsyncLoaderEntryTexture
 	// virtual sf::Vector2u get_texture_size() { return sf::Vector2u( 0, 0 ); };
-	// virtual size_t get_bytes() { return 0; };
+	virtual size_t get_bytes() { return 0; };
 
 	virtual bool load_from_file( const std::string ) { return false; };
 	virtual void *get_resource_pointer() { return nullptr; };
@@ -63,10 +63,8 @@ public:
 	~FeAsyncLoaderEntryTexture() {};
 
 	void *get_resource_pointer() override { return &m_texture; };
-	bool load_from_file( const std::string file ) override { return m_texture.loadFromFile( file ); };
-
-	// sf::Vector2u get_texture_size() override{ return m_texture.getSize(); };
-	// size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
+	bool load_from_file( const std::string file ) override;
+	size_t get_bytes() override { return m_texture.getSize().x * m_texture.getSize().y * 4; };
 
 private:
 	sf::Texture m_texture;
@@ -175,15 +173,17 @@ public:
 
 	void notify();
 
-	// Debug
+	size_t get_cache_current_bytes();
+	static void set_cache_max_bytes( size_t size ) { s_cache_max_bytes = size; };
+	size_t get_cache_max_bytes() { return s_cache_max_bytes; };
+	void inc_cache_bytes( size_t size );
+	void dec_cache_bytes( size_t size );
 	int get_cached_size();
 	int get_active_size();
 	int get_queue_size();
 	int get_cleanup_size();
 	int get_cached_ref_count( int );
 	int get_active_ref_count( int );
-
-	static void set_cache_size( size_t size );
 
 private:
 	FeAsyncLoader();
@@ -203,7 +203,8 @@ private:
 	list_t m_resources_cleanup;
 	map_t m_resources_map;
 	std::queue< std::pair< std::string, EntryType >> m_loader_queue;
-	static size_t m_cache_size;
+	size_t m_cache_current_bytes;
+	static size_t s_cache_max_bytes;
 
 	void loader_thread_loop();
 	void cleanup_thread_loop();
