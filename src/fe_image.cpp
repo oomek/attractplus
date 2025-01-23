@@ -425,8 +425,13 @@ bool FeTextureContainer::try_to_load(
 			if ( fep )
 				m_video_player->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0  );
 
-			if ( !( m_video_flags & VF_NoAutoStart ))
-				m_video_player->play();
+		if ( !( m_video_flags & VF_NoAutoStart ))
+		{
+			m_movie_status = 1;
+			m_video_player->play();
+		}
+		else
+			m_movie_status = -1;
 		}
 	}
 	if ( m_texture != NULL )
@@ -673,11 +678,20 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 	if ( m_video_player )
 	{
-		if ( m_video_player->is_playing() )
-			if ( m_video_player->tick() )
-				if ( m_mipmap ) m_texture->generateMipmap();
+		if ( !m_video_player->is_playing() )
+		{
+			if ( !( m_video_flags & VF_NoLoop ) && m_movie_status > 0 )
+			{
+				m_video_player->stop();
+				m_video_player->play();
+			}
+		}
 
-		return true;
+		if ( m_video_player->tick() )
+		{
+			if ( m_mipmap ) m_texture->generateMipmap();
+			return true;
+		}
 	}
 
 	return false;
@@ -694,14 +708,14 @@ void FeTextureContainer::set_play_state( bool play )
 	{
 		if ( play == true )
 		{
-			// FeLog() << "set( State::Playing )" << std::endl;
+			m_movie_status = 1;
+			m_video_player->stop();
 			m_video_player->play();
-			// FeLog() << "FeTextureContainer::set_play_state().seek(0) " << m_file_name << std::endl;
 		}
 		else
 		{
-			// FeLog() << "set( State::Paused )" << std::endl;
 			m_video_player->stop();
+			m_movie_status = -1;
 		}
 	}
 
