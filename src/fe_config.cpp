@@ -26,11 +26,9 @@
 #include "fe_util.hpp"
 #include "fe_vm.hpp"
 #include "path_cache.hpp"
+#include "media.hpp"
 
 #include <SFML/Graphics/Shader.hpp>
-#ifndef NO_MOVIE
-#include "media.hpp"
-#endif
 
 #include <iostream>
 #include <cmath>
@@ -1780,7 +1778,6 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 	std::vector<std::string> sound_list;
 	ctx.fe_settings.get_sounds_list( sound_list );
 
-#ifndef NO_MOVIE
 	for ( std::vector<std::string>::iterator itr=sound_list.begin();
 			itr != sound_list.end(); )
 	{
@@ -1789,7 +1786,6 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 		else
 			itr++;
 	}
-#endif
 
 	sound_list.push_back( "" );
 
@@ -2076,13 +2072,8 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::vector < std::string > decoders;
 	std::string vid_dec;
 
-#ifdef NO_MOVIE
-	vid_dec = "software";
-	decoders.push_back( vid_dec );
-#else
 	vid_dec = FeMedia::get_current_decoder();
 	FeMedia::get_decoder_list( decoders );
-#endif
 
 	ctx.add_optl( Opt::LIST, "Video Decoder", vid_dec, "_help_video_decoder" );
 	ctx.back_opt().append_vlist( decoders );

@@ -33,11 +33,7 @@
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
 #include "zip.hpp"
-
-#ifndef NO_MOVIE
 #include "media.hpp"
-#endif
-
 #include "image_loader.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -220,13 +216,12 @@ public:
 
 			m_in.pop();
 		}
-#ifndef NO_MOVIE
+
 		while ( !m_vid.empty() )
 		{
 			delete m_vid.front();
 			m_vid.pop();
 		}
-#endif
 	}
 
 	void run_thread()
@@ -261,12 +256,10 @@ public:
 			}
 			else
 			{
-#ifndef NO_MOVIE
 				FeMedia *vid = get_vid_to_reap();
 				if ( vid )
 					delete vid;
 				else
-#endif
 					std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
 			}
 		}
@@ -279,13 +272,11 @@ public:
 		m_in.push( std::pair< std::string, FeImageLoaderEntry * >( n, e ) );
 	}
 
-#ifndef NO_MOVIE
 	void reap_video( FeMedia *vid )
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
 		m_vid.push( vid );
 	}
-#endif
 
 private:
 	std::pair < std::string, FeImageLoaderEntry * > get_next()
@@ -301,7 +292,6 @@ private:
 		return std::pair < std::string, FeImageLoaderEntry *>( "", NULL );
 	}
 
-#ifndef NO_MOVIE
 	FeMedia *get_vid_to_reap()
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
@@ -313,15 +303,12 @@ private:
 		}
 		return NULL;
 	}
-#endif
 
 	std::thread m_thread;
 	bool m_run;
 
 	std::queue< std::pair < std::string, FeImageLoaderEntry * > > m_in;
-#ifndef NO_MOVIE
 	std::queue< FeMedia * > m_vid;
-#endif
 };
 
 class FeImageLoaderImp
@@ -512,7 +499,6 @@ bool FeImageLoader::check_loaded( FeImageLoaderEntry *e )
 	return ( e && e->m_loaded );
 }
 
-#ifndef NO_MOVIE
 void FeImageLoader::reap_video( FeMedia *vid )
 {
 	vid->signal_stop();
@@ -521,7 +507,6 @@ void FeImageLoader::reap_video( FeMedia *vid )
 	if ( il.m_imp )
 		il.m_imp->m_bg_loader.reap_video( vid );
 }
-#endif
 
 FeImageLoader &FeImageLoader::get_ref()
 {

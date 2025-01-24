@@ -26,9 +26,6 @@
 # Uncomment the next line to build the DRM/KMS version (alternative to X11)
 #USE_DRM=1
 #
-# Uncomment next line to disable movie support (i.e. no FFmpeg).
-#NO_MOVIE=1
-#
 # Uncomment the next line to enable the use of MMAL video decoder
 #USE_MMAL=1
 #
@@ -382,18 +379,10 @@ ifeq ($(USE_LIBCURL),1)
  _OBJ += fe_net.o
 endif
 
-ifeq ($(NO_MOVIE),1)
- FE_FLAGS += -DNO_MOVIE
- ifeq ($(WINDOWS_STATIC),1)
-  LIBS += -lsfml-audio-s
- else
-  LIBS += -lsfml-audio
- endif
-else
- TEMP_LIBS += libavformat libavcodec libavutil libswscale libswresample
- _DEP += media.hpp
- _OBJ += media.o
-endif
+TEMP_LIBS += libavformat libavcodec libavutil libswscale libswresample
+_DEP += media.hpp
+_OBJ += media.o
+
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR)
 

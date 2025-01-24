@@ -307,12 +307,10 @@ void set_x11_foreground_window( unsigned long w );
 void set_x11_fullscreen_state( unsigned long w );
 #endif
 
-#ifndef NO_MOVIE
 //
 // Print FFmpeg version information to stdout.
 //
 void print_ffmpeg_version_info();
-#endif
 
 std::string url_escape( const std::string &raw );
 std::string newline_escape( const std::string &raw );

@@ -191,11 +191,9 @@ protected:
 
 private:
 
-#ifndef NO_MOVIE
 	bool load_with_ffmpeg(
 		const std::string &filename,
 		bool is_image );
-#endif
 
 	bool try_to_load(
 		const std::string &filename,

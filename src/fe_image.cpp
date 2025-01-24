@@ -29,11 +29,8 @@
 #include "zip.hpp"
 #include "fe_async_loader.hpp"
 #include "path_cache.hpp"
-#include <cmath>
-
-#ifndef NO_MOVIE
 #include "media.hpp"
-#endif
+#include <cmath>
 
 FeBaseTextureContainer::FeBaseTextureContainer()
 {
@@ -277,13 +274,11 @@ FeTextureContainer::~FeTextureContainer()
 {
 	clear();
 
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		delete m_movie;
 		m_movie=NULL;
 	}
-#endif
 
 	// if ( m_entry )
 	// {
@@ -318,7 +313,6 @@ bool FeTextureContainer::fix_masked_image()
 	return retval;
 }
 
-#ifndef NO_MOVIE
 bool FeTextureContainer::load_with_ffmpeg(
 	const std::string &filename,
 	bool is_image )
@@ -379,18 +373,12 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	return true;
 }
-#endif
 
 bool FeTextureContainer::try_to_load(
 	const std::string &filename,
 	bool is_image )
 {
 	std::string loaded_name;
-
-// #ifndef NO_MOVIE
-	// if ( !is_image && FeMedia::is_supported_media_file( filename ) )
-		// return load_with_ffmpeg( filename, false ); // TODO remove and handle video loading in AsyncLoader
-// #endif
 
 	FeAsyncLoader &al = FeAsyncLoader::get_al();
 	// unsigned char *data = NULL;
@@ -529,7 +517,6 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	bool loaded=false;
 	std::vector<std::string>::iterator itr;
 
-#ifndef NO_MOVIE
 	if ( m_video_flags & VF_DisableVideo )
 		vid_list.clear();
 
@@ -543,7 +530,6 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			break;
 		}
 	}
-#endif
 
 	if ( !loaded )
 	{
@@ -574,75 +560,8 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
-	// if ( m_video_player )
-	// 	if ( m_video_player->state() != State::Playing )
-	// 		m_video_player->set( State::Playing );
-
-	//
-	// We have an m_entry if the image is being loaded in the background
-	//
-	// if ( m_entry )
-	// {
-	// 	FeImageLoader &il = FeImageLoader::get_ref();
-	// 	if ( il.check_loaded( m_entry ) )
-	// 	{
-	// 		m_texture->update( m_entry->get_data() );
-	// 		if ( m_mipmap ) m_texture->generateMipmap();
-	// 		m_texture->setSmooth( m_smooth );
-
-	// 		il.release_entry( &m_entry );
-	// 		return true;
-	// 	}
-	// }
-
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
-
-// #ifndef NO_MOVIE
-// 	if (( m_movie ) && ( m_movie_status > 0 ))
-// 	{
-// 		if ( m_movie_status < PLAY_COUNT )
-// 		{
-// 			//
-// 			// We skip the first few "ticks" after the movie
-// 			// is first loaded because the user may just be
-// 			// scrolling rapidly through the game list (there
-// 			// are ticks between each selection scrolling by)
-// 			//
-// 			m_movie_status++;
-// 			return false;
-// 		}
-// 		else if ( m_movie_status == PLAY_COUNT )
-// 		{
-// 			m_movie_status++;
-
-// 			//
-// 			// Start playing now if this is a video...
-// 			//
-// 			if ( m_video_flags & VF_NoAudio )
-// 				m_movie->setVolume( 0.f );
-// 			else
-// 				m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
-
-// 			m_movie->play();
-// 		}
-
-// 		// restart looped video
-// 		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
-// 		{
-// 			m_movie->stop();
-// 			m_movie->play();
-
-// 			FeDebug() << "Restarted looped video" << std::endl;
-// 		}
-
-// 		if ( m_movie->tick() )
-// 		{
-// 			if ( m_mipmap ) m_texture->generateMipmap();
-// 			return true;
-// 		}
-// 	}
-// #endif
 
 	if ( m_video_player )
 	{
@@ -687,7 +606,6 @@ void FeTextureContainer::set_play_state( bool play )
 
 	return;
 
-#ifndef NO_MOVIE
 	if (m_movie)
 	{
 		if ( play == get_play_state() )
@@ -717,7 +635,6 @@ void FeTextureContainer::set_play_state( bool play )
 				m_movie_status = 0;
 		}
 	}
-#endif
 }
 
 bool FeTextureContainer::get_play_state() const
@@ -727,7 +644,6 @@ bool FeTextureContainer::get_play_state() const
 
 	return false;
 
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		if ( m_movie_status > PLAY_COUNT )
@@ -736,7 +652,6 @@ bool FeTextureContainer::get_play_state() const
 			// if status > 0, we are in the process of starting to play
 			return ( m_movie_status > 0 );
 	}
-#endif
 
 	return false;
 }
@@ -900,7 +815,6 @@ void FeTextureContainer::clear()
 	m_file_name.clear();
 	m_video_player = NULL;
 
-#ifndef NO_MOVIE
 	// If a movie is running, close it...
 	if ( m_movie )
 	{
@@ -908,7 +822,6 @@ void FeTextureContainer::clear()
 		m_movie->signal_stop(); // TODO: fast but memory leak
 		m_movie=NULL;
 	}
-#endif
 }
 
 void FeTextureContainer::clear_texture()
