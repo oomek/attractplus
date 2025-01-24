@@ -258,11 +258,12 @@ std::string sanitize_filename( const std::string &file )
 	return std::regex_replace( file, std::regex( "[\\\\/:*?\"<>|]" ), "-" );
 }
 
-time_t modified_time( const std::string &file )
+// Returns modified time of file
+time_t file_mtime( const std::string &file )
 {
 	nowide::stat_t buffer;
 	nowide::stat(file.c_str(), &buffer);
-	return buffer.st_mtime;
+	return ( buffer.st_mode == 0 ) ? 0 : buffer.st_mtime;
 }
 
 bool file_exists( const std::string &file )

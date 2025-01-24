@@ -201,7 +201,7 @@ bool FeRomList::load_romlist( const std::string &path,
 {
 	sf::Clock load_timer;
 	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
-	time_t mtime = modified_time( romlist_path );
+	time_t mtime = file_mtime( romlist_path );
 
 	// Reset all properties here in case cache load returns early
 	m_romlist_name = romlist_name;
