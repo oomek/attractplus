@@ -74,6 +74,7 @@ public:
 
 	int get_duration();
 	int get_time();
+	const char *get_metadata( const char * );
 };
 
 #endif // FE_MUSIC_HPP

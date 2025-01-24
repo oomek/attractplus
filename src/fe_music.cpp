@@ -26,6 +26,11 @@
 #include "fe_util.hpp"
 #include "fe_file.hpp"
 
+extern "C"
+{
+#include <libavformat/avformat.h>
+}
+
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
 	m_volume( 100.0 )
@@ -168,4 +173,28 @@ int FeMusic::get_duration()
 int FeMusic::get_time()
 {
 	return m_music.getPlayingOffset().asMilliseconds();
+}
+
+// TODO: Cache the context
+const char *FeMusic::get_metadata( const char* tag )
+{
+	if ( !m_file_name.c_str() || !tag )
+		return "";
+
+	AVFormatContext* format_ctx = avformat_alloc_context();
+	if ( !format_ctx )
+		return "";
+
+	if ( avformat_open_input( &format_ctx, m_file_name.c_str(), NULL, NULL ) < 0 )
+	{
+		avformat_free_context( format_ctx );
+		return "";
+	}
+
+	AVDictionaryEntry* entry = av_dict_get( format_ctx->metadata, tag, NULL, AV_DICT_IGNORE_SUFFIX );
+	const char* value = ( entry ? entry->value : "" );
+
+	avformat_close_input( &format_ctx );
+	avformat_free_context( format_ctx );
+	return value;
 }

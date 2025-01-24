@@ -925,6 +925,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("duration"), &FeMusic::get_duration )
 		.Prop( _SC("time"), &FeMusic::get_time )
 		.Prop( _SC("volume"), &FeMusic::get_volume, &FeMusic::set_volume )
+		.Func( _SC("get_metadata"), &FeMusic::get_metadata )
 	);
 
 	fe.Bind( _SC("Shader"), Class <FeShader, NoConstructor>()
