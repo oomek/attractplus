@@ -190,11 +190,6 @@ protected:
 	FeTextureContainer *get_derived_texture_container();
 
 private:
-
-	bool load_with_ffmpeg(
-		const std::string &filename,
-		bool is_image );
-
 	bool try_to_load(
 		const std::string &filename,
 		bool is_image=false );
@@ -217,7 +212,6 @@ private:
 	enum Type { IsArtwork, IsDynamic, IsStatic };
 	Type m_type;
 	int m_art_update_trigger;
-	FeMedia *m_movie;
 	int m_movie_status; // 0=no play, 1=ready to play, >=PLAY_COUNT=playing
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;

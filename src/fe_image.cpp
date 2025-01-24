@@ -247,7 +247,6 @@ FeTextureContainer::FeTextureContainer(
 	m_current_rom_index( -1 ),
 	m_current_filter_index( -1 ),
 	m_art_update_trigger( ToNewSelection ),
-	m_movie( NULL ),
 	m_movie_status( -1 ),
 	m_video_flags( VF_Normal ),
 	m_mipmap( false ),
@@ -273,18 +272,6 @@ FeTextureContainer::FeTextureContainer(
 FeTextureContainer::~FeTextureContainer()
 {
 	clear();
-
-	if ( m_movie )
-	{
-		delete m_movie;
-		m_movie=NULL;
-	}
-
-	// if ( m_entry )
-	// {
-	// 	FeImageLoader &il = FeImageLoader::get_ref();
-	// 	il.release_entry( &m_entry );
-	// }
 }
 
 bool FeTextureContainer::get_visible() const
@@ -311,67 +298,6 @@ bool FeTextureContainer::fix_masked_image()
 	}
 
 	return retval;
-}
-
-bool FeTextureContainer::load_with_ffmpeg(
-	const std::string &filename,
-	bool is_image )
-{
-	std::string loaded_name;
-	bool res=false;
-
-	loaded_name = filename;
-	if ( loaded_name.compare( m_file_name ) == 0 )
-		return true;
-
-	clear();
-
-	if ( !FePathCache::file_exists( loaded_name ) )
-	{
-		clear_texture();
-		return false;
-	}
-
-	m_movie = new FeMedia( FeMedia::AudioVideo );
-	res = m_movie->open( "", loaded_name, m_texture );
-
-	if ( !res )
-	{
-		FeLog() << "ERROR loading video: "
-			<< loaded_name << std::endl;
-
-		clear_texture();
-		delete m_movie;
-		m_movie = NULL;
-		return false;
-	}
-
-	if ( is_image && (!m_movie->is_multiframe()) )
-	{
-		m_movie_status = -1; // don't play if there is only one frame
-
-		// if there is only one frame, then we can update the texture immediately
-		// (the frame will have been preloaded) and delete our movie object now
-		delete m_movie;
-		m_movie = NULL;
-	}
-	else if (m_video_flags & VF_NoAutoStart)
-		m_movie_status = 0; // 0=loaded but not on track to play
-	else
-		m_movie_status = 1; // 1=on track to be played
-
-	if ( res && !is_image )
-	{
-		// Fill the first video frame with a black colour
-		sf::Image img;
-		img.create(	m_texture->getSize().x, m_texture->getSize().y, sf::Color( 0, 0, 0 ));
-		m_texture->update( img );
-	}
-
-	m_texture->setSmooth( m_smooth );
-	m_file_name = loaded_name;
-
-	return true;
 }
 
 bool FeTextureContainer::try_to_load(
@@ -605,53 +531,12 @@ void FeTextureContainer::set_play_state( bool play )
 	}
 
 	return;
-
-	if (m_movie)
-	{
-		if ( play == get_play_state() )
-			return;
-
-		if ( m_movie_status > PLAY_COUNT )
-		{
-			if ( play )
-			{
-				m_movie->stop();
-				m_movie->play();
-			}
-			else
-			{
-				m_movie->stop();
-				m_movie_status = 0;
-			}
-		}
-		else if ( m_movie_status >= 0 )
-		{
-			// m_movie_status is 0 if a movie is loaded but the VF_NoAutoStart flag is set.
-			// If movie is in this state and user wants to play then put it on track to be played.
-			//
-			if (( m_movie_status == 0 ) && ( play ))
-				m_movie_status = 1;
-			else if ( !play )
-				m_movie_status = 0;
-		}
-	}
 }
 
 bool FeTextureContainer::get_play_state() const
 {
 	if ( m_video_player )
 		return m_video_player->is_playing();
-
-	return false;
-
-	if ( m_movie )
-	{
-		if ( m_movie_status > PLAY_COUNT )
-			return m_movie->is_playing();
-		else
-			// if status > 0, we are in the process of starting to play
-			return ( m_movie_status > 0 );
-	}
 
 	return false;
 }
@@ -814,14 +699,6 @@ void FeTextureContainer::clear()
 	al.release_resource( m_file_name );
 	m_file_name.clear();
 	m_video_player = NULL;
-
-	// If a movie is running, close it...
-	if ( m_movie )
-	{
-		// m_movie->close(); // TODO: Too slow 20ms
-		m_movie->signal_stop(); // TODO: fast but memory leak
-		m_movie=NULL;
-	}
 }
 
 void FeTextureContainer::clear_texture()
@@ -844,7 +721,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie) m_texture->generateMipmap();
+	if ( m_mipmap && !m_video_player ) m_texture->generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -891,10 +768,6 @@ float FeTextureContainer::get_sample_aspect_ratio() const
 
 void FeTextureContainer::release_audio( bool state )
 {
-// #ifndef NO_MOVIE
-// 	if ( m_movie )
-// 		m_movie->release_audio( state );
-// #endif
 }
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
