@@ -1034,6 +1034,7 @@ bool FeVM::on_new_layout()
 	fe.Func<bool (*)(const char *, const char *)>(_SC("plugin_command_bg"), &FeVM::cb_plugin_command_bg);
 	fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
+	fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
 	fe.Func<void (*)(const char *)>(_SC("signal"), &FeVM::cb_signal);
 	fe.Overload<void (*)(int, bool, bool)>(_SC("set_display"), &FeVM::cb_set_display);
@@ -1757,6 +1758,7 @@ public:
 			fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
 			fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 			fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
+			fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
 		}
 
@@ -2504,6 +2506,11 @@ bool FeVM::cb_path_test( const char *path, int flag )
 		FeLog() << "Error, unrecognized path_test flag: " << flag << std::endl;
 		return false;
 	}
+}
+
+time_t FeVM::cb_get_file_mtime( const char *file )
+{
+	return file_mtime( file );
 }
 
 const char *FeVM::cb_game_info( int index, int offset, int filter_offset )

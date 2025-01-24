@@ -233,6 +233,7 @@ public:
 		IsSupportedMedia=32
 	};
 	static bool cb_path_test( const char *, int );
+	static time_t cb_get_file_mtime( const char * );
 
 	static const char *cb_game_info( int,int,int);
 	static const char *cb_game_info(int,int);

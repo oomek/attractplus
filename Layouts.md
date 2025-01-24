@@ -38,6 +38,7 @@ Contents
       * [`fe.plugin_command_bg()`](#plugin_command_bg)
       * [`fe.path_expand()`](#path_expand)
       * [`fe.path_test()`](#path_test)
+      * [`fe.get_file_mtime()`](#get_file_mtime) 🔶
       * [`fe.get_config()`](#get_config)
       * [`fe.get_text()`](#get_text)
       * [`fe.get_url()`](#get_url) 🔶
@@ -1151,6 +1152,23 @@ Parameters:
 Return Value:
 
    * (boolean) result.
+
+&nbsp;
+<a name="get_file_mtime"></a>
+
+#### `fe.get_file_mtime()` #### 🔶
+
+    fe.get_file_mtime( filename )
+
+Returns the modified time of the given file.
+
+Parameters:
+
+   * filename - the file to get the modified time of.
+
+Return Value:
+
+   * An integer containing the GMT timestamp.
 
 &nbsp;
 <a name="get_config"></a>
