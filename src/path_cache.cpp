@@ -48,7 +48,7 @@ std::map<std::string, std::map<std::string, int>> FePathCache::m_cache;
 void FePathCache::clear()
 {
 	m_cache.clear();
-	FeLog() << "Cleared artwork path cache." << std::endl;
+	FeDebug() << "PathCache: Cleared path cache." << std::endl;
 }
 
 bool FePathCache::get_filename_from_base(
@@ -125,7 +125,7 @@ std::map<std::string, int>& FePathCache::get_cache( const std::string& full_path
 	}
 	catch ( const boost::filesystem::filesystem_error& e )
 	{
-		FeLog() << "dir_cache: Error listing directory: " << path << std::endl;
+		FeLog() << "PathCache: Error listing directory: " << path << std::endl;
 	}
 
 	m_cache.insert( std::make_pair( path, temp ));
@@ -158,6 +158,6 @@ int FePathCache::check_path( const std::string &full_path )
 			return FeVM::IsFile;
 	}
 
-	FeLog() << "check_path: " << temp_name << " not found" << std::endl;
+	FeLog() << "PathCache: " << temp_name << " not found" << std::endl;
 	return FeVM::IsNotFound;
 }
