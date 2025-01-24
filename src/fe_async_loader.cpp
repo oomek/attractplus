@@ -431,13 +431,13 @@ void FeAsyncLoader::stop_cached_videos()
 		{
 			// FeLog() << "FeAsyncLoader::stop_cached_videos( " << it->first << " )" << std::endl;
 			// ulock_t lock( m_cleanup_mutex );
-			m_resources_map.erase( it->first );
 			if ( FeMedia* player = get_player( it->first ))
 			{
 				FeLog() << "FeAsyncLoader::stop_cached_video( " << it->first << " )" << std::endl;
 				if ( player->is_playing() )
 					player->signal_stop();
 			}
+			m_resources_map.erase( it->first );
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
 			m_cleanup_size++;
 			m_cleanup_condition.notify_one();
