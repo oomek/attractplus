@@ -857,7 +857,6 @@ bool internal_resolve_config_file(
 
 FeEmulatorInfo *FeRomList::get_emulator( const std::string & emu )
 {
-	// FeLog() << "FeRomList::get_emulator( " << emu << " )" << std::endl;
 	if ( emu.empty() )
 		return NULL;
 
@@ -889,7 +888,6 @@ FeEmulatorInfo *FeRomList::get_emulator( const std::string & emu )
 
 FeEmulatorInfo *FeRomList::create_emulator( const std::string &emu, const std::string &emu_template )
 {
-	// FeLog() << "FeRomList::create_emulator( " << emu << " )" << std::endl;
 	// If an emulator with the given name already exists we return it
 	//
 	FeEmulatorInfo *tmp = get_emulator( emu );

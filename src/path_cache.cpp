@@ -91,7 +91,6 @@ bool FePathCache::directory_exists( const std::string &file )
 
 std::map<std::string, int>& FePathCache::get_cache( const std::string& full_path )
 {
-	sf::Clock clk;
 	std::string path = full_path;
 	std::replace( path.begin(), path.end(), '\\', '/' );
 	if ( path.back() == '/' ) path.pop_back();
@@ -126,7 +125,6 @@ std::map<std::string, int>& FePathCache::get_cache( const std::string& full_path
 	}
 
 	m_cache.insert( std::make_pair( path, temp ));
-	// FeLog() << "Caching " << path << " took " << clk.getElapsedTime().asMicroseconds() << "us" << std::endl;
 	return m_cache[ path ];
 }
 

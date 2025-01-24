@@ -441,7 +441,6 @@ int main(int argc, char *argv[])
 			// user's scripts may be remapping the signal to another value.  If that is the case, we
 			// let the signal proceed (and set move_triggered below... at step 2 of 2)
 			//
-// FeLog() << "Move state: " << move_state << std::endl;
 			if (( move_state != FeInputMap::LAST_COMMAND )
 					&& ( from_ui || ( move_triggered != FeInputMap::LAST_COMMAND )))
 				continue;
@@ -526,7 +525,7 @@ int main(int argc, char *argv[])
 					continue;
 				}
 			}
-// FeLog() << "Command1: " << FeInputMap::commandStrings[c] << std::endl;
+
 			//
 			// Give the script the option to handle the command.
 			//
@@ -536,9 +535,9 @@ int main(int argc, char *argv[])
 					<< FeInputMap::commandStrings[c] << std::endl;
 
 				redraw=true;
-// FeLog() <<  "INTERCEPTED" << std::endl;
 				continue;
 			}
+
 			//
 			// Check if we need to get out of intro mode
 			//
@@ -571,7 +570,6 @@ int main(int argc, char *argv[])
 			//
 			// ( move_state == LAST_COMMAND ) will catch the regular case with no remapping
 			//
-// FeLog() << "Repeated Command: " << FeInputMap::commandStrings[c] << std::endl;
 			if (( !from_ui && ( move_triggered == FeInputMap::LAST_COMMAND ))
 					|| ( move_state != FeInputMap::LAST_COMMAND ))
 			{
@@ -951,7 +949,6 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
-// FeLog() << "Move state CONT: " <<  move_state << std::endl;
 						soundsys.sound_event( c );
 
 						move_last_triggered = t;

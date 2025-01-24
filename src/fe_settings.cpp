@@ -144,18 +144,11 @@ bool internal_resolve_config_file(
 	path += name;
 
 	std::replace( path.begin(), path.end(), '\\', '/' );
-	// if ( path.back() == '/' ) path.pop_back();
 
-	// FeLog() << "  internal_resolve_config_file() " << path << std::endl;
 	if ( FePathCache::file_exists( path ) )
 	{
-		// FeLog() << "  internal_resolve_config_file() FOUND " << path << std::endl;
 		result = path;
 		return true;
-	}
-	else
-	{
-		// FeLog() << "  internal_resolve_config_file() NOT FOUND " << path << std::endl;
 	}
 
 	if ( FE_DATA_PATH != NULL )
@@ -1295,16 +1288,10 @@ bool FeSettings::get_path(
 		}
 		else
 		{
-			// FeLog() << "!!!!!!!!!!!get_path()" << std::endl;
-			if ( !get_layout_dir(
-					m_displays[ m_current_display ].get_info( FeDisplayInfo::Layout ),
-					path ) )
-			{
-				// FeLog() << "!!!!!!!!!!!get_layout_dir() FAILED" << std::endl;
+			if ( !get_layout_dir( m_displays[ m_current_display ].get_info( FeDisplayInfo::Layout ), path ))
 				return false;
-			}
+
 			file = m_displays[m_current_display].get_current_layout_file();
-			// FeLog() << "!!!!!!!!!!!get_layout_dir() SUCCEES " << file << std::endl;
 		}
 
 		if ( file.empty() )
@@ -1399,7 +1386,6 @@ bool FeSettings::get_layout_dir(
 	const std::string &layout_name,
 	std::string &layout_dir ) const
 {
-	// FeLog() << "!!!!!!!!!!!get_layout_dir: " << layout_name << std::endl;
 	if ( layout_name.empty() )
 		return false;
 
@@ -3768,7 +3754,6 @@ bool gather_artwork_filenames(
 	std::vector<std::string> &vids,
 	std::vector<std::string> &images )
 {
-	// FeLog() << "FeSettings::gather_artwork_filenames() " << std::endl;
 	for ( std::vector< std::string >::const_iterator itr = art_paths.begin();
 			itr != art_paths.end(); ++itr )
 	{
@@ -3825,7 +3810,7 @@ bool gather_artwork_filenames(
 		// image from it at this point (if available)
 		//
 		std::string sd_path = (*itr) + target_name;
-		// sf::Clock clk;
+
 		if ( FePathCache::directory_exists( sd_path ) )
 		{
 			sd_path += "/";
@@ -3859,8 +3844,6 @@ bool gather_artwork_filenames(
 			images.insert( images.end(), img_contents.begin(), img_contents.end() );
 			vids.insert( vids.end(), vid_contents.begin(), vid_contents.end() );
 		}
-
-		// FeLog() << "directory_exists()" << " " << clk.getElapsedTime().asMicroseconds() << std::endl;
 	}
 
 	return ( !images.empty() || !vids.empty() );

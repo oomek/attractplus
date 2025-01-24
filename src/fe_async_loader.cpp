@@ -1,10 +1,3 @@
-// #include <chrono> // sleep_for
-// auto start = std::chrono::steady_clock::now();
-// auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now() - start ).count();
-// FeLog() << elapsed << std::endl;
-// FeLog() << std::chrono::duration_cast<std::chrono::microseconds>( std::chrono::steady_clock::now() - start ).count() << std::endl;
-
-
 #include <iostream>
 #include <chrono>
 #include <unistd.h>
@@ -248,7 +241,6 @@ void FeAsyncLoader::cleanup_thread_loop()
 		{
 			lock.unlock();
 
-			sf::Clock clk;
 			for ( auto it = m_resources_cleanup.begin(); it != m_resources_cleanup.end(); ++it )
 			{
 				delete it->second;
@@ -258,7 +250,6 @@ void FeAsyncLoader::cleanup_thread_loop()
 			lock.lock();
             m_resources_cleanup.clear();
             lock.unlock();
-			FeLog() << "FeAsyncLoader::cleanup_thread_loop() " << clk.getElapsedTime().asMilliseconds() << " ms" << std::endl;
 		}
 	}
 }
@@ -338,16 +329,13 @@ bool FeAsyncLoader::add_to_cache( const std::string file )
 template <typename T>
 T *FeAsyncLoader::get_resource( const std::string input_file )
 {
-	// sf::Clock clk;
 	std::string file = input_file;
 	std::replace( file.begin(), file.end(), '\\', '/' );
 
-	// FeLog() << "FeAsyncLoader::get_resource( " << file << " )" << std::endl;
 	map_iterator_t it = m_resources_map.find( file );
 
 	if ( it != m_resources_map.end() )
 	{
-		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) FOUND" << std::endl;
 		ulock_t lock( m_loader_mutex );
 		if ( it->second->second->get_ref() > 0 )
 			// Promote in active list
@@ -357,17 +345,10 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 			m_resources_active.splice( m_resources_active.begin(), m_resources_cached, it->second );
 
 		it->second->second->inc_ref();
-		// FeLog() << "get_resource() FOUND " << clk.getElapsedTime().asMicroseconds() << std::endl;
 		return static_cast<T*>( it->second->second->get_resource_pointer() );
 	}
 	else
 	{
-		// FeLog() << "FeAsyncLoader::get_resource( " << file << " ) NOT FOUND" << std::endl;
-		// if ( add_resource_texture( file, false )) //TODO this is wrong, calls texture in a template function
-		// 	return get_resource<T>( file );
-		// else
-		// 	return nullptr;
-
 		bool added = false;
 		if ( tail_compare( file, FE_ART_EXTENSIONS ))
 			added = add_resource<FeAsyncLoaderEntryTexture>(file, false);
@@ -411,7 +392,6 @@ void FeAsyncLoader::release_resource( const std::string file )
 {
 
 	if ( file.empty() ) return;
-	// FeLog() << "FeAsyncLoader::release_resource( " << file << " )" << std::endl;
 
 	ulock_t lock( m_loader_mutex );
 	map_iterator_t it = m_resources_map.find( file );
@@ -429,11 +409,8 @@ void FeAsyncLoader::stop_cached_videos()
 	{
 		if ( dynamic_cast<FeAsyncLoaderEntryVideo*>( it->second ) != nullptr )
 		{
-			// FeLog() << "FeAsyncLoader::stop_cached_videos( " << it->first << " )" << std::endl;
-			// ulock_t lock( m_cleanup_mutex );
 			if ( FeMedia* player = get_player( it->first ))
 			{
-				FeLog() << "FeAsyncLoader::stop_cached_video( " << it->first << " )" << std::endl;
 				if ( player->is_playing() )
 					player->signal_stop();
 			}
@@ -455,31 +432,6 @@ void FeAsyncLoader::stop_cached_videos()
 	}
 }
 
-// bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
-// {
-	// sf::Clock clk;
-	// m_player.setMedia( file.c_str() );
-	// m_player.prepare();
-	// m_player.setPreloadImmediately( true );
-	// // m_player.setLoop(std::numeric_limits<int>::max());
-
-	// for(;;)
-	// {
-	// 	if ( m_player.mediaStatus() > MediaStatus::Buffering ) break;
-	// 	if ( m_player.mediaStatus() == MediaStatus::Invalid ) return false;
-	// }
-	// auto video_info = m_player.mediaInfo().video[0];
-	// m_player.setVideoSurfaceSize( video_info.codec.width * video_info.codec.par, video_info.codec.height );
-	// m_texture.create( video_info.codec.width * video_info.codec.par, video_info.codec.height );
-
-	// if ( get_OS_string() == "Linux" )
-	// 	m_player.setAudioBackends( {"ALSA"} );
-
-	// // m_player.set( State::Playing );
-	// // FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " ) " << clk.getElapsedTime().asMilliseconds() << std::endl;
-	// return true;
-// }
-
 bool FeAsyncLoaderEntryTexture::load_from_file( const std::string file )
 {
 	bool ret = m_texture.loadFromFile( file );
@@ -489,12 +441,10 @@ bool FeAsyncLoaderEntryTexture::load_from_file( const std::string file )
 
 bool FeAsyncLoaderEntryVideo::load_from_file( const std::string file )
 {
-	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file( " << file << " )" << std::endl;
 	bool ret = m_media.open( "", file, &m_texture );
 	sf::Image img;
 	img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color( 0, 0, 0 ));
 	m_texture.update( img );
-	// FeLog() << "FeAsyncLoaderEntryVideo::load_from_file() DONE" << std::endl;
 	return ret;
 }
 

@@ -1317,8 +1317,6 @@ void FeVM::on_transition(
 {
 	using namespace Sqrat;
 
-	// FeLog() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
-
 	sf::Clock clk;
 	int ttime = 0;
 
@@ -1419,7 +1417,7 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 			if ( !func.IsNull() )
 			{
 				bool result = func.Evaluate<bool>( FeInputMap::commandStrings[ c ] );
-// FeLog() << "Script returned: " << result << " " << FeInputMap::commandStrings[ c ]<< std::endl;
+
 				if ( result == true )
 					return true;
 				// More logic here for the 3rd state, or maybe not anymore?
@@ -2601,7 +2599,6 @@ const char *FeVM::cb_game_info( int index )
 
 const char *FeVM::cb_get_art( const char *art, int index_offset, int filter_offset, int art_flags )
 {
-	// sf::Clock clk;
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 	FeSettings *fes = fev->m_feSettings;
@@ -2665,7 +2662,7 @@ const char *FeVM::cb_get_art( const char *art, int index_offset, int filter_offs
 		//
 		retval = absolute_path( retval );
 	}
-	// FeLog() << clk.getElapsedTime().asMicroseconds() << std::endl;
+
 	return retval.c_str();
 }
 

@@ -398,7 +398,7 @@ bool FeTextureContainer::try_to_load(
 	loaded_name = filename;
 	if ( loaded_name.compare( m_file_name ) == 0 )
 		return true;
-	sf::Clock clk;
+
 	clear();
 
 	if ( !FePathCache::file_exists( loaded_name ) )
@@ -407,16 +407,12 @@ bool FeTextureContainer::try_to_load(
 		return false;
 	}
 
-	// sf::Clock clk;
-
 	if ( is_image )
 	{
-		// FeLog() << " al.get_resource_texture() " << loaded_name << std::endl;
 		m_texture = al.get_resource_texture( loaded_name );
 	}
 	else
 	{
-		// FeLog() << " al.get_resource_video() " << loaded_name << std::endl;
 		m_texture = al.get_resource_video( loaded_name );
 		m_video_player = al.get_player( loaded_name );
 		if ( m_video_player )
@@ -444,40 +440,9 @@ bool FeTextureContainer::try_to_load(
 		if ( m_mipmap ) m_texture->generateMipmap();
 		m_texture->setSmooth( m_smooth );
 	}
-	// else
-		//  m_texture = &m_empty_texture;
-		// clear_texture(); // TODO: check if needed
 
-	// if ( m_texture != NULL )
-	// {
-	// 	if ( m_mipmap ) m_texture->generateMipmap();
-	// 	m_texture->setSmooth( m_smooth );
-	// }
-
-	// FeLog() << "FeTextureContainer::try_to_load( " << filename << " ) took " << clk.getElapsedTime().asMicroseconds() << std::endl;
-
-	// FeLog() << "try_to_load elapsed: " << clk.getElapsedTime().asMilliseconds() << std::endl;
 	m_file_name = loaded_name;
 	return true;
-
-	// if ( il.load_image_from_file( loaded_name, &m_entry ) )
-	// 	data = m_entry->get_data();
-
-	// m_file_name = loaded_name;
-
-	// // resize our texture accordingly
-	// if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
-	// 	m_texture.create( m_entry->get_width(), m_entry->get_height() );
-
-	// if ( data )
-	// {
-	// 	m_texture.update( data );
-	// 	il.release_entry( &m_entry ); // don't need entry any more
-	// 	if ( m_mipmap ) m_texture.generateMipmap();
-	// 	m_texture.setSmooth( m_smooth );
-	// }
-
-	// return true;
 }
 
 const sf::Texture &FeTextureContainer::get_texture()
@@ -572,8 +537,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	{
 		std::string filename = *itr;
 
-		// FeLog() << "Loading video: " << filename << std::endl; // TODO FE_ART_EXTENSIONS containing video extensions is not a good approach
-		if ( try_to_load( filename ) ) // loading video is_image = false
+		if ( try_to_load( filename ) )
 		{
 			loaded = true;
 			break;
@@ -594,8 +558,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 				itr != image_list.end(); ++itr )
 			{
 				std::string filename = *itr;
-				// FeLog() << "Loading image: " << filename << std::endl;
-				if ( try_to_load( filename, true ) ) // loading video is_image = true
+				if ( try_to_load( filename, true ) )
 				{
 					loaded = true;
 					break;
@@ -704,8 +667,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 void FeTextureContainer::set_play_state( bool play )
 {
-	// FeLog() << "FeTextureContainer::set_play_state(" << ( play ? "true" : "false" ) << ")" << std::endl;
-
 	if ( play == get_play_state() )
 		return;
 
@@ -863,7 +824,6 @@ int FeTextureContainer::get_video_time() const
 
 void FeTextureContainer::load_file( const char *n )
 {
-	// FeLog() << "FeTextureContainer::load_file( " << n << " )" << std::endl;
 	// TODO: add support for relative paths that works with if( m_file_name == filename ) and cache
 	std::string filename = clean_path( n );
 
@@ -934,15 +894,8 @@ FeTextureContainer *FeTextureContainer::get_derived_texture_container()
 
 void FeTextureContainer::clear()
 {
-	// FeLog() << "FeTextureContainer::clear() " << m_file_name << std::endl;
 	m_movie_status = -1;
 	FeAsyncLoader &al = FeAsyncLoader::get_al();
-	if ( m_video_player )
-	{
-		// m_video_player->setVolume( 0 );
-		// m_video_player->seek( 0 );
-		// m_video_player->set( State::Stopped );
-	}
 	al.release_resource( m_file_name );
 	m_file_name.clear();
 	m_video_player = NULL;

@@ -284,64 +284,6 @@ int check_path( const std::string &path )
 	}
 	else if( _waccess( wide_path.c_str(), F_OK) != -1 )
 		return FeVM::IsFile;
-
-
-	// std::wstring wide_path = widen( p );
-	// WIN32_FILE_ATTRIBUTE_DATA fileData;
-	// bool res = GetFileAttributesExW( wide_path.c_str(), GetFileExInfoStandard, &fileData );
-	// if ( res )
-	// {
-	// 	if (( fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 )
-	// 		return FeVM::IsDirectory;
-	// 	else
-	// 		return FeVM::IsFile;
-	// }
-
-
-	// std::wstring wide_path = widen( p );
-	// sf::Clock c1;
-	// DWORD attributes = GetFileAttributesW( wide_path.c_str() );
-	// int us = c1.getElapsedTime().asMicroseconds();
-	// if ( attributes != INVALID_FILE_ATTRIBUTES && !( attributes & FILE_ATTRIBUTE_DIRECTORY ))
-	// {
-	// 	FeLog() << "file: " << us << "us" << std::endl;
-	// 	return FeVM::IsFile;
-	// }
-	// if ( attributes != INVALID_FILE_ATTRIBUTES && ( attributes & FILE_ATTRIBUTE_DIRECTORY ))
-	// {
-	// 	FeLog() << "dir: " << us << "us" << std::endl;
-	// 	return FeVM::IsDirectory;
-	// }
-
-
-	// sf::Clock c2;
-	// int ret = _waccess( wide_path.c_str(), F_OK );
-	// FeLog() << c2.getElapsedTime().asMicroseconds() << "us " << path << std::endl;
-	// if( ret != -1 )
-	// 	return FeVM::IsFile;
-
-	// std::wstring wide_path = widen( p );
-	// _WDIR* dir = _wopendir( wide_path.c_str() );
-	// if ( dir )
-	// {
-	// 	_wclosedir( dir );
-	// 	return FeVM::IsDirectory;
-	// }
-	// else if( _waccess( wide_path.c_str(), F_OK) != -1 )
-	// 	return FeVM::IsFile;
-
-
-	// std::wstring wide_path = widen( p );
-	// struct _stat s;
-	// int res = _wstat( wide_path.c_str(), &s );
-    // if ( res == 0 )
-    // {
-    //     if ( s.st_mode & _S_IFREG )
-    //         return FeVM::IsFile;
-    //     else if ( s.st_mode & _S_IFDIR )
-    //         return FeVM::IsDirectory;
-    // }
-
 #else
 	struct stat s;
 	if ( stat( path.c_str(), &s ) == 0 )
