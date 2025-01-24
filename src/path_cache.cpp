@@ -94,6 +94,10 @@ std::map<std::string, int>& FePathCache::get_cache( const std::string& full_path
 	std::string path = full_path;
 	std::replace( path.begin(), path.end(), '\\', '/' );
 	if ( path.back() == '/' ) path.pop_back();
+
+	// Special case: handle drive letters (e.g., "D:")
+	if ( path.size() == 2 && path[1] == ':' ) path += '/';
+
 	std::map<std::string, std::map<std::string, int>>::iterator itr;
 
 	itr = m_cache.find( path );
