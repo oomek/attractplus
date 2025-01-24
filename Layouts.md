@@ -46,7 +46,7 @@ Contents
       * [`fe.ambient_sound`](#ambient_sound)
       * [`fe.layout`](#layout)
       * [`fe.list`](#list)
-      * [`fe.image_cache`](#image_cache)
+      * [`fe.cache`](#cache) 🔶
       * [`fe.overlay`](#overlay)
       * [`fe.obj`](#obj)
       * [`fe.displays`](#displays)
@@ -59,7 +59,7 @@ Contents
    * [Classes](#classes)
       * [`fe.LayoutGlobals`](#LayoutGlobals)
       * [`fe.CurrentList`](#CurrentList)
-      * [`fe.ImageCache`](#ImageCache)
+      * [`fe.Cache`](#Cache) 🔶
       * [`fe.Overlay`](#Overlay)
       * [`fe.Display`](#Display)
       * [`fe.Filter`](#Filter)
@@ -1250,11 +1250,11 @@ global layout settings are stored.
 display settings are stored.
 
 &nbsp;
-<a name="image_cache"></a>
+<a name="cache"></a>
 
-#### `fe.image_cache` ####
+#### `fe.cache` 🔶 ####
 
-`fe.image_cache` is an instance of the `fe.ImageCache` class and provides script
+`fe.cache` is an instance of the `fe.Cache` class and provides script
 access to Attract-Mode's internal image cache.
 
 &nbsp;
@@ -1417,34 +1417,28 @@ Properties:
    * `clones_list` 🔶 Returns 'true' if the curent list contains game clones.
 
 &nbsp;
-<a name="ImageCache"></a>
+<a name="Cache"></a>
 
-#### `fe.ImageCache` ####
+#### `fe.Cache` 🔶 ####
 
-This class is a container for Attract-Mode's internal image cache.  The
-instance of this class is the `fe.image_cache` object.  This class cannot be
+This class is a container for Attract-Mode's internal image cache.
+The instance of this class is the `fe.cache` object.  This class cannot be
 otherwise instantiated in a script.
 
 Properties:
 
-   * `count` - Get the number of images currently in the cache.
-   * `size` - Get the current size of the image cache (in bytes).
-   * `max_size` - Get the (user configured) maximum size of the image cache
+   * `active_size` - Get the number of images currently used by the layout.
+   * `cached_size` - Get the number of images currently in the cache.
+   * `queue_size` - Get the number of images currently in the queue to be loaded.
+   * `current_bytes` - Get the current size of the image cache (in bytes).
+   * `max_bytes` - Get the (user configured) maximum size of the image cache
       (in bytes).
-   * `bg_load` - Get/set whether images are to be loaded on a background thread.
-      Setting to true might make Attract-Mode animations smoother, but can cause a
-      slight flicker as images get loaded.  Default value is false.
 
 Member Functions:
 
-   * `add_image( filename )` - Add `filename` image to the internal cache and/or
-     flag it as "most recently used".  Least recently used images are cleared from
-     the cache first when space is needed.  If filename is contained in an
-     archive, the parameter should be formatted: "<archive_name>|<filename>"
-   * `name_at( pos )` - Return the name of the image at position `pos` in the internal
-     cache.  `pos` can be an integer between 0 and fe.image_cache.count-1.
-   * `size_at( pos )` - Return the size (in bytes) of the image at position `pos` in
-     the internal cache.  `pos` can be an integer between 0 and fe.image_cache.count-1
+   * `load( filename )` - Add `filename` image to the cache or flag it
+     as "most recently used" if it's already in the cache.
+     Least recently used images are cleared from the cache first when space is needed.
 
 &nbsp;
 <a name="Overlay"></a>
