@@ -26,10 +26,8 @@
 #include "fe_util.hpp"
 #include "fe_file.hpp"
 
-extern "C"
-{
-#include <libavformat/avformat.h>
-}
+#include <fstream>
+#include <unordered_map>
 
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
@@ -175,26 +173,37 @@ int FeMusic::get_time()
 	return m_music.getPlayingOffset().asMilliseconds();
 }
 
-// TODO: Cache the context
 const char *FeMusic::get_metadata( const char* tag )
 {
-	if ( !m_file_name.c_str() || !tag )
+	if ( m_file_name.empty() || !tag )
 		return "";
 
-	AVFormatContext* format_ctx = avformat_alloc_context();
-	if ( !format_ctx )
+	std::ifstream file( m_file_name, std::ios::binary );
+
+	if ( !file.is_open() )
 		return "";
 
-	if ( avformat_open_input( &format_ctx, m_file_name.c_str(), NULL, NULL ) < 0 )
+	// Read the last 128 bytes for ID3v1 metadata
+	file.seekg( -128, std::ios::end );
+	char id3v1[128];
+	file.read( id3v1, 128 );
+	file.close();
+
+	// Check for ID3v1 tag
+	if ( std::strncmp( id3v1, "TAG", 3 ) != 0 )
+		return "";
+
+	// Map ID3v1 tags to their respective positions
+	std::unordered_map< std::string, std::string > metadata =
 	{
-		avformat_free_context( format_ctx );
-		return "";
-	}
+		{ "title", std::string( id3v1 + 3, 30 )},
+		{ "artist", std::string( id3v1 + 33, 30 )},
+		{ "album", std::string( id3v1 + 63, 30 )},
+		{ "year", std::string( id3v1 + 93, 4 )},
+		{ "comment", std::string( id3v1 + 97, 30 )}
+	};
 
-	AVDictionaryEntry* entry = av_dict_get( format_ctx->metadata, tag, NULL, AV_DICT_IGNORE_SUFFIX );
-	const char* value = ( entry ? entry->value : "" );
+	std::unordered_map< std::string, std::string >::iterator it = metadata.find( tag );
 
-	avformat_close_input( &format_ctx );
-	avformat_free_context( format_ctx );
-	return value;
+	return it != metadata.end() ? it->second.c_str() : "";
 }
