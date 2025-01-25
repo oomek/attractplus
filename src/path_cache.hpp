@@ -30,25 +30,23 @@
 class FePathCache
 {
 public:
-	FePathCache();
-	~FePathCache();
+	static void clear();
 
-	void clear();
-
-	bool get_filename_from_base(
+	static bool get_filename_from_base(
 		std::vector<std::string> &in_list,
 		std::vector<std::string> &out_list,
 		const std::string &path,
 		const std::string &base_name,
 		const char **filter );
 
+	static bool file_exists( const std::string &path );
+	static bool directory_exists( const std::string &path );
+
 private:
-	std::map< std::string, std::vector<std::string> > m_cache;
+	static std::map<std::string, std::map<std::string, int>> m_cache;
+	static std::map<std::string, int> &get_cache( const std::string& path );
 
-	FePathCache( FePathCache & );
-	FePathCache &operator=( FePathCache & );
-
-	std::vector < std::string > &get_cache( const std::string &path );
+	static int check_path( const std::string &full_path );
 };
 
 #endif

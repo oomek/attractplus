@@ -27,6 +27,7 @@
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
 #include "fe_present.hpp"
+#include "fe_async_loader.hpp"
 
 #ifdef SFML_SYSTEM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -139,6 +140,11 @@ FeWindow::~FeWindow()
 
 void FeWindow::display()
 {
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		if ( fep->pending_cleanup_videos() )
+			FeAsyncLoader::get_al().stop_cached_videos();
+
 	m_window->display();
 
 	// Starting from Windows Vista all non fullscreen window modes
@@ -154,6 +160,8 @@ void FeWindow::initial_create()
 {
 	if ( !m_window )
 		m_window = new sf::RenderWindow();
+
+	FeAsyncLoader::get_al();
 
 	int style_map[4] =
 	{
@@ -603,7 +611,8 @@ bool FeWindow::run()
 	if ( m_fes.update_stats( 1, timer.getElapsedTime().asSeconds() ) )
 	{
 		FePresent *fep = FePresent::script_get_fep();
-		fep->update_to_new_list();
+		fep->update_to( ToNewList, false );
+		fep->on_transition( ToNewList, 0 );
 	}
 
 #if defined(SFML_SYSTEM_LINUX)
@@ -696,7 +705,11 @@ sf::RenderWindow &FeWindow::get_win()
 void FeWindow::close()
 {
 	if ( m_window )
+	{
+		m_window->display(); // Crashing on Linux workaround
+		FeAsyncLoader::get_al().clear();
 		m_window->close();
+	}
 }
 
 bool FeWindow::hasFocus()

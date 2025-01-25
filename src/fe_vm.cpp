@@ -32,6 +32,7 @@
 #include "fe_overlay.hpp"
 #include "fe_window.hpp"
 #include "fe_blend.hpp"
+#include "path_cache.hpp"
 
 #ifdef USE_LIBCURL
 #include "fe_net.hpp"
@@ -39,7 +40,7 @@
 
 #include "fe_util.hpp"
 #include "fe_util_sq.hpp"
-#include "image_loader.hpp"
+#include "fe_async_loader.hpp"
 #include "zip.hpp"
 
 #include <sqrat.h>
@@ -103,7 +104,7 @@ namespace
 			Sqrat::Script sc;
 			path_to_run += filename;
 
-			if ( !file_exists( path_to_run ) )
+			if ( !FePathCache::file_exists( path_to_run ) )
 				return false;
 
 			sc.CompileFile( path_to_run );
@@ -176,7 +177,7 @@ namespace
 		// if we are given a directory, simply return the contents of
 		// the directory
 		//
-		if ( directory_exists( path ) )
+		if ( FePathCache::directory_exists( path ) )
 			get_basename_from_extension( res, path, "", false );
 		else if ( is_supported_archive( path ) )
 			fe_zip_get_dir( path.c_str(), res );
@@ -279,7 +280,7 @@ const char *FeVM::transitionTypeStrings[] =
 		NULL
 };
 
-FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeSound &ambient_sound, bool console_input )
+FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console_input )
 	: FePresent( &fes, wnd ),
 	m_overlay( NULL ),
 	m_ambient_sound( ambient_sound ),
@@ -287,7 +288,8 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeSound &ambient_sound, bool console
 	m_sort_zorder_triggered( false ),
 	m_process_console_input( console_input ),
 	m_script_cfg( NULL ),
-	m_script_id( -1 )
+	m_script_id( -1 ),
+	m_suppress_navigation( false )
 {
 	srand( time( NULL ) );
 	vm_init();
@@ -449,7 +451,7 @@ void FeVM::vm_init()
 	Sqrat::DefaultVM::Set( vm );
 }
 
-void FeVM::update_to_new_list( int var, bool reset_display, bool suppress_transition )
+void FeVM::update_to_new_list( int var, bool reset_display )
 {
 	if ( reset_display )
 	{
@@ -472,7 +474,8 @@ void FeVM::update_to_new_list( int var, bool reset_display, bool suppress_transi
 		}
 	}
 
-	FePresent::update_to_new_list( var, reset_display, suppress_transition );
+	FePresent::update_to( ToNewList, reset_display );
+	on_transition( ToNewList, var );
 }
 
 namespace
@@ -722,10 +725,12 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("preserve_aspect_ratio"), &FeImage::get_preserve_aspect_ratio,
 				&FeImage::set_preserve_aspect_ratio )
 		.Prop(_SC("file_name"), &FeImage::getFileName, &FeImage::setFileName )
+		.Prop(_SC("label"), &FeImage::getArtName )
 		.Prop(_SC("trigger"), &FeImage::getTrigger, &FeImage::setTrigger )
 		.Prop(_SC("smooth"), &FeImage::get_smooth, &FeImage::set_smooth )
 		.Prop(_SC("blend_mode"), &FeImage::get_blend_mode, &FeImage::set_blend_mode )
 		.Prop(_SC("mipmap"), &FeImage::get_mipmap, &FeImage::set_mipmap )
+		.Prop(_SC("volume"), &FeImage::get_volume, &FeImage::set_volume )
 		.Func(_SC("set_anchor"), &FeImage::set_anchor )
 		// "set_origin" function deprecated as of 3.0.5, use the set_rotation_origin function instead
 		.Func(_SC("set_origin"), &FeImage::set_rotation_origin )
@@ -870,6 +875,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("search_rule"), &FePresent::get_search_rule, &FePresent::set_search_rule )
 		.Prop( _SC("size"), &FePresent::get_current_filter_size )
 		.Prop( _SC("clones_list"), &FePresent::get_clones_list_showing )
+		.Prop( _SC("next_step"), &FePresent::get_suppressed_navigation_step )
 
 		// The following are deprecated as of version 1.5 in favour of using the fe.filters array:
 		.Prop( _SC("filter"), &FePresent::get_filter_name )	// deprecated as of 1.5
@@ -903,9 +909,23 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("x"), &FeSound::get_x, &FeSound::set_x )
 		.Prop( _SC("y"), &FeSound::get_y, &FeSound::set_y )
 		.Prop( _SC("z"), &FeSound::get_z, &FeSound::set_z )
-		.Prop(_SC("duration"), &FeSound::get_duration )
-		.Prop(_SC("time"), &FeSound::get_time )
-		.Func( _SC("get_metadata"), &FeSound::get_metadata )
+		.Prop( _SC("duration"), &FeSound::get_duration )
+		.Prop( _SC("time"), &FeSound::get_time )
+		.Prop( _SC("volume"), &FeSound::get_volume, &FeSound::set_volume )
+	);
+
+	fe.Bind( _SC("Music"), Class <FeMusic, NoConstructor>()
+		.Prop( _SC("file_name"), &FeMusic::get_file_name, &FeMusic::set_file_name )
+		.Prop( _SC("playing"), &FeMusic::get_playing, &FeMusic::set_playing )
+		.Prop( _SC("loop"), &FeMusic::get_loop, &FeMusic::set_loop )
+		.Prop( _SC("pitch"), &FeMusic::get_pitch, &FeMusic::set_pitch )
+		.Prop( _SC("x"), &FeMusic::get_x, &FeMusic::set_x )
+		.Prop( _SC("y"), &FeMusic::get_y, &FeMusic::set_y )
+		.Prop( _SC("z"), &FeMusic::get_z, &FeMusic::set_z )
+		.Prop( _SC("duration"), &FeMusic::get_duration )
+		.Prop( _SC("time"), &FeMusic::get_time )
+		.Prop( _SC("volume"), &FeMusic::get_volume, &FeMusic::set_volume )
+		.Func( _SC("get_metadata"), &FeMusic::get_metadata )
 	);
 
 	fe.Bind( _SC("Shader"), Class <FeShader, NoConstructor>()
@@ -956,14 +976,16 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("height"), &FeMonitor::get_height )
 	);
 
-	fe.Bind( _SC("ImageCache"), Class <FeImageLoader, NoConstructor>()
-		.Prop( _SC("max_size"), &FeImageLoader::cache_max )
-		.Prop( _SC("size"), &FeImageLoader::cache_size )
-		.Prop( _SC("count"), &FeImageLoader::cache_count )
-		.Func( _SC("add_image"), &FeImageLoader::cache_image )
-		.Func( _SC("name_at"), &FeImageLoader::cache_get_name_at )
-		.Func( _SC("size_at"), &FeImageLoader::cache_get_size_at )
-		.Prop( _SC("bg_load"), &FeImageLoader::get_background_loading, &FeImageLoader::set_background_loading )
+	fe.Bind( _SC("AsyncLoader"), Class <FeAsyncLoader, NoConstructor>()
+		.Prop( _SC("current_bytes"), &FeAsyncLoader::get_cache_current_bytes )
+		.Prop( _SC("max_bytes"), &FeAsyncLoader::get_cache_max_bytes )
+		.Prop( _SC("cached_size"), &FeAsyncLoader::get_cached_size )
+		.Prop( _SC("active_size"), &FeAsyncLoader::get_active_size )
+		.Prop( _SC("queue_size"), &FeAsyncLoader::get_queue_size )
+		.Prop( _SC("cleanup_size"), &FeAsyncLoader::get_cleanup_size )
+		.Func( _SC("cached_ref_count"), &FeAsyncLoader::get_cached_ref_count )
+		.Func( _SC("active_ref_count"), &FeAsyncLoader::get_active_ref_count )
+		.Func( _SC("load"), &FeAsyncLoader::add_to_cache )
 	);
 
 	//
@@ -985,6 +1007,7 @@ bool FeVM::on_new_layout()
 	fe.Func<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
+	fe.Overload<FeMusic* (*)(const char *)>(_SC("add_music"), &FeVM::cb_add_music);
 	fe.Overload<FeShader* (*)(int, const char *, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
 	fe.Overload<FeShader* (*)(int, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
 	fe.Overload<FeShader* (*)(int)>(_SC("add_shader"), &FeVM::cb_add_shader);
@@ -1001,6 +1024,8 @@ bool FeVM::on_new_layout()
 	fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 	fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
+	fe.Func<void (*)(bool)>(_SC("suppress_navigation"), &FeVM::cb_suppress_navigation);
+
 #ifdef USE_LIBCURL
 	fe.Func<bool (*)(const char *, const char *)>(_SC("get_url"), &FeVM::get_url);
 #endif
@@ -1072,8 +1097,9 @@ bool FeVM::on_new_layout()
 	fe.SetInstance( _SC("overlay"), this );
 	fe.SetInstance( _SC("ambient_sound"), &m_ambient_sound );
 
-	FeImageLoader &il = FeImageLoader::get_ref();
-	fe.SetInstance( _SC("image_cache"), &il );
+	FeAsyncLoader &al = FeAsyncLoader::get_al();
+	fe.SetInstance( _SC("cache"), &al );
+
 	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
 
 	// We keep a "non-volatile" table for use by layouts/plugins, the
@@ -1278,8 +1304,6 @@ void FeVM::on_transition(
 {
 	using namespace Sqrat;
 
-	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
-
 	sf::Clock clk;
 	int ttime = 0;
 
@@ -1359,6 +1383,7 @@ void FeVM::on_transition(
 #endif
 		}
 	}
+	notify_cleanup_videos();
 }
 
 bool FeVM::script_handle_event( FeInputMap::Command c )
@@ -1376,9 +1401,14 @@ bool FeVM::script_handle_event( FeInputMap::Command c )
 		try
 		{
 			Function &func = (*itr).get_fn();
-			if (( !func.IsNull() )
-					&& ( func.Evaluate<bool>( FeInputMap::commandStrings[ c ] )))
-				return true;
+			if ( !func.IsNull() )
+			{
+				bool result = func.Evaluate<bool>( FeInputMap::commandStrings[ c ] );
+
+				if ( result == true )
+					return true;
+				// More logic here for the 3rd state, or maybe not anymore?
+			}
 		}
 		catch( const Exception &e )
 		{
@@ -2191,18 +2221,28 @@ FeImage* FeVM::cb_add_surface( int w, int h )
 
 FeSound* FeVM::cb_add_sound( const char *s, bool reuse )
 {
+	FeLog() << "! NOTE: reuse parameter in fe.add_sound is deprecated." << std::endl;
+
+	return cb_add_sound( s );
+}
+
+FeSound* FeVM::cb_add_sound( const char *s )
+{
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
-	return fev->add_sound( s, reuse );
+	return fev->add_sound( s );
 	//
 	// We assume the script will keep a reference to the sound
 	//
 }
 
-FeSound* FeVM::cb_add_sound( const char *s )
+FeMusic* FeVM::cb_add_music( const char *s )
 {
-	return cb_add_sound( s, true );
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	return fev->add_music( s );
 }
 
 FeShader* FeVM::cb_add_shader( int type, const char *shader1, const char *shader2 )
@@ -2390,6 +2430,12 @@ void FeVM::print_to_console( const char *str )
 	FeLog() << str << std::endl;
 };
 
+void FeVM::cb_suppress_navigation( bool value )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	fev->suppress_navigation( value );
+};
 
 bool FeVM::cb_plugin_command( const char *command,
 		const char *args,
@@ -2449,11 +2495,7 @@ bool FeVM::cb_path_test( const char *path, int flag )
 		return is_supported_archive( p );
 
 	case IsSupportedMedia:
-#ifndef NO_MOVIE
 		return FeMedia::is_supported_media_file( p );
-#else
-		return ( tail_compare( p, FE_ART_EXTENSIONS ) );
-#endif
 
 	default:
 		FeLog() << "Error, unrecognized path_test flag: " << flag << std::endl;

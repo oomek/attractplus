@@ -84,7 +84,7 @@ private:
 	};
 
 	FeOverlay *m_overlay;
-	FeSound &m_ambient_sound;
+	FeMusic &m_ambient_sound;
 
 	bool m_redraw_triggered;
 	bool m_sort_zorder_triggered;
@@ -97,6 +97,7 @@ private:
 	std::vector< FeCallback > m_ticks;
 	std::vector< FeCallback > m_trans;
 	std::vector< FeCallback > m_sig_handlers;
+	bool m_suppress_navigation;
 
 	FeVM( const FeVM & );
 	FeVM &operator=( const FeVM & );
@@ -111,7 +112,7 @@ private:
 	static bool internal_do_nut(const std::string &, const std::string &);
 
 public:
-	FeVM( FeSettings &fes, FeWindow &wnd, FeSound &ambient_sound, bool console_input );
+	FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console_input );
 	~FeVM();
 
 	void set_overlay( FeOverlay *feo );
@@ -121,7 +122,7 @@ public:
 	bool poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui );
 	void clear(); // override of base class clear()
 
-	void update_to_new_list( int var=0, bool reset_display=false, bool suppress_transition=false ); // NOTE: override virtual function from FePresent
+	void update_to_new_list( int var=0, bool reset_display=false );
 
 	// runs .attract/emulators/template/setup.nut to generate default emulator
 	// configs and detect emulators.  Prompts user to automaticallly import emulators
@@ -140,6 +141,10 @@ public:
 	void set_script_id( int id ) { m_script_id=id; };
 
 	bool script_handle_event( FeInputMap::Command c );
+	void suppress_navigation( bool suppress ) { m_suppress_navigation = suppress; m_suppressed_navigation_step = 0; };
+	void release_navigation() { m_suppress_navigation = false; };
+	bool is_navigation_suppressed() { return m_suppress_navigation; };
+	void set_suppressed_navigation_step( int step ) { m_suppressed_navigation_step = step; };
 
 	//
 	// overlay functions used from scripts
@@ -194,6 +199,7 @@ public:
 	static FeImage *cb_add_surface(int, int);
 	static FeSound *cb_add_sound(const char *, bool);
 	static FeSound *cb_add_sound(const char *);
+	static FeMusic *cb_add_music(const char *);
 	static FeShader *cb_add_shader(int, const char *, const char *);
 	static FeShader *cb_add_shader(int, const char *);
 	static FeShader *cb_add_shader(int);
@@ -210,6 +216,7 @@ public:
 	static void do_nut(const char *);
 	static bool load_module( const char *module_file );
 	static void print_to_console( const char *str );
+	static void cb_suppress_navigation( bool );
 #ifdef USE_LIBCURL
 	static bool get_url( const char *url, const char *path );
 #endif

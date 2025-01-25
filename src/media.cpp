@@ -49,6 +49,7 @@ extern "C"
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <condition_variable>
 
 #if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
@@ -194,6 +195,8 @@ public:
 	sf::Texture *display_texture;
 	int disptex_width;
 	int disptex_height;
+	std::condition_variable m_cv;
+	std::mutex m_mutex;
 
 	//
 	// The video thread sets display_frame when the next image frame is decoded.
@@ -535,7 +538,13 @@ void FeVideoImp::play()
 void FeVideoImp::stop()
 {
 	if ( run_video_thread )
-		run_video_thread = false;
+	{
+		{
+			std::lock_guard<std::mutex> lock(m_mutex);
+			run_video_thread = false;
+		}
+		m_cv.notify_all(); // wake up video_thread()
+	}
 
 	if ( m_video_thread.joinable() )
 		m_video_thread.join();
@@ -653,7 +662,12 @@ void FeVideoImp::video_thread()
 					//
 					// We are ahead and can sleep until presentation time
 					//
-					sf::sleep( wait_time );
+					{
+						std::unique_lock<std::mutex> lock( m_mutex );
+						if ( m_cv.wait_for( lock, std::chrono::milliseconds( static_cast<int>( max_sleep.asMilliseconds() )), [&](){ return !run_video_thread; }))
+							goto the_end;
+					}
+
 					degrading = false;
 
 				}
@@ -799,7 +813,11 @@ void FeVideoImp::video_thread()
 				//
 				// full frame queue and nothing to display yet, so sleep
 				//
-				sf::sleep( max_sleep );
+				{
+					std::unique_lock<std::mutex> lock( m_mutex );
+					if ( m_cv.wait_for( lock, std::chrono::milliseconds( static_cast<int>( max_sleep.asMilliseconds() )), [&](){ return !run_video_thread; }))
+						goto the_end;
+				}
 			}
 		}
 	}
@@ -862,17 +880,20 @@ sf::Time FeMedia::get_video_time()
 
 void FeMedia::play()
 {
-	if ( m_video )
-		m_video->play();
+	if ( !is_playing() )
+	{
+		if ( m_video )
+			m_video->play();
 
-	if ( m_audio )
-		sf::SoundStream::play();
+		if ( m_audio )
+			sf::SoundStream::play();
+	}
 }
 
 void FeMedia::signal_stop()
 {
 	if ( m_audio )
-		sf::SoundStream::signal_stop();
+		sf::SoundStream::stop();
 
 	if ( m_video )
 		m_video->signal_stop();
@@ -1094,6 +1115,7 @@ bool FeMedia::open( const std::string &archive,
 					codec_ctx->sample_rate );
 
 				sf::SoundStream::setLoop( false );
+				sf::SoundStream::setProcessingInterval( sf::milliseconds( 1 ));
 			}
 		}
 	}
@@ -1388,17 +1410,6 @@ sf::Time FeMedia::get_duration() const
 	}
 
 	return sf::Time::Zero;
-}
-
-const char *FeMedia::get_metadata( const char *tag )
-{
-	if ( !m_imp->m_format_ctx )
-		return "";
-
-	AVDictionaryEntry *entry = NULL;
-	entry = av_dict_get( m_imp->m_format_ctx->metadata, tag, NULL, AV_DICT_IGNORE_SUFFIX );
-
-	return ( entry ? entry->value : "" );
 }
 
 #if FE_HWACCEL

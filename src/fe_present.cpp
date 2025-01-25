@@ -31,6 +31,7 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "base64.hpp"
+#include "fe_async_loader.hpp"
 
 #include "BarlowCJK.ttf.h"
 
@@ -39,9 +40,8 @@
 #include <limits>
 #include <cstring>
 
-#ifndef NO_MOVIE
-#include <Audio/AudioDevice.hpp>
-#endif
+#include <SFML/Audio.hpp>
+
 
 #ifdef USE_XLIB
 #include <X11/extensions/Xrandr.h>
@@ -179,6 +179,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_user_page_size( -1 ),
 	m_preserve_aspect( false ),
 	m_custom_overlay( false ),
+	m_suppressed_navigation_step( 0 ),
 	m_listBox( NULL ),
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
@@ -436,7 +437,15 @@ void FePresent::clear()
 	{
 		FeSound *s = m_sounds.back();
 		m_sounds.pop_back();
+		//s->set_playing( false );
 		delete s;
+	}
+
+	while ( !m_musics.empty() )
+	{
+		FeMusic *a = m_musics.back();
+		m_musics.pop_back();
+		delete a;
 	}
 
 	while ( !m_scriptShaders.empty() )
@@ -620,18 +629,8 @@ FeImage *FePresent::add_surface( int w, int h, FePresentableParent &p )
 	return new_image;
 }
 
-FeSound *FePresent::add_sound( const char *n, bool reuse )
+FeSound *FePresent::add_sound( const char *n )
 {
-	//
-	// Behaviour:
-	//
-	// - if n is empty, return a new (empty) sound object
-	// - if n is supplied:
-	//      - if n matches an existing sound and reuse is true,
-	//        return that matching sound object
-	//      - otherwise return a new sound object loaded with n
-	//
-
 	std::string path;
 	std::string name=n;
 	if ( !name.empty() )
@@ -644,22 +643,8 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 			else
 				m_feSettings->get_plugin_full_path( script_id, path );
 		}
-
-		if ( reuse )
-		{
-			std::string test = path + name;
-
-			for ( std::vector<FeSound *>::iterator itr=m_sounds.begin();
-						itr!=m_sounds.end(); ++itr )
-			{
-				if ( test.compare( (*itr)->get_file_name() ) == 0 )
-					return (*itr);
-			}
-		}
 	}
 
-	// Sound not found, try loading now
-	//
 	FeSound *new_sound = new FeSound();
 
 	if ( !name.empty() )
@@ -670,6 +655,34 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 
 	m_sounds.push_back( new_sound );
 	return new_sound;
+}
+
+FeMusic *FePresent::add_music( const char *n )
+{
+	std::string path;
+	std::string name=n;
+	if ( !name.empty() )
+	{
+		if ( is_relative_path( name ) )
+		{
+			int script_id = get_script_id();
+			if ( script_id < 0 )
+				m_feSettings->get_path( FeSettings::Current, path );
+			else
+				m_feSettings->get_plugin_full_path( script_id, path );
+		}
+	}
+
+	FeMusic *new_music = new FeMusic();
+
+	if ( !name.empty() )
+		new_music->load( path + name );
+
+	new_music->set_volume(
+		m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
+
+	m_musics.push_back( new_music );
+	return new_music;
 }
 
 FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const char *shader2 )
@@ -867,7 +880,10 @@ void FePresent::set_filter_index( int idx )
 		if ( m_feSettings->navigate_filter( new_offset ) )
 			load_layout();
 		else
-			update_to_new_list( new_offset );
+		{
+			update_to( ToNewList, false );
+			on_transition( ToNewList, new_offset );
+		}
 	}
 }
 
@@ -882,6 +898,11 @@ bool FePresent::get_clones_list_showing() const
 		return true;
 	else
 		return false;
+}
+
+int FePresent::get_suppressed_navigation_step() const
+{
+	return m_suppressed_navigation_step;
 }
 
 int FePresent::get_selection_index() const
@@ -923,7 +944,7 @@ void FePresent::set_selection_index( int index )
 {
 	int new_offset = index - get_selection_index();
 	if ( new_offset != 0 )
-		change_selection( new_offset );
+		change_selection( new_offset, !is_navigation_suppressed() ); // Don't call EndNavigation in suppressed navigation
 }
 
 void FePresent::change_selection( int step, bool end_navigation )
@@ -931,12 +952,17 @@ void FePresent::change_selection( int step, bool end_navigation )
 		on_transition( ToNewSelection, step );
 
 		m_feSettings->step_current_selection( step );
-		update( false );
+		update_to( ToNewSelection, false );
 
 		on_transition( FromOldSelection, -step );
 
 		if ( end_navigation )
-			on_end_navigation();
+		{
+			update_to( EndNavigation, false );
+			on_transition( EndNavigation, 0 );
+		}
+
+		release_navigation();
 }
 
 bool FePresent::reset_screen_saver()
@@ -953,38 +979,31 @@ bool FePresent::reset_screen_saver()
 	return false;
 }
 
+// First press, repeat in main
 bool FePresent::handle_event( FeInputMap::Command c )
 {
 	if ( reset_screen_saver() )
 		return true;
 
+	int step = 0;
+	int filter_step = 0;
+
 	switch( c )
 	{
-	case FeInputMap::NextGame:
-		change_selection( 1, false );
-		break;
-
-	case FeInputMap::PrevGame:
-		change_selection( -1, false );
-		break;
-
-	case FeInputMap::NextPage:
-		change_selection( get_page_size(), false );
-		break;
-
-	case FeInputMap::PrevPage:
-		change_selection( -get_page_size(), false );
-		break;
+	case FeInputMap::NextGame: step = 1; break;
+	case FeInputMap::PrevGame: step = -1; break;
+	case FeInputMap::NextPage: step = get_page_size(); break;
+	case FeInputMap::PrevPage: step = -get_page_size(); break;
+	case FeInputMap::NextFavourite:	step = m_feSettings->get_next_fav_offset(); break;
+	case FeInputMap::PrevFavourite:	step = m_feSettings->get_prev_fav_offset(); break;
+	case FeInputMap::NextLetter: step = m_feSettings->get_next_letter_offset( 1 ); break;
+	case FeInputMap::PrevLetter: step = m_feSettings->get_next_letter_offset( -1 ); break;
 
 	case FeInputMap::RandomGame:
 		{
 			int ls = m_feSettings->get_filter_size( m_feSettings->get_current_filter_index() );
 			if ( ls > 0 )
-			{
-				int step = rand() % ls;
-				if ( step != 0 )
-					change_selection( step );
-			}
+				step = rand() % ls;
 		}
 		break;
 
@@ -1009,57 +1028,21 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		if ( m_feSettings->navigate_display( ( c == FeInputMap::NextDisplay ) ? 1 : -1 ) )
 			load_layout();
 		else
-			update_to_new_list( 0, true );
+		{
+			update_to( ToNewList, true );
+			on_transition( ToNewList, 0 );
+		}
 
 		break;
 
 	case FeInputMap::NextFilter:
 	case FeInputMap::PrevFilter:
-		{
-			int offset = ( c == FeInputMap::NextFilter ) ? 1 : -1;
-			if ( m_feSettings->navigate_filter( offset ) )
-				load_layout();
-			else
-				update_to_new_list( offset );
-		}
+			filter_step = ( c == FeInputMap::NextFilter ) ? 1 : -1;
 		break;
 
 	case FeInputMap::ToggleLayout:
 		m_feSettings->toggle_layout();
 		load_layout();
-		break;
-
-	case FeInputMap::PrevFavourite:
-	case FeInputMap::NextFavourite:
-	case FeInputMap::PrevLetter:
-	case FeInputMap::NextLetter:
-		{
-			int step( 0 );
-			switch ( c )
-			{
-				case FeInputMap::PrevFavourite:
-					step = m_feSettings->get_prev_fav_offset();
-					break;
-
-				case FeInputMap::NextFavourite:
-					step = m_feSettings->get_next_fav_offset();
-					break;
-
-				case FeInputMap::PrevLetter:
-					step = m_feSettings->get_next_letter_offset( -1 );
-					break;
-
-				case FeInputMap::NextLetter:
-					step = m_feSettings->get_next_letter_offset( 1 );
-					break;
-
-				default:
-					break;
-			}
-
-			if ( step != 0 )
-				change_selection( step, false );
-		}
 		break;
 
 	case FeInputMap::ScreenSaver:
@@ -1078,47 +1061,66 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		return false;
 	}
 
+	if ( is_navigation_suppressed() )
+	{
+		if ( filter_step != 0 ) m_suppressed_navigation_step = filter_step;
+		else if ( step != 0 ) m_suppressed_navigation_step = step;
+		filter_step = 0;
+		step = 0;
+	}
+
+	if ( step != 0 )
+	{
+		suppress_navigation( false );
+		change_selection( step, false );
+	}
+
+	if ( filter_step != 0 )
+	{
+		if ( m_feSettings->navigate_filter( filter_step ))
+			load_layout();
+		else
+		{
+			update_to( ToNewList, false );
+			on_transition( ToNewList, filter_step );
+		}
+	}
+
 	return true;
 }
 
-int FePresent::update( bool new_list, bool new_display )
+void FePresent::update_to( FeTransitionType type, bool reset_display )
 {
 	std::vector<FeBaseTextureContainer *>::iterator itc;
 	std::vector<FeBasePresentable *>::iterator itl;
 	std::vector<FeMonitor>::iterator itm;
 
-	if ( new_list )
+	switch ( type )
 	{
-		for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
-			(*itc)->on_new_list( m_feSettings, new_display );
+		case ToNewList:
+			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+				(*itc)->on_new_list( m_feSettings, reset_display );
 
-		for ( itm=m_mon.begin(); itm != m_mon.end(); ++itm )
-		{
-			for ( itl=(*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
-				(*itl)->on_new_list( m_feSettings );
-		}
+			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
+				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
+					(*itl)->on_new_list( m_feSettings );
+			// Fallthrough intended
+
+		case ToNewSelection:
+
+			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+				(*itc)->on_new_selection( m_feSettings );
+
+			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
+				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
+					(*itl)->on_new_selection( m_feSettings );
+			break;
+
+		case EndNavigation:
+			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+				(*itc)->on_end_navigation( m_feSettings );
+			break;
 	}
-
-	for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
-		(*itc)->on_new_selection( m_feSettings );
-
-	for ( itm=m_mon.begin(); itm != m_mon.end(); ++itm )
-	{
-		for ( itl=(*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
-			(*itl)->on_new_selection( m_feSettings );
-	}
-
-	return 0;
-}
-
-void FePresent::on_end_navigation()
-{
-	std::vector<FeBaseTextureContainer *>::iterator itc;
-
-	for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
-		(*itc)->on_end_navigation( m_feSettings );
-
-	on_transition( EndNavigation, 0 );
 }
 
 void FePresent::redraw_surfaces()
@@ -1141,8 +1143,7 @@ bool FePresent::load_intro()
 	if ( !on_new_layout() )
 		return false;
 
-	// Don't do the StartLayout signal for the intro
-	update( true, true );
+	update_to( ToNewList, true );
 	return ( !m_mon[0].elements.empty() );
 }
 
@@ -1163,10 +1164,10 @@ void FePresent::load_screensaver()
 	// if there is no screen saver script then do a blank screen
 	//
 	on_transition( StartLayout, FromToNoValue );
-	update( true, true );
+	update_to( ToNewList, true );
 }
 
-void FePresent::load_layout( bool initial_load, bool suppress_transition )
+void FePresent::load_layout( bool initial_load )
 {
 	m_layout_loaded = false;
 
@@ -1210,20 +1211,12 @@ void FePresent::load_layout( bool initial_load, bool suppress_transition )
 		init_with_default_layout();
 	}
 
-	if ( !suppress_transition )
-		on_transition( StartLayout, var );
-
-	update_to_new_list( FromToNoValue, true, suppress_transition );
+	on_transition( StartLayout, var );
+	update_to( ToNewList, true );
+	on_transition( ToNewList, FromToNoValue );
 }
 
-void FePresent::update_to_new_list( int var, bool reset_display, bool suppress_transition )
-{
-	update( true, reset_display );
-
-	if ( !suppress_transition )
-		on_transition( ToNewList, var );
-}
-
+// Only called when Configure Menu is up
 bool FePresent::tick()
 {
 	bool ret_val = false;
@@ -1255,6 +1248,7 @@ bool FePresent::video_tick()
 	return ret_val;
 }
 
+// Used by fe.layout.redraw
 void FePresent::redraw()
 {
 	// Process tick only when Layout is fully loaded
@@ -1322,7 +1316,6 @@ void FePresent::pre_run()
 	on_transition( ToGame, FromToNoValue );
 	set_video_play_state( false );
 
-#ifndef NO_MOVIE
 	//
 	// Release all the openAL buffers, contexts and devices so that we don't block
 	// the emulator from accessing the system's sound
@@ -1335,19 +1328,21 @@ void FePresent::pre_run()
 				its != m_sounds.end(); ++its )
 		(*its)->release_audio( true );
 
-	sf::AudioDevice::release_audio( true );
-#endif
+	for ( std::vector<FeMusic *>::iterator its=m_musics.begin();
+				its != m_musics.end(); ++its )
+		(*its)->set_playing( false );
+
+	// sf::AudioDevice::release_audio( true );
 }
 
 void FePresent::post_run()
 {
 	std::vector<FeSound *>::iterator its;
 
-#ifndef NO_MOVIE
 	//
 	// Re-establish openAL stuff now that we are back from the emulator
 	//
-	sf::AudioDevice::release_audio( false );
+	// sf::AudioDevice::release_audio( false );
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )
@@ -1355,7 +1350,6 @@ void FePresent::post_run()
 
 	for ( its=m_sounds.begin(); its != m_sounds.end(); ++its )
 		(*its)->release_audio( false );
-#endif
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )
@@ -1371,7 +1365,7 @@ void FePresent::post_run()
 #endif
 
 	reset_screen_saver();
-	update( true );
+	update_to( ToNewList, false );
 }
 
 void FePresent::toggle_movie()
@@ -1574,7 +1568,8 @@ FeShader *FePresent::get_empty_shader()
 void FePresent::set_search_rule( const char *s )
 {
 	m_feSettings->set_search_rule( s );
-	update_to_new_list( 0, true );
+	update_to( ToNewList, true );
+	on_transition( ToNewList, 0 );
 }
 
 const char *FePresent::get_search_rule()

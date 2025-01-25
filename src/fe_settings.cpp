@@ -23,8 +23,9 @@
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
-#include "image_loader.hpp"
+#include "fe_async_loader.hpp"
 #include "zip.hpp"
+#include "media.hpp"
 #include <iostream>
 #include <sstream>
 #include "nowide/fstream.hpp"
@@ -38,9 +39,6 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/Config.hpp>
 
-#ifndef NO_MOVIE
-#include "media.hpp" // for FeMedia::is_supported_media(), get/set_current_decoder()
-#endif
 
 #if defined(SFML_SYSTEM_WINDOWS)
 const char *FE_DEFAULT_CFG_PATH		= "./";
@@ -60,6 +58,38 @@ const char *FE_ART_EXTENSIONS[]		=
 	".bmp",
 	".tga",
 	NULL
+};
+
+const char *FE_VID_EXTENSIONS[] =
+{
+	".mp4",
+	".avi",
+	".mkv",
+	".flv",
+	".mov",
+	".wmv",
+	".webm",
+	".mpeg",
+	".mpg",
+	".m4v",
+	NULL
+};
+
+const char *FE_SOUND_EXTENSIONS[] =
+{
+    ".mp3",
+    ".wav",
+    ".ogg",
+    ".flac",
+    ".aac",
+    NULL
+};
+
+const char *FE_FONT_EXTENSIONS[] =
+{
+    ".ttf",
+    ".otf",
+    NULL
 };
 
 #ifdef DATA_PATH
@@ -104,14 +134,16 @@ bool internal_resolve_config_file(
 	const std::string &config_path,
 	std::string &result,
 	const char *subdir,
-	const std::string &name  )
+	const std::string &name )
 {
 	std::string path;
 	path = config_path;
 	if ( subdir ) path += subdir;
 	path += name;
 
-	if ( file_exists( path ) )
+	std::replace( path.begin(), path.end(), '\\', '/' );
+
+	if ( FePathCache::file_exists( path ) )
 	{
 		result = path;
 		return true;
@@ -123,7 +155,7 @@ bool internal_resolve_config_file(
 		if ( subdir ) path += subdir;
 		path += name;
 
-		if ( file_exists( path ) )
+		if ( FePathCache::file_exists( path ) )
 		{
 			result = path;
 			return true;
@@ -274,6 +306,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_joy_thresh( 75 ),
 	m_mouse_thresh( 10 ),
 	m_current_search_index( 0 ),
+	m_current_display_index( 0 ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
 	m_group_clones( false ),
@@ -347,7 +380,7 @@ void FeSettings::load()
 	std::string load_language( "en" );
 	std::string filename = m_config_path + FE_CFG_FILE;
 
-	if (( FE_DATA_PATH != NULL ) && ( !directory_exists( FE_DATA_PATH ) ))
+	if (( FE_DATA_PATH != NULL ) && ( !FePathCache::directory_exists( FE_DATA_PATH )))
 	{
 		FeLog() << "Warning: Attract-Mode was compiled to look for its default configuration files in: "
 			<< FE_DATA_PATH << ", which is not available." << std::endl;
@@ -386,6 +419,11 @@ void FeSettings::load()
 	FeRomListSorter::init_title_rex( rex_str );
 
 	load_state();
+
+	m_current_display_index = m_current_display;
+	if ( get_startup_mode() == ShowDisplaysMenu )
+		m_current_display = -1;
+
 	init_display();
 
 	// Make sure we have some keyboard mappings
@@ -649,13 +687,13 @@ void FeSettings::init_display()
 	// Check for a romlist in the data path if there isn't one that matches in the
 	// config directory
 	//
-	if (( !file_exists( list_path + romlist_name + FE_ROMLIST_FILE_EXTENSION ) )
+	if (( !FePathCache::file_exists( list_path + romlist_name + FE_ROMLIST_FILE_EXTENSION ))
 		&& ( FE_DATA_PATH != NULL ))
 	{
 		std::string temp = FE_DATA_PATH;
 		temp += FE_ROMLIST_SUBDIR;
 
-		if ( file_exists( temp + romlist_name + FE_ROMLIST_FILE_EXTENSION ) )
+		if ( FePathCache::file_exists( temp + romlist_name + FE_ROMLIST_FILE_EXTENSION ))
 			list_path = temp;
 	}
 
@@ -682,8 +720,6 @@ void FeSettings::init_display()
 	// the display (which happens when settings get changed for example)
 	//
 	construct_display_maps();
-
-	m_path_cache.clear();
 }
 
 void FeSettings::construct_display_maps()
@@ -712,7 +748,7 @@ void FeSettings::save_state()
 		display_idx = m_display_stack.front();
 
 	if ( display_idx < 0 )
-		display_idx = m_current_search_index;
+		display_idx = m_current_display_index;
 
 	m_rl.save_state();
 
@@ -825,7 +861,7 @@ void FeSettings::load_state()
 			get_layout_dir( (*itr).get_info( FeDisplayInfo::Layout ), path );
 
 			std::string fn = path + file + FE_LAYOUT_FILE_EXTENSION ;
-			if ( !file_exists( fn ) )
+			if ( !FePathCache::file_exists( fn ) )
 			{
 				FeDebug() << "Resetting saved layout file since the file does not actually exist. Display: "
 					<< (*itr).get_info( FeDisplayInfo::Name )
@@ -842,7 +878,7 @@ void FeSettings::load_state()
 		get_layout_dir( m_menu_layout, path );
 
 		std::string fn = path + m_menu_layout_file + FE_LAYOUT_FILE_EXTENSION ;
-		if ( !file_exists( fn ) )
+		if ( !FePathCache::file_exists( fn ) )
 		{
 			FeDebug() << "Resetting Displays Menu layout file (file doesn't exist): " << fn << :: std::endl;
 			m_menu_layout_file = "";
@@ -946,7 +982,7 @@ int FeSettings::get_rom_index( int filter_index, int offset ) const
 	int retval, rl_size;
 	if ( m_current_display < 0 )
 	{
-		retval = m_current_search_index;
+		retval = m_current_display_index;
 		rl_size = m_rl.filter_size( filter_index );
 	}
 	else if ( !m_current_search.empty()
@@ -1194,7 +1230,7 @@ bool FeSettings::get_path(
 	{
 	case Intro:
 		if ( internal_resolve_config_file( m_config_path,
-				temp, FE_INTRO_SUBDIR, FE_INTRO_FILE ) )
+				temp, FE_INTRO_SUBDIR, FE_INTRO_FILE ))
 		{
 			size_t len = temp.find_last_of( "/\\" );
 			ASSERT( len != std::string::npos );
@@ -1207,7 +1243,7 @@ bool FeSettings::get_path(
 
 	case Loader:
 		if ( internal_resolve_config_file( m_config_path,
-				temp, FE_LOADER_SUBDIR, FE_LOADER_FILE ) )
+				temp, FE_LOADER_SUBDIR, FE_LOADER_FILE ))
 		{
 			size_t len = temp.find_last_of( "/\\" );
 			ASSERT( len != std::string::npos );
@@ -1220,7 +1256,7 @@ bool FeSettings::get_path(
 
 	case ScreenSaver:
 		if ( internal_resolve_config_file( m_config_path,
-				temp, FE_SCREENSAVER_SUBDIR, FE_SCREENSAVER_FILE ) )
+				temp, FE_SCREENSAVER_SUBDIR, FE_SCREENSAVER_FILE ))
 		{
 			size_t len = temp.find_last_of( "/\\" );
 			ASSERT( len != std::string::npos );
@@ -1250,9 +1286,7 @@ bool FeSettings::get_path(
 		}
 		else
 		{
-			if ( !get_layout_dir(
-					m_displays[ m_current_display ].get_info( FeDisplayInfo::Layout ),
-					path ) )
+			if ( !get_layout_dir( m_displays[ m_current_display ].get_info( FeDisplayInfo::Layout ), path ))
 				return false;
 
 			file = m_displays[m_current_display].get_current_layout_file();
@@ -1262,7 +1296,7 @@ bool FeSettings::get_path(
 		{
 			std::string temp = path + FE_LAYOUT_FILE_BASE
 				+ FE_LAYOUT_FILE_EXTENSION;
-			if ( file_exists( temp ) )
+			if ( FePathCache::file_exists( temp ))
 			{
 				file = FE_LAYOUT_FILE_BASE;
 				file += FE_LAYOUT_FILE_EXTENSION;
@@ -1280,7 +1314,8 @@ bool FeSettings::get_path(
 	std::string &path ) const
 {
 	std::string temp;
-	return get_path( t, path, temp );
+	bool ret = get_path( t, path, temp );
+	return ret;
 }
 
 void FeSettings::get_layout_file_basenames_from_path(
@@ -1354,7 +1389,7 @@ bool FeSettings::get_layout_dir(
 
 	std::string temp;
 	if ( internal_resolve_config_file( m_config_path, layout_dir,
-			FE_LAYOUT_SUBDIR, layout_name + "/" ) )
+			FE_LAYOUT_SUBDIR, layout_name + "/" ))
 		return true;
 
 	int i=0;
@@ -1363,7 +1398,7 @@ bool FeSettings::get_layout_dir(
 		if ( internal_resolve_config_file( m_config_path,
 				layout_dir,
 				FE_LAYOUT_SUBDIR,
-				layout_name + FE_ARCHIVE_EXT[i] ) )
+				layout_name + FE_ARCHIVE_EXT[i] ))
 			return true;
 
 		i++;
@@ -1426,17 +1461,17 @@ bool FeSettings::config_file_exists() const
 	std::string config_file = m_config_path;
 	config_file += FE_CFG_FILE;
 
-	return file_exists( config_file );
+	return FePathCache::file_exists( config_file );
 }
 
 int FeSettings::display_menu_get_current_selection_as_absolute_display_index()
 {
 	ASSERT( m_current_display < 0 );
 
-	if (( m_current_search_index < 0 ) || ( m_current_search_index >= (int)m_display_menu.size() ))
+	if (( m_current_display_index < 0 ) || ( m_current_display_index >= (int)m_display_menu.size() ))
 		return -1;
 
-	return m_display_menu[ m_current_search_index ];
+	return m_display_menu[ m_current_display_index ];
 }
 
 bool FeSettings::set_display( int index, bool stack_previous )
@@ -1456,16 +1491,19 @@ bool FeSettings::set_display( int index, bool stack_previous )
 				m_display_stack.pop_back();
 			}
 			else
-				index = m_current_display;
+				index = m_current_display_index;
 		}
 		else if (( m_current_display != index ) && ( m_current_display >= 0 ))
+		{
+			m_current_display_index = m_current_display;
 			m_display_stack.push_back( m_current_display );
+		}
 
 	}
 	else
 	{
 		if ( index < 0 )
-			m_current_search_index = find_idx_in_vec( m_current_display, m_display_menu );
+			m_current_display_index = find_idx_in_vec( m_current_display, m_display_menu );
 
 		// If not stacking, clear the existing back stack (if any)
 		m_display_stack.clear();
@@ -1571,9 +1609,11 @@ void FeSettings::set_current_selection( int filter_index, int rom_index )
 {
 	// handle situation where we are currently showing a search result or clone group
 	//
-	if (( m_current_display < 0 )
-		|| ( !m_current_search.empty()
-			&& ( get_current_filter_index() == filter_index )))
+	if ( m_current_display < 0 )
+	{
+		m_current_display_index = rom_index;
+	}
+	else if (( !m_current_search.empty() && ( get_current_filter_index() == filter_index )))
 	{
 		m_current_search_index = rom_index;
 	}
@@ -1636,12 +1676,12 @@ bool FeSettings::load_game_extras(
 	path += romlist_name;
 	path += "/";
 
-	if (( !directory_exists( path ) ) || romname.empty() )
+	if (( !FePathCache::directory_exists( path ) ) || romname.empty() )
 		return false;
 
 	path += romname;
 	path += FE_GAME_EXTRA_FILE_EXTENSION;
-	if ( !file_exists( path ) )
+	if ( !FePathCache::file_exists( path ) )
 		return false;
 
 	nowide::ifstream in_file( path.c_str() );
@@ -1742,7 +1782,7 @@ void FeSettings::save_game_extras( const std::string &romlist_name,
 
 	if ( extras.empty() )
 	{
-		if ( file_exists( path ) )
+		if ( FePathCache::file_exists( path ))
 			delete_file( path );
 
 		return;
@@ -1777,7 +1817,7 @@ bool FeSettings::get_game_overview_filepath( const std::string &emu, const std::
 	path += romname;
 	path += FE_GAME_OVERVIEW_FILE_EXTENSION;
 
-	return file_exists( path );
+	return FePathCache::file_exists( path );
 }
 
 bool FeSettings::get_game_overview_absolute( int filter_index, int rom_index, std::string &ov )
@@ -2129,7 +2169,7 @@ bool FeSettings::get_sound_file( FeInputMap::Command c, std::string &s, bool ful
 	{
 		if ( full_path )
 		{
-			if ( !internal_resolve_config_file( m_config_path, s, FE_SOUND_SUBDIR, filename ) )
+			if ( !internal_resolve_config_file( m_config_path, s, FE_SOUND_SUBDIR, filename ))
 			{
 				FeLog() << "Sound file not found: " << filename << std::endl;
 				return false;
@@ -2248,9 +2288,9 @@ void FeSettings::prep_for_launch( std::string &command,
 		std::vector < std::string > in_list;
 		std::vector < std::string > out_list;
 
-		get_filename_from_base( in_list, out_list, path, rom_name, my_filter );
+		FePathCache::get_filename_from_base( in_list, out_list, path, rom_name, my_filter );
 
-		if (( check_subdirs ) && ( directory_exists( path + rom_name ) ))
+		if (( check_subdirs ) && ( FePathCache::directory_exists( path + rom_name )))
 			in_list.push_back( path + rom_name );
 
 		if ( !in_list.empty() )
@@ -2275,7 +2315,7 @@ void FeSettings::prep_for_launch( std::string &command,
 		for ( itr = exts.begin(); itr != exts.end(); ++itr )
 		{
 			if ( ( (*itr).compare( FE_DIR_TOKEN ) == 0 )
-					? directory_exists( romfilename )
+					? FePathCache::directory_exists( romfilename )
 					: tail_compare( romfilename, (*itr) ) )
 			{
 				extension = (*itr);
@@ -2699,7 +2739,7 @@ bool FeSettings::get_font_file(
 	if ( is_relative_path( filename ))
 		filename = FePresent::script_get_base_path() + filename;
 
-	if ( file_exists( filename ))
+	if ( FePathCache::file_exists( filename ))
 	{
 		ffile = filename;
 		return true;
@@ -2827,12 +2867,9 @@ const std::string FeSettings::get_info( int index ) const
 	case HideConsole:
 #endif
 		return ( get_info_bool( index ) ? FE_CFG_YES_STR : FE_CFG_NO_STR );
+
 	case VideoDecoder:
-#ifdef NO_MOVIE
-		return "software";
-#else
 		return FeMedia::get_current_decoder();
-#endif
 
 	case MenuPrompt:
 		return m_menu_prompt;
@@ -3091,7 +3128,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 			m_image_cache_mbytes = 0;
 
 		FeDebug() << "Setting image cache size to " << m_image_cache_mbytes << " MBytes." << std::endl;
-		FeImageLoader::set_cache_size( m_image_cache_mbytes * 1024 * 1024 );
+		FeAsyncLoader::set_cache_max_bytes( m_image_cache_mbytes * 1024 * 1024 );
 		break;
 
 	case MoveMouseOnLaunch:
@@ -3137,9 +3174,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 #endif
 
 	case VideoDecoder:
-#ifndef NO_MOVIE
 		FeMedia::set_current_decoder( value );
-#endif
 		break;
 
 	case MenuLayout:
@@ -3176,7 +3211,7 @@ void FeSettings::create_filter( FeDisplayInfo &d, const std::string &name ) cons
 	FeFilter new_filter( name );
 
 	std::string defaults_file;
-	if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_FILTER_DEFAULT ) )
+	if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_FILTER_DEFAULT ))
 		new_filter.load_from_file( defaults_file );
 
 	d.append_filter( new_filter );
@@ -3190,7 +3225,7 @@ FeDisplayInfo *FeSettings::create_display( const std::string &n )
 	FeDisplayInfo new_display( n );
 
 	std::string defaults_file;
-	if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_LIST_DEFAULT ) )
+	if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_LIST_DEFAULT ))
 		new_display.load_from_file( defaults_file );
 
 	// If there is no layout set, set a good default one now
@@ -3487,7 +3522,7 @@ void FeSettings::get_plugin_full_path(
 	// <config_dir>/plugins/<name>.nut
 	// <config_dir>/plugins/<name>.zip (plugin.nut)
 	//
-	if ( internal_resolve_config_file( m_config_path, temp, FE_PLUGIN_SUBDIR, label + "/" ) )
+	if ( internal_resolve_config_file( m_config_path, temp, FE_PLUGIN_SUBDIR, label + "/" ))
 	{
 		path.swap( temp );
 		filename = FE_PLUGIN_FILE;
@@ -3497,7 +3532,7 @@ void FeSettings::get_plugin_full_path(
 	if ( internal_resolve_config_file( m_config_path,
 			temp,
 			FE_PLUGIN_SUBDIR,
-			label + FE_PLUGIN_FILE_EXTENSION ) )
+			label + FE_PLUGIN_FILE_EXTENSION ))
 	{
 		size_t len = temp.find_last_of( "/\\" );
 		ASSERT( len != std::string::npos );
@@ -3513,7 +3548,7 @@ void FeSettings::get_plugin_full_path(
 		if ( internal_resolve_config_file( m_config_path,
 				temp,
 				FE_PLUGIN_SUBDIR,
-				label + FE_ARCHIVE_EXT[i] ) )
+				label + FE_ARCHIVE_EXT[i] ))
 		{
 			path.swap( temp );
 			filename = FE_PLUGIN_FILE;
@@ -3541,7 +3576,7 @@ void FeSettings::internal_load_language( const std::string &lang )
 	m_translation_map.clear();
 
 	std::string fname;
-	if ( internal_resolve_config_file( m_config_path, fname, FE_LANGUAGE_SUBDIR, lang + FE_LANGUAGE_FILE_EXTENSION ) )
+	if ( internal_resolve_config_file( m_config_path, fname, FE_LANGUAGE_SUBDIR, lang + FE_LANGUAGE_FILE_EXTENSION ))
 		m_translation_map.load_from_file( fname, ";" );
 	else
 		FeLog() << "Error loading language resource file: " << lang << std::endl;
@@ -3583,7 +3618,7 @@ void FeSettings::get_languages_list( std::vector < FeLanguage > &ll ) const
 			fname += FE_LANGUAGE_FILE_EXTENSION;
 
 			if (( FE_DATA_PATH != NULL )
-				&& ( !file_exists( fname ) ))
+				&& ( !FePathCache::file_exists( fname )))
 			{
 				fname = FE_DATA_PATH;
 				fname += FE_LANGUAGE_SUBDIR;
@@ -3637,7 +3672,7 @@ void FeSettings::internal_gather_config_files(
 	std::string config_path = m_config_path + subdir;
 
 	// check the config directory first
-	if ( file_exists( config_path ) )
+	if ( FePathCache::file_exists( config_path ))
 		get_basename_from_extension( ll, config_path, extension );
 
 	// then the data directory
@@ -3668,7 +3703,7 @@ bool FeSettings::get_module_path(
 
 	std::string res;
 	if ( internal_resolve_config_file( m_config_path, res,
-		FE_MODULES_SUBDIR, fname ) )
+		FE_MODULES_SUBDIR, fname ))
 	{
 		size_t len = res.find_last_of( "/\\" );
 		ASSERT( len != std::string::npos );
@@ -3693,7 +3728,7 @@ bool FeSettings::get_module_path(
 	fname += MOD_FNAME;
 
 	if ( internal_resolve_config_file( m_config_path, res,
-		FE_MODULES_SUBDIR, fname ) )
+		FE_MODULES_SUBDIR, fname ))
 	{
 		size_t len = res.find_last_of( "/\\" );
 		ASSERT( len != std::string::npos );
@@ -3710,9 +3745,7 @@ bool gather_artwork_filenames(
 	const std::vector < std::string > &art_paths,
 	const std::string &target_name,
 	std::vector<std::string> &vids,
-	std::vector<std::string> &images,
-	bool image_only,
-	FePathCache *path_cache )
+	std::vector<std::string> &images )
 {
 	for ( std::vector< std::string >::const_iterator itr = art_paths.begin();
 			itr != art_paths.end(); ++itr )
@@ -3720,37 +3753,38 @@ bool gather_artwork_filenames(
 		std::vector < std::string > img_contents;
 		std::vector < std::string > vid_contents;
 
-		if ( path_cache )
-		{
-			path_cache->get_filename_from_base(
-				img_contents,
-				vid_contents,
-				(*itr),
-				target_name + '.',
-				FE_ART_EXTENSIONS );
-		}
-		else
-		{
-			get_filename_from_base(
-				img_contents,
-				vid_contents,
-				(*itr),
-				target_name + '.',
-				FE_ART_EXTENSIONS );
-		}
+		// if ( path_cache )
+		// {
 
-#ifdef NO_MOVIE
-		vid_contents.clear();
-#else
+		FePathCache::get_filename_from_base(
+			img_contents,
+			vid_contents,
+			(*itr),
+			target_name + '.',
+			FE_ART_EXTENSIONS );
+		// else
+		// {
+		// 	FeLog() << "NOT FOUND " << std::endl;
+		// 	get_filename_from_base(
+		// 		img_contents,
+		// 		vid_contents,
+		// 		(*itr),
+		// 		target_name + '.',
+		// 		FE_ART_EXTENSIONS );
+		// }
+
 		for ( std::vector<std::string>::iterator itn = vid_contents.begin();
 				itn != vid_contents.end(); )
 		{
-			if ( FeMedia::is_supported_media_file( *itn ) )
+			const char **ext = FE_VID_EXTENSIONS;
+			while ( *ext != NULL && !tail_compare( *itn, *ext ))
+				++ext;
+
+			if ( *ext != NULL )
 				++itn;
 			else
 				itn = vid_contents.erase( itn );
 		}
-#endif
 
 		if ( !img_contents.empty() || !vid_contents.empty() )
 		{
@@ -3765,29 +3799,29 @@ bool gather_artwork_filenames(
 		// image from it at this point (if available)
 		//
 		std::string sd_path = (*itr) + target_name;
-		if ( directory_exists( sd_path ) )
+
+		if ( FePathCache::directory_exists( sd_path ) )
 		{
 			sd_path += "/";
-
-			get_filename_from_base(
+			FePathCache::get_filename_from_base(
 				img_contents,
 				vid_contents,
 				sd_path,
 				"",
 				FE_ART_EXTENSIONS );
 
-#ifdef NO_MOVIE
-			vid_contents.clear();
-#else
 			for ( std::vector<std::string>::iterator itn = vid_contents.begin();
 					itn != vid_contents.end(); )
 			{
-				if ( FeMedia::is_supported_media_file( *itn ) )
+				const char **ext = FE_VID_EXTENSIONS;
+				while ( *ext != NULL && !tail_compare( *itn, *ext ))
+					++ext;
+
+				if ( *ext != NULL )
 					++itn;
 				else
 					itn = vid_contents.erase( itn );
 			}
-#endif
 
 			std::random_shuffle( vid_contents.begin(), vid_contents.end() );
 			std::random_shuffle( img_contents.begin(), img_contents.end() );
@@ -3797,7 +3831,6 @@ bool gather_artwork_filenames(
 		}
 	}
 
-	if ( image_only ) vids.clear();
 	return ( !images.empty() || !vids.empty() );
 }
 
@@ -3806,7 +3839,7 @@ bool art_exists( const std::string &path, const std::string &base )
 	std::vector<std::string> u1;
 	std::vector<std::string> u2;
 
-	return ( get_filename_from_base(
+	return ( FePathCache::get_filename_from_base(
 		u1, u2, path, base, FE_ART_EXTENSIONS ) );
 }
 
@@ -3850,7 +3883,7 @@ bool FeSettings::internal_get_best_artwork_file(
 			emu_name = get_display( temp_d )->get_info( FeDisplayInfo::Romlist );
 
 		std::string add_path = get_config_dir() + FE_MENU_ART_SUBDIR + art_name + "/";
-		if ( directory_exists( add_path ) )
+		if ( FePathCache::directory_exists( add_path ) )
 			art_paths.push_back( add_path );
 
 		if ( FE_DATA_PATH != NULL )
@@ -3860,7 +3893,7 @@ bool FeSettings::internal_get_best_artwork_file(
 			add_path += art_name;
 			add_path += "/";
 
-			if ( directory_exists( add_path ) )
+			if ( FePathCache::directory_exists( add_path ) )
 				art_paths.push_back( add_path );
 		}
 	}
@@ -3884,7 +3917,7 @@ bool FeSettings::internal_get_best_artwork_file(
 	}
 
 	std::string scraper_path = get_config_dir() + FE_SCRAPER_SUBDIR + emu_name + "/" + scrape_art + "/";
-	if ( directory_exists( scraper_path ) )
+	if ( FePathCache::directory_exists( scraper_path ) )
 		art_paths.push_back( scraper_path );
 
 	if ( !art_paths.empty() )
@@ -3893,7 +3926,7 @@ bool FeSettings::internal_get_best_artwork_file(
 		const std::string &cloneof = rom.get_info( FeRomInfo::Cloneof );
 
 		std::vector<std::string> romname_image_list;
-		if ( gather_artwork_filenames( art_paths, romname, vid_list, romname_image_list, image_only, &m_path_cache ) )
+		if ( gather_artwork_filenames( art_paths, romname, vid_list, romname_image_list )) // <-
 		{
 			// test for "romname" specific videos first
 			if ( !image_only && !vid_list.empty() )
@@ -3903,7 +3936,7 @@ bool FeSettings::internal_get_best_artwork_file(
 		bool check_altname = ( !altname.empty() && ( romname.compare( altname ) != 0 ));
 
 		std::vector<std::string> altname_image_list;
-		if ( check_altname && gather_artwork_filenames( art_paths, altname, vid_list, altname_image_list, image_only, &m_path_cache ) )
+		if ( check_altname && gather_artwork_filenames( art_paths, altname, vid_list, altname_image_list ))
 		{
 			// test for "altname" specific videos second
 			if ( !image_only && !vid_list.empty() )
@@ -3913,7 +3946,7 @@ bool FeSettings::internal_get_best_artwork_file(
 		bool check_cloneof = ( !cloneof.empty() && (altname.compare( cloneof ) != 0 ));
 
 		std::vector<std::string> cloneof_image_list;
-		if ( check_cloneof && gather_artwork_filenames( art_paths, cloneof, vid_list, cloneof_image_list, image_only, &m_path_cache ) )
+		if ( check_cloneof && gather_artwork_filenames( art_paths, cloneof, vid_list, cloneof_image_list ))
 		{
 			// then "cloneof" specific videos
 			if ( !image_only && !vid_list.empty() )
@@ -3943,7 +3976,8 @@ bool FeSettings::internal_get_best_artwork_file(
 
 		// then "emulator"
 		if ( !ignore_emu && !emu_name.empty()
-			&& gather_artwork_filenames( art_paths, emu_name, vid_list, image_list, image_only, &m_path_cache ) )
+			&& gather_artwork_filenames( art_paths,
+				emu_name, vid_list, image_list ))
 			return true;
 	}
 
@@ -3957,8 +3991,8 @@ void FeSettings::get_best_artwork_file(
 	std::vector<std::string> &image_list,
 	bool image_only )
 {
-	if ( internal_get_best_artwork_file( rom, art_name, vid_list, image_list, image_only, false ) )
-		return;
+	bool ret = internal_get_best_artwork_file( rom, art_name, vid_list, image_list, image_only, false );
+	if ( ret ) return;
 
 	// check for layout fallback images/videos
 	std::string layout_path;
@@ -3977,15 +4011,16 @@ void FeSettings::get_best_artwork_file(
 
 	// check for "[emulator-[artlabel]" artworks first
 	if ( gather_artwork_filenames( layout_paths,
-		emu_name + "-" + art_name, vid_list, image_list, image_only, &m_path_cache ) )
+		emu_name + "-" + art_name,
+		vid_list, image_list ))
 	{
 		if ( !image_only && !vid_list.empty() )
 			return;
 	}
 
 	// then "[artlabel]"
-	gather_artwork_filenames( layout_paths, art_name, vid_list, image_list, image_only, &m_path_cache );
-
+	gather_artwork_filenames( layout_paths,
+		art_name, vid_list, image_list );
 }
 
 bool FeSettings::has_artwork( const FeRomInfo &rom, const std::string &art_name )
@@ -4042,7 +4077,7 @@ bool FeSettings::get_best_dynamic_image_file(
 	std::vector< std::string > paths;
 	paths.push_back( path );
 
-	return gather_artwork_filenames( paths, base, vid_list, image_list, false, NULL ); // TODO: image_only variable, or false?
+	return gather_artwork_filenames( paths, base, vid_list, image_list );
 }
 
 void FeSettings::update_romlist_after_edit(
@@ -4097,14 +4132,14 @@ void FeSettings::update_romlist_after_edit(
 	// Check for a romlist in the data path if there isn't one that matches in the
 	// config directory
 	//
-	if (( !file_exists( in_path  ) ) && ( FE_DATA_PATH != NULL ))
+	if (( !FePathCache::file_exists( in_path  ) ) && ( FE_DATA_PATH != NULL ))
 	{
 		std::string temp = FE_DATA_PATH;
 		temp += FE_ROMLIST_SUBDIR;
 		temp += romlist_name;
 		temp += FE_ROMLIST_FILE_EXTENSION;
 
-		if ( file_exists( temp ) )
+		if ( FePathCache::file_exists( temp ) )
 			in_path = temp;
 	}
 
@@ -4213,7 +4248,7 @@ bool FeSettings::get_emulator_setup_script( std::string &path, std::string &file
 
 	std::string temp;
 	if ( !internal_resolve_config_file( m_config_path,
-			temp, FE_EMULATOR_SCRIPT_SUBDIR, FE_EMULATOR_INIT_FILE ) )
+			temp, FE_EMULATOR_SCRIPT_SUBDIR, FE_EMULATOR_INIT_FILE ))
 	{
 		FeLog() << "Unable to open emulator init script: "  << FE_EMULATOR_INIT_FILE << std::endl;
 		return false;

@@ -26,6 +26,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
 #include "fe_settings.hpp"
+#include "fe_music.hpp"
 #include "fe_sound.hpp"
 #include "fe_shader.hpp"
 #include "fe_window.hpp"
@@ -138,6 +139,7 @@ protected:
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
+	std::vector<FeMusic *> m_musics;
 	std::vector<FeShader *> m_scriptShaders;
 	std::vector<FeFontContainer *> m_fontPool;
 	std::vector<FeMonitor> m_mon;
@@ -146,6 +148,8 @@ protected:
 	int m_user_page_size;
 	bool m_preserve_aspect;
 	bool m_custom_overlay;
+	int m_suppressed_navigation_step;
+	bool m_cleanup_videos;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	sf::Vector2i m_layoutSize;
@@ -165,7 +169,6 @@ protected:
 	void toggle_rotate( FeSettings::RotationState ); // toggle between none and provided state
 	FeSettings::RotationState get_actual_rotation();
 	void set_transforms();
-	int update( bool reload_list=false, bool new_layout=false );
 
 	// Overrides from base classes:
 	//
@@ -178,7 +181,8 @@ protected:
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_surface(int w, int h, FePresentableParent &p);
-	FeSound *add_sound(const char *n, bool reuse);
+	FeSound *add_sound(const char *n);
+	FeMusic *add_music(const char *n);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
 	float get_layout_width() const;
 	float get_layout_height() const;
@@ -191,6 +195,7 @@ protected:
 	void set_filter_index( int );
 	int get_current_filter_size() const;
 	bool get_clones_list_showing() const;
+	int get_suppressed_navigation_step() const;
 	int get_selection_index() const;
 	int get_sort_by() const;
 	bool get_reverse_order() const;
@@ -218,17 +223,18 @@ public:
 
 	bool load_intro(); // returns false if no intro is available
 	void load_screensaver();
-	void load_layout( bool initial_load=false, bool suppress_transition=false );
+	void load_layout( bool initial_load=false );
 	void set_layout_loaded( bool loaded ) { m_layout_loaded = loaded; };
 	bool is_layout_loaded() { return m_layout_loaded; };
 
-	virtual void update_to_new_list( int var=0, bool reset_display=false, bool suppress_transition=false ); // NOTE virtual function!
-	void on_end_navigation();
+	void update_to( FeTransitionType type, bool reset_display=false );
 	void redraw_surfaces();
 
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required
 	bool video_tick(); // update videos only. return true if redraw required
 	void redraw(); // redraw the screen while doing computationally intensive loops
+	void notify_cleanup_videos() { m_cleanup_videos = true; };
+	bool pending_cleanup_videos() { bool ret = m_cleanup_videos; m_cleanup_videos = false; return ret; };
 
 	bool saver_activation_check();
 	void on_stop_frontend();
@@ -300,6 +306,9 @@ public:
 	virtual int get_script_id()=0;
 	virtual void set_script_id( int )=0;
 	virtual bool setup_wizard()=0;
+	virtual void suppress_navigation( bool )=0;
+	virtual void release_navigation()=0;
+	virtual bool is_navigation_suppressed()=0;
 };
 
 

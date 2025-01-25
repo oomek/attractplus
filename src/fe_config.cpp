@@ -25,11 +25,10 @@
 #include "fe_settings.hpp"
 #include "fe_util.hpp"
 #include "fe_vm.hpp"
+#include "path_cache.hpp"
+#include "media.hpp"
 
 #include <SFML/Graphics/Shader.hpp>
-#ifndef NO_MOVIE
-#include "media.hpp"
-#endif
 
 #include <iostream>
 #include <cmath>
@@ -283,6 +282,10 @@ void FeEmulatorEditMenu::get_options( FeConfigContext &ctx )
 
 		m_emulator->get_artwork_list( alist );
 
+		// for ( std::vector<std::pair<std::string, std::string> >::iterator itr=alist.begin(); itr!=alist.end(); ++itr )
+		// 	FeLog() << "Artwork: " << itr->first << " - " << itr->second << std::endl;
+
+
 		std::vector<std::pair<std::string,std::string> >::iterator itr;
 		for ( itr=alist.begin(); itr!=alist.end(); ++itr )
 		{
@@ -390,7 +393,7 @@ bool FeEmulatorEditMenu::on_option_select(
 					itr != paths.end(); ++itr )
 			{
 				std::string rom_path = m_emulator->clean_path_with_wd( *itr );
-				if ( !directory_exists( rom_path ) )
+				if ( !FePathCache::directory_exists( rom_path ) )
 				{
 					if ( ctx.confirm_dialog( "Rom path '$1' not found, proceed anyways?",
 										rom_path ) == false )
@@ -542,7 +545,7 @@ void FeEmulatorEditMenu::set_emulator(
 		std::string filename = m_emulator->get_info( FeEmulatorInfo::Name );
 		filename += FE_ROMLIST_FILE_EXTENSION;
 
-		m_romlist_exists = file_exists( romlist_dir + filename );
+		m_romlist_exists = FePathCache::file_exists( romlist_dir + filename );
 	}
 	else
 		m_romlist_exists = false;
@@ -683,7 +686,7 @@ bool FeEmulatorGenMenu::on_option_select(
 		path += res;
 		path += FE_ROMLIST_FILE_EXTENSION;
 
-		if ( file_exists( path ) )
+		if ( FePathCache::file_exists( path ) )
 		{
 			if ( ctx.confirm_dialog( "Overwrite existing '$1' list?",
 					res ) == false )
@@ -1775,7 +1778,6 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 	std::vector<std::string> sound_list;
 	ctx.fe_settings.get_sounds_list( sound_list );
 
-#ifndef NO_MOVIE
 	for ( std::vector<std::string>::iterator itr=sound_list.begin();
 			itr != sound_list.end(); )
 	{
@@ -1784,7 +1786,6 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 		else
 			itr++;
 	}
-#endif
 
 	sound_list.push_back( "" );
 
@@ -2071,13 +2072,8 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::vector < std::string > decoders;
 	std::string vid_dec;
 
-#ifdef NO_MOVIE
-	vid_dec = "software";
-	decoders.push_back( vid_dec );
-#else
 	vid_dec = FeMedia::get_current_decoder();
 	FeMedia::get_decoder_list( decoders );
-#endif
 
 	ctx.add_optl( Opt::LIST, "Video Decoder", vid_dec, "_help_video_decoder" );
 	ctx.back_opt().append_vlist( decoders );

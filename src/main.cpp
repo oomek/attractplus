@@ -35,9 +35,7 @@
 #include <cstdlib>
 #include "nowide/args.hpp"
 
-#ifndef NO_MOVIE
-#include <Audio/AudioDevice.hpp>
-#endif
+#include <SFML/Audio.hpp>
 
 #ifdef SFML_SYSTEM_ANDROID
 #include "fe_util_android.hpp"
@@ -128,9 +126,6 @@ int main(int argc, char *argv[])
 	//
 	// Set up music/sound playing objects
 	//
-#ifndef NO_MOVIE
-	sf::AudioDevice audio_device;
-#endif
 	FeSoundSystem soundsys( &feSettings );
 
 	soundsys.update_volumes();
@@ -203,10 +198,6 @@ int main(int argc, char *argv[])
 				break;
 
 			case FeSettings::ShowDisplaysMenu:
-				// we do a double load of the layout on startup if there is custom display menu
-				// so we suppress the extra transition signals that get triggered here
-				feVM.load_layout( true, !feSettings.get_info( FeSettings::MenuLayout ).empty() );
-				FeVM::cb_signal( "displays_menu" );
 				break;
 
 			default:
@@ -480,6 +471,8 @@ int main(int argc, char *argv[])
 					continue;
 				}
 
+				soundsys.sound_event( c );
+
 				//
 				// Handle special case Back UI button behaviour
 				//
@@ -554,25 +547,12 @@ int main(int argc, char *argv[])
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
 
+				feVM.load_layout( true );
 
-				switch ( feSettings.get_startup_mode() )
+				if ( feSettings.get_startup_mode() == FeSettings::LaunchLastGame )
 				{
-				case FeSettings::LaunchLastGame:
-					feVM.load_layout( true );
 					feSettings.select_last_launch();
 					launch_game=true;
-					break;
-
-				case FeSettings::ShowDisplaysMenu:
-					// we do a double load of the layout on startup if there is custom display menu
-					// so we suppress the extra transition signals that get triggered here
-					feVM.load_layout( true, !feSettings.get_info( FeSettings::MenuLayout ).empty() );
-					FeVM::cb_signal( "displays_menu" );
-					break;
-
-				default:
-					feVM.load_layout( true );
-					break;
 				}
 
 				redraw=true;
@@ -959,7 +939,7 @@ int main(int argc, char *argv[])
 						// returning true then we trigger the "End Navigation" transition now
 						//
 						if ( move_triggered != FeInputMap::LAST_COMMAND )
-							feVM.on_end_navigation();
+							feVM.update_to( EndNavigation, false );
 
 						move_state = FeInputMap::LAST_COMMAND;
 						move_triggered = FeInputMap::LAST_COMMAND;
@@ -969,6 +949,8 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
+						soundsys.sound_event( c );
+
 						move_last_triggered = t;
 						int step = 1;
 
@@ -999,35 +981,16 @@ int main(int argc, char *argv[])
 
 						switch ( move_triggered )
 						{
-						case FeInputMap::PrevGame: step = -step; break;
-						case FeInputMap::NextGame: break; // do nothing
-						case FeInputMap::PrevPage: step *= -feVM.get_page_size(); break;
-						case FeInputMap::NextPage: step *= feVM.get_page_size(); break;
-						case FeInputMap::PrevFavourite:
-							{
-								int temp = feSettings.get_prev_fav_offset();
-								step = ( temp < 0 ) ? temp : 0;
-							}
-							break;
-						case FeInputMap::NextFavourite:
-							{
-								int temp = feSettings.get_next_fav_offset();
-								step = ( temp > 0 ) ? temp : 0;
-							}
-							break;
-						case FeInputMap::PrevLetter:
-							{
-								int temp = feSettings.get_next_letter_offset( -1 );
-								step = ( temp < 0 ) ? temp : 0;
-							}
-							break;
-						case FeInputMap::NextLetter:
-							{
-								int temp = feSettings.get_next_letter_offset( 1 );
-								step = ( temp > 0 ) ? temp : 0;
-							}
-							break;
-						default: break;
+							// Key repeat. First press in FePresent::handle_event()
+							case FeInputMap::PrevGame: step = -step; break;
+							case FeInputMap::NextGame: break; // do nothing
+							case FeInputMap::PrevPage: step *= -feVM.get_page_size(); break;
+							case FeInputMap::NextPage: step *= feVM.get_page_size(); break;
+							case FeInputMap::PrevFavourite: step = std::min( feSettings.get_prev_fav_offset(), 0 ); break;
+							case FeInputMap::NextFavourite: step = std::max(feSettings.get_next_fav_offset(), 0); break;
+							case FeInputMap::PrevLetter: step = std::min( feSettings.get_next_letter_offset(-1), 0 ); break;
+							case FeInputMap::NextLetter: step = std::max( feSettings.get_next_letter_offset(1), 0 ); break;
+							default: break;
 						}
 
 						//
@@ -1043,8 +1006,15 @@ int main(int argc, char *argv[])
 								step = list_size - curr_sel - 1;
 						}
 
+						if ( feVM.is_navigation_suppressed() )
+						{
+							feVM.set_suppressed_navigation_step( step );
+							step = 0;
+						}
+
 						if ( step != 0 )
 						{
+							feVM.suppress_navigation( false );
 							feVM.change_selection( step, false );
 							redraw=true;
 						}
@@ -1059,7 +1029,10 @@ int main(int argc, char *argv[])
 				// "End Navigation" stuff now
 				//
 				if ( move_triggered != FeInputMap::LAST_COMMAND )
-					feVM.on_end_navigation();
+				{
+					feVM.update_to( EndNavigation, false );
+					feVM.on_transition( EndNavigation, 0 );
+				}
 
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;

@@ -23,12 +23,10 @@
 #include "fe_base.hpp"
 #include "fe_util.hpp"
 
-#ifndef NO_MOVIE
 extern "C"
 {
 #include <libavutil/log.h>
 }
-#endif
 
 #include <iomanip>
 #include "nowide/fstream.hpp"
@@ -62,7 +60,6 @@ namespace {
 #endif
 	enum FeLogLevel g_log_level=FeLog_Info;
 
-#ifndef NO_MOVIE
 	void ffmpeg_log_callback( void *ptr, int level, const char *fmt, va_list vargs )
 	{
 		if ( level <= av_log_get_level() )
@@ -72,7 +69,6 @@ namespace {
 			FeLog() << "FFmpeg: " << buff;
 		}
 	}
-#endif
 };
 
 std::ostream &FeDebug()
@@ -106,8 +102,6 @@ void fe_set_log_level( enum FeLogLevel f )
 {
 	g_log_level = f;
 
-
-#ifndef NO_MOVIE
 	if ( f == FeLog_Silent )
 		av_log_set_callback( NULL );
 	else
@@ -115,7 +109,6 @@ void fe_set_log_level( enum FeLogLevel f )
 		av_log_set_callback( ffmpeg_log_callback );
 		av_log_set_level( ( f == FeLog_Debug ) ? AV_LOG_VERBOSE : AV_LOG_ERROR );
 	}
-#endif
 }
 
 void fe_print_version()
@@ -134,12 +127,7 @@ void fe_print_version()
 		<< " +Curl"
 #endif
 		<< ") " << std::endl;
-#ifdef NO_MOVIE
-	FeLog() << "No Video, using SFML for Audio." << std::endl;
-#else
 	print_ffmpeg_version_info();
-#endif
-
 }
 
 void FeBaseConfigurable::invalid_setting(

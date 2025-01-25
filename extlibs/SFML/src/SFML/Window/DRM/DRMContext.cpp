@@ -735,7 +735,7 @@ void DRMContext::createContext(DRMContext* shared)
 {
     const EGLint contextVersion[] =
     {
-        EGL_CONTEXT_CLIENT_VERSION, 1,
+        EGL_CONTEXT_CLIENT_VERSION, 2,
         EGL_NONE
     };
 

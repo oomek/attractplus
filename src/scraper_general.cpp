@@ -24,6 +24,7 @@
 #include "fe_info.hpp"
 #include "fe_settings.hpp"
 #include "fe_util.hpp"
+#include "path_cache.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -716,7 +717,7 @@ bool FeSettings::build_romlist( const std::vector< FeImportTask > &task_list,
 			FeImporterContext ctx( *emu, romlist );
 			ctx.use_net = false;
 
-			if ( file_exists( fn ) )
+			if ( FePathCache::file_exists( fn ) )
 			{
 				FeRomList loader( get_config_dir() );
 				loader.load_from_file( fn, ";" );
@@ -894,7 +895,7 @@ bool FeSettings::scrape_artwork( const std::string &emu_name, UiUpdate uiu, void
 	ctx.uiupdatedata = uid;
 	ctx.use_net = false;
 
-	if ( file_exists( fn ) )
+	if ( FePathCache::file_exists( fn ) )
 	{
 		FeRomList loader( get_config_dir() );
 		loader.load_from_file( fn, ";" );
@@ -935,7 +936,7 @@ bool FeSettings::scrape_artwork( const std::string &emu_name, UiUpdate uiu, void
 
 	// if we scraped something then make sure our path caches are reloaded
 	if ( ctx.download_count > 0 )
-		m_path_cache.clear();
+		FePathCache::clear();
 
 	return true;
 }

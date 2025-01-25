@@ -31,6 +31,7 @@
 #include "fe_net.hpp"
 #include "fe_base.hpp" // For FeLog()
 #include "scraper_base.hpp"
+#include "path_cache.hpp"
 
 #ifdef USE_LIBCURL
 
@@ -194,7 +195,7 @@ bool load_from_local(
 	const std::string &fname,
 	std::vector< std::pair < std::string, int > > &l )
 {
-	if ( !file_exists( fname ) )
+	if ( !FePathCache::file_exists( fname ) )
 		return false;
 
 	nowide::ifstream myfile( fname.c_str() );
@@ -595,7 +596,7 @@ void create_ft(
 
 			std::string fn = local_path + stub;
 
-			if ( !file_exists( fn ) )
+			if ( !FePathCache::file_exists( fn ) )
 			{
 				FeDebug() << "Adding task to get file: " << fn
 					<< " (" << base_url << fnames[i] << ")" << std::endl;
@@ -615,7 +616,7 @@ void create_ft(
 
 		std::string fn = local_path + name + ext;
 
-		if ( !file_exists( fn ) )
+		if ( !FePathCache::file_exists( fn ) )
 		{
 			FeDebug() << "Adding task to get file: " << fn
 				<< " (" << base_url << fnames[0] << ")" << std::endl;

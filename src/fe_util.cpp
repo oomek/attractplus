@@ -251,15 +251,17 @@ bool base_compare( const std::string &path,
 	return true;
 }
 
-bool file_exists( const std::string &file )
-{
-	return check_path( file ) & ( FeVM::IsFile | FeVM::IsDirectory );
-}
+// bool file_exists( const std::string &file )
+// {
+// 	FeLog() << "file_exists() " << file << std::endl;
+// 	return check_path( file ) & ( FeVM::IsFile | FeVM::IsDirectory );
+// }
 
-bool directory_exists( const std::string &file )
-{
-	return check_path( file ) & FeVM::IsDirectory;
-}
+// bool directory_exists( const std::string &file )
+// {
+// 	FeLog() << "directory_exists() " << file << std::endl;
+// 	return check_path( file ) & FeVM::IsDirectory;
+// }
 
 int check_path( const std::string &path )
 {
@@ -406,7 +408,7 @@ std::string absolute_path( const std::string &path )
 		std::string retval = buff;
 		if (( retval.size() > 0 )
 				&& ( retval[ retval.size()-1 ] != '/' )
-				&& directory_exists( retval ))
+				&& FePathCache::directory_exists( retval ))
 			retval += "/";
 
 		return retval;
@@ -424,7 +426,7 @@ bool search_for_file( const std::string &base_path,
 	std::vector<std::string> result_list;
 	std::vector<std::string> ignore_list;
 
-	if ( get_filename_from_base(
+	if ( FePathCache::get_filename_from_base(
 		result_list, ignore_list, base_path, base_name, valid_exts )  )
 	{
 		result = result_list.front();
@@ -766,7 +768,7 @@ std::string get_available_filename(
 	test_name += extension;
 
 	int i=0;
-	while ( file_exists( path + test_name ) )
+	while ( FePathCache::file_exists( path + test_name ) )
 	{
 		std::ostringstream ss;
 		ss << base << ++i;
@@ -792,7 +794,7 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 {
 	bool retval=false;
 
-	if ( !directory_exists( base ) )
+	if ( !FePathCache::directory_exists( base ) )
 	{
 #ifdef SFML_SYSTEM_WINDOWS
 		_wmkdir( FeUtil::widen( base ).c_str() );
@@ -802,7 +804,7 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 		retval=true;
 	}
 
-	if ( (!sub.empty()) && (!directory_exists( base + sub )) )
+	if ( (!sub.empty()) && (!FePathCache::directory_exists( base + sub )) )
 	{
 #ifdef SFML_SYSTEM_WINDOWS
 		_wmkdir( FeUtil::widen(base + sub).c_str() );

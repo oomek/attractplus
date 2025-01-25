@@ -35,7 +35,6 @@ class FeText;
 class FeListBox;
 class FeRectangle;
 class FeTextureContainer;
-class FeImageLoaderEntry;
 
 enum FeVideoFlags
 {
@@ -77,6 +76,7 @@ public:
 
 	virtual void load_file( const char *n );
 	virtual const char *get_file_name() const;
+	virtual const char *get_art_name() const;
 	virtual void set_trigger( int );
 	virtual int get_trigger() const;
 
@@ -97,6 +97,9 @@ public:
 
 	virtual void set_redraw( bool );
 	virtual bool get_redraw() const;
+
+	virtual void set_volume( float );
+	virtual float get_volume() const;
 
 	virtual float get_sample_aspect_ratio() const;
 
@@ -159,6 +162,7 @@ public:
 
 	void load_file( const char *n );
 	const char *get_file_name() const;
+	const char *get_art_name() const;
 	void set_trigger( int );
 	int get_trigger() const;
 
@@ -177,27 +181,26 @@ public:
 	void set_repeat( bool );
 	bool get_repeat() const;
 
+	void set_volume( float );
+	float get_volume() const;
+
 	float get_sample_aspect_ratio() const;
 
 protected:
 	FeTextureContainer *get_derived_texture_container();
 
 private:
-
-#ifndef NO_MOVIE
-	bool load_with_ffmpeg(
-		const std::string &filename,
-		bool is_image );
-#endif
-
 	bool try_to_load(
 		const std::string &filename,
 		bool is_image=false );
 
 	void internal_update_selection( FeSettings *feSettings );
 	void clear();
+	void clear_texture();
 
-	sf::Texture m_texture;
+	sf::Texture *m_texture;
+	FeMedia *m_video_player;
+	sf::Texture m_empty_texture;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)
 	std::string m_file_name; // the name of the loaded file
@@ -209,12 +212,11 @@ private:
 	enum Type { IsArtwork, IsDynamic, IsStatic };
 	Type m_type;
 	int m_art_update_trigger;
-	FeMedia *m_movie;
 	int m_movie_status; // 0=no play, 1=ready to play, >=PLAY_COUNT=playing
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;
 	bool m_smooth;
-	FeImageLoaderEntry *m_entry;
+	float m_volume;
 };
 
 class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresentableParent
@@ -250,7 +252,7 @@ public:
 	FePresentableParent *get_presentable_parent();
 
 private:
-	sf::RenderTexture m_texture;
+	sf::RenderTexture *m_texture;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
@@ -305,6 +307,7 @@ public:
 	int getVideoTime() const;
 	const char *getFileName() const;
 	void setFileName( const char * );
+	const char *getArtName() const;
 	int getTrigger() const;
 	void setTrigger( int );
 
@@ -346,6 +349,7 @@ public:
 	bool get_clear() const;
 	bool get_repeat() const;
 	bool get_redraw() const;
+	float get_volume() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
@@ -371,6 +375,7 @@ public:
 	void set_clear( bool );
 	void set_repeat( bool );
 	void set_redraw( bool );
+	void set_volume( float );
 	void set_blend_mode( int b );
 
 	void transition_swap( FeImage * );
