@@ -120,7 +120,7 @@ bool FeAsyncLoader::done()
 	if ( !m_done )
 	{
 		ulock_t lock( m_loader_mutex );
-		if ( m_loader_queue.size() == 0 )
+		if ( m_loader_queue.empty() )
 		{
 			m_done = true;
 			return true;
@@ -210,7 +210,7 @@ void FeAsyncLoader::loader_thread_loop()
 	{
 		ulock_t lock( m_loader_mutex );
 
-		if ( m_loader_queue.size() == 0 )
+		if ( m_loader_queue.empty() )
 			m_loader_condition.wait( lock );
 		else
 		{
@@ -221,7 +221,7 @@ void FeAsyncLoader::loader_thread_loop()
 
 			lock.lock();
 			m_loader_queue.pop();
-			m_loader_queue_size--;
+			m_loader_queue_size.fetch_sub(1);
 			lock.unlock();
 		}
 	}
@@ -235,21 +235,21 @@ void FeAsyncLoader::cleanup_thread_loop()
 	{
 		ulock_t lock( m_cleanup_mutex );
 
-		if ( m_resources_cleanup.size() == 0 )
+		if ( m_resources_cleanup.empty() )
 			m_cleanup_condition.wait( lock );
 		else
 		{
-			lock.unlock();
-
-			for ( auto it = m_resources_cleanup.begin(); it != m_resources_cleanup.end(); ++it )
-			{
-				delete it->second;
-				m_cleanup_size--;
-			}
-
-			lock.lock();
+            // Create a copy of cleanup list to minimize mutex lock time
+            list_t cleanup_copy;
+            cleanup_copy.splice(cleanup_copy.begin(), m_resources_cleanup);
             m_resources_cleanup.clear();
             lock.unlock();
+
+			for ( auto it = cleanup_copy.begin(); it != cleanup_copy.end(); ++it )
+			{
+				delete it->second;
+				m_cleanup_size.fetch_sub(1);
+			}
 		}
 	}
 }
@@ -306,7 +306,7 @@ bool FeAsyncLoader::add_resource( const std::string input_file, bool async )
 		m_done = false;
 		m_loader_queue.push( std::make_pair( file, T::type ));
 		lock.unlock();
-		m_loader_queue_size++;
+		m_loader_queue_size.fetch_add(1);
 		m_loader_condition.notify_one();
 	}
 	return true;
@@ -416,7 +416,7 @@ void FeAsyncLoader::stop_cached_videos()
 			}
 			m_resources_map.erase( it->first );
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
-			m_cleanup_size++;
+			m_cleanup_size.fetch_add(1);
 			m_cleanup_condition.notify_one();
 		}
 		else if ( m_cache_current_bytes > s_cache_max_bytes && dynamic_cast<FeAsyncLoaderEntryTexture*>( it->second ) != nullptr )
@@ -424,7 +424,7 @@ void FeAsyncLoader::stop_cached_videos()
 			FeAsyncLoader::get_al().dec_cache_bytes( it->second->get_bytes() );
 			m_resources_map.erase( it->first );
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
-			m_cleanup_size++;
+			m_cleanup_size.fetch_add(1);
 			m_cleanup_condition.notify_one();
 		}
 		else
