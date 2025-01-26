@@ -189,13 +189,13 @@ private:
 
 public:
 	std::atomic<bool> run_video_thread;
+	std::atomic<bool> notify;
 	sf::Time time_base;
 	sf::Time max_sleep;
 	sf::Clock video_timer;
 	sf::Texture *display_texture;
 	int disptex_width;
 	int disptex_height;
-	std::condition_variable m_cv;
 	std::mutex m_mutex;
 
 	//
@@ -453,6 +453,7 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 		hwaccel_output_format( AV_PIX_FMT_NONE ),
 #endif
 		run_video_thread( false ),
+		notify( false ),
 		display_texture( NULL ),
 		disptex_width( 0 ),
 		disptex_height( 0 ),
@@ -537,14 +538,8 @@ void FeVideoImp::play()
 
 void FeVideoImp::stop()
 {
-	if ( run_video_thread )
-	{
-		{
-			std::lock_guard<std::mutex> lock(m_mutex);
-			run_video_thread = false;
-		}
-		m_cv.notify_all(); // wake up video_thread()
-	}
+	run_video_thread = false;
+	notify = true;
 
 	if ( m_video_thread.joinable() )
 		m_video_thread.join();
@@ -554,8 +549,8 @@ void FeVideoImp::stop()
 
 void FeVideoImp::signal_stop()
 {
-	if ( run_video_thread )
-		run_video_thread = false;
+	run_video_thread = false;
+	notify = false;
 }
 
 namespace
@@ -663,8 +658,20 @@ void FeVideoImp::video_thread()
 					// We are ahead and can sleep until presentation time
 					//
 					{
-						std::unique_lock<std::mutex> lock( m_mutex );
-						if ( m_cv.wait_for( lock, std::chrono::milliseconds( static_cast<int>( max_sleep.asMilliseconds() )), [&](){ return !run_video_thread; }))
+						sf::Time busy_wait_time = sf::Time::Zero;
+						while ( run_video_thread && busy_wait_time < wait_time )
+						{
+							if ( notify )
+							{
+								notify = false;
+								break;
+							}
+
+							sf::sleep( sf::milliseconds( 1 ));
+							busy_wait_time += sf::milliseconds( 1 );
+						}
+
+						if ( !run_video_thread )
 							goto the_end;
 					}
 
@@ -814,8 +821,20 @@ void FeVideoImp::video_thread()
 				// full frame queue and nothing to display yet, so sleep
 				//
 				{
-					std::unique_lock<std::mutex> lock( m_mutex );
-					if ( m_cv.wait_for( lock, std::chrono::milliseconds( static_cast<int>( max_sleep.asMilliseconds() )), [&](){ return !run_video_thread; }))
+					sf::Time busy_wait_time = sf::Time::Zero;
+					while ( run_video_thread && busy_wait_time < max_sleep )
+					{
+						if ( notify )
+						{
+							notify = false;
+							break;
+						}
+
+						sf::sleep( sf::milliseconds( 1 ));
+						busy_wait_time += sf::milliseconds( 1 );
+					}
+
+					if ( !run_video_thread )
 						goto the_end;
 				}
 			}
