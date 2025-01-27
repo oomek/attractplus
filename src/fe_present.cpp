@@ -429,6 +429,7 @@ void FePresent::clear()
 	while ( !m_texturePool.empty() )
 	{
 		FeBaseTextureContainer *t = m_texturePool.back();
+		t->set_play_state( false );
 		m_texturePool.pop_back();
 		delete t;
 	}
