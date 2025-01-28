@@ -833,9 +833,6 @@ void FeVideoImp::video_thread()
 						sf::sleep( sf::milliseconds( 1 ));
 						busy_wait_time += sf::milliseconds( 1 );
 					}
-
-					if ( !run_video_thread )
-						goto the_end;
 				}
 			}
 		}

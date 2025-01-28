@@ -64,29 +64,27 @@ void FeAsyncLoader::clear()
 
 size_t FeAsyncLoader::get_cache_current_bytes()
 {
-	return m_cache_current_bytes;
+	return m_cache_current_bytes.load();
 }
 
 void FeAsyncLoader::inc_cache_bytes( size_t size )
 {
-	// ulock_t lock( m_loader_mutex );
-	m_cache_current_bytes += size;
+	m_cache_current_bytes.fetch_add(size);
 }
 
 void FeAsyncLoader::dec_cache_bytes( size_t size )
 {
-	// ulock_t lock( m_loader_mutex );
-	m_cache_current_bytes -= size;
+	m_cache_current_bytes.fetch_sub(size);
 }
 
 int FeAsyncLoader::get_cached_size()
 {
-	return m_resources_cached.size();
+	return m_resources_cached_size.load();
 }
 
 int FeAsyncLoader::get_active_size()
 {
-	return m_resources_active.size();
+	return m_resources_active_size.load();
 }
 
 int FeAsyncLoader::get_queue_size()
@@ -96,7 +94,7 @@ int FeAsyncLoader::get_queue_size()
 
 int FeAsyncLoader::get_cleanup_size()
 {
-	return m_cleanup_size.load();
+	return m_resources_cleanup_size.load();
 }
 
 int FeAsyncLoader::get_cached_ref_count( int pos )
@@ -120,7 +118,7 @@ bool FeAsyncLoader::done()
 	if ( !m_done )
 	{
 		ulock_t lock( m_loader_mutex );
-		if ( m_loader_queue.empty() )
+		if ( m_loader_queue_size.load() == 0 )
 		{
 			m_done = true;
 			return true;
@@ -143,8 +141,7 @@ FeAsyncLoader::FeAsyncLoader()
 	m_resources_cached{},
 	m_resources_cleanup{},
 	m_resources_map{},
-	m_loader_queue{},
-	m_cache_current_bytes( 0 )
+	m_loader_queue{}
 {
 	// setLogHandler(nullptr);
 	m_loader_thread = std::thread( &FeAsyncLoader::loader_thread_loop, this );
@@ -159,6 +156,7 @@ FeAsyncLoader::~FeAsyncLoader()
 		list_iterator_t last = --m_resources_active.end();
 		delete last->second;
 		m_resources_active.pop_back();
+		m_resources_active_size = 0;
 	}
 
 	while ( !m_resources_cached.empty() )
@@ -167,6 +165,7 @@ FeAsyncLoader::~FeAsyncLoader()
 		list_iterator_t last = --m_resources_cached.end();
 		delete last->second;
 		m_resources_cached.pop_back();
+		m_resources_cached_size = 0;
 	}
 
 	while ( !m_resources_cleanup.empty() )
@@ -175,6 +174,7 @@ FeAsyncLoader::~FeAsyncLoader()
 		list_iterator_t last = --m_resources_cleanup.end();
 		delete last->second;
 		m_resources_cleanup.pop_back();
+		m_resources_cleanup_size = 0;
 	}
 
 	m_resources_map.clear();
@@ -210,16 +210,24 @@ void FeAsyncLoader::loader_thread_loop()
 	{
 		ulock_t lock( m_loader_mutex );
 
-		if ( m_loader_queue.empty() )
-			m_loader_condition.wait( lock );
-		else
+		// prevent spurious wakeups
+		m_loader_condition.wait( lock, [this] { return m_loader_queue_size.load() > 0 || !m_loader_running; });
+		if ( m_loader_running )
 		{
-			lock.unlock();
+			// lock.unlock(); // TODO: Probably unsafe! But without it images loading is very slow. See comment below
 
 			if ( m_resources_map.find( m_loader_queue.front().first ) == m_resources_map.end() )
-				load_resource( m_loader_queue.front().first, m_loader_queue.front().second );
+			{
+				// TODO: load_resource is blocking, maybe I can make a temp copy of function parameters
+				// So I do not block m_loader_queue
+				const std::string file = m_loader_queue.front().first;
+				const EntryType type = m_loader_queue.front().second;
+				// lock.unlock(); // TODO: THIS CAUSES DEADLOCKS
+				load_resource( file, type );
+				// load_resource( m_loader_queue.front().first, m_loader_queue.front().second );
+			}
 
-			lock.lock();
+			// lock.lock();
 			m_loader_queue.pop();
 			m_loader_queue_size.fetch_sub(1);
 			lock.unlock();
@@ -235,20 +243,20 @@ void FeAsyncLoader::cleanup_thread_loop()
 	{
 		ulock_t lock( m_cleanup_mutex );
 
-		if ( m_resources_cleanup.empty() )
-			m_cleanup_condition.wait( lock );
-		else
+		// prevent spurious wakeups
+		m_cleanup_condition.wait( lock, [this] { return m_resources_cleanup_size.load() > 0 || !m_cleanup_running; });
+		if ( m_cleanup_running )
 		{
-            // Create a copy of cleanup list to minimize mutex lock time
-            list_t cleanup_copy;
-            cleanup_copy.splice(cleanup_copy.begin(), m_resources_cleanup);
-            m_resources_cleanup.clear();
-            lock.unlock();
+			// Create a copy of cleanup list to minimize mutex lock time
+			list_t cleanup_copy;
+			cleanup_copy.splice( cleanup_copy.begin(), m_resources_cleanup );
+			m_resources_cleanup.clear();
+			lock.unlock();
 
 			for ( auto it = cleanup_copy.begin(); it != cleanup_copy.end(); ++it )
 			{
 				delete it->second;
-				m_cleanup_size.fetch_sub(1);
+				m_resources_cleanup_size.fetch_sub(1);
 			}
 		}
 	}
@@ -272,7 +280,9 @@ bool FeAsyncLoader::load_resource( const std::string file, const EntryType type 
 
 	if ( tmp_entry_ptr->load_from_file( file ))
 	{
+		// TODO: lock here?
 		m_resources_cached.push_front( kvp_t( file, tmp_entry_ptr ) );
+		m_resources_cached_size.fetch_add(1);
 		m_resources_map[file] = m_resources_cached.begin();
 		return true;
 	}
@@ -341,8 +351,12 @@ T *FeAsyncLoader::get_resource( const std::string input_file )
 			// Promote in active list
 			m_resources_active.splice( m_resources_active.begin(), m_resources_active, it->second );
 		else
+		{
 			// Move from cached list to active list
 			m_resources_active.splice( m_resources_active.begin(), m_resources_cached, it->second );
+			m_resources_active_size.fetch_add(1);
+			m_resources_cached_size.fetch_sub(1);
+		}
 
 		it->second->second->inc_ref();
 		return static_cast<T*>( it->second->second->get_resource_pointer() );
@@ -399,8 +413,12 @@ void FeAsyncLoader::release_resource( const std::string file )
 	if ( it != m_resources_map.end() )
 		if ( it->second->second->get_ref() > 0 )
 			if ( it->second->second->dec_ref() )
+			{
 				// Move to cache list if ref count is 0
 				m_resources_cached.splice( m_resources_cached.begin(), m_resources_active, it->second );
+				m_resources_cached_size.fetch_add(1);
+				m_resources_active_size.fetch_sub(1);
+			}
 }
 
 void FeAsyncLoader::stop_cached_videos()
@@ -416,15 +434,17 @@ void FeAsyncLoader::stop_cached_videos()
 			}
 			m_resources_map.erase( it->first );
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
-			m_cleanup_size.fetch_add(1);
+			m_resources_cleanup_size.fetch_add(1);
+			m_resources_cached_size.fetch_sub(1);
 			m_cleanup_condition.notify_one();
 		}
-		else if ( m_cache_current_bytes > s_cache_max_bytes && dynamic_cast<FeAsyncLoaderEntryTexture*>( it->second ) != nullptr )
+		else if ( m_cache_current_bytes.load() > s_cache_max_bytes && dynamic_cast<FeAsyncLoaderEntryTexture*>( it->second ) != nullptr )
 		{
 			FeAsyncLoader::get_al().dec_cache_bytes( it->second->get_bytes() );
 			m_resources_map.erase( it->first );
 			m_resources_cleanup.splice( m_resources_cleanup.end(), m_resources_cached, it++ );
-			m_cleanup_size.fetch_add(1);
+			m_resources_cleanup_size.fetch_add(1);
+			m_resources_cached_size.fetch_sub(1);
 			m_cleanup_condition.notify_one();
 		}
 		else

@@ -141,9 +141,6 @@ public:
 
 	typedef std::unique_lock<std::mutex> ulock_t;
 
-	std::atomic<int> m_loader_queue_size{0};
-	std::atomic<int> m_cleanup_size{0};
-
 	~FeAsyncLoader();
 	static FeAsyncLoader &get_al();
 	static void clear();
@@ -203,8 +200,12 @@ private:
 	list_t m_resources_cleanup;
 	map_t m_resources_map;
 	std::queue< std::pair< std::string, EntryType >> m_loader_queue;
-	size_t m_cache_current_bytes;
+	std::atomic<size_t> m_cache_current_bytes{0};
 	static size_t s_cache_max_bytes;
+	std::atomic<int> m_resources_active_size{0};
+	std::atomic<int> m_resources_cached_size{0};
+	std::atomic<int> m_resources_cleanup_size{0};
+	std::atomic<int> m_loader_queue_size{0};
 
 	void loader_thread_loop();
 	void cleanup_thread_loop();
