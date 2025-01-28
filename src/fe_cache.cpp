@@ -20,6 +20,7 @@ const char *FE_CACHE_FILTER = ".filter";
 const std::string FE_EMPTY_STRING;
 
 std::string FeCache::m_config_path;
+std::string FeCache::m_romlist_args;
 
 // -------------------------------------------------------------------------------------
 
@@ -172,24 +173,25 @@ std::vector<FeRomInfo*> FeCache::get_romlist_lookup(
 //
 // Clears all cache belonging to the given display (romlist and all filters)
 //
-void FeCache::clear_display_cache(
+void FeCache::invalidate_display(
 	FeDisplayInfo &display
 )
 {
-	clear_romlist_cache( display );
+	invalidate_romlist( display );
 
 	int filters_count = display.get_filter_count();
 	if ( filters_count == 0 ) filters_count = 1;
-	for ( int i=0; i<filters_count; i++ ) clear_filter_cache( display, i );
+	for ( int i=0; i<filters_count; i++ ) invalidate_filter( display, i );
 }
 
 //
 // Clears cached romlist file
 //
-void FeCache::clear_romlist_cache(
+void FeCache::invalidate_romlist(
 	FeDisplayInfo &display
 )
 {
+	invalidate_romlist_args();
 	std::string filename = get_romlist_cache_filename( display );
 	if ( file_exists( filename ) ) delete_file( filename );
 }
@@ -197,11 +199,12 @@ void FeCache::clear_romlist_cache(
 //
 // Clears cached filter file
 //
-void FeCache::clear_filter_cache(
+void FeCache::invalidate_filter(
 	FeDisplayInfo &display,
 	int filter_index
 )
 {
+	invalidate_romlist_args();
 	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( file_exists( filename ) ) delete_file( filename );
 }
@@ -210,7 +213,7 @@ void FeCache::clear_filter_cache(
 // Clears cache for all lists that use the given RomInfo target
 // - Favourite, Tags, PlayedCount, PlayedTime
 //
-void FeCache::invalidate(
+void FeCache::invalidate_rominfo(
 	FeDisplayInfo &display,
 	FeRomInfo::Index target
 )
@@ -220,7 +223,7 @@ void FeCache::invalidate(
 	bool romlist_changed = global_filter && global_filter->test_for_target( target );
 
 	// Always clear the romlist, since it stores tags & stats that need updating
-	clear_romlist_cache( display );
+	invalidate_romlist( display );
 
 	int filters_count = display.get_filter_count();
 	if ( filters_count == 0 ) filters_count = 1;
@@ -230,7 +233,7 @@ void FeCache::invalidate(
 		// If the romlist has changed, or the filter uses the given RomInfo, then clear it
 		if ( romlist_changed || display.get_filter( i )->test_for_target( target ) )
 		{
-			clear_filter_cache( display, i );
+			invalidate_filter( display, i );
 		}
 	}
 }
@@ -262,7 +265,7 @@ bool FeCache::save_romlist_cache(
 	catch (...)
 	{
 		file.close();
-		clear_romlist_cache( display );
+		invalidate_romlist( display );
 		return false;
 	}
 }
@@ -292,7 +295,7 @@ bool FeCache::load_romlist_cache(
 	catch ( ... )
 	{
 		file.close();
-		clear_romlist_cache( display );
+		invalidate_romlist( display );
 		return false;
 	}
 }
@@ -328,7 +331,7 @@ bool FeCache::save_filter_cache(
 	catch (...)
 	{
 		file.close();
-		clear_filter_cache( display, filter_index );
+		invalidate_filter( display, filter_index );
 		return false;
 	}
 }
@@ -363,7 +366,38 @@ bool FeCache::load_filter_cache(
 	catch ( ... )
 	{
 		file.close();
-		clear_filter_cache( display, filter_index );
+		invalidate_filter( display, filter_index );
 		return false;
 	}
+}
+
+// -------------------------------------------------------------------------------------
+
+//
+// Store id for args used to load romlist
+// - Returns true if changed, indicating the romlist should be reload
+//
+bool FeCache::set_romlist_args(
+	const std::string &path,
+	const std::string &romlist_name,
+	FeDisplayInfo &display,
+	bool group_clones,
+	bool load_stats
+) {
+	std::string args = path
+		+ "," + display.get_name()
+		+ "," + romlist_name
+		+ "," + ( group_clones ? "1" : "0" )
+		+ "," + ( load_stats ? "1" : "0" );
+	bool changed = m_romlist_args != args;
+	m_romlist_args = args;
+	return changed;
+}
+
+//
+// Clear stored args id, forcing a reload on next load_romlist
+//
+void FeCache::invalidate_romlist_args()
+{
+	m_romlist_args = "";
 }

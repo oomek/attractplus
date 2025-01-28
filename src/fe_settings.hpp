@@ -259,17 +259,14 @@ private:
 	int m_ui_font_size;
 	std::string m_ui_color;
 
-	std::string m_loaded_romlist_name;
-	int m_loaded_current_display;
-	bool m_loaded_group_clones;
-	bool m_loaded_track_usage;
-
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
 
 	int process_setting( const std::string &,
 		const std::string &,
 		const std::string & );
+
+	void validate_romlist();
 
 	void init_display();
 	void load_state();

@@ -11,6 +11,9 @@ class FeCache
 private:
 
 	static std::string m_config_path;
+	static std::string m_romlist_args;
+
+	static void invalidate_romlist_args();
 
 public:
 
@@ -57,20 +60,20 @@ public:
 
 	// ----------------------------------------------------------------------------------
 
-	static void clear_display_cache(
+	static void invalidate_display(
 		FeDisplayInfo &display
 	);
 
-	static void clear_romlist_cache(
+	static void invalidate_romlist(
 		FeDisplayInfo &display
 	);
 
-	static void clear_filter_cache(
+	static void invalidate_filter(
 		FeDisplayInfo &display,
 		int filter_index
 	);
 
-	static void invalidate(
+	static void invalidate_rominfo(
 		FeDisplayInfo &display,
 		FeRomInfo::Index target
 	);
@@ -100,6 +103,16 @@ public:
 		FeFilterEntry &entry,
 		int filter_index,
 		std::vector<FeRomInfo*> &lookup
+	);
+
+	// ----------------------------------------------------------------------------------
+
+	static bool set_romlist_args(
+		const std::string &path,
+		const std::string &romlist_name,
+		FeDisplayInfo &display,
+		bool group_clones,
+		bool load_stats
 	);
 
 };

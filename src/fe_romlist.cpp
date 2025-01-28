@@ -199,6 +199,10 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool group_clones,
 	bool load_stats	)
 {
+	// Exit early if arguments have not changed - occurs during layout option edit
+	if (!FeCache::set_romlist_args(path, romlist_name, display, group_clones, load_stats))
+		return true;
+
 	sf::Clock load_timer;
 	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
 	time_t mtime = file_mtime( romlist_path );
@@ -226,7 +230,7 @@ bool FeRomList::load_romlist( const std::string &path,
 		}
 
 		// Otherwise clear cache for this display and rebuild
-		FeCache::clear_display_cache( display );
+		FeCache::invalidate_display( display );
 	}
 
 	// These properties get loaded from cache
@@ -731,7 +735,7 @@ bool FeRomList::set_fav( FeRomInfo &r, FeDisplayInfo &display, bool fav )
 	r.set_info( FeRomInfo::Favourite, fav ? "1" : "" );
 	m_fav_changed=true;
 
-	FeCache::invalidate( display, FeRomInfo::Favourite );
+	FeCache::invalidate_rominfo( display, FeRomInfo::Favourite );
 	return fix_filters( display, FeRomInfo::Favourite );
 }
 
@@ -809,7 +813,7 @@ bool FeRomList::set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::stri
 			itt = m_tags.insert( itt, std::pair<std::string,bool>( tag, true ) );
 	}
 
-	FeCache::invalidate( display, FeRomInfo::Tags );
+	FeCache::invalidate_rominfo( display, FeRomInfo::Tags );
 	return fix_filters( display, FeRomInfo::Tags );
 }
 
