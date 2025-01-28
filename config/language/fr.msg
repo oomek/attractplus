@@ -271,13 +271,13 @@ _help_input_delete;Enlever ce contrôle
 _help_intro;Configurer l'intro
 _help_joystick_threshold;Seuil d'amplitude des mouvements du joystick, de 1 à 100 (100=moins sensible)
 _help_language;Sélectionner la langue
-_help_menu_toggle;Activez le basculement entre les menus à l'aide d'un seul bouton, ce qui élimine le besoin d'un bouton Retour. Permet également de basculer entre les menus ouverts
 _help_misc;Configurations diverses
 _help_mouse_threshold;Seuil d'amplitude des mouvements de la souris, de 1 à 100 (100=moins sensible)
 _help_plugin_command;Exécutable associé à ce plug-in
 _help_plugin_enabled;Indiquer si ce plug-in est activé
 _help_plugin_sel;Configurer le plug-in
 _help_plugins;Configurer les plug-ins
+_help_quick_menu;Activez le basculement entre les menus à l'aide d'un seul bouton, ce qui élimine le besoin d'un bouton Retour. Permet également de basculer entre les menus ouverts
 _help_rule_comp;Règle de comparaison pour le filtre
 _help_rule_delete;Supprimer cette règle de filtrage
 _help_rule_target;L'attribut du jeu que vous souhaitez filtrer sur la base de
@@ -374,7 +374,6 @@ Layout File;Layout File
 Menu Colour;Couleur des menus
 Menu Prompt;Menu Prompt
 Menu Style / Layout;Menu Style / Layout
-Menu Toggle;Basculement de menu
 Next Game;Next Game
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
 Overview;Overview
@@ -384,6 +383,7 @@ Please Wait;Please Wait
 Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Previous Game;Previous Game
+Quick Menu;Menu rapide
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Videos (MAME only);Scrape Videos (MAME only)

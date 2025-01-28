@@ -277,13 +277,13 @@ _help_input_add;入力キーを追加します
 _help_input_delete;入力キーを削除します
 _help_joystick_threshold;ジョイスティックの感度を設定します. (1から100まで), 高いほど鈍感です
 _help_language;言語を設定します
-_help_menu_toggle;ワンボタンメニュー切り替えを有効にすると、戻るボタンが不要になります。また、開いているメニュー間の切り替えも可能になります。
 _help_misc;その他を設定します
 _help_mouse_threshold;マウスの感度を設定します. (1から100まで), 高いほど鈍感です
 _help_plugin_command;プラグインのコマンドを設定します
 _help_plugin_enabled;プラグインを使うかを設定します
 _help_plugin_sel;プラグインを設定します
 _help_plugins;外部プラグインを設定します
+_help_quick_menu;ワンボタンメニュー切り替えを有効にすると、戻るボタンが不要になります。また、開いているメニュー間の切り替えも可能になります。
 _help_rule_comp;フィルターのルールを比較する方式を設定します
 _help_rule_delete;このルールを削除します
 _help_rule_target;フィルターが使うゲームのカテゴリーを設定します
@@ -374,7 +374,6 @@ Layout File;Layout File
 Menu Colour;メニューの色
 Menu Prompt;Menu Prompt
 Menu Style / Layout;Menu Style / Layout
-Menu Toggle;メニュートグル
 Next Game;Next Game
 Next Page;Next Page
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
@@ -386,6 +385,7 @@ Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Previous Game;Previous Game
 Previous Page;Previous Page
+Quick Menu;クイックメニュー
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Fanart;Scrape Fanart

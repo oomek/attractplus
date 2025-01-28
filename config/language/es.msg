@@ -283,13 +283,13 @@ _help_input_add;Agrega una nueva asignación de controles para esta acción
 _help_input_delete;Remover esta asignación de controles
 _help_intro;Configure intro
 _help_joystick_threshold;Umbral para los movimientos de palanca registrados, de 1 a 100 (100=menos sensible)
-_help_menu_toggle;Habilite la alternancia de menús con un solo botón, lo que elimina la necesidad de un botón Atrás. También permite cambiar entre menús abiertos
 _help_misc;Configuraciones varias
 _help_mouse_threshold;Umbral para los movimientos del ratón, de 1 a 100 (100=menos sensible)
 _help_plugin_command;Ejecutable asociado a este plugin
 _help_plugin_enabled;Configura si este plugin está o no habilitado
 _help_plugin_sel;Configurar plugin
 _help_plugins;Configura los plugins disponibles
+_help_quick_menu;Habilite la alternancia de menús con un solo botón, lo que elimina la necesidad de un botón Atrás. También permite cambiar entre menús abiertos
 _help_rule_comp;Tipo de comparación para el filtro
 _help_rule_delete;Borra esta regla de filtro
 _help_rule_target;El atributo de información del juego en el cual quiere basar el fitro
@@ -383,7 +383,6 @@ Layout File;Layout File
 Menu Colour;Color del menú
 Menu Prompt;Menu Prompt
 Menu Style / Layout;Menu Style / Layout
-Menu Toggle;Alternar menú
 Next Game;Next Game
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
 Overview;Overview
@@ -392,6 +391,7 @@ Please Wait;Please Wait
 Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Previous Game;Previous Game
+Quick Menu;Menú rápido
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Fanart;Scrape Fanart

@@ -141,7 +141,6 @@ Manufacturer;Produttore
 Menu Colour;Colore del menù
 Menu Prompt;Titolo del menù
 Menu Style / Layout;Tema del menù
-Menu Toggle;Menu Alterna
 Mouse Threshold;Soglia del mouse
 Movie Volume;Volume dei video
 Name;Nome
@@ -170,6 +169,7 @@ Previous Filter;Filtro precedente
 Previous Game;Gioco precedente
 Previous Letter;Lettera precedente
 Previous Page;Pagina precedente
+Quick Menu;Menù rapido
 Random Game;Gioco casuale
 Reload;Ricaricare
 Remove '$1' from Favourites?;Elimino '$1' dai preferiti?
@@ -355,7 +355,6 @@ _help_input_delete;Cancella questa associazione dei tasti
 _help_intro;Configura il video di introduzione
 _help_joystick_threshold;Umbral para los movimientos de palanca registrados, de 1 a 100 (100=menos sensible)
 _help_language;Seleziona la lingua dell'interfaccia di Attract-Mode
-_help_menu_toggle;Abilita la commutazione del menu con un solo pulsante, che elimina la necessità di un pulsante Indietro. Consente inoltre di passare da un menu aperto all'altro
 _help_misc;Configurazioni varie
 _help_mouse_threshold;Sogla per il riconoscimento dei movimenti del mouse, accetta un valore da 1 a 100 (100 = meno sensibile)
 _help_multiple_monitors;Abilita l'utilizzo di monitor multipli
@@ -363,6 +362,7 @@ _help_plugin_command;Eseguibile associato a questo plugin
 _help_plugin_enabled;Configura se questo plugin è abilitato
 _help_plugin_sel;Configura i plugin
 _help_plugins;Configura i plugin disponibili
+_help_quick_menu;Abilita la commutazione del menu con un solo pulsante, che elimina la necessità di un pulsante Indietro. Consente inoltre di passare da un menu aperto all'altro
 _help_rule_comp;Tipo di comparazione per questo filtro
 _help_rule_delete;Cancellare questa regola
 _help_rule_target;L'attributo del gioco sul quale basare il filtro

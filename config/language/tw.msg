@@ -157,7 +157,6 @@ Manufacturer;製作廠商
 Menu Colour;選單顏色
 Menu Prompt;選單提示
 Menu Style / Layout;選單樣式 / 畫面佈局
-Menu Toggle;選單切換
 Mouse Threshold;滑鼠靈敏度
 Movie Volume;影片音量
 Name;檔案名稱
@@ -191,6 +190,7 @@ Previous Filter;上一個遊戲過濾
 Previous Game;上一個遊戲
 Previous Letter;上一個文字清單
 Previous Page;上一頁
+Quick Menu;快速選單
 Random Game;隨機選取遊戲
 Reload;重新載入
 Remove '$1' from Favourites?;要從我的最愛移除「$1」嗎？
@@ -384,7 +384,6 @@ _help_joystick_threshold;這個設定用來定位搖桿移動的靈敏度，數�
 _help_language;選擇 Attract-Mode 使用者介面所要使用的語言
 _help_layout_file;一些畫面佈局主題提供多個 layout*.nut 檔案，須選擇要使用的畫面佈局檔案。
 _help_layout_preview;立即顯示佈局配置變更
-_help_menu_toggle;啟用單按鈕選單切換，無需後退按鈕。還允許在打開的選單之間切換
 _help_misc;設定一般設定
 _help_mouse_threshold;這個設定用來定位滑鼠移動的靈敏度，數值從 1 到 100 (100 為最大值)。
 _help_multiple_monitors;為 Attract-Mode 啟用多螢幕支援 (設定為「否」可能減少執行遊戲時的螢幕閃爍問題)
@@ -393,6 +392,7 @@ _help_plugin_enabled;設定這個外掛是否要啟用
 _help_plugin_sel;設定外掛
 _help_plugins;設定目前存在的外掛
 _help_power_saving;僅在需要時才重新繪製螢幕進而達成省電 (可能造成一些畫面佈局動畫卡頓或在 Linux 系統畫面凍結)
+_help_quick_menu;啟用單按鈕選單切換，無需後退按鈕。還允許在打開的選單之間切換
 _help_rule_comp;這個過濾規則的比對方式
 _help_rule_delete;刪除這個過濾規則
 _help_rule_target;設定所要過濾的遊戲資訊內容

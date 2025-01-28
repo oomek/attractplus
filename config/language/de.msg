@@ -283,13 +283,13 @@ _help_input_add;Dieser Aktion ein neues Steuerungs-Mapping zuordnen
 _help_input_delete;Dieses Steuerungs-Mapping löschen
 _help_intro;Intro konfigurieren
 _help_joystick_threshold;Der Schwellwert um Joystick-Bewegungen noch zu erkennen, von 1 bis 100 (100=am wenigsten empfindlich)
-_help_menu_toggle;Ermöglicht das Umschalten des Menüs mit nur einer Taste, sodass keine Zurück-Taste mehr erforderlich ist. Ermöglicht auch das Umschalten zwischen geöffneten Menüs
 _help_misc;Konfiguriere sonstige Einstellungen
 _help_mouse_threshold;Der Schwellwert um Maus-Bewegungen noch zu erkennen, von 1 bis 100 (100=am wenigsten empfindlich)
 _help_plugin_command;Die ausführbare Datei, welche mit diesem Plug-in verknüpft ist
 _help_plugin_enabled;Festlegen, ob dieses Plug-in aktiviert ist
 _help_plugin_sel;Konfiguriere Plug-in
 _help_plugins;Konfiguriere verfügbare Plug-ins
+_help_quick_menu;Ermöglicht das Umschalten des Menüs mit nur einer Taste, sodass keine Zurück-Taste mehr erforderlich ist. Ermöglicht auch das Umschalten zwischen geöffneten Menüs
 _help_rule_comp;Vergleichstyp für diesen Filter
 _help_rule_delete;Diese Filterregel löschen
 _help_rule_target;Das Spiel-Informationsattribut nach welchem du filtern möchtest
@@ -372,7 +372,6 @@ Layout File;Themendatei
 Menu Colour;Menüfarbe
 Menu Prompt;Eingabeaufforderung
 Menu Style / Layout;Menüstil / Thema
-Menu Toggle;Menü umschalten
 Next Game;nächstes Spiel
 Non-Blocking Mode Wait;Klippo-Modus Wartezeit
 Overview;Übersicht
@@ -380,6 +379,7 @@ Pause Hotkey;Pause Tastenkombination
 Please Wait;bitte warten
 Press Hotkey;betätige die Tastenkombination
 Previous Game;vorheriges Spiel
+Quick Menu;Schnellmenü
 Remove '$1' from Favourites?;Entferne '$1' aus den Favoriten?
 Remove tag: '$1';Entferne Etikett: '$1'
 Scrape Fanart;Scrape Fanart

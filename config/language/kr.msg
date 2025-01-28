@@ -152,7 +152,6 @@ Manufacturer;제작사(Manufacturer)
 Menu Colour;메뉴 색상
 Menu Prompt;화면에 표시할 메뉴 이름
 Menu Style / Layout;메뉴 스타일 / 레이아웃
-Menu Toggle;메뉴 토글
 Mouse Threshold;마우스 민감도
 Movie Volume;동영상 음량
 Name;이름
@@ -181,6 +180,7 @@ Previous Filter;이전 필터로
 Previous Game;이전 게임
 Previous Letter;이전 글자
 Previous Page;이전 페이지
+Quick Menu;퀵메뉴
 Random Game;랜덤 게임 선택
 Reload;새로고침
 Remove '$1' from Favourites?;'$1' 게임을 즐겨하는 목록에서 제거하겠습니까?
@@ -366,7 +366,6 @@ _help_input_delete;해당 입력 키를 삭제합니다
 _help_intro;인트로 영상을 설정합니다
 _help_joystick_threshold;조이스틱 입력 민감도를 설정합니다. 1에서 100까지이며, 클수록 덜 민감합니다
 _help_language;언어를 설정합니다
-_help_menu_toggle;단일 버튼 메뉴 토글을 활성화하면 뒤로 버튼이 필요 없게 됩니다. 또한 열려 있는 메뉴 간 전환도 가능합니다.
 _help_misc;그 외 여러 가지 설정을 변경합니다
 _help_mouse_threshold;마우스 입력 민감도를 설정합니다. 1 에서 100까지이며, 클수록 덜 민감합니다
 _help_multiple_monitors;다중 모니터 환경을 사용할 지 여부를 설정합니다
@@ -374,6 +373,7 @@ _help_plugin_command;플러그 인의 실행 파일을 지정합니다
 _help_plugin_enabled;플러그 인을 사용할 지 여부를 설정합니다
 _help_plugin_sel;플러그 인을 설정합니다
 _help_plugins;외부 플러그 인을 설정합니다
+_help_quick_menu;단일 버튼 메뉴 토글을 활성화하면 뒤로 버튼이 필요 없게 됩니다. 또한 열려 있는 메뉴 간 전환도 가능합니다.
 _help_rule_comp;필터에 속한 규칙을 설정합니다
 _help_rule_delete;해당 규칙을 삭제합니다
 _help_rule_target;필터가 게임의 어떤 특성을 가지고 걸러낼 지를 설정합니다
