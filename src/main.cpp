@@ -780,8 +780,8 @@ int main(int argc, char *argv[])
 							if (display_index == -1 && last_display_index != -1)
 							{
 								// Already showing the custom display menu
-								if ( feSettings.get_info_bool( FeSettings::MenuToggle ) ) {
-									// Return to last display if menu_toggle option is set
+								if ( feSettings.get_info_bool( FeSettings::QuickMenu ) ) {
+									// Return to last display if quick_menu option is set
 									display_index = last_display_index;
 									last_display_index = -1;
 								}
@@ -924,7 +924,7 @@ int main(int argc, char *argv[])
 					break;
 				}
 
-				// Overlay menu_commands are populated when the `MenuToggle` setting is true
+				// Overlay menu_commands are populated when the `QuickMenu` setting is true
 				// - They allow other menu commands to behave as a menu exit
 				// - Post the commands back onto the queue to switch to the next menu
 				if ( feOverlay.get_menu_command() > 0 )

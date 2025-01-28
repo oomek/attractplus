@@ -134,7 +134,6 @@ _help_joystick_threshold;The threshold for registering joystick moves, from 1 to
 _help_language;Select the language to use in Attract-Mode's user interface
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_layout_preview;Show layout configuration changes immediately
-_help_menu_toggle;Enable single-button menu toggling, which removes the need for a Back button. Also allows switching between open menus
 _help_misc;Configure general settings
 _help_mouse_threshold;The threshold for registering mouse moves, from 1 to 100 (100=least sensitive)
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
@@ -143,6 +142,7 @@ _help_plugin_enabled;Set whether this plug-in is enabled
 _help_plugin_sel;Configure plug-in
 _help_plugins;Configure available plug-ins
 _help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
+_help_quick_menu;Enable single-button menu toggling, which removes the need for a Back button. Also allows switching between open menus
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on

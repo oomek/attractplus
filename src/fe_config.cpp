@@ -2056,9 +2056,9 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.fe_settings.get_translation( "No", bool_opts[1] );
 
 	ctx.add_optl( Opt::LIST,
-			"Menu Toggle",
-			ctx.fe_settings.get_info_bool( FeSettings::MenuToggle ) ? bool_opts[0] : bool_opts[1],
-			"_help_menu_toggle" );
+			"Quick Menu",
+			ctx.fe_settings.get_info_bool( FeSettings::QuickMenu ) ? bool_opts[0] : bool_opts[1],
+			"_help_quick_menu" );
 	ctx.back_opt().append_vlist( bool_opts );
 
 	ctx.add_optl( Opt::LIST,
@@ -2193,7 +2193,7 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	ctx.fe_settings.set_info( FeSettings::StartupMode,
 			FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
 
-	ctx.fe_settings.set_info( FeSettings::MenuToggle,
+	ctx.fe_settings.set_info( FeSettings::QuickMenu,
 			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
 
 	ctx.fe_settings.set_info( FeSettings::LayoutPreview,

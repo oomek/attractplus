@@ -312,7 +312,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_confirm_favs( true ),
 	m_confirm_exit( true ),
 	m_layout_preview( false ),
-	m_menu_toggle( false ),
+	m_quick_menu( false ),
 	m_track_usage( true ),
 	m_multimon( false ),
 #if defined(SFML_SYSTEM_LINUX) || defined(FORCE_FULLSCREEN)
@@ -446,7 +446,7 @@ const char *FeSettings::configSettingStrings[] =
 	"hide_brackets",
 	"group_clones",
 	"startup_mode",
-	"menu_toggle",
+	"quick_menu",
 	"confirm_favourites",
 	"confirm_exit",
 	"mouse_threshold",
@@ -2885,7 +2885,7 @@ const std::string FeSettings::get_info( int index ) const
 	case ConfirmFavourites:
 	case ConfirmExit:
 	case LayoutPreview:
-	case MenuToggle:
+	case QuickMenu:
 	case TrackUsage:
 	case MultiMon:
 	case SmoothImages:
@@ -2940,8 +2940,8 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_confirm_exit;
 	case LayoutPreview:
 		return m_layout_preview;
-	case MenuToggle:
-		return m_menu_toggle;
+	case QuickMenu:
+		return m_quick_menu;
 	case TrackUsage:
 		return m_track_usage;
 	case MultiMon:
@@ -3043,8 +3043,8 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_confirm_exit = config_str_to_bool( value );
 		break;
 
-	case MenuToggle:
-		m_menu_toggle = config_str_to_bool( value );
+	case QuickMenu:
+		m_quick_menu = config_str_to_bool( value );
 		break;
 
 	case MouseThreshold:

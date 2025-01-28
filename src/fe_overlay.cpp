@@ -1402,7 +1402,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	clear_menu_command();
-	bool menu_toggle = m_feSettings.get_info_bool( FeSettings::MenuToggle );
+	bool quick_menu = m_feSettings.get_info_bool( FeSettings::QuickMenu );
 	bool redraw=true;
 
 	while ( m_wnd.isOpen() )
@@ -1428,7 +1428,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			switch( c )
 			{
 			case FeInputMap::Configure:
-				if ( !menu_toggle ) break;
+				if ( !quick_menu ) break;
 				m_menu_command = c;
 				ctx.sel = ctx.default_sel;
 				return true;
@@ -1439,12 +1439,12 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			case FeInputMap::EditGame:
 			case FeInputMap::InsertGame:
 			case FeInputMap::ToggleFavourite:
-				if ( !menu_toggle || ctx.extra_exit == FeInputMap::Configure ) break;
+				if ( !quick_menu || ctx.extra_exit == FeInputMap::Configure ) break;
 				m_menu_command = c;
 				ctx.sel = ctx.default_sel;
 				return true;
 			case FeInputMap::Exit:
-				if ( !menu_toggle ) break;
+				if ( !quick_menu ) break;
 				ctx.sel = ctx.default_sel;
 				return true;
 			case FeInputMap::Back:
