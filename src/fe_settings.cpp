@@ -698,29 +698,17 @@ void FeSettings::init_display()
 			list_path = temp;
 	}
 
-	// Load the romlist only if the arguments have changed, otherwise use the existing one
 	if (
-		m_loaded_romlist_name != romlist_name
-		|| m_loaded_current_display != m_current_display
-		|| m_loaded_group_clones != m_group_clones
-		|| m_loaded_track_usage != m_track_usage
-	)
-	{
-		if (
-			m_rl.load_romlist( list_path,
+		m_rl.load_romlist(
+			list_path,
 			romlist_name,
 			m_displays[m_current_display],
 			m_group_clones,
-			m_track_usage ) == false
-		)
-		{
-			FeLog() << "Error opening romlist: " << romlist_name << std::endl;
-		}
-
-		m_loaded_romlist_name = romlist_name;
-		m_loaded_current_display = m_current_display;
-		m_loaded_group_clones = m_group_clones;
-		m_loaded_track_usage = m_track_usage;
+			m_track_usage
+		) == false
+	)
+	{
+		FeLog() << "Error opening romlist: " << romlist_name << std::endl;
 	}
 
 	// Setup m_current_layout_params with all the parameters for our current layout, including
@@ -2426,8 +2414,8 @@ bool FeSettings::update_stats( int play_count, int play_time )
 	{
 		if ( m_displays[i].get_romlist_name() == romlist_name )
 		{
-			FeCache::invalidate( m_displays[i], FeRomInfo::PlayedCount );
-			FeCache::invalidate( m_displays[i], FeRomInfo::PlayedTime );
+			FeCache::invalidate_rominfo( m_displays[i], FeRomInfo::PlayedCount );
+			FeCache::invalidate_rominfo( m_displays[i], FeRomInfo::PlayedTime );
 		}
 	}
 
