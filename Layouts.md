@@ -247,7 +247,7 @@ fe.add_image( "[!strip_man]", 0, 0 );
 
 // Add a text that will display a copyright message if both
 // the manufacturer name and a year are present.  Otherwise,
-// just show the Manufactuer name.
+// just show the Manufacturer name.
 //
 function well_formatted()
 {
@@ -359,7 +359,7 @@ Return Value:
 #### `fe.add_surface()` ####
 
     fe.add_surface( w, h )
-    fe.add_surface( x, y, w, h )
+    fe.add_surface( x, y, w, h ) 🔶
 
 Add a surface to the end of Attract-Mode's draw list.  A surface is an off-
 screen texture upon which you can draw other image, artwork, text, listbox
@@ -1080,7 +1080,7 @@ Parameters:
         {
         }
 
-     If provided, this function will get called repeatedely with chunks of the
+     If provided, this function will get called repeatedly with chunks of the
      command output in `op`.  NOTE: `op` is not necessarily aligned with the
      start and the end of the lines of output from the command.  In any one
      call `op` may contain data from multiple lines and that may begin or end
@@ -1396,7 +1396,7 @@ Properties:
      Page" or "Previous Page" button is pressed.
    * `preserve_aspect_ratio` - Get/set whether the overall layout aspect ratio
      should be preserved by the frontend.  Default value is false.
-   * `time` - Get the number of millseconds that the layout has been showing.
+   * `time` - Get the number of milliseconds that the layout has been showing.
    * `mouse_pointer` 🔶 When set to true mouse pointer will be visible.
 
 Member Functions:
@@ -1437,7 +1437,7 @@ Properties:
      cleared or the user navigates away from the display/filter.
    * `size` - Get the size of the current game list.  If a search rule has
      been applied, this will be the number of matches found (if > 0)
-   * `clones_list` 🔶 Returns 'true' if the curent list contains game clones.
+   * `clones_list` 🔶 Returns 'true' if the current list contains game clones.
 
 &nbsp;
 <a name="ImageCache"></a>
@@ -1903,7 +1903,7 @@ Properties:
    * `bg_alpha` - Get/set alpha level for text background. Range is [0 ...
      255].  Default value is 0 (transparent).
    * `char_size` - Get/set the forced character size.  If this is <= 0
-     then Attract-Mode will autosize based on `height`.  Default value is -1.
+     then Attract-Mode will auto-size based on `height`.  Default value is -1.
    * `glyph_size` - Get the height in pixels of the capital letter.
      Useful if you want to set the textbox height to match the letter height.
    * `char_spacing` - Get/set the spacing factor between letters.  Default value is 1.0
@@ -1947,7 +1947,7 @@ Properties:
    * `font` - Get/set the filename of the font used for this text.
      If not set default font is used.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.
-     Default value is `-1` which calcualtes the margin based on the .char_size.
+     Default value is `-1` which calculates the margin based on the .char_size.
    * `shader` - Get/set the GLSL shader for this text. This can only be set to
      an instance of the class `fe.Shader` (see: `fe.add_shader()`).
    * `zorder` - Get/set the Text's order in the applicable draw list.  Objects
@@ -2030,7 +2030,7 @@ Properties:
      will return the number of options available in the overlay dialog.
      This property is updated during `Transition.ShowOverlay`
    * `char_size` - Get/set the forced character size.  If this is <= 0
-     then Attract-Mode will autosize based on the value of `height`/`rows`.
+     then Attract-Mode will auto-size based on the value of `height`/`rows`.
      Default value is -1.
    * `glyph_size` - Get the height in pixels of the capital letter.
    * `char_spacing` - Get/set the spacing factor between letters.  Default value is 1.0
@@ -2065,7 +2065,7 @@ Properties:
    * `font` - Get/set the filename of the font used for this listbox.
      If not set default font is used.
    * `margin` - Get/set the margin spacing in pixels to sides of the text.
-     Default value is `-1` which calcualtes the margin based on the .char_size.
+     Default value is `-1` which calculates the margin based on the .char_size.
    * `format_string` - Get/set the format for the text to display in each list
      entry. Magic tokens can be used here, see [Magic Tokens](#magic) for more
      information.  If empty, game titles will be displayed (i.e. the same
