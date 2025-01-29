@@ -2710,6 +2710,12 @@ void FeVM::cb_signal( const char *sig )
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
+	//
+	// Prevent signal processing when the overlay is on
+	//
+	if ( fev->m_overlay->overlay_is_on() )
+		return;
+
 	FeInputMap::Command c = FeInputMap::string_to_command( sig );
 	if ( c != FeInputMap::LAST_COMMAND )
 	{
