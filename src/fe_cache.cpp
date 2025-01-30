@@ -226,7 +226,9 @@ void FeCache::invalidate_rominfo(
 	invalidate_romlist( display );
 
 	int filters_count = display.get_filter_count();
-	if ( filters_count == 0 ) filters_count = 1;
+
+	// if no filters there's still a single cache file containing entire romlist
+	if ( filters_count == 0 && romlist_changed ) invalidate_filter( display, 0 );
 
 	for ( int i=0; i<filters_count; i++ )
 	{
