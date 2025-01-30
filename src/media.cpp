@@ -1097,6 +1097,7 @@ bool FeMedia::open( const std::string &archive,
 					codec_ctx->sample_rate );
 
 				sf::SoundStream::setLoop( false );
+				sf::SoundStream::setProcessingInterval( sf::milliseconds( 1 ));
 			}
 		}
 	}
