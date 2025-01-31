@@ -2418,6 +2418,7 @@ bool FeSettings::update_stats( int play_count, int play_time )
 			FeCache::invalidate_rominfo( m_displays[i], FeRomInfo::PlayedTime );
 		}
 	}
+	FeCache::save_romlist_cache( m_displays[m_current_display], m_rl );
 
 	if ( fixed && ( &m_rl.lookup( filter_index, rom_index ) != rom ))
 	{
