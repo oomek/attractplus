@@ -247,6 +247,12 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
    override B64FLAGS = -b 0 -i
+
+   BREW_PREFIX := $(shell brew --prefix)
+   LIBS += -L$(BREW_PREFIX)/opt/sfml@2/lib -L$(BREW_PREFIX)/opt/openal-soft/lib
+   CFLAGS += -I$(BREW_PREFIX)/opt/sfml@2/include -I$(BREW_PREFIX)/opt/openal-soft/include
+   PKG_CONFIG := env PKG_CONFIG_PATH="$(BREW_PREFIX)/opt/sfml@2/lib/pkgconfig:$(BREW_PREFIX)/opt/openal-soft/lib/pkgconfig" pkg-config
+
    LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL
   else
    ifeq ($(USE_DRM),1)
@@ -421,6 +427,7 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
  LIBS += -lboost_system-mt -lboost_filesystem-mt
 else ifeq ($(FE_MACOSX_COMPILE),1)
  LIBS +=-L$(shell brew --prefix)/lib
+ CFLAGS += -I$(shell brew --prefix)/include
  LIBS += -lboost_system -lboost_filesystem
 else
  LIBS += -l:libboost_filesystem.a -l:libboost_system.a
