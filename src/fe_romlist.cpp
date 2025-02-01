@@ -172,6 +172,9 @@ FeRomList::~FeRomList()
 
 void FeRomList::init_as_empty_list()
 {
+	// Romlist will require reloading after clearing, so invalidate the arg cache
+	FeCache::invalidate_romlist_args();
+
 	m_romlist_name.clear();
 	m_list.clear();
 	m_filtered_list.clear();

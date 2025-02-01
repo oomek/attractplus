@@ -13,8 +13,6 @@ private:
 	static std::string m_config_path;
 	static std::string m_romlist_args;
 
-	static void invalidate_romlist_args();
-
 public:
 
 	static void set_config_path(
@@ -77,6 +75,8 @@ public:
 		FeDisplayInfo &display,
 		FeRomInfo::Index target
 	);
+
+	static void invalidate_romlist_args();
 
 	// ----------------------------------------------------------------------------------
 
