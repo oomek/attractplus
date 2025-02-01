@@ -1,7 +1,7 @@
 /*
  *
  *  Attract-Mode frontend
- *  Copyright (C) 2013 Andrew Mickelson
+ *  Copyright (C) 2022 Andrew Mickelson
  *
  *  This file is part of Attract-Mode.
  *
@@ -20,41 +20,37 @@
  *
  */
 
-#ifndef FE_SOUND_HPP
-#define FE_SOUND_HPP
+#ifndef FE_MUSIC_HPP
+#define FE_MUSIC_HPP
 
-#include "fe_music.hpp"
 #include <SFML/Audio.hpp>
-#include "media.hpp"
-#include <string>
-#include <deque>
-#include "fe_input.hpp"
+#include <cstring>
 
-class FeSettings;
+class sfMusic : public sf::Music
+{
+public:
+    using sf::Music::setProcessingInterval;
+};
 
-class FeSound
+class FeMusic
 {
 private:
-	FeSound( const FeSound & );
-	FeSound &operator=( const FeSound & );
+	FeMusic( const FeMusic & );
+	FeMusic &operator=( const FeMusic & );
 
-	sf::SoundBuffer m_buffer;
-	sf::Sound m_sound;
+	sfMusic m_music;
+
 	std::string m_file_name;
 	bool m_play_state;
 	float m_volume;
-	float m_pitch;
-	bool m_loop;
-	sf::Vector3f m_position;
 
 public:
-	FeSound( bool loop=false );
-	~FeSound();
+	FeMusic( bool loop=false );
+	~FeMusic();
 
 	void load( const std::string &fn );
-	void tick();
 
-	void set_file_name( const char * );
+    void set_file_name( const char * );
 	const char *get_file_name();
 
 	float get_volume();
@@ -63,7 +59,7 @@ public:
 	bool get_playing();
 	void set_playing( bool );
 
-	float get_pitch();
+    float get_pitch();
 	void set_pitch( float );
 
 	bool get_loop();
@@ -78,36 +74,7 @@ public:
 
 	int get_duration();
 	int get_time();
-
-	void release_audio( bool );
+	const char *get_metadata( const char * );
 };
 
-class FeSoundSystem
-{
-private:
-	FeSoundSystem( const FeSoundSystem & );
-	FeSoundSystem &operator=( const FeSoundSystem & );
-
-	FeSound m_event_sound;
-	FeMusic m_ambient_sound;
-	FeSettings *m_fes;
-	FeInputMap::Command m_current_sound;
-
-public:
-	FeSoundSystem( FeSettings * );
-	~FeSoundSystem();
-
-	FeMusic &get_ambient_sound();
-
-	void sound_event( FeInputMap::Command );
-	bool is_sound_event_playing( FeInputMap::Command );
-
-	void play_ambient();
-	void update_volumes();
-	void stop();
-	void tick();
-
-	void release_audio( bool );
-};
-
-#endif
+#endif // FE_MUSIC_HPP
