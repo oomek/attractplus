@@ -278,6 +278,8 @@ ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenGL
   LIBS += $(shell pkg-config --libs-only-L freetype2) -lfreetype
   LIBS += $(shell pkg-config --libs-only-L libjpeg) -ljpeg
+else
+  LIBS += -lfreetype
 endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
@@ -347,7 +349,7 @@ ifeq ($(USE_XINERAMA),1)
 endif
 
 ifeq ($(USE_DRM),1)
- TEMP_LIBS += libdrm gbm
+ PKG_CONFIG_LIBS += libdrm gbm
  FE_FLAGS += -DUSE_DRM
  LIBS += -lEGL
 endif
@@ -362,7 +364,7 @@ endif
 
 ifeq ($(USE_LIBARCHIVE),1)
  FE_FLAGS += -DUSE_LIBARCHIVE
- TEMP_LIBS += libarchive
+ PKG_CONFIG_LIBS += libarchive
  LIBS += -lz
 else
  CFLAGS += -I$(EXTLIBS_DIR)/miniz
@@ -370,7 +372,7 @@ endif
 
 ifeq ($(USE_LIBCURL),1)
  FE_FLAGS += -DUSE_LIBCURL
- TEMP_LIBS += libcurl
+ PKG_CONFIG_LIBS += libcurl
  _DEP += fe_net.hpp
  _OBJ += fe_net.o
 endif
@@ -384,12 +386,12 @@ ifeq ($(NO_MOVIE),1)
  endif
  AUDIO =
 else
- TEMP_LIBS += libavformat libavcodec libavutil libswscale libswresample
+ PKG_CONFIG_LIBS += libavformat libavcodec libavutil libswscale libswresample
 
  ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenAL
  else
-  TEMP_LIBS += openal
+  PKG_CONFIG_LIBS += openal
  endif
 
  _DEP += media.hpp
@@ -401,11 +403,11 @@ endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR)
 
-ifeq ($(shell $(PKG_CONFIG) --libs $(TEMP_LIBS) && echo "1" || echo "0"), 0)
+ifeq ($(shell $(PKG_CONFIG) --libs $(PKG_CONFIG_LIBS) && echo "1" || echo "0"), 0)
   $(error pkg-config couldn't find some libraries, aborting)
 endif
-LIBS := $(LIBS) $(shell $(PKG_CONFIG) --libs $(TEMP_LIBS))
-CFLAGS := $(CFLAGS) $(shell $(PKG_CONFIG) --cflags $(TEMP_LIBS))
+LIBS := $(LIBS) $(shell $(PKG_CONFIG) --libs $(PKG_CONFIG_LIBS))
+CFLAGS := $(CFLAGS) $(shell $(PKG_CONFIG) --cflags $(PKG_CONFIG_LIBS))
 
 EXE = $(EXE_BASE)$(EXE_EXT)
 
@@ -420,14 +422,11 @@ else
  EXPAT =
 endif
 
-LIBS += -lfreetype
-
 # Boost static linking
 ifeq ($(FE_WINDOWS_COMPILE),1)
  LIBS += -lboost_system-mt -lboost_filesystem-mt
 else ifeq ($(FE_MACOSX_COMPILE),1)
- LIBS +=-L$(shell brew --prefix)/lib
- LIBS += -lboost_system -lboost_filesystem
+ PKG_CONFIG_LIBS += boost_system boost_filesystem
 else
  LIBS += -l:libboost_filesystem.a -l:libboost_system.a
 endif
