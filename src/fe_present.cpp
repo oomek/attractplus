@@ -39,9 +39,8 @@
 #include <limits>
 #include <cstring>
 
-#ifndef NO_MOVIE
-#include <Audio/AudioDevice.hpp>
-#endif
+#include <SFML/Audio.hpp>
+
 
 #ifdef USE_XLIB
 #include <X11/extensions/Xrandr.h>
@@ -439,6 +438,13 @@ void FePresent::clear()
 		delete s;
 	}
 
+	while ( !m_musics.empty() )
+	{
+		FeMusic *a = m_musics.back();
+		m_musics.pop_back();
+		delete a;
+	}
+
 	while ( !m_scriptShaders.empty() )
 	{
 		FeShader *sh = m_scriptShaders.back();
@@ -620,18 +626,8 @@ FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentablePa
 	return new_image;
 }
 
-FeSound *FePresent::add_sound( const char *n, bool reuse )
+FeSound *FePresent::add_sound( const char *n )
 {
-	//
-	// Behaviour:
-	//
-	// - if n is empty, return a new (empty) sound object
-	// - if n is supplied:
-	//      - if n matches an existing sound and reuse is true,
-	//        return that matching sound object
-	//      - otherwise return a new sound object loaded with n
-	//
-
 	std::string path;
 	std::string name=n;
 	if ( !name.empty() )
@@ -644,22 +640,8 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 			else
 				m_feSettings->get_plugin_full_path( script_id, path );
 		}
-
-		if ( reuse )
-		{
-			std::string test = path + name;
-
-			for ( std::vector<FeSound *>::iterator itr=m_sounds.begin();
-						itr!=m_sounds.end(); ++itr )
-			{
-				if ( test.compare( (*itr)->get_file_name() ) == 0 )
-					return (*itr);
-			}
-		}
 	}
 
-	// Sound not found, try loading now
-	//
 	FeSound *new_sound = new FeSound();
 
 	if ( !name.empty() )
@@ -670,6 +652,34 @@ FeSound *FePresent::add_sound( const char *n, bool reuse )
 
 	m_sounds.push_back( new_sound );
 	return new_sound;
+}
+
+FeMusic *FePresent::add_music( const char *n )
+{
+	std::string path;
+	std::string name=n;
+	if ( !name.empty() )
+	{
+		if ( is_relative_path( name ) )
+		{
+			int script_id = get_script_id();
+			if ( script_id < 0 )
+				m_feSettings->get_path( FeSettings::Current, path );
+			else
+				m_feSettings->get_plugin_full_path( script_id, path );
+		}
+	}
+
+	FeMusic *new_music = new FeMusic();
+
+	if ( !name.empty() )
+		new_music->load( path + name );
+
+	new_music->set_volume(
+		m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
+
+	m_musics.push_back( new_music );
+	return new_music;
 }
 
 FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const char *shader2 )
@@ -1322,21 +1332,13 @@ void FePresent::pre_run()
 	on_transition( ToGame, FromToNoValue );
 	set_video_play_state( false );
 
-#ifndef NO_MOVIE
-	//
-	// Release all the openAL buffers, contexts and devices so that we don't block
-	// the emulator from accessing the system's sound
-	//
-	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
-				itm != m_texturePool.end(); ++itm )
-		(*itm)->release_audio( true );
-
 	for ( std::vector<FeSound *>::iterator its=m_sounds.begin();
 				its != m_sounds.end(); ++its )
-		(*its)->release_audio( true );
+		(*its)->set_playing( false );
 
-	sf::AudioDevice::release_audio( true );
-#endif
+	for ( std::vector<FeMusic *>::iterator its=m_musics.begin();
+				its != m_musics.end(); ++its )
+		(*its)->set_playing( false );
 }
 
 void FePresent::post_run()
@@ -1347,7 +1349,7 @@ void FePresent::post_run()
 	//
 	// Re-establish openAL stuff now that we are back from the emulator
 	//
-	sf::AudioDevice::release_audio( false );
+	// sf::AudioDevice::release_audio( false );
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )

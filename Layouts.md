@@ -22,6 +22,7 @@ Contents
       * [`fe.add_rectangle()`](#add_rectangle) 🔶
       * [`fe.add_shader()`](#add_shader)
       * [`fe.add_sound()`](#add_sound)
+      * [`fe.add_music()`](#add_music) 🔶
       * [`fe.add_ticks_callback()`](#add_ticks_callback)
       * [`fe.add_transition_callback()`](#add_transition_callback)
       * [`fe.game_info()`](#game_info)
@@ -70,6 +71,7 @@ Contents
       * [`fe.ListBox`](#ListBox)
       * [`fe.Rectangle`](#Rectangle) 🔶
       * [`fe.Sound`](#Sound)
+      * [`fe.Music`](#Music) 🔶
       * [`fe.Shader`](#Shader)
    * [Constants](#constants)
 
@@ -458,7 +460,7 @@ Return Value:
 &nbsp;
 <a name="add_rectangle"></a>
 
-#### `fe.add_rectangle()` 🔶
+#### `fe.add_rectangle()` 🔶 ####
 
     fe.add_rectangle( x, y, w, h )
 
@@ -551,22 +553,41 @@ void main()
 
 #### `fe.add_sound()` ####
 
-    fe.add_sound( name, reuse )
     fe.add_sound( name )
 
-Add an audio file that can then be played by Attract-Mode.
+Add a sound file that can then be played by Attract-Mode.
+For short sounds, stored in RAM. For playing long audio tracks use [`fe.add_music()`](#add_music)
 
 Parameters:
 
-   * name - the name of the audio file.  If a relative path is provided,
+   * name - the name of the sound file.  If a relative path is provided,
      it is treated as relative to the directory for the layout/plugin that
      called this function.
-   * reuse - [bool] if set to true, reuse any previously added sound that
-     has the same name.  Default value is true.
 
 Return Value:
 
    * An instance of the class [`fe.Sound`](#Sound) which can be used to
+     interact with the sound.
+
+&nbsp;
+<a name="add_music"></a>
+
+#### `fe.add_music()` 🔶 ####
+
+    fe.add_music( name )
+
+Add an audio track that can then be played by Attract-Mode.
+For long audio tracks, streamed from disk. For playing short sounds use [`fe.add_sound()`](#add_sound)
+
+Parameters:
+
+   * name - the name of the audio track file.  If a relative path is provided,
+     it is treated as relative to the directory for the layout/plugin that
+     called this function.
+
+Return Value:
+
+   * An instance of the class [`fe.Music`](#Music) which can be used to
      interact with the sound.
 
 &nbsp;
@@ -1156,7 +1177,7 @@ Return Value:
 &nbsp;
 <a name="get_file_mtime"></a>
 
-#### `fe.get_file_mtime()` #### 🔶
+#### `fe.get_file_mtime()` 🔶 ####
 
     fe.get_file_mtime( filename )
 
@@ -1217,7 +1238,7 @@ Return Value:
 &nbsp;
 <a name="get_url"></a>
 
-#### `fe.get_url()` 🔶
+#### `fe.get_url()` 🔶 ####
 
     fe.get_url( url, file_path )
 
@@ -1233,7 +1254,7 @@ Parameters:
 &nbsp;
 <a name="log"></a>
 
-#### `fe.log()` 🔶
+#### `fe.log()` 🔶 ####
 
     fe.log( text )
 
@@ -1253,8 +1274,8 @@ Objects and Variables
 
 #### `fe.ambient_sound` ####
 
-`fe.ambient_sound` is an instance of the `fe.Sound` class and can be used to
-control the ambient sound track.
+`fe.ambient_sound` is an instance of the `fe.Music` class and can be used to
+control the ambient audio track.
 
 &nbsp;
 <a name="layout"></a>
@@ -1762,6 +1783,7 @@ Properties:
      The default value is `false`.  It's advised to force anisotropic filtering in
      the display driver settings if the Image with auto generated mipmap is scaled
      by the ratio that is not isotropic.
+   * `volume` 🔶 Get/set the volume of played video. Range is [0 ... 100]
    * `repeat` 🔶 Enables texture repeat when set to true. Default value is false.
      To see the effect `subimg_width/height` must be set larger than `texture_width/height`
    * `clear` 🔶 [surface only] When set to false surface is not cleared
@@ -2220,21 +2242,44 @@ Member Functions:
 
 #### `fe.Sound` ####
 
+The class representing a sound object.  Instances of this class are returned
+by the [`fe.add_sound()`](#add_sound) function.  This class cannot be otherwise
+instantiated in a script.
+
+Properties:
+
+   * `file_name` - Get/set the sound filename.
+   * `volume` - Get/set the volume of played sound. Range is [0 ... 100] 🔶
+   * `playing` - Get/set whether the sound is currently playing (boolean).
+   * `loop` - Get/set whether the sound should be looped (boolean).
+   * `pitch` - Get/set the sound pitch (float). Default value is 1.
+   * `x` - Get/set the x position of the sound.  Default value is 0.
+   * `y` - Get/set the y position of the sound.  Default value is 0.
+   * `z` - Get/set the z position of the sound.  Default value is 0.
+   * `duration` - Get the sound duration (in milliseconds).
+   * `time` - Get the time that the sound is current at (in
+     milliseconds).
+
+&nbsp;
+<a name="Music"></a>
+
+#### `fe.Music` 🔶 ####
+
 The class representing an audio track.  Instances of this class are returned
-by the [`fe.add_sound()`](#add_sound) function.  This is also the class for the
+by the [`fe.add_music()`](#add_music) function.  This is also the class for the
 `fe.ambient_sound` object.  Object of this class cannot be otherwise
 instantiated in a script.
 
 Properties:
 
-   * `file_name` - Get/set the audio filename.  If file_name is contained in
-     an archive, this string should formatted: "<archive_name>|<filename>"
-   * `playing` - Get/set whether the track is currently playing (boolean).
-   * `loop` - Get/set whether the track should be looped (boolean).
-   * `pitch` - Get/set the audio pitch (float). Default value is 1.
-   * `x` - Get/set the x position of the sound.  Default value is 0.
-   * `y` - Get/set the y position of the sound.  Default value is 0.
-   * `z` - Get/set the z position of the sound.  Default value is 0.
+   * `file_name` - Get/set the audio track filename.
+   * `volume` - Get/set the volume of played audio track. Range is [0 ... 100]
+   * `playing` - Get/set whether the audio track is currently playing (boolean).
+   * `loop` - Get/set whether the audio track should be looped (boolean).
+   * `pitch` - Get/set the audio track pitch (float). Default value is 1.
+   * `x` - Get/set the x position of the audio track.  Default value is 0.
+   * `y` - Get/set the y position of the audio track.  Default value is 0.
+   * `z` - Get/set the z position of the audio track.  Default value is 0.
    * `duration` - Get the audio track duration (in milliseconds).
    * `time` - Get the time that the audio track is current at (in
      milliseconds).

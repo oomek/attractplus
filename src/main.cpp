@@ -35,9 +35,7 @@
 #include <cstdlib>
 #include "nowide/args.hpp"
 
-#ifndef NO_MOVIE
-#include <Audio/AudioDevice.hpp>
-#endif
+#include <SFML/Audio.hpp>
 
 #ifdef SFML_SYSTEM_ANDROID
 #include "fe_util_android.hpp"
@@ -131,9 +129,6 @@ int main(int argc, char *argv[])
 	//
 	// Set up music/sound playing objects
 	//
-#ifndef NO_MOVIE
-	sf::AudioDevice audio_device;
-#endif
 	FeSoundSystem soundsys( &feSettings );
 
 	soundsys.update_volumes();
@@ -482,6 +477,8 @@ int main(int argc, char *argv[])
 					redraw=true;
 					continue;
 				}
+
+				soundsys.sound_event( c );
 
 				//
 				// Handle special case Back UI button behaviour
@@ -1005,6 +1002,8 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
+						soundsys.sound_event( c );
+
 						move_last_triggered = t;
 						int step = 1;
 
