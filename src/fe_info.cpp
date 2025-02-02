@@ -22,6 +22,7 @@
 
 #include "fe_info.hpp"
 #include "fe_util.hpp"
+#include "fe_cache.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -125,6 +126,10 @@ void FeRomInfo::load_stats( const std::string &path )
 	if ( path.empty() )
 		return;
 
+	// Attempt to load stats from cache, and exit if successful
+	if ( FeCache::get_stats_info( path, m_info ) )
+		return;
+
 	std::string filename = path + m_info[Emulator] + "/"
 		+ m_info[Romname] + FE_STAT_FILE_EXTENSION;
 	nowide::ifstream myfile( filename.c_str() );
@@ -157,6 +162,9 @@ void FeRomInfo::update_stats( const std::string &path, int count_incr, int playe
 
 	m_info[PlayedCount] = as_str( new_count );
 	m_info[PlayedTime] = as_str( new_time );
+
+	// Save stats to cache, and continue to save original stat file as well
+	FeCache::set_stats_info( path, m_info );
 
 	confirm_directory( path, m_info[Emulator] );
 	std::string filename = path + m_info[Emulator] + "/"
