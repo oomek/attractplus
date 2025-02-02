@@ -963,6 +963,7 @@ bool FePresent::reset_screen_saver()
 	return false;
 }
 
+// First press, repeat in main
 bool FePresent::handle_event( FeInputMap::Command c )
 {
 	if ( reset_screen_saver() )
@@ -1176,6 +1177,7 @@ void FePresent::load_screensaver()
 	update( true, true );
 }
 
+// suppress_transition usage eliminated
 void FePresent::load_layout( bool initial_load, bool suppress_transition )
 {
 	m_layout_loaded = false;
@@ -1234,6 +1236,7 @@ void FePresent::update_to_new_list( int var, bool reset_display, bool suppress_t
 		on_transition( ToNewList, var );
 }
 
+// Only called when the overlay is up
 bool FePresent::tick()
 {
 	bool ret_val = false;
@@ -1265,6 +1268,7 @@ bool FePresent::video_tick()
 	return ret_val;
 }
 
+// Used by fe.layout.redraw
 void FePresent::redraw()
 {
 	// Process tick only when Layout is fully loaded
