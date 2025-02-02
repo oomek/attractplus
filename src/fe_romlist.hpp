@@ -78,13 +78,6 @@ public:
 
 class FeFilterEntry
 {
-private:
-	// Stores indexes to the m_list entries, populated by to_indexes
-	std::vector<int> filter_list_indexes;
-
-	// If clone grouping is on, this stores each clone groups indexes, populated by to_indexes
-	std::map<std::string, std::vector<int>> clone_group_indexes;
-
 public:
 	// Stores a pointer to the m_list entries
 	std::vector<FeRomInfo*> filter_list;
@@ -94,22 +87,65 @@ public:
 	void clear() {
 		filter_list.clear();
 		clone_group.clear();
-		filter_list_indexes.clear();
-		clone_group_indexes.clear();
+	};
+};
+
+// Helper class for saving FeFilterEntry
+// - Converts FeRomInfo pointers to indexes and back
+class FeFilterIndexes
+{
+public:
+	FeFilterIndexes() {}
+	FeFilterIndexes( FeFilterEntry &entry );
+
+	std::vector<int> filter_list;
+	std::map<std::string, std::vector<int>> clone_group;
+
+	void clear() {
+		filter_list.clear();
+		clone_group.clear();
 	};
 
-	void to_indexes();
-	void from_indexes( std::vector<FeRomInfo*> &m_list );
+	void entry_to_index(
+		FeFilterEntry &entry
+	);
+
+	void index_to_entry(
+		FeFilterEntry &entry,
+		std::map<int, FeRomInfo*> &lookup
+	);
+
+	void filter_list_to_indexes(
+		std::vector<FeRomInfo*> &filter_list,
+		std::vector<int> &indexes
+	);
+
+	void clone_group_to_indexes(
+		std::map<std::string, std::vector<FeRomInfo*>> &clone_group,
+		std::map<std::string, std::vector<int>> &indexes
+	);
+
+	void indexes_to_filter_list(
+		std::vector<int> &indexes,
+		std::vector<FeRomInfo*> &filter_list,
+		std::map<int, FeRomInfo*> &lookup
+	);
+
+	void indexes_to_clone_group(
+		std::map<std::string, std::vector<int>> &indexes,
+		std::map<std::string, std::vector<FeRomInfo*>> &clone_group,
+		std::map<int, FeRomInfo*> &lookup
+	);
 
 	template<class Archive>
 	void serialize( Archive &archive, std::uint32_t const version )
 	{
-		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomList cache";
-		archive( filter_list_indexes, clone_group_indexes );
+		if ( version != FE_VERSION_NUM ) throw "Invalid FeFilterIndexes cache";
+		archive( filter_list, clone_group );
 	}
 };
 
-CEREAL_CLASS_VERSION( FeFilterEntry, FE_VERSION_NUM );
+CEREAL_CLASS_VERSION( FeFilterIndexes, FE_VERSION_NUM );
 
 class FeRomList : public FeBaseConfigurable
 {
@@ -120,7 +156,7 @@ private:
 
 	std::map<std::string, bool> m_tags; // bool is flag of whether the tag has been changed
 	std::set<std::string> m_extra_favs; // store for favourites that are filtered out by global filter
-	std::multimap<std::string, std::string> m_extra_tags; // store for tags that are filtered out by global filter
+	std::multimap< std::string, const char * > m_extra_tags; // store for tags that are filtered out by global filter
 	FeFilter *m_global_filter_ptr; // this will only get set if we are globally filtering out games during the initial load
 
 	std::string m_romlist_name;
@@ -201,7 +237,7 @@ public:
 	void serialize( Archive &archive, std::uint32_t const version )
 	{
 		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomList cache";
-		archive( m_list, m_tags, m_extra_tags, m_extra_favs, m_group_clones, m_modified_time );
+		archive( m_list, m_group_clones, m_modified_time );
 	}
 };
 
