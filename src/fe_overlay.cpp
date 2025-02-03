@@ -603,7 +603,8 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 	// Changing tag status altered our current list
 	if ( tags_changed )
 	{
-		m_fePresent.update_to_new_list( 0, true );
+		m_fePresent.update_to( ToNewList, true );
+		m_fePresent.on_transition( ToNewList, 0 );
 		m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 	}
 

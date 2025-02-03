@@ -167,7 +167,6 @@ protected:
 	void toggle_rotate( FeSettings::RotationState ); // toggle between none and provided state
 	FeSettings::RotationState get_actual_rotation();
 	void set_transforms();
-	int update( bool reload_list=false, bool new_layout=false );
 
 	// Overrides from base classes:
 	//
@@ -225,8 +224,7 @@ public:
 	void set_layout_loaded( bool loaded ) { m_layout_loaded = loaded; };
 	bool is_layout_loaded() { return m_layout_loaded; };
 
-	virtual void update_to_new_list( int var=0, bool reset_display=false );
-	void on_end_navigation();
+	void update_to( FeTransitionType type, bool reset_display=false );
 	void redraw_surfaces();
 
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required
