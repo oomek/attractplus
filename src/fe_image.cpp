@@ -28,6 +28,8 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
+#include "path_cache.hpp"
+
 #include <cmath>
 
 #ifndef NO_MOVIE
@@ -326,7 +328,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	clear();
 
-	if ( !file_exists( loaded_name ) )
+	if ( !FePathCache::file_exists( loaded_name ))
 	{
 		m_texture = sf::Texture();
 		return false;
@@ -395,7 +397,7 @@ bool FeTextureContainer::try_to_load(
 
 	clear();
 
-	if ( !file_exists( loaded_name ) )
+	if ( !FePathCache::file_exists( loaded_name ))
 	{
 		m_texture = sf::Texture();
 		return false;
@@ -757,6 +759,8 @@ int FeTextureContainer::get_video_time() const
 void FeTextureContainer::load_file( const char *n )
 {
 	std::string filename = clean_path( n );
+
+	std::replace( filename.begin(), filename.end(), '\\', '/' );
 
 	if ( filename.empty() )
 	{

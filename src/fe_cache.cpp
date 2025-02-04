@@ -1,4 +1,5 @@
 #include "fe_cache.hpp"
+#include "path_cache.hpp"
 
 #define FE_CACHE_BINARY
 
@@ -193,7 +194,7 @@ void FeCache::invalidate_romlist(
 {
 	invalidate_romlist_args();
 	std::string filename = get_romlist_cache_filename( display );
-	if ( file_exists( filename ) ) delete_file( filename );
+	if ( FePathCache::file_exists( filename ) ) delete_file( filename );
 }
 
 //
@@ -206,7 +207,7 @@ void FeCache::invalidate_filter(
 {
 	invalidate_romlist_args();
 	std::string filename = get_filter_cache_filename( display, filter_index );
-	if ( file_exists( filename ) ) delete_file( filename );
+	if ( FePathCache::file_exists( filename ) ) delete_file( filename );
 }
 
 //
@@ -281,7 +282,7 @@ bool FeCache::load_romlist_cache(
 )
 {
 	std::string filename = get_romlist_cache_filename( display );
-	if ( !file_exists( filename ) ) return false;
+	if ( !FePathCache::file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 
@@ -349,7 +350,7 @@ bool FeCache::load_filter_cache(
 )
 {
 	std::string filename = get_filter_cache_filename( display, filter_index );
-	if ( !file_exists( filename ) ) return false;
+	if ( !FePathCache::file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
 	if ( !file.is_open() ) return false;
 

@@ -26,6 +26,7 @@
 #include "fe_util.hpp"
 #include "fe_vm.hpp"
 #include "fe_cache.hpp"
+#include "path_cache.hpp"
 
 #include <SFML/Graphics/Shader.hpp>
 #ifndef NO_MOVIE
@@ -391,7 +392,7 @@ bool FeEmulatorEditMenu::on_option_select(
 					itr != paths.end(); ++itr )
 			{
 				std::string rom_path = m_emulator->clean_path_with_wd( *itr );
-				if ( !directory_exists( rom_path ) )
+				if ( !FePathCache::directory_exists( rom_path ))
 				{
 					if ( ctx.confirm_dialog( "Rom path '$1' not found, proceed anyways?",
 										rom_path ) == false )
@@ -543,7 +544,7 @@ void FeEmulatorEditMenu::set_emulator(
 		std::string filename = m_emulator->get_info( FeEmulatorInfo::Name );
 		filename += FE_ROMLIST_FILE_EXTENSION;
 
-		m_romlist_exists = file_exists( romlist_dir + filename );
+		m_romlist_exists = FePathCache::file_exists( romlist_dir + filename );
 	}
 	else
 		m_romlist_exists = false;
@@ -684,7 +685,7 @@ bool FeEmulatorGenMenu::on_option_select(
 		path += res;
 		path += FE_ROMLIST_FILE_EXTENSION;
 
-		if ( file_exists( path ) )
+		if ( FePathCache::file_exists( path ))
 		{
 			if ( ctx.confirm_dialog( "Overwrite existing '$1' list?",
 					res ) == false )

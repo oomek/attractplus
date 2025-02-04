@@ -20,131 +20,142 @@
  *
  */
 
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "path_cache.hpp"
 
 #include "fe_base.hpp" // logging
 #include "fe_util.hpp"
+#include "fe_vm.hpp"
 
 #include <algorithm>
 #include <cstring>
 #include <dirent.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
-namespace
-{
-	bool my_comp( const std::string &a, const std::string &b )
-	{
-		return ( strncasecmp( a.c_str(), b.c_str(), a.size() ) < 0 );
-	}
-};
+#include <SFML/System/Clock.hpp>
 
-FePathCache::FePathCache()
-{
-}
+#include "nowide/fstream.hpp"
+#include "nowide/cstdio.hpp"
+#include "nowide/cstdlib.hpp"
+#include "nowide/convert.hpp"
 
-FePathCache::~FePathCache()
-{
-}
+std::map<std::string, std::map<std::string, int>> FePathCache::m_cache;
 
 void FePathCache::clear()
 {
 	m_cache.clear();
-	FeDebug() << "Cleared artwork path cache." << std::endl;
+	FeDebug() << "PathCache: Cleared path cache." << std::endl;
 }
 
-// from fe_util
 bool FePathCache::get_filename_from_base(
 	std::vector<std::string> &in_list,
 	std::vector<std::string> &out_list,
-	const std::string &path,
+	const std::string &full_path,
 	const std::string &base_name,
 	const char **filter )
 {
-	std::vector<std::string> &cache = get_cache( path );
+	std::string path = full_path;
+	std::replace( path.begin(), path.end(), '\\', '/' );
+	std::map<std::string, int>& cache = get_cache(path);
+	std::map<std::string, int>::iterator itr = cache.lower_bound(base_name);
 
-	std::vector< std::string >::const_iterator itr;
-	itr = std::lower_bound( cache.begin(), cache.end(), base_name, my_comp );
-
-	if ( itr == cache.end() )
+	if ( itr == cache.end() || !boost::iequals( itr->first.substr( 0, base_name.size() ), base_name ))
 		return false;
 
-	while ( ( itr != cache.end() )
-		&& ( strncasecmp( (*itr).c_str(), base_name.c_str(), base_name.size() ) == 0 ))
+	while ( itr != cache.end() && boost::iequals( itr->first.substr( 0, base_name.size() ), base_name ))
 	{
-		if ( filter && !(tail_compare( *itr, filter )) )
-			out_list.push_back( path + *itr );
+		if ( filter && !(tail_compare( itr->first, filter )))
+			out_list.push_back( path + itr->first );
 		else
-			in_list.push_back( path + *itr );
+			in_list.push_back( path + itr->first );
 
 		++itr;
 	}
 
-	return !(in_list.empty());
+	return !( in_list.empty() );
 }
 
-std::vector < std::string > &FePathCache::get_cache( const std::string &path )
+bool FePathCache::file_exists( const std::string &file )
 {
-	std::map< std::string, std::vector<std::string> >::iterator itr;
+	return check_path( file ) & ( FeVM::IsFile | FeVM::IsDirectory );
+}
+
+bool FePathCache::directory_exists( const std::string &file )
+{
+	return check_path( file ) & FeVM::IsDirectory;
+}
+
+std::map<std::string, int>& FePathCache::get_cache( const std::string& full_path )
+{
+	sf::Clock clk;
+	std::string path = full_path;
+	std::replace( path.begin(), path.end(), '\\', '/' );
+	if ( path.back() == '/' ) path.pop_back();
+	std::map<std::string, std::map<std::string, int>>::iterator itr;
 
 	itr = m_cache.find( path );
 	if ( itr != m_cache.end() )
 		return (*itr).second;
 
-	std::vector < std::string > temp;
-	temp.reserve(100);  // Reserve some space to avoid small reallocations
+	std::map<std::string, int> temp;
 
-#ifdef SFML_SYSTEM_WINDOWS
-	std::string search_path = path + "*";
-
-	struct _wfinddata_t t;
-	intptr_t srch = _wfindfirst( FeUtil::widen( search_path ).c_str(), &t );
-
-	if ( srch < 0 )
+	try
 	{
-		FeDebug() << "dir_cache: Error opening directory: " << path << std::endl;
-	}
-	else
-	{
-		do
+		for ( boost::filesystem::directory_iterator it( path ); it != boost::filesystem::directory_iterator(); ++it )
 		{
-			std::string filename = FeUtil::narrow( t.name );
-			if (( filename != "." ) && ( filename != ".." ))
-				temp.emplace_back( std::move( filename ));
-		} while ( _wfindnext( srch, &t ) == 0 );
-		_findclose( srch );
-	}
-#else
-	DIR *dir;
-	struct dirent *ent;
+			std::string entryName = it->path().filename().string();
+			if ( entryName != "." && entryName != ".." )
+			{
+				int entryType;
+				if ( boost::filesystem::is_directory( it->status() ))
+					entryType = FeVM::IsDirectory;
+				else
+					entryType = FeVM::IsFile;
 
-	if ( (dir = opendir( path.c_str() )) == NULL )
-	{
-		FeDebug() << "dir_cache: Error opening directory: " << path << std::endl;
-	}
-	else
-	{
-		while ((ent = readdir( dir )) != NULL )
-		{
-			std::string filename = ent->d_name;
-			if (( filename != "." ) && ( filename != ".." ))
-				temp.emplace_back( std::move( filename ));
+				temp.insert( std::make_pair( entryName, entryType ));
+			}
 		}
-		closedir( dir );
 	}
-#endif
+	catch ( const boost::filesystem::filesystem_error& e )
+	{
+		FeLog() << "PathCache: Error listing directory: " << path << std::endl;
+	}
 
-	std::sort( temp.begin(), temp.end(), my_comp );
+	m_cache.insert( std::make_pair( path, temp ));
+	FeDebug() << "Caching " << path << " took " << clk.getElapsedTime().asMicroseconds() << "us" << std::endl;
+	return m_cache[ path ];
+}
 
-	FeDebug() << "Caching contents of artwork path: " << path << " (" << temp.size() << " entries)." << std::endl;
+int FePathCache::check_path( const std::string &full_path )
+{
+	if ( full_path.empty() )
+		return FeVM::IsNotFound;
 
-	std::pair<std::map<std::string, std::vector<std::string> >::iterator, bool> ret;
+	std::string path = full_path;
+	std::replace( path.begin(), path.end(), '\\', '/' );
+	if ( path.back() == '/' ) path.pop_back();
+	size_t pos = path.find_last_of( "/" );
+	std::string temp_path = path.substr( 0, pos );
+	std::string temp_name = path.substr ( pos + 1 );
 
-	ret = m_cache.insert(
-		std::pair< std::string, std::vector<std::string> >( path, std::vector<std::string>() ));
+	std::map<std::string, int>& cache = get_cache(temp_path);
+	std::map<std::string, int>::iterator itr = cache.find(temp_name);
 
-	if ( ret.second )
-		ret.first->second.swap( temp );
+	if ( itr == cache.end() )
+		return FeVM::IsNotFound;
 
-	return ret.first->second;
+	if ( itr->first == temp_name )
+	{
+		if ( itr->second == FeVM::IsDirectory )
+			return FeVM::IsDirectory;
+		else if ( itr->second == FeVM::IsFile )
+			return FeVM::IsFile;
+	}
+
+	FeLog() << "PathCache: " << temp_name << " not found" << std::endl;
+	return FeVM::IsNotFound;
 }

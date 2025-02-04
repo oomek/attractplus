@@ -23,6 +23,8 @@
 #include "fe_romlist.hpp"
 #include "fe_util.hpp"
 #include "fe_cache.hpp"
+#include "fe_settings.hpp"
+#include "path_cache.hpp"
 
 #include <iostream>
 #include "nowide/fstream.hpp"
@@ -291,7 +293,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	//
 	load_name = m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + "/";
 
-	if ( directory_exists( load_name ) )
+	if ( FePathCache::directory_exists( load_name ))
 	{
 		std::vector<std::string> temp_tags;
 		get_basename_from_extension( temp_tags, load_name, FE_FAVOURITE_FILE_EXTENSION );
