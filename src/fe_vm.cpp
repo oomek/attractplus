@@ -1313,7 +1313,7 @@ void FeVM::on_transition(
 {
 	using namespace Sqrat;
 
-	FeLog() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
+	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
 
 	sf::Clock clk;
 	int ttime = 0;
