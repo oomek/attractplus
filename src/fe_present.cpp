@@ -1399,6 +1399,10 @@ void FePresent::toggle_mute()
 	for ( std::vector<FeSound *>::iterator its=m_sounds.begin();
 				its != m_sounds.end(); ++its )
 		(*its)->set_volume( sound_vol );
+
+	for ( std::vector<FeMusic *>::iterator its=m_musics.begin();
+				its != m_musics.end(); ++its )
+		(*its)->set_volume( sound_vol );
 }
 
 const sf::Transform &FePresent::get_transform() const
