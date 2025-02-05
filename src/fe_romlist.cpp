@@ -210,6 +210,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
 	time_t mtime = file_mtime( romlist_path );
 	FeFilter *global_filter = display.get_global_filter();
+	bool has_global_rules = global_filter && (global_filter->get_rule_count() > 0);
 
 	// Reset all properties here in case cache load returns early
 	m_romlist_name = romlist_name;
@@ -226,7 +227,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool success = false;
 
 	// Attempt to load globalfilter cache
-	if ( global_filter && FeCache::load_globalfilter_cache( display, *this ) )
+	if ( has_global_rules && FeCache::load_globalfilter_cache( display, *this ) )
 	{
 		// If globalfilter cache is not valid then invalidate all data for this display
 		success = ( m_group_clones == group_clones ) && ( m_modified_time == mtime );
@@ -235,7 +236,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	}
 
 	// If invalid globalfilter we need to load the romlist to build a new one
-	if ( global_filter && !loaded_globalfilter_cache ) {
+	if ( !has_global_rules || !loaded_globalfilter_cache ) {
 
 		// Attempt to load romlist cache
 		if ( FeCache::load_romlist_cache( m_romlist_name, *this ) )
@@ -357,7 +358,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	//
 	// Apply global filter (skip if already loaded from cache)
 	//
-	if ( !loaded_globalfilter_cache && global_filter )
+	if ( has_global_rules && !loaded_globalfilter_cache )
 	{
 		global_filter->init();
 
@@ -423,6 +424,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	}
 
 	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";
+	if ( !has_global_rules ) FeLog() << m_list.size() << " entries from romlist";
 	if ( loaded_globalfilter_cache ) FeLog() << m_list.size() << " entries from cache";
 	if ( saved_globalfilter_cache ) FeLog() << m_list.size() << " kept, " << global_filtered_out_count << " discarded";
 	if ( saved_globalfilter_cache ) FeLog() << ", cached globalfilter";

@@ -22,9 +22,9 @@ const char *FE_CACHE_ROMLIST = "romlist";
 const char *FE_CACHE_GLOBALFILTER = "globalfilter";
 const std::string FE_EMPTY_STRING;
 
-std::vector<FeDisplayInfo>* FeCache::m_displays;
-std::string FeCache::m_config_path;
-std::string FeCache::m_romlist_args;
+std::vector<FeDisplayInfo>* FeCache::m_displays = {};
+std::string FeCache::m_config_path = "";
+std::string FeCache::m_romlist_args = "";
 
 // Global storage for [emulator][romname] stats
 std::map<std::string, FeListStats> FeCache::stats_cache = std::map<std::string, FeListStats>{};
