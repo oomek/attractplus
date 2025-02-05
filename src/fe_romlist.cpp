@@ -209,6 +209,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	sf::Clock load_timer;
 	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
 	time_t mtime = file_mtime( romlist_path );
+	FeFilter *global_filter = display.get_global_filter();
 
 	// Reset all properties here in case cache load returns early
 	m_romlist_name = romlist_name;
@@ -225,7 +226,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool success = false;
 
 	// Attempt to load globalfilter cache
-	if ( FeCache::load_globalfilter_cache( display, *this ) )
+	if ( global_filter && FeCache::load_globalfilter_cache( display, *this ) )
 	{
 		// If globalfilter cache is not valid then invalidate all data for this display
 		success = ( m_group_clones == group_clones ) && ( m_modified_time == mtime );
@@ -234,7 +235,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	}
 
 	// If invalid globalfilter we need to load the romlist to build a new one
-	if ( !loaded_globalfilter_cache ) {
+	if ( global_filter && !loaded_globalfilter_cache ) {
 
 		// Attempt to load romlist cache
 		if ( FeCache::load_romlist_cache( m_romlist_name, *this ) )
@@ -353,71 +354,66 @@ bool FeRomList::load_romlist( const std::string &path,
 		}
 	}
 
-	// Skip global filter if already loaded from cache
-	if ( !loaded_globalfilter_cache )
+	//
+	// Apply global filter (skip if already loaded from cache)
+	//
+	if ( !loaded_globalfilter_cache && global_filter )
 	{
-		//
-		// Apply global filter
-		//
-		FeFilter *global_filter = display.get_global_filter();
-		if ( global_filter )
+		global_filter->init();
+
+		if ( global_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
+			get_file_availability();
+
+		if ( global_filter->test_for_target( FeRomInfo::PlayedCount )
+			|| global_filter->test_for_target( FeRomInfo::PlayedTime ) )
+			get_played_stats();
+
+		FeRomInfoListType::iterator last_it=m_list.begin();
+		for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
 		{
-			global_filter->init();
-
-			if ( global_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
-				get_file_availability();
-
-			if ( global_filter->test_for_target( FeRomInfo::PlayedCount )
-				|| global_filter->test_for_target( FeRomInfo::PlayedTime ) )
-				get_played_stats();
-
-			FeRomInfoListType::iterator last_it=m_list.begin();
-			for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
+			if ( global_filter->apply_filter( *it ) )
 			{
-				if ( global_filter->apply_filter( *it ) )
-				{
-					if ( last_it != it )
-						it = m_list.erase( last_it, it );
-					else
-						++it;
-
-					last_it = it;
-				}
+				if ( last_it != it )
+					it = m_list.erase( last_it, it );
 				else
-				{
-					// This rom is being filtered out
-
-					// Unused favourites will go into m_extra_favs so they can be saved (same as Load favourites above)
-					if ( !(*it).get_info( FeRomInfo::Favourite ).empty() )
-						m_extra_favs.insert( (*it).get_info( FeRomInfo::Romname ) );
-
-					// Unused tags will go into m_extra_tags so they can be saved (same as Load tags above)
-					if ( !(*it).get_info( FeRomInfo::Tags ).empty() )
-					{
-						const std::string &name = (*it).get_info( FeRomInfo::Romname );
-						const std::string &tags = (*it).get_info( FeRomInfo::Tags );
-						const char sep[] = { FE_TAGS_SEP, 0 };
-
-						size_t pos=0;
-						while ( pos < tags.size() )
-						{
-							std::string one_tag;
-							token_helper( tags, pos, one_tag, sep );
-
-							std::map<std::string, bool>::iterator itt = m_tags.find( one_tag );
-							if ( itt != m_tags.end() )
-								m_extra_tags.insert( std::pair<std::string,const char *>( name, (*itt).first.c_str() ) );
-						}
-					}
-
-					global_filtered_out_count++;
 					++it;
-				}
-			}
 
-			if ( last_it != m_list.end() )
-				m_list.erase( last_it, m_list.end() );
+				last_it = it;
+			}
+			else
+			{
+				// This rom is being filtered out
+
+				// Unused favourites will go into m_extra_favs so they can be saved (same as Load favourites above)
+				if ( !(*it).get_info( FeRomInfo::Favourite ).empty() )
+					m_extra_favs.insert( (*it).get_info( FeRomInfo::Romname ) );
+
+				// Unused tags will go into m_extra_tags so they can be saved (same as Load tags above)
+				if ( !(*it).get_info( FeRomInfo::Tags ).empty() )
+				{
+					const std::string &name = (*it).get_info( FeRomInfo::Romname );
+					const std::string &tags = (*it).get_info( FeRomInfo::Tags );
+					const char sep[] = { FE_TAGS_SEP, 0 };
+
+					size_t pos=0;
+					while ( pos < tags.size() )
+					{
+						std::string one_tag;
+						token_helper( tags, pos, one_tag, sep );
+
+						std::map<std::string, bool>::iterator itt = m_tags.find( one_tag );
+						if ( itt != m_tags.end() )
+							m_extra_tags.insert( std::pair<std::string,const char *>( name, (*itt).first.c_str() ) );
+					}
+				}
+
+				global_filtered_out_count++;
+				++it;
+			}
 		}
+
+		if ( last_it != m_list.end() )
+			m_list.erase( last_it, m_list.end() );
 
 		// If grouping by clones partition list so clones are at the end.
 		if ( m_group_clones ) std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
@@ -589,9 +585,8 @@ void FeRomList::create_filters(
 
 	// Prepare an indexed lookup for faster filter cache loading
 	std::map<int, FeRomInfo*> lookup;
-	int index = 0;
-	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it, index++ )
-		lookup[index] = &(*it);
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
+		lookup[it->index] = &(*it);
 
 	int filters_cached = 0;
 
