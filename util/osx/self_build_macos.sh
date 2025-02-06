@@ -7,7 +7,7 @@ else
     branch=""
 fi
 
-export PKG_CONFIG_PATH=/usr/local/pkgconfig
+export PKG_CONFIG_PATH=/usr/local/pkgconfig:/opt/homebrew/opt/sfml@2/lib/pkgconfig:/opt/homebrew/opt/openal-soft/lib/pkgconfig
 
 echo Creating Folders
 rm -Rf $HOME/buildattract
@@ -27,7 +27,7 @@ NPROC=$(getconf _NPROCESSORS_ONLN)
 
 echo Building attractplus
 make clean
-eval make -j${NPROC} STATIC=0 VERBOSE=1 prefix=..
+eval make -j${NPROC} STATIC=0 VERBOSE=1 USE_SYSTEM_SFML=1 prefix=..
 
 
 bash util/osx/appbuilder.sh $HOME/buildattract $HOME/buildattract/attractplus yes

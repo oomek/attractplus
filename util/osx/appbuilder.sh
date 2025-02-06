@@ -30,12 +30,17 @@ echo STEP 2 - COLLECT AND FIX LINKED LIBRARIES
 # Define library fixing pairs
 #-- Installing: /Users/djhan/buildattract/attractplus/obj/sfml/install/lib/freetype.framework/Versions/A/freetype
 
+checklib=$(brew --prefix)
 fr_lib+=("@rpath/libsfml")
-to_lib+=("$basedir/obj/sfml/install/lib/libsfml")
+to_lib+=("$checklib/opt/sfml@2/lib/libsfml")
 
 checklib=$(brew --prefix)
-fr_lib+=("/opt/homebrew/Cellar")
-to_lib+=("$checklib/opt")
+fr_lib+=("/opt/homebrew/Cellar/ffmpeg/7.1_4/lib")
+to_lib+=("$checklib/opt/ffmpeg/lib")
+
+#checklib=$(brew --prefix)
+#fr_lib+=("/opt/homebrew/Cellar")
+#to_lib+=("$checklib/opt")
 
 checklib=$(brew --prefix)
 fr_lib+=("@loader_path/../../../../opt")
@@ -196,9 +201,9 @@ for str in ${libsarray[@]}; do
 	for enum in ${!subarray[@]}; do
       str3=$( basename "${subarray_fix[enum]}" )
       str2="${subarray[enum]}"
-      install_name_tool -change $str2 @loader_path/../libs/$str3 "$bundlelibs"/$str
+      install_name_tool -change $str2 @loader_path/../libs/$str3 "$bundlelibs"/$str 2>/dev/null
    done
-   install_name_tool -id @loader_path/../libs/$str "$bundlelibs"/$str
+   install_name_tool -id @loader_path/../libs/$str "$bundlelibs"/$str 2>/dev/null
 	#codesign --force -s - "$bundlelibs"/$str
 done
 
