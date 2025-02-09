@@ -338,6 +338,19 @@ int main(int argc, char *argv[])
 		FeInputMap::Command c;
 		sf::Event ev;
 		bool from_ui;
+
+		if ( feSettings.test_mouse_reset( ev.mouseMove.x, ev.mouseMove.y ))
+		{
+			// We reset the mouse if we are capturing it and it has moved
+			// outside of its bounding box
+			//
+			// Moved this outside the loop so mouse doesn't get stuck at
+			// edge of screen if this gets missed
+			//
+			sf::Vector2u s = window.get_win().getSize();
+			sf::Mouse::setPosition( sf::Vector2i( s.x / 2, s.y / 2 ), window.get_win() );
+		}
+
 		while ( feVM.poll_command( c, ev, from_ui ) )
 		{
 			//
@@ -350,14 +363,7 @@ int main(int argc, char *argv[])
 					break;
 
 				case sf::Event::MouseMoved:
-					if ( feSettings.test_mouse_reset( ev.mouseMove.x, ev.mouseMove.y ))
-					{
-						// We reset the mouse if we are capturing it and it has moved
-						// outside of its bounding box
-						//
-						sf::Vector2u s = window.get_win().getSize();
-						sf::Mouse::setPosition( sf::Vector2i( s.x / 2, s.y / 2 ), window.get_win() );
-					}
+					//do nothing now, moved outside this loop
 					break;
 
 				case sf::Event::KeyReleased:
