@@ -141,12 +141,11 @@ void FeWindow::display()
 {
 	m_window->display();
 
-	// Starting from Windows Vista all non fullscreen window modes
+	// Starting from Windows Vista all window modes
 	// go through DWM, so we have to flush here to sync to the DMW's v-sync
 	// to avoid stuttering.
 #if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
-	if ( m_win_mode != FeSettings::Fullscreen )
-		DwmFlush();
+	DwmFlush();
 #endif
 }
 
