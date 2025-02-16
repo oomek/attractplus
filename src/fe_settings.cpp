@@ -365,6 +365,7 @@ FeSettings::FeSettings( const std::string &config_path )
 		m_config_path += '/';
 
 	FeCache::set_config_path( m_config_path );
+	FeCache::set_displays( &m_displays );
 }
 
 void FeSettings::clear()
@@ -2420,17 +2421,10 @@ bool FeSettings::update_stats( int play_count, int play_time )
 	bool fixed = m_rl.fix_filters( m_displays[m_current_display], FeRomInfo::PlayedCount );
 	fixed |= m_rl.fix_filters( m_displays[m_current_display], FeRomInfo::PlayedTime );
 
-	// Invalidate the cache for all displays using stats in its rules/sort
+	// Invalidate all cache files using stats in their rules
 	std::string romlist_name = m_displays[m_current_display].get_romlist_name();
-	for ( int i=0; i<m_displays.size(); i++ )
-	{
-		if ( m_displays[i].get_romlist_name() == romlist_name )
-		{
-			FeCache::invalidate_rominfo( m_displays[i], FeRomInfo::PlayedCount );
-			FeCache::invalidate_rominfo( m_displays[i], FeRomInfo::PlayedTime );
-		}
-	}
-	FeCache::save_romlist_cache( m_displays[m_current_display], m_rl );
+	FeCache::invalidate_rominfo( romlist_name, FeRomInfo::PlayedCount );
+	FeCache::invalidate_rominfo( romlist_name, FeRomInfo::PlayedTime );
 
 	if ( fixed && ( &m_rl.lookup( filter_index, rom_index ) != rom ))
 	{
