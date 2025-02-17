@@ -201,6 +201,12 @@ int main(int argc, char *argv[])
 				break;
 
 			case FeSettings::ShowDisplaysMenu:
+				if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
+				{
+					feSettings.set_display( feSettings.get_actual_display_index() );
+					feVM.load_layout( true );
+					FeVM::cb_signal( "displays_menu" );
+				}
 				break;
 
 			default:
@@ -241,6 +247,9 @@ int main(int argc, char *argv[])
 					window.initial_create();
 					feVM.init_monitors();
 				}
+
+				if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
+					feSettings.set_display( feSettings.get_actual_display_index() );
 
 				feVM.load_layout();
 			}
@@ -549,6 +558,9 @@ int main(int argc, char *argv[])
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
+
+				if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
+					feSettings.set_display( feSettings.get_actual_display_index() );
 
 				feVM.load_layout( true );
 

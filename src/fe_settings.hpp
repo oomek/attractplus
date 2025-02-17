@@ -224,6 +224,7 @@ private:
 	int m_mouse_thresh;	// [1..100], 100=least sensitive
 	int m_current_search_index; // used when custom searching
 	int m_current_display_index; // used as an index of currently selected display in displays menu
+	int m_actual_display_index; // The most recent display index that was selected in the displays menu
 	bool m_displays_menu_exit;
 	bool m_hide_brackets;
 	bool m_group_clones;
@@ -367,6 +368,7 @@ public:
 	bool back_displays_available() { return !m_display_stack.empty(); };
 
 	int get_current_display_index() const;
+	int get_actual_display_index() const;
 	int get_display_index_from_name( const std::string &name ) const;
 	int displays_count() const;
 

@@ -307,6 +307,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_mouse_thresh( 10 ),
 	m_current_search_index( 0 ),
 	m_current_display_index( 0 ),
+	m_actual_display_index( 0 ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
 	m_group_clones( false ),
@@ -764,7 +765,7 @@ void FeSettings::save_state()
 		display_idx = m_display_stack.front();
 
 	if ( display_idx < 0 )
-		display_idx = m_current_display_index;
+		display_idx = m_actual_display_index;
 
 	m_rl.save_state();
 
@@ -815,6 +816,7 @@ void FeSettings::load_state()
 		token_helper( line, pos, tok, ";" );
 
 		m_current_display = as_int( tok );
+		m_actual_display_index = m_current_display;
 
 		token_helper( line, pos, tok, ";" );
 
@@ -1528,6 +1530,9 @@ bool FeSettings::set_display( int index, bool stack_previous )
 
 	m_current_display = index;
 
+	if ( m_current_display != -1 )
+		m_actual_display_index = m_current_display;
+
 	m_rl.save_state();
 	init_display();
 
@@ -1609,6 +1614,11 @@ bool FeSettings::navigate_filter( int step )
 int FeSettings::get_current_display_index() const
 {
 	return m_current_display;
+}
+
+int FeSettings::get_actual_display_index() const
+{
+	return m_actual_display_index;
 }
 
 int FeSettings::get_display_index_from_name( const std::string &n ) const
