@@ -1411,6 +1411,8 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 		sf::Event ev;
 		while (m_wnd.pollEvent(ev))
 		{
+			FePresent::script_get_fep()->reset_screen_saver();
+
 			FeInputMap::Command c = m_feSettings.map_input( ev );
 
 			if (( c != FeInputMap::LAST_COMMAND )
