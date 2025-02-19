@@ -119,7 +119,7 @@ public:
 	void flag_redraw() { m_redraw_triggered = true; };
 	void flag_sort_zorder() { m_sort_zorder_triggered = true; };
 	void post_command( FeInputMap::Command c );
-	bool poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui );
+	bool poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, bool &from_ui );
 	void clear(); // override of base class clear()
 
 	void update_to_new_list( int var=0, bool reset_display=false );

@@ -942,15 +942,15 @@ void FeSettings::init_mouse_capture( int window_x, int window_y )
 	int centre_x = window_x / 2;
 	int centre_y = window_y / 2;
 
-	m_mousecap_rect.left = centre_x - radius;
-	m_mousecap_rect.top = centre_y - radius;
-	m_mousecap_rect.width = radius * 2;
-	m_mousecap_rect.height = radius * 2;
+	m_mousecap_rect.position.x = centre_x - radius;
+	m_mousecap_rect.position.y = centre_y - radius;
+	m_mousecap_rect.size.x = radius * 2;
+	m_mousecap_rect.size.y = radius * 2;
 }
 
 bool FeSettings::test_mouse_reset( int mouse_x, int mouse_y ) const
 {
-	return (( m_inputmap.has_mouse_moves() ) && ( !m_mousecap_rect.contains( mouse_x, mouse_y ) ));
+	return (( m_inputmap.has_mouse_moves() ) && ( !m_mousecap_rect.contains({ mouse_x, mouse_y })));
 }
 
 int FeSettings::get_filter_index_from_offset( int offset ) const
@@ -3108,7 +3108,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case AntiAliasing:
 		// Limit to the maximum antialiasing level supported by the system but not greater than 8
-		m_antialiasing = std::min( std::min( as_int( value ), static_cast<int>( sf::RenderTexture::getMaximumAntialiasingLevel() )), 8 );
+		m_antialiasing = std::min( std::min( as_int( value ), static_cast<int>( sf::RenderTexture::getMaximumAntiAliasingLevel() )), 8 );
 
 		// Check if it's a power of 2 and if it's greater than 1
 		if ( m_antialiasing > 1 && !( m_antialiasing & ( m_antialiasing - 1 )))

@@ -26,19 +26,13 @@
 #include <SFML/Audio.hpp>
 #include <cstring>
 
-class sfMusic : public sf::Music
-{
-public:
-    using sf::Music::setProcessingInterval;
-};
-
 class FeMusic
 {
 private:
 	FeMusic( const FeMusic & );
 	FeMusic &operator=( const FeMusic & );
 
-	sfMusic m_music;
+	sf::Music m_music;
 
 	std::string m_file_name;
 	bool m_play_state;

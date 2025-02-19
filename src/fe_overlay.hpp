@@ -89,7 +89,7 @@ private:
 	bool event_loop( FeEventLoopCtx & );
 
 	bool edit_loop( std::vector<sf::Drawable *> draw_list,
-			std::basic_string<sf::Uint32> &str, FeTextPrimitive *lb );
+			std::basic_string<std::uint32_t> &str, FeTextPrimitive *lb );
 
 public:
 	FeOverlay( FeWindow &wnd,

@@ -36,7 +36,7 @@ namespace
 {
 	// globals to track when last touch event "began"
 	//
-	sf::Event g_last_touch;
+	std::optional<sf::Event> g_last_touch;
 	bool g_touch_moved=false;
 
 	int g_wheel_delta=0;
@@ -296,177 +296,196 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 	: m_type( Unsupported ),
 	m_code( 0 )
 {
-	switch ( e.type )
+	if ( e.is<sf::Event::KeyPressed>() )
 	{
-		case sf::Event::KeyPressed:
-			if ( e.key.code != sf::Keyboard::Unknown )
+		const auto* event = e.getIf<sf::Event::KeyPressed>();
+		if ( event && event->code != sf::Keyboard::Key::Unknown )
+		{
+			m_type = Keyboard;
+			m_code = static_cast<int>( event->code );
+		}
+	}
+
+	else if ( e.is<sf::Event::JoystickButtonPressed>() )
+	{
+		const auto* event = e.getIf<sf::Event::JoystickButtonPressed>();
+		if ( event )
+		{
+			m_type = static_cast<Type>( Joystick0 + joymap2feid( event->joystickId ));
+			m_code = JoyButton0 + static_cast<int>( event->button );
+		}
+	}
+
+	else if ( e.is<sf::Event::JoystickMoved>() )
+	{
+		const auto* event = e.getIf<sf::Event::JoystickMoved>();
+		if ( event && std::abs( event->position ) > joy_thresh )
+		{
+			switch ( event->axis )
 			{
-				m_type = Keyboard;
-				m_code = e.key.code;
-			}
-			break;
+				case sf::Joystick::Axis::X:
+					m_code = ( event->position > 0 ) ? JoyRight : JoyLeft;
+					break;
 
-		case sf::Event::JoystickButtonPressed:
-			m_type = (Type)(Joystick0 + joymap2feid( e.joystickButton.joystickId ));
-			m_code = JoyButton0 + e.joystickButton.button;
-			break;
-
-		case sf::Event::JoystickMoved:
-			if ( std::abs( e.joystickMove.position ) > joy_thresh )
-			{
-				switch ( e.joystickMove.axis )
-				{
-					case sf::Joystick::X:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyRight : JoyLeft;
-						break;
-
-					case sf::Joystick::Y:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyDown : JoyUp;
-						break;
+				case sf::Joystick::Axis::Y:
+					m_code = ( event->position > 0 ) ? JoyDown : JoyUp;
+					break;
 
 #ifdef SFML_SYSTEM_LINUX
-					//
-					// On Linux, SFML's Z and R axes are mapped to Throttle and Rudder controls
-					// They seem to rest at -100 and go up to 100
-					//
-					case sf::Joystick::Z:
-					case sf::Joystick::R:
-						if ( e.joystickMove.position < 0 )
-							return;
+				case sf::Joystick::Axis::Z:
+				case sf::Joystick::Axis::R:
+					if ( event->position < 0 )
+						return;
 
-						m_code = ( e.joystickMove.axis == sf::Joystick::Z )
-							? JoyZPos : JoyRPos;
-						break;
+					m_code = ( event->axis == sf::Joystick::Axis::Z )
+						? JoyZPos : JoyRPos;
+					break;
 #else
-					case sf::Joystick::Z:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyZPos : JoyZNeg;
-						break;
+				case sf::Joystick::Axis::Z:
+					m_code = ( event->position > 0 ) ? JoyZPos : JoyZNeg;
+					break;
 
-					case sf::Joystick::R:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyRPos : JoyRNeg;
-						break;
+				case sf::Joystick::Axis::R:
+					m_code = ( event->position > 0 ) ? JoyRPos : JoyRNeg;
+					break;
 #endif
 
-					case sf::Joystick::U:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyUPos : JoyUNeg;
-						break;
+				case sf::Joystick::Axis::U:
+					m_code = ( event->position > 0 ) ? JoyUPos : JoyUNeg;
+					break;
 
-					case sf::Joystick::V:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyVPos : JoyVNeg;
-						break;
+				case sf::Joystick::Axis::V:
+					m_code = ( event->position > 0 ) ? JoyVPos : JoyVNeg;
+					break;
 
-					case sf::Joystick::PovX:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyPOVXPos : JoyPOVXNeg;
-						break;
+				case sf::Joystick::Axis::PovX:
+					m_code = ( event->position > 0 ) ? JoyPOVXPos : JoyPOVXNeg;
+					break;
 
-					case sf::Joystick::PovY:
-						m_code = ( e.joystickMove.position > 0 ) ? JoyPOVYPos : JoyPOVYNeg;
-						break;
+				case sf::Joystick::Axis::PovY:
+					m_code = ( event->position > 0 ) ? JoyPOVYPos : JoyPOVYNeg;
+					break;
 
-					default:
-						ASSERT( 0 ); // unhandled joystick axis encountered
-						return;
-				}
-
-				m_type = (Type)(Joystick0 + joymap2feid( e.joystickMove.joystickId ) );
+				default:
+					ASSERT( 0 ); // unhandled joystick axis encountered
+					return;
 			}
-			break;
 
-		case sf::Event::MouseMoved:
-			if ( e.mouseMove.x < mc_rect.left )
+			m_type = static_cast<Type>(Joystick0 + joymap2feid( event->joystickId ));
+		}
+	}
+
+	else if ( e.is<sf::Event::MouseMoved>() )
+	{
+		const auto* event = e.getIf<sf::Event::MouseMoved>();
+		if ( event )
+		{
+			if ( event->position.x < mc_rect.position.x )
 			{
 				m_type = Mouse;
 				m_code = MouseLeft;
 			}
-			else if ( e.mouseMove.y < mc_rect.top )
+			else if ( event->position.y < mc_rect.position.y )
 			{
 				m_type = Mouse;
 				m_code = MouseUp;
 			}
-			else if ( e.mouseMove.x >= mc_rect.left + mc_rect.width )
+			else if ( event->position.x >= mc_rect.position.x + mc_rect.size.x )
 			{
 				m_type = Mouse;
 				m_code = MouseRight;
 			}
-			else if ( e.mouseMove.y >= mc_rect.top + mc_rect.height )
+			else if ( event->position.y >= mc_rect.position.y + mc_rect.size.y )
 			{
 				m_type = Mouse;
 				m_code = MouseDown;
 			}
-			break;
+		}
+	}
 
-		case sf::Event::MouseWheelScrolled:
+	else if ( e.is<sf::Event::MouseWheelScrolled>() )
+	{
+		const auto* event = e.getIf<sf::Event::MouseWheelScrolled>();
+		if ( event )
+		{
 			m_type = Mouse;
-			g_wheel_delta = e.mouseWheelScroll.delta;
-			if ( e.mouseWheelScroll.delta > 0 )
-				m_code=MouseWheelUp;
+			g_wheel_delta = event->delta;
+			if ( event->delta > 0 )
+				m_code = MouseWheelUp;
 			else
-				m_code=MouseWheelDown;
-			break;
+				m_code = MouseWheelDown;
+		}
+	}
 
-		case sf::Event::MouseButtonPressed:
-			switch ( e.mouseButton.button )
+	else if ( e.is<sf::Event::MouseButtonPressed>() )
+	{
+		const auto* event = e.getIf<sf::Event::MouseButtonPressed>();
+		if ( event )
+		{
+			switch ( event->button )
 			{
-				case sf::Mouse::Left: m_code=MouseBLeft; break;
-				case sf::Mouse::Right: m_code=MouseBRight; break;
-				case sf::Mouse::Middle: m_code=MouseBMiddle; break;
-				case sf::Mouse::XButton1: m_code=MouseBX1; break;
-				case sf::Mouse::XButton2: m_code=MouseBX2; break;
+				case sf::Mouse::Button::Left:   m_code = MouseBLeft;   break;
+				case sf::Mouse::Button::Right:  m_code = MouseBRight;  break;
+				case sf::Mouse::Button::Middle: m_code = MouseBMiddle; break;
+				case sf::Mouse::Button::Extra1: m_code = MouseBX1;     break;
+				case sf::Mouse::Button::Extra2: m_code = MouseBX2;     break;
 				default:
 					ASSERT( 0 ); // unhandled mouse button encountered
 					return;
 			}
 			m_type = Mouse;
-			break;
+		}
+	}
 
-		case sf::Event::TouchMoved:
+	else if ( e.is<sf::Event::TouchMoved>() )
+	{
+		const auto* event = e.getIf<sf::Event::TouchMoved>();
+		if ( event && g_last_touch.has_value() )
+		{
+			const int THRESH = 100;
+			int diff_x = event->position.x - g_last_touch->getIf<sf::Event::TouchMoved>()->position.x;
+			int diff_y = event->position.y - g_last_touch->getIf<sf::Event::TouchMoved>()->position.y;
+
+			if ( abs( diff_y ) > THRESH )
 			{
-				const int THRESH = 100;
-				int diff_x = e.touch.x - g_last_touch.touch.x;
-				int diff_y = e.touch.y - g_last_touch.touch.y;
+				if ( diff_y < 0 )
+					m_code = SwipeUp;
+				else
+					m_code = SwipeDown;
 
-				if ( abs( diff_y ) > THRESH )
-				{
-					if ( diff_y < 0 )
-						m_code = SwipeUp;
-					else
-						m_code = SwipeDown;
-
-					m_type = Touch;
-
-					g_touch_moved = true;
-					g_last_touch = e;
-				}
-				else if ( abs( diff_x ) > THRESH )
-				{
-					if ( diff_x < 0 )
-						m_code = SwipeRight;
-					else
-						m_code = SwipeLeft;
-
-					m_type = Touch;
-
-					g_touch_moved = true;
-					g_last_touch = e;
-				}
-			}
-			break;
-
-		case sf::Event::TouchBegan:
-			g_touch_moved = false;
-			g_last_touch = e;
-			break;
-
-		case sf::Event::TouchEnded:
-			if ( !g_touch_moved )
-			{
-				m_code = Tap;
 				m_type = Touch;
-			}
-			break;
 
-		default:
-			break;
+				g_touch_moved = true;
+				g_last_touch = e;
+			}
+			else if ( abs( diff_x ) > THRESH )
+			{
+				if ( diff_x < 0 )
+					m_code = SwipeRight;
+				else
+					m_code = SwipeLeft;
+
+				m_type = Touch;
+
+				g_touch_moved = true;
+				g_last_touch = e;
+			}
+		}
+	}
+
+	else if ( e.is<sf::Event::TouchBegan>() )
+	{
+		g_touch_moved = false;
+		g_last_touch = e;
+	}
+
+	else if ( e.is<sf::Event::TouchEnded>() )
+	{
+		if ( !g_touch_moved )
+		{
+			m_code = Tap;
+			m_type = Touch;
+		}
 	}
 }
 
@@ -610,16 +629,16 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 	if ( m_type == Unsupported )
 		return false;
 	else if ( m_type == Keyboard )
-		return sf::Keyboard::isKeyPressed( (sf::Keyboard::Key)m_code );
+		return sf::Keyboard::isKeyPressed( static_cast<sf::Keyboard::Key>(m_code) );
 	else if ( m_type == Mouse )
 	{
 		switch ( m_code )
 		{
-		case MouseBLeft: return sf::Mouse::isButtonPressed( sf::Mouse::Left );
-		case MouseBRight: return sf::Mouse::isButtonPressed( sf::Mouse::Right );
-		case MouseBMiddle: return sf::Mouse::isButtonPressed( sf::Mouse::Middle );
-		case MouseBX1: return sf::Mouse::isButtonPressed( sf::Mouse::XButton1 );
-		case MouseBX2: return sf::Mouse::isButtonPressed( sf::Mouse::XButton2 );
+		case MouseBLeft: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Left );
+		case MouseBRight: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Right );
+		case MouseBMiddle: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Middle );
+		case MouseBX1: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Extra1 );
+		case MouseBX2: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Extra2 );
 		default: return false; // mouse moves and wheels are not supported
 		}
 	}
@@ -635,22 +654,22 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 		{
 			switch ( m_code )
 			{
-				case JoyLeft: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::X ) > joy_thresh );
-				case JoyRight: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::X ) > joy_thresh );
-				case JoyUp: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Y ) > joy_thresh );
-				case JoyDown: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Y ) > joy_thresh );
-				case JoyZPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Z ) > joy_thresh );
-				case JoyZNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Z ) > joy_thresh );
-				case JoyRPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::R ) > joy_thresh );
-				case JoyRNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::R ) > joy_thresh );
-				case JoyUPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::U ) > joy_thresh );
-				case JoyUNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::U ) > joy_thresh );
-				case JoyVPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::V ) > joy_thresh );
-				case JoyVNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::V ) > joy_thresh );
-				case JoyPOVXPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::PovX ) > joy_thresh );
-				case JoyPOVXNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::PovX ) > joy_thresh );
-				case JoyPOVYPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::PovY ) > joy_thresh );
-				case JoyPOVYNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::PovY ) > joy_thresh );
+				case JoyLeft: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::X ) > joy_thresh );
+				case JoyRight: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::X ) > joy_thresh );
+				case JoyUp: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Y ) > joy_thresh );
+				case JoyDown: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Y ) > joy_thresh );
+				case JoyZPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Z ) > joy_thresh );
+				case JoyZNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Z ) > joy_thresh );
+				case JoyRPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::R ) > joy_thresh );
+				case JoyRNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::R ) > joy_thresh );
+				case JoyUPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::U ) > joy_thresh );
+				case JoyUNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::U ) > joy_thresh );
+				case JoyVPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::V ) > joy_thresh );
+				case JoyVNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::V ) > joy_thresh );
+				case JoyPOVXPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovX ) > joy_thresh );
+				case JoyPOVXNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovX ) > joy_thresh );
+				case JoyPOVYPos: return ( sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovY ) > joy_thresh );
+				case JoyPOVYNeg: return ( -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovY ) > joy_thresh );
 				default: return false;
 			}
 		}
@@ -683,22 +702,22 @@ int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 
 		switch ( m_code )
 		{
-			case JoyLeft: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::X ); break;
-			case JoyRight: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::X ); break;
-			case JoyUp: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Y ); break;
-			case JoyDown: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Y ); break;
-			case JoyZPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Z ); break;
-			case JoyZNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Z ); break;
-			case JoyRPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::R ); break;
-			case JoyRNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::R ); break;
-			case JoyUPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::U ); break;
-			case JoyUNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::U ); break;
-			case JoyVPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::V ); break;
-			case JoyVNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::V ); break;
-			case JoyPOVXPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::PovX ); break;
-			case JoyPOVXNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::PovX ); break;
-			case JoyPOVYPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::PovY ); break;
-			case JoyPOVYNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::PovY ); break;
+			case JoyLeft: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::X ); break;  // Updated
+			case JoyRight: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::X ); break;  // Updated
+			case JoyUp: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Y ); break;  // Updated
+			case JoyDown: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Y ); break;  // Updated
+			case JoyZPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Z ); break;  // Updated
+			case JoyZNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::Z ); break;  // Updated
+			case JoyRPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::R ); break;  // Updated
+			case JoyRNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::R ); break;  // Updated
+			case JoyUPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::U ); break;  // Updated
+			case JoyUNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::U ); break;  // Updated
+			case JoyVPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::V ); break;  // Updated
+			case JoyVNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::V ); break;  // Updated
+			case JoyPOVXPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovX ); break;  // Updated
+			case JoyPOVXNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovX ); break;  // Updated
+			case JoyPOVYPos: temp = sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovY ); break;  // Updated
+			case JoyPOVYNeg: temp = -sf::Joystick::getAxisPosition( id, sf::Joystick::Axis::PovY ); break;  // Updated
 			default: break;
 		}
 
@@ -1011,19 +1030,19 @@ void FeInputMap::initialize_mappings()
 		struct DefaultMappings { FeInputSingle::Type type; int code; Command comm; };
 		DefaultMappings dmap[] =
 		{
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Escape,        Back },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Escape), Back },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0+1, Back },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Up,            Up },
-			{ FeInputSingle::Joystick0,   FeInputSingle::JoyUp,        Up },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Down,          Down },
-			{ FeInputSingle::Joystick0,   FeInputSingle::JoyDown,      Down },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Left,          Left },
-			{ FeInputSingle::Joystick0,   FeInputSingle::JoyLeft,      Left },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Right,         Right },
-			{ FeInputSingle::Joystick0,   FeInputSingle::JoyRight,     Right },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::Enter,         Select },
-			{ FeInputSingle::Keyboard,    sf::Keyboard::LControl,      Select },
-			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0,   Select },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Up), Up },
+			{ FeInputSingle::Joystick0,   FeInputSingle::JoyUp, Up },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Down), Down },
+			{ FeInputSingle::Joystick0,   FeInputSingle::JoyDown, Down },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Left), Left },
+			{ FeInputSingle::Joystick0,   FeInputSingle::JoyLeft, Left },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Right), Right },
+			{ FeInputSingle::Joystick0,   FeInputSingle::JoyRight, Right },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Enter), Select },
+			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::LControl), Select },
+			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0, Select },
 
 #ifdef SFML_SYSTEM_ANDROID
 			{ FeInputSingle::Touch,       FeInputSingle::SwipeUp,      Up },
@@ -1033,7 +1052,7 @@ void FeInputMap::initialize_mappings()
 			{ FeInputSingle::Touch,       FeInputSingle::Tap,          Select },
 #endif
 
-			{ FeInputSingle::Unsupported, sf::Keyboard::Unknown,     LAST_COMMAND }	// keep as last
+			{ FeInputSingle::Unsupported, static_cast<int>(sf::Keyboard::Key::Unknown), LAST_COMMAND }	// keep as last
 		};
 
 		int i=0;
@@ -1133,67 +1152,59 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 {
 	FeInputSingle index( e, mc_rect, joy_thresh );
 
-	switch ( e.type )
+	if ( e.is<sf::Event::Closed>() )
 	{
-	case sf::Event::Closed:
 		m_tracked_keys.clear();
 		return ExitToDesktop;
+	}
 
-	case sf::Event::JoystickMoved:
+	else if ( e.is<sf::Event::JoystickMoved>() )
+	{
+		//
+		// Test that this is a release of a tracked key (joystick axis)
+		//
+		if (( !index.get_current_state( joy_thresh ) )
+			&& ( m_tracked_keys.find( index ) != m_tracked_keys.end() ))
 		{
-			//
-			// Test that this is a release of a tracked key (joystick axis)
-			//
-			if (( !index.get_current_state( joy_thresh ) )
-				&& ( m_tracked_keys.find( index ) != m_tracked_keys.end() ))
-			{
-				FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-				if ( temp != LAST_COMMAND )
-					return temp;
-			}
-		}
-		break;
-
-	case sf::Event::KeyReleased:
-	case sf::Event::JoystickButtonReleased:
-	case sf::Event::MouseButtonReleased:
-		{
-			//
-			// Test that this is a release of a tracked key (button)
-			//
-			sf::Event te = e;
-			switch ( e.type )
-			{
-			case sf::Event::KeyReleased: te.type = sf::Event::KeyPressed; break;
-			case sf::Event::JoystickButtonReleased: te.type = sf::Event::JoystickButtonPressed; break;
-			case sf::Event::MouseButtonReleased: te.type = sf::Event::MouseButtonPressed; break;
-			default: ASSERT( 0 ); break;
-			}
-
-			FeInputSingle tt( te, mc_rect, joy_thresh );
-			if ( m_tracked_keys.find( tt ) != m_tracked_keys.end() )
-			{
-				FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-				if ( temp != LAST_COMMAND )
-					return temp;
-			}
-		}
-		break;
-
-	case sf::Event::TouchEnded:
-		{
-			m_tracked_keys.insert( index );
 			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
 			if ( temp != LAST_COMMAND )
 				return temp;
-
-			m_tracked_keys.erase( index );
-			return LAST_COMMAND;
 		}
-		break;
+	}
 
-	default:
-		break;
+	else if ( e.is<sf::Event::KeyReleased>() ||
+			  e.is<sf::Event::JoystickButtonReleased>() ||
+			  e.is<sf::Event::MouseButtonReleased>() )
+	{
+		//
+		// Test that this is a release of a tracked key (button)
+		//
+		sf::Event te = e;
+		if ( const auto* key = e.getIf<sf::Event::KeyReleased>() )
+			te = sf::Event::KeyPressed{ key->code };
+		else if ( const auto* joy = e.getIf<sf::Event::JoystickButtonReleased>() )
+			te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
+		else if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() )
+			te = sf::Event::MouseButtonPressed{ mouse->button };
+
+		FeInputSingle tt( te, mc_rect, joy_thresh );
+		if ( m_tracked_keys.find( tt ) != m_tracked_keys.end() )
+		{
+			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
+			if ( temp != LAST_COMMAND )
+				return temp;
+		}
+	}
+
+	else if ( e.is<sf::Event::TouchEnded>() )
+	{
+		m_tracked_keys.insert( index );
+		FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
+		if ( temp != LAST_COMMAND )
+			return temp;
+
+		m_tracked_keys.erase( index );
+		return LAST_COMMAND;
 	}
 
 	if ( index.get_type() == FeInputSingle::Unsupported )

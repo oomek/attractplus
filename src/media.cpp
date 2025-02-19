@@ -155,7 +155,7 @@ class FeAudioImp : public FeBaseStream
 {
 public:
 	SwrContext *resample_ctx;
-	sf::Int16 *audio_buff;
+	std::int16_t *audio_buff;
 	std::recursive_mutex audio_buff_mutex;
 
 	FeAudioImp();
@@ -177,7 +177,7 @@ private:
 	//
 	std::thread m_video_thread;
 	FeMedia *m_parent;
-	sf::Uint8 *rgba_buffer[4];
+	std::uint8_t *rgba_buffer[4];
 	int rgba_linesize[4];
 	sf::Time half_frame_offset;
 
@@ -200,7 +200,7 @@ public:
 	// The main thread then copies the image into the corresponding sf::Texture.
 	//
 	std::recursive_mutex image_swap_mutex;
-	sf::Uint8 *display_frame;
+	std::uint8_t *display_frame;
 
 	FeVideoImp( FeMedia *parent );
 	~FeVideoImp();
@@ -343,8 +343,8 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 		std::lock_guard<std::recursive_mutex> l( audio_buff_mutex );
 
 		memcpy( (audio_buff + offset), frame->data[0], data_size );
-		offset += data_size / sizeof( sf::Int16 );
-		data.sampleCount += data_size / sizeof(sf::Int16);
+		offset += data_size / sizeof( std::int16_t );
+		data.sampleCount += data_size / sizeof(std::int16_t);
 		data.samples = audio_buff;
 	}
 	else
@@ -934,7 +934,7 @@ bool FeMedia::is_playing()
 	if ((m_video) && (!m_video->at_end))
 		return (m_video->run_video_thread);
 
-	return ((m_audio) && (sf::SoundStream::getStatus() == sf::SoundStream::Playing));
+	return ((m_audio) && (sf::SoundStream::getStatus() == sf::SoundStream::Status::Playing));
 }
 
 void FeMedia::setVolume(float volume)
@@ -955,7 +955,7 @@ int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
 {
 	sf::InputStream *z = (sf::InputStream *)opaque;
 
-	sf::Int64 bytes_read = z->read( buff, buff_size );
+	size_t bytes_read = z->read( buff, buff_size ).value_or(0);
 
 	if ( bytes_read == 0 )
 		return AVERROR_EOF;
@@ -964,24 +964,30 @@ int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
 }
 
 // whence: SEEK_SET, SEEK_CUR, SEEK_END, and AVSEEK_SIZE
-int64_t fe_media_seek( void *opaque, int64_t offset, int whence )
+size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 {
 	sf::InputStream *z = (sf::InputStream *)opaque;
 
 	switch ( whence )
 	{
 	case AVSEEK_SIZE:
-		return z->getSize();
+		return z->getSize().value_or(0);
 
 	case SEEK_CUR:
-		return z->seek( z->tell() + offset );
+		if ( auto pos = z->tell() )
+			return z->seek( *pos + static_cast<size_t>( offset )).value_or(0);
+		else
+			return 0;
 
 	case SEEK_END:
-		return z->seek( z->getSize() + offset );
+		if ( auto size = z->getSize() )
+			return z->seek( *size + static_cast<size_t>( offset )).value_or(0);
+		else
+			return 0;
 
 	case SEEK_SET:
 	default:
-		return z->seek( offset );
+		return z->seek( static_cast<size_t>( offset )).value_or(0);
 	}
 }
 
@@ -1015,7 +1021,7 @@ bool FeMedia::open( const std::string &archive,
 		s = (sf::InputStream *)z;
 	}
 	else
-		s = new FeFileInputStream( name );
+		s = new sf::FileInputStream( name );
 
 	m_imp->m_format_ctx = avformat_alloc_context();
 
@@ -1029,7 +1035,7 @@ bool FeMedia::open( const std::string &archive,
 
 	m_imp->m_io_ctx = avio_alloc_context( avio_ctx_buffer,
 		avio_ctx_buffer_size, 0, s, &fe_media_read,
-		NULL, &fe_media_seek );
+		NULL, reinterpret_cast<int64_t (*)( void*, int64_t, int )>( fe_media_seek ));
 
 	m_imp->m_format_ctx->pb = m_imp->m_io_ctx;
 
@@ -1081,7 +1087,7 @@ bool FeMedia::open( const std::string &archive,
 				// TODO: Fix buffer sizing, we allocate way
 				// more than we use
 				//
-				m_audio->audio_buff = (sf::Int16 *)av_malloc(
+				m_audio->audio_buff = (std::int16_t *)av_malloc(
 					MAX_AUDIO_FRAME_SIZE
 					+ AV_INPUT_BUFFER_PADDING_SIZE
 					+ codec_ctx->sample_rate );
@@ -1094,10 +1100,10 @@ bool FeMedia::open( const std::string &archive,
 
 				sf::SoundStream::initialize(
 					nb_channels,
-					codec_ctx->sample_rate );
+					codec_ctx->sample_rate,
+					{ sf::SoundChannel::FrontLeft, sf::SoundChannel::FrontRight } );
 
-				sf::SoundStream::setLoop( false );
-				sf::SoundStream::setProcessingInterval( sf::milliseconds( 1 ));
+				sf::SoundStream::setLooping( false );
 			}
 		}
 	}
@@ -1194,7 +1200,7 @@ bool FeMedia::open( const std::string &archive,
 
 				m_video->display_texture = outt;
 				if ( outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ) )
-					m_video->display_texture->create( m_video->disptex_width, m_video->disptex_height );
+					bool ret = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height ) });
 
 				m_video->init_rgba_buffer();
 			}

@@ -46,32 +46,32 @@ public:
 	// Constructor for use in overlay.  sets m_scripted to false
 	FeListBox( FePresentableParent &p,
 			const sf::Font *font,
-			const sf::Color &colour,
-			const sf::Color &bgcolour,
-			const sf::Color &selcolour,
-			const sf::Color &selbgcolour,
+			sf::Color colour,
+			sf::Color bgcolour,
+			sf::Color selcolour,
+			sf::Color selbgcolour,
 			unsigned int characterSize,
 			int rows );
 
 	void setFont( const sf::Font & );
-	const sf::Vector2f &getPosition() const;
+	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
 	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};
-	const sf::Vector2f &getSize() const;
+	sf::Vector2f getSize() const;
 	void setSize( const sf::Vector2f & );
 	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
 	float getRotation() const;
-	const sf::Color &getColor() const;
+	sf::Color getColor() const;
 
 	int getIndexOffset() const;
 	void setIndexOffset( int );
 	int getFilterOffset() const;
 	void setFilterOffset( int );
 
-	void setColor( const sf::Color & );
-	void setBgColor( const sf::Color & );
-	void setSelColor( const sf::Color & );
-	void setSelBgColor( const sf::Color & );
+	void setColor( sf::Color );
+	void setBgColor( sf::Color );
+	void setSelColor( sf::Color );
+	void setSelBgColor( sf::Color );
 	void setSelStyle( int );
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
