@@ -300,7 +300,7 @@ bool FeTextureContainer::fix_masked_image()
 
 	if (( tmp_s.x > 0 ) && ( tmp_s.y > 0 ))
 	{
-		sf::Color p = tmp_img.getPixel( 0, 0 );
+		sf::Color p = tmp_img.getPixel({ 0, 0 });
 		tmp_img.createMaskFromColor( p );
 
 		if ( m_texture.loadFromImage( tmp_img ) )
@@ -363,8 +363,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	if ( res && !is_image )
 	{
 		// Fill the first video frame with a black colour
-		sf::Image img;
-		img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color( 0, 0, 0 ));
+		sf::Image img({ m_texture.getSize().x, m_texture.getSize().y }, sf::Color( 0, 0, 0 ));
 		m_texture.update( img );
 	}
 
@@ -408,13 +407,12 @@ bool FeTextureContainer::try_to_load(
 
 	// resize our texture accordingly
 	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
-		m_texture.create( m_entry->get_width(), m_entry->get_height() );
 
-	if ( data )
+	if ( data && m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )}))
 	{
 		m_texture.update( data );
 		il.release_entry( &m_entry ); // don't need entry any more
-		if ( m_mipmap ) m_texture.generateMipmap();
+		if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 		m_texture.setSmooth( m_smooth );
 	}
 
@@ -558,7 +556,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( il.check_loaded( m_entry ) )
 		{
 			m_texture.update( m_entry->get_data() );
-			if ( m_mipmap ) m_texture.generateMipmap();
+			if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 			m_texture.setSmooth( m_smooth );
 
 			il.release_entry( &m_entry );
@@ -609,7 +607,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
-			if ( m_mipmap ) m_texture.generateMipmap();
+			if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 			return true;
 		}
 	}
@@ -846,7 +844,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie) m_texture.generateMipmap();
+	if ( m_mipmap && !m_movie ) bool ret = m_texture.generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -902,10 +900,10 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	if ( fep )
 	{
 		FeSettings *fes = fep->get_fes();
-		if ( fes ) ctx.antialiasingLevel = fes->get_antialiasing();
+		if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
 	}
-	m_texture.create( width, height, ctx );
-	m_texture.clear( sf::Color::Transparent );
+	if ( m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
+		m_texture.clear( sf::Color::Transparent );
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -961,7 +959,7 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 		}
 
 		m_texture.display();
-		if ( m_mipmap ) m_texture.generateMipmap();
+		if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 	}
 }
 
@@ -1089,7 +1087,7 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 
 	//  reset texture rect now to the one reported by the new texture object
 	m_sprite.setTextureRect(
-		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
+		sf::FloatRect({ 0, 0 }, { static_cast<float>( m_tex->get_texture().getSize().x ), static_cast<float>( m_tex->get_texture().getSize().y )}));
 
 	scale();
 }
@@ -1187,7 +1185,7 @@ void FeImage::scale()
 	sf::FloatRect texture_rect = m_sprite.getTextureRect();
 	float ratio = m_tex->get_sample_aspect_ratio();
 
-	if (( texture_rect.width == 0 ) || ( texture_rect.height == 0 ))
+	if (( texture_rect.size.x == 0 ) || ( texture_rect.size.y == 0 ))
 		return;
 
 	bool scale=false;
@@ -1196,7 +1194,7 @@ void FeImage::scale()
 
 	if ( m_size.x > 0.0 )
 	{
-		scale_x = (float) m_size.x / abs( texture_rect.width );
+		scale_x = (float) m_size.x / abs( texture_rect.size.x );
 
 		if ( m_preserve_aspect_ratio )
 			scale_y = scale_x;
@@ -1206,7 +1204,7 @@ void FeImage::scale()
 
 	if ( m_size.y > 0.0 )
 	{
-		scale_y = (float) m_size.y / abs( texture_rect.height );
+		scale_y = (float) m_size.y / abs( texture_rect.size.y );
 
 		if ( m_preserve_aspect_ratio )
 		{
@@ -1220,15 +1218,12 @@ void FeImage::scale()
 				// ratio, so calculate how we will centre the image in the space we have
 				//
 				sf::Transform t;
-				t.rotate( m_rotation );
+				t.rotate( sf::degrees( m_rotation ));
 
 				if ( scale_x > scale_y * ratio ) // centre in x direction
-					final_pos += t.transformPoint(
-						( m_size.x - abs( texture_rect.width ) * scale_y * ratio ) / 2.0,
-						0 );
+					final_pos += t.transformPoint({ static_cast<float>(( m_size.x - abs( texture_rect.size.x ) * scale_y * ratio ) / 2.0 ), 0 });
 				else // centre in y direction
-					final_pos += t.transformPoint( 0,
-						( m_size.y - abs( texture_rect.height ) * scale_x / ratio ) / 2.0 );
+					final_pos += t.transformPoint({ 0, static_cast<float>(( m_size.y - abs( texture_rect.size.y ) * scale_x / ratio ) / 2.0 )});
 			}
 		}
 
@@ -1249,16 +1244,16 @@ void FeImage::scale()
 	final_pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * m_size.x, ( m_rotation_origin.y -  m_anchor.y ) * m_size.y );
 
 	m_sprite.setPosition( final_pos );
-	m_sprite.setRotation( m_rotation );
-	m_sprite.setOrigin(( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y );
+	m_sprite.setRotation( sf::degrees( m_rotation ));
+	m_sprite.setOrigin({( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y });
 }
 
-const sf::Vector2f &FeImage::getPosition() const
+sf::Vector2f FeImage::getPosition() const
 {
 	return m_pos;
 }
 
-const sf::Vector2f &FeImage::getSize() const
+sf::Vector2f FeImage::getSize() const
 {
 	return m_size;
 }
@@ -1298,12 +1293,12 @@ void FeImage::setRotation( float r )
 	}
 }
 
-const sf::Color &FeImage::getColor() const
+sf::Color FeImage::getColor() const
 {
 	return m_sprite.getColor();
 }
 
-void FeImage::setColor( const sf::Color &c )
+void FeImage::setColor( sf::Color c )
 {
 	if ( c != m_sprite.getColor() )
 	{
@@ -1312,12 +1307,12 @@ void FeImage::setColor( const sf::Color &c )
 	}
 }
 
-const sf::Vector2u FeImage::getTextureSize() const
+sf::Vector2u FeImage::getTextureSize() const
 {
 	return m_tex->get_texture().getSize();
 }
 
-const sf::FloatRect &FeImage::getTextureRect() const
+sf::FloatRect FeImage::getTextureRect() const
 {
 	return m_sprite.getTextureRect();
 }
@@ -1603,22 +1598,22 @@ int FeImage::get_texture_height() const
 
 float FeImage::get_subimg_x() const
 {
-	return getTextureRect().left;
+	return getTextureRect().position.x;
 }
 
 float FeImage::get_subimg_y() const
 {
-	return getTextureRect().top;
+	return getTextureRect().position.y;
 }
 
 float FeImage::get_subimg_width() const
 {
-	return getTextureRect().width;
+	return getTextureRect().size.x;
 }
 
 float FeImage::get_subimg_height() const
 {
-	return getTextureRect().height;
+	return getTextureRect().size.y;
 }
 
 float FeImage::get_sample_aspect_ratio() const
@@ -1634,28 +1629,28 @@ bool FeImage::get_preserve_aspect_ratio() const
 void FeImage::set_subimg_x( float x )
 {
 	sf::FloatRect r = getTextureRect();
-	r.left=x;
+	r.position.x=x;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_y( float y )
 {
 	sf::FloatRect r = getTextureRect();
-	r.top=y;
+	r.position.y=y;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_width( float w )
 {
 	sf::FloatRect r = getTextureRect();
-	r.width=w;
+	r.size.x=w;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_height( float h )
 {
 	sf::FloatRect r = getTextureRect();
-	r.height=h;
+	r.size.y=h;
 	setTextureRect( r );
 }
 

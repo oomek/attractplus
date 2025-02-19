@@ -50,18 +50,18 @@ public:
 	FeRectangle( FePresentableParent &p,
 		float x, float y, float w, float h );
 
-	const sf::Vector2f &getPosition() const;
+	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
 	void setPosition( float x, float y ) {return setPosition(sf::Vector2f(x,y));};
-	const sf::Vector2f &getSize() const;
+	sf::Vector2f getSize() const;
 	void setSize( const sf::Vector2f & );
 	void setSize( float w, float h ) {return setSize(sf::Vector2f(w,h));};
 	float getRotation() const;
 	void setRotation( float );
-	const sf::Color &getColor() const;
-	const sf::Color &getOutlineColor() const;
-	void setColor( const sf::Color & );
-	void setOutlineColor( const sf::Color & );
+	sf::Color getColor() const;
+	sf::Color getOutlineColor();
+	void setColor( sf::Color );
+	void setOutlineColor( sf::Color );
 
 	float get_outline();
 	void set_outline( float o );

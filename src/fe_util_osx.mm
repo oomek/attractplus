@@ -38,22 +38,22 @@ namespace
 		{
 			[pool release];
 		}
-	
+
 	private:
 		NSAutoreleasePool* pool;
 	};
 
-	static std::basic_string<sf::Uint32> string_from_cocoa( NSString* s )
+	static std::basic_string<std::uint32_t> string_from_cocoa( NSString* s )
 	{
 		std::string t1 = std::string( [s UTF8String] );
 
-		std::basic_string<sf::Uint32> t2, retval;
+		std::basic_string<std::uint32_t> t2, retval;
 		sf::Utf8::toUtf32( t1.begin(),
 			t1.end(),
 			std::back_inserter( t2 ) );
 
 		// clean the string
-		for ( std::basic_string<sf::Uint32>::iterator itr=t2.begin();
+		for ( std::basic_string<std::uint32_t>::iterator itr=t2.begin();
 				itr != t2.end();
 				++itr )
 		{
@@ -70,7 +70,7 @@ void osx_hide_menu_bar()
 	[NSMenu setMenuBarVisible:NO];
 }
 
-std::basic_string<sf::Uint32> osx_clipboard_get_content()
+std::basic_string<std::uint32_t> osx_clipboard_get_content()
 {
 	cocoa_ar_pool_class pool;
 

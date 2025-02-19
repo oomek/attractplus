@@ -83,7 +83,7 @@ LD=objcopy
 B64FLAGS = -w0
 
 CFLAGS += -DSQUSEDOUBLE
-CFLAGS += -std=c++11
+CFLAGS += -std=c++17
 
 ifndef OPTIMIZE
 OPTIMIZE=2
@@ -141,7 +141,6 @@ RES_IMGS_DIR = $(RES_DIR)/images
 
 _DEP =\
 	fe_base.hpp \
-	fe_file.hpp \
 	fe_util.hpp \
 	fe_util_sq.hpp \
 	fe_info.hpp \
@@ -175,7 +174,6 @@ _DEP =\
 
 _OBJ =\
 	fe_base.o \
-	fe_file.o \
 	fe_util.o \
 	fe_util_sq.o \
 	fe_cmdline.o \

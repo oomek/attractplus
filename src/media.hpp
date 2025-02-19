@@ -60,8 +60,8 @@ public:
 	using sf::SoundStream::setPitch;
 	using sf::SoundStream::getPitch;
 	using sf::SoundStream::getStatus;
-	using sf::SoundStream::setLoop;
-	using sf::SoundStream::getLoop;
+	using sf::SoundStream::setLooping;
+	using sf::SoundStream::isLooping;
 
 	void play();
 	void stop();
@@ -98,8 +98,8 @@ public:
 protected:
 	// overrides from base class
 	//
-	bool onGetData( Chunk &data );
-	void onSeek( sf::Time timeOffset );
+	bool onGetData( Chunk &data ) override;
+	void onSeek( sf::Time timeOffset ) override;
 
 	bool read_packet();
 	bool end_of_file();

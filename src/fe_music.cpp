@@ -33,8 +33,7 @@ FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
 	m_volume( 100.0 )
 {
-	m_music.setLoop( loop );
-	m_music.setProcessingInterval(sf::milliseconds(1));
+	m_music.setLooping( loop );
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -102,7 +101,7 @@ void FeMusic::set_volume( float v )
 
 bool FeMusic::get_playing()
 {
-	return ( m_music.getStatus() == sf::SoundSource::Playing ) ? true : false;
+	return ( m_music.getStatus() == sf::SoundSource::Status::Playing ) ? true : false;
 }
 
 void FeMusic::set_playing( bool state )
@@ -125,12 +124,12 @@ void FeMusic::set_pitch( float p )
 
 bool FeMusic::get_loop()
 {
-	return m_music.getLoop();
+	return m_music.isLooping();
 }
 
 void FeMusic::set_loop( bool loop )
 {
-	m_music.setLoop( loop );
+	m_music.setLooping( loop );
 }
 
 float FeMusic::get_x()

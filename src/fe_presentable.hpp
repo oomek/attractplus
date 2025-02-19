@@ -53,14 +53,14 @@ public:
 	virtual void set_scale_factor( float, float );
 
 	virtual const sf::Drawable &drawable() const=0;
-	virtual const sf::Vector2f &getPosition() const=0;
+	virtual sf::Vector2f getPosition() const=0;
 	virtual void setPosition( const sf::Vector2f & )=0;
-	virtual const sf::Vector2f &getSize() const=0;
+	virtual sf::Vector2f getSize() const=0;
 	virtual void setSize( const sf::Vector2f & )=0;
 	virtual float getRotation() const=0;
 	virtual void setRotation( float )=0;
-	virtual const sf::Color &getColor() const=0;
-	virtual void setColor( const sf::Color & )=0;
+	virtual sf::Color getColor() const=0;
+	virtual void setColor( sf::Color )=0;
 	virtual int getIndexOffset() const;
 	virtual void setIndexOffset( int io );
 	virtual int getFilterOffset() const;
