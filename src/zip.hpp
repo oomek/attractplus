@@ -26,7 +26,6 @@
 #include <string>
 #include <vector>
 #include <SFML/System/InputStream.hpp>
-#include <SFML/System/NonCopyable.hpp>
 
 typedef void *(*FE_ZIP_ALLOC_CALLBACK) ( size_t );
 bool fe_zip_open_to_buff(

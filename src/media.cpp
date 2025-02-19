@@ -1015,7 +1015,7 @@ bool FeMedia::open( const std::string &archive,
 		s = (sf::InputStream *)z;
 	}
 	else
-		s = new FeFileInputStream( name );
+		s = new sf::InputStream( name );
 
 	m_imp->m_format_ctx = avformat_alloc_context();
 

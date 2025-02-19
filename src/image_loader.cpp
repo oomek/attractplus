@@ -414,7 +414,7 @@ FeImageLoader::~FeImageLoader()
 
 bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEntry **e )
 {
-	sf::InputStream *fs = new FeFileInputStream( fn );
+	sf::InputStream *fs = new sf::InputStream( fn );
 	return internal_load_image( fn, fs, e );
 }
 
