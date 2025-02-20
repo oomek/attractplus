@@ -96,21 +96,21 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 			if ( !default_shader_multiplied )
 			{
 				default_shader_multiplied = new sf::Shader();
-				default_shader_multiplied->loadFromMemory( DEFAULT_SHADER_GLSL_MULTIPLIED, sf::Shader::Fragment );
+				default_shader_multiplied->loadFromMemory( DEFAULT_SHADER_GLSL_MULTIPLIED, sf::Shader::Type::Fragment );
 			}
 			return default_shader_multiplied;
 		case FeBlend::Overlay:
 			if ( !default_shader_overlay )
 			{
 				default_shader_overlay = new sf::Shader();
-				default_shader_overlay->loadFromMemory( DEFAULT_SHADER_GLSL_OVERLAY, sf::Shader::Fragment );
+				default_shader_overlay->loadFromMemory( DEFAULT_SHADER_GLSL_OVERLAY, sf::Shader::Type::Fragment );
 			}
 			return default_shader_overlay;
 		case FeBlend::Premultiplied:
 			if ( !default_shader_premultiplied )
 			{
 				default_shader_premultiplied = new sf::Shader();
-				default_shader_premultiplied->loadFromMemory( DEFAULT_SHADER_GLSL_PREMULTIPLIED, sf::Shader::Fragment );
+				default_shader_premultiplied->loadFromMemory( DEFAULT_SHADER_GLSL_PREMULTIPLIED, sf::Shader::Type::Fragment );
 			}
 			return default_shader_premultiplied;
 		default:

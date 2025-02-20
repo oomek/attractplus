@@ -76,7 +76,7 @@
 
 ////////////////////////////////////////////////////////////
 FeSprite::FeSprite() :
-m_vertices( sf::TrianglesStrip, 4 ),
+m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
@@ -87,7 +87,7 @@ m_skew( 0.f, 0.f )
 
 ////////////////////////////////////////////////////////////
 FeSprite::FeSprite(const sf::Texture& texture) :
-m_vertices( sf::TrianglesStrip, 4 ),
+m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
@@ -99,7 +99,7 @@ m_skew( 0.f, 0.f )
 
 ////////////////////////////////////////////////////////////
 FeSprite::FeSprite(const sf::Texture& texture, const sf::FloatRect& rectangle) :
-m_vertices( sf::TrianglesStrip, 4 ),
+m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
@@ -305,7 +305,7 @@ void FeSprite::updateGeometry()
 		float bpxs = bws - (float)spinch.x * 2 / SLICES;
 
 		m_vertices.resize( SLICES + 3 );
-		m_vertices.setPrimitiveType( sf::TrianglesStrip );
+		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
 
 		//
 		// First do the vertex coordinates
@@ -352,7 +352,7 @@ void FeSprite::updateGeometry()
 		// If we aren't pinching the image, then we draw it on two triangles.
 		//
 		m_vertices.resize( 4 );
-		m_vertices.setPrimitiveType( sf::TrianglesStrip );
+		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
 
 		m_vertices[0].position = sf::Vector2f(0, 0);
 		m_vertices[1].position = sf::Vector2f(sskew.x, bounds.height);
