@@ -1152,67 +1152,59 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 {
 	FeInputSingle index( e, mc_rect, joy_thresh );
 
-	switch ( e.type )
+	if ( e.is<sf::Event::Closed>() )
 	{
-	case sf::Event::Closed:
 		m_tracked_keys.clear();
 		return ExitToDesktop;
+	}
 
-	case sf::Event::JoystickMoved:
+	else if ( e.is<sf::Event::JoystickMoved>() )
+	{
+		//
+		// Test that this is a release of a tracked key (joystick axis)
+		//
+		if (( !index.get_current_state( joy_thresh ) )
+			&& ( m_tracked_keys.find( index ) != m_tracked_keys.end() ))
 		{
-			//
-			// Test that this is a release of a tracked key (joystick axis)
-			//
-			if (( !index.get_current_state( joy_thresh ) )
-				&& ( m_tracked_keys.find( index ) != m_tracked_keys.end() ))
-			{
-				FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-				if ( temp != LAST_COMMAND )
-					return temp;
-			}
-		}
-		break;
-
-	case sf::Event::KeyReleased:
-	case sf::Event::JoystickButtonReleased:
-	case sf::Event::MouseButtonReleased:
-		{
-			//
-			// Test that this is a release of a tracked key (button)
-			//
-			sf::Event te = e;
-			switch ( e.type )
-			{
-			case sf::Event::KeyReleased: te.type = sf::Event::KeyPressed; break;
-			case sf::Event::JoystickButtonReleased: te.type = sf::Event::JoystickButtonPressed; break;
-			case sf::Event::MouseButtonReleased: te.type = sf::Event::MouseButtonPressed; break;
-			default: ASSERT( 0 ); break;
-			}
-
-			FeInputSingle tt( te, mc_rect, joy_thresh );
-			if ( m_tracked_keys.find( tt ) != m_tracked_keys.end() )
-			{
-				FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-				if ( temp != LAST_COMMAND )
-					return temp;
-			}
-		}
-		break;
-
-	case sf::Event::TouchEnded:
-		{
-			m_tracked_keys.insert( index );
 			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
 			if ( temp != LAST_COMMAND )
 				return temp;
-
-			m_tracked_keys.erase( index );
-			return LAST_COMMAND;
 		}
-		break;
+	}
 
-	default:
-		break;
+	else if ( e.is<sf::Event::KeyReleased>() ||
+			  e.is<sf::Event::JoystickButtonReleased>() ||
+			  e.is<sf::Event::MouseButtonReleased>() )
+	{
+		//
+		// Test that this is a release of a tracked key (button)
+		//
+		sf::Event te = e;
+		if ( const auto* key = e.getIf<sf::Event::KeyReleased>() )
+			te = sf::Event::KeyPressed{ key->code };
+		else if ( const auto* joy = e.getIf<sf::Event::JoystickButtonReleased>() )
+			te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
+		else if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() )
+			te = sf::Event::MouseButtonPressed{ mouse->button };
+
+		FeInputSingle tt( te, mc_rect, joy_thresh );
+		if ( m_tracked_keys.find( tt ) != m_tracked_keys.end() )
+		{
+			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
+			if ( temp != LAST_COMMAND )
+				return temp;
+		}
+	}
+
+	else if ( e.is<sf::Event::TouchEnded>() )
+	{
+		m_tracked_keys.insert( index );
+		FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
+		if ( temp != LAST_COMMAND )
+			return temp;
+
+		m_tracked_keys.erase( index );
+		return LAST_COMMAND;
 	}
 
 	if ( index.get_type() == FeInputSingle::Unsupported )
