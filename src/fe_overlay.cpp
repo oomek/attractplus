@@ -759,7 +759,7 @@ bool FeOverlay::edit_dialog(
 	draw_list.push_back( &message );
 	draw_list.push_back( &tp );
 
-	std::basic_string<sf::Uint32> str;
+	std::basic_string<std::uint32_t> str;
 	sf::Utf8::toUtf32( text.begin(), text.end(), std::back_inserter( str ) );
 
 	FeFlagMinder fm( m_overlay_is_on );
@@ -1296,7 +1296,7 @@ int FeOverlay::display_config_dialog(
 			else
 			{
 				const std::string &e_str( ctx.curr_opt().get_value() );
-				std::basic_string<sf::Uint32> str;
+				std::basic_string<std::uint32_t> str;
 				sf::Utf8::toUtf32( e_str.begin(), e_str.end(),
 						std::back_inserter( str ) );
 
@@ -1710,7 +1710,7 @@ int get_char_idx( unsigned char c )
 };
 
 bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
-			std::basic_string<sf::Uint32> &str, FeTextPrimitive *tp )
+			std::basic_string<std::uint32_t> &str, FeTextPrimitive *tp )
 {
 	sf::Clock cursor_timer;
 	const sf::Transform &t = m_fePresent.get_ui_transform();
@@ -1821,7 +1821,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 					if ( ev.key.control )
 #endif
 					{
-						std::basic_string<sf::Uint32> temp = clipboard_get_content();
+						std::basic_string<std::uint32_t> temp = clipboard_get_content();
 						str.insert( cursor_pos, temp.c_str() );
 						cursor_pos += temp.length();
 					}

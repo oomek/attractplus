@@ -34,7 +34,7 @@ void osx_hide_menu_bar();
 //
 // Get a string from the OS X clipboard.
 //
-std::basic_string<sf::Uint32> osx_clipboard_get_content();
+std::basic_string<std::uint32_t> osx_clipboard_get_content();
 
 //
 // Put the focus on Attract-Mode.

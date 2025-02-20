@@ -124,7 +124,7 @@ const sf::Color &FeTextPrimitive::getBgOutlineColor() const
 }
 
 void FeTextPrimitive::fit_string(
-			const std::basic_string<sf::Uint32> &s,
+			const std::basic_string<std::uint32_t> &s,
 			int &position,
 			int &first_char,
 			int &last_char )
@@ -246,7 +246,7 @@ void FeTextPrimitive::setString( const std::string &t )
 	// UTF-8 character encoding is assumed.
 	// Need to convert to UTF-32 before giving string to SFML
 	//
-	std::basic_string<sf::Uint32> tmp;
+	std::basic_string<std::uint32_t> tmp;
 	sf::Utf8::toUtf32( t.begin(), t.end(), std::back_inserter( tmp ));
 
 	// We need to add one trailing space to the string
@@ -258,7 +258,7 @@ void FeTextPrimitive::setString( const std::string &t )
 }
 
 sf::Vector2f FeTextPrimitive::setString(
-			const std::basic_string<sf::Uint32> &t,
+			const std::basic_string<std::uint32_t> &t,
 			int position )
 {
 	//
