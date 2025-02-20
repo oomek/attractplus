@@ -165,10 +165,10 @@ void FeTextPrimitive::fit_string(
 		width -= m_margin * 2.0;
 
 	if ( !edit_mode )
-		running_total = -g->bounds.left;
+		running_total = -g->bounds.position.x;
 
 	// We need to adjust the width to make sure that at least one character is displayed per line
-	width = std::max( width, (float)g->bounds.width );
+	width = std::max( width, (float)g->bounds.size.x );
 
 	while (( running_width <= width ) && (( i < (int)s.size() ) || ( !m_word_wrap && ( j > 0 ))))
 	{
@@ -181,7 +181,7 @@ void FeTextPrimitive::fit_string(
 			}
 
 			g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
-			running_width = std::max( running_width, (int)( running_total + g->bounds.left + g->bounds.width ));
+			running_width = std::max( running_width, (int)( running_total + g->bounds.position.x + g->bounds.size.x ));
 			running_total += g->advance;
 
 			if ( s[i] == L' ' )
@@ -206,7 +206,7 @@ void FeTextPrimitive::fit_string(
 			kerning = font->getKerning( s[j], s[std::min( j + 1, (int)s.size() - 1 )], charsize );
 			running_total += kerning;
 			g = &font->getGlyph( s[j], charsize, m_texts[0].getStyle() & sf::Text::Bold );
-			running_width = std::max( running_width, (int)( running_total + g->bounds.left + g->bounds.width ));
+			running_width = std::max( running_width, (int)( running_total + g->bounds.position.x + g->bounds.size.x ));
 			running_total += g->advance;
 		}
 	}
@@ -287,7 +287,7 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	const sf::Font *font = getFont();
 	const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
-	float glyphSize = glyph->bounds.height * m_texts[0].getScale().y;
+	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
 	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
 	int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
 	float default_spacing = font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y;
@@ -295,12 +295,12 @@ sf::Vector2f FeTextPrimitive::setString(
 	if ( m_align & ( Top | Bottom | Middle ))
 	{
 		if ( m_margin < 0 )
-			m_lines = std::max( 1, (int)floorf(( rectSize.height + spacing - default_spacing - glyphSize ) / spacing ));
+			m_lines = std::max( 1, (int)floorf(( rectSize.size.y + spacing - default_spacing - glyphSize ) / spacing ));
 		else
-			m_lines = std::max( 1, (int)floorf(( rectSize.height + spacing - glyphSize - m_margin * 2.0 ) / spacing ));
+			m_lines = std::max( 1, (int)floorf(( rectSize.size.y + spacing - glyphSize - m_margin * 2.0 ) / spacing ));
 	}
 	else
-		m_lines = std::max( 1, (int)( rectSize.height / spacing ));
+		m_lines = std::max( 1, (int)( rectSize.size.y / spacing ));
 
 	//
 	// Cut the string if it is too big to fit our dimension
@@ -387,9 +387,9 @@ void FeTextPrimitive::set_positions() const
 
 		// we need to account for the scaling that we have applied to our text...
 		sf::FloatRect textSize = m_texts[i].getLocalBounds();
-		textSize.width *= m_texts[i].getScale().x;
-		textSize.height *= m_texts[i].getScale().y;
-		textSize.left *= m_texts[i].getScale().x;
+		textSize.size.x *= m_texts[i].getScale().x;
+		textSize.size.y *= m_texts[i].getScale().y;
+		textSize.position.x *= m_texts[i].getScale().x;
 
 		// outline compensation
 		float outline = ceilf( m_outline );
@@ -398,22 +398,22 @@ void FeTextPrimitive::set_positions() const
 		if ( m_align & Left )
 			textPos.x = rectPos.x - outline;
 		else if ( m_align & Right )
-			textPos.x = rectPos.x + floorf( rectSize.width ) - textSize.width + outline;
+			textPos.x = rectPos.x + floorf( rectSize.size.x ) - textSize.size.x + outline;
 		else if ( m_align & Centre )
-			textPos.x = rectPos.x + floorf(( rectSize.width - textSize.width ) / 2.0 );
+			textPos.x = rectPos.x + floorf(( rectSize.size.x - textSize.size.x ) / 2.0 );
 
 		if ( m_align & ( Top | Bottom | Middle ))
-			textPos.x -= textSize.left;
+			textPos.x -= textSize.position.x;
 
 		// set position y
 		if ( m_align & Top )
 			textPos.y = rectPos.y + ceilf( spacing * i - charSize + glyphSize );
 		else if ( m_align & Bottom )
-			textPos.y = rectPos.y + floorf( rectSize.height  - charSize - spacing * ( m_texts.size() - i - 1 ));
+			textPos.y = rectPos.y + floorf( rectSize.size.y  - charSize - spacing * ( m_texts.size() - i - 1 ));
 		else if ( m_align & Middle )
-			textPos.y = rectPos.y + floorf( spacing * i + ( rectSize.height + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
+			textPos.y = rectPos.y + floorf( spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
 		else
-			textPos.y = rectPos.y + ceilf( spacing * i + ( rectSize.height - ( spacing * m_texts.size() )) / 2.0 );
+			textPos.y = rectPos.y + ceilf( spacing * i + ( rectSize.size.y - ( spacing * m_texts.size() )) / 2.0 );
 
 		if ( m_align & Top ) textPos.y += margin;
 		if ( m_align & Bottom ) textPos.y -= margin;
@@ -436,10 +436,10 @@ int FeTextPrimitive::getActualWidth()
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 	{
 		sf::FloatRect textSize = m_texts[i].getLocalBounds();
-		textSize.width = ceilf( textSize.width * m_texts[i].getScale().x );
+		textSize.size.x = ceilf( textSize.size.x * m_texts[i].getScale().x );
 
-		if ( textSize.width > w )
-			w = textSize.width;
+		if ( textSize.size.x > w )
+			w = textSize.size.x;
 	}
 
 	return (int)w;
@@ -453,7 +453,7 @@ int FeTextPrimitive::getActualHeight()
 	{
 		sf::FloatRect first = m_texts.front().getGlobalBounds();
 		sf::FloatRect last = m_texts.back().getGlobalBounds();
-		h = last.top + last.height - first.top;
+		h = last.position.y + last.size.y - first.position.y;
 	}
 
 	return (int)h;
@@ -490,7 +490,7 @@ unsigned int FeTextPrimitive::getGlyphSize() const
 	const sf::Font *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
 	const sf::Glyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & sf::Text::Bold );
-	return floorf(glyph->bounds.height * m_texts[0].getScale().y);
+	return floorf(glyph->bounds.size.y * m_texts[0].getScale().y);
 }
 
 void FeTextPrimitive::setCharacterSpacing( float factor )

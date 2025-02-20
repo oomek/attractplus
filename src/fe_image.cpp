@@ -902,8 +902,8 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 		FeSettings *fes = fep->get_fes();
 		if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
 	}
-	m_texture.resize({ (unsigned int)width, (unsigned int)height }, ctx );
-	m_texture.clear( sf::Color::Transparent );
+	if ( m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
+		m_texture.clear( sf::Color::Transparent );
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -1087,7 +1087,7 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 
 	//  reset texture rect now to the one reported by the new texture object
 	m_sprite.setTextureRect(
-		sf::FloatRect( 0, 0, m_tex->get_texture().getSize().x, m_tex->get_texture().getSize().y ) );
+		sf::FloatRect({ 0, 0 }, { static_cast<float>( m_tex->get_texture().getSize().x ), static_cast<float>( m_tex->get_texture().getSize().y )}));
 
 	scale();
 }
@@ -1185,7 +1185,7 @@ void FeImage::scale()
 	sf::FloatRect texture_rect = m_sprite.getTextureRect();
 	float ratio = m_tex->get_sample_aspect_ratio();
 
-	if (( texture_rect.width == 0 ) || ( texture_rect.height == 0 ))
+	if (( texture_rect.size.x == 0 ) || ( texture_rect.size.y == 0 ))
 		return;
 
 	bool scale=false;
@@ -1194,7 +1194,7 @@ void FeImage::scale()
 
 	if ( m_size.x > 0.0 )
 	{
-		scale_x = (float) m_size.x / abs( texture_rect.width );
+		scale_x = (float) m_size.x / abs( texture_rect.size.x );
 
 		if ( m_preserve_aspect_ratio )
 			scale_y = scale_x;
@@ -1204,7 +1204,7 @@ void FeImage::scale()
 
 	if ( m_size.y > 0.0 )
 	{
-		scale_y = (float) m_size.y / abs( texture_rect.height );
+		scale_y = (float) m_size.y / abs( texture_rect.size.y );
 
 		if ( m_preserve_aspect_ratio )
 		{
@@ -1222,11 +1222,11 @@ void FeImage::scale()
 
 				if ( scale_x > scale_y * ratio ) // centre in x direction
 					final_pos += t.transformPoint(
-						( m_size.x - abs( texture_rect.width ) * scale_y * ratio ) / 2.0,
+						( m_size.x - abs( texture_rect.size.x ) * scale_y * ratio ) / 2.0,
 						0 );
 				else // centre in y direction
 					final_pos += t.transformPoint( 0,
-						( m_size.y - abs( texture_rect.height ) * scale_x / ratio ) / 2.0 );
+						( m_size.y - abs( texture_rect.size.y ) * scale_x / ratio ) / 2.0 );
 			}
 		}
 
@@ -1601,22 +1601,22 @@ int FeImage::get_texture_height() const
 
 float FeImage::get_subimg_x() const
 {
-	return getTextureRect().left;
+	return getTextureRect().position.x;
 }
 
 float FeImage::get_subimg_y() const
 {
-	return getTextureRect().top;
+	return getTextureRect().position.y;
 }
 
 float FeImage::get_subimg_width() const
 {
-	return getTextureRect().width;
+	return getTextureRect().size.x;
 }
 
 float FeImage::get_subimg_height() const
 {
-	return getTextureRect().height;
+	return getTextureRect().size.y;
 }
 
 float FeImage::get_sample_aspect_ratio() const
@@ -1632,28 +1632,28 @@ bool FeImage::get_preserve_aspect_ratio() const
 void FeImage::set_subimg_x( float x )
 {
 	sf::FloatRect r = getTextureRect();
-	r.left=x;
+	r.position.x=x;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_y( float y )
 {
 	sf::FloatRect r = getTextureRect();
-	r.top=y;
+	r.position.y=y;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_width( float w )
 {
 	sf::FloatRect r = getTextureRect();
-	r.width=w;
+	r.size.x=w;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_height( float h )
 {
 	sf::FloatRect r = getTextureRect();
-	r.height=h;
+	r.size.y=h;
 	setTextureRect( r );
 }
 

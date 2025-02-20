@@ -1721,7 +1721,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 	cursor.setScale( tp->getTextScale() );
 
 	int cursor_pos=str.size();
-	cursor.setPosition( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().width / 2.0 + cursor.getLocalBounds().left ) * cursor.getScale().x, 0 ); // x
+	cursor.setPosition( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().size.x / 2.0 + cursor.getLocalBounds().position.x ) * cursor.getScale().x, 0 ); // x
 	cursor.setPosition( cursor.getPosition().x, std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 )); // y
 
 	bool redraw=true;
@@ -1955,7 +1955,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 
 			if ( redraw )
 			{
-				cursor.setPosition( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().width / 2.0 + cursor.getLocalBounds().left ) * cursor.getScale().x, 0 ); // x
+				cursor.setPosition( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().size.x / 2.0 + cursor.getLocalBounds().position.x ) * cursor.getScale().x, 0 ); // x
 				cursor.setPosition( cursor.getPosition().x, std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 )); // y
 				cursor_timer.restart();
 			}
