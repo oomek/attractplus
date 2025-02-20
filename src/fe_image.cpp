@@ -1221,12 +1221,9 @@ void FeImage::scale()
 				t.rotate( sf::degrees( m_rotation ));
 
 				if ( scale_x > scale_y * ratio ) // centre in x direction
-					final_pos += t.transformPoint(
-						( m_size.x - abs( texture_rect.size.x ) * scale_y * ratio ) / 2.0,
-						0 );
+					final_pos += t.transformPoint({ static_cast<float>(( m_size.x - abs( texture_rect.size.x ) * scale_y * ratio ) / 2.0 ), 0 });
 				else // centre in y direction
-					final_pos += t.transformPoint( 0,
-						( m_size.y - abs( texture_rect.size.y ) * scale_x / ratio ) / 2.0 );
+					final_pos += t.transformPoint({ 0, static_cast<float>(( m_size.y - abs( texture_rect.size.y ) * scale_x / ratio ) / 2.0 )});
 			}
 		}
 
@@ -1248,7 +1245,7 @@ void FeImage::scale()
 
 	m_sprite.setPosition( final_pos );
 	m_sprite.setRotation( sf::degrees( m_rotation ));
-	m_sprite.setOrigin(( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y );
+	m_sprite.setOrigin({( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y });
 }
 
 const sf::Vector2f &FeImage::getPosition() const
