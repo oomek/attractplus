@@ -128,13 +128,18 @@ std::string get_crc( const std::string &full_path,
 				zs.open( *itr );
 
 				char *buff = zs.getData();
-				int size = zs.getSize();
+				std::optional<size_t> size = zs.getSize();
 
-				if ( size > MAX_CRC_FILE_SIZE )
+				if ( !size )
 					return "";
 
-				correct_buff_for_format( buff, size, *itr );
-				std::string retval = get_crc32( buff, size );
+				int size_int = static_cast<int>( *size );
+
+				if ( size_int > MAX_CRC_FILE_SIZE )
+					return "";
+
+				correct_buff_for_format( buff, size_int, *itr );
+				std::string retval = get_crc32( buff, size_int );
 				FeDebug() << "CRC: " << full_path << "=" << retval << std::endl;
 				return retval;
 			}

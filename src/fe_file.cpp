@@ -35,7 +35,7 @@ FeFileInputStream::~FeFileInputStream()
 		fclose( m_file );
 }
 
-std::size_t FeFileInputStream::read( void *data, std::size_t size )
+std::optional<std::size_t> FeFileInputStream::read( void *data, std::size_t size )
 {
 	if ( m_file )
 		return fread( data, 1, (std::size_t)size, m_file );
@@ -43,7 +43,7 @@ std::size_t FeFileInputStream::read( void *data, std::size_t size )
 	return -1;
 }
 
-std::size_t FeFileInputStream::seek( std::size_t pos )
+std::optional<std::size_t> FeFileInputStream::seek( std::size_t pos )
 {
 	if ( m_file )
 	{
@@ -56,7 +56,7 @@ std::size_t FeFileInputStream::seek( std::size_t pos )
 	return -1;
 }
 
-std::size_t FeFileInputStream::tell()
+std::optional<std::size_t> FeFileInputStream::tell()
 {
 	if ( m_file )
 		return ftell( m_file );
@@ -64,7 +64,7 @@ std::size_t FeFileInputStream::tell()
 	return -1;
 }
 
-std::size_t FeFileInputStream::getSize()
+std::optional<std::size_t> FeFileInputStream::getSize()
 {
 	if ( m_file )
 	{

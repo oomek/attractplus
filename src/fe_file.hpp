@@ -33,10 +33,10 @@ public:
 	FeFileInputStream( const std::string &fn );
 	~FeFileInputStream();
 
-	std::size_t read( void *data, std::size_t size );
-	std::size_t seek( std::size_t pos );
-	std::size_t tell();
-	std::size_t getSize();
+	std::optional<std::size_t> read( void *data, std::size_t size );
+	std::optional<std::size_t> seek( std::size_t pos );
+	std::optional<std::size_t> tell();
+	std::optional<std::size_t> getSize();
 
 private:
 	FILE *m_file;
