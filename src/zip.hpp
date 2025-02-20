@@ -72,11 +72,11 @@ public:
 	~FeZipStream();
 
 	bool open( const std::string &filename );
-	sf::Int64 read( void *data, sf::Int64 size ); // virtual
+	size_t read( void *data, size_t size ); // virtual
 
-	sf::Int64 seek( sf::Int64 position );
-	sf::Int64 tell();
-	sf::Int64 getSize();
+	size_t seek( size_t position );
+	size_t tell();
+	size_t getSize();
 	void setArchive( const std::string &archive );
 	char *getData();
 
@@ -85,7 +85,7 @@ private:
 
 	std::string m_archive;
 	std::vector < char > m_data;
-	sf::Int64 m_pos;
+	size_t m_pos;
 };
 
 #endif
