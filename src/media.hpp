@@ -60,8 +60,8 @@ public:
 	using sf::SoundStream::setPitch;
 	using sf::SoundStream::getPitch;
 	using sf::SoundStream::getStatus;
-	using sf::SoundStream::setLoop;
-	using sf::SoundStream::getLoop;
+	using sf::SoundStream::setLooping;
+	using sf::SoundStream::isLooping;
 
 	void play();
 	void stop();

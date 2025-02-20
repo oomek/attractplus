@@ -197,7 +197,7 @@ void FeSound::set_playing( bool flag )
 		if ( fep )
 			vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
 		m_sound.setVolume( vol );
-		m_sound.setLoop( m_loop );
+		m_sound.setLooping( m_loop );
 		m_sound.setPosition( m_position );
 		m_sound.setPitch( m_pitch );
 		m_sound.play();
@@ -239,7 +239,7 @@ void FeSound::set_loop( bool l )
 	{
 		m_loop = l;
 
-		m_sound.setLoop( l );
+		m_sound.setLooping( l );
 	}
 }
 

@@ -955,7 +955,7 @@ int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
 {
 	sf::InputStream *z = (sf::InputStream *)opaque;
 
-	sf::Int64 bytes_read = z->read( buff, buff_size );
+	int64_t bytes_read = z->read( buff, buff_size );
 
 	if ( bytes_read == 0 )
 		return AVERROR_EOF;
@@ -1096,8 +1096,7 @@ bool FeMedia::open( const std::string &archive,
 					nb_channels,
 					codec_ctx->sample_rate );
 
-				sf::SoundStream::setLoop( false );
-				sf::SoundStream::setProcessingInterval( sf::milliseconds( 1 ));
+				sf::SoundStream::setLooping( false );
 			}
 		}
 	}
