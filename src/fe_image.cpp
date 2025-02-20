@@ -300,7 +300,7 @@ bool FeTextureContainer::fix_masked_image()
 
 	if (( tmp_s.x > 0 ) && ( tmp_s.y > 0 ))
 	{
-		sf::Color p = tmp_img.getPixel( 0, 0 );
+		sf::Color p = tmp_img.getPixel({ 0, 0 });
 		tmp_img.createMaskFromColor( p );
 
 		if ( m_texture.loadFromImage( tmp_img ) )
@@ -363,8 +363,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	if ( res && !is_image )
 	{
 		// Fill the first video frame with a black colour
-		sf::Image img;
-		img.create(	m_texture.getSize().x, m_texture.getSize().y, sf::Color( 0, 0, 0 ));
+		sf::Image img({ m_texture.getSize().x, m_texture.getSize().y }, sf::Color( 0, 0, 0 ));
 		m_texture.update( img );
 	}
 
@@ -408,13 +407,12 @@ bool FeTextureContainer::try_to_load(
 
 	// resize our texture accordingly
 	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
-		m_texture.create( m_entry->get_width(), m_entry->get_height() );
 
-	if ( data )
+	if ( data && m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )}))
 	{
 		m_texture.update( data );
 		il.release_entry( &m_entry ); // don't need entry any more
-		if ( m_mipmap ) m_texture.generateMipmap();
+		if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 		m_texture.setSmooth( m_smooth );
 	}
 
@@ -558,7 +556,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( il.check_loaded( m_entry ) )
 		{
 			m_texture.update( m_entry->get_data() );
-			if ( m_mipmap ) m_texture.generateMipmap();
+			if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 			m_texture.setSmooth( m_smooth );
 
 			il.release_entry( &m_entry );
@@ -609,7 +607,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
-			if ( m_mipmap ) m_texture.generateMipmap();
+			if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 			return true;
 		}
 	}
@@ -846,7 +844,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie) m_texture.generateMipmap();
+	if ( m_mipmap && !m_movie ) bool ret = m_texture.generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -904,7 +902,7 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 		FeSettings *fes = fep->get_fes();
 		if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
 	}
-	m_texture.create( width, height, ctx );
+	m_texture.resize({ (unsigned int)width, (unsigned int)height }, ctx );
 	m_texture.clear( sf::Color::Transparent );
 }
 
@@ -961,7 +959,7 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 		}
 
 		m_texture.display();
-		if ( m_mipmap ) m_texture.generateMipmap();
+		if ( m_mipmap ) bool ret = m_texture.generateMipmap();
 	}
 }
 
