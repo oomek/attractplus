@@ -618,7 +618,7 @@ void FeRectangle::scale()
 	pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * size.x, ( m_rotation_origin.y -  m_anchor.y ) * size.y );
 
 	m_rect.setPosition( pos );
-	m_rect.setRotation( m_rotation );
+	m_rect.setRotation( sf::degrees( m_rotation ));
 	m_rect.setSize( size );
 	m_rect.setOrigin(( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y ));
 

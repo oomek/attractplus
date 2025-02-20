@@ -1478,7 +1478,7 @@ void FePresent::set_transforms()
 				float adjust_x = std::floor( std::abs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2 + 0.5 );
 				float adjust_y = std::floor( std::abs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2 + 0.5 );
 				m_layout_transform.translate( m_mon[0].size.x - adjust_x, adjust_y );
-				m_layout_transform.rotate(90);
+				m_layout_transform.rotate( sf::degrees( 90 ));
 				break;
 			}
 
@@ -1488,7 +1488,7 @@ void FePresent::set_transforms()
 				float adjust_x = std::floor( std::fabs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2 + 0.5 );
 				float adjust_y = std::floor( std::fabs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2 + 0.5 );
 				m_layout_transform.translate( adjust_x, m_mon[0].size.y - adjust_y );
-				m_layout_transform.rotate(270);
+				m_layout_transform.rotate( sf::degrees( 270 ));
 				break;
 			}
 
@@ -1498,7 +1498,7 @@ void FePresent::set_transforms()
 				float adjust_x = std::floor(( m_layoutSize.x * m_layoutScale.x - m_mon[0].size.x ) / 2.0 + 0.5 );
 				float adjust_y = std::floor(( m_layoutSize.y * m_layoutScale.y - m_mon[0].size.y ) / 2.0 + 0.5 );
 				m_layout_transform.translate( m_mon[0].size.x + adjust_x, m_mon[0].size.y + adjust_y );
-				m_layout_transform.rotate(180);
+				m_layout_transform.rotate( sf::degrees( 180 ));
 				break;
 			}
 		}
@@ -1516,21 +1516,21 @@ void FePresent::set_transforms()
 				m_layout_transform.translate( m_mon[0].size.x, 0 );
 				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
 				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
-				m_layout_transform.rotate(90);
+				m_layout_transform.rotate( sf::degrees( 90 ));
 				break;
 
 			case FeSettings::RotateLeft:
 				m_layout_transform.translate( 0, m_mon[0].size.y );
 				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
 				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
-				m_layout_transform.rotate(270);
+				m_layout_transform.rotate(sf::degrees( 270 ));
 				break;
 
 			case FeSettings::RotateFlip:
 				m_layout_transform.translate( m_mon[0].size.x, m_mon[0].size.y );
 				m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
 				m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
-				m_layout_transform.rotate(180);
+				m_layout_transform.rotate( sf::degrees( 180 ));
 				break;
 		}
 	}
@@ -1552,17 +1552,17 @@ void FePresent::set_transforms()
 
 		case FeSettings::RotateRight:
 			m_ui_transform.translate( m_mon[0].size.x, 0 );
-			m_ui_transform.rotate(90);
+			m_ui_transform.rotate( sf::degrees( 90 ));
 			break;
 
 		case FeSettings::RotateLeft:
 			m_ui_transform.translate( 0, m_mon[0].size.y );
-			m_ui_transform.rotate(270);
+			m_ui_transform.rotate( sf::degrees( 270 ));
 			break;
 
 		case FeSettings::RotateFlip:
 			m_ui_transform.translate( m_mon[0].size.x, m_mon[0].size.y );
-			m_ui_transform.rotate(180);
+			m_ui_transform.rotate( sf::degrees( 180 ));
 			break;
 	}
 }

@@ -135,7 +135,7 @@ void FeListBox::init_dimensions()
 		m_texts.reserve( m_rows );
 
 	sf::Transform rotater;
-	rotater.rotate( m_rotation, pos.x, pos.y );
+	rotater.rotate( sf::degrees( m_rotation ), { pos.x, pos.y });
 
 	for ( int i=0; i< m_rows; i++ )
 	{
@@ -149,7 +149,7 @@ void FeListBox::init_dimensions()
 
 		t.setPosition( rotater.transformPoint( pos.x, pos.y+(i*actual_spacing)) );
 		t.setSize( size.x, actual_spacing );
-		t.setRotation( m_rotation );
+		t.setRotation( sf::degrees( m_rotation ));
 
 		m_texts.push_back( t );
 	}

@@ -1218,7 +1218,7 @@ void FeImage::scale()
 				// ratio, so calculate how we will centre the image in the space we have
 				//
 				sf::Transform t;
-				t.rotate( m_rotation );
+				t.rotate( sf::degrees( m_rotation ));
 
 				if ( scale_x > scale_y * ratio ) // centre in x direction
 					final_pos += t.transformPoint(
@@ -1247,7 +1247,7 @@ void FeImage::scale()
 	final_pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * m_size.x, ( m_rotation_origin.y -  m_anchor.y ) * m_size.y );
 
 	m_sprite.setPosition( final_pos );
-	m_sprite.setRotation( m_rotation );
+	m_sprite.setRotation( sf::degrees( m_rotation ));
 	m_sprite.setOrigin(( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y );
 }
 

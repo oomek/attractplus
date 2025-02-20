@@ -421,7 +421,7 @@ void FeTextPrimitive::set_positions() const
 		if ( m_align & Right ) textPos.x -= margin;
 
 		sf::Transform trans;
-		trans.rotate( m_bgRect.getRotation(), rectPos.x, rectPos.y );
+		trans.rotate( sf::degrees( m_bgRect.getRotation() ), rectPos.x, rectPos.y );
 		m_texts[i].setPosition( trans.transformPoint( textPos ) );
 		m_texts[i].setRotation( m_bgRect.getRotation() );
 	}
@@ -573,13 +573,13 @@ float FeTextPrimitive::getBgOutlineThickness()
 
 void FeTextPrimitive::setRotation( float r )
 {
-	m_bgRect.setRotation( r );
+	m_bgRect.setRotation( sf::degrees( r ));
 	m_needs_pos_set = true;
 }
 
 float FeTextPrimitive::getRotation() const
 {
-	return m_bgRect.getRotation();
+	return m_bgRect.getRotation().asDegrees();
 }
 
 int FeTextPrimitive::getStyle() const
