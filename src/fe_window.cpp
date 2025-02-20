@@ -348,7 +348,7 @@ void FeWindow::initial_create()
 	// Create window
 	//
 	sf::ContextSettings ctx;
-	ctx.antialiasingLevel = m_fes.get_antialiasing();
+	ctx.antiAliasingLevel = m_fes.get_antialiasing();
 
 	m_window->create( vm, "Attract-Mode Plus", style_map[ m_win_mode ], ctx );
 

@@ -902,7 +902,7 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	if ( fep )
 	{
 		FeSettings *fes = fep->get_fes();
-		if ( fes ) ctx.antialiasingLevel = fes->get_antialiasing();
+		if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
 	}
 	m_texture.create( width, height, ctx );
 	m_texture.clear( sf::Color::Transparent );

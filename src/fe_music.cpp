@@ -101,7 +101,7 @@ void FeMusic::set_volume( float v )
 
 bool FeMusic::get_playing()
 {
-	return ( m_music.getStatus() == sf::SoundSource::Playing ) ? true : false;
+	return ( m_music.getStatus() == sf::SoundSource::Status::Playing ) ? true : false;
 }
 
 void FeMusic::set_playing( bool state )

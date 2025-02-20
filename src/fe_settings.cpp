@@ -3114,7 +3114,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case AntiAliasing:
 		// Limit to the maximum antialiasing level supported by the system but not greater than 8
-		m_antialiasing = std::min( std::min( as_int( value ), static_cast<int>( sf::RenderTexture::getMaximumAntialiasingLevel() )), 8 );
+		m_antialiasing = std::min( std::min( as_int( value ), static_cast<int>( sf::RenderTexture::getMaximumAntiAliasingLevel() )), 8 );
 
 		// Check if it's a power of 2 and if it's greater than 1
 		if ( m_antialiasing > 1 && !( m_antialiasing & ( m_antialiasing - 1 )))

@@ -104,7 +104,7 @@ void FeSoundSystem::release_audio( bool state )
 
 FeSound::FeSound( bool loop )
 	: m_buffer(),
-	m_sound(),
+	m_sound( m_buffer ),
 	m_file_name( "" ),
 	m_play_state( false ),
 	m_volume( 100.0 ),
@@ -112,7 +112,6 @@ FeSound::FeSound( bool loop )
 	m_loop( loop ),
 	m_position( 0.0, 0.0, 0.0 )
 {
-	m_sound = sf::Sound( m_buffer );
 }
 
 FeSound::~FeSound()
@@ -210,7 +209,7 @@ void FeSound::set_playing( bool flag )
 
 bool FeSound::get_playing()
 {
-	return ( m_sound.getStatus() == sf::SoundSource::Playing ) ? true : false;
+	return ( m_sound.getStatus() == sf::SoundSource::Status::Playing ) ? true : false;
 }
 
 float FeSound::get_pitch()
