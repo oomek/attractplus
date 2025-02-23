@@ -443,10 +443,9 @@ void wait_callback( void *o )
 
 	if ( win->isOpen() )
 	{
-		sf::Event ev;
-		while ( win->pollEvent( ev ) )
+		while ( const std::optional ev = win->pollEvent() )
 		{
-			if ( ev.type == sf::Event::Closed )
+			if ( ev->is<sf::Event::Closed>() )
 				return;
 		}
 	}
@@ -584,11 +583,9 @@ bool FeWindow::run()
 
 		while ( !done_wait && isOpen() )
 		{
-			sf::Event ev;
-
-			while (pollEvent(ev))
+			while ( const std::optional ev = pollEvent() )
 			{
-				if ( ev.type == sf::Event::Closed )
+				if ( ev->is<sf::Event::Closed>() )
 					return false;
 			}
 
@@ -666,11 +663,11 @@ bool FeWindow::run()
 
 	// Empty the window event queue, so we don't go triggering other
 	// right away after running an emulator
-	sf::Event ev;
 
-	while (isOpen() && pollEvent(ev))
+	std::optional<sf::Event> ev;
+	while ( isOpen() && (ev = pollEvent() ))
 	{
-		if ( ev.type == sf::Event::Closed )
+		if ( ev->is<sf::Event::Closed>() )
 			return false;
 	}
 
@@ -737,14 +734,6 @@ void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 {
 	if ( m_window )
 		m_window->draw( d, r );
-}
-
-bool FeWindow::pollEvent( sf::Event &e )
-{
-	if ( m_window )
-		return m_window->pollEvent( e );
-
-	return false;
 }
 
 const std::optional<sf::Event> FeWindow::pollEvent()
