@@ -734,3 +734,8 @@ bool FeWindow::pollEvent( sf::Event &e )
 
 	return false;
 }
+
+const std::optional<sf::Event> FeWindow::pollEvent()
+{
+	return m_window->pollEvent();
+}
