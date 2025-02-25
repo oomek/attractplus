@@ -287,22 +287,22 @@ public:
 
 	const sf::Texture *get_texture();
 
-	const sf::Vector2f &getSize() const;
+	sf::Vector2f getSize() const;
 	void setSize( const sf::Vector2f &s );
 	void setSize( int w, int h ) { setSize( sf::Vector2f( w, h ) ); };
-	const sf::Vector2f &getPosition() const;
+	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
 	void setPosition( int x, int y ) { setPosition( sf::Vector2f( x, y ));};
 	float getRotation() const;
 	void setRotation( float );
-	const sf::Color &getColor() const;
-	void setColor( const sf::Color & );
+	sf::Color getColor() const;
+	void setColor( sf::Color );
 	int getIndexOffset() const;
 	void setIndexOffset(int);
 	int getFilterOffset() const;
 	void setFilterOffset(int);
-	const sf::Vector2u getTextureSize() const;
-	const sf::FloatRect &getTextureRect() const;
+	sf::Vector2u getTextureSize() const;
+	sf::FloatRect getTextureRect() const;
 	void setTextureRect( const sf::FloatRect &);
 	int getVideoFlags() const;
 	void setVideoFlags( int f );

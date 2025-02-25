@@ -134,7 +134,7 @@ void FeSprite::setTextureRect(const sf::FloatRect& rectangle)
 
 
 ////////////////////////////////////////////////////////////
-void FeSprite::setColor(const sf::Color& color)
+void FeSprite::setColor( sf::Color color)
 {
     // Update the vertices' color
     for ( unsigned int i=0; i < m_vertices.getVertexCount(); i++ )
@@ -157,7 +157,7 @@ const sf::FloatRect& FeSprite::getTextureRect() const
 
 
 ////////////////////////////////////////////////////////////
-const sf::Color& FeSprite::getColor() const
+sf::Color FeSprite::getColor() const
 {
     return m_vertices[0].color;
 }

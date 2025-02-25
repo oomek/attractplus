@@ -24,8 +24,10 @@
 #include <iostream>
 #include <cmath>
 
+#include "fe_present.hpp"
+
 FeTextPrimitive::FeTextPrimitive( )
-	: m_texts( 1, sf::Text() ),
+	: m_texts( 1, sf::Text( *FePresent::script_get_fep()->get_default_font() )),
 	m_align( Centre ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
@@ -43,11 +45,11 @@ FeTextPrimitive::FeTextPrimitive( )
 
 FeTextPrimitive::FeTextPrimitive(
 			const sf::Font *font,
-			const sf::Color &colour,
-			const sf::Color &bgcolour,
+			sf::Color colour,
+			sf::Color bgcolour,
 			unsigned int charactersize,
 			Alignment align )
-	: m_texts( 1, sf::Text() ),
+	: m_texts( 1, sf::Text( *font )),
 	m_align( align ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
@@ -58,9 +60,6 @@ FeTextPrimitive::FeTextPrimitive(
 	m_word_wrap( false ),
 	m_needs_pos_set( false )
 {
-	if ( font )
-		setFont( *font );
-
 	setColor( colour );
 	setBgColor( bgcolour );
 	setCharacterSize( charactersize );
@@ -81,44 +80,44 @@ FeTextPrimitive::FeTextPrimitive( const FeTextPrimitive &c )
 {
 }
 
-void FeTextPrimitive::setColor( const sf::Color &c )
+void FeTextPrimitive::setColor( sf::Color c )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setFillColor( c );
 }
 
-const sf::Color &FeTextPrimitive::getColor() const
+sf::Color FeTextPrimitive::getColor() const
 {
 	return m_texts[0].getFillColor();
 }
 
-void FeTextPrimitive::setBgColor( const sf::Color &c )
+void FeTextPrimitive::setBgColor( sf::Color c )
 {
 	m_bgRect.setFillColor( c );
 }
 
-const sf::Color &FeTextPrimitive::getBgColor() const
+sf::Color FeTextPrimitive::getBgColor() const
 {
 	return m_bgRect.getFillColor();
 }
 
-void FeTextPrimitive::setOutlineColor( const sf::Color &c )
+void FeTextPrimitive::setOutlineColor( sf::Color c )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setOutlineColor( c );
 }
 
-const sf::Color &FeTextPrimitive::getOutlineColor() const
+sf::Color FeTextPrimitive::getOutlineColor() const
 {
 	return m_texts[0].getOutlineColor();
 }
 
-void FeTextPrimitive::setBgOutlineColor( const sf::Color &c )
+void FeTextPrimitive::setBgOutlineColor( sf::Color c )
 {
 	m_bgRect.setOutlineColor( c );
 }
 
-const sf::Color &FeTextPrimitive::getBgOutlineColor() const
+sf::Color FeTextPrimitive::getBgOutlineColor() const
 {
 	return m_bgRect.getOutlineColor();
 }
@@ -312,7 +311,7 @@ sf::Vector2f FeTextPrimitive::setString(
 		position = -1;
 
 	if ( m_texts.size() > 1 )
-		m_texts.resize( 1 );
+		m_texts.resize( 1, sf::Text( *getFont() ));
 
 	//
 	// We cut the first line of text here
@@ -331,7 +330,7 @@ sf::Vector2f FeTextPrimitive::setString(
 		}
 	}
 
-	m_texts[0].setString( t.substr( first_char, last_char - first_char + 1 ));
+	m_texts[0].setString( std::string( t.begin() + first_char, t.begin() + last_char ));
 
 	disp_cpos -= first_char;
 
@@ -349,7 +348,7 @@ sf::Vector2f FeTextPrimitive::setString(
 			if ( position >= (int)t.size() ) break;
 			fit_string( t, position, first_char, last_char );
 			m_texts.push_back( m_texts[0] );
-			m_texts.back().setString( t.substr( first_char, last_char - first_char + 1 ));
+			m_texts.back().setString( std::string( t.begin() + first_char, t.begin() + last_char ));
 			actual_line_count++;
 		}
 	}
@@ -421,7 +420,7 @@ void FeTextPrimitive::set_positions() const
 		if ( m_align & Right ) textPos.x -= margin;
 
 		sf::Transform trans;
-		trans.rotate( sf::degrees( m_bgRect.getRotation() ), rectPos.x, rectPos.y );
+		trans.rotate( m_bgRect.getRotation(), { rectPos.x, rectPos.y });
 		m_texts[i].setPosition( trans.transformPoint( textPos ) );
 		m_texts[i].setRotation( m_bgRect.getRotation() );
 	}
@@ -469,7 +468,7 @@ void FeTextPrimitive::setFont( const sf::Font &font )
 
 const sf::Font *FeTextPrimitive::getFont() const
 {
-	return m_texts[0].getFont();
+	return &m_texts[0].getFont();
 }
 
 void FeTextPrimitive::setCharacterSize( unsigned int size )
@@ -522,12 +521,12 @@ int FeTextPrimitive::getLineSpacingFactored( const sf::Font *font, int charsize 
 	return std::max( 1, (int)ceilf( font->getLineSpacing( charsize ) * m_line_spacing ));
 }
 
-const sf::Vector2f &FeTextPrimitive::getPosition() const
+sf::Vector2f FeTextPrimitive::getPosition() const
 {
 	return m_bgRect.getPosition();
 }
 
-const sf::Vector2f &FeTextPrimitive::getSize() const
+sf::Vector2f FeTextPrimitive::getSize() const
 {
 	return m_bgRect.getSize();
 }
@@ -645,7 +644,7 @@ void FeTextPrimitive::setTextScale( const sf::Vector2f &s )
 	m_needs_pos_set = true;
 }
 
-const sf::Vector2f &FeTextPrimitive::getTextScale() const
+sf::Vector2f FeTextPrimitive::getTextScale() const
 {
 		return m_texts[0].getScale();
 }

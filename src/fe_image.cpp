@@ -1248,12 +1248,12 @@ void FeImage::scale()
 	m_sprite.setOrigin({( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y });
 }
 
-const sf::Vector2f &FeImage::getPosition() const
+sf::Vector2f FeImage::getPosition() const
 {
 	return m_pos;
 }
 
-const sf::Vector2f &FeImage::getSize() const
+sf::Vector2f FeImage::getSize() const
 {
 	return m_size;
 }
@@ -1293,12 +1293,12 @@ void FeImage::setRotation( float r )
 	}
 }
 
-const sf::Color &FeImage::getColor() const
+sf::Color FeImage::getColor() const
 {
 	return m_sprite.getColor();
 }
 
-void FeImage::setColor( const sf::Color &c )
+void FeImage::setColor( sf::Color c )
 {
 	if ( c != m_sprite.getColor() )
 	{
@@ -1307,12 +1307,12 @@ void FeImage::setColor( const sf::Color &c )
 	}
 }
 
-const sf::Vector2u FeImage::getTextureSize() const
+sf::Vector2u FeImage::getTextureSize() const
 {
 	return m_tex->get_texture().getSize();
 }
 
-const sf::FloatRect &FeImage::getTextureRect() const
+sf::FloatRect FeImage::getTextureRect() const
 {
 	return m_sprite.getTextureRect();
 }

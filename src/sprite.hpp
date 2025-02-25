@@ -154,7 +154,7 @@ public :
     /// \see getColor
     ///
     ////////////////////////////////////////////////////////////
-    void setColor(const sf::Color& color);
+    void setColor(sf::Color color);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the source texture of the sprite
@@ -188,7 +188,7 @@ public :
     /// \see setColor
     ///
     ////////////////////////////////////////////////////////////
-    const sf::Color& getColor() const;
+    sf::Color getColor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the local bounding rectangle of the entity

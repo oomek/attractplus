@@ -59,7 +59,7 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	scale();
 }
 
-const sf::Vector2f &FeRectangle::getPosition() const
+sf::Vector2f FeRectangle::getPosition() const
 {
 	return m_position;
 }
@@ -74,7 +74,7 @@ void FeRectangle::setPosition( const sf::Vector2f &p )
 	}
 }
 
-const sf::Vector2f &FeRectangle::getSize() const
+sf::Vector2f FeRectangle::getSize() const
 {
 	return m_size;
 }
@@ -104,17 +104,17 @@ void FeRectangle::setRotation( float r )
 	}
 }
 
-const sf::Color &FeRectangle::getColor() const
+sf::Color FeRectangle::getColor() const
 {
 	return m_rect.getFillColor();
 }
 
-const sf::Color &FeRectangle::getOutlineColor() const
+sf::Color FeRectangle::getOutlineColor()
 {
 	return m_rect.getOutlineColor();
 }
 
-void FeRectangle::setColor( const sf::Color &c )
+void FeRectangle::setColor( sf::Color c )
 {
 	if ( c == m_rect.getFillColor() )
 		return;
@@ -123,7 +123,7 @@ void FeRectangle::setColor( const sf::Color &c )
 	FePresent::script_flag_redraw();
 }
 
-void FeRectangle::setOutlineColor( const sf::Color &c )
+void FeRectangle::setOutlineColor( sf::Color c )
 {
 	if ( c == m_rect.getOutlineColor() )
 		return;
@@ -620,6 +620,6 @@ void FeRectangle::scale()
 	m_rect.setPosition( pos );
 	m_rect.setRotation( sf::degrees( m_rotation ));
 	m_rect.setSize( size );
-	m_rect.setOrigin(( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y ));
+	m_rect.setOrigin({( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y )});
 
 }

@@ -1706,7 +1706,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	const sf::Font *font = tp->getFont();
-	sf::Text cursor( "|", *font, tp->getCharacterSize() / tp->getTextScale().x );
+	sf::Text cursor( *font,"|", tp->getCharacterSize() / tp->getTextScale().x );
 	cursor.setFillColor( tp->getColor() );
 	cursor.setScale( tp->getTextScale() );
 

@@ -49,10 +49,10 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 FeListBox::FeListBox(
 		FePresentableParent &p,
 		const sf::Font *font,
-		const sf::Color &colour,
-		const sf::Color &bgcolour,
-		const sf::Color &selcolour,
-		const sf::Color &selbgcolour,
+		sf::Color colour,
+		sf::Color bgcolour,
+		sf::Color selcolour,
+		sf::Color selbgcolour,
 		unsigned int charactersize,
 		int rows )
 	: FeBasePresentable( p ),
@@ -75,7 +75,7 @@ void FeListBox::setFont( const sf::Font &f )
 	m_base_text.setFont( f );
 }
 
-const sf::Vector2f &FeListBox::getPosition() const
+sf::Vector2f FeListBox::getPosition() const
 {
 	return m_base_text.getPosition();
 }
@@ -88,7 +88,7 @@ void FeListBox::setPosition( const sf::Vector2f &p )
 		FePresent::script_do_update( this );
 }
 
-const sf::Vector2f &FeListBox::getSize() const
+sf::Vector2f FeListBox::getSize() const
 {
 	return m_base_text.getSize();
 }
@@ -106,7 +106,7 @@ float FeListBox::getRotation() const
 	return m_rotation;
 }
 
-const sf::Color &FeListBox::getColor() const
+sf::Color FeListBox::getColor() const
 {
 	return m_base_text.getColor();
 }
@@ -147,15 +147,15 @@ void FeListBox::init_dimensions()
 			t.setStyle( m_selStyle );
 		}
 
-		t.setPosition( rotater.transformPoint( pos.x, pos.y+(i*actual_spacing)) );
+		t.setPosition( rotater.transformPoint({ pos.x, pos.y + ( i * actual_spacing )}));
 		t.setSize( size.x, actual_spacing );
-		t.setRotation( sf::degrees( m_rotation ));
+		t.setRotation( m_rotation );
 
 		m_texts.push_back( t );
 	}
 }
 
-void FeListBox::setColor( const sf::Color &c )
+void FeListBox::setColor( sf::Color c )
 {
 	if ( c == m_base_text.getColor() )
 		return;
@@ -172,7 +172,7 @@ void FeListBox::setColor( const sf::Color &c )
 		FePresent::script_flag_redraw();
 }
 
-void FeListBox::setSelColor( const sf::Color &c )
+void FeListBox::setSelColor( sf::Color c )
 {
 	if ( c == m_selColour )
 		return;
@@ -189,7 +189,7 @@ void FeListBox::setSelColor( const sf::Color &c )
 		FePresent::script_flag_redraw();
 }
 
-void FeListBox::setSelBgColor( const sf::Color &c )
+void FeListBox::setSelBgColor( sf::Color c )
 {
 	if ( c == m_selBg )
 		return;
@@ -483,7 +483,7 @@ int FeListBox::get_margin()
 	return m_base_text.getMargin();
 }
 
-void FeListBox::setBgColor( const sf::Color &c )
+void FeListBox::setBgColor( sf::Color c )
 {
 	if ( c == m_base_text.getBgColor() )
 		return;
