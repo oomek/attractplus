@@ -345,7 +345,7 @@ void FeVM::post_command( FeInputMap::Command c )
 	m_posted_commands.push( c );
 }
 
-bool FeVM::poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui )
+bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, bool &from_ui )
 {
 	from_ui = false;
 
@@ -365,7 +365,7 @@ bool FeVM::poll_command( FeInputMap::Command &c, sf::Event &ev, bool &from_ui )
 		if ( t - m_last_ui_cmd.asMilliseconds() < 30 )
 			return false;
 
-		c = m_feSettings->map_input( ev );
+		c = m_feSettings->map_input( ev.value() );
 
 		if ( c != FeInputMap::LAST_COMMAND )
 			m_last_ui_cmd = m_layoutTimer.getElapsedTime();
