@@ -46,17 +46,18 @@
 namespace
 {
 	// stb_image callbacks that operate on a sf::InputStream
-	int read(void* user, char* data, int size)
+	std::optional<std::size_t> read(void* user, char* data, int size)
 	{
 		sf::InputStream* stream = static_cast<sf::InputStream*>(user);
-		return static_cast<int>(stream->read(data, size));
+		return stream->read(data, size);
 	}
 	void skip(void* user, int size)
 	{
 		sf::InputStream* stream = static_cast<sf::InputStream*>(user);
-		stream->seek(stream->tell() + size);
+		auto position = stream->tell().value_or(0);
+		stream->seek(position + static_cast<std::size_t>(size));
 	}
-	int eof(void* user)
+	std::optional<std::size_t> eof(void* user)
 	{
 		sf::InputStream* stream = static_cast<sf::InputStream*>(user);
 		return stream->tell() >= stream->getSize();
@@ -240,9 +241,9 @@ public:
 
 				// Load image pixel data
 				stbi_io_callbacks cb;
-				cb.read = &read;
+				cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
 				cb.skip = &skip;
-				cb.eof = &eof;
+				cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
 
 				unsigned char *data = stbi_load_from_callbacks( &cb, e.second->m_stream,
 					&(e.second->m_width), &(e.second->m_height), &ignored, STBI_rgb_alpha );
@@ -414,7 +415,7 @@ FeImageLoader::~FeImageLoader()
 
 bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEntry **e )
 {
-	sf::InputStream *fs = new sf::InputStream( fn );
+	sf::FileInputStream *fs = new sf::FileInputStream( fn );
 	return internal_load_image( fn, fs, e );
 }
 
@@ -447,9 +448,9 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 
 	// load image dimensions now
 	stbi_io_callbacks cb;
-	cb.read = &read;
+	cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
 	cb.skip = &skip;
-	cb.eof = &eof;
+	cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
 
 	int retval=false;
 	int ignored;
