@@ -98,8 +98,8 @@ public:
 protected:
 	// overrides from base class
 	//
-	bool onGetData( Chunk &data );
-	void onSeek( sf::Time timeOffset );
+	bool onGetData( Chunk &data ) override;
+	void onSeek( sf::Time timeOffset ) override;
 
 	bool read_packet();
 	bool end_of_file();
