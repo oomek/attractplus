@@ -46,21 +46,26 @@
 namespace
 {
 	// stb_image callbacks that operate on a sf::InputStream
-	std::optional<std::size_t> read(void* user, char* data, int size)
+	int read( void* user, char* data, int size )
 	{
-		sf::InputStream* stream = static_cast<sf::InputStream*>(user);
-		return stream->read(data, size);
+		sf::InputStream* stream = static_cast<sf::InputStream*>( user );
+		auto result = stream->read( data, size );
+		return result.value_or(0);
 	}
-	void skip(void* user, int size)
+
+	void skip( void* user, int size )
 	{
-		sf::InputStream* stream = static_cast<sf::InputStream*>(user);
+		sf::InputStream* stream = static_cast<sf::InputStream*>( user );
 		auto position = stream->tell().value_or(0);
-		stream->seek(position + static_cast<std::size_t>(size));
+		stream->seek( position + static_cast<std::size_t>( size ));
 	}
-	std::optional<std::size_t> eof(void* user)
+
+	int eof( void* user )
 	{
-		sf::InputStream* stream = static_cast<sf::InputStream*>(user);
-		return stream->tell() >= stream->getSize();
+		sf::InputStream* stream = static_cast<sf::InputStream*>( user );
+		auto pos = stream->tell().value_or(0);
+		auto size = stream->getSize().value_or(0);
+		return ( pos >= size ) ? 1 : 0;
 	}
 	std::recursive_mutex g_mutex;
 
