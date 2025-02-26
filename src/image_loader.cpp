@@ -261,6 +261,10 @@ public:
 					e.second->m_data = data;
 					e.second->m_loaded = true;
 
+					// Delete and null the stream after loading data
+					delete e.second->m_stream;
+					e.second->m_stream = nullptr;
+
 					if ( e.second->dec_ref() )
 						delete e.second;
 				}
@@ -466,6 +470,10 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 			&(temp_e->m_width), &(temp_e->m_height), &ignored, STBI_rgb_alpha );
 
 		temp_e->m_loaded = true;
+
+		// Delete and null the stream after loading data
+		delete temp_e->m_stream;
+		temp_e->m_stream = nullptr;
 
 		if ( !temp_e->m_data )
 		{
