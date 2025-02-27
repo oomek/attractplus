@@ -495,9 +495,18 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		m_imp->m_bg_loader.add( key, temp_e );
 	}
 
-	// add to cache
+	// Add to cache
+	// Skip adding to cache if the image is larger than the cache size
 	if ( !err && m_imp->m_cache )
-		m_imp->m_cache->put( key, temp_e );
+	{
+		size_t imageSize = temp_e->get_bytes();
+		size_t cacheSize = m_imp->m_cache->get_max_size();
+
+		if ( imageSize > cacheSize )
+			FeDebug() << "Image " << key << " is larger than the cache size" << std::endl;
+		else
+			m_imp->m_cache->put( key, temp_e );
+	}
 
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
