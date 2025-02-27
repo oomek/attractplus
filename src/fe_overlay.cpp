@@ -1740,23 +1740,24 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 						cursor_pos--;
 					}
 					redraw = true;
-					break;
 				}
-
-				//
-				// Don't respond to control characters < 32 (line feeds etc.)
-				// and don't handle 127 (delete) here, it is dealt with as a keypress
-				//
-				if (( txt->unicode < 32 ) || ( txt->unicode == 127 ))
-					break;
-
-				if ( cursor_pos < (int)str.size() )
-					str.insert( cursor_pos, 1, txt->unicode );
+				else if (( txt->unicode < 32 ) || ( txt->unicode == 127 ))
+				{
+					//
+					// Don't respond to control characters < 32 (line feeds etc.)
+					// and don't handle 127 (delete) here, it is dealt with as a keypress
+					//
+				}
 				else
-					str += txt->unicode;
+				{
+					if ( cursor_pos < (int)str.size() )
+						str.insert( cursor_pos, 1, txt->unicode );
+					else
+						str += txt->unicode;
 
-				cursor_pos++;
-				redraw = true;
+					cursor_pos++;
+					redraw = true;
+				}
 			}
 
 			else if ( const auto* key = ev->getIf<sf::Event::KeyPressed>() )
@@ -1819,7 +1820,6 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 				default:
 					break;
 				}
-				break;
 			}
 
 			else
