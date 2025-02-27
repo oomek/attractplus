@@ -374,6 +374,8 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 		return true;
 	}
 
+	c = FeInputMap::LAST_COMMAND; // Check if this is needed
+	ev = std::nullopt; // An empty event
 	return false;
 }
 
