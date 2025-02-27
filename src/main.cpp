@@ -349,80 +349,81 @@ int main(int argc, char *argv[])
 		bool from_ui;
 		while ( feVM.poll_command( c, ev, from_ui ) )
 		{
-			//
-			// Special case handling based on event type
-			//
-			if ( ev->is<sf::Event::Closed>() )
-			{
-				exit_selected = true;
-			}
-
-			else if ( ev->is<sf::Event::MouseMoved>() )
-			{
-				const auto* mov = ev->getIf<sf::Event::MouseMoved>();
-				if ( mov && feSettings.test_mouse_reset( mov->position.x, mov->position.y ))
-				{
-					// We reset the mouse if we are capturing it and it has moved
-					// outside of its bounding box
-					//
-					sf::Vector2u s = window.get_win().getSize();
-					sf::Mouse::setPosition( sf::Vector2i( s.x / 2, s.y / 2 ), window.get_win() );
-				}
-			}
-
-			else if ( ev->is<sf::Event::KeyReleased>() ||
-						ev->is<sf::Event::MouseButtonReleased>() ||
-						ev->is<sf::Event::JoystickButtonReleased>() )
+			if ( ev.has_value() )
 			{
 				//
-				// We always want to reset the screen saver on these events,
-				// even if they aren't mapped otherwise (mapped events cause
-				// a reset too)
+				// Special case handling based on event type
 				//
-				if (( c == FeInputMap::LAST_COMMAND )
-						&& ( feVM.reset_screen_saver() ))
-					redraw = true;
-			}
+				if ( ev->is<sf::Event::Closed>() )
+					exit_selected = true;
 
-			else if ( ev->is<sf::Event::FocusGained>() )
-			{
-				redraw = true;
-			}
-
-			else if ( ev->is<sf::Event::Resized>() )
-			{
-				const auto* resize = ev->getIf<sf::Event::Resized>();
-				if ( resize )
+				else if ( ev->is<sf::Event::MouseMoved>() )
 				{
-					window.get_win().setView( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
-					feVM.init_monitors();
-					feVM.load_layout();
-					redraw = true;
-				}
-			}
-
-			else if ( ev->is<sf::Event::JoystickMoved>() )
-			{
-				if ( c != FeInputMap::LAST_COMMAND )
-				{
-					// Only allow one mapped "Joystick Moved" input through at a time
-					//
-					if ( guard_joyid != -1 )
-						continue;
-
-					const auto* mov = ev->getIf<sf::Event::JoystickMoved>();
-					if ( mov )
+					const auto* mov = ev->getIf<sf::Event::MouseMoved>();
+					if ( mov && feSettings.test_mouse_reset( mov->position.x, mov->position.y ))
 					{
-						guard_joyid = mov->joystickId;
-						guard_axis = static_cast<int>( mov->axis );
+						// We reset the mouse if we are capturing it and it has moved
+						// outside of its bounding box
+						//
+						sf::Vector2u s = window.get_win().getSize();
+						sf::Mouse::setPosition( sf::Vector2i( s.x / 2, s.y / 2 ), window.get_win() );
 					}
 				}
-			}
 
-			else if ( ev->is<sf::Event::JoystickConnected>() ||
-						ev->is<sf::Event::JoystickDisconnected>() )
-			{
-				feSettings.on_joystick_connect();
+				else if ( ev->is<sf::Event::KeyReleased>() ||
+							ev->is<sf::Event::MouseButtonReleased>() ||
+							ev->is<sf::Event::JoystickButtonReleased>() )
+				{
+					//
+					// We always want to reset the screen saver on these events,
+					// even if they aren't mapped otherwise (mapped events cause
+					// a reset too)
+					//
+					if (( c == FeInputMap::LAST_COMMAND )
+							&& ( feVM.reset_screen_saver() ))
+						redraw = true;
+				}
+
+				else if ( ev->is<sf::Event::FocusGained>() )
+				{
+					redraw = true;
+				}
+
+				else if ( ev->is<sf::Event::Resized>() )
+				{
+					const auto* resize = ev->getIf<sf::Event::Resized>();
+					if ( resize )
+					{
+						window.get_win().setView( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
+						feVM.init_monitors();
+						feVM.load_layout();
+						redraw = true;
+					}
+				}
+
+				else if ( ev->is<sf::Event::JoystickMoved>() )
+				{
+					if ( c != FeInputMap::LAST_COMMAND )
+					{
+						// Only allow one mapped "Joystick Moved" input through at a time
+						//
+						if ( guard_joyid != -1 )
+							continue;
+
+						const auto* mov = ev->getIf<sf::Event::JoystickMoved>();
+						if ( mov )
+						{
+							guard_joyid = mov->joystickId;
+							guard_axis = static_cast<int>( mov->axis );
+						}
+					}
+				}
+
+				else if ( ev->is<sf::Event::JoystickConnected>() ||
+							ev->is<sf::Event::JoystickDisconnected>() )
+				{
+					feSettings.on_joystick_connect();
+				}
 			}
 
 			// Test if we need to keep the joystick axis guard up
