@@ -355,26 +355,28 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 		m_posted_commands.pop();
 		return true;
 	}
-	else if  ( const auto event = m_window.pollEvent() )
+	else if ( const std::optional event = m_window.pollEvent() )
 	{
-		ev = *event;
-		int t = m_layoutTimer.getElapsedTime().asMilliseconds();
+		if ( event.has_value() )
+		{
+			ev = event;
+			int t = m_layoutTimer.getElapsedTime().asMilliseconds();
 
-		// Debounce to stop multiples when triggered by a key combo
-		//
-		if ( t - m_last_ui_cmd.asMilliseconds() < 30 )
-			return false;
+			// Debounce to stop multiples when triggered by a key combo
+			//
+			if ( t - m_last_ui_cmd.asMilliseconds() < 30 )
+				return false;
 
-		c = m_feSettings->map_input( ev.value() );
+			c = m_feSettings->map_input( ev );
 
-		if ( c != FeInputMap::LAST_COMMAND )
-			m_last_ui_cmd = m_layoutTimer.getElapsedTime();
+			if ( c != FeInputMap::LAST_COMMAND )
+				m_last_ui_cmd = m_layoutTimer.getElapsedTime();
 
-		from_ui = true;
-		return true;
+			from_ui = true;
+			return true;
+		}
 	}
 
-	c = FeInputMap::LAST_COMMAND; // Check if this is needed
 	ev = std::nullopt; // An empty event
 	return false;
 }
