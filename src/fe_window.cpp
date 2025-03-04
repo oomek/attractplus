@@ -664,10 +664,9 @@ bool FeWindow::run()
 	// Empty the window event queue, so we don't go triggering other
 	// right away after running an emulator
 
-	while ( isOpen() )
+	while ( const std::optional ev = pollEvent() )
 	{
-		std::optional<sf::Event> ev = pollEvent();
-		if ( ev.has_value() && ev->is<sf::Event::Closed>() )
+		if ( ev->is<sf::Event::Closed>() )
 			return false;
 	}
 
