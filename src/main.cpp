@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 	soundsys.sound_event( FeInputMap::EventStartup );
 
 	bool redraw=true, has_focus=true;
-	int guard_joyid=-1, guard_axis=-1;
+	std::optional<sf::Event> joy_guard;
 
 	// variables used to track movement when a key is held down
 	FeInputMap::Command move_state( FeInputMap::LAST_COMMAND ); // command mapped to the move
@@ -403,20 +403,13 @@ int main(int argc, char *argv[])
 
 				else if ( ev->is<sf::Event::JoystickMoved>() )
 				{
+					// Set the guard if there's a command mapped to this movement
 					if ( c != FeInputMap::LAST_COMMAND )
-					{
-						// Only allow one mapped "Joystick Moved" input through at a time
-						//
-						if ( guard_joyid != -1 )
-							continue;
+						joy_guard = ev;
 
-						const auto* mov = ev->getIf<sf::Event::JoystickMoved>();
-						if ( mov )
-						{
-							guard_joyid = mov->joystickId;
-							guard_axis = static_cast<int>( mov->axis );
-						}
-					}
+					// Skip only if no command AND we have an active guard
+					else if ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() )
+						continue;
 				}
 
 				else if ( ev->is<sf::Event::JoystickConnected>() ||
@@ -428,13 +421,15 @@ int main(int argc, char *argv[])
 
 			// Test if we need to keep the joystick axis guard up
 			//
-			if (( guard_joyid >= 0 )
-				&& ( std::abs( sf::Joystick::getAxisPosition(
-					guard_joyid, (sf::Joystick::Axis)guard_axis ))
-						< feSettings.get_joy_thresh() ))
+			if ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() )
 			{
-				guard_joyid = -1;
-				guard_axis = -1;
+				const auto* mov = joy_guard->getIf<sf::Event::JoystickMoved>();
+				if ( mov )
+				{
+					float pos = sf::Joystick::getAxisPosition( mov->joystickId, mov->axis );
+					if ( std::abs( pos ) < feSettings.get_joy_thresh() )
+						joy_guard = std::nullopt;
+				}
 			}
 
 			// Nothing further to do if there is no command or if we are in the process
@@ -977,7 +972,6 @@ int main(int argc, char *argv[])
 
 			else if ( move_event->is<sf::Event::JoystickMoved>() )
 			{
-				sf::Joystick::update();
 				const auto* mov = move_event->getIf<sf::Event::JoystickMoved>();
 				float pos = sf::Joystick::getAxisPosition( mov->joystickId,	mov->axis );
 				if ( std::abs( pos ) > feSettings.get_joy_thresh() )
