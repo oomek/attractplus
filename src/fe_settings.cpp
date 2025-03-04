@@ -904,9 +904,12 @@ void FeSettings::load_state()
 	}
 }
 
-FeInputMap::Command FeSettings::map_input( const sf::Event &e )
+FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
 {
-	return m_inputmap.map_input( e, m_mousecap_rect, m_joy_thresh );
+	if ( e.has_value() )
+		return m_inputmap.map_input( e.value(), m_mousecap_rect, m_joy_thresh );
+	else
+		return FeInputMap::LAST_COMMAND;
 }
 
 FeInputMap::Command FeSettings::input_conflict_check( const FeInputMapEntry &e )

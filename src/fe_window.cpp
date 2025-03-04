@@ -445,7 +445,7 @@ void wait_callback( void *o )
 	{
 		while ( const std::optional ev = win->pollEvent() )
 		{
-			if ( ev->is<sf::Event::Closed>() )
+			if ( ev.has_value() && ev->is<sf::Event::Closed>() )
 				return;
 		}
 	}
@@ -585,7 +585,7 @@ bool FeWindow::run()
 		{
 			while ( const std::optional ev = pollEvent() )
 			{
-				if ( ev->is<sf::Event::Closed>() )
+				if ( ev.has_value() && ev->is<sf::Event::Closed>() )
 					return false;
 			}
 
@@ -664,10 +664,10 @@ bool FeWindow::run()
 	// Empty the window event queue, so we don't go triggering other
 	// right away after running an emulator
 
-	std::optional<sf::Event> ev;
-	while ( isOpen() && (ev = pollEvent() ))
+	while ( isOpen() )
 	{
-		if ( ev->is<sf::Event::Closed>() )
+		std::optional<sf::Event> ev = pollEvent();
+		if ( ev.has_value() && ev->is<sf::Event::Closed>() )
 			return false;
 	}
 
