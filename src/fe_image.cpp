@@ -312,6 +312,8 @@ bool FeTextureContainer::fix_masked_image()
 	return retval;
 }
 
+std::vector<std::uint8_t> FeTextureContainer::s_black_pixels;
+
 #ifndef NO_MOVIE
 bool FeTextureContainer::load_with_ffmpeg(
 	const std::string &filename,
@@ -363,8 +365,10 @@ bool FeTextureContainer::load_with_ffmpeg(
 	if ( res && !is_image )
 	{
 		// Fill the first video frame with a black colour
-		sf::Image img({ m_texture.getSize().x, m_texture.getSize().y }, sf::Color( 0, 0, 0 ));
-		m_texture.update( img );
+		size_t required_size = m_texture.getSize().x * m_texture.getSize().y * 4;
+		if ( s_black_pixels.size() < required_size )
+			s_black_pixels.resize( required_size, 0 );
+		m_texture.update( s_black_pixels.data() );
 	}
 
 	m_texture.setSmooth( m_smooth );

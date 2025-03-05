@@ -222,6 +222,7 @@ private:
 	bool m_smooth;
 	float m_volume;
 	FeImageLoaderEntry *m_entry;
+	static std::vector<std::uint8_t> s_black_pixels;
 };
 
 class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresentableParent
