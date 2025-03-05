@@ -653,7 +653,13 @@ void FeVideoImp::video_thread()
 					//
 					// We are ahead and can sleep until presentation time
 					//
-					sf::sleep( wait_time );
+					sf::Clock clock;
+					while ( run_video_thread && clock.getElapsedTime() < wait_time )
+						sf::sleep( sf::milliseconds( 1 ));
+
+					if ( !run_video_thread )
+						goto the_end;
+
 					degrading = false;
 
 				}
@@ -799,7 +805,9 @@ void FeVideoImp::video_thread()
 				//
 				// full frame queue and nothing to display yet, so sleep
 				//
-				sf::sleep( max_sleep );
+				sf::Clock clock;
+				while ( run_video_thread && clock.getElapsedTime() < max_sleep )
+					sf::sleep( sf::milliseconds( 1 ));
 			}
 		}
 	}
