@@ -704,6 +704,7 @@ sf::RenderWindow &FeWindow::get_win()
 void FeWindow::close()
 {
 	if ( m_window )
+		m_window->display(); // Crashing on Linux workaround
 		m_window->close();
 }
 
