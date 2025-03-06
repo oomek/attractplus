@@ -55,6 +55,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <stdarg.h>
+#include <algorithm>
 
 const char *FE_SCRIPT_NV_FILE = "script.nv";
 
