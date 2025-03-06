@@ -165,7 +165,7 @@ void FeWindow::initial_create()
 #if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
 		sf::Style::None,       // FeSettings::Fullscreen
 #else
-		sf::Style::Fullscreen, // FeSettings::Fullscreen
+		sf::Style::None,       // FeSettings::Fullscreen
 #endif
 		sf::Style::Default,    // FeSettings::Window
 		sf::Style::None        // FeSettings::WindowNoBorder
@@ -173,14 +173,14 @@ void FeWindow::initial_create()
 
 	sf::State state_map[4] =
 	{
-		sf::State::Windowed,
+		sf::State::Windowed,   // FeSettings::Default
 #if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
-		sf::State::Windowed,
+		sf::State::Windowed,   // FeSettings::Fullscreen
 #else
-		sf::State::Fullscreen,
+		sf::State::Fullscreen, // FeSettings::Fullscreen
 #endif
-		sf::State::Windowed,
-		sf::State::Windowed
+		sf::State::Windowed,   // FeSettings::Window
+		sf::State::Windowed    // FeSettings::WindowNoBorder
 	};
 
 	sf::VideoMode vm = sf::VideoMode::getDesktopMode(); // width/height/bpp of OpenGL surface to create
