@@ -1389,8 +1389,7 @@ void FeVM::on_transition(
 			// TODO: It is probably a good idea to do this for
 			// every platform... needs investigation.
 			//
-			sf::Event ev;
-			while (m_window.pollEvent(ev))
+			while ( const std::optional ev = m_window.pollEvent() )
 			{
 				//sf::sleep( sf::milliseconds( 10 ) );
 			}
