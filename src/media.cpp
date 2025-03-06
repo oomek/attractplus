@@ -49,6 +49,7 @@ extern "C"
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <algorithm>
 
 #if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
