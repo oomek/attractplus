@@ -38,6 +38,7 @@
 #include <cmath>
 #include <limits>
 #include <cstring>
+#include <algorithm>
 
 #include <SFML/Audio.hpp>
 
