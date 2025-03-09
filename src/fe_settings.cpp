@@ -1498,6 +1498,9 @@ int FeSettings::display_menu_get_current_selection_as_absolute_display_index()
 
 bool FeSettings::set_display( int index, bool stack_previous )
 {
+	if ( m_displays.size() == 0 )
+		return false;
+
 	std::string old_path, old_file;
 
 	get_path( Layout, old_path, old_file );
