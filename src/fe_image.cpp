@@ -410,9 +410,10 @@ bool FeTextureContainer::try_to_load(
 	m_file_name = loaded_name;
 
 	// resize our texture accordingly
-	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ) )
+	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ))
+		bool ret = m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )});
 
-	if ( data && m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )}))
+	if ( data )
 	{
 		m_texture.update( data );
 		il.release_entry( &m_entry ); // don't need entry any more
