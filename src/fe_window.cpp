@@ -493,7 +493,11 @@ bool FeWindow::run()
 	opt.exit_hotkey = emu->get_info( FeEmulatorInfo::Exit_hotkey );
 	opt.pause_hotkey = emu->get_info( FeEmulatorInfo::Pause_hotkey );
 	opt.joy_thresh = m_fes.get_joy_thresh();
+#if defined (USE_DRM)
+	opt.launch_cb = NULL; // In DRM we're closing the window before launching the emulator
+#else
 	opt.launch_cb = (( nbm_wait <= 0 ) ? launch_callback : NULL );
+#endif
 	opt.wait_cb = wait_callback;
 	opt.launch_opaque = this;
 
