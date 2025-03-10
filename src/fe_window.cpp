@@ -236,7 +236,7 @@ void FeWindow::initial_create()
 	// Windows API call to undo the WS_POPUP Style.  Seems to require a ShowWindow() call
 	// afterwards to take effect:
 	//
-	//		SetWindowLongPtr( getSystemHandle(), GWL_STYLE,
+	//		SetWindowLongPtr( getNativeHandle(), GWL_STYLE,
 	//			WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS );
 	//
 
@@ -396,7 +396,7 @@ void FeWindow::initial_create()
 
 #if defined(USE_XLIB)
 	if ( m_win_mode == FeSettings::Default )
-		set_x11_fullscreen_state( m_window->getSystemHandle() );
+		set_x11_fullscreen_state( m_window->getNativeHandle() );
 #endif
 
 	// Known issue: Linux Mint 18.3 Cinnamon w/ SFML 2.5.1, position isn't being set

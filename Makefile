@@ -342,7 +342,7 @@ endif
 
 ifeq ($(USE_XLIB),1)
  FE_FLAGS += -DUSE_XLIB
- LIBS += -lX11 -lXrandr -lXcursor
+ LIBS += -lX11 -lXi -lXrandr -lXcursor
 
 ifeq ($(USE_XINERAMA),1)
   FE_FLAGS += -DUSE_XINERAMA
