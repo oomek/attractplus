@@ -14,7 +14,7 @@ on:
 
 # This is only for SFML2, shall be removed when bumping to SFML3
 env:
-  PKG_CONFIG_PATH: "/opt/homebrew/opt/sfml@2/lib/pkgconfig:/opt/homebrew/opt/openal-soft/lib/pkgconfig"
+  PKG_CONFIG_PATH: "/opt/homebrew/opt/openal-soft/lib/pkgconfig"
 
 jobs:
 
@@ -38,7 +38,7 @@ jobs:
       run: |
         brew update
         brew upgrade
-        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo boost sfml@2 openal-soft
+        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo boost sfml openal-soft
     #~ - name: MacOS switch to GCC
       #~ run: |
         #~ echo "CC=/usr/local/bin/gcc-10" >> $GITHUB_ENV

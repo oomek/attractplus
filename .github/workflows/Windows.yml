@@ -18,7 +18,7 @@ env:
 jobs:
   buildAMWindows:
     name: Windows MXE build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: AM+ - Checkout
@@ -39,12 +39,14 @@ jobs:
       run: |
         sudo apt-get install \
           software-properties-common \
-          lsb-release
+          lsb-release \
+          cmake
         sudo apt-key adv \
           --keyserver keyserver.ubuntu.com \
           --recv-keys 86B72ED9 && \
+        # Use MXE focal for jammy ...
         sudo add-apt-repository \
-          "deb [arch=amd64] https://pkg.mxe.cc/repos/apt `lsb_release -sc` main" && \
+          "deb [arch=amd64] https://pkg.mxe.cc/repos/apt focal main" && \
         sudo apt-get update
         sudo apt-get install \
           mxe-x86-64-w64-mingw32.static-cc \
@@ -57,10 +59,12 @@ jobs:
           mxe-x86-64-w64-mingw32.static-curl \
           mxe-x86-64-w64-mingw32.static-openjpeg \
           mxe-x86-64-w64-mingw32.static-boost
-        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-gcc_11.2.0-focal.deb
-        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-brotli_1.1.0.deb
-        sudo apt-get install ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-ffmpeg_7.0.2.deb
+        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-gcc_11.2.0-focal.deb
+        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-brotli_1.1.0.deb
+        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-ffmpeg_7.0.2.deb
         sudo ln -s /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-gcc /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-cc
+        sudo mv /usr/lib/mxe/usr/x86_64-pc-linux-gnu/bin/cmake /usr/lib/mxe/usr/x86_64-pc-linux-gnu/bin/cmake.original || true
+        sudo ln -sf $(which cmake) /usr/lib/mxe/usr/x86_64-pc-linux-gnu/bin/cmake
         sudo pip install mingw-ldd
         echo "/usr/lib/mxe/usr/bin" >> $GITHUB_PATH
         echo "cross_prefix=x86_64-w64-mingw32.static-" >> $GITHUB_ENV
