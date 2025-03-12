@@ -34,6 +34,7 @@
 #include <cstring>
 #include <iomanip>
 #include <algorithm>
+#include <random>
 #include <stdlib.h>
 #include <cctype>
 
@@ -3894,8 +3895,9 @@ bool gather_artwork_filenames(
 			}
 #endif
 
-			std::random_shuffle( vid_contents.begin(), vid_contents.end() );
-			std::random_shuffle( img_contents.begin(), img_contents.end() );
+			std::mt19937 rnd{ std::random_device{}() };
+			std::shuffle( vid_contents.begin(), vid_contents.end(), rnd );
+			std::shuffle( img_contents.begin(), img_contents.end(), rnd );
 
 			images.insert( images.end(), img_contents.begin(), img_contents.end() );
 			vids.insert( vids.end(), vid_contents.begin(), vid_contents.end() );
