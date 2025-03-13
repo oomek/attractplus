@@ -26,6 +26,8 @@
 #include <SFML/System/InputStream.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include <atomic>
+
 class FeImageLoader;
 class FeImageLoaderThread;
 class FeImageLRUCache;
@@ -50,11 +52,11 @@ public:
 private:
 
    sf::InputStream *m_stream;
-   int m_ref_count;
-   int m_width;
-   int m_height;
+   std::atomic<int> m_ref_count;
+   std::atomic<int> m_width;
+   std::atomic<int> m_height;
    unsigned char *m_data;
-   bool m_loaded;
+   std::atomic<bool> m_loaded;
 
    FeImageLoaderEntry( sf::InputStream *s );
    FeImageLoaderEntry( const FeImageLoaderEntry & );
@@ -75,7 +77,6 @@ public:
 	// Caller becomes responsible for *e and must release it by calling release_entry() when done with it
 	//
 	bool load_image_from_file( const std::string &fn, FeImageLoaderEntry **e );
-	bool load_image_from_archive( const std::string &arch, const std::string &fn, FeImageLoaderEntry **e );
 
 	// release *e. Caller must do this for any *e returned by load_image()
 	void release_entry( FeImageLoaderEntry **e );
@@ -107,7 +108,8 @@ public:
 
 	void set_background_loading( bool flag );
 	bool get_background_loading();
-
+	bool image_in_cache( const std::string &filename );
+	void add_to_cache(const std::string &key, FeImageLoaderEntry *entry);
 private:
 	FeImageLoader();
 	FeImageLoader( const FeImageLoader & );
