@@ -312,7 +312,8 @@ bool FeTextureContainer::fix_masked_image()
 	return retval;
 }
 
-std::vector<std::uint8_t> FeTextureContainer::s_black_pixels;
+struct RGBAPixel { std::uint8_t r,g,b,a; };
+static std::vector<RGBAPixel> s_black_pixels;
 
 #ifndef NO_MOVIE
 bool FeTextureContainer::load_with_ffmpeg(
@@ -364,11 +365,11 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	if ( res && !is_image )
 	{
-		// Fill the first video frame with a black colour
-		size_t required_size = m_texture.getSize().x * m_texture.getSize().y * 4;
-		if ( s_black_pixels.size() < required_size )
-			s_black_pixels.resize( required_size, 0 );
-		m_texture.update( s_black_pixels.data() );
+		// Fill the first video frame with an opaque black colour
+		size_t required_pixels = m_texture.getSize().x * m_texture.getSize().y;
+		if ( s_black_pixels.size() < required_pixels )
+    		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
+		m_texture.update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
 	}
 
 	m_texture.setSmooth( m_smooth );
