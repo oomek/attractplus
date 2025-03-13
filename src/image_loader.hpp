@@ -107,7 +107,8 @@ public:
 
 	void set_background_loading( bool flag );
 	bool get_background_loading();
-
+	bool image_in_cache( const std::string &filename );
+	void add_to_cache(const std::string &key, FeImageLoaderEntry *entry);
 private:
 	FeImageLoader();
 	FeImageLoader( const FeImageLoader & );

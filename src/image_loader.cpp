@@ -32,6 +32,7 @@
 
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
+#include "fe_util.hpp"
 #include "zip.hpp"
 
 #ifndef NO_MOVIE
@@ -235,10 +236,170 @@ public:
 #endif
 	}
 
+	void queue_filename( const std::string &filename )
+	{
+		std::lock_guard<std::recursive_mutex> l( g_mutex );
+
+		// Check if this filename is already in the queue
+		std::queue<std::string> temp_queue = m_filename_queue;
+		bool already_queued = false;
+
+		while ( !temp_queue.empty() )
+		{
+			if ( temp_queue.front() == filename )
+			{
+				already_queued = true;
+				break;
+			}
+			temp_queue.pop();
+		}
+
+		// Only add if not already queued
+		if ( !already_queued )
+			m_filename_queue.push( filename );
+	}
+
+	// Add this method to get filenames from the queue
+	std::string get_next_filename()
+	{
+		std::lock_guard<std::recursive_mutex> l( g_mutex );
+		while ( !m_filename_queue.empty() )
+		{
+			std::string filename = m_filename_queue.front();
+			m_filename_queue.pop();
+
+			if ( file_exists( filename ))
+				return filename;
+			else
+				FeDebug() << "File not found: " << filename << std::endl;
+		}
+		return "";
+	}
+
 	void run_thread()
 	{
 		while ( m_run )
 		{
+			// Check for filenames to process first
+			std::string filename = get_next_filename();
+			if ( !filename.empty() )
+			{
+				FeDebug() << "Process image: " << filename << std::endl;
+
+				// Check if image is already in cache
+				FeImageLoaderEntry *existing = nullptr;
+				bool already_in_cache = false;
+
+				{
+					FeImageLoader &il = FeImageLoader::get_ref();
+					if ( il.image_in_cache( filename ))
+					{
+						FeDebug() << "Image already in cache, skipping: " << filename << std::endl;
+						continue;
+					}
+				}
+
+
+				// Process filename (check if it's an archive)
+				std::string arch;
+				std::string fn = filename;
+
+				// Test for image in an archive
+				size_t pos = fn.find( "|" );
+				if ( pos != std::string::npos )
+				{
+					arch = fn.substr( 0, pos );
+					fn = fn.substr( pos+1 );
+
+					// Create the stream
+					FeZipStream *zs = new FeZipStream( arch );
+					zs->open( fn );
+
+					// Create entry
+					FeImageLoaderEntry *entry = new FeImageLoaderEntry( zs );
+
+					// Process immediately
+					int ignored;
+
+					// Load image data
+					stbi_io_callbacks cb;
+					cb.read = reinterpret_cast< int(*)( void*, char*, int ) >( &read );
+					cb.skip = &skip;
+					cb.eof = reinterpret_cast< int(*)( void* ) >( &eof );
+
+					stbi_info_from_callbacks( &cb, entry->m_stream,
+						&( entry->m_width ), &( entry->m_height ), &ignored );
+
+					// Reset stream position
+					zs->seek(0);
+
+					// Load pixel data
+					unsigned char *data = stbi_load_from_callbacks( &cb, entry->m_stream,
+						&( entry->m_width ), &( entry->m_height ), &ignored, STBI_rgb_alpha );
+
+					if ( !data )
+						FeLog() << "Error loading image: " << filename << " - " << stbi_failure_reason() << std::endl;
+
+					// Update entry
+					entry->m_data = data;
+					entry->m_loaded = true;
+
+					// Delete stream
+					delete entry->m_stream;
+					entry->m_stream = nullptr;
+
+					// Add to cache
+					FeImageLoader::get_ref().add_to_cache( filename, entry );
+
+					continue;
+				}
+				else
+				{
+					sf::Clock c;
+					// Regular file
+					sf::FileInputStream *fs = new sf::FileInputStream( fn );
+
+					// Create entry
+					FeImageLoaderEntry *entry = new FeImageLoaderEntry( fs );
+
+					// Process immediately
+					int ignored;
+
+					// Load image data
+					stbi_io_callbacks cb;
+					cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
+					cb.skip = &skip;
+					cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
+
+					stbi_info_from_callbacks( &cb, entry->m_stream,
+						&( entry->m_width ), &( entry->m_height ), &ignored );
+
+					// Reset stream position
+					fs->seek(0);
+
+					// Load pixel data
+					unsigned char *data = stbi_load_from_callbacks( &cb, entry->m_stream,
+						&( entry->m_width ), &( entry->m_height ), &ignored, STBI_rgb_alpha );
+
+					if ( !data )
+						FeLog() << "Error loading image: " << filename << " - " << stbi_failure_reason() << std::endl;
+
+					// Update entry
+					entry->m_data = data;
+					entry->m_loaded = true;
+
+					// Delete stream
+					delete entry->m_stream;
+					entry->m_stream = nullptr;
+
+					// Add to cache
+					FeImageLoader::get_ref().add_to_cache( filename, entry );
+					FeDebug() << "Loaded image: " << filename << " in " << c.getElapsedTime().asMilliseconds() << "ms" << std::endl;
+					continue;
+				}
+			}
+
+			// Process regular queue entries
 			std::pair< std::string, FeImageLoaderEntry * > e = get_next();
 			if ( e.second )
 			{
@@ -327,7 +488,7 @@ private:
 
 	std::thread m_thread;
 	bool m_run;
-
+	std::queue<std::string> m_filename_queue;
 	std::queue< std::pair < std::string, FeImageLoaderEntry * > > m_in;
 #ifndef NO_MOVIE
 	std::queue< FeMedia * > m_vid;
@@ -424,16 +585,20 @@ FeImageLoader::~FeImageLoader()
 
 bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEntry **e )
 {
-	sf::FileInputStream *fs = new sf::FileInputStream( fn );
-	return internal_load_image( fn, fs, e );
+	std::string file = fn;
+	std::replace( file.begin(), file.end(), '\\', '/' );
+	sf::FileInputStream *fs = new sf::FileInputStream( file );
+	return internal_load_image( file, fs, e );
 }
 
 bool FeImageLoader::load_image_from_archive( const std::string &arch, const std::string &fn, FeImageLoaderEntry **e )
 {
+	std::string file = fn;
+	std::replace( file.begin(), file.end(), '\\', '/' );
 	FeZipStream *zs = new FeZipStream( arch );
-	zs->open( fn );
+	zs->open( file );
 
-	std::string key = arch + "|" + fn;
+	std::string key = arch + "|" + file;
 	return internal_load_image( key, zs, e );
 }
 
@@ -451,6 +616,10 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		temp_e->add_ref();
 		*e = temp_e;
 		return temp_e->m_loaded;
+	}
+	else
+	{
+		FeDebug() << "Image cache miss: " << key << std::endl;
 	}
 
 	temp_e = new FeImageLoaderEntry( stream );
@@ -595,26 +764,31 @@ bool FeImageLoader::get_background_loading()
 //
 void FeImageLoader::cache_image( const char *fn )
 {
-	FeImageLoaderEntry *e;
+	sf::Clock c;
+	if ( !m_imp )
+		return;
 
-	std::string arch;
-	std::string filename = fn;
+	// Queue the filename for background loading
+	std::string file = fn;
+	std::replace( file.begin(), file.end(), '\\', '/' );
 
-	// Test for image in an archive
-	// format of filename is "<archivename>|<filename>"
-	//
-	size_t pos = filename.find( "|" );
-	if ( pos != std::string::npos )
-	{
-		arch = filename.substr( 0, pos );
-		filename = filename.substr( pos+1 );
+	m_imp->m_bg_loader.queue_filename( file );
+	FeDebug() << "Queued image: " << file << " in " << c.getElapsedTime().asMilliseconds() << "ms" << std::endl;
+}
 
-		load_image_from_archive( arch, filename, &e );
-	}
-	else
-		load_image_from_file( filename, &e );
+bool FeImageLoader::image_in_cache( const std::string &filename )
+{
+	if ( !m_imp || !m_imp->m_cache )
+		return false;
 
-	release_entry( &e );
+	FeImageLoaderEntry *temp_e = nullptr;
+	return m_imp->m_cache->get( filename, &temp_e );
+}
+
+void FeImageLoader::add_to_cache( const std::string &key, FeImageLoaderEntry *entry )
+{
+	if ( m_imp && m_imp->m_cache )
+		m_imp->m_cache->put( key, entry );
 }
 
 int FeImageLoader::cache_max()
