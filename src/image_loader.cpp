@@ -33,7 +33,6 @@
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
 #include "fe_util.hpp"
-#include "zip.hpp"
 
 #ifndef NO_MOVIE
 #include "media.hpp"
@@ -299,104 +298,49 @@ public:
 					}
 				}
 
-
-				// Process filename (check if it's an archive)
-				std::string arch;
 				std::string fn = filename;
 
-				// Test for image in an archive
-				size_t pos = fn.find( "|" );
-				if ( pos != std::string::npos )
-				{
-					arch = fn.substr( 0, pos );
-					fn = fn.substr( pos+1 );
+				sf::Clock c;
+				// Regular file
+				sf::FileInputStream *fs = new sf::FileInputStream( fn );
 
-					// Create the stream
-					FeZipStream *zs = new FeZipStream( arch );
-					zs->open( fn );
+				// Create entry
+				FeImageLoaderEntry *entry = new FeImageLoaderEntry( fs );
 
-					// Create entry
-					FeImageLoaderEntry *entry = new FeImageLoaderEntry( zs );
+				// Process immediately
+				int ignored;
 
-					// Process immediately
-					int ignored;
+				// Load image data
+				stbi_io_callbacks cb;
+				cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
+				cb.skip = &skip;
+				cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
 
-					// Load image data
-					stbi_io_callbacks cb;
-					cb.read = reinterpret_cast< int(*)( void*, char*, int ) >( &read );
-					cb.skip = &skip;
-					cb.eof = reinterpret_cast< int(*)( void* ) >( &eof );
+				stbi_info_from_callbacks( &cb, entry->m_stream,
+					&( entry->m_width ), &( entry->m_height ), &ignored );
 
-					stbi_info_from_callbacks( &cb, entry->m_stream,
-						&( entry->m_width ), &( entry->m_height ), &ignored );
+				// Reset stream position
+				fs->seek(0);
 
-					// Reset stream position
-					zs->seek(0);
+				// Load pixel data
+				unsigned char *data = stbi_load_from_callbacks( &cb, entry->m_stream,
+					&( entry->m_width ), &( entry->m_height ), &ignored, STBI_rgb_alpha );
 
-					// Load pixel data
-					unsigned char *data = stbi_load_from_callbacks( &cb, entry->m_stream,
-						&( entry->m_width ), &( entry->m_height ), &ignored, STBI_rgb_alpha );
+				if ( !data )
+					FeLog() << "Error loading image: " << filename << " - " << stbi_failure_reason() << std::endl;
 
-					if ( !data )
-						FeLog() << "Error loading image: " << filename << " - " << stbi_failure_reason() << std::endl;
+				// Update entry
+				entry->m_data = data;
+				entry->m_loaded = true;
 
-					// Update entry
-					entry->m_data = data;
-					entry->m_loaded = true;
+				// Delete stream
+				delete entry->m_stream;
+				entry->m_stream = nullptr;
 
-					// Delete stream
-					delete entry->m_stream;
-					entry->m_stream = nullptr;
-
-					// Add to cache
-					FeImageLoader::get_ref().add_to_cache( filename, entry );
-
-					continue;
-				}
-				else
-				{
-					sf::Clock c;
-					// Regular file
-					sf::FileInputStream *fs = new sf::FileInputStream( fn );
-
-					// Create entry
-					FeImageLoaderEntry *entry = new FeImageLoaderEntry( fs );
-
-					// Process immediately
-					int ignored;
-
-					// Load image data
-					stbi_io_callbacks cb;
-					cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
-					cb.skip = &skip;
-					cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
-
-					stbi_info_from_callbacks( &cb, entry->m_stream,
-						&( entry->m_width ), &( entry->m_height ), &ignored );
-
-					// Reset stream position
-					fs->seek(0);
-
-					// Load pixel data
-					unsigned char *data = stbi_load_from_callbacks( &cb, entry->m_stream,
-						&( entry->m_width ), &( entry->m_height ), &ignored, STBI_rgb_alpha );
-
-					if ( !data )
-						FeLog() << "Error loading image: " << filename << " - " << stbi_failure_reason() << std::endl;
-
-					// Update entry
-					entry->m_data = data;
-					entry->m_loaded = true;
-
-					// Delete stream
-					delete entry->m_stream;
-					entry->m_stream = nullptr;
-
-					// Add to cache
-					FeImageLoader::get_ref().add_to_cache( filename, entry );
-					FeDebug() << "Loaded image: " << filename << " in " << c.getElapsedTime().asMilliseconds() << "ms" << std::endl;
-					continue;
-				}
+				// Add to cache
+				FeImageLoader::get_ref().add_to_cache( filename, entry );
+				FeDebug() << "Loaded image: " << filename << " in " << c.getElapsedTime().asMilliseconds() << "ms" << std::endl;
+				continue;
 			}
 
 			// Process regular queue entries
@@ -589,17 +533,6 @@ bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEn
 	std::replace( file.begin(), file.end(), '\\', '/' );
 	sf::FileInputStream *fs = new sf::FileInputStream( file );
 	return internal_load_image( file, fs, e );
-}
-
-bool FeImageLoader::load_image_from_archive( const std::string &arch, const std::string &fn, FeImageLoaderEntry **e )
-{
-	std::string file = fn;
-	std::replace( file.begin(), file.end(), '\\', '/' );
-	FeZipStream *zs = new FeZipStream( arch );
-	zs->open( file );
-
-	std::string key = arch + "|" + file;
-	return internal_load_image( key, zs, e );
 }
 
 bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream *stream, FeImageLoaderEntry **e )

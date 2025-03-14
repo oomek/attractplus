@@ -75,7 +75,6 @@ public:
 	// Caller becomes responsible for *e and must release it by calling release_entry() when done with it
 	//
 	bool load_image_from_file( const std::string &fn, FeImageLoaderEntry **e );
-	bool load_image_from_archive( const std::string &arch, const std::string &fn, FeImageLoaderEntry **e );
 
 	// release *e. Caller must do this for any *e returned by load_image()
 	void release_entry( FeImageLoaderEntry **e );
