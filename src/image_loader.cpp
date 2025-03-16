@@ -697,8 +697,7 @@ bool FeImageLoader::get_background_loading()
 //
 void FeImageLoader::cache_image( const char *fn )
 {
-	sf::Clock c;
-	if ( !m_imp )
+	if ( !m_imp || !m_imp->m_cache )
 		return;
 
 	// Queue the filename for background loading
@@ -706,7 +705,7 @@ void FeImageLoader::cache_image( const char *fn )
 	std::replace( file.begin(), file.end(), '\\', '/' );
 
 	m_imp->m_bg_loader.queue_filename( file );
-	FeDebug() << "Queued image: " << file << " in " << c.getElapsedTime().asMilliseconds() << "ms" << std::endl;
+	FeDebug() << "Queued image: " << file << std::endl;
 }
 
 bool FeImageLoader::image_in_cache( const std::string &filename )
