@@ -26,6 +26,8 @@
 #include <SFML/System/InputStream.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include <atomic>
+
 class FeImageLoader;
 class FeImageLoaderThread;
 class FeImageLRUCache;
@@ -50,11 +52,11 @@ public:
 private:
 
    sf::InputStream *m_stream;
-   int m_ref_count;
-   int m_width;
-   int m_height;
+   std::atomic<int> m_ref_count;
+   std::atomic<int> m_width;
+   std::atomic<int> m_height;
    unsigned char *m_data;
-   bool m_loaded;
+   std::atomic<bool> m_loaded;
 
    FeImageLoaderEntry( sf::InputStream *s );
    FeImageLoaderEntry( const FeImageLoaderEntry & );
