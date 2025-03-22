@@ -118,6 +118,7 @@ public:
 
 	void put( const std::string &key, FeImageLoaderEntry *value )
 	{
+		std::lock_guard<std::recursive_mutex> l(g_mutex);
 		m_items.push_front( kvp_t( key, value ) );
 		value->add_ref();
 
@@ -129,6 +130,7 @@ public:
 
 	bool get( const std::string &key, FeImageLoaderEntry **val )
 	{
+		std::lock_guard<std::recursive_mutex> l(g_mutex);
 		map_iterator_t it = m_items_map.find( key );
 		if ( it != m_items_map.end() )
 		{
@@ -170,6 +172,8 @@ public:
 private:
 	void prune()
 	{
+		FeLog() << "prune" << std::endl;
+		std::lock_guard<std::recursive_mutex> l(g_mutex);
 		while ( !m_items.empty() && ( m_current_bytes > m_max_bytes ) )
 		{
 			list_iterator_t last = m_items.end();
@@ -183,7 +187,7 @@ private:
 				m_current_bytes -= lsize;
 
 			{
-				std::lock_guard<std::recursive_mutex> l(g_mutex);
+				// std::lock_guard<std::recursive_mutex> l(g_mutex);
 				if (last->second) {
 					// Store the pointer value before potentially deleting it
 					FeImageLoaderEntry* entry = last->second;
@@ -192,7 +196,7 @@ private:
 					// Now safe to delete if this was the last reference
 					if (entry->dec_ref())
 					{
-						// FeLog() << "Deleting image entry: " << entry->m_ref_count.load() << entry << std::endl;
+						FeLog() << "Deleting image entry: " << entry->m_ref_count.load() << entry << std::endl;
 						delete entry;
 					}
 				}
@@ -282,13 +286,13 @@ void run_thread()
         }
         if (!filename.empty())
         {
-            FeDebug() << "Process image: " << filename << std::endl;
+            FeLog() << "Adding image: " << filename << std::endl;
 
             // Check if image is already in cache first
             FeImageLoader &il = FeImageLoader::get_ref();
             if (il.image_in_cache(filename))
             {
-                FeDebug() << "Image already in cache, skipping: " << filename << std::endl;
+                FeLog() << "Image already in cache, skipping: " << filename << std::endl;
                 continue;
             }
 
@@ -317,6 +321,7 @@ void run_thread()
         {
             // Skip processing if already loaded
             if (e.second->m_loaded) {
+				FeLog() << "Already loaded" << std::endl;
                 std::lock_guard<std::recursive_mutex> l( g_mutex );
                 if (e.second && e.second->dec_ref())
                     delete e.second;
@@ -341,6 +346,7 @@ void run_thread()
 
             int temp_width, temp_height;
             unsigned char *data = stbi_load_from_callbacks( &cb, e.second->m_stream, &temp_width, &temp_height, &ignored, STBI_rgb_alpha );
+			FeLog() << "Loaded image: " << e.first << std::endl;
 
             {
                 std::lock_guard<std::recursive_mutex> l( g_mutex );
@@ -353,6 +359,10 @@ void run_thread()
 
                 if ( !data )
                     FeLog() << "Error loading image: " << e.first << " - " << stbi_failure_reason() << std::endl;
+                else {
+                    // Add the successfully loaded entry to the cache
+                    FeImageLoader::get_ref().add_to_cache(e.first, e.second);
+                }
 
                 // Delete and null the stream after loading data
                 delete e.second->m_stream;
@@ -360,7 +370,10 @@ void run_thread()
 
                 // Decrease ref count for our processing reference
                 if (e.second && e.second->dec_ref())
+				{
+					FeLog() << "Deleting image entry: " << e.second << std::endl;
                     delete e.second;
+				}
             }
         }
         else
@@ -497,6 +510,7 @@ int FeImageLoaderEntry::get_height()
 void FeImageLoaderEntry::add_ref()
 {
 	m_ref_count.fetch_add( 1, std::memory_order_relaxed );
+	FeLog() << "add_ref: " << m_ref_count.load() << std::endl;
 }
 
 bool FeImageLoaderEntry::dec_ref()
@@ -510,6 +524,7 @@ bool FeImageLoaderEntry::dec_ref()
     }
 
     prev_value = m_ref_count.fetch_sub( 1, std::memory_order_relaxed );
+	FeLog() << "dec_ref: " << m_ref_count.load() << std::endl;
     return ( prev_value == 1 );
 }
 
@@ -529,6 +544,8 @@ bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEn
 	std::string file = fn;
 	std::replace( file.begin(), file.end(), '\\', '/' );
 
+	FeLog() << "load_image_from_file: " << file << std::endl;
+
 	sf::FileInputStream* fs = new sf::FileInputStream();
 	if ( !fs->open( file ) )
 	{
@@ -546,7 +563,7 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 	// check if we already have it in the cache
 	if ( m_imp->m_cache && m_imp->m_cache->get( key, &temp_e ) )
 	{
-		FeDebug() << "Image cache hit: " << key << std::endl;
+		FeLog() << "Image cache hit: " << key << std::endl;
 		delete stream;
 
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
@@ -556,7 +573,7 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 	}
 	else
 	{
-		FeDebug() << "Image cache miss: " << key << std::endl;
+		FeLog() << "Image cache miss: " << key << std::endl;
 	}
 
 	temp_e = new FeImageLoaderEntry( stream );
@@ -618,16 +635,16 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		else
 		{
 			m_imp->m_cache->put( key, temp_e );
-			std::lock_guard<std::recursive_mutex> l( g_mutex );
-			*e = temp_e;
-			(*e)->add_ref();
+			// std::lock_guard<std::recursive_mutex> l( g_mutex );
+			// *e = temp_e;
+			// (*e)->add_ref();
 		}
 	}
 
 	{
-		// std::lock_guard<std::recursive_mutex> l( g_mutex );
-		// *e = temp_e;
-		// (*e)->add_ref();
+		std::lock_guard<std::recursive_mutex> l( g_mutex );
+		*e = temp_e;
+		(*e)->add_ref();
 	}
 
 	return retval;
@@ -635,15 +652,16 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 
 void FeImageLoader::release_entry( FeImageLoaderEntry **e )
 {
-	//log entry with filename and ref count
+	FeLog() << "release_entry" << std::endl;
 	if ( e )
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
 		if ( *e && (*e)->dec_ref() )
 		{
-			FeLog() << "Deleting image entry" << std::endl;
+			FeLog() << "Deleting image entry: " << (*e)->m_ref_count.load() << *e << std::endl;
 			delete *e;
 		}
+
 		*e = NULL;
 	}
 }
@@ -722,7 +740,7 @@ void FeImageLoader::cache_image( const char *fn )
 	std::replace( file.begin(), file.end(), '\\', '/' );
 
 	m_imp->m_bg_loader.queue_filename( file );
-	FeDebug() << "Queued image: " << file << std::endl;
+	FeLog() << "Queued image: " << file << std::endl;
 }
 
 bool FeImageLoader::image_in_cache( const std::string &filename )
@@ -734,10 +752,25 @@ bool FeImageLoader::image_in_cache( const std::string &filename )
 	return m_imp->m_cache->get( filename, &temp_e );
 }
 
-void FeImageLoader::add_to_cache( const std::string &key, FeImageLoaderEntry *entry )
+void FeImageLoader::add_to_cache(const std::string &key, FeImageLoaderEntry *entry)
 {
-	if ( m_imp && m_imp->m_cache )
-		m_imp->m_cache->put( key, entry );
+    if (!m_imp || !m_imp->m_cache || !entry)
+        return;
+
+    // Only add if the entry has valid loaded data
+    if (!entry->m_loaded || !entry->m_data)
+        return;
+
+    // Check if already in cache using the public API
+    FeImageLoaderEntry *existing = nullptr;
+    bool in_cache = m_imp->m_cache->get(key, &existing);
+
+    // If already in cache, do nothing
+    if (in_cache)
+        return;
+
+    // Add to cache (which will handle the reference count increment)
+    m_imp->m_cache->put(key, entry);
 }
 
 int FeImageLoader::cache_max()
