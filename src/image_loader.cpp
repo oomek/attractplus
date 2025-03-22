@@ -169,6 +169,12 @@ public:
 		return it->second->get_bytes();
 	}
 
+	bool contains(const std::string &key)
+	{
+		std::lock_guard<std::recursive_mutex> l(g_mutex);
+		return m_items_map.find(key) != m_items_map.end();
+	}
+
 private:
 	void prune()
 	{
@@ -761,15 +767,13 @@ void FeImageLoader::add_to_cache(const std::string &key, FeImageLoaderEntry *ent
     if (!entry->m_loaded || !entry->m_data)
         return;
 
-    // Check if already in cache using the public API
-    FeImageLoaderEntry *existing = nullptr;
-    bool in_cache = m_imp->m_cache->get(key, &existing);
+    std::lock_guard<std::recursive_mutex> l(g_mutex);
 
-    // If already in cache, do nothing
-    if (in_cache)
+    // Check if already in cache using the new method
+    if (m_imp->m_cache->contains(key))
         return;
 
-    // Add to cache (which will handle the reference count increment)
+    // Add to cache - which will increment reference count
     m_imp->m_cache->put(key, entry);
 }
 
