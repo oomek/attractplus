@@ -29,6 +29,7 @@
 #include <mutex>
 #include <thread>
 #include <chrono>
+#include <algorithm>
 
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
