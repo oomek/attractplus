@@ -147,7 +147,9 @@ public:
 	void resize( size_t new_size )
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		m_max_bytes = new_size;
+		// if cache size is > 0 clamp it at minimum 100MB as a workaround for
+		// the situation when loaded image is larger than the cache size
+		m_max_bytes = std::max( static_cast<size_t>( 100 * 1024 * 1024 ), new_size );
 		prune();
 	}
 
