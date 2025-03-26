@@ -1600,13 +1600,13 @@ void FePresent::script_process_magic_strings( std::string &str,
 				switch ( fe_get_num_params( vm, func.GetFunc(), func.GetEnv() ) )
 				{
 				case 2:
-					result = func.Evaluate<const char *>( index_offset, filter_offset );
+					result = func.Evaluate<std::string>( index_offset, filter_offset );
 					break;
 				case 1:
-					result = func.Evaluate<const char *>( index_offset );
+					result = func.Evaluate<std::string>( index_offset );
 					break;
 				default:
-					result = func.Evaluate<const char *>();
+					result = func.Evaluate<std::string>();
 					break;
 				}
 
@@ -1827,10 +1827,10 @@ void FeVM::script_run_config_function(
 
 	if ( !func.IsNull() )
 	{
-		const char *help_msg = NULL;
+		std::string help_msg;
 		try
 		{
-			help_msg = func.Evaluate<const char *>( cb_get_config() );
+			help_msg = func.Evaluate<std::string>( cb_get_config() );
 		}
 		catch( const Sqrat::Exception &e )
 		{
@@ -1839,7 +1839,7 @@ void FeVM::script_run_config_function(
 				<< " - " << e.Message() << std::endl;
 		}
 
-		if ( help_msg )
+		if ( !help_msg.empty() )
 			return_message = help_msg;
 	}
 	else
