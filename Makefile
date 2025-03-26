@@ -62,7 +62,7 @@
 #WINDOWS_XP=1
 
 ifeq ($(FE_VERSION),)
-override FE_VERSION := v3.1.0 beta 1
+override FE_VERSION := v3.1.0 beta 2
 else
 $(info user set version on command line)
 override FE_VERSION := v$(FE_VERSION)
