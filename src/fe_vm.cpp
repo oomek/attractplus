@@ -917,7 +917,7 @@ bool FeVM::on_new_layout()
 	);
 
 	fe.Bind( _SC("Sound"), Class <FeSound, NoConstructor>()
-		.Prop( _SC("file_name"), &FeSound::get_file_name, &FeSound::set_file_name )
+		.Prop( _SC("file_name"), &FeSound::get_file_name, &FeSound::set_file_name ) // deprecated as of 3.1.0 For switchable audio files use FeMusic
 		.Prop( _SC("playing"), &FeSound::get_playing, &FeSound::set_playing )
 		.Prop( _SC("loop"), &FeSound::get_loop, &FeSound::set_loop )
 		.Prop( _SC("pitch"), &FeSound::get_pitch, &FeSound::set_pitch )

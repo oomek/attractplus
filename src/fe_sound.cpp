@@ -142,19 +142,7 @@ void FeSound::load( const std::string &fn )
 
 void FeSound::set_file_name( const char *n )
 {
-	std::string filename = clean_path( n );
-
-	if ( filename.empty() )
-	{
-		m_file_name = "";
-		m_sound.stop();
-		return;
-	}
-
-	if ( is_relative_path( filename ) )
-		filename = FePresent::script_get_base_path() + filename;
-
-	load( filename );
+	FeLog() << "sound.file_name is deprecated. Go to Layouts.md for more info." << std::endl;
 }
 
 const char *FeSound::get_file_name()
