@@ -1237,9 +1237,34 @@ bool FeMedia::read_packet()
 	if ( m_imp->m_read_eof )
 		return false;
 
-	AVPacket *pkt = av_packet_alloc();
+	if ( !m_imp->m_format_ctx )
+	{
+		m_imp->m_read_eof = true;
+		FeLog() << "Error: Invalid format context: " << FORMAT_CTX_URL << std::endl;
+		return false;
+	}
 
-	int r = av_read_frame( m_imp->m_format_ctx, pkt );
+	AVPacket *pkt = av_packet_alloc();
+	if ( !pkt )
+	{
+		m_imp->m_read_eof = true;
+		FeLog() << "Error: Failed to allocate packet: " << FORMAT_CTX_URL << std::endl;
+		return false;
+	}
+
+	int r = -1;
+	try
+	{
+		r = av_read_frame( m_imp->m_format_ctx, pkt );
+	}
+	catch (...)
+	{
+		FeLog() << "Error: Failed to read frame: " << FORMAT_CTX_URL << std::endl;
+		av_packet_free( &pkt );
+		m_imp->m_read_eof = true;
+		return false;
+	}
+
 	if ( r < 0 )
 	{
 		m_imp->m_read_eof=true;
