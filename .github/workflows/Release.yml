@@ -76,7 +76,7 @@ jobs:
         config:
         - { name: shared, amflags: STATIC=0 }
         - { name: static, amflags: STATIC=1 }
-        os: [ buster, bullseye, bookworm ]
+        os: [ bullseye, bookworm ]
         exclude:
           - config: { name: shared }
 
@@ -104,6 +104,12 @@ jobs:
         source-dir: am
         host-arch: ${{ matrix.platform.arch }}
         docker-image: debian:${{ matrix.os }}-slim
+        #apt-opts: -t ${{ matrix.os }}-backports
+        setup-hook: |
+          echo "deb http://deb.debian.org/debian ${{matrix.os}}-backports main" > /etc/apt/sources.list.d/debian-backports.list
+          apt update
+          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libboost-filesystem-dev libboost-system-dev libxi-dev
+          apt-get install -y -t ${{matrix.os}}-backports cmake
 
     - name: Rename AM+
       run: |
