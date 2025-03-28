@@ -148,6 +148,7 @@ protected:
 	int m_user_page_size;
 	bool m_preserve_aspect;
 	bool m_custom_overlay;
+	bool m_mouse_pointer_visible;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	sf::Vector2i m_layoutSize;

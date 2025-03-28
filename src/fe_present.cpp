@@ -183,7 +183,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
-	m_layout_loaded( false )
+	m_layout_loaded( false ),
+	m_mouse_pointer_visible( false )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -489,6 +490,9 @@ void FePresent::clear()
 	delete m_defaultFont;
 	m_defaultFont = NULL;
 	m_layoutFont = NULL;
+
+	set_mouse_pointer( false );
+
 }
 
 namespace
@@ -1623,12 +1627,17 @@ int FePresent::get_refresh_rate()
 
 void FePresent::set_mouse_pointer( bool b )
 {
-	m_window.get_win().setMouseCursorVisible( b );
+	m_mouse_pointer_visible = b;
+
+	if ( is_windowed_mode( m_feSettings->get_window_mode() ))
+		m_window.get_win().setMouseCursorVisible( true );
+	else
+		m_window.get_win().setMouseCursorVisible( b );
 }
 
 bool FePresent::get_mouse_pointer()
 {
-	return false;
+	return m_mouse_pointer_visible;
 }
 
 void FePresent::script_do_update( FeBasePresentable *bp )
