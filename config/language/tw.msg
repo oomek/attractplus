@@ -37,17 +37,17 @@ Command;命令
 Command Arguments;命令參數
 Comparison;比對方式
 Configure;設定
-Configure / Controls;設定 / 輸入控制
-Configure / Displays;設定 / 顯示介面
-Configure / Displays Menu;設定 / 主選單
-Configure / Emulators;設定 / 模擬器
-Configure / Intro;設定 / 啟動視訊
-Configure / Joystick Mapping;設定 / 搖桿映射
-Configure / General;設定 / 一般
-Configure / Plug-ins;設定 / 外掛
-Configure / Scraper;設定 / 搜刮器
-Configure / Screen Saver;設定 / 螢幕保護
-Configure / Sound;設定 / 聲音
+Configure > Controls;設定 > 輸入控制
+Configure > Displays;設定 > 顯示介面
+Configure > Displays Menu;設定 > 主選單
+Configure > Emulators;設定 > 模擬器
+Configure > Intro;設定 > 啟動視訊
+Configure > Joystick Mapping;設定 > 搖桿映射
+Configure > General;設定 > 一般
+Configure > Plug-ins;設定 > 外掛
+Configure > Scraper;設定 > 搜刮器
+Configure > Screen Saver;設定 > 螢幕保護
+Configure > Sound;設定 > 聲音
 Configure Layout;設定畫面佈局
 Configure Plug-in;設定外掛
 Confirm Exit;結束時確認
@@ -156,7 +156,7 @@ List Limit;清單大小限制
 Manufacturer;製作廠商
 Menu Colour;選單顏色
 Menu Prompt;選單提示
-Menu Style / Layout;選單樣式 / 畫面佈局
+Menu Style > Layout;選單樣式 > 畫面佈局
 Mouse Threshold;滑鼠靈敏度
 Movie Volume;影片音量
 Name;檔案名稱

@@ -29,15 +29,15 @@ Command;Comandos
 Command Arguments;Argumentos
 Comparison;Comparación
 Configure;Configuración
-Configure / Controls;Configuración / Controles
-Configure / Displays;Configuración / Pantallas
-Configure / Emulators;Configuración / Emuladores
-Configure / General;Configuración / General
-Configure / Intro;Configuración / Intro
-Configure / Plug-ins;Configuración / Plugins
-Configure / Scraper;Configuración / Scraper
-Configure / Screen Saver;Configuración / Protector de pantalla
-Configure / Sound;Configuración / Sonido
+Configure > Controls;Configuración > Controles
+Configure > Displays;Configuración > Pantallas
+Configure > Emulators;Configuración > Emuladores
+Configure > General;Configuración > General
+Configure > Intro;Configuración > Intro
+Configure > Plug-ins;Configuración > Plugins
+Configure > Scraper;Configuración > Scraper
+Configure > Screen Saver;Configuración > Protector de pantalla
+Configure > Sound;Configuración > Sonido
 Configure Plug-in;Configuración de Plugins
 Confirm Favourites;Confirmar favoritos
 Control;Controles
@@ -345,8 +345,8 @@ Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
-Configure / Displays Menu;Configure / Displays Menu
-Configure / Joystick Mapping;Configure / Joystick Mapping
+Configure > Displays Menu;Configure > Displays Menu
+Configure > Joystick Mapping;Configure > Joystick Mapping
 Configure Layout;Configure Layout
 Confirm Exit;Confirm Exit
 Create new tag;Create new tag
@@ -382,7 +382,7 @@ Launch Last Game;Launch Last Game
 Layout File;Layout File
 Menu Colour;Color del menú
 Menu Prompt;Menu Prompt
-Menu Style / Layout;Menu Style / Layout
+Menu Style > Layout;Menu Style > Layout
 Next Game;Next Game
 Non-Blocking Mode Wait;Non-Blocking Mode Wait
 Overview;Overview

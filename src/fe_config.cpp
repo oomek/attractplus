@@ -719,7 +719,7 @@ bool FeEmulatorGenMenu::on_option_select(
 
 void FeEmulatorSelMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::SelectionList, "Configure / Emulators" );
+	ctx.set_style( FeConfigContext::SelectionList, "Configure > Emulators" );
 
 	std::vector<std::string> emu_file_list;
 	ctx.fe_settings.get_list_of_emulators( emu_file_list );
@@ -1278,7 +1278,7 @@ void FeDisplayEditMenu::set_display_index( int index )
 
 void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Displays Menu" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Displays Menu" );
 
 	std::string prompt_str = ctx.fe_settings.get_info( FeSettings::MenuPrompt );
 	ctx.add_optl( Opt::EDIT, "Menu Prompt", prompt_str, "_help_displays_menu_prompt" );
@@ -1295,7 +1295,7 @@ void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 	ctx.fe_settings.get_layouts_list( layouts ); // this sorts the list
 	layouts.insert( layouts.begin(), default_str ); // force first enty to the 'default' string
 
-	ctx.add_optl( Opt::LIST, "Menu Style / Layout", layout, "_help_displays_menu_layout" );
+	ctx.add_optl( Opt::LIST, "Menu Style > Layout", layout, "_help_displays_menu_layout" );
 	ctx.back_opt().append_vlist( layouts );
 
 	std::vector<std::string> bool_opts( 2 );
@@ -1350,7 +1350,7 @@ void FeDisplaySelMenu::get_options( FeConfigContext &ctx )
 	ctx.default_sel = ctx.fe_settings.get_current_display_index();
 	if ( ctx.default_sel < 0 ) ctx.default_sel = 0; // We are in the displays menu.
 
-	ctx.set_style( FeConfigContext::SelectionList, "Configure / Displays" );
+	ctx.set_style( FeConfigContext::SelectionList, "Configure > Displays" );
 
 	int display_count = ctx.fe_settings.displays_count();
 	for ( int i=0; i< display_count; i++ )
@@ -1561,7 +1561,7 @@ void FeInputEditMenu::set_mapping( FeMapping *mapping )
 
 void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Joystick Mapping" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Joystick Mapping" );
 
 
 	std::vector < std::string > values;
@@ -1635,7 +1635,7 @@ bool FeInputJoysticksMenu::save( FeConfigContext &ctx )
 
 void FeInputSelMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Controls" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Controls" );
 	ctx.fe_settings.get_input_mappings( m_mappings );
 
 	std::vector < FeMapping >::iterator it;
@@ -1755,7 +1755,7 @@ bool FeInputSelMenu::on_option_select(
 
 void FeSoundMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Sound" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Sound" );
 
 	std::vector<std::string> volumes(11);
 	for ( int i=0; i<11; i++ )
@@ -1840,7 +1840,7 @@ bool FeSoundMenu::save( FeConfigContext &ctx )
 
 void FeScraperMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Scraper" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Scraper" );
 
 	std::vector<std::string> bool_opts( 2 );
 	ctx.fe_settings.get_translation( "Yes", bool_opts[0] );
@@ -1910,7 +1910,7 @@ bool FeScraperMenu::save( FeConfigContext &ctx )
 
 void FeMiscMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / General" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > General" );
 
 	ctx.fe_settings.get_languages_list( m_languages );
 	std::string cl = ctx.fe_settings.get_info( FeSettings::Language );
@@ -2388,7 +2388,7 @@ void FePluginEditMenu::set_plugin( FePlugInfo *plugin, int index )
 
 void FePluginSelMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Plug-ins" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Plug-ins" );
 
 	std::vector<std::string> plugins;
 	ctx.fe_settings.get_available_plugins( plugins );
@@ -2565,7 +2565,7 @@ void FeLayoutEditMenu::set_layout( FeLayoutInfo *layout,
 
 void FeIntroEditMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Intro" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Intro" );
 
 	std::string gen_help;
 	ctx.fe_settings.get_path( FeSettings::Intro,
@@ -2591,7 +2591,7 @@ bool FeIntroEditMenu::save( FeConfigContext &ctx )
 
 void FeSaverEditMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, "Configure / Screen Saver" );
+	ctx.set_style( FeConfigContext::EditList, "Configure > Screen Saver" );
 
 	ctx.add_optl( Opt::EDIT,
 			"Screen Saver Timeout",

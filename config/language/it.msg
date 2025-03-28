@@ -34,16 +34,16 @@ Command;Comando
 Command Arguments;Argomenti del comando
 Comparison;Comparazione
 Configure;Configurazione
-Configure / Controls;Configurazione / Controlli
-Configure / Displays;Configurazione / Display
-Configure / Displays Menu;Configura / Menù dei display
-Configure / Emulators;Configurazione / Emulatori
-Configure / General;Configurazione / Varie
-Configure / Intro;Configura / Video di introduzione
-Configure / Plug-ins;Configurazione / Plugin
-Configure / Scraper;Configurazione / Recupera dalla rete
-Configure / Screen Saver;Configura / Salvaschermo
-Configure / Sound;Configurazione / Suoni
+Configure > Controls;Configurazione > Controlli
+Configure > Displays;Configurazione > Display
+Configure > Displays Menu;Configura > Menù dei display
+Configure > Emulators;Configurazione > Emulatori
+Configure > General;Configurazione > Varie
+Configure > Intro;Configura > Video di introduzione
+Configure > Plug-ins;Configurazione > Plugin
+Configure > Scraper;Configurazione > Recupera dalla rete
+Configure > Screen Saver;Configura > Salvaschermo
+Configure > Sound;Configurazione > Suoni
 Configure Layout;Configura il tema
 Configure Plug-in;Configura i plugin
 Confirm Exit;Conferma l'uscita
@@ -140,7 +140,7 @@ List Limit;Límite della lista
 Manufacturer;Produttore
 Menu Colour;Colore del menù
 Menu Prompt;Titolo del menù
-Menu Style / Layout;Tema del menù
+Menu Style > Layout;Tema del menù
 Mouse Threshold;Soglia del mouse
 Movie Volume;Volume dei video
 Name;Nome
@@ -427,7 +427,7 @@ Attract-Mode detected emulator(s) that can be imported automatically.  Import th
 Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Clear Hotkey?;Clear Hotkey?
-Configure / Joystick Mapping;Configure / Joystick Mapping
+Configure > Joystick Mapping;Configure > Joystick Mapping
 Delete shortcut '$1'?;Delete shortcut '$1'?
 Delete this Shortcut;Delete this Shortcut
 Edit Shortcut;Edit Shortcut

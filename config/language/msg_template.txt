@@ -39,17 +39,17 @@ Command;Command
 Command Arguments;Command Arguments
 Comparison;Comparison
 Configure;Configure
-Configure / Controls;Configure / Controls
-Configure / Displays;Configure / Displays
-Configure / Displays Menu;Configure / Displays Menu
-Configure / Emulators;Configure / Emulators
-Configure / Intro;Configure Intro
-Configure / Joystick Mapping;Configure / Joystick Mapping
-Configure / Miscellaneous;Configure / Miscellaneous
-Configure / Plug-ins;Configure / Plug-ins
-Configure / Scraper;Configure / Scraper
-Configure / Screen Saver;Configure Screen Saver
-Configure / Sound;Configure / Sound
+Configure > Controls;Configure > Controls
+Configure > Displays;Configure > Displays
+Configure > Displays Menu;Configure > Displays Menu
+Configure > Emulators;Configure > Emulators
+Configure > Intro;Configure Intro
+Configure > Joystick Mapping;Configure > Joystick Mapping
+Configure > Miscellaneous;Configure > Miscellaneous
+Configure > Plug-ins;Configure > Plug-ins
+Configure > Scraper;Configure > Scraper
+Configure > Screen Saver;Configure Screen Saver
+Configure > Sound;Configure > Sound
 Configure Layout;Configure Layout
 Configure Plug-in;Configure Plug-in
 Confirm Exit;Confirm Exit
@@ -159,7 +159,7 @@ List Limit;List Limit
 Manufacturer;Manufacturer
 Menu Colour;Menu Colour
 Menu Prompt;Menu Prompt
-Menu Style / Layout;Menu Style / Layout
+Menu Style > Layout;Menu Style > Layout
 Mouse Threshold;Mouse Threshold
 Movie Volume;Movie Volume
 Name;Name

@@ -31,15 +31,15 @@ Command;命令
 Command Arguments;命令及参数（ Arguments）
 Comparison;比较
 Configure;设置
-Configure / Controls;设置 / 控制器
-Configure / Displays;设置 / 界面
-Configure / Emulators;设置 / 模拟器
-Configure / General;设置 / 其它
-Configure / Intro;设置 / 开机画面
-Configure / Plug-ins;设置 / 插件
-Configure / Scraper;设置 / 搜刮
-Configure / Screen Saver;设置 / 屏保
-Configure / Sound;设置 / 声音
+Configure > Controls;设置 > 控制器
+Configure > Displays;设置 > 界面
+Configure > Emulators;设置 > 模拟器
+Configure > General;设置 > 其它
+Configure > Intro;设置 > 开机画面
+Configure > Plug-ins;设置 > 插件
+Configure > Scraper;设置 > 搜刮
+Configure > Screen Saver;设置 > 屏保
+Configure > Sound;设置 > 声音
 Configure Plug-in;设置插件
 Confirm Favourites;设置收藏
 Control;控制器(Control)
@@ -125,7 +125,7 @@ List Limit;列表大小限制
 Manufacturer;制造商
 Menu Colour;菜单颜色
 Menu Prompt;标题
-Menu Style / Layout;主题
+Menu Style > Layout;主题
 Mouse Threshold;鼠标的阈值
 Movie Volume;视频音量
 Name;名称
@@ -226,7 +226,6 @@ equals;等于
 Add a rule to this filter;添加分类规则
 Ambient Sounds;背景音乐
 Basic Movie;全屏式动态画面
-Configure / Input;设置/控制器
 Configure available emulators;可用模拟器
 Configure filter rule;设置分类规则
 Delete this filter;删除分类
@@ -256,8 +255,8 @@ Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
-Configure / Displays Menu;Configure / Displays Menu
-Configure / Joystick Mapping;Configure / Joystick Mapping
+Configure > Displays Menu;Configure > Displays Menu
+Configure > Joystick Mapping;Configure > Joystick Mapping
 Configure Layout;Configure Layout
 Confirm Exit;Confirm Exit
 Create new tag;Create new tag

@@ -35,17 +35,17 @@ Command;명령어
 Command Arguments;실행 인자
 Comparison;비교 조건
 Configure;설정
-Configure / Controls;설정 / 입력
-Configure / Displays;설정 / 목록
-Configure / Displays Menu;설정 / 목록 관리 메뉴
-Configure / Emulators;설정 / 에뮬레이터 관련
-Configure / General;설정 / 기타
-Configure / Intro;설정 / 인트로
-Configure / Joystick Mapping;설정 / 조이스틱 매핑
-Configure / Plug-ins;설정 / 플러그 인
-Configure / Scraper; 설정 / 온라인 정보원
-Configure / Sound;설정 / 소리
-Configure / Screen Saver;설정 / 화면 보호기
+Configure > Controls;설정 > 입력
+Configure > Displays;설정 > 목록
+Configure > Displays Menu;설정 > 목록 관리 메뉴
+Configure > Emulators;설정 > 에뮬레이터 관련
+Configure > General;설정 > 기타
+Configure > Intro;설정 > 인트로
+Configure > Joystick Mapping;설정 > 조이스틱 매핑
+Configure > Plug-ins;설정 > 플러그 인
+Configure > Scraper; 설정 > 온라인 정보원
+Configure > Sound;설정 > 소리
+Configure > Screen Saver;설정 > 화면 보호기
 Configure Layout;레이아웃 설정
 Configure Plug-in;플러그 인 설정
 Confirm Exit;종료 확인
@@ -151,7 +151,7 @@ List Limit;목록 크기 제한
 Manufacturer;제작사(Manufacturer)
 Menu Colour;메뉴 색상
 Menu Prompt;화면에 표시할 메뉴 이름
-Menu Style / Layout;메뉴 스타일 / 레이아웃
+Menu Style > Layout;메뉴 스타일 > 레이아웃
 Mouse Threshold;마우스 민감도
 Movie Volume;동영상 음량
 Name;이름
@@ -379,7 +379,7 @@ _help_rule_delete;해당 규칙을 삭제합니다
 _help_rule_target;필터가 게임의 어떤 특성을 가지고 걸러낼 지를 설정합니다
 _help_rule_value;필터의 규칙을 정규 표현식으로 설정합니다. 예를 들어 규칙 대상이 '연도' 이며 비교 조건이 '일치' 에 표현식이 "1984" 이면 1984년도에 제작된 게임만 표시합니다. "198." 이면 1980년도에 제작된 모든 게임이 표시됩니다. "(198.)|(199.)" 은 1980년도 및 1990년도의 모든 게임을 표시합니다.
 _help_scrape_fanart;온라인에서 팬들이 그린 그림을 다운로드 할지 설정합니다.
-_help_scrape_flyers;온라인에서 게임 홍보 포스터 / 박스 아트를 다운로드 할지 설정합니다.
+_help_scrape_flyers;온라인에서 게임 홍보 포스터 > 박스 아트를 다운로드 할지 설정합니다.
 _help_scrape_marquees;온라인에서 Marquee를 다운로드 할지 설정합니다.
 _help_scrape_snaps;온라인에서 스크린샷을 다운로드 할지 설정합니다.
 _help_scrape_vids;게임 영상을 가져올 지 여부를 설정합니다

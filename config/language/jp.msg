@@ -28,15 +28,15 @@ Command;コマンド
 Command Arguments;実行パラメータ
 Comparison;ルールの比較方式
 Configure;設定
-Configure / Controls;設定 / 入力
-Configure / Displays;設定 / ディスプレイ
-Configure / Emulators;設定 / エミュレータ
-Configure / General;設定 / その他
-Configure / Intro;設定 / イントロ
-Configure / Plug-ins;設定 / プラグイン
-Configure / Scraper;設定 / オンラインゲーム情報
-Configure / Screen Saver;設定 / スクリーンセーバー
-Configure / Sound;設定 / サウンド
+Configure > Controls;設定 > 入力
+Configure > Displays;設定 > ディスプレイ
+Configure > Emulators;設定 > エミュレータ
+Configure > General;設定 > その他
+Configure > Intro;設定 > イントロ
+Configure > Plug-ins;設定 > プラグイン
+Configure > Scraper;設定 > オンラインゲーム情報
+Configure > Screen Saver;設定 > スクリーンセーバー
+Configure > Sound;設定 > サウンド
 Configure Plug-in;プラグインを設定
 Confirm Favourites;お気に入りの確認
 Control;コントローラ(Control)
@@ -339,8 +339,8 @@ Auto-detect emulators?;Auto-detect emulators?
 Blank Game;Blank Game
 Buttons;Buttons
 Clear Hotkey?;Clear Hotkey?
-Configure / Displays Menu;Configure / Displays Menu
-Configure / Joystick Mapping;Configure / Joystick Mapping
+Configure > Displays Menu;Configure > Displays Menu
+Configure > Joystick Mapping;Configure > Joystick Mapping
 Configure Layout;Configure Layout
 Confirm Exit;Confirm Exit
 Create new tag;Create new tag
@@ -373,7 +373,7 @@ Launch Last Game;Launch Last Game
 Layout File;Layout File
 Menu Colour;メニューの色
 Menu Prompt;Menu Prompt
-Menu Style / Layout;Menu Style / Layout
+Menu Style > Layout;Menu Style > Layout
 Next Game;Next Game
 Next Page;Next Page
 Non-Blocking Mode Wait;Non-Blocking Mode Wait

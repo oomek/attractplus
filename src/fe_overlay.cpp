@@ -27,9 +27,13 @@
 #include "fe_listbox.hpp"
 #include "fe_text.hpp"
 #include <SFML/Graphics.hpp>
+#include "base64.hpp"
+
 #include <iostream>
 #define _USE_MATH_DEFINES
 #include <cmath>
+
+#include "Logo.png.h"
 
 class FeConfigContextImp : public FeConfigContext
 {
@@ -229,6 +233,13 @@ void FeOverlay::init()
 	m_fade_alpha = 80;
 	m_line_size = std::round( std::min( m_screen_size.x, m_screen_size.y ) / 240 );
 	m_font = m_fePresent.get_default_font();
+
+	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
+	if ( m_logo.loadFromMemory( logo_data.data(), logo_data.size() ))
+	{
+		m_logo.setSmooth( true );
+		m_logo.generateMipmap();
+	}
 
 	style_init();
 }
@@ -1061,11 +1072,21 @@ int FeOverlay::display_config_dialog(
 	FeTextPrimitive header( m_font, m_header_text_colour, m_edge_bg_color, m_header_size );
 
 	header.setSize( m_screen_size.x, m_edge_size );
+	header.setAlignment( static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Left | FeTextPrimitive::Middle ));
+	header.setPosition( 0, 0 );
+	header.setMargin( m_edge_size );
 	header.setBgOutlineColor( m_edge_line_colour );
 	header.setBgOutlineThickness( m_line_size );
 	header.setTextScale( m_text_scale );
 	header.setString( ctx.title );
 	draw_list.push_back( &header );
+
+	sf::Sprite logo( m_logo );
+	draw_list.push_back( &logo );
+	float scale_factor = ( 32.0f / 256.0f ) * ( m_screen_size.y / 480.0f );
+	logo.setScale({ scale_factor, scale_factor });
+	float offset = std::floor( m_edge_size * ( 14.0f / 60.0f ));
+	logo.setPosition({ offset, offset });
 
 	unsigned int width = m_screen_size.x;
 	if ( ctx.style == FeConfigContext::EditList )

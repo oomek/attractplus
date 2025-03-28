@@ -29,15 +29,15 @@ Command;Kommando
 Command Arguments;Kommandozeilenargumente
 Comparison;Vergleich
 Configure;Konfiguration
-Configure / Controls;Konfiguration / Steuerungen
-Configure / Displays;Konfiguration / Bildschirme
-Configure / Emulators;Konfiguration / Emulatoren
-Configure / General;Konfiguration / Allgemein
-Configure / Intro;Konfiguration / Intro Sequenz
-Configure / Plug-ins;Konfiguration / Plug-ins
-Configure / Scraper;Konfiguration / Scraper
-Configure / Screen Saver;Konfiguration / Bildschirmschoner
-Configure / Sound;Konfiguration / Klänge
+Configure > Controls;Konfiguration > Steuerungen
+Configure > Displays;Konfiguration > Bildschirme
+Configure > Emulators;Konfiguration > Emulatoren
+Configure > General;Konfiguration > Allgemein
+Configure > Intro;Konfiguration > Intro Sequenz
+Configure > Plug-ins;Konfiguration > Plug-ins
+Configure > Scraper;Konfiguration > Scraper
+Configure > Screen Saver;Konfiguration > Bildschirmschoner
+Configure > Sound;Konfiguration > Klänge
 Configure Plug-in;Konfiguriere Plug-in
 Confirm Favourites;Favoriten bestätigen
 Control;Steuerung
@@ -335,8 +335,8 @@ Attract-Mode detected emulator(s) that can be imported automatically.  Import th
 Blank Game;Spiele-Platzhalter
 Buttons;Tasten
 Clear Hotkey?;Tastenkombination entfernen?
-Configure / Displays Menu;Konfiguration / Bildschirmmenü
-Configure / Joystick Mapping;Konfiguration / Joystick Belegung
+Configure > Displays Menu;Konfiguration > Bildschirmmenü
+Configure > Joystick Mapping;Konfiguration > Joystick Belegung
 Configure Layout;Konfiguriere das Thema
 Confirm Exit;Beenden bestätigen
 Create new tag;neues Etikett erstellen
@@ -371,7 +371,7 @@ Launch Last Game;zuletzt gespieltes Spiel starten
 Layout File;Themendatei
 Menu Colour;Menüfarbe
 Menu Prompt;Eingabeaufforderung
-Menu Style / Layout;Menüstil / Thema
+Menu Style > Layout;Menüstil > Thema
 Next Game;nächstes Spiel
 Non-Blocking Mode Wait;Klippo-Modus Wartezeit
 Overview;Übersicht
