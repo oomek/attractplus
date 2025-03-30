@@ -251,17 +251,16 @@ public:
 
 	void queue_filename( const std::string &filename )
 	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
+		std::lock_guard<std::mutex> l( m_filename_queue_mutex );
 
-		// Check if filename is not already in the deque
+		// Check if filename is not already in the queue
 		if ( std::find( m_filename_queue.begin(), m_filename_queue.end(), filename ) == m_filename_queue.end() )
 			m_filename_queue.push_back( filename );
 	}
 
-	// Add this method to get filenames from the queue
 	std::string get_next_filename()
 	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
+		std::lock_guard<std::mutex> l( m_filename_queue_mutex );
 		while ( !m_filename_queue.empty() )
 		{
 			std::string filename = m_filename_queue.front();
@@ -279,7 +278,7 @@ void run_thread()
 {
 	while ( m_run )
 	{
-		// Check for filenames to process first
+		// Check if we have entries in the filename queue
 		std::string filename;
 		{
 			std::lock_guard<std::recursive_mutex> l( g_mutex );
@@ -289,7 +288,7 @@ void run_thread()
 		{
 			FeDebug() << "Adding image: " << filename << std::endl;
 
-			// Check if image is already in cache first
+			// Check if image is already in the cache
 			FeImageLoader &il = FeImageLoader::get_ref();
 			if ( il.image_in_cache( filename ))
 			{
@@ -299,7 +298,7 @@ void run_thread()
 
 			// Create file stream
 			sf::FileInputStream* fs = new sf::FileInputStream();
-			if ( !fs->open( filename )) // exception fault
+			if ( !fs->open( filename ))
 			{
 				FeLog() << "Failed to open file: " << filename << std::endl;
 				delete fs;
@@ -431,6 +430,7 @@ private:
 	std::thread m_thread;
 	bool m_run;
 	std::deque<std::string> m_filename_queue;
+	std::mutex m_filename_queue_mutex;
 	std::queue< std::pair < std::string, FeImageLoaderEntry * > > m_in;
 #ifndef NO_MOVIE
 	std::queue< FeMedia * > m_vid;
