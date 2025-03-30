@@ -863,7 +863,7 @@ sf::Time FeMedia::get_video_time()
 	// TODO: would like to sync movie time to audio, however using
 	// getPlayingOffset() here noticably slows things down on my system.
 	//
-	if ( m_video )
+	if ( m_video && m_video->run_video_thread )
 		return m_video->video_timer.getElapsedTime();
 	else
 		return sf::Time::Zero;
