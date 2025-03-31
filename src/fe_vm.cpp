@@ -104,7 +104,7 @@ namespace
 			Sqrat::Script sc;
 			path_to_run += filename;
 
-			if ( !file_exists( path_to_run ) )
+			if ( !path_exists( path_to_run ) )
 				return false;
 
 			sc.CompileFile( path_to_run );

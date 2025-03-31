@@ -175,7 +175,10 @@ std::string sanitize_filename( const std::string &file );
 // Returns the modified time of the file
 time_t file_mtime( const std::string &file );
 
-// return true if file exists (file or directory)
+// return true if path exists (file or directory)
+bool path_exists( const std::string &file );
+
+// return true if file exists
 bool file_exists( const std::string &file );
 
 // return true if specified path is an existing directory
