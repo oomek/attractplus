@@ -114,7 +114,7 @@ bool internal_resolve_config_file(
 	if ( subdir ) path += subdir;
 	path += name;
 
-	if ( file_exists( path ) )
+	if ( path_exists( path ) )
 	{
 		result = path;
 		return true;
@@ -126,7 +126,7 @@ bool internal_resolve_config_file(
 		if ( subdir ) path += subdir;
 		path += name;
 
-		if ( file_exists( path ) )
+		if ( path_exists( path ) )
 		{
 			result = path;
 			return true;
@@ -1321,7 +1321,7 @@ bool FeSettings::get_path(
 		{
 			std::string temp = path + FE_LAYOUT_FILE_BASE
 				+ FE_LAYOUT_FILE_EXTENSION;
-			if ( file_exists( temp ) )
+			if ( path_exists( temp ) )
 			{
 				file = FE_LAYOUT_FILE_BASE;
 				file += FE_LAYOUT_FILE_EXTENSION;
@@ -1852,7 +1852,7 @@ bool FeSettings::get_game_overview_filepath( const std::string &emu, const std::
 	path += romname;
 	path += FE_GAME_OVERVIEW_FILE_EXTENSION;
 
-	return file_exists( path );
+	return path_exists( path );
 }
 
 bool FeSettings::get_game_overview_absolute( int filter_index, int rom_index, std::string &ov )
@@ -3743,7 +3743,7 @@ void FeSettings::internal_gather_config_files(
 	std::string config_path = m_config_path + subdir;
 
 	// check the config directory first
-	if ( file_exists( config_path ) )
+	if ( path_exists( config_path ) )
 		get_basename_from_extension( ll, config_path, extension );
 
 	// then the data directory
