@@ -196,6 +196,42 @@ void FeRomList::mark_favs_and_tags_changed()
 	m_tags_changed=true;
 }
 
+//
+// Returns true if FileIsAvailable is used by global or display filters
+//
+bool FeRomList::has_file_availability( FeDisplayInfo &display ) {
+	FeFilter *global_filter = display.get_global_filter();
+	bool has_global_rules = global_filter && (global_filter->get_rule_count() > 0);
+	if ( has_global_rules && global_filter->test_for_target( FeRomInfo::FileIsAvailable ) ) return true;
+
+	int filters_count = display.get_filter_count();
+	for ( int i=0; i<filters_count; i++ )
+		if ( display.get_filter( i )->test_for_target( FeRomInfo::FileIsAvailable ) ) return true;
+
+	return false;
+}
+
+//
+// Returns a simple romlist hash used to detect changes
+//
+size_t FeRomList::get_romlist_hash( std::set<std::string> emu_set )
+{
+	// Find all unique romlist paths
+	std::set<std::string> paths;
+	for ( std::set<std::string>::iterator ite=emu_set.begin(); ite != emu_set.end(); ++ite )
+	{
+		FeEmulatorInfo *emu = get_emulator( *ite );
+		if ( !emu ) continue;
+
+		std::vector<std::string> emu_paths = emu->get_paths();
+		for ( std::vector<std::string>::iterator itn=emu_paths.begin(); itn != emu_paths.end(); ++itn )
+			paths.insert( emu->clean_path_with_wd( *itn, true ) );
+	}
+
+	// Return a hash of path subdirs and filenames
+	return get_path_content_hash( paths );
+}
+
 bool FeRomList::load_romlist( const std::string &path,
 	const std::string &romlist_name,
 	FeDisplayInfo &display,
@@ -225,6 +261,20 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool loaded_romlist_cache = false;
 	bool saved_romlist_cache = false;
 	bool success = false;
+
+	// If any filter uses FileIsAvailable then check the romlist hash
+	if ( has_file_availability( display ) )
+	{
+		std::set<std::string> emu_set;
+		size_t prev_romlist_hash = 0;
+		FeCache::load_romhash_cache( romlist_name, emu_set, prev_romlist_hash );
+		size_t next_romlist_hash = get_romlist_hash( emu_set );
+
+		if ( next_romlist_hash != prev_romlist_hash ) {
+			FeCache::save_romhash_cache( romlist_name, emu_set, next_romlist_hash );
+			FeCache::invalidate_rominfo( romlist_name, FeRomInfo::FileIsAvailable );
+		}
+	}
 
 	// Attempt to load globalfilter cache
 	if ( has_global_rules && FeCache::load_globalfilter_cache( display, *this ) )
@@ -361,6 +411,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	if ( has_global_rules && !loaded_globalfilter_cache )
 	{
 		global_filter->init();
+		std::set<std::string> emu_set;
 
 		if ( global_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
 			get_file_availability();
@@ -372,6 +423,9 @@ bool FeRomList::load_romlist( const std::string &path,
 		FeRomInfoListType::iterator last_it=m_list.begin();
 		for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
 		{
+			// Store a list of all emulators used in the romlist, since there may be multiple
+			emu_set.insert( (*it).get_info( FeRomInfo::Emulator ) );
+
 			if ( global_filter->apply_filter( *it ) )
 			{
 				if ( last_it != it )
@@ -421,6 +475,10 @@ bool FeRomList::load_romlist( const std::string &path,
 
 		// Save globalfilter for next time
 		saved_globalfilter_cache = FeCache::save_globalfilter_cache( display, *this );
+
+		// Save hash for FileIsAvailable check on next load
+		size_t next_romlist_hash = get_romlist_hash( emu_set );
+		FeCache::save_romhash_cache( romlist_name, emu_set, next_romlist_hash );
 	}
 
 	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";

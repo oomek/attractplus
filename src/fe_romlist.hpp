@@ -181,6 +181,9 @@ private:
 	void save_favs();
 	void save_tags();
 
+	bool has_file_availability( FeDisplayInfo &display );
+	size_t get_romlist_hash( std::set<std::string> emu_set );
+
 public:
 	FeRomList( const std::string &config_path );
 	~FeRomList();

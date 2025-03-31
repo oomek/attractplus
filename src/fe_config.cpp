@@ -523,8 +523,11 @@ bool FeEmulatorEditMenu::save( FeConfigContext &ctx )
 	std::string filename = ctx.fe_settings.get_config_dir();
 	confirm_directory( filename, FE_EMULATOR_SUBDIR );
 
+	const std::string name = m_emulator->get_info( FeEmulatorInfo::Name );
+	FeCache::invalidate_romlist( name );
+
 	filename += FE_EMULATOR_SUBDIR;
-	filename += m_emulator->get_info( FeEmulatorInfo::Name );
+	filename += name;
 	filename += FE_EMULATOR_FILE_EXTENSION;
 	m_emulator->save( filename );
 

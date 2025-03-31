@@ -73,6 +73,10 @@ public:
 
 	// ----------------------------------------------------------------------------------
 
+	static std::string get_romhash_cache_filename(
+		const std::string &romlist_name
+	);
+
 	static std::string get_romlist_cache_filename(
 		const std::string &romlist_name
 	);
@@ -115,6 +119,20 @@ public:
 	);
 
 	static void invalidate_romlist_args();
+
+	// ----------------------------------------------------------------------------------
+
+	static bool save_romhash_cache(
+		const std::string &romlist_name,
+		std::set<std::string> &emu_set,
+		size_t &hash
+	);
+
+	static bool load_romhash_cache(
+		const std::string &romlist_name,
+		std::set<std::string> &emu_set,
+		size_t &hash
+	);
 
 	// ----------------------------------------------------------------------------------
 
