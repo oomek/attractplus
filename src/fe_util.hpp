@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <string>
+#include <set>
 #include <SFML/Config.hpp>
 #include <SFML/Graphics.hpp>
 
@@ -375,3 +376,5 @@ void hide_console();
 // - Returns true on success
 //
 bool hex_to_color( std::string hex, sf::Color &dest_color );
+
+size_t get_path_content_hash( std::set<std::string> &paths );

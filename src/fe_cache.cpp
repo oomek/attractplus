@@ -18,6 +18,7 @@ const char *FE_CACHE_SUBDIR = "cache/";
 const char *FE_CACHE_STATS = "stats";
 const char *FE_CACHE_FILTER = "filter";
 const char *FE_CACHE_DISPLAY = "display";
+const char *FE_CACHE_ROMHASH = "romhash";
 const char *FE_CACHE_ROMLIST = "romlist";
 const char *FE_CACHE_GLOBALFILTER = "globalfilter";
 const std::string FE_EMPTY_STRING;
@@ -53,6 +54,21 @@ void FeCache::set_displays(
 };
 
 // -------------------------------------------------------------------------------------
+
+//
+// Returns sanitized filename for romhash cache
+//
+std::string FeCache::get_romhash_cache_filename(
+	const std::string &romlist_name
+)
+{
+	if ( romlist_name.empty() ) return FE_EMPTY_STRING;
+	return m_config_path
+		+ FE_CACHE_SUBDIR
+		+ FE_CACHE_ROMHASH + "."
+		+ sanitize_filename( romlist_name )
+		+ FE_CACHE_EXT;
+}
 
 //
 // Returns sanitized filename for romlist cache
@@ -129,6 +145,9 @@ void FeCache::invalidate_romlist(
 	const std::string &romlist_name
 )
 {
+	std::string filename = get_romhash_cache_filename( romlist_name );
+	if ( file_exists( filename ) ) delete_file( filename );
+
 	for (std::vector<FeDisplayInfo>::const_iterator itr=(*m_displays).begin(); itr!=(*m_displays).end(); ++itr)
 	{
 		FeDisplayInfo display = (*itr);
@@ -207,6 +226,68 @@ void FeCache::invalidate_rominfo(
 				}
 			}
 		}
+	}
+}
+
+// -------------------------------------------------------------------------------------
+
+//
+// Saves romhash to cache file
+//
+bool FeCache::save_romhash_cache(
+	const std::string &romlist_name,
+	std::set<std::string> &emu_set,
+	size_t &hash
+)
+{
+	std::string filename = get_romhash_cache_filename( romlist_name );
+	if ( filename.empty() ) return false;
+	nowide::ofstream file( filename, std::ios::binary );
+	if ( !file.is_open() ) return false;
+
+	try
+	{
+		{	// block flushes archive
+			OutputArchive archive( file );
+			archive( emu_set, hash );
+		}
+		file.close();
+		return true;
+	}
+	catch (...)
+	{
+		file.close();
+		return false;
+	}
+}
+
+//
+// Loads romhash file
+//
+bool FeCache::load_romhash_cache(
+	const std::string &romlist_name,
+	std::set<std::string> &emu_set,
+	size_t &hash
+)
+{
+	std::string filename = get_romhash_cache_filename( romlist_name );
+	if ( !file_exists( filename ) ) return false;
+	nowide::ifstream file( filename, std::ios::binary );
+	if ( !file.is_open() ) return false;
+
+	try
+	{
+		{	// block flushes archive
+			InputArchive archive( file );
+			archive( emu_set, hash );
+		}
+		file.close();
+		return true;
+	}
+	catch ( ... )
+	{
+		file.close();
+		return false;
 	}
 }
 
