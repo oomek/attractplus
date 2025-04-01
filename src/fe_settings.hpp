@@ -210,7 +210,7 @@ private:
 	FeLayoutInfo m_intro_params;
 	FeLayoutInfo m_current_layout_params; // copy of current layout params (w/ per display params as well)
 	FeLayoutInfo m_display_menu_per_display_params; // stores only the 'per_display' params for the display menu
-	sf::IntRect m_mousecap_rect;
+	int m_window_mouse_thresh;
 
 	int m_current_display; // -1 if we are currently showing the 'displays menu' w/ custom layout
 	FeBaseConfigurable *m_current_config_object;
@@ -319,7 +319,7 @@ public:
 
 	FeInputMap::Command map_input( const std::optional<sf::Event> &e );
 
-	void get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh );
+	void get_input_config_metrics( int &mouse_thresh, int &joy_thresh );
 	FeInputMap::Command input_conflict_check( const FeInputMapEntry &e );
 
 	// for use with Up, Down, Left, Right, Back commands to get what they are actually mapped to
@@ -397,8 +397,7 @@ public:
 	bool select_last_launch();
 	bool is_last_launch( int filter_offset, int index_offset );
 	int get_joy_thresh() const { return m_joy_thresh; }
-	void init_mouse_capture( int window_x, int window_y );
-	bool test_mouse_reset( int mouse_x, int mouse_y ) const;
+	void init_mouse_threshold( int window_x, int window_y );
 
 	// prepares for emulator launch by setting various tracking variables (last launch, etc)
 	// and determining the correct executable, command line parameters and working directory to use

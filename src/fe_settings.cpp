@@ -909,7 +909,7 @@ void FeSettings::load_state()
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
 {
 	if ( e.has_value() )
-		return m_inputmap.map_input( e.value(), m_mousecap_rect, m_joy_thresh );
+		return m_inputmap.map_input( e.value(), m_window_mouse_thresh, m_joy_thresh );
 	else
 		return FeInputMap::LAST_COMMAND;
 }
@@ -919,9 +919,9 @@ FeInputMap::Command FeSettings::input_conflict_check( const FeInputMapEntry &e )
 	return m_inputmap.input_conflict_check( e );
 }
 
-void FeSettings::get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh )
+void FeSettings::get_input_config_metrics( int &mouse_thresh, int &joy_thresh )
 {
-	mousecap_rect = m_mousecap_rect;
+	mouse_thresh = m_window_mouse_thresh;
 	joy_thresh = m_joy_thresh;
 }
 
@@ -940,21 +940,9 @@ bool FeSettings::get_current_state( FeInputMap::Command c )
 	return m_inputmap.get_current_state( c, m_joy_thresh );
 }
 
-void FeSettings::init_mouse_capture( int window_x, int window_y )
+void FeSettings::init_mouse_threshold( int window_x, int window_y )
 {
-	int radius = window_x * m_mouse_thresh / 400;
-	int centre_x = window_x / 2;
-	int centre_y = window_y / 2;
-
-	m_mousecap_rect.position.x = centre_x - radius;
-	m_mousecap_rect.position.y = centre_y - radius;
-	m_mousecap_rect.size.x = radius * 2;
-	m_mousecap_rect.size.y = radius * 2;
-}
-
-bool FeSettings::test_mouse_reset( int mouse_x, int mouse_y ) const
-{
-	return (( m_inputmap.has_mouse_moves() ) && ( !m_mousecap_rect.contains({ mouse_x, mouse_y })));
+	m_window_mouse_thresh = window_x * m_mouse_thresh / 400;
 }
 
 int FeSettings::get_filter_index_from_offset( int offset ) const
