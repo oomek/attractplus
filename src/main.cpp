@@ -357,19 +357,6 @@ int main(int argc, char *argv[])
 				if ( ev->is<sf::Event::Closed>() )
 					exit_selected = true;
 
-				else if ( ev->is<sf::Event::MouseMoved>() )
-				{
-					const auto* mov = ev->getIf<sf::Event::MouseMoved>();
-					if ( mov && feSettings.test_mouse_reset( mov->position.x, mov->position.y ))
-					{
-						// We reset the mouse if we are capturing it and it has moved
-						// outside of its bounding box
-						//
-						sf::Vector2u s = window.get_win().getSize();
-						sf::Mouse::setPosition( sf::Vector2i( s.x / 2, s.y / 2 ), window.get_win() );
-					}
-				}
-
 				else if ( ev->is<sf::Event::KeyReleased>() ||
 							ev->is<sf::Event::MouseButtonReleased>() ||
 							ev->is<sf::Event::JoystickButtonReleased>() )

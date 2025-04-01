@@ -411,11 +411,7 @@ void FeWindow::initial_create()
 	set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
 #endif
 
-	m_fes.init_mouse_capture( wsize.x, wsize.y );
-
-	// Only mess with the mouse position if mouse moves mapped
-	if ( m_fes.test_mouse_reset( 0, 0 ) )
-		sf::Mouse::setPosition( sf::Vector2i( wsize.x / 2, wsize.y / 2 ), *m_window );
+	m_fes.init_mouse_threshold( wsize.x, wsize.y );
 }
 
 void launch_callback( void *o )
@@ -742,5 +738,33 @@ void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 
 const std::optional<sf::Event> FeWindow::pollEvent()
 {
-	return m_window->pollEvent();
+	// if mouse is outside the window hijack the event
+	if ( m_mouse_outside )
+	{
+		sf::Vector2i pos = sf::Mouse::getPosition( *m_window );
+		if ( pos != m_mouse_pos )
+		{
+			m_mouse_pos = pos;
+			return sf::Event::MouseMoved({ m_mouse_pos });
+		}
+	}
+
+	// the actual window event
+	std::optional<sf::Event> ev = m_window->pollEvent();
+
+	// store the mouse position, and whether the mouse is over the window
+	if ( ev.has_value() )
+	{
+		if ( ev->is<sf::Event::MouseMoved>() )
+		{
+			m_mouse_pos = ev->getIf<sf::Event::MouseMoved>()->position;
+			m_mouse_outside = false;
+		}
+		else if ( ev->is<sf::Event::MouseLeft>() )
+		{
+			m_mouse_outside = true;
+		}
+	}
+
+	return ev;
 }
