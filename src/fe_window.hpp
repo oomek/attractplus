@@ -51,6 +51,8 @@ private:
 	void check_for_sleep();
 #endif
 	int m_win_mode;
+	bool m_mouse_outside = true;
+	sf::Vector2i m_mouse_pos;
 	sf::Image m_logo_image;
 
 public:

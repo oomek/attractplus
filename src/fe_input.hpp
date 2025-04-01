@@ -73,7 +73,7 @@ public:
 	FeInputSingle( Type t, int code );
 
 	// Construct from an SFML event
-	FeInputSingle( const sf::Event &ev, const sf::IntRect &mc_rect, const int joy_thresh );
+	FeInputSingle( const sf::Event &ev, const int mouse_thresh, const int joy_thresh );
 
 	// Construct from a config string
 	FeInputSingle( const std::string &str );
@@ -89,6 +89,8 @@ public:
 	// test the current state of the input that this object represents and return true if it is depressed,
 	// false otherwise.  Works for keys, buttons and joystick axes.  Does not work for mouse moves or wheels.
 	bool get_current_state( int joy_thresh ) const;
+
+	void init_mouse_window( FeWindow &wnd );
 
 	// Return the current position of the input that this object represents.
 	// Works for joystick axes
@@ -189,7 +191,7 @@ public:
 
 	FeInputMap();
 
-	Command map_input( const sf::Event &, const sf::IntRect &mc_rect, const int joy_thresh );
+	Command map_input( const sf::Event &, const int mouse_thresh, const int joy_thresh );
 
 	Command input_conflict_check( const FeInputMapEntry &e );
 
@@ -219,7 +221,6 @@ public:
 		const std::string &fn );
 
 	void save( nowide::ofstream & ) const;
-	bool has_mouse_moves() const { return ( m_mmove_count > 0 ); };
 
 	static Command string_to_command( const std::string &s );
 
@@ -256,8 +257,6 @@ private:
 
 	// Config for mapping joysticks by name to specific id #s
 	std::vector< std::pair< int, std::string > > m_joy_config;
-
-	int m_mmove_count; // counter of whether mouse moves are mapped
 };
 
 class FeInputMapEntry
@@ -271,7 +270,6 @@ public:
 		const FeInputSingle &trigger=FeInputSingle() ) const;
 
 	std::string as_string() const;
-	bool has_mouse_move() const;
 
 	std::set < FeInputSingle > inputs;
 	FeInputMap::Command command;
