@@ -28,9 +28,6 @@
 
 #include <iomanip>
 
-#include <squirrel.h>
-#include <sqstdstring.h>
-
 const char *FE_STAT_FILE_EXTENSION = ".stat";
 const char FE_TAGS_SEP = ';';
 
@@ -259,7 +256,7 @@ FeRule::FeRule( FeRomInfo::Index t, FilterComp c, const std::string &w )
 	: m_filter_target( t ),
 	m_filter_comp( c ),
 	m_filter_what( w ),
-	m_rex( NULL ),
+	m_regex_compiled( false ),
 	m_is_exception( false )
 {
 }
@@ -268,15 +265,15 @@ FeRule::FeRule( const FeRule &r )
 	: m_filter_target( r.m_filter_target ),
 	m_filter_comp( r.m_filter_comp ),
 	m_filter_what( r.m_filter_what ),
-	m_rex( NULL ),
+	m_regex_compiled( r.m_regex_compiled ),
 	m_is_exception( r.m_is_exception )
 {
+	if ( r.m_regex_compiled )
+		m_rex = r.m_rex;
 }
 
 FeRule::~FeRule()
 {
-	if ( m_rex )
-		sqstd_rex_free( m_rex );
 }
 
 FeRule &FeRule::operator=( const FeRule &r )
@@ -284,41 +281,40 @@ FeRule &FeRule::operator=( const FeRule &r )
 	m_filter_target = r.m_filter_target;
 	m_filter_comp = r.m_filter_comp;
 	m_filter_what = r.m_filter_what;
+	m_regex_compiled = r.m_regex_compiled;
 	m_is_exception = r.m_is_exception;
 
-	if ( m_rex )
-		sqstd_rex_free( m_rex );
+    if ( r.m_regex_compiled )
+        m_rex = r.m_rex;
 
-	m_rex = NULL;
 	return *this;
 }
 
 void FeRule::init()
 {
-	if (( m_rex ) || ( m_filter_what.empty() ))
-		return;
+    if ( m_regex_compiled || m_filter_what.empty() )
+        return;
 
-	//
-	// Compile the regular expression now
-	//
-	const SQChar *err( NULL );
-	m_rex = sqstd_rex_compile(
-		(const SQChar *)m_filter_what.c_str(), &err );
-
-	if ( !m_rex )
-		FeLog() << "Error compiling regular expression \""
-			<< m_filter_what << "\": " << err << std::endl;
+    try
+	{
+        m_rex = std::regex( m_filter_what, std::regex::ECMAScript );
+        m_regex_compiled = true;
+    }
+    catch ( const std::regex_error& e )
+	{
+        FeLog() << "Error compiling regular expression \""
+            << m_filter_what << "\": " << e.what() << std::endl;
+        m_regex_compiled = false;
+    }
 }
 
 bool FeRule::apply_rule( const FeRomInfo &rom ) const
 {
 	if (( m_filter_target == FeRomInfo::LAST_INDEX )
 		|| ( m_filter_comp == FeRule::LAST_COMPARISON )
-		|| ( m_rex == NULL ))
+		|| ( !m_regex_compiled ))
 		return true;
 
-	const SQChar *begin( NULL );
-	const SQChar *end( NULL );
 	const std::string &target = rom.get_info( m_filter_target );
 
 	switch ( m_filter_comp )
@@ -327,37 +323,25 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 		if ( target.empty() )
 			return ( m_filter_what.empty() );
 
-		return ( sqstd_rex_match(
-					m_rex,
-					(const SQChar *)target.c_str() ) == SQTrue );
+		return std::regex_match( target, m_rex );
 
 	case FilterNotEquals:
 		if ( target.empty() )
 			return ( !m_filter_what.empty() );
 
-		return ( sqstd_rex_match(
-					m_rex,
-					(const SQChar *)target.c_str() ) != SQTrue );
+		return !std::regex_match( target, m_rex );
 
 	case FilterContains:
 		if ( target.empty() )
 			return false;
 
-		return ( sqstd_rex_search(
-					m_rex,
-					(const SQChar *)target.c_str(),
-					&begin,
-					&end ) == SQTrue );
+		return std::regex_search( target, m_rex );
 
 	case FilterNotContains:
 		if ( target.empty() )
 			return true;
 
-		return ( sqstd_rex_search(
-					m_rex,
-					(const SQChar *)target.c_str(),
-					&begin,
-					&end ) != SQTrue );
+		return !std::regex_search( target, m_rex );
 
 	default:
 		return true;
@@ -385,11 +369,7 @@ void FeRule::set_values(
 		FilterComp c,
 		const std::string &w )
 {
-	if ( m_rex )
-		sqstd_rex_free( m_rex );
-
-	m_rex = NULL;
-
+	m_regex_compiled = false;
 	m_filter_target = i;
 	m_filter_comp = c;
 	m_filter_what = w;
