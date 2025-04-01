@@ -32,10 +32,10 @@
 #include <vector>
 #include "nowide/fstream.hpp"
 #include "cereal/cereal.hpp"
+#include <regex>
 
 extern const char *FE_STAT_FILE_EXTENSION;
 extern const char FE_TAGS_SEP;
-struct SQRex;
 
 //
 // Class for storing information regarding a specific rom
@@ -167,7 +167,8 @@ private:
 	FeRomInfo::Index m_filter_target;
 	FilterComp m_filter_comp;
 	std::string m_filter_what;
-	SQRex *m_rex;
+	std::regex m_rex;
+	bool m_regex_compiled;
 	bool m_is_exception;
 };
 

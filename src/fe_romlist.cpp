@@ -28,9 +28,6 @@
 #include "nowide/fstream.hpp"
 #include <algorithm>
 
-#include <squirrel.h>
-#include <sqstdstring.h>
-
 #include <SFML/System/Clock.hpp>
 
 const char *FE_ROMLIST_FILE_EXTENSION	= ".txt";
@@ -39,7 +36,8 @@ const char *FE_FAVOURITE_FILE_EXTENSION = ".tag";
 const char *FE_ROMLIST_SUBDIR	= "romlists/";
 const char *FE_STATS_SUBDIR                     = "stats/";
 
-SQRex *FeRomListSorter::m_rex = NULL;
+std::regex FeRomListSorter::m_rex;
+bool FeRomListSorter::m_regex_compiled = false;
 
 namespace
 {
@@ -51,26 +49,27 @@ namespace
 
 void FeRomListSorter::init_title_rex( const std::string &re_mask )
 {
-	ASSERT( m_rex == NULL );
+	m_regex_compiled = false;
 
 	if ( re_mask.empty() )
 		return;
 
-	const SQChar *err( NULL );
-	m_rex = sqstd_rex_compile(
-		(const SQChar *)re_mask.c_str(), &err );
-
-	if ( !m_rex )
+	try
+	{
+		m_rex = std::regex( re_mask, std::regex::ECMAScript );
+		m_regex_compiled = true;
+	}
+	catch ( const std::regex_error& e )
+	{
 		FeLog() << "Error compiling regular expression \""
-			<< re_mask << "\": " << err << std::endl;
+			<< re_mask << "\": " << e.what() << std::endl;
+		m_regex_compiled = false;
+	}
 }
 
 void FeRomListSorter::clear_title_rex()
 {
-	if ( m_rex )
-		sqstd_rex_free( m_rex );
-
-	m_rex = NULL;
+	m_regex_compiled = false;
 }
 
 FeRomListSorter::FeRomListSorter( FeRomInfo::Index c, bool rev )
@@ -84,31 +83,21 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 	const std::string &one = one_obj.get_info( m_comp );
 	const std::string &two = two_obj.get_info( m_comp );
 
-	if (( m_comp == FeRomInfo::Title ) && m_rex )
+	if (( m_comp == FeRomInfo::Title ) && m_regex_compiled )
 	{
 		size_t one_begin( 0 ), one_len( one.size() ), two_begin( 0 ), two_len( two.size() );
 
-		const SQChar *one_begin_ptr( NULL );
-		const SQChar *one_end_ptr( NULL );
-		const SQChar *two_begin_ptr( NULL );
-		const SQChar *two_end_ptr( NULL );
-
-		//
-		// I couldn't get Squirrel's no capture regexp (?:) working the way I would expect it to.
-		// I'm probably doing something dumb but I can't figure it out and docs seem nonexistent
-		//
-		// So we do this kind of backwards, instead of defining what we want to compare based on,
-		// the regexp instead defines the part of the string we want to strip out up front
-		//
-		if ( sqstd_rex_search( m_rex, one.c_str(), &one_begin_ptr, &one_end_ptr ) == SQTrue )
+		std::smatch one_match;
+		if ( std::regex_search( one, one_match, m_rex ))
 		{
-			one_begin = one_end_ptr - one.c_str();
+			one_begin = one_match.position( 0 ) + one_match.length( 0 );
 			one_len -= one_begin;
 		}
 
-		if ( sqstd_rex_search( m_rex, two.c_str(), &two_begin_ptr, &two_end_ptr ) == SQTrue )
+		std::smatch two_match;
+		if ( std::regex_search( two, two_match, m_rex ))
 		{
-			two_begin = two_end_ptr - two.c_str();
+			two_begin = two_match.position( 0 ) + two_match.length( 0 );
 			two_len -= two_begin;
 		}
 
@@ -145,12 +134,11 @@ const char FeRomListSorter::get_first_letter( const FeRomInfo *one_info )
 
 	size_t b( 0 );
 
-	if ( m_rex )
+	if ( m_regex_compiled )
 	{
-		const SQChar *bp;
-		const SQChar *ep;
-		if ( sqstd_rex_search( m_rex, name.c_str(), &bp, &ep ) == SQTrue )
-			b = ep - name.c_str();
+		std::smatch match;
+		if ( std::regex_search( name, match, m_rex ))
+			b = match.position( 0 ) + match.length( 0 );
 	}
 
 	return name.at( b );
