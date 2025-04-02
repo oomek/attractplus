@@ -47,7 +47,7 @@ APP_MANIFEST RT_MANIFEST attractplus.exe.manifest
 				VALUE "FileDescription", "Attract-Mode Plus\0"
 				VALUE "FileVersion", STRINGIZE(RC_VERSION_FILE) "\0"
 				VALUE "InternalName", "attractplus\0"
-				VALUE "LegalCopyright", "Copyright (c) 2013-2024 Andrew Mickelson & Radek Dutkiewicz\0"
+				VALUE "LegalCopyright", "Copyright (c) 2013-2025 Andrew Mickelson & Radek Dutkiewicz\0"
 				VALUE "OriginalFilename", "ATTRACTPLUS.EXE\0"
 				VALUE "ProductName", "Attract-Mode Plus\0"
 				VALUE "ProductVersion", STRINGIZE(RC_VERSION_BUILD) "\0"
