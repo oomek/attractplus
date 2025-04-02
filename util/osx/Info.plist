@@ -27,6 +27,6 @@
 	<key>CFBundleVersion</key>
 	<string>%%BUNDLEVERSION%%</string>
 	<key>NSHighResolutionCapable</key>
-	<false/>
+	<true/>
 </dict>
 </plist>
