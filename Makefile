@@ -61,12 +61,7 @@
 #VERBOSE=1
 #WINDOWS_XP=1
 
-ifeq ($(FE_VERSION),)
 override FE_VERSION := v3.1.0 beta 4
-else
-$(info user set version on command line)
-override FE_VERSION := v$(FE_VERSION)
-endif
 
 CC ?= gcc
 CXX ?= g++
@@ -435,7 +430,7 @@ OBJ = $(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
 DEP = $(patsubst %,$(SRC_DIR)/%,$(_DEP))
 RES = $(patsubst %,$(OBJ_DIR)/%.h,$(_RES))
 
-VER_TEMP  = $(subst -, ,$(FE_VERSION))
+VER_TEMP  = $(subst -, ,$(if $(FE_VERSION_NUM_PART),v$(FE_VERSION_NUM_PART),$(FE_VERSION)))
 VER_PARTS = $(subst ., ,$(word 1,$(VER_TEMP)))
 VER_MAJOR = $(subst v,,$(word 1,$(VER_PARTS)))
 VER_MINOR = $(word 2,$(VER_PARTS))
