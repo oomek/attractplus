@@ -48,7 +48,6 @@ jobs:
         sudo add-apt-repository \
           "deb [arch=amd64] https://pkg.mxe.cc/repos/apt focal main" && \
         sudo apt-get update
-        sudo apt-get install -y --allow-downgrades cmake=3.22.1-1ubuntu1 cmake-data=3.22.1-1ubuntu1
         sudo apt-get install \
           mxe-x86-64-w64-mingw32.static-cc \
           mxe-x86-64-w64-mingw32.static-openal \
