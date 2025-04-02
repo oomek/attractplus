@@ -43,6 +43,8 @@ private:
 	sf::RenderWindow m_blackout;
 #endif
 	int m_win_mode;
+	bool m_mouse_outside = true;
+	sf::Vector2i m_mouse_pos;
 
 public:
 	FeWindow( FeSettings &fes );
