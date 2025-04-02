@@ -7,7 +7,7 @@ else
     branch=""
 fi
 
-export PKG_CONFIG_PATH=/usr/local/pkgconfig:/opt/homebrew/opt/sfml@2/lib/pkgconfig:/opt/homebrew/opt/openal-soft/lib/pkgconfig
+export PKG_CONFIG_PATH=/usr/local/pkgconfig:/opt/homebrew/opt/openal-soft/lib/pkgconfig
 
 echo Creating Folders
 rm -Rf $HOME/buildattract
