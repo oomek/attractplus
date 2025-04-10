@@ -58,10 +58,11 @@ jobs:
           mxe-x86-64-w64-mingw32.static-libarchive \
           mxe-x86-64-w64-mingw32.static-curl \
           mxe-x86-64-w64-mingw32.static-openjpeg \
-          mxe-x86-64-w64-mingw32.static-boost
-        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-gcc_11.2.0-focal.deb
+          mxe-x86-64-w64-mingw32.static-boost \
+          mxe-x86-64-w64-mingw32.static-pcre2
+        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-gcc_14.2.0-jammy.deb
         sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-brotli_1.1.0.deb
-        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-ffmpeg_7.0.2.deb
+        sudo apt-get install -y ./am/extlibs/mxe/mxe-x86-64-w64-mingw32.static-ffmpeg_7.1.1-jammy.deb
         sudo ln -s /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-gcc /usr/lib/mxe/usr/bin/x86_64-w64-mingw32.static-cc
         sudo mv /usr/lib/mxe/usr/x86_64-pc-linux-gnu/bin/cmake /usr/lib/mxe/usr/x86_64-pc-linux-gnu/bin/cmake.original || true
         sudo ln -sf /usr/bin/cmake /usr/lib/mxe/usr/x86_64-pc-linux-gnu/bin/cmake
