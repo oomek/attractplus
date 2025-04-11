@@ -26,6 +26,8 @@
 #include <SFML/Audio.hpp>
 #include <vector>
 #include <string>
+#include <atomic>
+#include <mutex>
 
 class FeMediaImp;
 class FeAudioImp;
@@ -108,6 +110,8 @@ private:
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
+	std::atomic<bool> m_closing;
+	std::mutex m_callback_mutex;
 
 	FeMedia( const FeMedia & );
 	FeMedia &operator=( const FeMedia & );
