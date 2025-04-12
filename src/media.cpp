@@ -47,8 +47,6 @@ extern "C"
 #include <queue>
 #include <iostream>
 #include <thread>
-#include <mutex>
-#include <atomic>
 #include <algorithm>
 
 #if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
@@ -103,7 +101,7 @@ void print_ffmpeg_version_info()
 		<< std::endl;
 }
 
-#define MAX_AUDIO_FRAME_SIZE 192000 // 1 second of 48khz 32bit audio
+#define MAX_AUDIO_FRAME_SIZE 256000
 
 //
 // Container for our general implementation
@@ -131,7 +129,7 @@ private:
 	// Queue containing the next packet to process for this stream
 	//
 	std::queue <AVPacket *> m_packetq;
-	std::recursive_mutex m_packetq_mutex;
+	std::mutex m_packetq_mutex;
 
 public:
 	virtual ~FeBaseStream();
@@ -273,7 +271,7 @@ void FeBaseStream::stop()
 
 AVPacket *FeBaseStream::pop_packet()
 {
-	std::lock_guard<std::recursive_mutex> l( m_packetq_mutex );
+	std::lock_guard<std::mutex> l( m_packetq_mutex );
 
 	if ( m_packetq.empty() )
 		return NULL;
@@ -285,7 +283,7 @@ AVPacket *FeBaseStream::pop_packet()
 
 void FeBaseStream::clear_packet_queue()
 {
-	std::lock_guard<std::recursive_mutex> l( m_packetq_mutex );
+	std::lock_guard<std::mutex> l( m_packetq_mutex );
 
 	while ( !m_packetq.empty() )
 	{
@@ -297,7 +295,7 @@ void FeBaseStream::clear_packet_queue()
 
 void FeBaseStream::push_packet( AVPacket *pkt )
 {
-	std::lock_guard<std::recursive_mutex> l( m_packetq_mutex );
+	std::lock_guard<std::mutex> l( m_packetq_mutex );
 	m_packetq.push( pkt );
 }
 
@@ -845,7 +843,8 @@ FeMedia::FeMedia( Type t )
 	: sf::SoundStream(),
 	m_audio( NULL ),
 	m_video( NULL ),
-	m_aspect_ratio( 1.0 )
+	m_aspect_ratio( 1.0 ),
+	m_closing( false )
 {
 	m_imp = new FeMediaImp( t );
 }
@@ -918,6 +917,11 @@ void FeMedia::stop()
 
 void FeMedia::close()
 {
+	m_closing = true;
+
+	// wait for on getData() callback to release the mutex and return false
+	std::lock_guard<std::mutex> l( m_callback_mutex );
+
 	stop();
 
 	if (m_audio)
@@ -933,6 +937,7 @@ void FeMedia::close()
 	}
 
 	m_imp->close();
+	m_closing = false;
 }
 
 bool FeMedia::is_playing()
@@ -1309,15 +1314,26 @@ bool FeMedia::onGetData( Chunk &data )
 	data.samples = NULL;
 	data.sampleCount = 0;
 
-	if ( (!m_audio) || end_of_file() )
+	if ( (!m_audio) || end_of_file() || m_closing )
 		return false;
+
+	std::lock_guard<std::mutex> l( m_callback_mutex );
 
 	while ( offset < m_audio->codec_ctx->sample_rate )
 	{
+		if ( m_closing )
+			return false;
+
 		AVPacket *packet = m_audio->pop_packet();
 		while (( packet == NULL ) && ( !end_of_file() ))
 		{
 			read_packet();
+			if ( m_closing )
+			{
+				av_packet_free( &packet );
+				return false;
+			}
+
 			packet = m_audio->pop_packet();
 		}
 
@@ -1326,6 +1342,13 @@ bool FeMedia::onGetData( Chunk &data )
 			m_audio->at_end=true;
 			if ( offset > 0 )
 				return true;
+			return false;
+		}
+
+		if ( m_closing )
+		{
+			FeLog() << "Error: Closing stream before avcodec_send_packet()" << std::endl;
+			av_packet_free( &packet );
 			return false;
 		}
 
