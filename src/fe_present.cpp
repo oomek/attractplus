@@ -310,9 +310,34 @@ void FePresent::init_monitors()
 	else
 	{
 		Window root = RootWindow( xdisp, 0 );
-		XRRScreenConfiguration *xconf = XRRGetScreenInfo( xdisp, root );
-		m_refresh_rate = XRRConfigCurrentRate( xconf );
-		XRRFreeScreenConfigInfo( xconf );
+		XRRScreenResources *res = XRRGetScreenResources( xdisp, root );
+		if ( res )
+		{
+			for ( int i = 0; i < res->noutput && m_refresh_rate == 0; i++ )
+			{
+				XRROutputInfo *output_info = XRRGetOutputInfo( xdisp, res, res->outputs[i] );
+				if ( output_info && output_info->connection == RR_Connected )
+				{
+					XRRCrtcInfo *crtc_info = XRRGetCrtcInfo( xdisp, res, output_info->crtc );
+					if ( crtc_info )
+					{
+						for ( int k = 0; k < res->nmode; k++ )
+						{
+							if ( res->modes[k].id == crtc_info->mode )
+							{
+								double refresh = (double)res->modes[k].dotClock / ( res->modes[k].hTotal * res->modes[k].vTotal );
+								m_refresh_rate = (int)( refresh + 0.5 );
+								break;
+							}
+						}
+						XRRFreeCrtcInfo( crtc_info );
+					}
+				}
+				if ( output_info )
+					XRRFreeOutputInfo( output_info );
+			}
+			XRRFreeScreenResources( res );
+		}
 	}
 
  #if !defined(USE_XINERAMA)
