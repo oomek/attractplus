@@ -62,7 +62,6 @@ private:
 	int m_fade_alpha;
 	const sf::Font *m_font;
 	FeInputMap::Command m_menu_command;
-	sf::Texture m_logo;
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );

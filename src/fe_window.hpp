@@ -23,7 +23,7 @@
 #ifndef FE_WINDOW_HPP
 #define FE_WINDOW_HPP
 
-#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics.hpp>
 
 class FeSettings;
 
@@ -43,6 +43,7 @@ private:
 	sf::RenderWindow m_blackout;
 #endif
 	int m_win_mode;
+	sf::Texture *m_logo;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -65,6 +66,7 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
+	const sf::Texture &get_logo() const { return *m_logo; };
 };
 
 #endif

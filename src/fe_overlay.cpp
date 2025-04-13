@@ -33,8 +33,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#include "Logo.png.h"
-
 class FeConfigContextImp : public FeConfigContext
 {
 private:
@@ -233,13 +231,6 @@ void FeOverlay::init()
 	m_fade_alpha = 80;
 	m_line_size = std::round( std::min( m_screen_size.x, m_screen_size.y ) / 240 );
 	m_font = m_fePresent.get_default_font();
-
-	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
-	if ( m_logo.loadFromMemory( logo_data.data(), logo_data.size() ))
-	{
-		m_logo.setSmooth( true );
-		m_logo.generateMipmap();
-	}
 
 	style_init();
 }
@@ -1081,7 +1072,7 @@ int FeOverlay::display_config_dialog(
 	header.setString( ctx.title );
 	draw_list.push_back( &header );
 
-	sf::Sprite logo( m_logo );
+	sf::Sprite logo( m_wnd.get_logo() );
 	draw_list.push_back( &logo );
 	float scale_factor = ( 32.0f / 256.0f ) * ( m_screen_size.y / 480.0f );
 	logo.setScale({ scale_factor, scale_factor });

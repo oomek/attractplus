@@ -27,6 +27,8 @@
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
 #include "fe_present.hpp"
+#include "base64.hpp"
+#include "Logo.png.h"
 
 #ifdef SFML_SYSTEM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -416,6 +418,14 @@ void FeWindow::initial_create()
 	// Only mess with the mouse position if mouse moves mapped
 	if ( m_fes.test_mouse_reset( 0, 0 ) )
 		sf::Mouse::setPosition( sf::Vector2i( wsize.x / 2, wsize.y / 2 ), *m_window );
+
+	m_logo = new sf::Texture();
+	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
+	if ( m_logo->loadFromMemory( logo_data.data(), logo_data.size() ))
+	{
+		m_logo->setSmooth( true );
+		m_logo->generateMipmap();
+	}
 }
 
 void launch_callback( void *o )
@@ -707,6 +717,9 @@ sf::RenderWindow &FeWindow::get_win()
 
 void FeWindow::close()
 {
+	if ( m_logo )
+		delete m_logo;
+
 	if ( m_window )
 		m_window->display(); // Crashing on Linux workaround
 		m_window->close();
