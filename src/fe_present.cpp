@@ -365,8 +365,7 @@ void FePresent::init_monitors()
 					si[i].height );
 
 				mon.transform = sf::Transform().translate(
-					si[i].x_org,
-					si[i].y_org );
+					{ si[i].x_org, si[i].y_org });
 
 				FeDebug() << "Multimon: monitor #" << si[i].screen_number
 					<< ": " << mon.size.x << "x" << mon.size.y << " @ "
