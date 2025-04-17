@@ -1072,7 +1072,11 @@ int FeOverlay::display_config_dialog(
 	header.setString( ctx.title );
 	draw_list.push_back( &header );
 
-	sf::Sprite logo( m_wnd.get_logo() );
+	sf::Texture logo_tex( m_wnd.get_logo_image() );
+	logo_tex.setSmooth( true );
+	logo_tex.generateMipmap();
+	sf::Sprite logo( logo_tex );
+
 	draw_list.push_back( &logo );
 	float scale_factor = ( 32.0f / 256.0f ) * ( m_screen_size.y / 480.0f );
 	logo.setScale({ scale_factor, scale_factor });

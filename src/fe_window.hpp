@@ -43,7 +43,7 @@ private:
 	sf::RenderWindow m_blackout;
 #endif
 	int m_win_mode;
-	sf::Texture *m_logo;
+	sf::Image m_logo_image;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -66,7 +66,7 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
-	const sf::Texture &get_logo() const { return *m_logo; };
+	sf::Image &get_logo_image() { return m_logo_image; };
 };
 
 #endif

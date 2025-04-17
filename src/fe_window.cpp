@@ -419,13 +419,8 @@ void FeWindow::initial_create()
 	if ( m_fes.test_mouse_reset( 0, 0 ) )
 		sf::Mouse::setPosition( sf::Vector2i( wsize.x / 2, wsize.y / 2 ), *m_window );
 
-	m_logo = new sf::Texture();
 	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
-	if ( m_logo->loadFromMemory( logo_data.data(), logo_data.size() ))
-	{
-		m_logo->setSmooth( true );
-		m_logo->generateMipmap();
-	}
+	if ( m_logo_image.loadFromMemory( logo_data.data(), logo_data.size() ));
 }
 
 void launch_callback( void *o )
@@ -717,12 +712,11 @@ sf::RenderWindow &FeWindow::get_win()
 
 void FeWindow::close()
 {
-	if ( m_logo )
-		delete m_logo;
-
 	if ( m_window )
+	{
 		m_window->display(); // Crashing on Linux workaround
 		m_window->close();
+	}
 }
 
 bool FeWindow::hasFocus()
