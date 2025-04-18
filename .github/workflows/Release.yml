@@ -16,13 +16,13 @@ jobs:
     strategy:
       matrix:
         platform:
-        - { name: Linux x64 KMS, targetos: linux-x86, amflags: USE_DRM=1 }
-        #- { name: Linux x64 X11, targetos: linux-x86 }
+        - { name: Linux x64 KMS, targetos: linux-x86, video: KMS, amflags: USE_DRM=1 }
+        - { name: Linux x64 X11, targetos: linux-x86, video: X11 }
         config:
         - { name: shared, amflags: STATIC=0 }
         - { name: static, amflags: STATIC=1 }
 
-        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04 ]
+        os: [ ubuntu-24.04, ubuntu-22.04 ]
 
         exclude:
           - platform: { targetos: linux-x86 }
@@ -37,11 +37,14 @@ jobs:
     - name: Prepare
       id: vars
       run: |
+        [[ "${{ matrix.platform.video }}" == "X11" ]] && sed -i 's/USE_DRM=1//' am/debian/rules
         deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
+        docker_image="$(echo "${{ matrix.os }}" | sed "s/-/:/")"
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
         echo "deb_version=${deb_version}" >> $GITHUB_OUTPUT
+        echo "docker_image=${docker_image}" >> $GITHUB_OUTPUT
 
     - name: Package AM+
       uses: jtdor/build-deb-action@v1
@@ -50,18 +53,18 @@ jobs:
       with:
         buildpackage-opts: --build=binary --no-pre-clean --no-sign
         source-dir: am
+        docker-image: ${{ steps.vars.outputs.docker_image }}
 
     - name: Rename AM+
       run: |
         find ./ -name '*.deb'
-        version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
-        cp "./debian/artifacts/attractplus_${version}_amd64.deb" "attractplus_${version}_${{ matrix.os }}_amd64.deb"
+        cp -v "./debian/artifacts/attractplus_${{ steps.vars.outputs.deb_version }}_amd64.deb" "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.video }}_amd64.deb"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_amd64.deb"
-        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_amd64"
+        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.video }}_amd64.deb"
+        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.video }}_amd64"
         compression-level: 0
 
   PackageAMarm:
@@ -76,6 +79,7 @@ jobs:
         config:
         - { name: shared, amflags: STATIC=0 }
         - { name: static, amflags: STATIC=1 }
+        video: [ X11, KMS ]
         os: [ bullseye, bookworm ]
         exclude:
           - config: { name: shared }
@@ -89,6 +93,7 @@ jobs:
     - name: Prepare
       id: vars
       run: |
+        [[ "${{ matrix.video }}" == "X11" ]] && sed -i 's/USE_DRM=1//' am/debian/rules
         deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
@@ -115,13 +120,13 @@ jobs:
       run: |
         find ./ -name '*.deb'
         version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
-        cp "./debian/artifacts/attractplus_${version}_${{ matrix.platform.arch }}.deb" "attractplus_${version}_${{ matrix.os }}_${{ matrix.platform.arch }}.deb"
+        cp "./debian/artifacts/attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.platform.arch }}.deb" "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}.deb"
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}.deb"
-        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}"
+        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}.deb"
+        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}"
         compression-level: 0
   
   Windows:

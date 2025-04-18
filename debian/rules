@@ -29,7 +29,7 @@ override_dh_auto_build:
 	dh_auto_build -- prefix="/usr" USE_DRM=1 STATIC=1
 
 override_dh_auto_install:
-	@
+	dh_auto_install -- prefix="/usr"
 
 # debmake generated override targets
 # This is example for Cmake (See http://bugs.debian.org/641051 )
