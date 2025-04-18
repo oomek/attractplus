@@ -121,7 +121,7 @@ datadir=$(datarootdir)
 exec_prefix=$(prefix)
 bindir=$(exec_prefix)/bin
 
-DATA_PATH:=$(datadir)/attract/
+DATA_PATH:=$(datadir)/attractplus/
 EXE_BASE=attractplus
 EXE_EXT=
 OBJ_DIR=obj
