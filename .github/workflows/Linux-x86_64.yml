@@ -26,7 +26,7 @@ jobs:
         - { name: shared, amflags: STATIC=0 }
         - { name: static, amflags: STATIC=1 }
 
-        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04 ]
+        os: [ ubuntu-24.04, ubuntu-22.04 ]
 
         exclude:
           - platform: { targetos: linux-x86 }
