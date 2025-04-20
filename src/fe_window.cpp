@@ -141,6 +141,7 @@ FeWindow::~FeWindow()
 
 void FeWindow::display()
 {
+	check_for_sleep();
 	m_window->display();
 
 	// Starting from Windows Vista all window modes
@@ -149,6 +150,40 @@ void FeWindow::display()
 #if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
 	DwmFlush();
 #endif
+}
+
+void FeWindow::check_for_sleep()
+{
+	int time_delta = m_sleep_clock.getElapsedTime().asMilliseconds() - m_sleep_time;
+	if ( time_delta > 2000 )
+	{
+		FeDebug() << "! NOTE: Resume from sleep detected. Resetting audio device" << std::endl;
+		sf::sleep( sf::milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
+
+		std::optional<std::string> current_device = sf::PlaybackDevice::getDevice();
+		if ( current_device.has_value() )
+		{
+			bool success = false;
+			for ( int attempt = 0; attempt < 20; ++attempt )
+			{
+				success = sf::PlaybackDevice::setDevice( *current_device );
+				if ( success )
+					break;
+				else
+					sf::sleep( sf::milliseconds( 200 ) );
+			}
+			if ( !success )
+				FeLog() << "ERROR: Failed to reinitialize audio" << std::endl;
+		}
+		else
+			FeLog() << "ERROR: No current audio device" << std::endl;
+	}
+	reset_sleep_timer();
+}
+
+void FeWindow::reset_sleep_timer()
+{
+	m_sleep_time = m_sleep_clock.getElapsedTime().asMilliseconds();
 }
 
 void FeWindow::initial_create()
@@ -680,6 +715,8 @@ bool FeWindow::run()
 	}
 
 	FeDebug() << "Resuming frontend after game launch" << std::endl;
+
+	reset_sleep_timer();
 
 	return true;
 }

@@ -44,6 +44,8 @@ private:
 #endif
 	int m_win_mode;
 	sf::Image m_logo_image;
+	sf::Clock m_sleep_clock;
+	int32_t m_sleep_time = 0;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -67,6 +69,8 @@ public:
 
 	sf::RenderWindow &get_win();
 	sf::Image &get_logo_image() { return m_logo_image; };
+	void check_for_sleep();
+	void reset_sleep_timer();
 };
 
 #endif
