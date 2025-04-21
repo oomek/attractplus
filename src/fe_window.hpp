@@ -23,6 +23,10 @@
 #ifndef FE_WINDOW_HPP
 #define FE_WINDOW_HPP
 
+#ifdef SFML_SYSTEM_WINDOWS
+#include <windows.h>
+#endif
+
 #include <SFML/Graphics.hpp>
 
 class FeSettings;
@@ -39,13 +43,15 @@ protected:
 	void *m_running_wnd;
 
 private:
-#if defined(SFML_SYSTEM_WINDOWS)
+#ifdef SFML_SYSTEM_WINDOWS
 	sf::RenderWindow m_blackout;
+	static inline bool s_system_resumed = false;
+	static inline WNDPROC s_sfml_wnd_proc = nullptr;
+	static LRESULT CALLBACK CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
+	void check_for_sleep();
 #endif
 	int m_win_mode;
 	sf::Image m_logo_image;
-	sf::Clock m_sleep_clock;
-	int32_t m_sleep_time = 0;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -69,8 +75,6 @@ public:
 
 	sf::RenderWindow &get_win();
 	sf::Image &get_logo_image() { return m_logo_image; };
-	void check_for_sleep();
-	void reset_sleep_timer();
 };
 
 #endif
