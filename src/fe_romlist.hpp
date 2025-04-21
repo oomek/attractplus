@@ -210,8 +210,7 @@ public:
 		std::vector< std::pair<std::string, bool> > &tags_list ) const;
 	bool set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::string &tag, bool flag );
 
-	bool is_filter_empty( int filter_idx ) const { return m_filtered_list[filter_idx].filter_list.empty(); };
-	int filter_size( int filter_idx ) const { return (int)m_filtered_list[filter_idx].filter_list.size(); };
+	int filter_size( int filter_idx ) const { return ( filter_idx < m_filtered_list.size() ) ? (int)m_filtered_list[filter_idx].filter_list.size() : 0; };
 	const FeRomInfo &lookup( int filter_idx, int idx) const { return *(m_filtered_list[filter_idx].filter_list[idx]); };
 	FeRomInfo &lookup( int filter_idx, int idx) { return *(m_filtered_list[filter_idx].filter_list[idx]); };
 
