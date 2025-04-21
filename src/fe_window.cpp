@@ -121,6 +121,17 @@ bool is_multimon_config( FeSettings &fes )
 
 const char *FeWindowPosition::FILENAME = "window.am";
 
+#ifdef SFML_SYSTEM_WINDOWS
+LRESULT CALLBACK FeWindow::CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+{
+	if ( msg == WM_POWERBROADCAST )
+		if ( wParam == PBT_APMRESUMEAUTOMATIC || wParam == PBT_APMRESUMESUSPEND )
+			FeWindow::s_system_resumed = true;
+
+	return CallWindowProc( s_sfml_wnd_proc, hwnd, msg, wParam, lParam );
+}
+#endif
+
 FeWindow::FeWindow( FeSettings &fes )
 	: m_window( NULL ),
 	m_fes( fes ),
@@ -141,21 +152,21 @@ FeWindow::~FeWindow()
 
 void FeWindow::display()
 {
-	check_for_sleep();
 	m_window->display();
 
 	// Starting from Windows Vista all window modes
 	// go through DWM, so we have to flush here to sync to the DMW's v-sync
 	// to avoid stuttering.
-#if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
+#ifdef SFML_SYSTEM_WINDOWS
 	DwmFlush();
+	check_for_sleep();
 #endif
 }
 
+#ifdef SFML_SYSTEM_WINDOWS
 void FeWindow::check_for_sleep()
 {
-	int time_delta = m_sleep_clock.getElapsedTime().asMilliseconds() - m_sleep_time;
-	if ( time_delta > 2000 )
+	if ( s_system_resumed )
 	{
 		FeDebug() << "! NOTE: Resume from sleep detected. Resetting audio device" << std::endl;
 		sf::sleep( sf::milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
@@ -170,21 +181,18 @@ void FeWindow::check_for_sleep()
 				if ( success )
 					break;
 				else
-					sf::sleep( sf::milliseconds( 200 ) );
+					sf::sleep( sf::milliseconds( 100 ) );
 			}
 			if ( !success )
 				FeLog() << "ERROR: Failed to reinitialize audio" << std::endl;
 		}
 		else
 			FeLog() << "ERROR: No current audio device" << std::endl;
-	}
-	reset_sleep_timer();
-}
 
-void FeWindow::reset_sleep_timer()
-{
-	m_sleep_time = m_sleep_clock.getElapsedTime().asMilliseconds();
+		s_system_resumed = false;
+	}
 }
+#endif
 
 void FeWindow::initial_create()
 {
@@ -446,6 +454,9 @@ void FeWindow::initial_create()
 
 #if defined(SFML_SYSTEM_WINDOWS)
 	set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
+	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
+	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 #endif
 
 	m_fes.init_mouse_capture( wsize.x, wsize.y );
@@ -715,8 +726,6 @@ bool FeWindow::run()
 	}
 
 	FeDebug() << "Resuming frontend after game launch" << std::endl;
-
-	reset_sleep_timer();
 
 	return true;
 }
