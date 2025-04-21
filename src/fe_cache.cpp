@@ -1,5 +1,9 @@
 #include "fe_cache.hpp"
 
+// Enable the romlist cache - removing will revert to previous "on-demand" romlist behaviour
+#define FE_CACHE_ENABLE
+
+// Save cache as binary files, which are smaller and faster than JSON, but not readable
 #define FE_CACHE_BINARY
 
 #ifdef FE_CACHE_BINARY
@@ -145,6 +149,7 @@ void FeCache::invalidate_romlist(
 	const std::string &romlist_name
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_romhash_cache_filename( romlist_name );
 	if ( file_exists( filename ) ) delete_file( filename );
 
@@ -153,6 +158,7 @@ void FeCache::invalidate_romlist(
 		FeDisplayInfo display = (*itr);
 		if ( display.get_romlist_name() == romlist_name ) invalidate_display( display );
 	}
+#endif
 }
 
 //
@@ -162,10 +168,12 @@ void FeCache::invalidate_display(
 	FeDisplayInfo &display
 )
 {
+#ifdef FE_CACHE_ENABLE
 	invalidate_globalfilter( display );
 	int filters_count = display.get_filter_count();
 	if ( filters_count == 0 ) filters_count = 1;
 	for ( int i=0; i<filters_count; i++ ) invalidate_filter( display, i );
+#endif
 }
 
 //
@@ -175,9 +183,11 @@ void FeCache::invalidate_globalfilter(
 	FeDisplayInfo &display
 )
 {
+#ifdef FE_CACHE_ENABLE
 	invalidate_romlist_args();
 	std::string filename = get_globalfilter_cache_filename( display );
 	if ( file_exists( filename ) ) delete_file( filename );
+#endif
 }
 
 //
@@ -188,9 +198,11 @@ void FeCache::invalidate_filter(
 	int filter_index
 )
 {
+#ifdef FE_CACHE_ENABLE
 	invalidate_romlist_args();
 	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( file_exists( filename ) ) delete_file( filename );
+#endif
 }
 
 //
@@ -202,6 +214,7 @@ void FeCache::invalidate_rominfo(
 	FeRomInfo::Index target
 )
 {
+#ifdef FE_CACHE_ENABLE
 	for (std::vector<FeDisplayInfo>::const_iterator itr=(*m_displays).begin(); itr!=(*m_displays).end(); ++itr)
 	{
 		FeDisplayInfo display = (*itr);
@@ -227,6 +240,7 @@ void FeCache::invalidate_rominfo(
 			}
 		}
 	}
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -240,6 +254,7 @@ bool FeCache::save_romhash_cache(
 	size_t &hash
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_romhash_cache_filename( romlist_name );
 	if ( filename.empty() ) return false;
 	nowide::ofstream file( filename, std::ios::binary );
@@ -259,6 +274,9 @@ bool FeCache::save_romhash_cache(
 		file.close();
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 //
@@ -270,6 +288,7 @@ bool FeCache::load_romhash_cache(
 	size_t &hash
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_romhash_cache_filename( romlist_name );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
@@ -289,6 +308,9 @@ bool FeCache::load_romhash_cache(
 		file.close();
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -301,6 +323,7 @@ bool FeCache::save_romlist_cache(
 	FeRomList &romlist
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_romlist_cache_filename( romlist_name );
 	if ( filename.empty() ) return false;
 	nowide::ofstream file( filename, std::ios::binary );
@@ -321,6 +344,9 @@ bool FeCache::save_romlist_cache(
 		invalidate_romlist( romlist_name );
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 //
@@ -331,6 +357,7 @@ bool FeCache::load_romlist_cache(
 	FeRomList &romlist
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_romlist_cache_filename( romlist_name );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
@@ -351,6 +378,9 @@ bool FeCache::load_romlist_cache(
 		invalidate_romlist( romlist_name );
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -363,6 +393,7 @@ bool FeCache::save_globalfilter_cache(
 	FeRomList &romlist
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_globalfilter_cache_filename( display );
 	if ( filename.empty() ) return false;
 	nowide::ofstream file( filename, std::ios::binary );
@@ -383,6 +414,9 @@ bool FeCache::save_globalfilter_cache(
 		invalidate_globalfilter( display );
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 //
@@ -393,6 +427,7 @@ bool FeCache::load_globalfilter_cache(
 	FeRomList &romlist
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_globalfilter_cache_filename( display );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
@@ -413,6 +448,9 @@ bool FeCache::load_globalfilter_cache(
 		invalidate_globalfilter( display );
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -426,6 +464,7 @@ bool FeCache::save_filter_cache(
 	int filter_index
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( filename.empty() ) return false;
 	nowide::ofstream file( filename, std::ios::binary );
@@ -449,6 +488,9 @@ bool FeCache::save_filter_cache(
 		invalidate_filter( display, filter_index );
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 //
@@ -461,6 +503,7 @@ bool FeCache::load_filter_cache(
 	std::map<int, FeRomInfo*> &lookup
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
@@ -484,6 +527,9 @@ bool FeCache::load_filter_cache(
 		invalidate_filter( display, filter_index );
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -495,6 +541,7 @@ bool FeCache::save_stats_cache(
 	std::string &emulator
 )
 {
+#ifdef FE_CACHE_ENABLE
 	if ( FeCache::stats_cache.find(emulator) == FeCache::stats_cache.end() ) return false;
 	std::string filename = get_stats_cache_filename( emulator );
 	if ( filename.empty() ) return false;
@@ -515,6 +562,9 @@ bool FeCache::save_stats_cache(
 		file.close();
 		return false;
 	}
+#else
+	return false;
+#endif
 }
 
 //
@@ -524,6 +574,7 @@ bool FeCache::load_stats_cache(
 	std::string &emulator
 )
 {
+#ifdef FE_CACHE_ENABLE
 	std::string filename = get_stats_cache_filename( emulator );
 	if ( !file_exists( filename ) ) return false;
 	nowide::ifstream file( filename, std::ios::binary );
@@ -544,7 +595,9 @@ bool FeCache::load_stats_cache(
 		FeCache::stats_cache[emulator] = {};
 		return false;
 	}
+#else
 	return false;
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -557,6 +610,7 @@ bool FeCache::confirm_stats_cache(
 	const std::string &path,
 	std::string &emulator
 ) {
+#ifdef FE_CACHE_ENABLE
 	// Exit if already loaded
 	if ( FeCache::stats_cache.find(emulator) != FeCache::stats_cache.end() ) return true;
 
@@ -589,6 +643,9 @@ bool FeCache::confirm_stats_cache(
 	// Save new stats cache for next time
 	save_stats_cache(emulator);
 	return true;
+#else
+	return false;
+#endif
 }
 
 //
@@ -599,6 +656,7 @@ bool FeCache::get_stats_info(
 	const std::string &path,
 	std::vector<std::string> &rominfo
 ) {
+#ifdef FE_CACHE_ENABLE
 	std::string emulator = rominfo[FeRomInfo::Emulator];
 	std::string romname = rominfo[FeRomInfo::Romname];
 
@@ -610,6 +668,9 @@ bool FeCache::get_stats_info(
 	rominfo[FeRomInfo::PlayedCount] = FeCache::stats_cache[emulator].list[romname].played_count;
 	rominfo[FeRomInfo::PlayedTime] = FeCache::stats_cache[emulator].list[romname].played_time;
 	return true;
+#else
+	return false;
+#endif
 }
 
 //
@@ -619,6 +680,7 @@ bool FeCache::set_stats_info(
 	const std::string &path,
 	std::vector<std::string> &rominfo
 ) {
+#ifdef FE_CACHE_ENABLE
 	std::string emulator = rominfo[FeRomInfo::Emulator];
 	std::string romname = rominfo[FeRomInfo::Romname];
 	std::string played_count = rominfo[FeRomInfo::PlayedCount];
@@ -631,6 +693,9 @@ bool FeCache::set_stats_info(
 	FeCache::stats_cache[emulator].list[romname] = FeStat( played_count, played_time );
 	save_stats_cache( emulator );
 	return true;
+#else
+	return false;
+#endif
 }
 
 // -------------------------------------------------------------------------------------
@@ -646,6 +711,7 @@ bool FeCache::set_romlist_args(
 	bool group_clones,
 	bool load_stats
 ) {
+#ifdef FE_CACHE_ENABLE
 	std::string args = path
 		+ ";" + display.get_name()
 		+ ";" + romlist_name
@@ -654,6 +720,9 @@ bool FeCache::set_romlist_args(
 	bool changed = m_romlist_args != args;
 	m_romlist_args = args;
 	return changed;
+#else
+	return true;
+#endif
 }
 
 //
