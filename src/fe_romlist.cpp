@@ -313,8 +313,7 @@ bool FeRomList::load_romlist( const std::string &path,
 				(*it).index = index;
 
 			// Save romlist cache to improve speed for builds using this romlist
-			FeCache::save_romlist_cache( m_romlist_name, *this );
-			saved_romlist_cache = true;
+			saved_romlist_cache = FeCache::save_romlist_cache( m_romlist_name, *this );
 		}
 	}
 
@@ -484,7 +483,7 @@ bool FeRomList::load_romlist( const std::string &path,
 	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";
 	if ( !has_global_rules ) FeLog() << m_list.size() << " entries from romlist";
 	if ( loaded_globalfilter_cache ) FeLog() << m_list.size() << " entries from cache";
-	if ( saved_globalfilter_cache ) FeLog() << m_list.size() << " kept, " << global_filtered_out_count << " discarded";
+	if ( has_global_rules && !loaded_globalfilter_cache ) FeLog() << m_list.size() << " kept, " << global_filtered_out_count << " discarded";
 	if ( saved_globalfilter_cache ) FeLog() << ", cached globalfilter";
 	if ( saved_romlist_cache ) FeLog() << ", cached romlist";
 	FeLog() << ")" << std::endl;
