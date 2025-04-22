@@ -20,6 +20,9 @@
  *
  */
 
+// Enable to debug for UserConfig, also requires FE_DEBUG
+// #define FE_DEBUG_USERCONFIG
+
 #include "fe_vm.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
@@ -1475,10 +1478,11 @@ int FeVM::list_dialog(
 				extra_exit );
 	}
 
-	if ( m_overlay->get_menu_command() > 0 )
+	FeInputMap::Command menu_command = m_overlay->get_menu_command();
+	if ( menu_command != FeInputMap::Command::Back )
 	{
-		post_command( m_overlay->get_menu_command() );
 		m_overlay->clear_menu_command();
+		post_command( menu_command );
 	}
 
 	return retval;
@@ -1666,11 +1670,13 @@ public:
 			sqstd_register_stringlib( m_vm );
 			sqstd_register_systemlib( m_vm );
 
-#ifdef FE_DEBUG
-			// We purposefully do not set this in release builds, because we
-			// use this FeConfigVM to run scripts in config mode and often that means
-			// they crash and burn, and we don't want to be displaying the error messages
-			// for that.
+#if defined(FE_DEBUG) && defined(FE_DEBUG_USERCONFIG)
+			// THIS ERROR HANDLER IS INTENTIONALLY DISABLED
+			// FeConfigVM runs scripts in "config mode" with a limited environment
+			// purely to fetch the UserConfig class within for rendering layout options.
+			//
+			// Enable only to debug UserConfig issues, and expect messages such as:
+			// "AN ERROR HAS OCCURED [the index 'plugin' does not exist]"
 			sqstd_seterrorhandlers( m_vm );
 #endif
 
