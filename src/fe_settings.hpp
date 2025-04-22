@@ -260,6 +260,8 @@ private:
 	enum FePresentState m_present_state;
 	int m_ui_font_size;
 	std::string m_ui_color;
+	bool m_window_topmost;
+	std::vector<int> m_window_args;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
@@ -447,6 +449,10 @@ public:
 	void set_present_state( FePresentState s ) { m_present_state=s; };
 
 	int ui_font_size() const { return m_ui_font_size; }
+	void set_window_topmost( bool window_topmost ) { m_window_topmost = window_topmost; }
+	bool get_window_topmost() const { return m_window_topmost; }
+	void set_window_args( std::vector<int> window_args ) { m_window_args = window_args; }
+	std::vector<int> get_window_args() const { return m_window_args; }
 
 #ifdef SFML_SYSTEM_WINDOWS
 	bool get_hide_console() const { return m_hide_console; };

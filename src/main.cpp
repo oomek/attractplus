@@ -61,7 +61,9 @@ void process_args( int argc, char *argv[],
 			std::string &config_path,
 			bool &process_console,
 			std::string &log_file,
-			FeLogLevel &log_level );
+			FeLogLevel &log_level,
+			bool &window_topmost,
+			std::vector<int> &window_args );
 
 int main(int argc, char *argv[])
 {
@@ -70,6 +72,8 @@ int main(int argc, char *argv[])
 	bool process_console = false;
 	int last_display_index = -1;
 	FeLogLevel log_level = FeLog_Info;
+	bool window_topmost = false;
+	std::vector<int> window_args = std::vector<int>();
 	int layout_sel = 0;
 
 #ifdef USE_LIBCURL
@@ -77,9 +81,11 @@ int main(int argc, char *argv[])
 #endif
 
 	nowide::args a( argc, argv );
-	process_args( argc, argv, config_path, process_console, log_file, log_level );
+	process_args( argc, argv, config_path, process_console, log_file, log_level, window_topmost, window_args );
 
 	FeSettings feSettings( config_path );
+	feSettings.set_window_topmost( window_topmost );
+	feSettings.set_window_args( window_args );
 
 	//
 	// Setup logging

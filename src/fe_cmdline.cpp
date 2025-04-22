@@ -24,6 +24,7 @@
 #include "fe_util.hpp"
 #include <iostream>
 #include <cstring>
+#include <sstream>
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Window/Context.hpp>
 
@@ -34,7 +35,9 @@ void process_args( int argc, char *argv[],
 			std::string &config_path,
 			bool &process_console,
 			std::string &log_file,
-			FeLogLevel &log_level )
+			FeLogLevel &log_level,
+			bool &window_topmost,
+			std::vector<int> &window_args )
 {
 	//
 	// Deal with command line arguments
@@ -265,6 +268,28 @@ void process_args( int argc, char *argv[],
 
 			exit(0);
 		}
+		else if (( strcmp( argv[next_arg], "-t" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--topmost" ) == 0 ))
+		{
+			window_topmost = true;
+			next_arg++;
+		}
+		else if (( strcmp( argv[next_arg], "-w" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--window" ) == 0 ))
+		{
+			next_arg++;
+
+			for ( ; next_arg < argc; next_arg++ )
+			{
+				if ( argv[next_arg][0] == '-' )
+					break;
+
+				// Window args may be space or comma delimited
+				std::istringstream iss(argv[next_arg]);
+				std::string s;
+				while ( std::getline( iss, s, ',' ) ) window_args.push_back( atoi(s.c_str()) );
+			}
+		}
 #ifndef SFML_SYSTEM_WINDOWS
 		else if ( strcmp( argv[next_arg], "--console" ) == 0 )
 		{
@@ -284,7 +309,8 @@ void process_args( int argc, char *argv[],
 			}
 
 			FeLog() << FE_COPYRIGHT << std::endl
-				<< "Usage: " << argv[0] << " [option...]" << std::endl << std::endl
+				<< "Usage: " << argv[0] << " [option...]" << std::endl
+				<< std::endl
 				<< "ROMLIST IMPORT/BUILD OPTIONS:" << std::endl
 				<< "  -b, --build-romlist <emu> [emu(s)...]" << std::endl
 				<< "     Builds a romlist using the configuration for the specified emulator(s)" << std::endl
@@ -299,14 +325,14 @@ void process_args( int argc, char *argv[],
 				<< "  -E, --exception <exception>" << std::endl
 				<< "     Apply the specified filter rules exception when creating romlist" << std::endl
 				<< "  --full" << std::endl
-				<< "     Use with --build-romlist to include all possible roms [MAME only]" << std::endl
+				<< "     Use with --build-romlist to include all possible roms (Mame only)" << std::endl
 				<< "  -o, --output <romlist>" << std::endl
-				<< "     Specify the name of the romlist to create, overwriting any existing"
-				<< std::endl << std::endl
+				<< "     Specify the name of the romlist to create, overwriting any existing" << std::endl
+				<< std::endl
 				<< "ARTWORK SCRAPER OPTIONS:" << std::endl
 				<< "  -s, --scrape-art <emu> [emu(s)...]" << std::endl
-				<< "     Scrape missing artwork for the specified emulator(s)"
-				<< std::endl << std::endl
+				<< "     Scrape missing artwork for the specified emulator(s)" << std::endl
+				<< std::endl
 				<< "OTHER OPTIONS:" << std::endl
 				<< "  -c, --config <config_directory>" << std::endl
 				<< "     Specify the configuration to use" << std::endl
@@ -314,6 +340,10 @@ void process_args( int argc, char *argv[],
 				<< "     Write log info to the specified file" << std::endl
 				<< "  --loglevel (silent,info,debug)" << std::endl
 				<< "     Set logging level" << std::endl
+				<< "  -t, --topmost" << std::endl
+				<< "     Keep the window always on top" << std::endl
+				<< "  -w, --window <x> <y> <width> <height>" << std::endl
+				<< "     Set the position and size for window modes" << std::endl
 #ifndef SFML_SYSTEM_WINDOWS
 				<< "  --console" << std::endl
 				<< "     Enable script console" << std::endl
