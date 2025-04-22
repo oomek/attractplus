@@ -61,7 +61,10 @@
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <array>
+#define _USE_MATH_DEFINES
 #include <cmath>
+
+
 
 #ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
 #  define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
@@ -327,6 +330,74 @@ void FeSprite::updateCorners()
 	m_bottom_right = sf::Vector2f(bounds.size.x + sskew.x - spinch.x, bounds.size.y + sskew.y - spinch.y);
 }
 
+void FeSprite::updateCornersWithRotation()
+{
+	sf::IntRect bounds = getLocalBounds();
+	float w = static_cast< float >( bounds.size.x );
+	float h = static_cast< float >( bounds.size.y );
+
+	sf::Vector2f anchor = getOrigin();
+
+	float rx = m_rotation_x * M_PI / 180.0f;
+	float ry = m_rotation_y * M_PI / 180.0f;
+	float rz = m_rotation_z * M_PI / 180.0f;
+
+	float sx = sinf( rx );
+	float sy = sinf( ry );
+	float sz = sinf( rz );
+	float cxr = cosf( rx );
+	float cyr = cosf( ry );
+	float cz = cosf( rz );
+
+	std::array< sf::Vector3f, 4 > corners =
+	{
+		sf::Vector3f( -anchor.x, -anchor.y, 0.0f ),
+		sf::Vector3f( w - anchor.x, -anchor.y, 0.0f ),
+		sf::Vector3f( -anchor.x, h - anchor.y, 0.0f ),
+		sf::Vector3f( w - anchor.x, h - anchor.y, 0.0f )
+	};
+
+	float max_coeff = 0.001f;
+	float persp = m_perspective_coefficient * max_coeff;
+
+	for ( auto &v : corners )
+	{
+		// Rotate X
+		float y1 = v.y * cxr - v.z * sx;
+		float z1 = v.y * sx + v.z * cxr;
+		v.y = y1;
+		v.z = z1;
+
+		// Rotate Y
+		float x2 = v.x * cyr + v.z * sy;
+		float z2 = -v.x * sy + v.z * cyr;
+		v.x = x2;
+		v.z = z2;
+
+		// Rotate Z
+		float x3 = v.x * cz - v.y * sz;
+		float y3 = v.x * sz + v.y * cz;
+		v.x = x3;
+		v.y = y3;
+
+		// Perspective divide
+		if ( persp != 0.0f )
+		{
+			float factor = 1.0f + v.z * persp;
+			if ( factor != 0.0f )
+			{
+				v.x /= factor;
+				v.y /= factor;
+			}
+		}
+
+		v.x += anchor.x;
+		v.y += anchor.y;
+	}
+
+	setCorners( corners[0].x, corners[0].y, corners[1].x - w, corners[1].y, corners[2].x, corners[2].y - h, corners[3].x - w, corners[3].y - h );
+}
+
 bool FeSprite::getTexturePerspective() const
 {
 	return m_texture_perspective;
@@ -340,11 +411,16 @@ void FeSprite::setTexturePerspective( bool texture_perspective )
 
 float FeSprite::getPerspectiveCoefficient() const
 {
-	return m_perspective_coefficient;
+    return m_perspective_coefficient;
 }
 
 void FeSprite::setPerspectiveCoefficient( float c )
 {
+	if ( c < 0.0f )
+		c = 0.0f;
+	else if ( c > 1.0f )
+		c = 1.0f;
+
 	m_perspective_coefficient = c;
 	updateGeometry();
 }
@@ -357,6 +433,7 @@ float FeSprite::getRotationX() const
 void FeSprite::setRotationX( float r )
 {
 	m_rotation_x = r;
+	updateCornersWithRotation();
 	updateGeometry();
 }
 
@@ -368,6 +445,7 @@ float FeSprite::getRotationY() const
 void FeSprite::setRotationY( float r )
 {
 	m_rotation_y = r;
+	updateCornersWithRotation();
 	updateGeometry();
 }
 
@@ -379,6 +457,7 @@ float FeSprite::getRotationZ() const
 void FeSprite::setRotationZ( float r )
 {
 	m_rotation_z = r;
+	updateCornersWithRotation();
 	updateGeometry();
 }
 
