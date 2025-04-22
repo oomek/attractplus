@@ -113,7 +113,7 @@ void FeFontContainer::set_font( const std::string &n )
 void FeFontContainer::load_default_font()
 {
 	m_font_binary_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
-	bool ret = m_font.openFromMemory( m_font_binary_data.data(), m_font_binary_data.size() );
+	std::ignore = m_font.openFromMemory( m_font_binary_data.data(), m_font_binary_data.size() );
 }
 
 const sf::Font &FeFontContainer::get_font() const
@@ -179,12 +179,12 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_user_page_size( -1 ),
 	m_preserve_aspect( false ),
 	m_custom_overlay( false ),
+	m_mouse_pointer_visible( false ),
 	m_listBox( NULL ),
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
-	m_layout_loaded( false ),
-	m_mouse_pointer_visible( false )
+	m_layout_loaded( false )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -1162,6 +1162,9 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 		case EndNavigation:
 			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
 				(*itc)->on_end_navigation( m_feSettings );
+			break;
+
+		default:
 			break;
 	}
 }

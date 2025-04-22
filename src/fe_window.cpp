@@ -368,8 +368,8 @@ void FeWindow::initial_create()
 	// In this case we simply set the window mode to Fullscreen to correctly trigger other logic.
 	//
 	if (( m_win_mode == FeSettings::WindowNoBorder )
-		&& ( screen_size.x == vm.size.x )
-		&& ( screen_size.y == vm.size.y ))
+		&& ( screen_size.x == (int)vm.size.x )
+		&& ( screen_size.y == (int)vm.size.y ))
 		{
 			FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen mode." << std::endl;
 			m_win_mode = FeSettings::Fullscreen;

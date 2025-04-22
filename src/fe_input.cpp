@@ -1412,7 +1412,7 @@ int FeInputMap::process_setting( const std::string &setting,
 			std::string joy_name;
 			token_helper( value, pos, joy_name );
 
-			if (( num >= 0 ) && ( num <= sf::Joystick::Count ))
+			if (( num >= 0 ) && ( num <= (int)sf::Joystick::Count ))
 				m_joy_config.push_back( std::pair<int, std::string>( num, joy_name ) );
 		}
 

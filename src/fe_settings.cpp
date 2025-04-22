@@ -324,9 +324,6 @@ FeSettings::FeSettings( const std::string &config_path )
 #else
 	m_window_mode( Default ),
 #endif
-	m_screen_rotation( RotateNone ),
-	m_antialiasing( 0 ),
-	m_anisotropic( 0 ),
 	m_smooth_images( true ),
 	m_filter_wrap_mode( WrapWithinDisplay ),
 	m_selection_max_step( 128 ),
@@ -348,6 +345,9 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_hide_console( false ),
 #endif
 	m_power_saving( false ),
+	m_screen_rotation( RotateNone ),
+	m_antialiasing( 0 ),
+	m_anisotropic( 0 ),
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
 	m_ui_font_size( 0 ),
@@ -1123,7 +1123,7 @@ bool FeSettings::switch_to_clone_group( int idx )
 			// title as the clone group
 			m_current_search_index=0;
 
-			for ( int i=0; i < group.size(); i++ )
+			for ( int i=0; i < (int)group.size(); i++ )
 			{
 				if ( t.compare( group[i]->get_info( FeRomInfo::Title ) ) == 0 )
 					m_current_search_index = i;

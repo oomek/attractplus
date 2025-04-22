@@ -843,8 +843,8 @@ FeMedia::FeMedia( Type t )
 	: sf::SoundStream(),
 	m_audio( NULL ),
 	m_video( NULL ),
-	m_aspect_ratio( 1.0 ),
-	m_closing( false )
+	m_closing( false ),
+	m_aspect_ratio( 1.0 )
 {
 	m_imp = new FeMediaImp( t );
 }
@@ -1214,7 +1214,7 @@ bool FeMedia::open( const std::string &archive,
 
 				m_video->display_texture = outt;
 				if ( outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ) )
-					bool ret = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height ) });
+					std::ignore = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height ) });
 
 				m_video->init_rgba_buffer();
 			}

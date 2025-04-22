@@ -13,7 +13,7 @@ namespace {
 		NvAPI_ShortString msg = {0};
 		NvAPI_GetErrorMessage( status, msg );
 		char c_msg[255];
-		sprintf( c_msg, "%s \n\0", msg );
+		sprintf( c_msg, "%s \n", msg );
 		return c_msg;
 	}
 
