@@ -111,7 +111,7 @@ public:
 	int tags_dialog( int default_sel, FeInputMap::Command extra_exit );
 
 	FeInputMap::Command get_menu_command() { return m_menu_command; }
-	void clear_menu_command() { m_menu_command = (FeInputMap::Command)-1; }
+	void clear_menu_command() { m_menu_command = FeInputMap::Command::Back; }
 
 	int common_list_dialog(
 		const std::string &title,

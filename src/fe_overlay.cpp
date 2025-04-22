@@ -205,6 +205,7 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	m_fePresent( fep ),
 	m_overlay_is_on( false )
 {
+	clear_menu_command();
 	init();
 }
 

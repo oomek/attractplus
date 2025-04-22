@@ -931,10 +931,11 @@ int main(int argc, char *argv[])
 				// Overlay menu_commands are populated when the `QuickMenu` setting is true
 				// - They allow other menu commands to behave as a menu exit
 				// - Post the commands back onto the queue to switch to the next menu
-				if ( feOverlay.get_menu_command() > 0 )
+				FeInputMap::Command menu_command = feOverlay.get_menu_command();
+				if ( menu_command != FeInputMap::Command::Back )
 				{
-					feVM.post_command( feOverlay.get_menu_command() );
 					feOverlay.clear_menu_command();
+					feVM.post_command( menu_command );
 				}
 			}
 		}
