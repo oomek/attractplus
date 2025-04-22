@@ -48,6 +48,7 @@ struct Vertex
     Vector2f position;            //!< 2D position of the vertex
     Color    color{Color::White}; //!< Color of the vertex
     Vector2f texCoords{}; //!< Coordinates of the texture's pixel to map to the vertex NOLINT(readability-redundant-member-init)
+    Vector2f texProj{1,1};
 };
 
 } // namespace sf
