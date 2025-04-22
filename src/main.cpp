@@ -20,6 +20,10 @@
  *
  */
 
+#ifdef USE_LIBCURL
+#include <curl/curl.h>
+#endif
+
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
 #include "fe_overlay.hpp"
@@ -34,15 +38,10 @@
 #include <cmath>
 #include <cstdlib>
 #include "nowide/args.hpp"
-
 #include <SFML/Audio.hpp>
 
 #ifdef SFML_SYSTEM_ANDROID
 #include "fe_util_android.hpp"
-#endif
-
-#ifdef USE_LIBCURL
-#include <curl/curl.h>
 #endif
 
 #ifdef SFML_SYSTEM_WINDOWS
@@ -571,15 +570,18 @@ int main(int argc, char *argv[])
 
 				switch ( feSettings.get_startup_mode() )
 				{
-				case FeSettings::LaunchLastGame:
-					feSettings.select_last_launch();
-					launch_game=true;
-					break;
+					case FeSettings::LaunchLastGame:
+						feSettings.select_last_launch();
+						launch_game=true;
+						break;
 
-				case FeSettings::ShowDisplaysMenu:
-					if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
-						FeVM::cb_signal( "displays_menu" );
-					break;
+					case FeSettings::ShowDisplaysMenu:
+						if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
+							FeVM::cb_signal( "displays_menu" );
+						break;
+
+					default:
+						break;
 				}
 
 				redraw=true;
@@ -661,7 +663,7 @@ int main(int argc, char *argv[])
 						if ( texture.resize({ w.getSize().x, w.getSize().y }))
 							texture.update( w );
 						sf::Image sshot_img = texture.copyToImage();
-						bool ret = sshot_img.saveToFile( filename );
+						std::ignore = sshot_img.saveToFile( filename );
 					}
 					break;
 

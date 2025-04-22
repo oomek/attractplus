@@ -117,8 +117,8 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 		//
 		std::string ONE = one.substr( one_begin, one_len );
 		std::string TWO = two.substr( two_begin, two_len );
-		for (int i = 0; i < ONE.length(); i++) ONE[i] = toupper(ONE[i]);
-		for (int i = 0; i < TWO.length(); i++) TWO[i] = toupper(TWO[i]);
+		for (int i = 0; i < (int)ONE.length(); i++) ONE[i] = toupper(ONE[i]);
+		for (int i = 0; i < (int)TWO.length(); i++) TWO[i] = toupper(TWO[i]);
 
 		return ( ONE.compare( TWO ) < 0 );
 	}

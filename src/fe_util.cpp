@@ -359,7 +359,7 @@ std::string clean_path( const std::string &path, bool add_trailing_slash )
 
 	for ( int i=0; subs[i].comp != NULL; i++ )
 	{
-		int l = strlen( subs[i].comp );
+		size_t l = strlen( subs[i].comp );
 		if (( retval.size() >= l ) && ( retval.compare( 0, l, subs[i].comp ) == 0 ))
 		{
 			std::string temp;
@@ -1136,7 +1136,6 @@ bool run_program( const std::string &prog,
 
 	STARTUPINFOW si;
 	PROCESS_INFORMATION pi;
-	MSG msg;
 
 	ZeroMemory( &si, sizeof(si) );
 	ZeroMemory( &pi, sizeof(pi) );

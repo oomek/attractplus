@@ -80,10 +80,10 @@ std::vector<BYTE> base64_decode(std::string const& data)
 	if (size < 2)
 		return {};
 
-	const auto padding = data[size - 1] == '=' ? (data[size - 2] == '=' ? 2 : 1) : 0;
-	const auto size_without_padding = size - padding;
-	const auto remainder = size_without_padding % 4;
-	const auto safe_size = size_without_padding - remainder;
+	const size_t padding = data[size - 1] == '=' ? (data[size - 2] == '=' ? 2 : 1) : 0;
+	const size_t size_without_padding = size - padding;
+	const size_t remainder = size_without_padding % 4;
+	const size_t safe_size = size_without_padding - remainder;
 	std::vector<BYTE> out;
 	out.reserve(size / 4 * 3);
 	for (size_t i = 0; i < safe_size; i += 4)

@@ -412,13 +412,13 @@ bool FeTextureContainer::try_to_load(
 
 	// resize our texture accordingly
 	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ))
-		bool ret = m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )});
+		std::ignore = m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )});
 
 	if ( data )
 	{
 		m_texture.update( data );
 		il.release_entry( &m_entry ); // don't need entry any more
-		if ( m_mipmap ) bool ret = m_texture.generateMipmap();
+		if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 		m_texture.setSmooth( m_smooth );
 	}
 
@@ -562,7 +562,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( il.check_loaded( m_entry ) )
 		{
 			m_texture.update( m_entry->get_data() );
-			if ( m_mipmap ) bool ret = m_texture.generateMipmap();
+			if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 			m_texture.setSmooth( m_smooth );
 
 			il.release_entry( &m_entry );
@@ -613,7 +613,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
-			if ( m_mipmap ) bool ret = m_texture.generateMipmap();
+			if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 			return true;
 		}
 	}
@@ -724,7 +724,6 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 			m_movie->setVolume( 0.f );
 		else
 		{
-			float volume( 100.f );
 			FePresent *fep = FePresent::script_get_fep();
 			if ( fep )
 				m_movie->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
@@ -850,7 +849,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie ) bool ret = m_texture.generateMipmap();
+	if ( m_mipmap && !m_movie ) std::ignore = m_texture.generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -965,7 +964,7 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 		}
 
 		m_texture.display();
-		if ( m_mipmap ) bool ret = m_texture.generateMipmap();
+		if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 	}
 }
 
@@ -1030,10 +1029,10 @@ FeImage::FeImage( FePresentableParent &p,
 	m_tex( tc ),
 	m_pos( x, y ),
 	m_size( w, h ),
-	m_rotation ( 0.0 ),
 	m_origin( 0.f, 0.f ),
-	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
+	m_anchor( 0.f, 0.f ),
+	m_rotation ( 0.0 ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
@@ -1050,10 +1049,10 @@ FeImage::FeImage( FeImage *o )
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
-	m_rotation( o->m_rotation ),
 	m_origin( o->m_origin ),
-	m_anchor( o->m_anchor ),
 	m_rotation_origin( o->m_rotation_origin ),
+	m_anchor( o->m_anchor ),
+	m_rotation( o->m_rotation ),
 	m_anchor_type( o->m_anchor_type ),
 	m_rotation_origin_type( o->m_rotation_origin_type ),
 	m_blend_mode( o->m_blend_mode ),

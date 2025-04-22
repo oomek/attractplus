@@ -133,7 +133,6 @@ private:
 	sf::Vector2f m_anchor;
 	FeRectangle::Alignment m_anchor_type;
 	FeRectangle::Alignment m_rotation_origin_type;
-	FeBlend::Mode m_blend_mode;
 	float m_rotation;
 
 	int m_corner_point_count;
@@ -143,6 +142,7 @@ private:
 	bool m_corner_ratio_x;
 	bool m_corner_ratio_y;
 	bool m_corner_auto;
+	FeBlend::Mode m_blend_mode;
 
 	void scale();
 	void update_corner_radius();

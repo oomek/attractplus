@@ -36,23 +36,23 @@ namespace
 FeRectangle::FeRectangle( FePresentableParent &p,
 	float x, float y, float w, float h )
 	: FeBasePresentable( p ),
+	m_rect( sf::Vector2f( w, h ), sf::Vector2f( 0, 0 ), 1 ),
 	m_position( x, y ),
 	m_size( w, h ),
-	m_rotation ( 0.0 ),
 	m_origin( 0.f, 0.f ),
-	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
+	m_anchor( 0.f, 0.f ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
-	m_blend_mode( FeBlend::Alpha ),
+	m_rotation ( 0.0 ),
+	m_corner_point_count( 12 ),
+	m_corner_point_actual( -1 ),
 	m_corner_radius( 0.f, 0.f ),
 	m_corner_ratio( 0.f, 0.f ),
 	m_corner_ratio_x( false ),
 	m_corner_ratio_y( false ),
 	m_corner_auto( false ),
-	m_corner_point_count( 12 ),
-	m_corner_point_actual( -1 ),
-	m_rect( sf::Vector2f( w, h ), sf::Vector2f( 0, 0 ), 1 )
+	m_blend_mode( FeBlend::Alpha )
 {
 	setColor( sf::Color::White );
 	m_rect.setTextureRect( sf::IntRect( sf::Vector2i( 0, 0 ), sf::Vector2i( 1, 1 )));

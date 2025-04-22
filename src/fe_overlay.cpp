@@ -576,11 +576,11 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 
 		sel = common_list_dialog( temp, list, sel, -1, extra_exit );
 
-		if ( sel == list.size() - 1 )
+		if ( sel == (int)list.size() - 1 )
 		{
 			sel = -1;
 		}
-		else if ( sel == list.size() - 2 )
+		else if ( sel == (int)list.size() - 2 )
 		{
 			std::string title;
 			m_feSettings.get_translation( "Enter new tag name", title );
@@ -1074,7 +1074,7 @@ int FeOverlay::display_config_dialog(
 
 	sf::Texture logo_tex( m_wnd.get_logo_image() );
 	logo_tex.setSmooth( true );
-	logo_tex.generateMipmap();
+	std::ignore = logo_tex.generateMipmap();
 	sf::Sprite logo( logo_tex );
 
 	draw_list.push_back( &logo );

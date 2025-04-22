@@ -1600,11 +1600,11 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 		}
 	}
 
-	for ( int i=0; i < sf::Joystick::Count; i++ )
+	for ( int i=0; i < (int)sf::Joystick::Count; i++ )
 	{
 		std::string name;
 		std::string value = default_str;
-		ctx.fe_settings.get_translation( "Joystick $1", as_str( (int)i ), name );
+		ctx.fe_settings.get_translation( "Joystick $1", as_str( i ), name );
 
 		for ( itr=joy_config.begin(); itr!=joy_config.end(); ++itr )
 		{
