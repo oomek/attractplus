@@ -25,30 +25,62 @@
 
 namespace
 {
+	const char *DEFAULT_SHADER_GLSL_ALPHA = \
+		"uniform sampler2D texture;" \
+		"void main(){" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
+		"gl_FragColor = gl_Color * pixel;}";
+
 	const char *DEFAULT_SHADER_GLSL_MULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
-		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_FragColor.w;}";
 
 	const char *DEFAULT_SHADER_GLSL_OVERLAY = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
-		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor = mix(vec4(0.5,0.5,0.5,1.0), gl_FragColor, gl_FragColor.w);}";
 
 	const char *DEFAULT_SHADER_GLSL_PREMULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
-		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"vec4 pixel = texture2DProj(texture, gl_TexCoord[0]);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_Color.w;}";
 
+	sf::Shader *default_shader_alpha=NULL;
 	sf::Shader *default_shader_multiplied=NULL;
 	sf::Shader *default_shader_overlay=NULL;
 	sf::Shader *default_shader_premultiplied=NULL;
+
+
+	const char *DEFAULT_SHADER_GLSL_ALPHA_RECTANGLE = \
+		"void main(){" \
+		"gl_FragColor = gl_Color;}";
+
+	const char *DEFAULT_SHADER_GLSL_MULTIPLIED_RECTANGLE = \
+		"void main(){" \
+		"gl_FragColor = gl_Color;" \
+		"gl_FragColor.xyz *= gl_FragColor.w;}";
+
+	const char *DEFAULT_SHADER_GLSL_OVERLAY_RECTANGLE = \
+		"void main(){" \
+		"gl_FragColor = gl_Color;" \
+		"gl_FragColor = mix(vec4(0.5,0.5,0.5,1.0), gl_FragColor, gl_FragColor.w);}";
+
+	const char *DEFAULT_SHADER_GLSL_PREMULTIPLIED_RECTANGLE = \
+		"void main(){" \
+		"gl_FragColor = gl_Color;" \
+		"gl_FragColor.xyz *= gl_Color.w;}";
+
+	sf::Shader *default_shader_alpha_rectangle=NULL;
+	sf::Shader *default_shader_multiplied_rectangle=NULL;
+	sf::Shader *default_shader_overlay_rectangle=NULL;
+	sf::Shader *default_shader_premultiplied_rectangle=NULL;
 };
 
 sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
@@ -90,7 +122,12 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 		case FeBlend::Add:
 		case FeBlend::Subtract:
 		case FeBlend::None:
-			return NULL;
+			if ( !default_shader_alpha )
+			{
+				default_shader_alpha = new sf::Shader();
+				default_shader_alpha->loadFromMemory( DEFAULT_SHADER_GLSL_ALPHA, sf::Shader::Type::Fragment );
+			}
+			return default_shader_alpha;
 		case FeBlend::Screen:
 		case FeBlend::Multiply:
 			if ( !default_shader_multiplied )
@@ -118,8 +155,54 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 	}
 }
 
+sf::Shader* FeBlend::get_default_shader_rectangle( int blend_mode )
+{
+	switch( blend_mode )
+	{
+		case FeBlend::Alpha:
+		case FeBlend::Add:
+		case FeBlend::Subtract:
+		case FeBlend::None:
+			if ( !default_shader_alpha_rectangle )
+			{
+				default_shader_alpha_rectangle = new sf::Shader();
+				default_shader_alpha_rectangle->loadFromMemory( DEFAULT_SHADER_GLSL_ALPHA_RECTANGLE, sf::Shader::Type::Fragment );
+			}
+			return default_shader_alpha_rectangle;
+		case FeBlend::Screen:
+		case FeBlend::Multiply:
+			if ( !default_shader_multiplied_rectangle )
+			{
+				default_shader_multiplied_rectangle = new sf::Shader();
+				default_shader_multiplied_rectangle->loadFromMemory( DEFAULT_SHADER_GLSL_MULTIPLIED_RECTANGLE, sf::Shader::Type::Fragment );
+			}
+			return default_shader_multiplied_rectangle;
+		case FeBlend::Overlay:
+			if ( !default_shader_overlay_rectangle )
+			{
+				default_shader_overlay_rectangle = new sf::Shader();
+				default_shader_overlay_rectangle->loadFromMemory( DEFAULT_SHADER_GLSL_OVERLAY_RECTANGLE, sf::Shader::Type::Fragment );
+			}
+			return default_shader_overlay_rectangle;
+		case FeBlend::Premultiplied:
+			if ( !default_shader_premultiplied_rectangle )
+			{
+				default_shader_premultiplied_rectangle = new sf::Shader();
+				default_shader_premultiplied_rectangle->loadFromMemory( DEFAULT_SHADER_GLSL_PREMULTIPLIED_RECTANGLE, sf::Shader::Type::Fragment );
+			}
+			return default_shader_premultiplied_rectangle;
+		default:
+			return NULL;
+	}
+}
+
 void FeBlend::clear_default_shaders()
 {
+	if ( default_shader_alpha )
+	{
+		delete default_shader_alpha;
+		default_shader_alpha = NULL;
+	}
 	if ( default_shader_multiplied )
 	{
 		delete default_shader_multiplied;
@@ -136,5 +219,29 @@ void FeBlend::clear_default_shaders()
 	{
 		delete default_shader_premultiplied;
 		default_shader_premultiplied = NULL;
+	}
+
+
+	if ( default_shader_alpha_rectangle )
+	{
+		delete default_shader_alpha_rectangle;
+		default_shader_alpha_rectangle = NULL;
+	}
+	if ( default_shader_multiplied_rectangle )
+	{
+		delete default_shader_multiplied_rectangle;
+		default_shader_multiplied_rectangle = NULL;
+	}
+
+	if ( default_shader_overlay_rectangle )
+	{
+		delete default_shader_overlay_rectangle;
+		default_shader_overlay_rectangle = NULL;
+	}
+
+	if ( default_shader_premultiplied_rectangle )
+	{
+		delete default_shader_premultiplied_rectangle;
+		default_shader_premultiplied_rectangle = NULL;
 	}
 }

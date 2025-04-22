@@ -353,6 +353,11 @@ public:
 	bool get_clear() const;
 	bool get_repeat() const;
 	bool get_redraw() const;
+	bool get_texture_perspective() const;
+	float get_perspective_coefficient() const;
+	float get_rotation_x() const;
+	float get_rotation_y() const;
+	float get_rotation_z() const;
 	float get_volume() const;
 
 	void set_origin_x( float x );
@@ -381,6 +386,12 @@ public:
 	void set_redraw( bool );
 	void set_volume( float );
 	void set_blend_mode( int b );
+	void set_corners( float, float, float, float, float, float, float, float );
+	void set_texture_perspective( bool );
+	void set_perspective_coefficient( float );
+	void set_rotation_x( float );
+	void set_rotation_y( float );
+	void set_rotation_z( float );
 
 	void transition_swap( FeImage * );
 
