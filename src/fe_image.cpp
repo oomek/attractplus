@@ -1442,22 +1442,22 @@ float FeImage::get_rotation_origin_y() const
 	return m_rotation_origin.y;
 }
 
-int FeImage::get_skew_x() const
+float FeImage::get_skew_x() const
 {
 	return m_sprite.getSkewX();
 }
 
-int FeImage::get_skew_y() const
+float FeImage::get_skew_y() const
 {
 	return m_sprite.getSkewY();
 }
 
-int FeImage::get_pinch_x() const
+float FeImage::get_pinch_x() const
 {
 	return m_sprite.getPinchX();
 }
 
-int FeImage::get_pinch_y() const
+float FeImage::get_pinch_y() const
 {
 	return m_sprite.getPinchY();
 }
@@ -1556,7 +1556,7 @@ void FeImage::set_rotation_origin_y( float y )
 	}
 }
 
-void FeImage::set_skew_x( int x )
+void FeImage::set_skew_x( float x )
 {
 	if ( x != m_sprite.getSkewX() )
 	{
@@ -1565,7 +1565,7 @@ void FeImage::set_skew_x( int x )
 	}
 }
 
-void FeImage::set_skew_y( int y )
+void FeImage::set_skew_y( float y )
 {
 	if ( y != m_sprite.getSkewY() )
 	{
@@ -1574,7 +1574,7 @@ void FeImage::set_skew_y( int y )
 	}
 }
 
-void FeImage::set_pinch_x( int x )
+void FeImage::set_pinch_x( float x )
 {
 	if ( x != m_sprite.getPinchX() )
 	{
@@ -1583,7 +1583,7 @@ void FeImage::set_pinch_x( int x )
 	}
 }
 
-void FeImage::set_pinch_y( int y )
+void FeImage::set_pinch_y( float y )
 {
 	if ( y != m_sprite.getPinchY() )
 	{
