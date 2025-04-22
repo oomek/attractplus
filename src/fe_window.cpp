@@ -337,19 +337,32 @@ void FeWindow::initial_create()
 #endif
 
 	//
-	// If in windowed mode load the parameters from the window.am file
+	// If in windowed mode
 	//
 	if ( is_windowed_mode( m_win_mode ) )
 	{
-		FeWindowPosition win_pos(
-			sf::Vector2i( 0, 0 ),
-			sf::Vector2u( 480, 320 ) );
+		std::vector<int> args = m_fes.get_window_args();
 
-		win_pos.load_from_file( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
+		// Use position provided by commandline args
+		if (args.size() == 4)
+		{
+			wpos = sf::Vector2i( args[0], args[1] );
+			vm.size.x = args[2];
+			vm.size.y = args[3];
+		}
+		else
+		{
+			// Load the parameters from the window.am file
+			FeWindowPosition win_pos(
+				sf::Vector2i( 0, 0 ),
+				sf::Vector2u( 480, 320 ) );
 
-		wpos = win_pos.m_pos;
-		vm.size.x = win_pos.m_size.x;
-		vm.size.y = win_pos.m_size.y;
+			win_pos.load_from_file( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
+
+			wpos = win_pos.m_pos;
+			vm.size.x = win_pos.m_size.x;
+			vm.size.y = win_pos.m_size.y;
+		}
 	}
 
 	sf::Vector2u wsize( vm.size.x, vm.size.y );
@@ -453,7 +466,7 @@ void FeWindow::initial_create()
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+	set_win32_foreground_window( m_window->getNativeHandle(), m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
 	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
@@ -736,7 +749,7 @@ void FeWindow::on_exit()
 	m_blackout.close();
 #endif
 
-	if ( is_windowed_mode( m_win_mode ) && m_window )
+	if ( is_windowed_mode( m_win_mode ) && m_window && m_fes.get_window_args().size() != 4 )
 	{
 		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
 		win_pos.save( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
