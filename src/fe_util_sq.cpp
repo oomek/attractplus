@@ -78,6 +78,32 @@ bool fe_get_attribute_string(
 	return fe_get_object_string( vm, attVal.GetObject(), out_string );
 }
 
+bool fe_get_attribute_bool(
+	HSQUIRRELVM vm,
+	const HSQOBJECT &obj,
+	const std::string &key,
+	const std::string &attribute,
+	bool & out_bool )
+{
+	std::string attVal;
+	if ( !fe_get_attribute_string( vm, obj, key, attribute, attVal ) ) return false;
+	out_bool = config_str_to_bool( attVal );
+	return true;
+}
+
+bool fe_get_attribute_int(
+	HSQUIRRELVM vm,
+	const HSQOBJECT &obj,
+	const std::string &key,
+	const std::string &attribute,
+	int & out_int )
+{
+	std::string attVal;
+	if ( !fe_get_attribute_string( vm, obj, key, attribute, attVal ) ) return false;
+	out_int = as_int( attVal );
+	return true;
+}
+
 int fe_obj_compare(
 	HSQUIRRELVM vm,
 	const HSQOBJECT &obj1,
