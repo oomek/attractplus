@@ -1177,6 +1177,7 @@ int FeOverlay::display_config_dialog(
 		c.extra_exit = extra_exit;
 
 		init_event_loop( c );
+		sdialog.setSelBgColor( ctx.curr_opt().type == Opt::INFO ? m_sel_blur_colour : m_sel_focus_colour );
 
 		while ( event_loop( c ) == false )
 		{
@@ -1188,6 +1189,7 @@ int FeOverlay::display_config_dialog(
 			// have changed our list contents
 			//
 			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
+			sdialog.setSelBgColor( ctx.curr_opt().type == Opt::INFO ? m_sel_blur_colour : m_sel_focus_colour );
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 		}
 
@@ -1217,13 +1219,13 @@ int FeOverlay::display_config_dialog(
 
 		int t = ctx.curr_opt().type;
 
-		if (
-			( t == Opt::MENU )
-			|| ( t == Opt::SUBMENU )
-			|| ( t == Opt::RELOAD )
-			|| ( t == Opt::EXIT )
-			|| ( t == Opt::DEFAULTEXIT )
-		)
+		switch ( t )
+		{
+		case Opt::MENU:
+		case Opt::SUBMENU:
+		case Opt::RELOAD:
+		case Opt::EXIT:
+		case Opt::DEFAULTEXIT:
 		{
 			if ( ctx.save_req )
 			{
@@ -1238,7 +1240,7 @@ int FeOverlay::display_config_dialog(
 					parent_setting_changed = true;
 			}
 
-			switch (t)
+			switch ( t )
 			{
 			case Opt::RELOAD:
 				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
@@ -1265,8 +1267,10 @@ int FeOverlay::display_config_dialog(
 			default:
 				return ctx.curr_sel;
 			}
+			break;
 		}
-		else if ( t != Opt::INFO ) // Opt::EDIT and Opt::LIST
+		case Opt::EDIT:
+		case Opt::LIST:
 		{
 			//
 			// User has selected to edit a specific entry.
@@ -1355,6 +1359,10 @@ int FeOverlay::display_config_dialog(
 					return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 				}
 			}
+			break;
+		}
+		default:
+			break;
 		}
 	}
 	return ctx.curr_sel;

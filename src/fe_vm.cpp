@@ -1864,9 +1864,7 @@ void FeVM::script_get_config_options(
 		Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( "UserConfig" );
 		if ( !uConfig.IsNull() )
 		{
-			fe_get_attribute_string(
-				config_vm.get_vm(),
-				uConfig.GetObject(), "", "help", gen_help );
+			fe_get_attribute_string(config_vm.get_vm(), uConfig.GetObject(), "", "help", gen_help );
 		}
 	}
 }
@@ -1881,63 +1879,41 @@ void FeVM::script_get_config_options(
 	if ( !script_path.empty() )
 	{
 		FeConfigVM config_vm( configurable, script_path, script_file );
+		HSQUIRRELVM vm = config_vm.get_vm();
 
 		Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( "UserConfig" );
 		if ( !uConfig.IsNull() )
 		{
-			fe_get_attribute_string(
-				config_vm.get_vm(),
-				uConfig.GetObject(), "", "help", gen_help );
+			fe_get_attribute_string( vm, uConfig.GetObject(), "", "help", gen_help );
 
-			// Now Ccnstruct the UI elements for plug-in/layout specific configuration
+			// Now Construct the UI elements for plug-in/layout specific configuration
 			//
 			std::multimap<int,FeMenuOpt> my_opts;
 
 			Sqrat::Object::iterator it;
 			while ( uConfig.Next( it ) )
 			{
-				std::string key;
-				fe_get_object_string( config_vm.get_vm(), it.getKey(), key );
+				HSQOBJECT obj = uConfig.GetObject();
+				std::string o_value = "", o_label = "";
+				std::string key = "", value = "", label = "", help = "", options = "";
+				bool is_input = false, is_func = false, is_info = false, per_display = false;
+				int order = -1;
 
-				std::string value, label, help, options, is_input, is_func;
-
-				// use the default value from the script if a value has
-				// not already been configured
+				// use the default value from the script if a value has not already been configured
 				//
-				if ( !configurable.get_param( key, value ) )
-					fe_get_object_string( config_vm.get_vm(), uConfig.GetSlot( key.c_str() ), value );
+				fe_get_object_string( vm, it.getKey(), key );
+				fe_get_object_string( vm, uConfig.GetSlot( key.c_str() ), o_value );
+				fe_get_attribute_string( vm, obj, key, "label", o_label);
+				fe_get_attribute_string( vm, obj, key, "help", help);
+				fe_get_attribute_string( vm, obj, key, "options", options);
+				fe_get_attribute_int( vm, obj, key, "order", order);
+				fe_get_attribute_bool( vm, obj, key, "is_input", is_input);
+				fe_get_attribute_bool( vm, obj, key, "is_function", is_func);
+				fe_get_attribute_bool( vm, obj, key, "is_info", is_info);
+				fe_get_attribute_bool( vm, obj, key, "per_display", per_display );
 
-				fe_get_attribute_string(
-						config_vm.get_vm(),
-						uConfig.GetObject(), key, "label", label);
-
-				if ( label.empty() )
-					label = key;
-
-				fe_get_attribute_string(
-						config_vm.get_vm(),
-						uConfig.GetObject(), key, "help", help);
-
-				fe_get_attribute_string(
-						config_vm.get_vm(),
-						uConfig.GetObject(), key, "options", options);
-
-				fe_get_attribute_string(
-						config_vm.get_vm(),
-						uConfig.GetObject(), key, "is_input", is_input);
-
-				fe_get_attribute_string(
-						config_vm.get_vm(),
-						uConfig.GetObject(), key, "is_function", is_func);
-
-				std::string otmp;
-				int order=-1;
-				fe_get_attribute_string(
-						config_vm.get_vm(),
-						uConfig.GetObject(), key, "order", otmp);
-
-				if ( !otmp.empty() )
-					order = as_int( otmp );
+				if ( !configurable.get_param( key, value ) ) value = o_value;
+				label = !o_label.empty() ? o_label : key;
 
 				std::multimap<int,FeMenuOpt>::iterator itx;
 				if ( !options.empty() )
@@ -1951,47 +1927,42 @@ void FeVM::script_get_config_options(
 						options_list.push_back( temp );
 					} while ( pos < options.size() );
 
-					itx = my_opts.insert( std::pair <int, FeMenuOpt>(
-						order,
-						FeMenuOpt(Opt::LIST, label, value, help, 0, key ) ) );
+					itx = my_opts.insert(
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::LIST, label, value, help, 0, key ) )
+					);
 
 					(*itx).second.append_vlist( options_list );
 				}
-				else if ( config_str_to_bool( is_input ) )
+				else if ( is_input )
 				{
 					itx = my_opts.insert(
-						std::pair <int, FeMenuOpt>(
-							order,
-							FeMenuOpt(Opt::RELOAD, label, value, help, 1, key ) ) );
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::RELOAD, label, value, help, 1, key ) )
+					);
 				}
-				else if ( config_str_to_bool( is_func ) )
+				else if ( is_func )
 				{
-					FeMenuOpt temp_opt(Opt::SUBMENU, label, "", help, 2, key );
-					temp_opt.opaque_str = value;
-
 					itx = my_opts.insert(
-						std::pair <int, FeMenuOpt>(
-							order,
-							temp_opt ) );
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::SUBMENU, label, "", help, 2, value ) )
+					);
+				}
+				else if ( is_info )
+				{
+					itx = my_opts.insert(
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::INFO, o_label, o_value, help, 0, "" ) )
+					);
 				}
 				else
 				{
 					itx = my_opts.insert(
-						std::pair <int, FeMenuOpt>(
-							order,
-							FeMenuOpt(Opt::EDIT, label, value, help, 0, key ) ) );
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::EDIT, label, value, help, 0, key ) )
+					);
 				}
 
-				// Nice and hacky, we put an "%" at start of opaque_str if this is a "per display"
-				// option.  fe_config picks this up and deals with it accordingly
-				//
-				std::string per_display_str;
-				fe_get_attribute_string(
-					config_vm.get_vm(),
-					uConfig.GetObject(), key, "per_display", per_display_str );
-
-				if ( config_str_to_bool( per_display_str ) )
+				if ( per_display )
 				{
+					// Nice and hacky, we put an "%" at start of opaque_str if this is a "per display"
+					// option.  fe_config picks this up and deals with it accordingly
+					//
 					std::string temp = (*itx).second.opaque_str;
 					(*itx).second.opaque_str = "%";
 					(*itx).second.opaque_str += temp;
