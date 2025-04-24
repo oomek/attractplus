@@ -12,6 +12,7 @@ Contents
    * [Language Extensions](#squirrel_ext)
    * [Frontend Binding](#binding)
    * [Magic Tokens](#magic)
+   * [User Config](#userconfig)
    * [Functions](#functions)
       * [`fe.add_image()`](#add_image)
       * [`fe.add_artwork()`](#add_artwork)
@@ -265,6 +266,61 @@ fe.add_text( "[!well_formatted]", 0, 0 );
 ````
 
 &nbsp;
+<a name="userconfig"></a>
+
+User Config
+-----------
+
+Configuration settings can be added to a layout/plugin/screensaver/intro to
+provide users with customization options.
+
+Configurations are defined by a `UserConfig` class at the top of your script, where
+each property is an individual setting. Properties should be prefixed
+with an `</ attribute />` that describes how they are displayed, and their
+values can be retrieved using [`fe.get_config()`](#get_config).
+
+```` squirrel
+class UserConfig </ help="Description" /> {
+    </ label="Choice", order=1, options="Yes,No" /> opt = "Yes";
+    </ label="String", order=2 /> val = "Default";
+}
+
+local config = fe.get_config();
+// config = { opt = "Yes", val = "Default" }
+````
+
+Attribute Properties:
+
+   * label - [string] Text for the setting list item, if omitted the
+	  property id is used.
+   * help - [string] The message to display in the footer when the setting is
+	  selected.
+   * order - [integer] The list order of the setting.
+   * per_display - [boolean] When true the setting value will be unique to
+	  each display.
+
+The attribute may use **one** of the following properties to define its type:
+
+   * options - [string] Present the user with a choice, for example:
+	  `"Yes,No"`.
+   * is_input - [boolean] Prompt the user to press a key.
+   * is_function - [boolean] Call the function named by the property, for
+	  example: `func = "callback"`.
+   * is_info - [boolean] A readonly setting used for headings or separators.
+   * (None of the above) - A text input for keyboard entry.
+
+Setting function format:
+
+```` squirrel
+// The config parameter contains the fe.get_config() table
+function callback(config)
+{
+	// The returned string is displayed in the footer
+	return "Success";
+}
+````
+
+&nbsp;
 <a name="functions"></a>
 
 Functions
@@ -512,7 +568,7 @@ Return Value:
    * An instance of the class [`fe.Shader`](#Shader) which can be used to
      interact with the added shader.
 
-#### Implementation note for GLSL shaders in Attract-Mode: ####
+#### Implementation notes for GLSL shaders in Attract-Mode: ####
 
 Shaders are implemented using the SFML API.  For more information please see:
 http://www.sfml-dev.org/tutorials/2.1/graphics-shader.php
@@ -846,10 +902,7 @@ Parameter:
      "LControl" will check the left control key, "Joy0 Up" will check the up
      direction on the first joystick, "Mouse MiddleButton" will check the
      middle mouse button, and "select" will check for any input mapped to the
-     game select button...
-
-     Note that mouse moves and mouse wheel movements are not available through
-     this function.
+     game select button.
 
 Return Value:
 
@@ -868,7 +921,9 @@ Parameter:
 
    * input_id - [string] the input to test.  The format of this string
      is the same as that used in the attract.cfg file.  For example,
-     "Joy0 Up" is the up direction on the first joystick.
+     "Joy0 Up" is the up direction on the first joystick, "Mouse Up" is the
+	  y position of the mouse, and "Mouse WheelUp" is the delta of an upward
+	  mouse wheel scroll.
 
 Return Value:
 
@@ -1096,20 +1151,23 @@ Parameters:
    * callback_function - a string containing the name of the function in
      Squirrel to call with any output that the executable provides on stdout.
      The function should be in the following form:
-
-        function callback_function( op )
-        {
-        }
-
+     ```
+     function callback_function( op )
+     {
+     }
+     ```
      If provided, this function will get called repeatedly with chunks of the
-     command output in `op`.  NOTE: `op` is not necessarily aligned with the
-     start and the end of the lines of output from the command.  In any one
-     call `op` may contain data from multiple lines and that may begin or end
-     in the middle of a line.
+     command output in `op`.
 
 Return Value:
 
    * None.
+
+Notes:
+
+   * `op` is not necessarily aligned with the start and the end of the lines of
+     output from the command.  In any one call `op` may contain data from
+     multiple lines and that may begin or end in the middle of a line.
 
 &nbsp;
 <a name="plugin_command_bg"></a>
@@ -1198,24 +1256,18 @@ Return Value:
 
 Get the user configured settings for this layout/plugin/screensaver/intro.
 
-NOTE this function will *not* return valid settings when called from a
-callback function registered with fe.add_ticks_callback(),
-fe.add_transition_callback() or fe.add_signal_handler()
-
 Parameters:
 
    * None.
 
 Return Value:
 
-   * A table containing each of the applicable user configured settings.
-     A layout or plug-in can signal its user configured settings to
-     Attract-Mode by defining a class named "UserConfig" at the very start
-     of the script.  In the case a layouts, the "UserConfig" class must be
-     located in a file named  'layout.nut' in the layout directory.
+   * A table containing the [User Config](#userconfig) settings.
 
-     For an example, please see one of the plug-ins included with Attract-
-     Mode or the "Attrac-Man" layout.
+Notes:
+   * This function will *not* return valid settings when called from a
+     callback function registered with fe.add_ticks_callback(),
+     fe.add_transition_callback() or fe.add_signal_handler()
 
 &nbsp;
 <a name="get_text"></a>
@@ -1690,9 +1742,9 @@ Properties:
      coordinates).  Default value is 0.  Use a negative value to expand
      towards the right instead.
    * `texture_width` - Get the width of the image texture (in pixels).
-     *** see [Notes](#ImageNotes).
+     See [Notes](#ImageNotes).
    * `texture_height` - Get the height of the image texture (in pixels).
-     *** see [Notes](#ImageNotes).
+     See [Notes](#ImageNotes).
    * `subimg_x` - Get/set the x position of top left corner of the image
      texture sub-rectangle to display.  Default value is 0.
    * `subimg_y` - Get/set the y position of top left corner of the image
@@ -1755,7 +1807,7 @@ Properties:
    * `preserve_aspect_ratio` - Get/set whether the aspect ratio from the source
      image is to be preserved.  Default value is `false`.
    * `file_name` - [image & artwork only] Get/set the name of the image/video
-     file being shown.  Note that if you set this on an artwork or a dynamic
+     file being shown.  If you set this on an artwork or a dynamic
      image object it will get reset the next time the user changes the game
      selection.  If file_name is contained in an archive, this string should be
      formatted: "<archive_name>|<filename>"
@@ -1835,7 +1887,7 @@ Member Functions:
 
 Notes:
 
-   * Note that Attract-Mode defers the loading of artwork and dynamic images
+   * Attract-Mode defers the loading of artwork and dynamic images
      (images with Magic Tokens) until after all layout and plug-in scripts have
      completed running.  This means that the `texture_width`, `texture_height`
      and `file_name` attributes are not available when a layout or plug-in
