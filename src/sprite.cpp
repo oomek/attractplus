@@ -337,6 +337,17 @@ void FeSprite::updateCornersWithRotation()
 	float h = static_cast< float >( bounds.size.y );
 
 	sf::Vector2f anchor = getOrigin();
+	sf::Vector2f screen_center( 640.0f, 360.0f ); // Define the common vanishing point in world coordinates
+
+	// Get the transform that maps local coordinates to world coordinates
+	// And its inverse to map world coordinates to local coordinates
+	sf::Transform inv_transform = getInverseTransform();
+
+	// Transform the world vanishing point into the sprite's local coordinate system
+	sf::Vector2f local_vp = inv_transform.transformPoint( screen_center );
+
+	// Calculate the vanishing point relative to the sprite's anchor point (in local coordinates)
+	sf::Vector2f relative_vp = local_vp - anchor;
 
 	float rx = m_rotation_x * M_PI / 180.0f;
 	float ry = m_rotation_y * M_PI / 180.0f;
@@ -349,6 +360,20 @@ void FeSprite::updateCornersWithRotation()
 	float cy = cosf( ry );
 	float cz = cosf( rz );
 
+	// Calculate elements of the combined ZYX intrinsic rotation matrix (Ry * Rx * Rz)
+	float m11 = cy * cz;
+	float m12 = -cy * sz;
+	float m13 = sy;
+
+	float m21 = cx * sz + sx * sy * cz;
+	float m22 = cx * cz - sx * sy * sz;
+	float m23 = -sx * cy;
+
+	float m31 = sx * sz - cx * sy * cz;
+	float m32 = sx * cz + cx * sy * sz;
+	float m33 = cx * cy;
+
+	// Initial corners relative to the anchor point
 	std::array< sf::Vector3f, 4 > corners =
 	{
 		sf::Vector3f( -anchor.x, -anchor.y, 0.0f ),
@@ -362,40 +387,40 @@ void FeSprite::updateCornersWithRotation()
 
 	for ( auto &v : corners )
 	{
-		// Rotate X
-		float y1 = v.y * cx - v.z * sx;
-		float z1 = v.y * sx + v.z * cx;
-		v.y = y1;
-		v.z = z1;
+		// Apply the combined ZYX rotation matrix
+		float ox = v.x;
+		float oy = v.y;
+		float oz = v.z;
 
-		// Rotate Y
-		float x2 = v.x * cy + v.z * sy;
-		float z2 = -v.x * sy + v.z * cy;
-		v.x = x2;
-		v.z = z2;
+		v.x = ox * m11 + oy * m12 + oz * m13;
+		v.y = ox * m21 + oy * m22 + oz * m23;
+		v.z = ox * m31 + oy * m32 + oz * m33;
 
-		// Rotate Z
-		float x3 = v.x * cz - v.y * sz;
-		float y3 = v.x * sz + v.y * cz;
-		v.x = x3;
-		v.y = y3;
-
-		// Perspective divide
+		// Perspective divide towards the relative vanishing point (relative_vp)
 		if ( persp != 0.0f )
 		{
 			float factor = 1.0f + v.z * persp;
-			if ( factor != 0.0f )
+			// Avoid division by zero or near-zero
+			if ( std::abs( factor ) > 1e-6f )
 			{
-				v.x /= factor;
-				v.y /= factor;
+				// Project v (relative to anchor) towards relative_vp (relative to anchor)
+				v.x = relative_vp.x + ( v.x - relative_vp.x ) / factor;
+				v.y = relative_vp.y + ( v.y - relative_vp.y ) / factor;
 			}
+			// Optional: Handle factor close to zero (e.g., clamp or skip projection)
+			// else { /* handle case where point is at or behind perspective plane */ }
 		}
 
+		// Convert final vertex position from anchor-relative to local (0,0)-relative
 		v.x += anchor.x;
 		v.y += anchor.y;
 	}
 
-	setCorners( corners[0].x, corners[0].y, corners[1].x - w, corners[1].y, corners[2].x, corners[2].y - h, corners[3].x - w, corners[3].y - h );
+	// Set corners using the final calculated local coordinates directly
+	setCorners( corners[0].x, corners[0].y, // Top-Left (absolute)
+				corners[1].x - w, corners[1].y, // Top-Right (relative to top-right corner of bounds)
+				corners[2].x, corners[2].y - h, // Bottom-Left (relative to bottom-left corner of bounds)
+				corners[3].x - w, corners[3].y - h ); // Bottom-Right (relative to bottom-right corner of bounds)
 }
 
 bool FeSprite::getTexturePerspective() const
@@ -460,6 +485,20 @@ void FeSprite::setRotationZ( float r )
 	m_rotation_z = r;
 	updateCornersWithRotation();
 	updateGeometry();
+}
+
+void FeSprite::setPosition( float x, float y )
+{
+    sf::Transformable::setPosition( sf::Vector2f( x, y ) );
+    if ( m_texture_perspective )
+        updateCornersWithRotation();
+}
+
+void FeSprite::setPosition( const sf::Vector2f &position )
+{
+    sf::Transformable::setPosition( position );
+    if ( m_texture_perspective )
+        updateCornersWithRotation();
 }
 
 ////////////////////////////////////////////////////////////

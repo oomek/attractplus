@@ -73,7 +73,7 @@ namespace sf
 ///        own transformations, color, etc.
 ///
 ////////////////////////////////////////////////////////////
-class FeSprite : public sf::Drawable, private sf::Transformable
+class FeSprite : public sf::Drawable, public sf::Transformable
 {
 public :
 
@@ -228,8 +228,11 @@ public :
 
 	using sf::Transformable::getRotation;
 	using sf::Transformable::setRotation;
-	using sf::Transformable::setPosition;
+	// using sf::Transformable::setPosition;
 	using sf::Transformable::setOrigin;
+
+    virtual void setPosition( float x, float y );
+    virtual void setPosition( const sf::Vector2f &position );
 
 private :
 
