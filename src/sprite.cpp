@@ -345,8 +345,8 @@ void FeSprite::updateCornersWithRotation()
 	float sx = sinf( rx );
 	float sy = sinf( ry );
 	float sz = sinf( rz );
-	float cxr = cosf( rx );
-	float cyr = cosf( ry );
+	float cx = cosf( rx );
+	float cy = cosf( ry );
 	float cz = cosf( rz );
 
 	std::array< sf::Vector3f, 4 > corners =
@@ -363,14 +363,14 @@ void FeSprite::updateCornersWithRotation()
 	for ( auto &v : corners )
 	{
 		// Rotate X
-		float y1 = v.y * cxr - v.z * sx;
-		float z1 = v.y * sx + v.z * cxr;
+		float y1 = v.y * cx - v.z * sx;
+		float z1 = v.y * sx + v.z * cx;
 		v.y = y1;
 		v.z = z1;
 
 		// Rotate Y
-		float x2 = v.x * cyr + v.z * sy;
-		float z2 = -v.x * sy + v.z * cyr;
+		float x2 = v.x * cy + v.z * sy;
+		float z2 = -v.x * sy + v.z * cy;
 		v.x = x2;
 		v.z = z2;
 
@@ -422,6 +422,7 @@ void FeSprite::setPerspectiveCoefficient( float c )
 		c = 1.0f;
 
 	m_perspective_coefficient = c;
+	updateCornersWithRotation();
 	updateGeometry();
 }
 
