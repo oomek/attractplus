@@ -1155,6 +1155,10 @@ int FeOverlay::display_config_dialog(
 	m->last_sel = ctx.curr_sel;
 
 	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
+
+	for ( size_t i = 0; i < ctx.right_list.size(); ++i )
+		swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, i );
+
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 
 	if ( !ctx.help_msg.empty() )
@@ -1191,6 +1195,10 @@ int FeOverlay::display_config_dialog(
 			//
 			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 			sdialog.setSelBgColor( ctx.curr_opt().type == Opt::INFO ? m_sel_blur_colour : m_sel_focus_colour );
+
+			for ( size_t i = 0; i < ctx.right_list.size(); ++i )
+				swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, i );
+
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 		}
 
@@ -1219,6 +1227,15 @@ int FeOverlay::display_config_dialog(
 		}
 
 		int t = ctx.curr_opt().type;
+
+		// Convert list to toggle if it's a Yes/No list
+		const auto &values = ctx.curr_opt().values_list;
+		std::string yes, no;
+		m_feSettings.get_translation( "Yes", yes );
+		m_feSettings.get_translation( "No", no );
+		if ( t == Opt::LIST && values.size() == 2
+			&& ( ( values[0] == yes && values[1] == no ) || ( values[0] == no && values[1] == yes ) ) )
+				t = Opt::TOGGLE;
 
 		switch ( t )
 		{
@@ -1359,6 +1376,36 @@ int FeOverlay::display_config_dialog(
 					if ( m->save( ctx ) ) parent_setting_changed = true;
 					return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 				}
+			}
+			break;
+		}
+		case Opt::TOGGLE:
+		{
+			int original_value = ctx.curr_opt().get_vindex();
+			int new_value = ( original_value == 0 ) ? 1 : 0;
+			ctx.curr_opt().set_value( new_value );
+			ctx.right_list[ ctx.curr_sel ] = ctx.curr_opt().get_value();
+
+			swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, ctx.curr_sel );
+
+			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
+
+			sdialog.setSelColor( m_sel_text_colour );
+			sdialog.setSelBgColor( m_sel_focus_colour );
+			vdialog.setSelColor( m_text_colour );
+			vdialog.setSelBgColor( m_sel_blur_colour );
+
+			ctx.save_req = true;
+
+			if ( m->exit_on_change )
+			{
+				if ( m->save( ctx ) ) parent_setting_changed = true;
+				return ctx.curr_sel;
+			}
+			else if ( ctx.opt_list[ ctx.curr_sel ].trigger_reload )
+			{
+				if ( m->save( ctx ) ) parent_setting_changed = true;
+				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 			}
 			break;
 		}
@@ -2047,4 +2094,23 @@ bool FeOverlay::common_exit()
 	}
 
 	return false;
+}
+
+void FeOverlay::swap_yes_no_to_pill_glyphs( FeSettings &settings, std::vector< std::string > &right_list, const std::vector< FeMenuOpt > &opt_list, int idx )
+{
+    std::string yes, no;
+
+    settings.get_translation( "Yes", yes );
+    settings.get_translation( "No", no );
+
+    const auto &values = opt_list[ idx ].values_list;
+    if ( values.size() == 2 &&
+        ( ( values[ 0 ] == yes && values[ 1 ] == no ) ||
+        ( values[ 0 ] == no && values[ 1 ] == yes ) ) )
+    {
+        if ( right_list[ idx ] == yes )
+            right_list[ idx ] = "☒";
+        else if ( right_list[ idx ] == no )
+            right_list[ idx ] = "☐";
+    }
 }

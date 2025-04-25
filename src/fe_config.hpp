@@ -39,14 +39,15 @@ class FeScriptConfigurable;
 
 namespace Opt
 {
-	const int	EDIT 				= 1; // option text can be editted by user
-	const int	LIST				= 2; // option gets selected from values_list
-	const int	INFO				= 3; // option is just for info (no changes)
-	const int	MENU				= 4; // option leads to another menu
-	const int	SUBMENU			= 5; // option leads to submenu of current menu
-	const int	RELOAD			= 6; // option reloads menu
-	const int	EXIT				= 7; // option results in exiting the menu
-	const int	DEFAULTEXIT		= 8; // option is default for exiting the menu
+	const int	EDIT        = 1; // option text can be editted by user
+	const int	LIST        = 2; // option gets selected from values_list
+	const int	INFO        = 3; // option is just for info (no changes)
+	const int	MENU        = 4; // option leads to another menu
+	const int	SUBMENU     = 5; // option leads to submenu of current menu
+	const int	RELOAD      = 6; // option reloads menu
+	const int	EXIT        = 7; // option results in exiting the menu
+	const int	DEFAULTEXIT = 8; // option is default for exiting the menu
+	const int	TOGGLE      = 9; // option is a toggle (yes/no)
 };
 
 //

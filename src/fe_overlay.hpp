@@ -26,6 +26,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
 #include "fe_window.hpp"
+#include "fe_config.hpp"
 
 class FeSettings;
 class FeInputMapEntry;
@@ -142,6 +143,7 @@ public:
 
 	void init();
 	void style_init();
+	void swap_yes_no_to_pill_glyphs( FeSettings &settings, std::vector< std::string > &right_list, const std::vector< FeMenuOpt > &opt_list, int idx );
 };
 
 #endif
