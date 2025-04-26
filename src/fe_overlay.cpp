@@ -793,13 +793,14 @@ void FeOverlay::input_map_dialog(
 	// Make sure the appropriate mouse capture variables are set, in case
 	// the user has just changed the mouse threshold
 	//
-	m_feSettings.init_mouse_threshold( m_screen_size.x, m_screen_size.y );
+	sf::RenderWindow &rwnd = m_wnd.get_win();
+	m_feSettings.init_mouse_capture( &rwnd );
 
 	message.setSize( m_screen_size.x, m_screen_size.y );
 	message.setString( msg_str );
 
 	// Centre the mouse in case the user is mapping a mouse move event
-	sf::Mouse::setPosition( sf::Vector2i( m_screen_size.x / 2, m_screen_size.y / 2 ), m_wnd.get_win() );
+	sf::Mouse::setPosition( m_screen_size / 2, rwnd );
 
 	// empty the window event queue
 	while ( const std::optional ev = m_wnd.pollEvent() )
@@ -815,9 +816,9 @@ void FeOverlay::input_map_dialog(
 	bool multi_mode=false; // flag if we are checking for multiple inputs.
 	bool done=false;
 
-	int mouse_thresh;
+	sf::IntRect mc_rect;
 	int joy_thresh;
-	m_feSettings.get_input_config_metrics( mouse_thresh, joy_thresh );
+	m_feSettings.get_input_config_metrics( mc_rect, joy_thresh );
 
 	std::set < std::pair<int,int> > joystick_moves;
 	FeInputMapEntry entry;
@@ -839,7 +840,7 @@ void FeOverlay::input_map_dialog(
 					done = true;
 				else
 				{
-					FeInputSingle single( ev.value(), mouse_thresh, joy_thresh );
+					FeInputSingle single( ev.value(), mc_rect, joy_thresh, rwnd.hasFocus() );
 					if ( single.get_type() != FeInputSingle::Unsupported )
 					{
 						if (( ev->is<sf::Event::KeyPressed>() )
@@ -1494,6 +1495,8 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 				if (( c != FeInputMap::LAST_COMMAND )
 						&& ( c == ctx.extra_exit ))
 					c = FeInputMap::Exit;
+
+				if ( m_feSettings.test_mouse_wrap() ) m_feSettings.wrap_mouse();
 
 				switch( c )
 				{

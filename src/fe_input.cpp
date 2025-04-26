@@ -40,8 +40,6 @@ namespace
 	bool g_touch_moved=false;
 
 	int g_wheel_delta=0;
-	sf::Vector2i g_mouse_pos;
-	sf::Vector2i g_mouse_thresh;
 
 	static std::vector< int > g_joyfemap( sf::Joystick::Count, 0 );
 
@@ -125,12 +123,6 @@ namespace
 				<< ")" << std::endl;
 	}
 };
-
-void FeInputSingle::init_mouse_window( FeWindow &wnd )
-{
-	g_mouse_pos = sf::Mouse::getPosition( wnd.get_win() );
-	g_mouse_thresh = sf::Vector2i( 0, 0 );
-}
 
 // Needs to stay aligned with sf::Keyboard
 //
@@ -300,7 +292,7 @@ FeInputSingle::FeInputSingle( Type t, int c )
 {
 }
 
-FeInputSingle::FeInputSingle( const sf::Event &e, const int mouse_thresh, const int joy_thresh )
+FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
 	: m_type( Unsupported ),
 	m_code( 0 )
 {
@@ -383,41 +375,34 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const int mouse_thresh, const 
 		}
 	}
 
-	else if ( e.is<sf::Event::MouseMoved>() )
+	else if ( has_focus && e.is<sf::Event::MouseMoved>() )
 	{
-		const auto* mv = e.getIf<sf::Event::MouseMoved>();
-		if ( mv )
+		const auto* event = e.getIf<sf::Event::MouseMoved>();
+		if ( event )
 		{
-			// find delta from previous position
-			sf::Vector2i delta = mv->position - g_mouse_pos;
-			g_mouse_pos = mv->position;
+			sf::Vector2i p = event->position;
+			sf::Vector2i r1 = mc_rect.position;
+			sf::Vector2i r2 = r1 + mc_rect.size;
 
-			// if delta reverses direction then reset its thresh position to zero
-			// - improves responsiveness, preventing 2x travel to the opposite threshold
-			if (( g_mouse_thresh.x < 0 && delta.x > 0 ) || ( g_mouse_thresh.x > 0 && delta.x < 0 )) g_mouse_thresh.x = 0;
-			if (( g_mouse_thresh.y < 0 && delta.y > 0 ) || ( g_mouse_thresh.y > 0 && delta.y < 0 )) g_mouse_thresh.y = 0;
-			g_mouse_thresh += delta;
-
-			// calculate distance each axis is from the threshold
-			sf::Vector2i threshold = sf::Vector2i(
-				abs(g_mouse_thresh.x) - mouse_thresh,
-				abs(g_mouse_thresh.y) - mouse_thresh
-			);
-
-			// only a single direction can be reported at a time
-			// - choose the direction furthest from the threshold, or x if equal
-			// - the remaining direction will (likely) be reported next loop
-			if ( threshold.x >= 0 && threshold.x >= threshold.y )
+			if ( p.x < r1.x )
 			{
 				m_type = Mouse;
-				m_code = delta.x > 0 ? MouseRight : MouseLeft;
-				g_mouse_thresh.x %= mouse_thresh;
+				m_code = MouseLeft;
 			}
-			else if ( threshold.y >= 0 )
+			else if ( p.y < r1.y )
 			{
 				m_type = Mouse;
-				m_code = delta.y > 0 ? MouseDown : MouseUp;
-				g_mouse_thresh.y %= mouse_thresh;
+				m_code = MouseUp;
+			}
+			else if ( p.x >= r2.x )
+			{
+				m_type = Mouse;
+				m_code = MouseRight;
+			}
+			else if ( p.y >= r2.y )
+			{
+				m_type = Mouse;
+				m_code = MouseDown;
 			}
 		}
 	}
@@ -823,6 +808,17 @@ std::string FeInputMapEntry::as_string() const
 	return retval;
 }
 
+bool FeInputMapEntry::has_mouse_move() const
+{
+	for ( std::set < FeInputSingle >::const_iterator it=inputs.begin(); it != inputs.end(); ++it )
+	{
+		if ( (*it).is_mouse_move() )
+			return true;
+	}
+
+	return false;
+}
+
 FeMapping::FeMapping( FeInputMap::Command cmd )
 	: command( cmd )
 {
@@ -954,7 +950,8 @@ const char *FeInputMap::commandDispStrings[] =
 };
 
 FeInputMap::FeInputMap()
-	: m_defaults( (int)Select )
+	: m_defaults( (int)Select ),
+	m_mmove_count( 0 )
 {
 	// Set default actions for the "UI" commands (Back, Up, Down, Left, Right)
 	//
@@ -1155,9 +1152,9 @@ FeInputMap::Command FeInputMap::get_command_from_tracked_keys( const int joy_thr
 	return retval;
 }
 
-FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const int mouse_thresh, const int joy_thresh )
+FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
 {
-	FeInputSingle index( e, mouse_thresh, joy_thresh );
+	FeInputSingle index( e, mc_rect, joy_thresh, has_focus );
 
 	if ( e.is<sf::Event::Closed>() )
 	{
@@ -1194,7 +1191,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const int mouse_t
 		else if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() )
 			te = sf::Event::MouseButtonPressed{ mouse->button };
 
-		FeInputSingle tt( te, mouse_thresh, joy_thresh );
+		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		if ( m_tracked_keys.find( tt ) != m_tracked_keys.end() )
 		{
 			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
@@ -1343,6 +1340,9 @@ void FeInputMap::set_mapping( const FeMapping &mapping )
 		//
 		if ( m_inputs[i].command == cmd )
 		{
+			if ( m_inputs[i].has_mouse_move() )
+				m_mmove_count--;
+
 			m_inputs.erase( m_inputs.begin() + i );
 			continue;
 		}
@@ -1371,6 +1371,9 @@ void FeInputMap::set_mapping( const FeMapping &mapping )
 		if (!new_entry.inputs.empty())
 		{
 			m_inputs.push_back( new_entry );
+
+			if ( new_entry.has_mouse_move() )
+				m_mmove_count++;
 		}
 	}
 
@@ -1435,6 +1438,9 @@ int FeInputMap::process_setting( const std::string &setting,
 	}
 
 	m_inputs.push_back( new_entry );
+
+	if ( new_entry.has_mouse_move() )
+		m_mmove_count++;
 
 	return 0;
 }
