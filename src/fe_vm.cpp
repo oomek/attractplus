@@ -1224,8 +1224,6 @@ bool FeVM::on_new_layout()
 			<< " (" << filename << ")" << std::endl;
 	}
 
-	FeInputSingle().init_mouse_window( m_window );
-
 	// To avoid frame delay of nested surfaces we have to sort them here
 	// so the most nested ones are redrawn first
 	std::stable_sort( m_texturePool.begin(), m_texturePool.end(), nesting_compare );

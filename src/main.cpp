@@ -362,6 +362,11 @@ int main(int argc, char *argv[])
 				if ( ev->is<sf::Event::Closed>() )
 					exit_selected = true;
 
+				else if ( feSettings.test_mouse_wrap() )
+				{
+					feSettings.wrap_mouse();
+				}
+
 				else if ( ev->is<sf::Event::KeyReleased>() ||
 							ev->is<sf::Event::MouseButtonReleased>() ||
 							ev->is<sf::Event::JoystickButtonReleased>() )

@@ -909,7 +909,7 @@ void FeSettings::load_state()
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
 {
 	if ( e.has_value() )
-		return m_inputmap.map_input( e.value(), m_window_mouse_thresh, m_joy_thresh );
+		return m_inputmap.map_input( e.value(), m_mousecap_rect, m_joy_thresh, m_rwnd->hasFocus() );
 	else
 		return FeInputMap::LAST_COMMAND;
 }
@@ -919,9 +919,9 @@ FeInputMap::Command FeSettings::input_conflict_check( const FeInputMapEntry &e )
 	return m_inputmap.input_conflict_check( e );
 }
 
-void FeSettings::get_input_config_metrics( int &mouse_thresh, int &joy_thresh )
+void FeSettings::get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh )
 {
-	mouse_thresh = m_window_mouse_thresh;
+	mousecap_rect = m_mousecap_rect;
 	joy_thresh = m_joy_thresh;
 }
 
@@ -940,9 +940,43 @@ bool FeSettings::get_current_state( FeInputMap::Command c )
 	return m_inputmap.get_current_state( c, m_joy_thresh );
 }
 
-void FeSettings::init_mouse_threshold( int window_x, int window_y )
+void FeSettings::init_mouse_capture( sf::RenderWindow *window )
 {
-	m_window_mouse_thresh = window_x * m_mouse_thresh / 400;
+	sf::Vector2i size = sf::Vector2i( window->getSize() );
+	sf::Vector2i center = size / 2;
+	int radius = size.x * m_mouse_thresh / 400;
+
+	m_rwnd = window;
+	m_mousecap_rect.position.x = center.x - radius;
+	m_mousecap_rect.position.y = center.y - radius;
+	m_mousecap_rect.size.x = radius * 2;
+	m_mousecap_rect.size.y = radius * 2;
+}
+
+// Returns true if has mouse controls, has focus, and the pos is outside the capture rectangle
+bool FeSettings::test_mouse_wrap() const
+{
+	return (
+		has_mouse_moves()
+		&& m_rwnd->hasFocus()
+		&& !m_mousecap_rect.contains( sf::Mouse::getPosition( *m_rwnd ) )
+	);
+}
+
+// Wrap the mouse position to the capture rectangle
+void FeSettings::wrap_mouse()
+{
+	sf::Vector2i pos = sf::Mouse::getPosition( *m_rwnd );
+	sf::Vector2i center = sf::Vector2i( m_rwnd->getSize() ) / 2;
+	sf::Vector2i diff = pos - center;
+
+	// A single axis gets wrapped at a time, which allows diagonals to register
+	if ( fabs( diff.x ) >= fabs( diff.y ) )
+		pos.x = center.x;
+	else
+		pos.y = center.y;
+
+	sf::Mouse::setPosition( pos, *m_rwnd );
 }
 
 int FeSettings::get_filter_index_from_offset( int offset ) const

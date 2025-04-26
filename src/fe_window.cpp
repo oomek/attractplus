@@ -365,7 +365,7 @@ void FeWindow::initial_create()
 		}
 	}
 
-	sf::Vector2u wsize( vm.size.x, vm.size.y );
+	sf::Vector2i wsize( vm.size.x, vm.size.y );
 
 #if defined(SFML_SYSTEM_WINDOWS)
 
@@ -472,7 +472,11 @@ void FeWindow::initial_create()
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 #endif
 
-	m_fes.init_mouse_threshold( wsize.x, wsize.y );
+	m_fes.init_mouse_capture( m_window );
+
+	// Only mess with the mouse position if mouse moves mapped
+	if ( m_fes.has_mouse_moves() )
+		sf::Mouse::setPosition( wsize / 2, *m_window );
 
 	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
 	if ( m_logo_image.loadFromMemory( logo_data.data(), logo_data.size() ));
@@ -514,8 +518,9 @@ void wait_callback( void *o )
 bool FeWindow::run()
 {
 	sf::Vector2i reset_pos;
+	bool windowed = is_windowed_mode( m_fes.get_window_mode() );
 
-	if ( m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
+	if ( !windowed && m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
 	{
 		// Move the mouse to the bottom right corner so it isn't visible
 		// when the emulator launches.
@@ -722,7 +727,7 @@ bool FeWindow::run()
 		set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
 #endif
 
-	if ( m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
+	if ( !windowed && m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
 		sf::Mouse::setPosition( reset_pos );
 
 	// Empty the window event queue, so we don't go triggering other
@@ -804,33 +809,5 @@ void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 
 const std::optional<sf::Event> FeWindow::pollEvent()
 {
-	// if mouse is outside the window hijack the event
-	if ( m_mouse_outside )
-	{
-		sf::Vector2i pos = sf::Mouse::getPosition( *m_window );
-		if ( pos != m_mouse_pos )
-		{
-			m_mouse_pos = pos;
-			return sf::Event::MouseMoved({ m_mouse_pos });
-		}
-	}
-
-	// the actual window event
-	std::optional<sf::Event> ev = m_window->pollEvent();
-
-	// store the mouse position, and whether the mouse is over the window
-	if ( ev.has_value() )
-	{
-		if ( ev->is<sf::Event::MouseMoved>() )
-		{
-			m_mouse_pos = ev->getIf<sf::Event::MouseMoved>()->position;
-			m_mouse_outside = false;
-		}
-		else if ( ev->is<sf::Event::MouseLeft>() )
-		{
-			m_mouse_outside = true;
-		}
-	}
-
-	return ev;
+	return m_window->pollEvent();
 }
