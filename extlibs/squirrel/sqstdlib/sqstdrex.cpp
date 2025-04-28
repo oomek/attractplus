@@ -52,6 +52,7 @@ typedef int SQRexNodeType;
 
 typedef struct tagSQRexNode{
 	SQRexNodeType type;
+	SQRexNodeType extra; // AM+
 	SQInteger left;
 	SQInteger right;
 	SQInteger next;
@@ -79,6 +80,7 @@ static SQInteger sqstd_rex_newnode(SQRex *exp, SQRexNodeType type)
 {
 	SQRexNode n;
 	n.type = type;
+	n.extra = OP_EOL; // AM+
 	n.next = n.right = n.left = -1;
 	if(type == OP_EXPR)
 		n.right = exp->_nsubexpr++;
@@ -160,7 +162,15 @@ static SQInteger sqstd_rex_charnode(SQRex *exp,SQBool isclass)
 	}
 	else if(!scisprint(*exp->_p)) {
 		
-		sqstd_rex_error(exp,_SC("letter expected"));
+		// sqstd_rex_error(exp,_SC("letter expected"));
+
+		// ----- AM+
+		// if non-printable assume Unicode and add next char to the node
+		t = *exp->_p; exp->_p++;
+		SQInteger n = sqstd_rex_newnode(exp,t);
+		exp->_nodes[n].extra = *exp->_p; exp->_p++;
+		return n;
+		// -----
 	}
 	t = *exp->_p; exp->_p++; 
 	return sqstd_rex_newnode(exp,t);
@@ -357,8 +367,11 @@ static SQBool sqstd_rex_matchcclass(SQInteger cclass,SQChar c)
 	return SQFalse; /*cannot happen*/
 }
 
-static SQBool sqstd_rex_matchclass(SQRex* exp,SQRexNode *node,SQChar c)
+// static SQBool sqstd_rex_matchclass(SQRex* exp,SQRexNode *node,SQChar c)
+static SQBool sqstd_rex_matchclass(SQRex* exp,SQRexNode *node,const SQChar *cp) // AM+
 {
+	SQChar c = *cp; // AM+
+	SQChar d = *(cp+1); // AM+
 	do {
 		switch(node->type) {
 			case OP_RANGE:
@@ -368,7 +381,8 @@ static SQBool sqstd_rex_matchclass(SQRex* exp,SQRexNode *node,SQChar c)
 				if(sqstd_rex_matchcclass(node->left,c)) return SQTrue;
 				break;
 			default:
-				if(c == node->type)return SQTrue;
+				// if(c == node->type)return SQTrue;
+				if((c == node->type) && ((node->extra == OP_EOL) || (d == node->extra))) return SQTrue; // AM+
 		}
 	} while((node->next != -1) && (node = &exp->_nodes[node->next]));
 	return SQFalse;
@@ -501,7 +515,9 @@ static const SQChar *sqstd_rex_matchnode(SQRex* exp,SQRexNode *node,const SQChar
 		return str;
 	case OP_NCLASS:
 	case OP_CLASS:
-		if(sqstd_rex_matchclass(exp,&exp->_nodes[node->left],*str)?(type == OP_CLASS?SQTrue:SQFalse):(type == OP_NCLASS?SQTrue:SQFalse)) {
+		// if(sqstd_rex_matchclass(exp,&exp->_nodes[node->left],*str)?(type == OP_CLASS?SQTrue:SQFalse):(type == OP_NCLASS?SQTrue:SQFalse)) {
+		if(sqstd_rex_matchclass(exp,&exp->_nodes[node->left],str)?(type == OP_CLASS?SQTrue:SQFalse):(type == OP_NCLASS?SQTrue:SQFalse)) { // AM+
+			if(!scisprint(*str)) str++; // AM+
 			str++;
 			return str;
 		}
@@ -515,6 +531,11 @@ static const SQChar *sqstd_rex_matchnode(SQRex* exp,SQRexNode *node,const SQChar
 	default: /* char */
 		if(*str != node->type) return NULL;
 		str++;
+		if (node->extra != OP_EOL) // AM+
+		{
+			if(*str != node->extra) return NULL;
+			str++;
+		}
 		return str;
 	}
 	return NULL;
