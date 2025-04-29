@@ -62,10 +62,49 @@
 #include <SFML/Graphics/Transformable.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Vector3.hpp>
+
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 namespace sf
 {
 	class Texture;
+};
+
+struct Quaternion
+{
+	float w, x, y, z;
+
+	Quaternion( float angle, sf::Vector3f axis )
+	{
+		float half = angle * 0.5f;
+		float s = sinf( half );
+		w = cosf( half );
+		x = axis.x * s;
+		y = axis.y * s;
+		z = axis.z * s;
+	}
+
+	Quaternion operator*( const Quaternion &q ) const
+	{
+		return Quaternion
+		{
+			w * q.w - x * q.x - y * q.y - z * q.z,
+			w * q.x + x * q.w + y * q.z - z * q.y,
+			w * q.y - x * q.z + y * q.w + z * q.x,
+			w * q.z + x * q.y - y * q.x + z * q.w
+		};
+	}
+
+	sf::Vector3f rotate( const sf::Vector3f &v ) const
+	{
+		Quaternion qv{ 0, v.x, v.y, v.z };
+		Quaternion inv{ w, -x, -y, -z };
+		Quaternion res = ( *this ) * qv * inv;
+		return sf::Vector3f( res.x, res.y, res.z );
+	}
+	Quaternion( float w_, float x_, float y_, float z_ ) : w( w_ ), x( x_ ), y( y_ ), z( z_ ) {}
 };
 
 ////////////////////////////////////////////////////////////
@@ -251,7 +290,7 @@ private :
     ////////////////////////////////////////////////////////////
     void updateGeometry();
     void updateCorners();
-    void updateCornersWithRotation();
+    void updateCornersWithRotation( sf::Vector2f screen_center );
 
     ////////////////////////////////////////////////////////////
     // Member data
@@ -270,6 +309,8 @@ private :
 	float m_rotation_x;
 	float m_rotation_y;
 	float m_rotation_z;
+	Quaternion m_orientation;
+	bool m_update_corners;
 };
 
 

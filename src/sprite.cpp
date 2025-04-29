@@ -60,11 +60,6 @@
 #include <SFML/OpenGL.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
-#include <array>
-#define _USE_MATH_DEFINES
-#include <cmath>
-
-
 
 #ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
 #  define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
@@ -93,10 +88,10 @@ m_texture_perspective( false ),
 m_perspective_coefficient( 0.f ),
 m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
-m_rotation_z( 0.f )
+m_rotation_z( 0.f ),
+m_orientation( Quaternion( 1, 0, 0, 0 ) ),
+m_update_corners( true )
 {
-	updateCorners();
-	updateGeometry();
 }
 
 
@@ -115,11 +110,11 @@ m_texture_perspective( false ),
 m_perspective_coefficient( 0.f ),
 m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
-m_rotation_z( 0.f )
+m_rotation_z( 0.f ),
+m_orientation( Quaternion( 1, 0, 0, 0 ) ),
+m_update_corners( true )
 {
     setTexture(texture);
-	updateCorners();
-	updateGeometry();
 }
 
 
@@ -138,12 +133,12 @@ m_texture_perspective( false ),
 m_perspective_coefficient( 0.f ),
 m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
-m_rotation_z( 0.f )
+m_rotation_z( 0.f ),
+m_orientation( Quaternion( 1, 0, 0, 0 ) ),
+m_update_corners( true )
 {
     setTexture(texture);
     setTextureRect(rectangle);
-	updateCorners();
-	updateGeometry();
 }
 
 
@@ -156,8 +151,7 @@ void FeSprite::setTexture(const sf::Texture& texture, bool resetRect)
 
     // Assign the new texture
     m_texture = &texture;
-	updateCorners();
-	updateGeometry();
+	m_update_corners = true;
 }
 
 
@@ -167,8 +161,7 @@ void FeSprite::setTextureRect(const sf::FloatRect& rectangle)
     if (rectangle != m_textureRect)
     {
         m_textureRect = rectangle;
-        updateCorners();
-        updateGeometry();
+		m_update_corners = true;
     }
 }
 
@@ -217,6 +210,18 @@ sf::IntRect FeSprite::getLocalBounds() const
 ////////////////////////////////////////////////////////////
 void FeSprite::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
+	sf::Vector2f target_center = sf::Vector2f( static_cast<float>( target.getSize().x ) / 2.0f, static_cast<float>( target.getSize().y ) / 2.0f );
+
+	if ( m_update_corners )
+	{
+		if ( m_texture_perspective )
+			const_cast<FeSprite*>( this )->updateCornersWithRotation( target_center );
+		else
+			const_cast<FeSprite*>( this )->updateCorners();
+
+		const_cast<FeSprite*>( this )->m_update_corners = false;
+	}
+
 	if (m_texture)
 	{
 		states.transform *= getTransform();
@@ -265,8 +270,7 @@ void FeSprite::setSkewX( float x )
 	if ( x != m_skew.x )
 	{
 		m_skew.x = x;
-		updateCorners();
-		updateGeometry();
+		m_update_corners = true;
 	}
 }
 
@@ -275,8 +279,7 @@ void FeSprite::setSkewY( float y )
 	if ( y != m_skew.y )
 	{
 		m_skew.y = y;
-		updateCorners();
-		updateGeometry();
+		m_update_corners = true;
 	}
 }
 
@@ -285,8 +288,7 @@ void FeSprite::setPinchX( float x )
 	if ( x != m_pinch.x )
 	{
 		m_pinch.x = x;
-		updateCorners();
-		updateGeometry();
+		m_update_corners = true;
 	}
 }
 
@@ -295,8 +297,7 @@ void FeSprite::setPinchY( float y )
 	if ( y != m_pinch.y )
 	{
 		m_pinch.y = y;
-		updateCorners();
-		updateGeometry();
+		m_update_corners = true;
 	}
 }
 
@@ -314,6 +315,7 @@ void FeSprite::setCorners( float tl_x, float tl_y, float tr_x, float tr_y, float
 	m_top_right = sf::Vector2f(tr_x + bounds.size.x, tr_y);
 	m_bottom_left = sf::Vector2f(bl_x, bl_y + bounds.size.y);
 	m_bottom_right = sf::Vector2f(br_x + bounds.size.x, br_y + bounds.size.y);
+
 	updateGeometry();
 }
 
@@ -328,52 +330,33 @@ void FeSprite::updateCorners()
 	m_bottom_left = sf::Vector2f(sskew.x + spinch.x, bounds.size.y);
 	m_top_right = sf::Vector2f(bounds.size.x, sskew.y + spinch.y);
 	m_bottom_right = sf::Vector2f(bounds.size.x + sskew.x - spinch.x, bounds.size.y + sskew.y - spinch.y);
+
+	updateGeometry();
 }
 
-void FeSprite::updateCornersWithRotation()
+void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 {
+	float rx = m_rotation_x * M_PI / 180.0f;
+	float ry = m_rotation_y * M_PI / 180.0f;
+	float rz = m_rotation_z * M_PI / 180.0f;
+
+	Quaternion qx( rx, sf::Vector3f( 1, 0, 0 ) );
+	Quaternion qy( ry, sf::Vector3f( 0, 1, 0 ) );
+	Quaternion qz( rz, sf::Vector3f( 0, 0, 1 ) );
+
+	// Z is most local, X is most global, to be configurable later
+	m_orientation = qx * qy * qz;
+
+	m_texture_perspective = true;
 	sf::IntRect bounds = getLocalBounds();
 	float w = static_cast< float >( bounds.size.x );
 	float h = static_cast< float >( bounds.size.y );
 
 	sf::Vector2f anchor = getOrigin();
-	sf::Vector2f screen_center( 640.0f, 360.0f ); // Define the common vanishing point in world coordinates
-
-	// Get the transform that maps local coordinates to world coordinates
-	// And its inverse to map world coordinates to local coordinates
 	sf::Transform inv_transform = getInverseTransform();
-
-	// Transform the world vanishing point into the sprite's local coordinate system
 	sf::Vector2f local_vp = inv_transform.transformPoint( screen_center );
-
-	// Calculate the vanishing point relative to the sprite's anchor point (in local coordinates)
 	sf::Vector2f relative_vp = local_vp - anchor;
 
-	float rx = m_rotation_x * M_PI / 180.0f;
-	float ry = m_rotation_y * M_PI / 180.0f;
-	float rz = m_rotation_z * M_PI / 180.0f;
-
-	float sx = sinf( rx );
-	float sy = sinf( ry );
-	float sz = sinf( rz );
-	float cx = cosf( rx );
-	float cy = cosf( ry );
-	float cz = cosf( rz );
-
-	// Calculate elements of the combined ZYX intrinsic rotation matrix (Ry * Rx * Rz)
-	float m11 = cy * cz;
-	float m12 = -cy * sz;
-	float m13 = sy;
-
-	float m21 = cx * sz + sx * sy * cz;
-	float m22 = cx * cz - sx * sy * sz;
-	float m23 = -sx * cy;
-
-	float m31 = sx * sz - cx * sy * cz;
-	float m32 = sx * cz + cx * sy * sz;
-	float m33 = cx * cy;
-
-	// Initial corners relative to the anchor point
 	std::array< sf::Vector3f, 4 > corners =
 	{
 		sf::Vector3f( -anchor.x, -anchor.y, 0.0f ),
@@ -387,40 +370,29 @@ void FeSprite::updateCornersWithRotation()
 
 	for ( auto &v : corners )
 	{
-		// Apply the combined ZYX rotation matrix
-		float ox = v.x;
-		float oy = v.y;
-		float oz = v.z;
+		v = m_orientation.rotate( v );
 
-		v.x = ox * m11 + oy * m12 + oz * m13;
-		v.y = ox * m21 + oy * m22 + oz * m23;
-		v.z = ox * m31 + oy * m32 + oz * m33;
-
-		// Perspective divide towards the relative vanishing point (relative_vp)
 		if ( persp != 0.0f )
 		{
 			float factor = 1.0f + v.z * persp;
-			// Avoid division by zero or near-zero
-			if ( std::abs( factor ) > 1e-6f )
+			if ( factor != 0.0f )
 			{
-				// Project v (relative to anchor) towards relative_vp (relative to anchor)
 				v.x = relative_vp.x + ( v.x - relative_vp.x ) / factor;
 				v.y = relative_vp.y + ( v.y - relative_vp.y ) / factor;
 			}
-			// Optional: Handle factor close to zero (e.g., clamp or skip projection)
-			// else { /* handle case where point is at or behind perspective plane */ }
 		}
 
-		// Convert final vertex position from anchor-relative to local (0,0)-relative
 		v.x += anchor.x;
 		v.y += anchor.y;
 	}
 
-	// Set corners using the final calculated local coordinates directly
-	setCorners( corners[0].x, corners[0].y, // Top-Left (absolute)
-				corners[1].x - w, corners[1].y, // Top-Right (relative to top-right corner of bounds)
-				corners[2].x, corners[2].y - h, // Bottom-Left (relative to bottom-left corner of bounds)
-				corners[3].x - w, corners[3].y - h ); // Bottom-Right (relative to bottom-right corner of bounds)
+	setCorners(
+		corners[0].x, corners[0].y,
+		corners[1].x - w, corners[1].y,
+		corners[2].x, corners[2].y - h,
+		corners[3].x - w, corners[3].y - h );
+
+	updateGeometry();
 }
 
 bool FeSprite::getTexturePerspective() const
@@ -431,12 +403,12 @@ bool FeSprite::getTexturePerspective() const
 void FeSprite::setTexturePerspective( bool texture_perspective )
 {
 	m_texture_perspective = texture_perspective;
-	updateGeometry();
+	m_update_corners = true;
 }
 
 float FeSprite::getPerspectiveCoefficient() const
 {
-    return m_perspective_coefficient;
+	return m_perspective_coefficient;
 }
 
 void FeSprite::setPerspectiveCoefficient( float c )
@@ -447,8 +419,7 @@ void FeSprite::setPerspectiveCoefficient( float c )
 		c = 1.0f;
 
 	m_perspective_coefficient = c;
-	updateCornersWithRotation();
-	updateGeometry();
+	m_update_corners = true;
 }
 
 float FeSprite::getRotationX() const
@@ -458,9 +429,9 @@ float FeSprite::getRotationX() const
 
 void FeSprite::setRotationX( float r )
 {
+	if ( r == m_rotation_x ) return;
 	m_rotation_x = r;
-	updateCornersWithRotation();
-	updateGeometry();
+	m_update_corners = true;
 }
 
 float FeSprite::getRotationY() const
@@ -470,10 +441,11 @@ float FeSprite::getRotationY() const
 
 void FeSprite::setRotationY( float r )
 {
+	if ( r == m_rotation_y ) return;
 	m_rotation_y = r;
-	updateCornersWithRotation();
-	updateGeometry();
+	m_update_corners = true;
 }
+
 
 float FeSprite::getRotationZ() const
 {
@@ -482,23 +454,21 @@ float FeSprite::getRotationZ() const
 
 void FeSprite::setRotationZ( float r )
 {
+	if ( r == m_rotation_z ) return;
 	m_rotation_z = r;
-	updateCornersWithRotation();
-	updateGeometry();
+	m_update_corners = true;
 }
 
 void FeSprite::setPosition( float x, float y )
 {
-    sf::Transformable::setPosition( sf::Vector2f( x, y ) );
-    if ( m_texture_perspective )
-        updateCornersWithRotation();
+	sf::Transformable::setPosition( sf::Vector2f( x, y ) );
+	m_update_corners = true;
 }
 
 void FeSprite::setPosition( const sf::Vector2f &position )
 {
-    sf::Transformable::setPosition( position );
-    if ( m_texture_perspective )
-        updateCornersWithRotation();
+	sf::Transformable::setPosition( position );
+	m_update_corners = true;
 }
 
 ////////////////////////////////////////////////////////////
