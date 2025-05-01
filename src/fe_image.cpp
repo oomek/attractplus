@@ -1030,6 +1030,7 @@ FeImage::FeImage( FePresentableParent &p,
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_origin( 0.f, 0.f ),
+	m_origin_z( 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation ( 0.0 ),
@@ -1050,6 +1051,7 @@ FeImage::FeImage( FeImage *o )
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_origin( o->m_origin ),
+	m_origin_z( o->m_origin_z ),
 	m_rotation_origin( o->m_rotation_origin ),
 	m_anchor( o->m_anchor ),
 	m_rotation( o->m_rotation ),
@@ -1251,6 +1253,8 @@ void FeImage::scale()
 	m_sprite.setPosition( final_pos );
 	m_sprite.setRotation( sf::degrees( m_rotation ));
 	m_sprite.setOrigin({( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y });
+	m_sprite.setOriginZ( m_origin_z );
+	m_sprite.setSize( m_size );
 }
 
 sf::Vector2f FeImage::getPosition() const
@@ -1411,6 +1415,11 @@ float FeImage::get_origin_y() const
 	return m_origin.y;
 }
 
+float FeImage::get_origin_z() const
+{
+	return m_origin_z;
+}
+
 int FeImage::get_anchor_type() const
 {
 	return (FeImage::Alignment)m_anchor_type;
@@ -1476,6 +1485,16 @@ void FeImage::set_origin_y( float y )
 	if ( y != m_origin.y )
 	{
 		m_origin.y = y;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_origin_z( float z )
+{
+	if ( z != m_origin_z )
+	{
+		m_origin_z = z;
 		scale();
 		FePresent::script_flag_redraw();
 	}

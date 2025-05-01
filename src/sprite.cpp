@@ -90,7 +90,10 @@ m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
 m_rotation_z( 0.f ),
 m_orientation( Quaternion( 1, 0, 0, 0 ) ),
-m_update_corners( true )
+m_update_corners( true ),
+m_origin_z( 0.f ),
+m_back_facing( false ),
+m_size( 0.f, 0.f )
 {
 }
 
@@ -112,7 +115,10 @@ m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
 m_rotation_z( 0.f ),
 m_orientation( Quaternion( 1, 0, 0, 0 ) ),
-m_update_corners( true )
+m_update_corners( true ),
+m_origin_z( 0.f ),
+m_back_facing( false ),
+m_size( 0.f, 0.f )
 {
     setTexture(texture);
 }
@@ -135,7 +141,10 @@ m_rotation_x( 0.f ),
 m_rotation_y( 0.f ),
 m_rotation_z( 0.f ),
 m_orientation( Quaternion( 1, 0, 0, 0 ) ),
-m_update_corners( true )
+m_update_corners( true ),
+m_origin_z( 0.f ),
+m_back_facing( false ),
+m_size( 0.f, 0.f )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -226,7 +235,7 @@ void FeSprite::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	{
 		states.transform *= getTransform();
 		states.texture = m_texture;
-		if ( m_vertices[0].color.a > 0 )
+		if ( m_vertices[0].color.a > 0 && ( !const_cast<FeSprite*>( this )->m_back_facing ) )
 			target.draw( m_vertices, states );
 
 		// Set anisotropic filtering
@@ -352,17 +361,20 @@ void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 	float w = static_cast< float >( bounds.size.x );
 	float h = static_cast< float >( bounds.size.y );
 
-	sf::Vector2f anchor = getOrigin();
+	float z_scale = m_size.y / h * 2.0f; // TODO: only works for square textures for now
+
+	sf::Vector3f anchor = sf::Vector3f( getOrigin().x, getOrigin().y, m_origin_z / z_scale );
 	sf::Transform inv_transform = getInverseTransform();
-	sf::Vector2f local_vp = inv_transform.transformPoint( screen_center );
-	sf::Vector2f relative_vp = local_vp - anchor;
+	sf::Vector2f local_vp_2d = inv_transform.transformPoint( screen_center );
+	sf::Vector3f local_vp = sf::Vector3f( local_vp_2d.x, local_vp_2d.y, 0.0f );
+	sf::Vector3f relative_vp = local_vp - anchor;
 
 	std::array< sf::Vector3f, 4 > corners =
 	{
-		sf::Vector3f( -anchor.x, -anchor.y, 0.0f ),
-		sf::Vector3f( w - anchor.x, -anchor.y, 0.0f ),
-		sf::Vector3f( -anchor.x, h - anchor.y, 0.0f ),
-		sf::Vector3f( w - anchor.x, h - anchor.y, 0.0f )
+		sf::Vector3f( -anchor.x, -anchor.y, -anchor.z ),
+		sf::Vector3f( w - anchor.x, -anchor.y, -anchor.z ),
+		sf::Vector3f( -anchor.x, h - anchor.y, -anchor.z ),
+		sf::Vector3f( w - anchor.x, h - anchor.y, -anchor.z )
 	};
 
 	float max_coeff = 0.001f;
@@ -379,12 +391,28 @@ void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 			{
 				v.x = relative_vp.x + ( v.x - relative_vp.x ) / factor;
 				v.y = relative_vp.y + ( v.y - relative_vp.y ) / factor;
+				v.z = relative_vp.z + ( v.z - relative_vp.z ) / factor;
 			}
 		}
 
 		v.x += anchor.x;
 		v.y += anchor.y;
 	}
+
+	// Compute normal to determine if back face is showing
+	sf::Vector3f v0 = corners[0];
+	sf::Vector3f v1 = corners[1];
+	sf::Vector3f v2 = corners[2];
+
+	sf::Vector3f edge1( v1.x - v0.x, v1.y - v0.y, v1.z - v0.z );
+	sf::Vector3f edge2( v2.x - v0.x, v2.y - v0.y, v2.z - v0.z );
+	sf::Vector3f normal(
+		edge1.y * edge2.z - edge1.z * edge2.y,
+		edge1.z * edge2.x - edge1.x * edge2.z,
+		edge1.x * edge2.y - edge1.y * edge2.x
+	);
+
+	m_back_facing = ( normal.z < 0.0f );
 
 	setCorners(
 		corners[0].x, corners[0].y,
@@ -457,6 +485,18 @@ void FeSprite::setRotationZ( float r )
 	if ( r == m_rotation_z ) return;
 	m_rotation_z = r;
 	m_update_corners = true;
+}
+
+void FeSprite::setOriginZ( float z )
+{
+	if ( z == m_origin_z ) return;
+	m_origin_z = z;
+	m_update_corners = true;
+}
+
+void FeSprite::setSize( const sf::Vector2f &size )
+{
+	m_size = size;
 }
 
 void FeSprite::setPosition( float x, float y )

@@ -267,8 +267,8 @@ public :
 
 	using sf::Transformable::getRotation;
 	using sf::Transformable::setRotation;
-	// using sf::Transformable::setPosition;
-	using sf::Transformable::setOrigin;
+	void setOriginZ( float z );
+	void setSize( const sf::Vector2f &size );
 
     virtual void setPosition( float x, float y );
     virtual void setPosition( const sf::Vector2f &position );
@@ -311,6 +311,9 @@ private :
 	float m_rotation_z;
 	Quaternion m_orientation;
 	bool m_update_corners;
+	float m_origin_z;
+	bool m_back_facing;
+	sf::Vector2f m_size;
 };
 
 

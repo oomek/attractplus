@@ -329,6 +329,7 @@ public:
 
 	float get_origin_x() const;
 	float get_origin_y() const;
+	float get_origin_z() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;
 	float get_anchor_x() const;
@@ -362,6 +363,7 @@ public:
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
+	void set_origin_z( float y );
 	void set_anchor( float x, float y );
 	void set_anchor_type( int t );
 	void set_rotation_origin( float x, float y );
@@ -423,6 +425,7 @@ protected:
 	sf::Vector2f m_size;
 	sf::Vector2f m_scale;
 	sf::Vector2f m_origin;
+	float m_origin_z;
 	sf::Vector2f m_rotation_origin;
 	sf::Vector2f m_anchor;
 	float m_rotation;

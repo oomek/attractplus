@@ -707,6 +707,7 @@ bool FeVM::on_new_layout()
 		DerivedClass<FeImage, FeBasePresentable, NoConstructor>()
 		.Prop(_SC("origin_x"), &FeImage::get_origin_x, &FeImage::set_origin_x )
 		.Prop(_SC("origin_y"), &FeImage::get_origin_y, &FeImage::set_origin_y )
+		.Prop(_SC("origin_z"), &FeImage::get_origin_z, &FeImage::set_origin_z )
 		.Prop(_SC("anchor"), &FeImage::get_anchor_type, &FeImage::set_anchor_type )
 		// "origin" deprecated as of 3.0.5, use the rotation_origin property instead
 		.Prop(_SC("origin"), &FeImage::get_rotation_origin_type, &FeImage::set_rotation_origin_type )
