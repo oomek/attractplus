@@ -712,6 +712,7 @@ public:
     [[nodiscard]] static unsigned int getMaximumSize();
 
 private:
+    friend class JustifyText; // AM+
     friend class Text;
     friend class RenderTexture;
     friend class RenderTarget;

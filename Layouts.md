@@ -1519,6 +1519,11 @@ The class representing a text label in Attract-Mode. Instances of this class are
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+   -  `Style.StrikeThrough`
+-  `justify` 🔶 - Get/set the text justification. Can be one of the following values:
+   -  `Justify.None` (default)
+   -  `Justify.Word` - Increase space between words to fill line.
+   -  `Justify.Character` - Increase space between characters to fill line.
 -  `align` - Get/set the text alignment. Can be one of the following values:
    -  ~~`Align.Centre`~~ (default)
    -  ~~`Align.Left`~~
@@ -1596,6 +1601,11 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+   -  `Style.StrikeThrough`
+-  `justify` 🔶 - Get/set the text justification. Can be one of the following values:
+   -  `Justify.None` (default)
+   -  `Justify.Word` - Increase space between words to fill line.
+   -  `Justify.Character` - Increase space between characters to fill line.
 -  `align` - Get/set the text alignment. Can be one of the following values:
    -  ~~`Align.Centre`~~ (default)
    -  ~~`Align.Left`~~
@@ -1615,6 +1625,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+   -  `Style.StrikeThrough`
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.

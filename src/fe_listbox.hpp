@@ -115,6 +115,7 @@ public:
 	int get_rows();
 	int get_list_size();
 	int get_style();
+	int get_justify();
 	int get_align();
 	void set_bgr(int r);
 	void set_bgg(int g);
@@ -125,6 +126,7 @@ public:
 	void set_spacing(float s);
 	void set_rows(int r);
 	void set_style(int s);
+	void set_justify(int j);
 	void set_align(int a);
 	int get_selr();
 	int get_selg();

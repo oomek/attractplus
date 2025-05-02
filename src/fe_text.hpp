@@ -97,6 +97,7 @@ public:
 	float get_line_spacing();
 	int get_line_height();
 	int get_style();
+	int get_justify();
 	int get_align();
 	const char *get_font();
 	void set_bgr(int r);
@@ -110,6 +111,7 @@ public:
 	void set_spacing(float s);
 	void set_line_spacing(float s);
 	void set_style(int s);
+	void set_justify(int j);
 	void set_align(int a);
 	void set_font(const char *f);
 
