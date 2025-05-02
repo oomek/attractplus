@@ -331,6 +331,11 @@ int FeText::get_style()
 	return m_draw_text.getStyle();
 }
 
+int FeText::get_justify()
+{
+	return m_draw_text.getJustify();
+}
+
 int FeText::get_align()
 {
 	return (int)m_draw_text.getAlignment();
@@ -477,6 +482,15 @@ void FeText::set_style(int s)
 	{
 		m_draw_text.setStyle(s);
 		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_justify(int j)
+{
+	if ( j != m_draw_text.getJustify() )
+	{
+		m_draw_text.setJustify(j);
+		FePresent::script_do_update( this );
 	}
 }
 

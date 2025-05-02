@@ -125,6 +125,7 @@ public:
 	int get_rows();
 	int get_list_size();
 	int get_style();
+	int get_justify();
 	int get_align();
 	int get_selection_mode();
 	int get_selection_margin();
@@ -137,6 +138,7 @@ public:
 	void set_spacing(float s);
 	void set_rows(int r);
 	void set_style(int s);
+	void set_justify(int j);
 	void set_align(int a);
 	void set_selection_mode(int m);
 	void set_selection_margin(int m);

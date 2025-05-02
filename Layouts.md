@@ -1526,6 +1526,11 @@ The class representing a text label in Attract-Mode. Instances of this class are
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+   -  `Style.StrikeThrough` 🔶
+-  `justify` 🔶 - Get/set the text justification. Can be one of the following values:
+   -  `Justify.None` - No justification (default)
+   -  `Justify.Word` - Increase space between words to fill line.
+   -  `Justify.Character` - Increase space between characters to fill line.
 -  `align` - Get/set the text alignment. Can be one of the following values:
    -  ~~`Align.Centre`~~ (default)
    -  ~~`Align.Left`~~
@@ -1603,6 +1608,11 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+   -  `Style.StrikeThrough` 🔶
+-  `justify` 🔶 - Get/set the text justification. Can be one of the following values:
+   -  `Justify.None` - No justification (default)
+   -  `Justify.Word` - Increase space between words to fill line.
+   -  `Justify.Character` - Increase space between characters to fill line.
 -  `align` - Get/set the text alignment. Can be one of the following values:
    -  ~~`Align.Centre`~~ (default)
    -  ~~`Align.Left`~~
@@ -1622,6 +1632,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+   -  `Style.StrikeThrough` 🔶
 -  `sel_mode` - Get/set the selection mode. Controls how the ListBox behaves when navigating. Can be one of the following values:
    -  `Selection.Static` (default) - The selection stays in the centre of the ListBox. The list scrolls
    -  `Selection.Moving` - The selection moves and the list scrolls when margin is reached. Margin can be adjusted with `sel_margin`

@@ -23,12 +23,14 @@
 #include "tp.hpp"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 #include "fe_present.hpp"
 
 FeTextPrimitive::FeTextPrimitive( )
-	: m_texts( 1, sf::Text( *FePresent::script_get_fep()->get_default_font() )),
+	: m_texts( 1, sf::JustifyText( *FePresent::script_get_fep()->get_default_font() )),
 	m_align( Centre ),
+	m_justify( sf::JustifyText::None ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
 	m_lines_total( 1 ),
@@ -49,8 +51,9 @@ FeTextPrimitive::FeTextPrimitive(
 			sf::Color bgcolour,
 			unsigned int charactersize,
 			Alignment align )
-	: m_texts( 1, sf::Text( *font )),
+	: m_texts( 1, sf::JustifyText( *font )),
 	m_align( align ),
+	m_justify( sf::JustifyText::None ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
 	m_lines_total( 1 ),
@@ -75,6 +78,7 @@ void FeTextPrimitive::setFrom( const FeTextPrimitive &c )
 	m_bgRect = c.m_bgRect;
 	m_texts = c.m_texts;
 	m_align = c.m_align;
+	m_justify = c.m_justify,
 	m_first_line = c.m_first_line;
 	m_lines = c.m_lines;
 	m_lines_total = c.m_lines_total;
@@ -131,7 +135,8 @@ void FeTextPrimitive::fit_string(
 			const std::basic_string<std::uint32_t> &s,
 			int &position,
 			int &first_char,
-			int &last_char )
+			int &last_char,
+			bool &hard_wrap )
 {
 	// There is a special case where we edit the string in UI
 	// We do not cut the trailing space in this situation
@@ -148,6 +153,7 @@ void FeTextPrimitive::fit_string(
 	int j( position );
 	int last_space( 0 );
 	first_char = position;
+	hard_wrap = false;
 
 	const sf::Font *font = getFont();
 	unsigned int charsize = m_texts[0].getCharacterSize();
@@ -198,6 +204,7 @@ void FeTextPrimitive::fit_string(
 				last_char = i - 1;
 				i++;
 				position = i;
+				hard_wrap = true;
 				return;
 			}
 
@@ -268,19 +275,21 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	// We count the total lines
 	//
-	m_lines = 1;
 	m_lines_total = 1;
 
 	int tmp_pos = -1;
 	int tmp_first_char = 0;
 	int tmp_last_char = 0;
+	bool hard_wrap = false;
+	std::vector<bool> newlines;
 
 	if ( m_word_wrap && (int)t.size() > 1 )
 	{
 		while ( true )
 		{
 			if ( tmp_pos >= (int)t.size() ) break;
-			fit_string( t, tmp_pos, tmp_first_char, tmp_last_char );
+			fit_string( t, tmp_pos, tmp_first_char, tmp_last_char, hard_wrap );
+			newlines.push_back( hard_wrap );
 			m_lines_total++;
 		}
 		m_lines_total--;
@@ -294,17 +303,18 @@ sf::Vector2f FeTextPrimitive::setString(
 	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
 	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
 	int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
-	float default_spacing = font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y;
 
-	if ( m_align & ( Top | Bottom | Middle ))
-	{
-		if ( m_margin < 0 )
-			m_lines = std::max( 1, (int)floorf(( rectSize.size.y + spacing - default_spacing - glyphSize ) / spacing ));
-		else
-			m_lines = std::max( 1, (int)floorf(( rectSize.size.y + spacing - glyphSize - m_margin * 2.0 ) / spacing ));
-	}
-	else
-		m_lines = std::max( 1, (int)( rectSize.size.y / spacing ));
+	float margin = ( m_margin < 0 )
+		? font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y
+		: m_margin * 2.0;
+
+	float fit_width = m_bgRect.getSize().x - margin;
+	float fit_height = ( m_align & ( Top | Bottom | Middle ))
+		? rectSize.size.y + spacing - glyphSize - margin
+		: rectSize.size.y;
+
+	int max_lines = (int)floorf( fit_height / spacing );
+	m_lines = std::clamp( max_lines, 1, m_lines_total );
 
 	//
 	// Cut the string if it is too big to fit our dimension
@@ -316,12 +326,12 @@ sf::Vector2f FeTextPrimitive::setString(
 		position = -1;
 
 	if ( m_texts.size() > 1 )
-		m_texts.resize( 1, sf::Text( *getFont() ));
+		m_texts.resize( 1, sf::JustifyText( *getFont() ));
 
 	//
 	// We cut the first line of text here
 	//
-	fit_string( t, position, first_char, last_char );
+	fit_string( t, position, first_char, last_char, hard_wrap );
 
 	if ( m_word_wrap )
 	{
@@ -330,11 +340,13 @@ sf::Vector2f FeTextPrimitive::setString(
 		int actual_first_line = 1;
 		while ( actual_first_line < m_first_line )
 		{
-			fit_string( t, position, first_char, last_char );
+			fit_string( t, position, first_char, last_char, hard_wrap );
 			actual_first_line++;
 		}
 	}
 	m_texts[0].setString( sf::String::fromUtf32( t.data() + first_char, t.data() + first_char + ( last_char - first_char + 1 )));
+	m_texts[0].setWidth( fit_width );
+	m_texts[0].setJustify(( !newlines.empty() && newlines[0] ) ? sf::JustifyText::None : m_justify );
 
 	disp_cpos -= first_char;
 
@@ -350,11 +362,15 @@ sf::Vector2f FeTextPrimitive::setString(
 		for ( int i = 1; i < m_lines; i++ )
 		{
 			if ( position >= (int)t.size() ) break;
-			fit_string( t, position, first_char, last_char );
+			fit_string( t, position, first_char, last_char, hard_wrap );
 			m_texts.push_back( m_texts[0] );
 			m_texts.back().setString( sf::String::fromUtf32( t.data() + first_char, t.data() + first_char + (last_char - first_char + 1 )));
+			m_texts.back().setWidth( fit_width );
+			m_texts.back().setJustify( newlines[i] ? sf::JustifyText::None : m_justify );
 			actual_line_count++;
 		}
+
+		m_texts.back().setJustify( sf::JustifyText::None ); // Don't justify last line
 	}
 
 	set_positions(); // We need to set the positions now for findCharacterPos() to work below
@@ -564,6 +580,12 @@ void FeTextPrimitive::setStyle( int s )
 		m_texts[i].setStyle( s );
 }
 
+void FeTextPrimitive::setJustify( int j )
+{
+	m_justify = j;
+	m_needs_pos_set = true;
+}
+
 void FeTextPrimitive::setBgOutlineThickness( float t )
 {
 	m_bgRect.setOutlineThickness( t );
@@ -588,6 +610,11 @@ float FeTextPrimitive::getRotation() const
 int FeTextPrimitive::getStyle() const
 {
 	return m_texts[0].getStyle();
+}
+
+int FeTextPrimitive::getJustify() const
+{
+	return m_justify;
 }
 
 void FeTextPrimitive::setFirstLineHint( int line )
