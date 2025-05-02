@@ -361,9 +361,7 @@ void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 	float w = static_cast< float >( bounds.size.x );
 	float h = static_cast< float >( bounds.size.y );
 
-	float z_scale_x = m_size.x / w * 2.0f;
-	float z_scale_y = m_size.y / h * 2.0f;
-	float z_scale = std::max( z_scale_x, z_scale_y );
+	float z_scale = m_size.x / w * 2.0f;
 
 	sf::Vector3f anchor = sf::Vector3f( getOrigin().x, getOrigin().y, m_origin_z / z_scale );
 	sf::Transform inv_transform = getInverseTransform();
