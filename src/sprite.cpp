@@ -361,7 +361,9 @@ void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 	float w = static_cast< float >( bounds.size.x );
 	float h = static_cast< float >( bounds.size.y );
 
-	float z_scale = m_size.y / h * 2.0f; // TODO: only works for square textures for now
+	float z_scale_x = m_size.x / w * 2.0f;
+	float z_scale_y = m_size.y / h * 2.0f;
+	float z_scale = std::max( z_scale_x, z_scale_y );
 
 	sf::Vector3f anchor = sf::Vector3f( getOrigin().x, getOrigin().y, m_origin_z / z_scale );
 	sf::Transform inv_transform = getInverseTransform();
@@ -379,10 +381,14 @@ void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 
 	float max_coeff = 0.001f;
 	float persp = m_perspective_coefficient * max_coeff;
+	float aspect_ratio = m_size.y / m_size.x;
 
 	for ( auto &v : corners )
 	{
+		// Normalize coordinate space before rotation, denormalize after
+		v.y *= aspect_ratio;
 		v = m_orientation.rotate( v );
+		v.y /= aspect_ratio;
 
 		if ( persp != 0.0f )
 		{
@@ -414,11 +420,10 @@ void FeSprite::updateCornersWithRotation( sf::Vector2f screen_center )
 
 	m_back_facing = ( normal.z < 0.0f );
 
-	setCorners(
-		corners[0].x, corners[0].y,
-		corners[1].x - w, corners[1].y,
-		corners[2].x, corners[2].y - h,
-		corners[3].x - w, corners[3].y - h );
+	m_top_left = sf::Vector2f( corners[0].x, corners[0].y );
+	m_top_right = sf::Vector2f( corners[1].x, corners[1].y );
+	m_bottom_left = sf::Vector2f( corners[2].x, corners[2].y );
+	m_bottom_right = sf::Vector2f( corners[3].x, corners[3].y );
 
 	updateGeometry();
 }
