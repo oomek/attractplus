@@ -554,6 +554,11 @@ int FeListBox::get_style()
 	return m_base_text.getStyle();
 }
 
+int FeListBox::get_justify()
+{
+	return m_base_text.getJustify();
+}
+
 int FeListBox::get_align()
 {
 	return (int)m_base_text.getAlignment();
@@ -672,6 +677,21 @@ void FeListBox::set_style(int s)
 	for ( int i=0; i < (int)m_texts.size(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setStyle( s );
+
+	if ( m_scripted )
+		FePresent::script_flag_redraw();
+}
+
+void FeListBox::set_justify(int j)
+{
+	if ( j == m_base_text.getJustify() )
+		return;
+
+	m_base_text.setJustify(j);
+	for ( unsigned int i=0; i < m_texts.size(); i++ )
+	{
+		m_texts[i].setJustify( j );
+	}
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();

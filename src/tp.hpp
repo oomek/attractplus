@@ -23,6 +23,7 @@
 #ifndef TEXT_Primitive_HPP
 #define TEXT_Primitive_HPP
 
+#include "justify_text.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -75,6 +76,7 @@ public:
 	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
 	void setSize( const sf::Vector2f & );
 	void setStyle( int );
+	void setJustify( int );
 	void setRotation( float );
 	void setBgOutlineThickness( float );
 	float getBgOutlineThickness();
@@ -105,6 +107,7 @@ public:
 	sf::Vector2f getSize() const;
 	float getRotation() const;
 	int getStyle() const;
+	int getJustify() const;
 	int getFirstLineHint() const;
 	int getLines() const;
 	int getLinesTotal() const;
@@ -116,8 +119,9 @@ public:
 
 private:
 	sf::RectangleShape m_bgRect;
-	mutable std::vector<sf::Text> m_texts;
+	mutable std::vector<sf::JustifyText> m_texts;
 	Alignment m_align;
+	int m_justify;
 
 	// this is set to -1 when "no word wrapping" is set.
 	// otherwise it is a value of 0+ and corresponds to the first line
@@ -143,12 +147,15 @@ private:
 	//							  is the location of the cursor in "s".
 	//		[out] first_char	- position of the first character to display
 	//		[out] last_char		- position of the last character to display
+	//		[out] hard_wrap		- true if a newline was encountered
+	//							  false if string overflows width
 	//
 	void fit_string(
 			const std::basic_string<std::uint32_t> &s,
 			int &position,
 			int &first_char,
-			int &last_char );
+			int &last_char,
+			bool &hard_wrap );
 
 	void set_positions() const;
 
