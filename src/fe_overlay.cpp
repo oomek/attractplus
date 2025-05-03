@@ -1524,7 +1524,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 					ctx.sel = ctx.default_sel;
 					return true;
 				case FeInputMap::ExitToDesktop:
-					ctx.sel = -1;
+					ctx.sel = FeOverlay::ExitToDesktop;
 					return true;
 				case FeInputMap::Select:
 					return true;
