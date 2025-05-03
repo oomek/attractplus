@@ -27,6 +27,8 @@
 #include "fe_present.hpp"
 #include "fe_window.hpp"
 #include "fe_config.hpp"
+#include "fe_text.hpp"
+#include "fe_listbox.hpp"
 
 class FeSettings;
 class FeInputMapEntry;
@@ -56,6 +58,7 @@ private:
 	sf::Vector2i m_screen_size;
 	sf::Vector2f m_text_scale;
 	int m_text_size;
+	int m_text_margin;
 	int m_header_size;
 	int m_footer_size;
 	int m_edge_size;
@@ -63,6 +66,36 @@ private:
 	int m_fade_alpha;
 	const sf::Font *m_font;
 	FeInputMap::Command m_menu_command;
+
+	unsigned int get_row_count( unsigned int height, unsigned int charsize );
+	
+	void layout_background( sf::RectangleShape &rect );
+	void layout_header( FeTextPrimitive &text );
+	void layout_footer( FeTextPrimitive &text );
+	void layout_message( FeTextPrimitive &text );
+	void layout_logo( sf::Sprite &sprite );
+	void layout_list( FeListBox &list );
+	
+	void adjust_text_center( FeTextPrimitive &text );
+	void adjust_text_transparent( FeTextPrimitive &text );
+	void adjust_text_upper( FeTextPrimitive &text );
+	void adjust_text_lower( FeTextPrimitive &text );
+	void adjust_list_left( FeListBox &list );
+	void adjust_list_right( FeListBox &list );
+	void adjust_list_full( FeListBox &list );
+	void adjust_list_body( FeListBox &list );
+	void adjust_list_lower( FeListBox &list );
+	void adjust_list_large( FeListBox &list );
+	void adjust_list_single( FeListBox &list );
+	
+	void list_focus( FeListBox &list );
+	void list_blur( FeListBox &list );
+	void list_enable( FeListBox &list );
+	void list_disable( FeListBox &list );
+	
+	void edit_label_focus( FeListBox &label_list, FeListBox &value_list );
+	void edit_value_focus( FeListBox &label_list, FeListBox &value_list );
+	void edit_blur( FeListBox &label_list, FeListBox &value_list );
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
