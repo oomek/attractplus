@@ -4179,9 +4179,27 @@ void FeSettings::update_romlist_after_edit(
 	const FeRomInfo &replacement,
 	UpdateType u_type )
 {
-	if ( m_current_display < 0 )
-		return;
+	if ( m_current_display < 0 ) return;
+		
+	const std::string &romlist_name = m_displays[m_current_display].get_info(FeDisplayInfo::Romlist);
+	const std::string romlist_path = FE_ROMLIST_SUBDIR + romlist_name + FE_ROMLIST_FILE_EXTENSION;
+	
+	std::string in_path = m_config_path + romlist_path;
+	std::string out_path = in_path; // Out path is always in romlist directory
 
+	// Check for a romlist in the data path if there isn't one that matches in the
+	// config directory
+	//
+	if (( !file_exists( in_path  ) ) && ( FE_DATA_PATH != NULL ))
+	{
+		std::string temp = FE_DATA_PATH + romlist_path;
+		if ( file_exists( temp ) ) in_path = temp;
+	}
+	
+	// Exit early if cannot open infile (do not even update in-memory romlist)
+	nowide::ifstream infile( in_path.c_str() );
+	if ( !infile.is_open() ) return;
+	
 	//
 	// Update the in-memory romlist now
 	//
@@ -4207,36 +4225,6 @@ void FeSettings::update_romlist_after_edit(
 			++it;
 	}
 
-	// RomInfo operator== compares romname and emulator
-	if ( ( u_type == EraseEntry )
-			|| (( u_type == UpdateEntry ) && !( original == replacement )) )
-		m_rl.mark_favs_and_tags_changed();
-
-	m_rl.create_filters( m_displays[m_current_display] );
-
-	std::string in_path( m_config_path );
-	in_path += FE_ROMLIST_SUBDIR;
-
-	const std::string &romlist_name = m_displays[m_current_display].get_info(FeDisplayInfo::Romlist);
-	in_path += romlist_name;
-	in_path += FE_ROMLIST_FILE_EXTENSION;
-
-	std::string out_path( in_path );
-
-	// Check for a romlist in the data path if there isn't one that matches in the
-	// config directory
-	//
-	if (( !file_exists( in_path  ) ) && ( FE_DATA_PATH != NULL ))
-	{
-		std::string temp = FE_DATA_PATH;
-		temp += FE_ROMLIST_SUBDIR;
-		temp += romlist_name;
-		temp += FE_ROMLIST_FILE_EXTENSION;
-
-		if ( file_exists( temp ) )
-			in_path = temp;
-	}
-
 	//
 	// Load the romlist file into temp_list, update the changed entry, and resave now
 	// We reload the file here because our in-memory romlist probably isn't complete (due
@@ -4251,9 +4239,6 @@ void FeSettings::update_romlist_after_edit(
 	//
 	bool found_similar=false;
 
-	nowide::ifstream infile( in_path.c_str() );
-	if ( !infile.is_open() )
-		return;
 
 	while ( infile.good() )
 	{
@@ -4333,6 +4318,14 @@ void FeSettings::update_romlist_after_edit(
 
 		delete_file( path );
 	}
+	
+	// Finally, re-create filters *after* romlist file has been updated
+	// RomInfo operator== compares romname and emulator
+	if ( ( u_type == EraseEntry ) || (( u_type == UpdateEntry ) && !( original == replacement )) )
+		m_rl.mark_favs_and_tags_changed();
+
+	FeCache::invalidate_romlist( romlist_name );
+	m_rl.create_filters( m_displays[m_current_display] );
 }
 
 bool FeSettings::get_emulator_setup_script( std::string &path, std::string &file )
