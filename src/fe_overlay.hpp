@@ -93,6 +93,10 @@ private:
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *lb );
 
 public:
+	enum SelCode {
+		ExitToDesktop = -999
+	};
+	
 	FeOverlay( FeWindow &wnd,
 		FeSettings &fes,
 		FePresent &fep );

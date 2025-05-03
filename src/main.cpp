@@ -688,13 +688,17 @@ int main(int argc, char *argv[])
 
 						feSettings.get_translation(  "Insert Menu Entry", temp );
 
-						int sel = feOverlay.common_list_dialog( temp, options, 0, -1, c );
-						if (sel == -1) break;
+						int sel_idx = feOverlay.common_list_dialog( temp, options, 0, -1, c );
+						
+						if ( sel_idx == FeOverlay::ExitToDesktop )
+							exit_selected = true;
+							
+						if ( sel_idx < 0 ) break;
 
 						std::string emu_name;
 						std::string def_name;
 
-						switch ( sel )
+						switch ( sel_idx )
 						{
 						case 0:
 							{
@@ -852,6 +856,10 @@ int main(int argc, char *argv[])
 								else
 									feVM.update_to_new_list( 0, true );
 							}
+							else if ( sel_idx == FeOverlay::ExitToDesktop )
+							{
+								exit_selected = true;
+							}
 
 							redraw=true;
 						}
@@ -866,17 +874,21 @@ int main(int argc, char *argv[])
 						std::string title;
 						feSettings.get_translation( "Filters", title );
 
-						int filter_index = feOverlay.common_list_dialog(
+						int sel_idx = feOverlay.common_list_dialog(
 										title,
 										names_list,
 										feSettings.get_current_filter_index(),
 										-1,
 										c );
 
-						if ( filter_index >= 0 )
+						if ( sel_idx >= 0 )
 						{
-							feSettings.set_current_selection( filter_index, -1 );
+							feSettings.set_current_selection( sel_idx, -1 );
 							feVM.update_to_new_list();
+						}
+						else if ( sel_idx == FeOverlay::ExitToDesktop )
+						{
+							exit_selected = true;
 						}
 
 						redraw=true;
@@ -893,18 +905,24 @@ int main(int argc, char *argv[])
 								? "Add '$1' to Favourites?"
 								: "Remove '$1' from Favourites?";
 
+							int sel_idx = feOverlay.confirm_dialog(
+								msg,
+								feSettings.get_rom_info( 0, 0, FeRomInfo::Title ),
+								false,
+								FeInputMap::ToggleFavourite );
+								
 							// returns 0 if user confirmed toggle
-							if ( feOverlay.confirm_dialog(
-									msg,
-									feSettings.get_rom_info( 0, 0, FeRomInfo::Title ),
-									false,
-									FeInputMap::ToggleFavourite ) == 0 )
+							if ( sel_idx == 0 )
 							{
 								if ( feSettings.set_current_fav( new_state ) )
 								{
 									feVM.update_to_new_list( 0, true ); // our current display might have changed, so update
 									feVM.on_transition( ChangedTag, FeRomInfo::Favourite );
 								}
+							}
+							else if ( sel_idx == FeOverlay::ExitToDesktop )
+							{
+								exit_selected = true;
 							}
 						}
 						else
@@ -920,8 +938,14 @@ int main(int argc, char *argv[])
 					break;
 
 				case FeInputMap::ToggleTags:
-					feOverlay.tags_dialog( 0, c );
-					redraw = true;
+					{
+						int sel_idx = feOverlay.tags_dialog( 0, c );
+						
+						if ( sel_idx == FeOverlay::ExitToDesktop )
+							exit_selected = true;
+							
+						redraw = true;
+					}
 					break;
 
 				default:
