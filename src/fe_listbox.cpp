@@ -78,6 +78,12 @@ FeListBox::FeListBox(
 {
 }
 
+FeListBox::FeListBox( FePresentableParent &p )
+	: FeListBox( p, 0, 0, 0, 0 )
+{
+    m_scripted = false;
+}
+
 void FeListBox::setFont( const sf::Font &f )
 {
 	m_base_text.setFont( f );

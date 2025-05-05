@@ -27,6 +27,8 @@
 #include "fe_present.hpp"
 #include "fe_window.hpp"
 #include "fe_config.hpp"
+#include "fe_text.hpp"
+#include "fe_listbox.hpp"
 
 class FeSettings;
 class FeInputMapEntry;
@@ -43,26 +45,79 @@ private:
 	FeWindow &m_wnd;
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
-	sf::Color m_bg_colour;
-	sf::Color m_edge_bg_color;
-	sf::Color m_edge_line_colour;
-	sf::Color m_sel_focus_colour;
-	sf::Color m_sel_text_colour;
-	sf::Color m_sel_blur_colour;
-	sf::Color m_header_text_colour;
-	sf::Color m_footer_text_colour;
-	sf::Color m_text_colour;
+
+	sf::Color m_bg_color;
+	sf::Color m_text_color;
+	sf::Color m_theme_color;
+	sf::Color m_letterbox_color;
+	sf::Color m_border_color;
+	sf::Color m_focus_color;
+	sf::Color m_blur_color;
+
 	bool m_overlay_is_on;
-	sf::Vector2i m_screen_size;
+	sf::Vector2f m_screen_size;
+	sf::Vector2f m_screen_pos;
 	sf::Vector2f m_text_scale;
-	int m_text_size;
-	int m_header_size;
-	int m_footer_size;
-	int m_edge_size;
-	int m_line_size;
-	int m_fade_alpha;
+	int m_index_width;
+	int m_list_char_size;
+	int m_header_char_size;
+	int m_footer_char_size;
+	float m_row_height_scale;
+	int m_letterbox_top_height;
+	int m_letterbox_bottom_height;
+	int m_letterbox_margin;
+	int m_text_margin;
+	int m_footer_width;
+	int m_border_thickness;
+	int m_enable_alpha;
+	int m_disable_alpha;
 	const sf::Font *m_font;
 	FeInputMap::Command m_menu_command;
+
+	enum LayoutStyle {
+		None	= 0,
+		Top		= 1 << 0,
+		Middle	= 1 << 1,
+		Bottom	= 1 << 2,
+		Left	= 1 << 3,
+		Centre	= 1 << 4,
+		Right	= 1 << 5,
+		Body	= 1 << 6,
+		Full	= 1 << 7,
+		Large	= 1 << 8,
+		Single	= 1 << 9
+	};
+
+	sf::RectangleShape layout_background();
+	sf::RectangleShape layout_letterbox( int style = LayoutStyle::None );
+	sf::RectangleShape layout_border( int style = LayoutStyle::None );
+	FeTextPrimitive layout_header( int style = LayoutStyle::None );
+	FeTextPrimitive layout_footer();
+	FeTextPrimitive layout_message( int style = LayoutStyle::None );
+	FeTextPrimitive layout_index( int style = LayoutStyle::None );
+	sf::Sprite layout_logo( sf::Texture &texture );
+	FeListBox layout_list( int style = LayoutStyle::None );
+
+    int list_row_height( int style );
+
+	bool text_index(
+		FeListBox &list,
+		FeTextPrimitive &text,
+		std::vector<std::string> &values,
+		int index
+	);
+
+	enum LayoutFocus {
+		Select		= 1 << 0,
+		Edit		= 1 << 1,
+		Disabled	= 1 << 2
+	};
+
+	bool layout_focus(
+		FeListBox &label_list,
+		FeListBox &value_list,
+		int focus = LayoutFocus::Select
+	);
 
 	FeOverlay( const FeOverlay & );
 	FeOverlay &operator=( const FeOverlay & );
@@ -96,7 +151,7 @@ public:
 	enum SelCode {
 		ExitToDesktop = -999
 	};
-	
+
 	FeOverlay( FeWindow &wnd,
 		FeSettings &fes,
 		FePresent &fep );

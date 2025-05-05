@@ -489,8 +489,10 @@ void FeWindow::initial_create()
 	if ( m_fes.has_mouse_moves() )
 		sf::Mouse::setPosition( wsize / 2, *m_window );
 
+	// Logo sf::Image is kept here to prevent DRM build crashes
+	// This ensures its disposal on window destruction - DO NOT MOVE!
 	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
-	if ( m_logo_image.loadFromMemory( logo_data.data(), logo_data.size() ));
+	std::ignore = m_logo_image.loadFromMemory( logo_data.data(), logo_data.size() );
 }
 
 void launch_callback( void *o )
@@ -780,14 +782,14 @@ void FeWindow::close()
 	if ( m_window )
 	{
 		m_window->display(); // Crashing on Linux workaround
-		
+
 		// Window may already be closed on_exit, so save position here instead
 		if ( is_windowed_mode( m_win_mode ) && m_fes.get_window_args().size() != 4 )
 		{
 			FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
 			win_pos.save( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
 		}
-		
+
 		m_window->close();
 	}
 }
