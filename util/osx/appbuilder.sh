@@ -19,7 +19,7 @@ mkdir "$bundlelibs"
 mkdir "$bundlecontent"/MacOS
 mkdir "$bundlecontent"/Resources
 mkdir "$bundlecontent"/share
-mkdir "$bundlecontent"/share/attract
+mkdir "$bundlecontent"/share/attractplus
 
 #CALL WITH "am" AS PARAMETER 2
 basedir=${2:-"am"}
@@ -211,7 +211,7 @@ echo STEP 3 - POPULATE BUNDLE FOLDER
 
 # Copy assets to bundle folder
 # cp -r $basedir/config "$bundlecontent"/
-cp -a $basedir/config/ "$bundlecontent"/share/attract
+cp -a $basedir/config/ "$bundlecontent"/share/attractplus
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
