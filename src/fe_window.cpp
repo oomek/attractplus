@@ -749,12 +749,6 @@ void FeWindow::on_exit()
 #if defined(SFML_SYSTEM_WINDOWS)
 	m_blackout.close();
 #endif
-
-	if ( is_windowed_mode( m_win_mode ) && m_window && m_fes.get_window_args().size() != 4 )
-	{
-		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
-		win_pos.save( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
-	}
 }
 
 bool FeWindow::has_running_process()
@@ -775,6 +769,14 @@ void FeWindow::close()
 	if ( m_window )
 	{
 		m_window->display(); // Crashing on Linux workaround
+		
+		// Window may already be closed on_exit, so save position here instead
+		if ( is_windowed_mode( m_win_mode ) && m_fes.get_window_args().size() != 4 )
+		{
+			FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
+			win_pos.save( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
+		}
+		
 		m_window->close();
 	}
 }
