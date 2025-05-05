@@ -53,6 +53,13 @@ public:
 			unsigned int characterSize,
 			int rows );
 
+	// Constructor for use in overlay.  sets m_scripted to false
+	FeListBox( FePresentableParent &p );
+
+	FeListBox( const FeListBox & );
+
+	FeListBox &operator=( const FeListBox & );
+
 	void setFont( const sf::Font & );
 	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
@@ -151,9 +158,6 @@ public:
 	void set_format_string( const char *s );
 
 private:
-	FeListBox( const FeListBox & );
-	FeListBox &operator=( const FeListBox & );
-
 	void internalSetText( const int index );
 
 	FeTextPrimitive m_base_text;

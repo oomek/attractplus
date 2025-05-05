@@ -38,7 +38,7 @@ extern "C"
 
 const char *FE_NAME         = FE_NAME_D;
 const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " " FE_BUILD_D "\n" \
-	"Copyright (c) 2013-2025 Andrew Mickelson & Radek Dutkiewicz";
+	"Copyright © 2013-2025 Andrew Mickelson & Radek Dutkiewicz";
 const char *FE_VERSION      = FE_VERSION_D;
 
 const char *FE_BUILD_NUMBER  = FE_BUILD_D;
