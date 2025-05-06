@@ -663,6 +663,7 @@ void FeRomList::create_filters(
 		// Attempt to load filter from cache
 		if ( FeCache::load_filter_cache( display, m_filtered_list[i], i, lookup ) )
 		{
+			display.get_filter( i )->set_size( m_filtered_list[i].filter_list.size() );
 			filters_cached++;
 			continue;
 		}
