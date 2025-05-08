@@ -24,14 +24,41 @@
 #include "fe_settings.hpp"
 #include "fe_config.hpp"
 #include "fe_util.hpp"
-#include "fe_listbox.hpp"
-#include "fe_text.hpp"
 #include <SFML/Graphics.hpp>
 #include "base64.hpp"
 
 #include <iostream>
 #define _USE_MATH_DEFINES
 #include <cmath>
+
+
+namespace
+{
+
+unsigned char my_char_table[] =
+{
+	' ',
+	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+	'?', '!', ',', '.', ':', ';', '/', '\\','\"','\'',')', '(', '*', '+', '-', '=', '_', '$', '@', '%', '&', '~', 
+	0
+};
+
+int get_char_idx( unsigned char c )
+{
+	int i=0;
+	while ( my_char_table[i] )
+	{
+		if ( my_char_table[i] == c )
+			return i;
+		i++;
+	}
+
+	return 0;
+}
+
+};
 
 class FeConfigContextImp : public FeConfigContext
 {
@@ -214,21 +241,18 @@ void FeOverlay::init()
 	m_screen_size = m_fePresent.get_screen_size();
 	float scale_x = m_fePresent.get_layout_scale_x();
 	float scale_y = m_fePresent.get_layout_scale_y();
-
 	float scale_factor = ( scale_x > scale_y ) ? scale_x : scale_y;
-	if ( scale_factor <= 0.f )
-		scale_factor = 1.f;
-
+	if ( scale_factor <= 0.f ) scale_factor = 1.f;
+	
 	m_text_scale.x = m_text_scale.y = 1.f / scale_factor;
-
-	m_text_size = std::max( 12, ( std::min( m_screen_size.x, m_screen_size.y ) / 24 )) * scale_factor;
-
-	if ( m_feSettings.ui_font_size() > 0 )
-		m_text_size = m_feSettings.ui_font_size();
-
+	m_text_size = ( m_feSettings.ui_font_size() > 0 )
+		? m_feSettings.ui_font_size()
+		: std::max( 12, ( std::min( m_screen_size.x, m_screen_size.y ) / 24 )) * scale_factor;
+		
+	m_text_margin = m_text_size * 0.25;
 	m_header_size = m_text_size * 1.5;
 	m_footer_size = m_text_size * 0.65;
-	m_edge_size = m_screen_size.y / 8;
+	m_edge_size = m_header_size * 2.0;
 	m_fade_alpha = 80;
 	m_line_size = std::round( std::min( m_screen_size.x, m_screen_size.y ) / 240 );
 	m_font = m_fePresent.get_default_font();
@@ -258,41 +282,26 @@ void FeOverlay::style_init()
 	m_text_colour = text_color;
 }
 
+// Simple overlay with message and footer
+// - Drawn once - displayed for a single frame
+// - `fe.overlay.splash_menu`
+//
 void FeOverlay::splash_message( const std::string &msg,
 				const std::string &rep,
 				const std::string &aux )
 {
-	sf::RectangleShape bg( sf::Vector2f( m_screen_size.x, m_screen_size.y ) );
-	bg.setFillColor( m_bg_colour );
-	bg.setOutlineColor( m_text_colour );
-
-	FeTextPrimitive message(
-		m_font,
-		m_text_colour,
-		sf::Color::Transparent,
-		m_header_size );
-
-	message.setWordWrap( true );
-	message.setPosition( 0, 0 );
-	message.setSize( m_screen_size.x, m_screen_size.y - m_text_size );
-	message.setTextScale( m_text_scale );
-
+	sf::RectangleShape bg;
+	FeTextPrimitive message;
+	FeTextPrimitive extra;
+	
+	layout_background( bg );
+	layout_message( message );
+	layout_footer( extra );
+	adjust_text_transparent( extra );
+	
 	std::string msg_str;
 	m_feSettings.get_translation( msg, rep, msg_str );
-
 	message.setString( msg_str );
-
-	FeTextPrimitive extra(
-		m_font,
-		m_text_colour,
-		sf::Color::Transparent,
-		m_footer_size );
-
-	extra.setAlignment( FeTextPrimitive::Left );
-	extra.setPosition( 0, m_screen_size.y - m_text_size );
-	extra.setSize( m_screen_size.x, m_text_size );
-	extra.setTextScale( m_text_scale );
-
 	extra.setString( aux );
 
 	const sf::Transform &t = m_fePresent.get_ui_transform();
@@ -303,12 +312,15 @@ void FeOverlay::splash_message( const std::string &msg,
 
 	m_wnd.clear();
 	m_wnd.draw( m_fePresent, t );
-	m_wnd.draw( bg );
+	m_wnd.draw( bg, t );
 	m_wnd.draw( message, t );
 	m_wnd.draw( extra, t );
 	m_wnd.display();
 }
 
+// Dialog with message and Yes/No option
+// - Exit, Clear, Delete confirmations
+//
 int FeOverlay::confirm_dialog( const std::string &msg,
 	const std::string &rep,
 	bool default_yes,
@@ -324,6 +336,11 @@ int FeOverlay::confirm_dialog( const std::string &msg,
 	return common_basic_dialog( msg_str, list, (default_yes ? 0 : 1), 1, default_exit );
 }
 
+// Dialog with header and list, triggered by layouts
+// - May be overriden
+// - Filters, Tags, Display menu
+// - `fe.overlay.list_dialog` with > 2 entries
+//
 int FeOverlay::common_list_dialog(
 	const std::string &title,
 	const std::vector < std::string > &options,
@@ -391,41 +408,24 @@ int FeOverlay::common_list_dialog(
 		//
 		// Use the default built-in controls
 		//
-		sf::RectangleShape bg( sf::Vector2f( m_screen_size.x, m_screen_size.y ) );
-		bg.setFillColor( m_bg_colour );
-		bg.setOutlineColor( m_text_colour );
-		draw_list.push_back( &bg );
-
-		FeTextPrimitive header( m_font,
-			m_header_text_colour,
-			m_edge_bg_color,
-			m_header_size );
-
-		header.setSize( m_screen_size.x, m_edge_size );
-		header.setBgOutlineColor( m_edge_line_colour );
-		header.setBgOutlineThickness( m_line_size );
-		header.setTextScale( m_text_scale );
-		header.setString( title );
-		draw_list.push_back( &header );
-
+		sf::RectangleShape bg;
+		FeTextPrimitive header;
 		FePresentableParent temp;
-		FeListBox dialog( temp,
-			m_font,
-			m_text_colour,
-			sf::Color::Transparent,
-			m_sel_text_colour,
-			m_sel_focus_colour,
-			m_header_size,
-			( m_screen_size.y - m_edge_size ) / ( m_header_size * 1.5 * m_text_scale.y ) );
-
-		dialog.setPosition( 0, m_edge_size );
-		dialog.setSize( m_screen_size.x, m_screen_size.y - m_edge_size );
-		dialog.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
-		dialog.set_margin( 0 );
-		dialog.init_dimensions();
-		dialog.setTextScale( m_text_scale );
-		dialog.setCustomText( sel, options );
+		FeListBox dialog( temp );
+		
+		layout_background( bg );
+		layout_header( header );
+		layout_list( dialog );
+		adjust_text_center( header );
+		adjust_list_body( dialog );
+		adjust_list_large( dialog );
+		
+		draw_list.push_back( &bg );
 		draw_list.push_back( &dialog );
+		draw_list.push_back( &header );
+		
+		header.setString( title );
+		dialog.setCustomText( sel, options );
 
 		if ( fm.flag_set() )
 			m_fePresent.on_transition( ShowOverlay, var );
@@ -445,6 +445,8 @@ int FeOverlay::common_list_dialog(
 	return sel;
 }
 
+// Languages dialog with list only
+// - Only display on first-run
 int FeOverlay::languages_dialog()
 {
 	std::vector<FeLanguage> ll;
@@ -492,41 +494,21 @@ int FeOverlay::languages_dialog()
 
 		i++;
 	}
-
-	std::vector<sf::Drawable *> draw_list;
-
-	sf::RectangleShape bg( sf::Vector2f( m_screen_size.x, m_screen_size.y ) );
-	bg.setFillColor( m_bg_colour );
-	bg.setOutlineColor( m_text_colour );
-	draw_list.push_back( &bg );
-
-	FeTextPrimitive header( m_font, m_text_colour, sf::Color::Transparent, m_header_size );
-	header.setSize( m_screen_size.x, m_edge_size );
-	header.setBgOutlineColor( m_edge_line_colour );
-	header.setBgOutlineThickness( m_line_size );
-	header.setTextScale( m_text_scale );
-
-	header.setString( "" );
-	draw_list.push_back( &header );
-
-	FePresentableParent temp;
-	FeListBox dialog( temp,
-		m_font,
-		m_text_colour,
-		sf::Color::Transparent,
-		m_sel_text_colour,
-		m_sel_focus_colour,
-		m_header_size,
-		m_screen_size.y / ( m_header_size * 1.5 * m_text_scale.y ) );
-
-	dialog.setPosition( 0, m_edge_size );
-	dialog.setSize( m_screen_size.x, m_screen_size.y - m_edge_size );
-	dialog.init_dimensions();
-	dialog.setTextScale( m_text_scale );
-	draw_list.push_back( &dialog );
-
+	
 	int sel = current_i;
+	
+	sf::RectangleShape bg;
+	FePresentableParent temp;
+	FeListBox dialog( temp );
+	
+	layout_background( bg );
+	layout_list( dialog );
+	adjust_list_full( dialog );
+	adjust_list_large( dialog );
+	
 	dialog.setLanguageText( sel, ll );
+
+	std::vector<sf::Drawable*> draw_list = { &bg, &dialog };
 
 	FeEventLoopCtx c( draw_list, sel, -1, ll.size() - 1 );
 	FeFlagMinder fm( m_overlay_is_on );
@@ -614,6 +596,11 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 	return sel;
 }
 
+// Simple dialog with message and list
+// - No headers or footers
+// - Used by Exit menu
+// - fe.overlay.list_dialog where <= 2 options
+//
 int FeOverlay::common_basic_dialog(
 			const std::string &msg_str,
 			const std::vector<std::string> &list,
@@ -682,44 +669,24 @@ int FeOverlay::common_basic_dialog(
 		//
 		// Use the default built-in controls
 		//
-		float slice = m_screen_size.y / 2;
-
-		sf::RectangleShape bg( sf::Vector2f( m_screen_size.x, m_screen_size.y ) );
-		bg.setFillColor( m_bg_colour );
-		bg.setOutlineColor( m_text_colour );
-
-		FeTextPrimitive message(
-			m_font,
-			m_text_colour,
-			sf::Color::Transparent,
-			m_header_size );
-		message.setWordWrap( true );
-		message.setTextScale( m_text_scale );
-
+		sf::RectangleShape bg;
+		FeTextPrimitive message;
 		FePresentableParent temp;
-		FeListBox dialog( temp,
-			m_font,
-			m_text_colour,
-			sf::Color::Transparent,
-			m_sel_text_colour,
-			m_sel_focus_colour,
-			m_header_size,
-			( m_screen_size.y - slice ) / ( m_header_size * 1.5 * m_text_scale.y ) );
-
-		message.setPosition( 0, 0 );
-		message.setSize( m_screen_size.x, slice );
+		FeListBox dialog( temp );
+		
+		layout_background( bg );
+		layout_message( message );
+		layout_list( dialog );
+		adjust_text_upper( message );
+		adjust_list_lower( dialog );
+		adjust_list_large( dialog );
+		
 		message.setString( msg_str );
-
-		dialog.setPosition( 0, slice );
-		dialog.setSize( m_screen_size.x, m_screen_size.y - slice );
-		dialog.init_dimensions();
-		dialog.setTextScale( m_text_scale );
-
+		dialog.setCustomText( sel, list );
+		
 		draw_list.push_back( &bg );
 		draw_list.push_back( &message );
 		draw_list.push_back( &dialog );
-
-		dialog.setCustomText( sel, list );
 
 		if ( fm.flag_set() )
 			m_fePresent.on_transition( ShowOverlay, var );
@@ -739,28 +706,27 @@ int FeOverlay::common_basic_dialog(
 	return sel;
 }
 
+// Simple dialog with message and text-entry input
+// - Enter Romlist/Emulator/Filter/Display Name
+//
 bool FeOverlay::edit_dialog(
-			const std::string &msg_str,
-			std::string &text )
+	const std::string &msg_str,
+	std::string &text )
 {
-	FeTextPrimitive message( m_font, m_text_colour, m_bg_colour, m_header_size );
-	message.setWordWrap( true );
+	sf::RectangleShape bg;
+	FeTextPrimitive message;
+	FeTextPrimitive tp;
+	
+	layout_background( bg );
+	layout_message( message );
+	layout_message( tp );
+	adjust_text_upper( message );
+	adjust_text_lower( tp );
+	tp.setWordWrap( false );
 
-	FeTextPrimitive tp( m_font, m_text_colour, m_bg_colour, m_header_size );
-
-	float slice = m_screen_size.y / 3;
-
-	message.setSize( m_screen_size.x, slice );
-	message.setTextScale( m_text_scale );
 	message.setString( msg_str );
 
-	tp.setPosition( 0, slice );
-	tp.setSize( m_screen_size.x, m_screen_size.y - slice );
-	tp.setTextScale( m_text_scale );
-
-	std::vector<sf::Drawable *> draw_list;
-	draw_list.push_back( &message );
-	draw_list.push_back( &tp );
+	std::vector<sf::Drawable*> draw_list = { &bg, &message, &tp };
 
 	std::basic_string<std::uint32_t> str;
 	sf::Utf8::toUtf32( text.begin(), text.end(), std::back_inserter( str ) );
@@ -780,24 +746,26 @@ bool FeOverlay::edit_dialog(
 	return false;
 }
 
+// Simple message dialog that awaits keypress
+//
 void FeOverlay::input_map_dialog(
 			const std::string &msg_str,
 			FeInputMapEntry &res,
 			FeInputMap::Command &conflict )
 {
-	FeTextPrimitive message( m_font, m_text_colour, m_bg_colour, m_header_size );
-
-	message.setWordWrap( true );
-	message.setTextScale( m_text_scale );
+	sf::RectangleShape bg;
+	FeTextPrimitive message;
+	
+	layout_background( bg );
+	layout_message( message );
+	
+	message.setString( msg_str );
 
 	// Make sure the appropriate mouse capture variables are set, in case
 	// the user has just changed the mouse threshold
 	//
 	sf::RenderWindow &rwnd = m_wnd.get_win();
 	m_feSettings.init_mouse_capture( &rwnd );
-
-	message.setSize( m_screen_size.x, m_screen_size.y );
-	message.setString( msg_str );
 
 	// Centre the mouse in case the user is mapping a mouse move event
 	sf::Mouse::setPosition( m_screen_size / 2, rwnd );
@@ -905,6 +873,7 @@ void FeOverlay::input_map_dialog(
 
 			m_wnd.clear();
 			m_wnd.draw( m_fePresent, t );
+			m_wnd.draw( bg, t );
 			m_wnd.draw( message, t );
 			m_wnd.display();
 			redraw = false;
@@ -1042,6 +1011,236 @@ int FeOverlay::display_config_dialog(
 	return display_config_dialog( m, parent_setting_changed, -1, FeInputMap::LAST_COMMAND );
 }
 
+// Returns number of rows to fit within height
+// - Always returns an ODD number so the selection bar is positioned in the middle
+unsigned int FeOverlay::get_row_count( unsigned int height, unsigned int charsize )
+{
+	unsigned int rows = height / ( charsize + 2.0 * m_text_margin );
+	if ( !(rows % 2) ) rows--;
+	return rows;
+}
+
+// -------------------------------------------------------------------------------------
+// Core layout sets elements in a Configure style
+
+// Background curtain to obscure layout
+void FeOverlay::layout_background(sf::RectangleShape &rect)
+{
+	rect.setSize( sf::Vector2f( m_screen_size.x, m_screen_size.y ) );
+	rect.setFillColor( m_bg_colour );
+}
+
+// Header at top with background
+void FeOverlay::layout_header( FeTextPrimitive &text )
+{
+	text.setFont( *m_font );
+	text.setCharacterSize( m_header_size );
+	text.setPosition( 0, 0 );
+	text.setSize( m_screen_size.x, m_edge_size );
+	text.setMargin( m_edge_size );
+	text.setTextScale( m_text_scale );
+	text.setColor( m_header_text_colour );
+	text.setAlignment( static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Middle | FeTextPrimitive::Left ) );
+	text.setBgOutlineThickness( m_line_size );
+	text.setBgOutlineColor( m_edge_line_colour );
+	text.setBgColor( m_edge_bg_color );
+}
+
+// Footer at bottom with background
+void FeOverlay::layout_footer( FeTextPrimitive &text )
+{
+	text.setFont( *m_font );
+	text.setCharacterSize( m_footer_size );
+	text.setWordWrap( true );
+	text.setPosition( 0, m_screen_size.y - m_edge_size );
+	text.setSize( m_screen_size.x, m_edge_size );
+	text.setMargin( std::max( 0, ( m_screen_size.x - m_screen_size.y ) / 3 ) );
+	text.setTextScale( m_text_scale );
+	text.setColor( m_footer_text_colour );
+	text.setBgOutlineThickness( m_line_size );
+	text.setBgOutlineColor( m_edge_line_colour );
+	text.setBgColor( m_edge_bg_color );
+}
+
+// Message is centered full-screen
+void FeOverlay::layout_message( FeTextPrimitive &text )
+{
+	text.setFont( *m_font );
+	text.setCharacterSize( m_header_size );
+	text.setWordWrap( true );
+	text.setTextScale( m_text_scale );
+	text.setColor( m_text_colour );
+	text.setPosition( 0, 0 );
+	text.setSize( m_screen_size.x, m_screen_size.y );
+}
+
+// Logo displayed in header
+void FeOverlay::layout_logo( sf::Sprite &sprite )
+{
+	float header_margin = (m_edge_size - m_header_size) / 2.0;
+	float header_size = (float)m_header_size;
+	sf::Vector2u icon_size = sprite.getTexture().getSize();
+	sprite.setScale({ header_size / icon_size.x, header_size / icon_size.y });
+	sprite.setPosition({ header_margin, header_margin });
+}
+
+// List is smaller, expects header and footer
+void FeOverlay::layout_list( FeListBox &list )
+{
+	unsigned int charsize = m_text_size;
+	unsigned int height = m_screen_size.y - ( m_edge_size * 2.0 );
+	list.setFont( *m_font );
+	list.set_charsize( charsize );
+	list.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
+	list.set_margin( m_text_margin );
+	list.setTextScale( m_text_scale );
+	list.setColor( m_text_colour );
+	list.setBgColor( sf::Color::Transparent );
+	list.set_rows( get_row_count( height, charsize ) );
+	list.setPosition( 0, m_edge_size );
+	list.setSize( m_screen_size.x, height );
+	list.init_dimensions();
+	list_focus( list );
+}
+
+// -------------------------------------------------------------------------------------
+// Adjustments extend the core layout styles above
+
+void FeOverlay::adjust_text_center( FeTextPrimitive &text )
+{
+	text.setMargin( 0 );
+	text.setAlignment( static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Middle | FeTextPrimitive::Centre ) );
+}
+
+void FeOverlay::adjust_text_transparent( FeTextPrimitive &text )
+{
+	text.setBgOutlineThickness( 0 );
+	text.setBgOutlineColor( sf::Color::Transparent );
+	text.setBgColor( sf::Color::Transparent );
+}
+
+void FeOverlay::adjust_text_upper( FeTextPrimitive &text )
+{
+	unsigned int height = m_screen_size.y / 2 - m_edge_size;
+	text.setPosition( 0, m_edge_size );
+	text.setSize( m_screen_size.x, height );
+}
+
+void FeOverlay::adjust_text_lower( FeTextPrimitive &text )
+{
+	unsigned int height = m_screen_size.y / 2 - m_edge_size;
+	text.setPosition( 0, m_screen_size.y - m_edge_size - height );
+	text.setSize( m_screen_size.x, height );
+}
+
+void FeOverlay::adjust_list_left( FeListBox &list )
+{
+	unsigned int width = m_screen_size.x / 2;
+	list.set_x( 0 );
+	list.set_width( width );
+	list.init_dimensions();
+}
+
+void FeOverlay::adjust_list_right( FeListBox &list )
+{
+	unsigned int width = m_screen_size.x / 2;
+	list.set_x( width );
+	list.set_width( width );
+	list.init_dimensions();
+}
+
+void FeOverlay::adjust_list_full( FeListBox &list )
+{
+	list.setPosition( 0, 0 );
+	list.setSize( m_screen_size.x, m_screen_size.y );
+	list.init_dimensions();
+}
+
+void FeOverlay::adjust_list_body( FeListBox &list )
+{
+	list.setPosition( 0, m_edge_size );
+	list.setSize( m_screen_size.x, m_screen_size.y - m_edge_size );
+	list.init_dimensions();
+}
+
+void FeOverlay::adjust_list_lower( FeListBox &list )
+{
+	list.setPosition( 0, m_screen_size.y / 2 );
+	list.setSize( m_screen_size.x, m_screen_size.y / 2 - m_edge_size );
+	list.init_dimensions();
+}
+
+void FeOverlay::adjust_list_large( FeListBox &list )
+{
+	unsigned int charsize = m_header_size;
+	list.set_charsize( charsize );
+	list.set_rows( get_row_count( list.get_height(), charsize ) );
+	list.init_dimensions();
+}
+
+void FeOverlay::adjust_list_single( FeListBox &list )
+{
+	unsigned int y = list.get_y();
+	unsigned int height = list.get_height();
+	unsigned int row_height = height / list.get_rows();
+	list.set_rows( 1 );
+	list.set_y( y + height - row_height );
+	list.set_height( row_height );
+	list.init_dimensions();
+}
+
+// -------------------------------------------------------------------------------------
+// Edit list handlers
+
+void FeOverlay::list_focus( FeListBox &list )
+{
+	list.setSelColor( m_sel_text_colour );
+	list.setSelBgColor( m_sel_focus_colour );
+}
+
+void FeOverlay::list_blur( FeListBox &list )
+{
+	list.setSelColor( m_text_colour );
+	list.setSelBgColor( m_sel_blur_colour );
+}
+
+void FeOverlay::list_enable( FeListBox &list )
+{
+	list.set_a( 255 );
+}
+
+void FeOverlay::list_disable( FeListBox &list )
+{
+	list.set_a( m_fade_alpha );
+}
+
+void FeOverlay::edit_label_focus( FeListBox &label_list, FeListBox &value_list )
+{
+	list_enable( label_list );
+	list_focus( label_list );
+	list_blur( value_list );
+}
+
+void FeOverlay::edit_value_focus( FeListBox &label_list, FeListBox &value_list )
+{
+	list_disable( label_list );
+	list_blur( label_list );
+	list_focus( value_list );
+}
+
+void FeOverlay::edit_blur( FeListBox &label_list, FeListBox &value_list )
+{
+	list_enable( label_list );
+	list_blur( label_list );
+	list_blur( value_list );
+}
+
+// -------------------------------------------------------------------------------------
+
+// Configuration menu
+// - Selection list (front page)
+// - Option/Value list (sub pages)
+//
 int FeOverlay::display_config_dialog(
 	FeBaseConfigMenu *m,
 	bool &parent_setting_changed,
@@ -1051,103 +1250,57 @@ int FeOverlay::display_config_dialog(
 	style_init();
 	FeConfigContextImp ctx( m_feSettings, *this );
 	ctx.update_to_menu( m );
+	
+	bool is_edit = ctx.style == FeConfigContext::EditList;
+	bool is_live = m->exit_on_change;
 
 	//
 	// Set up display objects
 	//
-	std::vector<sf::Drawable *> draw_list;
-
-	sf::RectangleShape bg( sf::Vector2f( m_screen_size.x, m_screen_size.y ) );
-	bg.setFillColor( m_bg_colour );
-	bg.setOutlineColor( m_text_colour );
-	draw_list.push_back( &bg );
-
-	FeTextPrimitive header( m_font, m_header_text_colour, m_edge_bg_color, m_header_size );
-
-	header.setSize( m_screen_size.x, m_edge_size );
-	header.setAlignment( static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Left | FeTextPrimitive::Middle ));
-	header.setPosition( 0, 0 );
-	header.setMargin( m_edge_size );
-	header.setBgOutlineColor( m_edge_line_colour );
-	header.setBgOutlineThickness( m_line_size );
-	header.setTextScale( m_text_scale );
-	header.setString( ctx.title );
-	draw_list.push_back( &header );
-
 	sf::Texture logo_tex( m_wnd.get_logo_image() );
 	logo_tex.setSmooth( true );
 	std::ignore = logo_tex.generateMipmap();
+	
+	sf::RectangleShape bg;
+	FeTextPrimitive header;
+	FeTextPrimitive footer;
 	sf::Sprite logo( logo_tex );
-
-	draw_list.push_back( &logo );
-	float scale_factor = ( 32.0f / 256.0f ) * ( m_screen_size.y / 480.0f );
-	logo.setScale({ scale_factor, scale_factor });
-	float offset = std::floor( m_edge_size * ( 14.0f / 60.0f ));
-	logo.setPosition({ offset, offset });
-
-	unsigned int width = m_screen_size.x;
-	if ( ctx.style == FeConfigContext::EditList )
-		width = m_screen_size.x / 2;
-
-	int rows = ( m_screen_size.y - m_edge_size * 2 ) / ( m_header_size * m_text_scale.y );
-
-	//
-	// The "settings" (left) list, also used to list submenu and exit options...
-	//
 	FePresentableParent temp;
-	FeListBox sdialog( temp,
-		m_font,
-		m_text_colour,
-		sf::Color::Transparent,
-		m_sel_text_colour,
-		m_sel_focus_colour,
-		m_text_size,
-		rows );
-
-	sdialog.setPosition( 0, m_edge_size );
-	sdialog.setSize( width, m_screen_size.y - m_edge_size * 2 );
-	sdialog.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
-	sdialog.set_margin( m_text_size / 4 );
-	sdialog.init_dimensions();
-	sdialog.setTextScale( m_text_scale );
-	draw_list.push_back( &sdialog );
-
-	//
-	// The "values" (right) list shows the values corresponding to a setting.
-	//
-	FeListBox vdialog( temp,
-		m_font,
-		m_text_colour,
-		sf::Color::Transparent,
-		m_text_colour,
-		m_sel_blur_colour,
-		m_text_size,
-		rows );
-
-	if ( ctx.style == FeConfigContext::EditList )
+	FeListBox sdialog( temp );
+	FeListBox vdialog( temp );
+	
+	layout_background( bg );
+	layout_header( header );
+	layout_footer( footer );
+	layout_logo( logo );
+	layout_list( sdialog );
+	layout_list( vdialog );
+	
+	std::vector<sf::Drawable*> draw_list;
+		
+	if ( is_live )
 	{
-		//
-		// We only use the values listbox in the "EditList" mode
-		//
-		vdialog.setPosition( width, m_edge_size );
-		vdialog.setSize( width, m_screen_size.y - m_edge_size * 2 );
-		vdialog.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
-		vdialog.set_margin( m_text_size / 4 );
-		vdialog.init_dimensions();
-		vdialog.setTextScale( m_text_scale );
+		adjust_list_single( sdialog );
+		adjust_list_single( vdialog );
+	}
+	else
+	{
+		draw_list.push_back( &bg );
+		draw_list.push_back( &header );
+		draw_list.push_back( &logo );
+	}
+	
+	draw_list.push_back( &footer );
+	draw_list.push_back( &sdialog );
+	
+	if ( is_edit )
+	{
+		adjust_list_left( sdialog );
+		adjust_list_right( vdialog );
 		draw_list.push_back( &vdialog );
 	}
-
-	FeTextPrimitive footer( m_font, m_footer_text_colour, m_edge_bg_color, m_footer_size );
-
-	footer.setPosition( 0, m_screen_size.y - m_edge_size );
-	footer.setSize( m_screen_size.x, m_edge_size );
-	footer.setMargin( std::max( 0, ( m_screen_size.x - m_screen_size.y ) / 3 ) );
-	footer.setBgOutlineColor( m_edge_line_colour );
-	footer.setBgOutlineThickness( m_line_size );
-	footer.setWordWrap( true );
-	footer.setTextScale( m_text_scale );
-	draw_list.push_back( &footer );
+	
+	header.setString( ctx.title );
 
 	// A passed selection will override the context default_sel - useful when reloading the menu
 	ctx.curr_sel = default_sel >= 0 ? default_sel : ctx.default_sel;
@@ -1155,11 +1308,10 @@ int FeOverlay::display_config_dialog(
 		ctx.curr_sel = 0;
 	m->last_sel = ctx.curr_sel;
 
-	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
-
 	for ( size_t i = 0; i < ctx.right_list.size(); ++i )
 		swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, i );
 
+	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 
 	if ( !ctx.help_msg.empty() )
@@ -1183,7 +1335,10 @@ int FeOverlay::display_config_dialog(
 		c.extra_exit = extra_exit;
 
 		init_event_loop( c );
-		sdialog.setSelBgColor( ctx.curr_opt().type == Opt::INFO ? m_sel_blur_colour : m_sel_focus_colour );
+		if ( ctx.curr_opt().type == Opt::INFO ) 
+			edit_blur( sdialog, vdialog ); 
+		else 
+			edit_label_focus( sdialog, vdialog );
 
 		while ( event_loop( c ) == false )
 		{
@@ -1194,12 +1349,15 @@ int FeOverlay::display_config_dialog(
 			// we reset the entire Text because edit mode may
 			// have changed our list contents
 			//
-			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
-			sdialog.setSelBgColor( ctx.curr_opt().type == Opt::INFO ? m_sel_blur_colour : m_sel_focus_colour );
+			if ( ctx.curr_opt().type == Opt::INFO ) 
+				edit_blur( sdialog, vdialog ); 
+			else 
+				edit_label_focus( sdialog, vdialog );
 
 			for ( size_t i = 0; i < ctx.right_list.size(); ++i )
 				swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, i );
 
+			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 		}
 
@@ -1293,19 +1451,14 @@ int FeOverlay::display_config_dialog(
 		{
 			//
 			// User has selected to edit a specific entry.
-			//	Update the UI and enter the appropriate
-			// event loop
+			// Update the UI and enter the appropriate event loop
 			//
-			sdialog.setSelColor( m_text_colour );
-			sdialog.setSelBgColor( m_sel_blur_colour );
-			vdialog.setSelColor( m_sel_text_colour );
-			vdialog.setSelBgColor( m_sel_focus_colour );
+			edit_value_focus( sdialog, vdialog );
 			FeTextPrimitive *tp = vdialog.getMiddleText();
 
 			if ( tp == NULL )
 				continue;
 
-			sdialog.set_a( m_fade_alpha );
 			if ( t == Opt::LIST )
 			{
 				if ( !ctx.curr_opt().values_list.empty() )
@@ -1354,13 +1507,9 @@ int FeOverlay::display_config_dialog(
 					ctx.right_list[ctx.curr_sel] = d_str;
 				}
 			}
-			sdialog.set_a( 255 );
 
 			tp->setString( ctx.right_list[ctx.curr_sel] );
-			sdialog.setSelColor( m_sel_text_colour );
-			sdialog.setSelBgColor( m_sel_focus_colour );
-			vdialog.setSelColor( m_text_colour );
-			vdialog.setSelBgColor( m_sel_blur_colour );
+			edit_label_focus( sdialog, vdialog );
 
 			// If trigger_reload, save & reload to show ui changes instantly
 			if ( ctx.save_req )
@@ -1390,11 +1539,7 @@ int FeOverlay::display_config_dialog(
 			swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, ctx.curr_sel );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
-
-			sdialog.setSelColor( m_sel_text_colour );
-			sdialog.setSelBgColor( m_sel_focus_colour );
-			vdialog.setSelColor( m_text_colour );
-			vdialog.setSelBgColor( m_sel_blur_colour );
+			edit_value_focus( sdialog, vdialog );
 
 			ctx.save_req = true;
 
@@ -1662,114 +1807,6 @@ public:
 	{
 		m_wnd.setKeyRepeatEnabled( false );
 	}
-};
-
-namespace
-{
-
-unsigned char my_char_table[] =
-{
-	' ',
-	'0',
-	'1',
-	'2',
-	'3',
-	'4',
-	'5',
-	'6',
-	'7',
-	'8',
-	'9',
-	'a',
-	'b',
-	'c',
-	'd',
-	'e',
-	'f',
-	'g',
-	'h',
-	'i',
-	'j',
-	'k',
-	'l',
-	'm',
-	'n',
-	'o',
-	'p',
-	'q',
-	'r',
-	's',
-	't',
-	'u',
-	'v',
-	'w',
-	'x',
-	'y',
-	'z',
-	'A',
-	'B',
-	'C',
-	'D',
-	'E',
-	'F',
-	'G',
-	'H',
-	'I',
-	'J',
-	'K',
-	'L',
-	'M',
-	'N',
-	'O',
-	'P',
-	'Q',
-	'R',
-	'S',
-	'T',
-	'U',
-	'V',
-	'W',
-	'X',
-	'Y',
-	'Z',
-	'?',
-	'!',
-	',',
-	'.',
-	':',
-	';',
-	'/',
-	'\\',
-	'\"',
-	'\'',
-	')',
-	'(',
-	'*',
-	'+',
-	'-',
-	'=',
-	'_',
-	'$',
-	'@',
-	'%',
-	'&',
-	'~',
-	0
-};
-
-int get_char_idx( unsigned char c )
-{
-	int i=0;
-	while ( my_char_table[i] )
-	{
-		if ( my_char_table[i] == c )
-			return i;
-		i++;
-	}
-
-	return 0;
-}
-
 };
 
 bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
