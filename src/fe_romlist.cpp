@@ -651,6 +651,7 @@ void FeRomList::create_filters(
 
 	// If no filters configured create a single filter containing entire romlist
 	int filters_count = display.get_filter_count();
+	int display_filters_count = filters_count;
 	if ( filters_count == 0 ) filters_count = 1;
 
 	// Apply filters
@@ -663,7 +664,8 @@ void FeRomList::create_filters(
 		// Attempt to load filter from cache
 		if ( FeCache::load_filter_cache( display, m_filtered_list[i], i, lookup ) )
 		{
-			display.get_filter( i )->set_size( m_filtered_list[i].filter_list.size() );
+			if (i < display_filters_count)
+				display.get_filter( i )->set_size( m_filtered_list[i].filter_list.size() );
 			filters_cached++;
 			continue;
 		}
