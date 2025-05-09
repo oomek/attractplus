@@ -32,7 +32,7 @@ echo STEP 2 - COLLECT AND FIX LINKED LIBRARIES
 
 checklib=$(brew --prefix)
 fr_lib+=("@rpath/libsfml")
-to_lib+=("$checklib/opt/sfml@3/lib/libsfml")
+to_lib+=("$basedir/obj/sfml/install/lib/libsfml")
 
 checklib=$(brew --prefix)
 fr_lib+=("/opt/homebrew/Cellar/ffmpeg/7.1.1_1/lib")
