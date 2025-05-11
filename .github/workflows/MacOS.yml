@@ -46,7 +46,7 @@ jobs:
         #~ echo "AR=/usr/local/bin/ar-10" >> $GITHUB_ENV
     - name: Build AM+
       run: |
-        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} prefix=.. USE_SYSTEM_SFML=1 STATIC=0
+        make -C am -j${{ steps.vars.outputs.nbproc }} VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} prefix=.. USE_SYSTEM_SFML=0 STATIC=0
     - name: Prepare artifacts
       run: |
         git -C am/ fetch --unshallow
