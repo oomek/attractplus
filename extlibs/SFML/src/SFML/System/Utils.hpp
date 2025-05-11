@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // SFML - Simple and Fast Multimedia Library
-// Copyright (C) 2007-2024 Laurent Gomila (laurent@sfml-dev.org)
+// Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -31,8 +31,10 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 #include <cstddef>
+#include <cstdio>
 
 
 namespace sf
@@ -51,4 +53,6 @@ template <typename IntegerType, typename... Bytes>
     std::size_t index   = 0;
     return ((integer |= static_cast<IntegerType>(static_cast<IntegerType>(byte) << 8 * index++)), ...);
 }
+
+[[nodiscard]] SFML_SYSTEM_API std::FILE* openFile(const std::filesystem::path& filename, std::string_view mode);
 } // namespace sf

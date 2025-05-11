@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // SFML - Simple and Fast Multimedia Library
-// Copyright (C) 2007-2024 Laurent Gomila (laurent@sfml-dev.org)
+// Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -38,19 +38,13 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 #include <cstddef>
 #include <cstdint>
 
-
-#ifdef SFML_SYSTEM_ANDROID
-namespace sf::priv
-{
-class ResourceStream;
-}
-#endif
 
 namespace sf
 {
@@ -400,6 +394,12 @@ private:
     void cleanup();
 
     ////////////////////////////////////////////////////////////
+    /// \brief Open from stream and print errors with custom message
+    ///
+    ////////////////////////////////////////////////////////////
+    [[nodiscard]] bool openFromStreamImpl(InputStream& stream, std::string_view type);
+
+    ////////////////////////////////////////////////////////////
     /// \brief Find or create the glyphs page corresponding to the given character size
     ///
     /// \param characterSize Reference character size
@@ -457,9 +457,7 @@ private:
     Info                         m_info;           //!< Information about the font
     mutable PageTable            m_pages;          //!< Table containing the glyphs pages by character size
     mutable std::vector<std::uint8_t> m_pixelBuffer; //!< Pixel buffer holding a glyph's pixels before being written to the texture
-#ifdef SFML_SYSTEM_ANDROID
-    std::shared_ptr<priv::ResourceStream> m_stream; //!< Asset file streamer (if loaded from file)
-#endif
+    std::shared_ptr<InputStream> m_stream; //!< Stream for openFromFile and openFromMemory
 };
 
 } // namespace sf

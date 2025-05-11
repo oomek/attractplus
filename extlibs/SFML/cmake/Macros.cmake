@@ -47,6 +47,8 @@ function(sfml_set_common_ios_properties target)
             MACOSX_BUNDLE ON # Bare executables are not usable on iOS, only bundle applications
             MACOSX_BUNDLE_GUI_IDENTIFIER "org.sfml-dev.${target}" # If missing, trying to launch an example in simulator will make Xcode < 9.3 crash
             MACOSX_BUNDLE_BUNDLE_NAME "${target}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}"
             MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}"
         )
     endif()
@@ -377,8 +379,13 @@ function(sfml_add_test target SOURCES DEPENDS)
     # set the target flags to use the appropriate C++ standard library
     sfml_set_stdlib(${target})
 
-    # set the Visual Studio startup path for debugging
-    set_target_properties(${target} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set_target_properties(${target} PROPERTIES 
+        VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} # set the Visual Studio startup path for debugging
+        VS_DEBUGGER_COMMAND_ARGUMENTS "-b" # Break into debugger
+
+        XCODE_GENERATE_SCHEME ON # Required to set arguments
+        XCODE_SCHEME_ARGUMENTS "-b" # Break into debugger
+    )
 
     # link the target to its SFML dependencies
     target_link_libraries(${target} PRIVATE ${DEPENDS} sfml-test-main)
@@ -406,6 +413,11 @@ function(sfml_add_test target SOURCES DEPENDS)
         if(SFML_OS_ANDROID)
             set_target_properties(${target} PROPERTIES CROSSCOMPILING_EMULATOR "${PROJECT_BINARY_DIR}/run-in-adb-shell.sh")
         endif()
+    endif()
+
+    # Required to actually run the tests
+    if(SFML_OS_IOS)
+        sfml_set_common_ios_properties(${target})
     endif()
 
     # Add the test

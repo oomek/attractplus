@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // SFML - Simple and Fast Multimedia Library
-// Copyright (C) 2007-2024 Laurent Gomila (laurent@sfml-dev.org)
+// Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////
 #include <SFML/System/Exception.hpp>
 #include <SFML/System/FileInputStream.hpp>
+#include <SFML/System/Utils.hpp>
 #ifdef SFML_SYSTEM_ANDROID
 #include <SFML/System/Android/Activity.hpp>
 #include <SFML/System/Android/ResourceStream.hpp>
@@ -74,15 +75,13 @@ bool FileInputStream::open(const std::filesystem::path& filename)
 #ifdef SFML_SYSTEM_ANDROID
     if (priv::getActivityStatesPtr() != nullptr)
     {
-        m_androidFile = std::make_unique<priv::ResourceStream>(filename);
+        m_androidFile = std::make_unique<priv::ResourceStream>();
+        if (!m_androidFile->open(filename))
+            return false;
         return m_androidFile->tell().has_value();
     }
 #endif
-#ifdef SFML_SYSTEM_WINDOWS
-    m_file.reset(_wfopen(filename.c_str(), L"rb"));
-#else
-    m_file.reset(std::fopen(filename.c_str(), "rb"));
-#endif
+    m_file.reset(openFile(filename, "rb"));
     return m_file != nullptr;
 }
 

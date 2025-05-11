@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // SFML - Simple and Fast Multimedia Library
-// Copyright (C) 2007-2024 Laurent Gomila (laurent@sfml-dev.org)
+// Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -579,9 +579,13 @@ void WindowImplWin32::grabCursor(bool grabbed)
 ////////////////////////////////////////////////////////////
 Vector2i WindowImplWin32::contentSizeToWindowSize(Vector2u size)
 {
-    // SetWindowPos wants the total size of the window (including title bar and borders) so we have to compute it
+    // SetWindowPos wants the total size of the window (including title bar, borders, and menu) so we have to compute it
+    const auto style   = static_cast<DWORD>(GetWindowLongPtr(m_handle, GWL_STYLE));
+    const BOOL hasMenu = ((style & WS_CHILD) == 0) && GetMenu(m_handle) != nullptr;
+    const auto exStyle = static_cast<DWORD>(GetWindowLongPtr(m_handle, GWL_EXSTYLE));
+
     RECT rectangle = {0, 0, static_cast<long>(size.x), static_cast<long>(size.y)};
-    AdjustWindowRect(&rectangle, static_cast<DWORD>(GetWindowLongPtr(m_handle, GWL_STYLE)), false);
+    AdjustWindowRectEx(&rectangle, style, hasMenu, exStyle);
     const auto width  = rectangle.right - rectangle.left;
     const auto height = rectangle.bottom - rectangle.top;
 
