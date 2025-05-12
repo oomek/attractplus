@@ -27,7 +27,7 @@ NPROC=$(getconf _NPROCESSORS_ONLN)
 
 echo Building attractplus
 make clean
-eval make -j${NPROC} STATIC=0 VERBOSE=1 USE_SYSTEM_SFML=1 prefix=..
+eval make -j${NPROC} STATIC=0 VERBOSE=1 USE_SYSTEM_SFML=0 prefix=..
 
 
 bash util/osx/appbuilder.sh $HOME/buildattract $HOME/buildattract/attractplus yes
