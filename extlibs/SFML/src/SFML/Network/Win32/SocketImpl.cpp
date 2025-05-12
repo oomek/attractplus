@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////
 //
 // SFML - Simple and Fast Multimedia Library
-// Copyright (C) 2007-2024 Laurent Gomila (laurent@sfml-dev.org)
+// Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
 //
 // This software is provided 'as-is', without any express or implied warranty.
 // In no event will the authors be held liable for any damages arising from the use of this software.
@@ -28,6 +28,29 @@
 #include <SFML/Network/SocketImpl.hpp>
 
 #include <cstdint>
+
+
+namespace
+{
+////////////////////////////////////////////////////////////
+// Windows needs some initialization and cleanup to get
+// sockets working properly... so let's create a class that will
+// do it automatically
+////////////////////////////////////////////////////////////
+struct SocketInitializer
+{
+    SocketInitializer()
+    {
+        WSADATA init;
+        WSAStartup(MAKEWORD(2, 2), &init);
+    }
+
+    ~SocketInitializer()
+    {
+        WSACleanup();
+    }
+} globalInitializer;
+} // namespace
 
 
 namespace sf::priv
@@ -84,27 +107,4 @@ Socket::Status SocketImpl::getErrorStatus()
     }
     // clang-format on
 }
-
-
-////////////////////////////////////////////////////////////
-// Windows needs some initialization and cleanup to get
-// sockets working properly... so let's create a class that will
-// do it automatically
-////////////////////////////////////////////////////////////
-struct SocketInitializer
-{
-    SocketInitializer()
-    {
-        WSADATA init;
-        WSAStartup(MAKEWORD(2, 2), &init);
-    }
-
-    ~SocketInitializer()
-    {
-        WSACleanup();
-    }
-};
-
-SocketInitializer globalInitializer;
-
 } // namespace sf::priv
