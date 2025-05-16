@@ -1661,7 +1661,12 @@ void FeImage::set_subimg_height( float h )
 
 void FeImage::set_preserve_aspect_ratio( bool p )
 {
-	m_preserve_aspect_ratio = p;
+	if ( p != m_preserve_aspect_ratio )
+	{
+		m_preserve_aspect_ratio = p;
+		scale();
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeImage::set_mipmap( bool m )
