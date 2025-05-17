@@ -53,6 +53,9 @@ public:
 			unsigned int characterSize,
 			int rows );
 
+	// Constructor for use in overlay.  sets m_scripted to false
+	FeListBox( FePresentableParent &p );
+
 	void setFont( const sf::Font & );
 	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
