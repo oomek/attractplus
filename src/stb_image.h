@@ -411,6 +411,8 @@ typedef struct
    int      (*read)  (void *user,char *data,int size);   // fill 'data' with 'size' bytes.  return number of bytes actually read
    void     (*skip)  (void *user,int n);                 // skip the next 'n' bytes, or 'unget' the last -n bytes if negative
    int      (*eof)   (void *user);                       // returns nonzero if we are at end of file/data
+   unsigned int *phys_x;                                 // pHYs physical-pixel metadata (AM+)
+   unsigned int *phys_y;                                 // pHYs physical-pixel metadata (AM+)
 } stbi_io_callbacks;
 
 ////////////////////////////////////
@@ -3094,6 +3096,16 @@ static void stbi__jpeg_finish(stbi__jpeg *z)
    }
 }
 
+static stbi__uint32 stbi__getbuf32be(stbi_uc *buffer, stbi__uint32 offset)
+{
+    return (buffer[offset+0] << 24) + (buffer[offset+1] << 16) + (buffer[offset+2] << 8) + (buffer[offset+3]);
+}
+
+static stbi__uint32 stbi__getbuf32le(stbi_uc *buffer, stbi__uint32 offset)
+{
+    return (buffer[offset+3] << 24) + (buffer[offset+2] << 16) + (buffer[offset+1] << 8) + (buffer[offset+0]);
+}
+
 static int stbi__process_marker(stbi__jpeg *z, int m)
 {
    int L;
@@ -3187,6 +3199,48 @@ static int stbi__process_marker(stbi__jpeg *z, int m)
             stbi__get16be(z->s); // flags1
             z->app14_color_transform = stbi__get8(z->s); // color transform
             L -= 6;
+         }
+      } else if (m == 0xE1 && L >= 6) { // JFIF APP1 segment (AM+)
+         static const unsigned char tag[6] = {'E','x','i','f','\0','\0'};
+         int ok = 1;
+         int i;
+         for (i=0; i < 6; ++i)
+            if (stbi__get8(z->s) != tag[i])
+               ok = 0;
+         L -= 6;
+         if (ok) {
+            stbi_uc *exif_buffer = (stbi_uc *)stbi__malloc(L);
+            stbi_uc *data_buffer = (stbi_uc *)stbi__malloc(L);
+            stbi__getn(z->s, exif_buffer, L);
+            memcpy(data_buffer, exif_buffer, L);
+            stbi__context exif;
+            stbi__start_mem(&exif, exif_buffer, L);
+            L = 0;
+               
+            bool be = stbi__get16be(&exif) == 0x4D4D; // le = 0x4949
+            auto stbi__get16 = be ? stbi__get16be : stbi__get16le;
+            auto stbi__get32 = be ? stbi__get32be : stbi__get32le;
+            auto stbi__getbuf32 = be ? stbi__getbuf32be : stbi__getbuf32le;
+            
+            stbi__get16(&exif); // align = 0x002A
+            stbi__get32(&exif); // ifd_offset
+            int num_entries = stbi__get16(&exif);
+               
+            for (int j = 0; j < num_entries; j++) {
+               int tag = stbi__get16(&exif);
+               int data_type = stbi__get16(&exif);
+               stbi__uint32 num_components = stbi__get32(&exif);
+               stbi__uint32 data_offset = stbi__get32(&exif);
+               if (data_type == 5 && num_components == 1) {
+                  if (tag == 0x011A) {
+                     *z->s->io.phys_x = stbi__getbuf32(data_buffer, data_offset);
+                  } else if (tag == 0x011B) {
+                     *z->s->io.phys_y = stbi__getbuf32(data_buffer, data_offset);
+                  }
+               }
+            }
+            STBI_FREE(exif_buffer);
+            STBI_FREE(data_buffer);
          }
       }
 
@@ -5237,6 +5291,13 @@ static int stbi__parse_png_file(stbi__png *z, int scan, int req_comp)
             return 1;
          }
 
+         case STBI__PNG_TYPE('p','H','Y','s'): { // AM+
+            *s->io.phys_x = stbi__get32be(s);
+            *s->io.phys_y = stbi__get32be(s);
+            stbi__get8(s);
+            break;
+         }
+
          default:
             // if critical, fail
             if (first) return stbi__err("first not IHDR", "Corrupt PNG");
@@ -5474,8 +5535,8 @@ static void *stbi__bmp_parse_header(stbi__context *s, stbi__bmp_data *info)
       if (compress >= 4) return stbi__errpuc("BMP JPEG/PNG", "BMP type not supported: unsupported compression"); // this includes PNG/JPEG modes
       if (compress == 3 && info->bpp != 16 && info->bpp != 32) return stbi__errpuc("bad BMP", "bad BMP"); // bitfields requires 16 or 32 bits/pixel
       stbi__get32le(s); // discard sizeof
-      stbi__get32le(s); // discard hres
-      stbi__get32le(s); // discard vres
+      *s->io.phys_x = stbi__get32le(s); // hres
+      *s->io.phys_y = stbi__get32le(s); // vres
       stbi__get32le(s); // discard colorsused
       stbi__get32le(s); // discard max important
       if (hsz == 40 || hsz == 56) {

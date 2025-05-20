@@ -243,6 +243,7 @@ FeTextureContainer::FeTextureContainer(
 	m_filter_offset( 0 ),
 	m_current_rom_index( -1 ),
 	m_current_filter_index( -1 ),
+	m_aspect_ratio( 1.0 ),
 	m_art_update_trigger( ToNewSelection ),
 	m_movie( NULL ),
 	m_movie_status( -1 ),
@@ -374,6 +375,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	m_texture.setSmooth( m_smooth );
 	m_file_name = loaded_name;
+	m_aspect_ratio = m_movie->get_aspect_ratio();
 
 	return true;
 }
@@ -409,6 +411,7 @@ bool FeTextureContainer::try_to_load(
 		data = m_entry->get_data();
 
 	m_file_name = loaded_name;
+	m_aspect_ratio = m_entry->get_aspect_ratio();
 
 	// resize our texture accordingly
 	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ))
@@ -817,6 +820,7 @@ void FeTextureContainer::clear()
 {
 	m_movie_status = -1;
 	m_file_name.clear();
+	m_aspect_ratio = 1.0;
 
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
@@ -884,11 +888,7 @@ float FeTextureContainer::get_volume() const
 
 float FeTextureContainer::get_sample_aspect_ratio() const
 {
-#ifndef NO_MOVIE
-	if ( m_movie )
-		return m_movie->get_aspect_ratio();
-#endif
-		return 1.0;
+	return m_aspect_ratio;
 }
 
 void FeTextureContainer::release_audio( bool state )

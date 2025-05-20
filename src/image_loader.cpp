@@ -46,6 +46,10 @@
 
 namespace
 {
+	float phys_ratio( int w, int h, unsigned int phys_x, unsigned int phys_y ) {
+		return ( w && h && phys_x && phys_y ) ? (float)(phys_x * h) / (float)(phys_y * w) : 1.0;
+	}
+	
 	// stb_image callbacks that operate on a sf::InputStream
 	int read( void* user, char* data, int size )
 	{
@@ -337,11 +341,14 @@ void run_thread()
 			}
 
 			int ignored;
+			unsigned int phys_x = 0, phys_y = 0;
 			// Load image pixel data
 			stbi_io_callbacks cb;
 			cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
 			cb.skip = &skip;
 			cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
+			cb.phys_x = &phys_x;
+			cb.phys_y = &phys_y;
 
 			int temp_width, temp_height;
 			unsigned char *data = stbi_load_from_callbacks( &cb, e.second->m_stream, &temp_width, &temp_height, &ignored, STBI_rgb_alpha );
@@ -352,6 +359,7 @@ void run_thread()
 				// Update entry data
 				e.second->m_width = temp_width;
 				e.second->m_height = temp_height;
+				e.second->m_aspect_ratio = phys_ratio( temp_width, temp_height, phys_x, phys_y );
 				e.second->m_data = data;
 				e.second->m_loaded = true;
 
@@ -503,6 +511,11 @@ int FeImageLoaderEntry::get_height()
 	return m_height;
 }
 
+float FeImageLoaderEntry::get_aspect_ratio() const
+{
+	return m_aspect_ratio;
+}
+
 void FeImageLoaderEntry::add_ref()
 {
 	m_ref_count.fetch_add( 1, std::memory_order_relaxed );
@@ -570,12 +583,15 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 	}
 
 	temp_e = new FeImageLoaderEntry( stream );
+	unsigned int phys_x = 0, phys_y = 0;
 
 	// load image dimensions now
 	stbi_io_callbacks cb;
 	cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
 	cb.skip = &skip;
 	cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
+	cb.phys_x = &phys_x;
+	cb.phys_y = &phys_y;
 
 	int retval=false;
 	int ignored;
@@ -586,6 +602,7 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		temp_e->m_data = stbi_load_from_callbacks( &cb, temp_e->m_stream, &temp_width, &temp_height, &ignored, STBI_rgb_alpha );
 		temp_e->m_width = temp_width;
 		temp_e->m_height = temp_height;
+		temp_e->m_aspect_ratio = phys_ratio( temp_width, temp_height, phys_x, phys_y );
 
 		temp_e->m_loaded = true;
 
@@ -608,6 +625,7 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		stbi_info_from_callbacks( &cb, temp_e->m_stream, &temp_width, &temp_height, &ignored );
 		temp_e->m_width = temp_width;
 		temp_e->m_height = temp_height;
+		temp_e->m_aspect_ratio = phys_ratio( temp_width, temp_height, phys_x, phys_y );
 
 		// reset to beginning of stream
 		stream->seek( 0 );

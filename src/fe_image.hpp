@@ -211,6 +211,7 @@ private:
 	int m_filter_offset;
 	int m_current_rom_index;
 	int m_current_filter_index;
+    float m_aspect_ratio;
 
 	enum Type { IsArtwork, IsDynamic, IsStatic };
 	Type m_type;

@@ -44,6 +44,7 @@ public:
 
 	int get_width();
 	int get_height();
+	float get_aspect_ratio() const;
 
    unsigned char *get_data();
 
@@ -55,6 +56,7 @@ private:
    std::atomic<int> m_ref_count;
    std::atomic<int> m_width;
    std::atomic<int> m_height;
+   std::atomic<float> m_aspect_ratio;
    unsigned char *m_data;
    std::atomic<bool> m_loaded;
 
