@@ -46,8 +46,8 @@
 
 namespace
 {
-	float phys_ratio( int w, int h, unsigned int phys_x, unsigned int phys_y ) {
-		return ( w && h && phys_x && phys_y ) ? (float)(phys_x * h) / (float)(phys_y * w) : 1.0;
+	float phys_ratio( unsigned int phys_x, unsigned int phys_y ) {
+		return ( phys_x && phys_y ) ? (float)phys_y / (float)phys_x : 1.0;
 	}
 	
 	// stb_image callbacks that operate on a sf::InputStream
@@ -359,7 +359,7 @@ void run_thread()
 				// Update entry data
 				e.second->m_width = temp_width;
 				e.second->m_height = temp_height;
-				e.second->m_aspect_ratio = phys_ratio( temp_width, temp_height, phys_x, phys_y );
+				e.second->m_aspect_ratio = phys_ratio( phys_x, phys_y );
 				e.second->m_data = data;
 				e.second->m_loaded = true;
 
@@ -602,7 +602,7 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		temp_e->m_data = stbi_load_from_callbacks( &cb, temp_e->m_stream, &temp_width, &temp_height, &ignored, STBI_rgb_alpha );
 		temp_e->m_width = temp_width;
 		temp_e->m_height = temp_height;
-		temp_e->m_aspect_ratio = phys_ratio( temp_width, temp_height, phys_x, phys_y );
+		temp_e->m_aspect_ratio = phys_ratio( phys_x, phys_y );
 
 		temp_e->m_loaded = true;
 
@@ -625,7 +625,7 @@ bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream
 		stbi_info_from_callbacks( &cb, temp_e->m_stream, &temp_width, &temp_height, &ignored );
 		temp_e->m_width = temp_width;
 		temp_e->m_height = temp_height;
-		temp_e->m_aspect_ratio = phys_ratio( temp_width, temp_height, phys_x, phys_y );
+		temp_e->m_aspect_ratio = phys_ratio( phys_x, phys_y );
 
 		// reset to beginning of stream
 		stream->seek( 0 );
