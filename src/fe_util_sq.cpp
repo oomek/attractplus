@@ -145,6 +145,33 @@ void fe_register_global_func(
         sq_pop( vm, 1 ); // pops the root table
 }
 
+// Return escaped squirrel special char
+std::string escape_char( char c )
+{
+	switch (c) {
+		case 9: return "\\t";
+		case 7: return "\\a";
+		case 8: return "\\b";
+		case 10: return "\\n";
+		case 13: return "\\r";
+		case 11: return "\\v";
+		case 12: return "\\f";
+		case 0: return "\\0";
+		case 92: return "\\\\";
+		case 34: return "\\\"";
+		case 39: return "\\'";
+		default: return {c};
+	}
+}
+
+// Escape all squirrel special chars in given value
+void escape_string( std::string &value )
+{
+	std::string out = "";
+	for (char c: value) out += escape_char( c );
+	value = out;
+}
+
 std::string fe_to_json_string( HSQOBJECT obj, int indent )
 {
 	std::string retval;
@@ -170,7 +197,7 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 			fe_get_object_string( Sqrat::DefaultVM::Get(),
 				obj, obj_string );
 
-			perform_substitution( obj_string, "\"", "\\\"" );
+			escape_string( obj_string );
 			retval += obj_string;
 		}
 		retval += "\"";
@@ -199,15 +226,11 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 					continue;
 				}
 
-				std::string key;
-				fe_get_object_string( Sqrat::DefaultVM::Get(),
-					it.getKey(), key );
+				std::string key = fe_to_json_string( it.getKey(), 0 );
 
-				perform_substitution( key, "\"", "\\\"" );
-
-				retval += "\t\"";
+				retval += "\t";
 				retval += key;
-				retval += "\": ";
+				retval += ": ";
 				retval += val;
 
 				got_obj = sobj.Next( it );
