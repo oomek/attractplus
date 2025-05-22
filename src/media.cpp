@@ -575,9 +575,13 @@ void FeVideoImp::init_rgba_buffer()
 	if (rgba_buffer[0])
 		av_freep(&rgba_buffer[0]);
 
+	// Find largest alignment that squarely fits disptex_width
+	int align = 32;
+	while ( disptex_width % align ) align >>= 1;
+
 	int ret = av_image_alloc(rgba_buffer, rgba_linesize,
 			disptex_width, disptex_height,
-			AV_PIX_FMT_RGBA, 32);
+			AV_PIX_FMT_RGBA, align);
 
 	if (ret < 0)
 		FeLog() << "Error allocating rgba buffer" << std::endl;
@@ -1208,8 +1212,8 @@ bool FeMedia::open( const std::string &archive,
 				if ( m_imp->m_format_ctx->streams[stream_id]->sample_aspect_ratio.num != 0 )
 					m_aspect_ratio = av_q2d( m_imp->m_format_ctx->streams[stream_id]->sample_aspect_ratio );
 
-				// FFALIGN to 32 here to match rgba_buffer's av_image_alloc() alignment
-				m_video->disptex_width = FFALIGN( codec_ctx->width, 32 );
+				// Texture respects the video size, and rgba_buffer's av_image_alloc() alignment is tailored to fit
+				m_video->disptex_width = codec_ctx->width;
 				m_video->disptex_height = codec_ctx->height;
 
 				m_video->display_texture = outt;
