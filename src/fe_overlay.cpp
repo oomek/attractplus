@@ -934,7 +934,7 @@ bool FeOverlay::edit_game_dialog( int default_sel, FeInputMap::Command extra_exi
 		// If invoked when showing the "displays menu", edit the
 		// display that is currently selected
 		//
-		int index = m_feSettings.display_menu_get_current_selection_as_absolute_display_index();
+		int index = m_feSettings.get_selected_display_index();
 
 		if ( index >= 0 )
 		{
@@ -1000,12 +1000,10 @@ bool FeOverlay::layout_options_dialog(
 		display = NULL;
 		per_display = &m_feSettings.get_display_menu_per_display_params();
 
-		std::string lname = m_feSettings.get_info( FeSettings::MenuLayout );
-
-		if ( lname.empty() )
+		if ( !m_feSettings.has_custom_displays_menu() )
 			return false;
 
-		layout = &m_feSettings.get_layout_config( lname );
+		layout = &m_feSettings.get_layout_config( m_feSettings.get_info( FeSettings::MenuLayout ) );
 	}
 	else
 	{
@@ -1026,10 +1024,8 @@ bool FeOverlay::layout_options_dialog(
 	if ( settings_changed )
 	{
 		// Save the updated settings to disk
+		// main.cpp calls load_layout() upon return to show the updated settings
 		m_feSettings.save();
-
-		// This forces the display to reinitialize with the updated settings
-		m_feSettings.set_display( m_feSettings.get_current_display_index() );
 	}
 
 	return settings_changed;

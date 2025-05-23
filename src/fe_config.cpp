@@ -1289,10 +1289,9 @@ void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 	std::string default_str;
 	ctx.fe_settings.get_translation( "Default", default_str );
 
-	std::string layout = ctx.fe_settings.get_info( FeSettings::MenuLayout );
-
-	if ( layout.empty() )
-		layout = default_str;
+	std::string layout = ctx.fe_settings.has_custom_displays_menu()
+		? ctx.fe_settings.get_info( FeSettings::MenuLayout )
+		: default_str;
 
 	std::vector<std::string> layouts;
 	ctx.fe_settings.get_layouts_list( layouts ); // this sorts the list
