@@ -420,7 +420,7 @@ void FeWindow::initial_create()
 	sf::ContextSettings ctx;
 	ctx.antiAliasingLevel = m_fes.get_antialiasing();
 
-	m_window->create( vm, "Attract-Mode Plus", style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
+	m_window->create( vm, FE_NAME, style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
 
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
@@ -431,7 +431,7 @@ void FeWindow::initial_create()
 	m_window->setVerticalSyncEnabled(true);
 #endif
 	m_window->setKeyRepeatEnabled(false);
-	m_window->setMouseCursorVisible(false);
+	m_window->setMouseCursorVisible( is_windowed_mode( m_win_mode ));
 	m_window->setJoystickThreshold( 1.0 );
 
 #ifndef SFML_SYSTEM_MACOS
@@ -459,9 +459,10 @@ void FeWindow::initial_create()
 
 	// Known issue: Linux Mint 18.3 Cinnamon w/ SFML 2.5.1, position isn't being set
 	// (Window always winds up at 0,0)
+	// There is currently no way to create window at position, or create hidden then reveal
 	m_window->setPosition( wpos );
 
-	FeDebug() << "Created Attract-Mode Window: " << wsize.x << "x" << wsize.y << " @ "
+	FeDebug() << "Created " << FE_NAME << " Window: " << wsize.x << "x" << wsize.y << " @ "
 		<< wpos.x << "," << wpos.y << " [OpenGL surface: "
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
