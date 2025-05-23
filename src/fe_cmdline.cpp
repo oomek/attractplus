@@ -102,7 +102,7 @@ void process_args( int argc, char *argv[],
 				}
 				else
 				{
-					FeLog() << "Unreconized loglevel: " << argv[next_arg] << std::endl;
+					FeLog() << "Unrecognized loglevel: " << argv[next_arg] << std::endl;
 					exit( 1 );
 				}
 			}
@@ -279,15 +279,15 @@ void process_args( int argc, char *argv[],
 		{
 			next_arg++;
 
-			for ( ; next_arg < argc; next_arg++ )
+			for ( ; (next_arg < argc) && (window_args.size() < 4); next_arg++ )
 			{
-				if ( argv[next_arg][0] == '-' )
-					break;
-
-				// Window args may be space or comma delimited
+				// Window delimiter may be space (reads multiple args) or comma (splits single arg)
+				// - Reads from argv until 4 window args are found
 				std::istringstream iss(argv[next_arg]);
 				std::string s;
-				while ( std::getline( iss, s, ',' ) ) window_args.push_back( atoi(s.c_str()) );
+				while ( std::getline( iss, s, ',' ) ) {
+					window_args.push_back( atoi(s.c_str()) );
+				}
 			}
 		}
 #ifndef SFML_SYSTEM_WINDOWS
