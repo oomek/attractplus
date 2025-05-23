@@ -297,6 +297,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_current_layout_params( FeLayoutInfo::Layout ),
 	m_display_menu_per_display_params( FeLayoutInfo::Menu ),
 	m_current_display( -1 ),
+	m_selected_display( 0 ),
 	m_current_config_object( NULL ),
 	m_ssaver_time( 600 ),
 	m_last_launch_display( 0 ),
@@ -307,8 +308,6 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_joy_thresh( 75 ),
 	m_mouse_thresh( 10 ),
 	m_current_search_index( 0 ),
-	m_current_display_index( 0 ),
-	m_actual_display_index( 0 ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
 	m_group_clones( false ),
@@ -427,12 +426,10 @@ void FeSettings::load()
 
 	load_state();
 
-	m_current_display_index = m_current_display;
 	if ( get_startup_mode() == ShowDisplaysMenu )
 		m_current_display = -1;
 
-	init_display();
-
+	// init_display() is called during set_display(), no need to call it here
 	// Make sure we have some keyboard mappings
 	//
 	m_inputmap.initialize_mappings();
@@ -625,8 +622,29 @@ int FeSettings::process_setting( const std::string &setting,
 	return 0;
 }
 
+// Setup m_current_layout_params with all the parameters for our current layout, including
+// the 'per_display' layout parameters that are stored separately but that get merged in here
+//
+void FeSettings::load_layout_params()
+{
+	if ( m_current_display < 0 )
+	{
+		m_current_layout_params = get_layout_config( m_menu_layout );
+		m_current_layout_params.merge_params( m_display_menu_per_display_params );
+	}
+	else
+	{
+		m_current_layout_params = get_layout_config(
+			m_displays[ m_current_display ].get_info( FeDisplayInfo::Layout ) );
+		m_current_layout_params.merge_params(
+			m_displays[ m_current_display ].get_layout_per_display_params() );
+	}
+}
+
 void FeSettings::init_display()
 {
+	FeLog() << std::endl << "*** Initializing display: '" << get_current_display_title() << "'" << std::endl;
+	
 	m_loaded_game_extras = false;
 
 	//
@@ -637,7 +655,6 @@ void FeSettings::init_display()
 		m_rl.init_as_empty_list();
 		FeRomInfoListType &l = m_rl.get_list();
 
-		construct_display_maps();
 
 		for ( unsigned int i=0; i<m_display_menu.size(); i++ )
 		{
@@ -671,11 +688,6 @@ void FeSettings::init_display()
 		set_search_rule( "" );
 		m_current_search_index = temp_idx;
 
-		// Setup m_current_layout_params with all the parameters for our current layout, including
-		// the 'per_display' layout parameters that are stored separately but that get merged in here
-		//
-		m_current_layout_params = get_layout_config( m_menu_layout );
-		m_current_layout_params.merge_params( m_display_menu_per_display_params );
 		return;
 	}
 
@@ -685,12 +697,8 @@ void FeSettings::init_display()
 	if ( romlist_name.empty() )
 	{
 		m_rl.init_as_empty_list();
-
-		construct_display_maps();
 		return;
 	}
-
-	FeLog() << std::endl << "*** Initializing display: '" << get_current_display_title() << "'" << std::endl;
 
 	std::string list_path( m_config_path );
 	list_path += FE_ROMLIST_SUBDIR;
@@ -721,23 +729,6 @@ void FeSettings::init_display()
 		FeLog() << "Error opening romlist: " << romlist_name << std::endl;
 	}
 
-	// Setup m_current_layout_params with all the parameters for our current layout, including
-	// the 'per_display' layout parameters that are stored separately but that get merged in here
-	//
-	m_current_layout_params = get_layout_config(
-		m_displays[ m_current_display ].get_info( FeDisplayInfo::Layout ) );
-
-	m_current_layout_params.merge_params(
-		m_displays[ m_current_display ].get_layout_per_display_params() );
-
-	//
-	// Construct our display index views here, for lack of a better spot
-	//
-	// Do this here so that index views are rebuilt on a forced reset of
-	// the display (which happens when settings get changed for example)
-	//
-	construct_display_maps();
-
 	m_path_cache.clear();
 }
 
@@ -767,7 +758,7 @@ void FeSettings::save_state()
 		display_idx = m_display_stack.front();
 
 	if ( display_idx < 0 )
-		display_idx = m_actual_display_index;
+		display_idx = m_selected_display;
 
 	m_rl.save_state();
 
@@ -818,7 +809,6 @@ void FeSettings::load_state()
 		token_helper( line, pos, tok, ";" );
 
 		m_current_display = as_int( tok );
-		m_actual_display_index = m_current_display;
 
 		token_helper( line, pos, tok, ";" );
 
@@ -859,6 +849,8 @@ void FeSettings::load_state()
 		m_current_display = m_displays.size() - 1;
 	if ( m_current_display < 0 )
 		m_current_display = 0;
+
+	m_selected_display = m_current_display;
 
 	// bound checking on the last launch state
 	if ( m_last_launch_display >= (int)m_displays.size() )
@@ -1027,7 +1019,9 @@ int FeSettings::get_rom_index( int filter_index, int offset ) const
 	int retval, rl_size;
 	if ( m_current_display < 0 )
 	{
-		retval = m_current_display_index;
+		retval = ( m_selected_display == -1 ) // if EXIT menu item is selected
+			? m_display_menu.size() // return index *after* all the display item list indexes
+			: find_idx_in_vec(m_selected_display, m_display_menu); // list index of the selected display
 		rl_size = m_rl.filter_size( filter_index );
 	}
 	else if ( !m_current_search.empty()
@@ -1510,16 +1504,6 @@ bool FeSettings::config_file_exists() const
 	return file_exists( config_file );
 }
 
-int FeSettings::display_menu_get_current_selection_as_absolute_display_index()
-{
-	ASSERT( m_current_display < 0 );
-
-	if (( m_current_display_index < 0 ) || ( m_current_display_index >= (int)m_display_menu.size() ))
-		return -1;
-
-	return m_display_menu[ m_current_display_index ];
-}
-
 bool FeSettings::set_display( int index, bool stack_previous )
 {
 	if ( m_displays.size() == 0 )
@@ -1530,38 +1514,46 @@ bool FeSettings::set_display( int index, bool stack_previous )
 	get_path( Layout, old_path, old_file );
 	FeLayoutInfo old_config = get_current_config( Layout );
 
+	//
+	// Construct our display index views here, for lack of a better spot
+	//
+	// Do this here so that index views are rebuilt on a forced reset of
+	// the display (which happens when settings get changed for example)
+	//
+	construct_display_maps();
+
 	if ( stack_previous )
 	{
 		if ( index == -1 )
 		{
 			if ( !m_display_stack.empty() )
 			{
+				// Pop a display off the stack
 				index = m_display_stack.back();
 				m_display_stack.pop_back();
 			}
 			else
-				index = m_current_display_index;
+			{
+				// Callers must check back_displays_available() before popping the stack
+				ASSERT( 0 ); // This should never happen
+			}
 		}
 		else if (( m_current_display != index ) && ( m_current_display >= 0 ))
 		{
-			m_current_display_index = m_current_display;
+			// Push a display onto the stack
 			m_display_stack.push_back( m_current_display );
 		}
-
 	}
 	else
 	{
-		if ( index < 0 )
-			m_current_display_index = find_idx_in_vec( m_current_display, m_display_menu );
-
-		// If not stacking, clear the existing back stack (if any)
+		// If not stacking then clear the stack
 		m_display_stack.clear();
 	}
 
 	m_current_display = index;
 
 	if ( m_current_display != -1 )
-		m_actual_display_index = m_current_display;
+		m_selected_display = m_current_display;
 
 	m_rl.save_state();
 	init_display();
@@ -1646,9 +1638,9 @@ int FeSettings::get_current_display_index() const
 	return m_current_display;
 }
 
-int FeSettings::get_actual_display_index() const
+int FeSettings::get_selected_display_index() const
 {
-	return m_actual_display_index;
+	return m_selected_display;
 }
 
 int FeSettings::get_display_index_from_name( const std::string &n ) const
@@ -1668,7 +1660,8 @@ void FeSettings::set_current_selection( int filter_index, int rom_index )
 	//
 	if ( m_current_display < 0 )
 	{
-		m_current_display_index = rom_index;
+		// Get the index of the selected display, or -1 if EXIT is selected
+		m_selected_display = (rom_index < (int)m_display_menu.size()) ? m_display_menu[rom_index] : -1;
 	}
 	else if (( !m_current_search.empty() && ( get_current_filter_index() == filter_index )))
 	{
@@ -2851,6 +2844,12 @@ std::string FeSettings::get_ui_color() const
 int FeSettings::get_screen_saver_timeout() const
 {
 	return m_ssaver_time;
+}
+
+// Returns true if a custom displays_menu is configured
+bool FeSettings::has_custom_displays_menu()
+{
+	return !get_info( MenuLayout ).empty();
 }
 
 void FeSettings::get_displays_menu(
