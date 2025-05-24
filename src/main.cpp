@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 {
 	std::string config_path, log_file;
 	bool launch_game = false;
+	bool first_intro = true;
 	bool process_console = false;
 	int last_display_index = -1;
 	FeLogLevel log_level = FeLog_Info;
@@ -194,31 +195,12 @@ int main(int argc, char *argv[])
 
 	if ( !config_mode )
 	{
-		// start the intro now
+		// Attempt to start the intro now
 		if ( !feVM.load_intro() )
 		{
-			switch ( feSettings.get_startup_mode() )
-			{
-			case FeSettings::LaunchLastGame:
-				feVM.load_layout( true );
-				feSettings.select_last_launch();
-				launch_game=true;
-				break;
-
-			case FeSettings::ShowDisplaysMenu:
-				if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
-				{
-					feSettings.set_display( feSettings.get_actual_display_index() );
-					feVM.load_layout( true );
-					FeVM::cb_signal( "displays_menu" );
-				}
-				break;
-
-			default:
-				feVM.load_layout( true );
-				break;
-			}
-
+			// If the intro fails, post a dummy command so the poll_command loop will fire
+			// This will catch Intro_Showing and load the appropriate startup layout
+			feVM.post_command( FeInputMap::EventStartup ); // EventStartup is not an input event
 		}
 	}
 
@@ -234,11 +216,6 @@ int main(int argc, char *argv[])
 
 			if ( feOverlay.config_dialog( -1, FeInputMap::Configure ) )
 			{
-				// Settings changed, reload
-				//
-				feSettings.set_display(
-					feSettings.get_current_display_index() );
-
 				feSettings.on_joystick_connect(); // update joystick mappings
 
 				soundsys.stop();
@@ -253,9 +230,11 @@ int main(int argc, char *argv[])
 					feVM.init_monitors();
 				}
 
-				if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
-					feSettings.set_display( feSettings.get_actual_display_index() );
-
+				// Settings have changed, reload the display
+				feSettings.set_display( feSettings.has_custom_displays_menu()
+					? feSettings.get_current_display_index()
+					: feSettings.get_selected_display_index() // in case config has removed custom display
+				);
 				feVM.load_layout();
 			}
 			feVM.reset_screen_saver();
@@ -557,32 +536,38 @@ int main(int argc, char *argv[])
 			//
 			if ( feSettings.get_present_state() == FeSettings::Intro_Showing )
 			{
+				FeSettings::StartupModeType mode = feSettings.get_startup_mode();
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
+				bool has_layout = false;
 
-				if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
-					feSettings.set_display( feSettings.get_actual_display_index() );
-
-				feVM.load_layout( true );
-
-				switch ( feSettings.get_startup_mode() )
+				if ( first_intro && mode == FeSettings::LaunchLastGame )
 				{
-					case FeSettings::LaunchLastGame:
-						feSettings.select_last_launch();
-						launch_game=true;
-						break;
-
-					case FeSettings::ShowDisplaysMenu:
-						if ( feSettings.get_info( FeSettings::MenuLayout ).empty() )
-							FeVM::cb_signal( "displays_menu" );
-						break;
-
-					default:
-						break;
+					// Only LaunchLastGame on first run, not after manually triggered intro
+					has_layout = feSettings.select_last_launch();
+					if ( has_layout ) feVM.load_layout( true );
+					launch_game = true;
 				}
 
-				redraw=true;
+				if ( mode == FeSettings::ShowDisplaysMenu )
+				{
+					// If there is a custom displays_menu clear the state so it loads on cb_signal
+					has_layout = feSettings.has_custom_displays_menu();
+					if ( has_layout ) feSettings.set_present_state( FeSettings::Layout_Showing );
+				}
+
+				if ( !has_layout )
+				{
+					feSettings.set_display( feSettings.get_selected_display_index() );
+					feVM.load_layout( true );
+				}
+
+				if ( mode == FeSettings::ShowDisplaysMenu )
+					FeVM::cb_signal( "displays_menu" );
+
+				first_intro = false;
+				redraw = true;
 				continue;
 			}
 
@@ -781,7 +766,7 @@ int main(int argc, char *argv[])
 				case FeInputMap::DisplaysMenu:
 					{
 						// If user has configured a custom layout for the display
-						if ( !feSettings.get_info( FeSettings::MenuLayout ).empty() )
+						if ( feSettings.has_custom_displays_menu() )
 						{
 							int display_index = feSettings.get_current_display_index();
 

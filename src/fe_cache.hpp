@@ -58,7 +58,6 @@ private:
 
 	static std::vector<FeDisplayInfo>* m_displays;
 	static std::string m_config_path;
-	static std::string m_romlist_args;
 	static std::map<std::string, FeListStats> stats_cache;
 
 public:
@@ -117,8 +116,6 @@ public:
 		const std::string &romlist_name,
 		FeRomInfo::Index target
 	);
-
-	static void invalidate_romlist_args();
 
 	// ----------------------------------------------------------------------------------
 
@@ -198,16 +195,6 @@ public:
 	static bool get_stats_info(
 		const std::string &path,
 		std::vector<std::string> &rominfo
-	);
-
-	// ----------------------------------------------------------------------------------
-
-	static bool set_romlist_args(
-		const std::string &path,
-		const std::string &romlist_name,
-		FeDisplayInfo &display,
-		bool group_clones,
-		bool load_stats
 	);
 
 };

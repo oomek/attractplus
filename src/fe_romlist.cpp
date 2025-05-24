@@ -172,9 +172,6 @@ FeRomList::~FeRomList()
 
 void FeRomList::init_as_empty_list()
 {
-	// Romlist will require reloading after clearing, so invalidate the arg cache
-	FeCache::invalidate_romlist_args();
-
 	m_romlist_name.clear();
 	m_list.clear();
 	m_filtered_list.clear();
@@ -238,10 +235,6 @@ bool FeRomList::load_romlist( const std::string &path,
 	bool group_clones,
 	bool load_stats	)
 {
-	// Exit early if arguments have not changed - prevents things like layout option edits re-loading the romlist
-	if (!FeCache::set_romlist_args(path, romlist_name, display, group_clones, load_stats))
-		return true;
-
 	sf::Clock load_timer;
 	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
 	time_t mtime = file_mtime( romlist_path );
@@ -481,11 +474,12 @@ bool FeRomList::load_romlist( const std::string &path,
 	}
 
 	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";
-	if ( !has_global_rules ) FeLog() << m_list.size() << " entries from romlist";
-	if ( loaded_globalfilter_cache ) FeLog() << m_list.size() << " entries from cache";
+	if ( !has_global_rules && !loaded_romlist_cache ) FeLog() << m_list.size() << " entries from romlist";
+	if ( loaded_romlist_cache ) FeLog() << m_list.size() << " entries from romlist cache";
 	if ( has_global_rules && !loaded_globalfilter_cache ) FeLog() << m_list.size() << " kept, " << global_filtered_out_count << " discarded";
-	if ( saved_globalfilter_cache ) FeLog() << ", cached globalfilter";
+	if ( loaded_globalfilter_cache ) FeLog() << m_list.size() << " entries from globalfilter cache";
 	if ( saved_romlist_cache ) FeLog() << ", cached romlist";
+	if ( saved_globalfilter_cache ) FeLog() << ", cached globalfilter";
 	FeLog() << ")" << std::endl;
 
 	create_filters( display );

@@ -509,6 +509,9 @@ bool FeVM::on_new_layout()
 {
 	using namespace Sqrat;
 
+	// Loaded layout settings prior to starting the layout
+	m_feSettings->load_layout_params();
+	
 	const FeLayoutInfo &layout_params
 		= m_feSettings->get_current_config( FeSettings::Current );
 

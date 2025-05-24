@@ -114,6 +114,7 @@ public:
 
 	static std::vector<std::string> uiColorTokens;
 	static std::vector<std::string> uiColorDispTokens;
+	void load_layout_params();
 
 	// These values must align with `FeSettings::configSettingStrings`
 	enum ConfigSettingIndex
@@ -213,7 +214,8 @@ private:
 	sf::IntRect m_mousecap_rect;
 	sf::RenderWindow *m_rwnd;
 
-	int m_current_display; // -1 if we are currently showing the 'displays menu' w/ custom layout
+	int m_current_display; // The index of the current display, -1 if showing a custom displays_menu
+	int m_selected_display; // The index of the displays_menu selected display, -1 if EXIT is selected. Equals m_current_display if displays_menu not shown.
 	FeBaseConfigurable *m_current_config_object;
 	int m_ssaver_time;
 	int m_last_launch_display;
@@ -224,8 +226,6 @@ private:
 	int m_joy_thresh;		// [1..100], 100=least sensitive
 	int m_mouse_thresh;	// [1..100], 100=least sensitive
 	int m_current_search_index; // used when custom searching
-	int m_current_display_index; // used as an index of currently selected display in displays menu
-	int m_actual_display_index; // The most recent display index that was selected in the displays menu
 	bool m_displays_menu_exit;
 	bool m_hide_brackets;
 	bool m_group_clones;
@@ -371,7 +371,7 @@ public:
 	bool back_displays_available() { return !m_display_stack.empty(); };
 
 	int get_current_display_index() const;
-	int get_actual_display_index() const;
+	int get_selected_display_index() const;
 	int get_display_index_from_name( const std::string &name ) const;
 	int displays_count() const;
 
@@ -602,13 +602,11 @@ public:
 	bool get_info_bool( int index ) const;
 	bool set_info( int index, const std::string & );
 
+	bool has_custom_displays_menu();
 	void get_displays_menu( std::string &title,
 		std::vector<std::string> &names,
 		std::vector<int> &indices,
 		int &current_idx ) const;
-
-	// Used only when Edit Game is pressed in Displays Menu
-	int display_menu_get_current_selection_as_absolute_display_index();
 
 	FeDisplayInfo *get_display( int index );
 	FeDisplayInfo *create_display( const std::string &n );

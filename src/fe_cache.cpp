@@ -29,7 +29,6 @@ const std::string FE_EMPTY_STRING;
 
 std::vector<FeDisplayInfo>* FeCache::m_displays = {};
 std::string FeCache::m_config_path = "";
-std::string FeCache::m_romlist_args = "";
 
 // Global storage for [emulator][romname] stats
 std::map<std::string, FeListStats> FeCache::stats_cache = std::map<std::string, FeListStats>{};
@@ -184,7 +183,6 @@ void FeCache::invalidate_globalfilter(
 )
 {
 #ifdef FE_CACHE_ENABLE
-	invalidate_romlist_args();
 	std::string filename = get_globalfilter_cache_filename( display );
 	if ( file_exists( filename ) ) delete_file( filename );
 #endif
@@ -199,7 +197,6 @@ void FeCache::invalidate_filter(
 )
 {
 #ifdef FE_CACHE_ENABLE
-	invalidate_romlist_args();
 	std::string filename = get_filter_cache_filename( display, filter_index );
 	if ( file_exists( filename ) ) delete_file( filename );
 #endif
@@ -696,39 +693,4 @@ bool FeCache::set_stats_info(
 #else
 	return false;
 #endif
-}
-
-// -------------------------------------------------------------------------------------
-
-//
-// Store id for args used to load current romlist
-// - Returns true if changed, indicating the romlist should be reloaded
-//
-bool FeCache::set_romlist_args(
-	const std::string &path,
-	const std::string &romlist_name,
-	FeDisplayInfo &display,
-	bool group_clones,
-	bool load_stats
-) {
-#ifdef FE_CACHE_ENABLE
-	std::string args = path
-		+ ";" + display.get_name()
-		+ ";" + romlist_name
-		+ ";" + ( group_clones ? "1" : "0" )
-		+ ";" + ( load_stats ? "1" : "0" );
-	bool changed = m_romlist_args != args;
-	m_romlist_args = args;
-	return changed;
-#else
-	return true;
-#endif
-}
-
-//
-// Clear stored args id, forcing a reload on next load_romlist
-//
-void FeCache::invalidate_romlist_args()
-{
-	m_romlist_args = "";
 }
