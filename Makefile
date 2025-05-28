@@ -61,7 +61,7 @@
 #VERBOSE=1
 #WINDOWS_XP=1
 
-override FE_VERSION := v3.1.0
+override FE_VERSION := v3.1.1
 
 CC ?= gcc
 CXX ?= g++
