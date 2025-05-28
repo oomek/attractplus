@@ -39,7 +39,12 @@ class FeFontContainer;
 class FeListBox : public FeBasePresentable, public sf::Drawable
 {
 public:
-
+	enum SelectionMode
+	{
+		Static=0,
+		Moving=1,
+		Paged=2
+	};
 	// Constructor for use in scripts.  sets m_scripted to true
 	FeListBox( FePresentableParent &p, int x, int y, int w, int h );
 
@@ -116,6 +121,8 @@ public:
 	int get_list_size();
 	int get_style();
 	int get_align();
+	int get_selection_mode();
+	int get_selection_margin();
 	void set_bgr(int r);
 	void set_bgg(int g);
 	void set_bgb(int b);
@@ -126,6 +133,8 @@ public:
 	void set_rows(int r);
 	void set_style(int s);
 	void set_align(int a);
+	void set_selection_mode(int m);
+	void set_selection_margin(int m);
 	int get_selr();
 	int get_selg();
 	int get_selb();
@@ -155,6 +164,7 @@ private:
 	FeListBox &operator=( const FeListBox & );
 
 	void internalSetText( const int index );
+	int getSelectionRow() const;
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_displayList;
@@ -170,6 +180,10 @@ private:
 	float m_rotation;
 	float m_scale_factor;
 	bool m_scripted;
+	int m_mode;
+	int m_selection_pos;
+	int m_list_start_offset;
+	int m_selection_margin;
 
 	// this contains the custom selection index, if custom text has been
 	// set (in which case m_displayList contains the custom set text). If
