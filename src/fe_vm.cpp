@@ -645,6 +645,11 @@ bool FeVM::on_new_layout()
 			.Const( _SC("BottomLeft"), FeImage::BottomLeft )
 			.Const( _SC("BottomRight"), FeImage::BottomRight )
 			)
+		.Enum( _SC("Selection"), Enumeration()
+			.Const( _SC("Static"), FeListBox::Static )
+			.Const( _SC("Moving"), FeListBox::Moving )
+			.Const( _SC("Paged"), FeListBox::Paged )
+			)
 		;
 
 	Enumeration info;
@@ -830,6 +835,9 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("style"), &FeListBox::get_style, &FeListBox::set_style )
 		.Prop(_SC("align"), &FeListBox::get_align, &FeListBox::set_align )
 		.Prop(_SC("sel_style"), &FeListBox::getSelStyle, &FeListBox::setSelStyle )
+		.Prop(_SC("sel_mode"), &FeListBox::get_selection_mode, &FeListBox::set_selection_mode )
+		.Prop(_SC("sel_margin"), &FeListBox::get_selection_margin, &FeListBox::set_selection_margin )
+		.Prop(_SC("sel_row"), &FeListBox::get_selected_row )
 		.Prop(_SC("font"), &FeListBox::get_font, &FeListBox::set_font )
 		// "nomargin" deprecated, use the margin property instead
 		.Prop(_SC("nomargin"), &FeListBox::get_no_margin, &FeListBox::set_no_margin )

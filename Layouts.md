@@ -1615,6 +1615,12 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Style.Bold`
    -  `Style.Italic`
    -  `Style.Underlined`
+-  `sel_mode` - Get/set the selection mode. Controls how the ListBox behaves when navigating. Can be one of the following values:
+   -  `Selection.Static` (default) - The selection stays in the centre of the ListBox. The list scrolls
+   -  `Selection.Moving` - The selection moves and the list scrolls when margin is reached. Margin can be adjusted with `sel_margin`
+   -  `Selection.Paged` - The selection moves and the list scrolls in pages
+-  `sel_margin` - Get/set the selection margin in rows. When using `Selection.Moving` mode, the list will scroll to keep the selection at least this many rows away from the edges.
+-  `sel_row` - Returns the index of the row that is currently selected within the visible rows of the ListBox.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.

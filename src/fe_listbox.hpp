@@ -39,7 +39,12 @@ class FeFontContainer;
 class FeListBox : public FeBasePresentable, public sf::Drawable
 {
 public:
-
+	enum SelectionMode
+	{
+		Static=0,
+		Moving=1,
+		Paged=2
+	};
 	// Constructor for use in scripts.  sets m_scripted to true
 	FeListBox( FePresentableParent &p, int x, int y, int w, int h );
 
@@ -76,16 +81,13 @@ public:
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
 
-	FeTextPrimitive *getMiddleText();
+	FeTextPrimitive *getSelectedText();
 
 	void setRotation( float );
 
 	// Set an empty list here to reset control from "custom text" mode
 	void setCustomText( const int index, const std::vector<std::string> &list );
 	void setCustomSelection( const int index );
-
-	// special case for the language selection listbox (different fonts)
-	void setLanguageText( const int index, const std::vector<FeLanguage> &list );
 
 	int getRowCount() const;
 
@@ -116,6 +118,8 @@ public:
 	int get_list_size();
 	int get_style();
 	int get_align();
+	int get_selection_mode();
+	int get_selection_margin();
 	void set_bgr(int r);
 	void set_bgg(int g);
 	void set_bgb(int b);
@@ -126,6 +130,8 @@ public:
 	void set_rows(int r);
 	void set_style(int s);
 	void set_align(int a);
+	void set_selection_mode(int m);
+	void set_selection_margin(int m);
 	int get_selr();
 	int get_selg();
 	int get_selb();
@@ -149,12 +155,13 @@ public:
 	void set_selbg_rgb( int, int, int );
 	void set_font( const char *f );
 	void set_format_string( const char *s );
-
+	int get_selected_row() const;
 private:
 	FeListBox( const FeListBox & );
 	FeListBox &operator=( const FeListBox & );
 
 	void internalSetText( const int index );
+
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_displayList;
@@ -170,6 +177,10 @@ private:
 	float m_rotation;
 	float m_scale_factor;
 	bool m_scripted;
+	int m_mode;
+	int m_selected_row;
+	int m_list_start_offset;
+	int m_selection_margin;
 
 	// this contains the custom selection index, if custom text has been
 	// set (in which case m_displayList contains the custom set text). If

@@ -508,8 +508,12 @@ int FeOverlay::languages_dialog()
 
 	header.setString( "" );
 	draw_list.push_back( &header );
-
 	FePresentableParent temp;
+
+	// Round up rows to next odd number
+	int rows = m_screen_size.y / ( m_header_size * 1.5 * m_text_scale.y );
+	if (rows % 2 == 0) rows++;
+
 	FeListBox dialog( temp,
 		m_font,
 		m_text_colour,
@@ -517,23 +521,28 @@ int FeOverlay::languages_dialog()
 		m_sel_text_colour,
 		m_sel_focus_colour,
 		m_header_size,
-		m_screen_size.y / ( m_header_size * 1.5 * m_text_scale.y ) );
+		rows );
 
-	dialog.setPosition( 0, m_edge_size );
-	dialog.setSize( m_screen_size.x, m_screen_size.y - m_edge_size );
+	dialog.setPosition( 0, 0 );
+	dialog.setSize( m_screen_size.x, m_screen_size.y );
 	dialog.init_dimensions();
 	dialog.setTextScale( m_text_scale );
 	draw_list.push_back( &dialog );
 
 	int sel = current_i;
-	dialog.setLanguageText( sel, ll );
+
+	std::vector<std::string> labels;
+	for ( const auto& lang : ll )
+		labels.push_back( lang.label );
+
+	dialog.setCustomText( sel, labels );
 
 	FeEventLoopCtx c( draw_list, sel, -1, ll.size() - 1 );
 	FeFlagMinder fm( m_overlay_is_on );
 
 	init_event_loop( c );
 	while ( event_loop( c ) == false )
-		dialog.setLanguageText( sel, ll );
+		dialog.setCustomSelection( sel );
 
 	if ( sel >= 0 )
 		m_feSettings.set_language( ll[sel].language );
@@ -1296,7 +1305,7 @@ int FeOverlay::display_config_dialog(
 			sdialog.setSelBgColor( m_sel_blur_colour );
 			vdialog.setSelColor( m_sel_text_colour );
 			vdialog.setSelBgColor( m_sel_focus_colour );
-			FeTextPrimitive *tp = vdialog.getMiddleText();
+			FeTextPrimitive *tp = vdialog.getSelectedText();
 
 			if ( tp == NULL )
 				continue;
