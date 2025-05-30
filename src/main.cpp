@@ -34,6 +34,7 @@
 #include "fe_window.hpp"
 #include "fe_vm.hpp"
 #include "fe_blend.hpp"
+#include "fe_net.hpp"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
@@ -86,6 +87,10 @@ int main(int argc, char *argv[])
 	FeSettings feSettings( config_path );
 	feSettings.set_window_topmost( window_topmost );
 	feSettings.set_window_args( window_args );
+
+#ifdef USE_LIBCURL
+	FeVersionChecker versionChecker;
+#endif
 
 	//
 	// Setup logging
@@ -192,6 +197,11 @@ int main(int argc, char *argv[])
 	// display
 	//
 	bool config_mode = ( feSettings.displays_count() < 1 );
+
+#ifdef USE_LIBCURL
+	if ( feSettings.get_info_bool( FeSettings::CheckForUpdates ) )
+		versionChecker.initiate();
+#endif
 
 	if ( !config_mode )
 	{
@@ -674,10 +684,10 @@ int main(int argc, char *argv[])
 						feSettings.get_translation(  "Insert Menu Entry", temp );
 
 						int sel_idx = feOverlay.common_list_dialog( temp, options, 0, -1, c );
-						
+
 						if ( sel_idx == FeOverlay::ExitToDesktop )
 							exit_selected = true;
-							
+
 						if ( sel_idx < 0 ) break;
 
 						std::string emu_name;
@@ -895,7 +905,7 @@ int main(int argc, char *argv[])
 								feSettings.get_rom_info( 0, 0, FeRomInfo::Title ),
 								false,
 								FeInputMap::ToggleFavourite );
-								
+
 							// returns 0 if user confirmed toggle
 							if ( sel_idx == 0 )
 							{
@@ -925,10 +935,10 @@ int main(int argc, char *argv[])
 				case FeInputMap::ToggleTags:
 					{
 						int sel_idx = feOverlay.tags_dialog( 0, c );
-						
+
 						if ( sel_idx == FeOverlay::ExitToDesktop )
 							exit_selected = true;
-							
+
 						redraw = true;
 					}
 					break;
@@ -951,6 +961,14 @@ int main(int argc, char *argv[])
 
 		// End loop early and go directly to config, preventing a layout frame drawn between menu switching
 		if ( config_mode ) continue;
+
+#ifdef USE_LIBCURL
+		if ( feSettings.get_info_bool( FeSettings::CheckForUpdates ) && versionChecker.check_result() )
+		{
+			std::string message = "Attract-Mode Plus update is available\nNew version: " + versionChecker.get_remote_version() + "\nCurrent version: " + versionChecker.get_current_version();
+			feOverlay.common_basic_dialog( message, {"OK"}, 0, 0 );
+		}
+#endif
 
 		//
 		// Determine if we have to do anything because a key is being held down
