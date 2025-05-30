@@ -511,7 +511,7 @@ bool FeVM::on_new_layout()
 
 	// Loaded layout settings prior to starting the layout
 	m_feSettings->load_layout_params();
-	
+
 	const FeLayoutInfo &layout_params
 		= m_feSettings->get_current_config( FeSettings::Current );
 
@@ -713,6 +713,10 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Image"),
 		DerivedClass<FeImage, FeBasePresentable, NoConstructor>()
+		.Prop(_SC("width"), &FeImage::get_width, &FeImage::set_width )
+		.Prop(_SC("height"), &FeImage::get_height, &FeImage::set_height )
+		.Prop(_SC("auto_width"), &FeImage::get_auto_width, &FeImage::set_auto_width )
+		.Prop(_SC("auto_height"), &FeImage::get_auto_height, &FeImage::set_auto_height )
 		.Prop(_SC("origin_x"), &FeImage::get_origin_x, &FeImage::set_origin_x )
 		.Prop(_SC("origin_y"), &FeImage::get_origin_y, &FeImage::set_origin_y )
 		.Prop(_SC("anchor"), &FeImage::get_anchor_type, &FeImage::set_anchor_type )
@@ -756,6 +760,7 @@ bool FeVM::on_new_layout()
 		.Func(_SC("rawset_index_offset"), &FeImage::rawset_index_offset )
 		.Func(_SC("rawset_filter_offset"), &FeImage::rawset_filter_offset )
 		.Func(_SC("fix_masked_image"), &FeImage::fix_masked_image )
+		.Overload<void (FeImage::*)(float, float, float, float)>(_SC("set_pos"), &FeImage::set_pos)
 
 		//
 		// Surface-specific functionality:
