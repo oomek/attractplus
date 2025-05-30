@@ -23,6 +23,7 @@
 #include "fe_net.hpp"
 #include "fe_base.hpp"
 #include "nowide/fstream.hpp"
+#include "rapidjson/document.h"
 #include <iostream>
 #include <cstring>
 #include <chrono>
@@ -131,8 +132,19 @@ bool FeNetTask::do_task( long *code )
 		{
 			m_result = curl_easy_strerror( res );
 
-			FeLog() << " ! Error processing request: " << m_result
-					<< " (" << m_url << ")" << std::endl;
+			if ( res == CURLE_COULDNT_RESOLVE_HOST ||
+				 res == CURLE_COULDNT_CONNECT ||
+				 res == CURLE_OPERATION_TIMEDOUT ||
+				 res == CURLE_COULDNT_RESOLVE_PROXY )
+			{
+				FeDebug() << " - Network error: " << m_result
+						<< " (" << m_url << ")" << std::endl;
+			}
+			else
+			{
+				FeLog() << " ! Error processing request: " << m_result
+						<< " (" << m_url << ")" << std::endl;
+			}
 		}
 
 		curl_easy_cleanup( curl_handle );
@@ -307,4 +319,99 @@ void FeNetWorker::work_process()
 	}
 
 	FeDebug() << "WORKER thread process completed." << std::endl;
+}
+
+FeVersionChecker::FeVersionChecker()
+	: m_initiated( false )
+{
+}
+
+FeVersionChecker::~FeVersionChecker()
+{
+	m_worker.reset();
+	m_queue.reset();
+}
+
+bool FeVersionChecker::initiate()
+{
+	if ( m_initiated )
+		return true;
+
+	try
+	{
+		const std::string VERSION_CHECK_URL = "https://api.github.com/repos/oomek/attractplus/releases/latest";
+
+		m_queue = std::make_unique<FeNetQueue>();
+		m_worker = std::make_unique<FeNetWorker>( *m_queue );
+
+		m_queue->add_buffer_task( VERSION_CHECK_URL, VERSION_CHECK_ID );
+
+		m_initiated = true;
+		FeDebug() << "Version check: initiated" << std::endl;
+		return true;
+	}
+	catch ( ... )
+	{
+		FeDebug() << "Version check: failed to initiate" << std::endl;
+		return false;
+	}
+}
+
+bool FeVersionChecker::check_result()
+{
+	if ( !m_queue )
+		return false;
+
+	int result_id;
+	std::string response;
+	bool new_version_available = false;
+
+	if ( m_queue->pop_completed_task( result_id, response ) )
+	{		if ( result_id == VERSION_CHECK_ID )
+		{
+			if ( !response.empty() )
+			{
+				rapidjson::Document doc;
+				doc.Parse( response.c_str() );
+
+				if ( !doc.HasParseError() && doc.IsObject() && doc.HasMember( "tag_name" ) && doc["tag_name"].IsString() )
+				{
+					std::string remote_version = doc["tag_name"].GetString();
+					m_remote_version = remote_version;
+					m_current_version = FE_VERSION;
+
+					if ( !m_current_version.empty() && m_current_version[0] == 'v' )
+						m_current_version = m_current_version.substr( 1 );
+
+					if ( !remote_version.empty() && remote_version[0] == 'v' )
+						remote_version = remote_version.substr( 1 );
+
+					std::string version_concat;
+					for ( char c : remote_version )
+					{
+						if ( c != '.' )
+							version_concat += c;
+					}
+
+					int remote_version_num = std::atoi( version_concat.c_str() );
+					if ( remote_version_num > FE_VERSION_NUM )
+					{
+						FeLog() << "New AM+ version is available: " << m_remote_version
+							   << ", current version: " << m_current_version << std::endl;
+						new_version_available = true;
+					}
+					else
+						FeDebug() << "Version Check: AM+ is up to date: " << m_current_version << std::endl;
+				}
+				else
+					FeDebug() << "Version check: Unable to parse version information from server response" << std::endl;
+			}
+			else
+				FeDebug() << "Version check: Unable to connect to server (network unavailable)" << std::endl;
+		}
+
+		return new_version_available;
+	}
+
+	return false;
 }

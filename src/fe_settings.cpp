@@ -344,6 +344,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_hide_console( false ),
 #endif
 	m_power_saving( false ),
+	m_check_for_updates( true ),
 	m_screen_rotation( RotateNone ),
 	m_antialiasing( 0 ),
 	m_anisotropic( 0 ),
@@ -479,6 +480,7 @@ const char *FeSettings::configSettingStrings[] =
 	"scrape_overview",
 	"thegamesdb_key",
 	"power_saving",
+	"check_for_updates",
 #ifdef SFML_SYSTEM_WINDOWS
 	"hide_console",
 #endif
@@ -2931,6 +2933,7 @@ const std::string FeSettings::get_info( int index ) const
 	case ScrapeVids:
 	case ScrapeOverview:
 	case PowerSaving:
+	case CheckForUpdates:
 #ifdef SFML_SYSTEM_WINDOWS
 	case HideConsole:
 #endif
@@ -2999,6 +3002,8 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_scrape_overview;
 	case PowerSaving:
 		return m_power_saving;
+	case CheckForUpdates:
+		return m_check_for_updates;
 #ifdef SFML_SYSTEM_WINDOWS
 	case HideConsole:
 		return m_hide_console;
@@ -3251,6 +3256,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case PowerSaving:
 		m_power_saving = config_str_to_bool( value );
+		break;
+
+	case CheckForUpdates:
+		m_check_for_updates = config_str_to_bool( value );
 		break;
 
 #ifdef SFML_SYSTEM_WINDOWS

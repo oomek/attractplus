@@ -121,4 +121,25 @@ public:
 	~FeNetWorker();
 };
 
+class FeVersionChecker
+{
+private:
+	static const int VERSION_CHECK_ID = 12345;
+	std::unique_ptr<FeNetQueue> m_queue;
+	std::unique_ptr<FeNetWorker> m_worker;
+	std::string m_remote_version;
+	std::string m_current_version;
+	bool m_initiated;
+
+public:
+	FeVersionChecker();
+	~FeVersionChecker();
+
+	bool initiate();
+	bool check_result();
+	const std::string& get_remote_version() const { return m_remote_version; }
+	const std::string& get_current_version() const { return m_current_version; }
+	bool is_initiated() const { return m_initiated; }
+};
+
 #endif

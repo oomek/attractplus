@@ -13,6 +13,7 @@ _help_art_add;Add a new artwork resource (marquee images, screen shots, etc.)
 _help_art_label;The label that identifies this artwork resource (used by layouts)
 _help_art_path;The path to the files for this artwork.  Multiple paths can be entered if separated by a semicolon.
 _help_back;Exit menu
+_help_check_for_updates;Configure whether Attract-Mode Plus should check for available updates on startup and display an update notification dialog when a new version is found.
 _help_confirm_exit;Confirm the exiting of Attact-Mode
 _help_confirm_favs;Confirm the addition/removal of Favourites
 _help_control_add_favourite;Set the control(s) that mark/unmark the currently selected game as a favourite

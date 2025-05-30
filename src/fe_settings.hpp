@@ -155,6 +155,7 @@ public:
 		ScrapeOverview,
 		ThegamesdbKey,
 		PowerSaving,
+		CheckForUpdates,
 #ifdef SFML_SYSTEM_WINDOWS
 		HideConsole,
 #endif
@@ -254,6 +255,7 @@ private:
 	bool m_hide_console;
 #endif
 	bool m_power_saving;
+	bool m_check_for_updates;
 	RotationState m_screen_rotation;
 	int m_antialiasing;
 	int m_anisotropic;

@@ -32,6 +32,7 @@ Back;Back
 Blank Game;Blank Game
 Buttons;Buttons
 Category;Category
+Check for Updates;Check for Updates
 Clear Hotkey?;Clear Hotkey?
 CloneOf;CloneOf
 Collection/Rom List;Collection/Rom List

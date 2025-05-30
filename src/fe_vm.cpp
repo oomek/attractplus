@@ -2445,7 +2445,7 @@ bool FeVM::get_url( const char *url, const char *path )
 void FeVM::print_to_console( const char *str )
 {
 	FeLog() << str << std::endl;
-};
+}
 
 
 bool FeVM::cb_plugin_command( const char *command,

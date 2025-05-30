@@ -2155,6 +2155,12 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 			"_help_power_saving" );
 	ctx.back_opt().append_vlist( bool_opts );
 
+	ctx.add_optl( Opt::LIST,
+			"Check for Updates",
+			ctx.fe_settings.get_info_bool( FeSettings::CheckForUpdates ) ? bool_opts[0] : bool_opts[1],
+			"_help_check_for_updates" );
+	ctx.back_opt().append_vlist( bool_opts );
+
 #ifdef SFML_SYSTEM_WINDOWS
 	ctx.add_optl( Opt::LIST, "Hide Console",
 		ctx.fe_settings.get_hide_console() ? bool_opts[0] : bool_opts[1],
@@ -2237,6 +2243,9 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 			ctx.opt_list[i++].get_value() );
 
 	ctx.fe_settings.set_info( FeSettings::PowerSaving,
+			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
+
+	ctx.fe_settings.set_info( FeSettings::CheckForUpdates,
 			ctx.opt_list[i++].get_vindex() == 0 ? FE_CFG_YES_STR : FE_CFG_NO_STR );
 
 #ifdef SFML_SYSTEM_WINDOWS
