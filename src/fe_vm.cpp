@@ -321,7 +321,7 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console
 
 FeVM::~FeVM()
 {
-	clear();
+	clear_handlers();
 
 	//
 	// Save the "non-volatile" squirrel table (fe.nv) to a file now
@@ -385,10 +385,9 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 	return false;
 }
 
-void FeVM::clear()
+void FeVM::clear_handlers()
 {
 	FePresent::clear();
-	m_overlay->init();
 	m_last_ui_cmd = sf::Time();
 	m_ticks.clear();
 	m_trans.clear();
@@ -396,6 +395,12 @@ void FeVM::clear()
 
 	while ( !m_posted_commands.empty() )
 		m_posted_commands.pop();
+}
+
+void FeVM::clear()
+{
+	clear_handlers();
+	m_overlay->init();
 }
 
 void FeVM::add_ticks_callback( Sqrat::Object func, const char *slot )
@@ -511,7 +516,7 @@ bool FeVM::on_new_layout()
 
 	// Loaded layout settings prior to starting the layout
 	m_feSettings->load_layout_params();
-	
+
 	const FeLayoutInfo &layout_params
 		= m_feSettings->get_current_config( FeSettings::Current );
 
