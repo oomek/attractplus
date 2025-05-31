@@ -827,31 +827,40 @@ void delete_file( const std::string &file )
 	nowide::remove( file.c_str() );
 }
 
+bool make_dir( const std::string &dir )
+{
+#ifdef SFML_SYSTEM_WINDOWS
+	_wmkdir( FeUtil::widen( dir ).c_str() );
+#else
+	mkdir( dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
+#endif // SFML_SYSTEM_WINDOWS
+	return true; // assume success
+}
+
 bool confirm_directory( const std::string &base, const std::string &sub )
 {
-	bool retval=false;
+	bool created = false;
 
 	if ( !directory_exists( base ) )
+		created = make_dir( base );
+
+	if ( !sub.empty() && !directory_exists( base + sub ) )
+		created = make_dir( base + sub ) || created;
+
+	return created;
+}
+
+bool confirm_file( const std::string &path )
+{
+	bool created = false;
+
+	if ( !file_exists( path ))
 	{
-#ifdef SFML_SYSTEM_WINDOWS
-		_wmkdir( FeUtil::widen( base ).c_str() );
-#else
-		mkdir( base.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
-#endif // SFML_SYSTEM_WINDOWS
-		retval=true;
+		nowide::ofstream f( path );
+		created = true;
 	}
 
-	if ( (!sub.empty()) && (!directory_exists( base + sub )) )
-	{
-#ifdef SFML_SYSTEM_WINDOWS
-		_wmkdir( FeUtil::widen(base + sub).c_str() );
-#else
-		mkdir( (base + sub).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
-#endif // SFML_SYSTEM_WINDOWS
-		retval=true;
-	}
-
-	return retval;
+	return created;
 }
 
 const int TAB_SIZE = 4;
