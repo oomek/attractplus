@@ -25,6 +25,7 @@
 
 #include <string>
 #include <ostream>
+#include <cstdint>
 
 extern const char *FE_NAME;
 extern const char *FE_COPYRIGHT;
@@ -37,6 +38,8 @@ extern const char *FE_EMULATOR_SUBDIR;
 extern const char *FE_EMULATOR_TEMPLATES_SUBDIR;
 extern const char *FE_EMULATOR_FILE_EXTENSION;
 extern const char *FE_EMULATOR_DEFAULT;
+
+extern const std::uint32_t FE_CACHE_VERSION;
 
 enum FeLogLevel
 {

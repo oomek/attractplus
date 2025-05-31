@@ -284,17 +284,22 @@ void delete_file( const std::string &file );
 //
 // Return integer as a string
 //
-std::string as_str( int i );
+std::string as_str( const int i );
 
 //
 // Return size_t as a string
 //
-std::string as_str( size_t t );
+std::string as_str( const size_t t );
+
+//
+// Return time as a string
+//
+std::string as_str( const time_t t );
 
 //
 // Return float as a string
 //
-std::string as_str( float f, int decimals=3 );
+std::string as_str( const float f, const int decimals=3 );
 
 //
 // Return string as integer
@@ -394,5 +399,3 @@ void hide_console();
 // - Returns true on success
 //
 bool hex_to_color( std::string hex, sf::Color &dest_color );
-
-size_t get_path_content_hash( std::set<std::string> &paths );

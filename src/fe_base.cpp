@@ -34,14 +34,13 @@ extern "C"
 #include "nowide/fstream.hpp"
 #include "nowide/iostream.hpp"
 
-#define FE_NAME_D			"Attract-Mode Plus"
+#define FE_NAME_D           "Attract-Mode Plus"
+#define FE_AUTHOR_D         "Copyright © 2013-2025 Andrew Mickelson & Radek Dutkiewicz"
 
 const char *FE_NAME         = FE_NAME_D;
-const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " " FE_BUILD_D "\n" \
-	"Copyright © 2013-2025 Andrew Mickelson & Radek Dutkiewicz";
+const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " " FE_BUILD_D "\n" FE_AUTHOR_D;
 const char *FE_VERSION      = FE_VERSION_D;
-
-const char *FE_BUILD_NUMBER  = FE_BUILD_D;
+const char *FE_BUILD_NUMBER = FE_BUILD_D;
 
 const char *FE_WHITESPACE   = " \t\r";
 const char *FE_DIR_TOKEN    = "<DIR>";
@@ -52,6 +51,8 @@ const char *FE_EMULATOR_SUBDIR           = "emulators/";
 const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/";
 const char *FE_EMULATOR_FILE_EXTENSION   = ".cfg";
 const char *FE_EMULATOR_DEFAULT          = "default-emulator.cfg";
+
+const std::uint32_t FE_CACHE_VERSION = std::hash<std::string>{}( std::string( FE_VERSION ) + FE_BUILD_NUMBER );
 
 namespace {
 	nowide::ofstream g_logfile;

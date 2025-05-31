@@ -735,18 +735,16 @@ void FeSettings::init_display()
 			list_path = temp;
 	}
 
-	if (
-		m_rl.load_romlist(
-			list_path,
-			romlist_name,
-			m_displays[m_current_display],
-			m_group_clones,
-			m_track_usage
-		) == false
-	)
-	{
+	if ( m_rl.load_romlist(
+		list_path,
+		romlist_name,
+		m_displays[m_current_display],
+		m_group_clones,
+		m_track_usage
+	))
+		m_rl.create_filters( m_displays[m_current_display] );
+	else
 		FeLog() << "Error opening romlist: " << romlist_name << std::endl;
-	}
 
 	m_path_cache.clear();
 }
@@ -1223,27 +1221,13 @@ const std::string &FeSettings::get_rom_info_absolute( int filter_index, int rom_
 	if ( get_filter_size( filter_index ) < 1 )
 		return FE_EMPTY_STRING;
 
-	// Make sure we have file availability information if user is requesting it.
-	if ( index == FeRomInfo::FileIsAvailable )
-		m_rl.get_file_availability();
-
-	// Make sure we have played stats information if user is requesting it.
-	bool load_stats = m_track_usage &&
-		(( index == FeRomInfo::PlayedCount ) || ( index == FeRomInfo::PlayedTime ));
+	// Make sure we have additional fields if user is requesting them.
+	if ( index == FeRomInfo::FileIsAvailable ) m_rl.get_file_availability();
+	if ( FeRomInfo::isStat( index )) m_rl.get_played_stats();
 
 	// handle situation where we are currently showing a search result
-	//
-	if ( !m_current_search.empty()
-			&& ( get_current_filter_index() == filter_index ))
-	{
-		if ( load_stats )
-			m_current_search[ rom_index ]->load_stats( m_config_path + FE_STATS_SUBDIR );
-
+	if ( !m_current_search.empty() && ( get_current_filter_index() == filter_index ))
 		return m_current_search[ rom_index ]->get_info( index );
-	}
-
-	if ( load_stats )
-		m_rl.load_stats( filter_index, rom_index );
 
 	return m_rl.lookup( filter_index, rom_index ).get_info( index );
 }
@@ -2479,13 +2463,7 @@ bool FeSettings::update_stats( int play_count, int play_time )
 
 	rom->update_stats( path, play_count, play_time );
 
-	bool fixed = m_rl.fix_filters( m_displays[m_current_display], FeRomInfo::PlayedCount );
-	fixed |= m_rl.fix_filters( m_displays[m_current_display], FeRomInfo::PlayedTime );
-
-	// Invalidate all cache files using stats in their rules
-	std::string romlist_name = m_displays[m_current_display].get_romlist_name();
-	FeCache::invalidate_rominfo( romlist_name, FeRomInfo::PlayedCount );
-	FeCache::invalidate_rominfo( romlist_name, FeRomInfo::PlayedTime );
+	bool fixed = m_rl.fix_filters( m_displays[m_current_display], FeRomInfo::Stats );
 
 	if ( fixed && ( &m_rl.lookup( filter_index, rom_index ) != rom ))
 	{
@@ -4367,7 +4345,7 @@ void FeSettings::update_romlist_after_edit(
                 //
 		int i=0;
                 outfile << "#" << FeRomInfo::indexStrings[i++];
-                while ( i < FeRomInfo::Favourite )
+                while ( i < FeRomInfo::LAST_INFO )
                         outfile << ";" << FeRomInfo::indexStrings[i++];
                 outfile << std::endl;
 
@@ -4401,7 +4379,6 @@ void FeSettings::update_romlist_after_edit(
 	if ( ( u_type == EraseEntry ) || (( u_type == UpdateEntry ) && !( original == replacement )) )
 		m_rl.mark_favs_and_tags_changed();
 
-	FeCache::invalidate_romlist( romlist_name );
 	m_rl.create_filters( m_displays[m_current_display] );
 }
 

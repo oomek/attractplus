@@ -276,8 +276,6 @@ private:
 		const std::string &,
 		const std::string & );
 
-	void validate_romlist();
-
 	void init_display();
 	void load_state();
 	void clear();

@@ -539,8 +539,6 @@ bool FeEmulatorEditMenu::save( FeConfigContext &ctx )
 	confirm_directory( filename, FE_EMULATOR_SUBDIR );
 
 	const std::string name = m_emulator->get_info( FeEmulatorInfo::Name );
-	FeCache::invalidate_romlist( name );
-
 	filename += FE_EMULATOR_SUBDIR;
 	filename += name;
 	filename += FE_EMULATOR_FILE_EXTENSION;
@@ -1015,11 +1013,7 @@ bool FeFilterEditMenu::save( FeConfigContext &ctx )
 		// right now we just arbitrarily sort players, playcount and playtime in "reverse" order so
 		// higher values are first.
 		//
-		bool reverse_order = (( sort_by == FeRomInfo::Players )
-			|| ( sort_by == FeRomInfo::PlayedCount )
-			|| ( sort_by == FeRomInfo::PlayedTime ));
-
-		f->set_reverse_order( reverse_order );
+		f->set_reverse_order( FeRomInfo::isNumeric( sort_by ) );
 
 		std::string limit_str = ctx.opt_list[ sort_pos + 1 ].get_value();
 		int list_limit = as_int( limit_str );
@@ -1140,9 +1134,6 @@ bool FeDisplayEditMenu::save( FeConfigContext &ctx )
 	FeDisplayInfo *display = ctx.fe_settings.get_display( m_index );
 	if ( display )
 	{
-		// Clear this displays cache when its settings have changed
-		FeCache::invalidate_display( *display );
-
 		for ( int i=0; i< FeDisplayInfo::LAST_INDEX; i++ )
 		{
 			if (( i == FeDisplayInfo::InCycle ) || ( i == FeDisplayInfo::InMenu ))

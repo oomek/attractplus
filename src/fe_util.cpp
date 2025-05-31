@@ -854,17 +854,22 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 	return retval;
 }
 
-std::string as_str( int i )
+std::string as_str( const int i )
 {
 	return std::to_string( i );
 }
 
-std::string as_str( size_t t )
+std::string as_str( const size_t t )
 {
 	return std::to_string( t );
 }
 
-std::string as_str( float f, int decimals )
+std::string as_str( const time_t t )
+{
+	return std::to_string( t );
+}
+
+std::string as_str( const float f, const int decimals )
 {
 	std::ostringstream ss;
 	ss << std::setprecision( decimals ) << std::fixed << f;
@@ -1897,27 +1902,4 @@ bool hex_to_color( std::string hex, sf::Color &dest_color )
 	{
 		return false;
 	}
-}
-
-//
-// Returns a hash for all subdirs and filenames within the given paths
-// - Can be compared later to check if the given paths have had files added, removed, or renamed
-//
-size_t get_path_content_hash( std::set<std::string> &paths )
-{
-	std::string value = "";
-	for ( std::set<std::string>::const_iterator itr=paths.begin(); itr!=paths.end(); ++itr )
-	{
-		std::vector<std::string> temp_list;
-		std::vector<std::string> ignore_list;
-		if ( !get_filename_from_base(temp_list, ignore_list, *itr, "", 0)) continue;
-
-		// concat the entire listing as a string
-		std::ostringstream imploded;
-		std::copy(temp_list.begin(), temp_list.end(), std::ostream_iterator<std::string>(imploded));
-		value += imploded.str();
-	}
-
-	// return a hash of the value
-	return std::hash<std::string>{}(value);
 }

@@ -34,6 +34,7 @@
 
 const char *FE_STAT_FILE_EXTENSION = ".stat";
 const char FE_TAGS_SEP = ';';
+const char TAGS_SEP_ARG[] = { FE_TAGS_SEP, 0 };
 
 const FeRomInfo::Index FeRomInfo::BuildFullPath = FeRomInfo::Tags;
 const FeRomInfo::Index FeRomInfo::BuildScore = FeRomInfo::PlayedCount;
@@ -61,12 +62,18 @@ const char *FeRomInfo::indexStrings[] =
 	"Language",
 	"Region",
 	"Rating",
+
 	"Favourite",
 	"Tags",
 	"PlayedCount",
 	"PlayedTime",
 	"FileIsAvailable",
 	NULL
+};
+
+const std::set<FeRomInfo::Index> FeRomInfo::Stats = {
+	FeRomInfo::PlayedCount,
+	FeRomInfo::PlayedTime
 };
 
 FeRomInfo::FeRomInfo()
@@ -78,6 +85,23 @@ FeRomInfo::FeRomInfo( const std::string &rn )
 {
 	m_info = std::vector<std::string>(LAST_INDEX);
 	m_info[Romname] = rn;
+}
+
+// Returns true if FeRomInfo Index is supposed to be numeric (for sorting)
+// - Stats are guaranteed numeric since they're handled externally
+// - `Players` is included since it was sorted numerically previously
+// - Any romlist field may be overwritten by custom user data
+const bool FeRomInfo::isNumeric( Index index )
+{
+	return ( index == FeRomInfo::Players )
+		|| ( index == FeRomInfo::PlayedCount )
+		|| ( index == FeRomInfo::PlayedTime );
+}
+
+// Returns true if FeRomInfo Index is a Stat
+const bool FeRomInfo::isStat( Index index )
+{
+	return Stats.find( index ) != Stats.end();
 }
 
 const std::string &FeRomInfo::get_info( int i ) const
@@ -102,23 +126,95 @@ void FeRomInfo::set_info( Index i, const std::string &v )
 	m_info[i] = v;
 }
 
-void FeRomInfo::append_tag( const std::string &tag )
+//
+// Return a unique identifier for this rom, used for tags and fav files
+// - romname + FE_TAGS_SEP + emulator
+//
+const std::string FeRomInfo::get_id() const
 {
-	//
-	// The tags logic requires a FE_TAGS_SEP character on each side of
-	// a tag.
-	//
-	if ( m_info[Tags].empty() )
-		m_info[Tags] = FE_TAGS_SEP;
-
-	m_info[Tags] += tag;
-	m_info[Tags] += FE_TAGS_SEP;
+	return m_info[Romname] + FE_TAGS_SEP + m_info[Emulator];
 }
 
-void FeRomInfo::load_stats( const std::string &path )
+//
+// Return cloneof name, or romname if none
+//
+const std::string FeRomInfo::get_clone_parent() const
 {
-	// Check if stats already loaded for this one
+	return m_info[Cloneof].empty()
+		? m_info[Romname]
+		: m_info[Cloneof];
+}
+
+//
+// Add tag to the info string
+// - Does NOT check if already has tag - check omitted for performance - caller should check as required
+// - The tags logic requires a FE_TAGS_SEP character on each side of a tag.
+//
+void FeRomInfo::append_tag( const std::string &tag )
+{
+	if ( m_info[Tags].empty() ) m_info[Tags] = FE_TAGS_SEP;
+	m_info[Tags] += tag + FE_TAGS_SEP;
+}
+
+//
+// Remove tag from the info string
+//
+void FeRomInfo::remove_tag( const std::string &tag )
+{
+	// Tag must match with FE_TAGS_SEP on each side
+	size_t pos = get_tag_pos( tag );
+	if ( pos == std::string::npos ) return;
+
+	// remove tag plus preceeding FE_TAGS_SEP
+	int len = tag.size();
+	m_info[Tags].erase( pos, len + 1 );
+
+	// cleanup if no tags remaining
+	if (( m_info[Tags].size() == 1 ) && ( m_info[Tags][0] == FE_TAGS_SEP ))
+		m_info[Tags].clear();
+}
+
+//
+// Populate given set with individual info tag names
+//
+void FeRomInfo::get_tags( std::set<std::string> &tags )
+{
+	size_t pos = 0;
+	std::string tag;
+	while ( token_helper( m_info[Tags], pos, tag, TAGS_SEP_ARG ) )
+		if ( !tag.empty() ) tags.insert( tag );
+}
+
+//
+// Returns true if the given tags exists
+//
+bool FeRomInfo::has_tag( const std::string &tag )
+{
+	return get_tag_pos( tag ) != std::string::npos;
+}
+
+//
+// Returns position of tags within info, or npos
+//
+size_t FeRomInfo::get_tag_pos( const std::string &tag )
+{
+	return m_info[Tags].find( FE_TAGS_SEP + tag + FE_TAGS_SEP );
+}
+
+//
+// Ensure stats have been loaded into this rominfo, resets them to zero if none exist
+// - If force_update is true the stats are re-loaded even if they've already been set
+//
+void FeRomInfo::load_stats(
+	const std::string &path
+)
+{
+	// Exit early if stats already loaded
 	if ( !m_info[PlayedCount].empty() )
+		return;
+
+	// Attempt to load stats from cache, and exit if successful
+	if ( FeCache::get_stats_info( path, m_info ) )
 		return;
 
 	m_info[PlayedCount] = "0";
@@ -127,14 +223,8 @@ void FeRomInfo::load_stats( const std::string &path )
 	if ( path.empty() )
 		return;
 
-	// Attempt to load stats from cache, and exit if successful
-	if ( FeCache::get_stats_info( path, m_info ) )
-		return;
-
-	std::string filename = path + m_info[Emulator] + "/"
-		+ m_info[Romname] + FE_STAT_FILE_EXTENSION;
-	nowide::ifstream myfile( filename.c_str() );
-
+	std::string filename = path + m_info[Emulator] + "/" + m_info[Romname] + FE_STAT_FILE_EXTENSION;
+	nowide::ifstream myfile( filename );
 	if ( !myfile.is_open() )
 		return;
 
@@ -188,7 +278,7 @@ int FeRomInfo::process_setting( const std::string &,
 	size_t pos=0;
 	std::string token;
 
-	for ( int i=1; i < Favourite; i++ )
+	for ( int i=1; i < LAST_INFO; i++ )
 	{
 		token_helper( value, pos, token );
 		m_info[(Index)i] = token;
@@ -200,7 +290,7 @@ int FeRomInfo::process_setting( const std::string &,
 std::string FeRomInfo::as_output( void ) const
 {
 	std::string s = get_info_escaped( (Index)0 );
-	for ( int i=1; i < Favourite; i++ )
+	for ( int i=1; i < LAST_INFO; i++ )
 	{
 		s += ';';
 		s += get_info_escaped( (Index)i );
@@ -228,8 +318,7 @@ bool FeRomInfo::operator==( const FeRomInfo &o ) const
 
 bool FeRomInfo::full_comparison( const FeRomInfo &o ) const
 {
-	// everything from Favourite on is not loaded from the romlist
-	for ( int i=0; i<Favourite; i++ )
+	for ( int i=0; i<LAST_INFO; i++ )
 	{
 		if ( m_info[i].compare( o.m_info[i] ) != 0 )
 			return false;
@@ -549,14 +638,14 @@ void FeFilter::save( nowide::ofstream &f, const char *filter_tag ) const
 		(*itr).save( f );
 }
 
-bool FeFilter::test_for_target( FeRomInfo::Index target ) const
+bool FeFilter::test_for_targets( std::set<FeRomInfo::Index> targets ) const
 {
-	if ( get_sort_by() == target )
+	if ( targets.find( get_sort_by() ) != targets.end() )
 		return true;
 
 	for ( std::vector<FeRule>::const_iterator itr=m_rules.begin(); itr!=m_rules.end(); ++itr )
 	{
-		if ( (*itr).get_target() == target )
+		if ( targets.find( (*itr).get_target() ) != targets.end() )
 			return true;
 	}
 
@@ -845,6 +934,21 @@ bool FeDisplayInfo::show_in_cycle() const
 bool FeDisplayInfo::show_in_menu() const
 {
 	return config_str_to_bool( m_info[InMenu] );
+}
+
+//
+// Returns true if the global or any other filter uses any target in its ruleset
+//
+bool FeDisplayInfo::test_for_targets( std::set<FeRomInfo::Index> targets )
+{
+	FeFilter *global_filter = get_global_filter();
+	if ( global_filter && global_filter->test_for_targets( targets ) ) return true;
+
+	int filters_count = get_filter_count();
+	for ( int i=0; i<filters_count; i++ )
+		if ( get_filter( i )->test_for_targets( targets ) ) return true;
+
+	return false;
 }
 
 const char *FeEmulatorInfo::indexStrings[] =
