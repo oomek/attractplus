@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <cctype>
 #include <ctime>
+#include <thread>
 
 #include <SFML/System/Clock.hpp>
 #include <SFML/Config.hpp>
@@ -853,8 +854,7 @@ void FeSettings::load_state()
 		token_helper( line, pos, tok, ";" );
 		m_menu_layout_file = tok;
 
-		for ( std::vector<FeDisplayInfo>::iterator itl=m_displays.begin();
-					itl != m_displays.end(); ++itl )
+		for ( std::vector<FeDisplayInfo>::iterator itl=m_displays.begin(); itl != m_displays.end(); ++itl )
 		{
 			if ( myfile.good() )
 			{
@@ -864,29 +864,19 @@ void FeSettings::load_state()
 		}
 	}
 
-	// bound checking on the current list state
-	if ( m_current_display >= (int)m_displays.size() )
-		m_current_display = m_displays.size() - 1;
-	if ( m_current_display < 0 )
-		m_current_display = 0;
-
+	// bound checking
+	m_current_display = std::clamp( m_current_display, 0, (int)m_displays.size() - 1 );
+	m_last_launch_display = std::clamp( m_last_launch_display, 0, (int)m_displays.size() - 1 );
+	m_last_launch_filter = std::clamp( m_last_launch_filter, 0, m_displays[ m_last_launch_display ].get_filter_count() - 1 );
 	m_selected_display = m_current_display;
 	m_actual_display_index = m_current_display;
-
-	// bound checking on the last launch state
-	if ( m_last_launch_display >= (int)m_displays.size() )
-		m_last_launch_display = m_displays.size() - 1;
-	if ( m_last_launch_display < 0 )
-		m_last_launch_display = 0;
-
-	if ( m_last_launch_filter >= m_displays[ m_last_launch_display ].get_filter_count() )
-		m_last_launch_filter = m_displays[ m_last_launch_display ].get_filter_count() - 1;
-	if ( m_last_launch_filter < 0 )
-		m_last_launch_filter = 0;
+	int recount_displays = 0;
 
 	// confirm loaded state points to layout files that actually exist (and reset if it doesn't)
 	for ( std::vector<FeDisplayInfo>::iterator itr = m_displays.begin(); itr != m_displays.end(); ++itr )
 	{
+		if ( (*itr).get_display_size_stale() ) recount_displays++;
+
 		std::string file = (*itr).get_current_layout_file();
 		if ( !file.empty() )
 		{
@@ -903,6 +893,47 @@ void FeSettings::load_state()
 				(*itr).set_current_layout_file( "" );
 			}
 		}
+	}
+
+	// Recalculate display sizes for all displays with stale entries
+	if ( recount_displays > 0 )
+	{
+		sf::Clock load_timer;
+		FeLog() << std::endl << "*** Calculating sizes: " << recount_displays << " display(s)" << std::endl;
+
+		std::set<std::string> romlist_names;
+		std::set<FeDisplayInfo*> unique_romlists;
+		std::set<FeDisplayInfo*> duplicate_romlists;
+
+		for ( std::vector<FeDisplayInfo>::iterator itr = m_displays.begin(); itr != m_displays.end(); ++itr )
+		{
+			if ( !(*itr).get_display_size_stale() ) continue;
+			if ( romlist_names.find( (*itr).get_romlist_name() ) == romlist_names.end() )
+			{
+				romlist_names.insert( (*itr).get_romlist_name() );
+				unique_romlists.insert( &(*itr) );
+			}
+			else
+				duplicate_romlists.insert( &(*itr) );
+		}
+
+		// Process displays with unique romlists first
+		// - This creates a romlist cache for the other displays to use
+		// - Otherwise when run in parallel, each display will each attempt to create the same "missing" romlist cache
+		std::vector<std::thread> threads;
+		for ( std::set<FeDisplayInfo*>::iterator itr = unique_romlists.begin(); itr != unique_romlists.end(); ++itr )
+			threads.push_back( std::thread( &FeSettings::load_display_size, this, std::ref( *(*itr) ) ) );
+		for ( std::vector<std::thread>::iterator itt = threads.begin(); itt != threads.end(); ++itt )
+			if ( (*itt).joinable() ) (*itt).join();
+
+		// Next load the displays that will re-use the newly created romlist cache
+		threads.clear();
+		for ( std::set<FeDisplayInfo*>::iterator itr = duplicate_romlists.begin(); itr != duplicate_romlists.end(); ++itr )
+			threads.push_back( std::thread( &FeSettings::load_display_size, this, std::ref( *(*itr) ) ) );
+		for ( std::vector<std::thread>::iterator itt = threads.begin(); itt != threads.end(); ++itt )
+			if ( (*itt).joinable() ) (*itt).join();
+
+		FeLog() << " - Loaded " << recount_displays << " display(s) in " << load_timer.getElapsedTime().asMilliseconds() << " ms" << std::endl;
 	}
 
 	if ( !m_menu_layout_file.empty() )
@@ -922,6 +953,21 @@ void FeSettings::load_state()
 void FeSettings::reset_input()
 {
 	m_inputmap.clear_tracked_keys();
+}
+
+//
+// Updates the display size by loading its romlist
+// - This method is SLOW since it always loads a romlist (cached or not) and may require creating a global filter
+// - The display size otherwise is stored in `attract.am`
+// - This method is intended to run in a thread
+//
+void FeSettings::load_display_size( FeDisplayInfo &display )
+{
+	std::string romlist_name = display.get_info( FeDisplayInfo::Romlist );
+	std::string list_path;
+	internal_resolve_config_file( m_config_path, list_path, FE_ROMLIST_SUBDIR, romlist_name + FE_ROMLIST_FILE_EXTENSION );
+	FeRomList list( m_config_path );
+	list.load_romlist( list_path, romlist_name, display, m_group_clones, m_track_usage );
 }
 
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
@@ -1227,18 +1273,15 @@ const std::string &FeSettings::get_rom_info( int filter_offset, int rom_offset, 
 
 const std::string &FeSettings::get_rom_info_absolute( int filter_index, int rom_index, FeRomInfo::Index index )
 {
-	if ( get_filter_size( filter_index ) < 1 )
+	FeRomInfo *rom = get_rom_absolute( filter_index, rom_index );
+	if ( !rom )
 		return FE_EMPTY_STRING;
 
 	// Make sure we have additional fields if user is requesting them.
 	if ( index == FeRomInfo::FileIsAvailable ) m_rl.get_file_availability();
 	if ( FeRomInfo::isStat( index )) m_rl.get_played_stats();
 
-	// handle situation where we are currently showing a search result
-	if ( !m_current_search.empty() && ( get_current_filter_index() == filter_index ))
-		return m_current_search[ rom_index ]->get_info( index );
-
-	return m_rl.lookup( filter_index, rom_index ).get_info( index );
+	return rom->get_info( index );
 }
 
 FeRomInfo *FeSettings::get_rom_absolute( int filter_index, int rom_index )
@@ -1247,9 +1290,7 @@ FeRomInfo *FeSettings::get_rom_absolute( int filter_index, int rom_index )
 		return NULL;
 
 	// handle situation where we are currently showing a search result
-	//
-	if ( !m_current_search.empty()
-			&& ( get_current_filter_index() == filter_index ))
+	if ( !m_current_search.empty() && ( get_current_filter_index() == filter_index ))
 		return m_current_search[ rom_index ];
 
 	return &(m_rl.lookup( filter_index, rom_index ));
@@ -2485,6 +2526,8 @@ bool FeSettings::update_stats( int play_count, int play_time )
 
 	bool fixed = m_rl.fix_filters( m_displays[m_current_display], std::set<FeRomInfo::Index>( FeRomInfo::Stats.begin(), FeRomInfo::Stats.end() ) );
 
+	// NOTE: Display sizes may be stale here, since updating stats *may* cause list changes
+
 	if ( fixed && ( &m_rl.lookup( filter_index, rom_index ) != rom ))
 	{
 		// Updating the stats actually moved the index of our current
@@ -2682,6 +2725,13 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 		case FeRomInfo::PlayedAgo:
 			value = get_played_ago_display_string( filter_index, rom_index );
 			return true;
+		case FeRomInfo::DisplaySize:
+			{
+				if ( m_current_display >= 0 ) return true;
+				FeDisplayInfo *display = get_display( m_display_menu[ rom_index ] );
+				if ( display ) value = as_str( display->get_display_size() );
+				return true;
+			}
 		default:
 			return false;
 	}

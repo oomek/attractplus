@@ -138,6 +138,7 @@ The following _Magic Tokens_ are supported:
 
 -  List
     -  `[DisplayName]` - The name of the Display
+    -  `[DisplaySize]` - The number of item in the display's global filter
     -  `[FilterName]` - The name of the Filter
     -  `[ListSize]` - The number of items in the list
     -  `[SortName]` - The attribute the list was sorted by
@@ -1299,7 +1300,8 @@ This class is a container for information about the available displays. Instance
 -  `layout` - Get the layout used by this display.
 -  `romlist` - Get the romlist used by this display.
 -  `in_cycle` - Get whether the display is shown in the prev display/next display cycle.
--  `in_menu` - Get whether the display is shown in the "Displays Menu"
+-  `in_menu` - Get whether the display is shown in the "Displays Menu".
+-  `size` - Get the number of global filter results for this display.
 
 ---
 

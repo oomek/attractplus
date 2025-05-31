@@ -1016,6 +1016,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("romlist"), &FeDisplayInfo::get_romlist_name )
 		.Prop( _SC("in_cycle"), &FeDisplayInfo::show_in_cycle )
 		.Prop( _SC("in_menu"), &FeDisplayInfo::show_in_menu )
+		.Prop( _SC("size"), &FeDisplayInfo::get_display_size )
 	);
 
 	fe.Bind( _SC("Filter"), Class <FeFilter, NoConstructor>()
@@ -1778,6 +1779,7 @@ public:
 				.Prop( _SC("romlist"), &FeDisplayInfo::get_romlist_name )
 				.Prop( _SC("in_cycle"), &FeDisplayInfo::show_in_cycle )
 				.Prop( _SC("in_menu"), &FeDisplayInfo::show_in_menu )
+				.Prop( _SC("size"), &FeDisplayInfo::get_display_size )
 			);
 
 			fe.Bind( _SC("Filter"), Sqrat::Class <FeFilter, Sqrat::NoConstructor>()

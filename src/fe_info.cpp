@@ -96,6 +96,7 @@ const char *FeRomInfo::specialStrings[] =
 	"FavouriteHeart",
 	"FavouriteHeartAlt",
 	"PlayedAgo",
+	"DisplaySize",
 	NULL
 };
 
@@ -718,6 +719,8 @@ const char *FeDisplayInfo::otherStrings[] =
 FeDisplayInfo::FeDisplayInfo( const std::string &n )
 	: m_rom_index( 0 ),
 	m_filter_index( 0 ),
+	m_display_size( -1 ),
+	m_display_size_stale( true ),
 	m_current_config_filter( NULL ),
 	m_global_filter( "" )
 {
@@ -820,7 +823,7 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 {
 	// state string is in format:
 	//
-	// "[curr_rom];[curr_layout_filename];[curr_filter];"
+	// "[curr_rom];[curr_layout_filename];[curr_filter];[display_size];"
 	//
 	// With [curr_rom] = "[rom_index filter0],[rom_index filter1],..."
 	//
@@ -851,22 +854,15 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 		}
 	}
 
-	if ( pos >= state_string.size() )
-		return 0;
-
 	token_helper( state_string, pos, val );
 	m_current_layout_file = val;
 
-	if ( pos >= state_string.size() )
-		return 0;
+	token_helper( state_string, pos, val );
+	m_filter_index = std::clamp( as_int( val ), 0, (int)m_filters.size() - 1 );
 
 	token_helper( state_string, pos, val );
-	m_filter_index = as_int( val );
-
-	if ( m_filter_index >= (int)m_filters.size() )
-		m_filter_index = m_filters.size() - 1;
-	if ( m_filter_index < 0 )
-		m_filter_index = 0;
+	m_display_size = val.empty() ? -1 : as_int( val );
+	m_display_size_stale = ( m_display_size == -1 );
 
 	return 0;
 }
@@ -876,20 +872,17 @@ std::string FeDisplayInfo::state_as_output() const
 	std::ostringstream state;
 
 	if ( m_filters.empty() )
-	{
-		state << m_rom_index;
-	}
+		state << m_rom_index << ";";
 	else
 	{
-		for ( std::vector<FeFilter>::const_iterator itr=m_filters.begin();
-			itr != m_filters.end(); ++itr )
-		{
+		for ( std::vector<FeFilter>::const_iterator itr=m_filters.begin(); itr != m_filters.end(); ++itr )
 			state << (*itr).get_rom_index() << ",";
-		}
+		state << ";";
 	}
 
-	state << ";" << m_current_layout_file << ";"
-		<< m_filter_index << ";";
+	state << m_current_layout_file << ";"
+		<< m_filter_index << ";"
+		<< ( m_display_size_stale ? -1 : m_display_size ) << ";";
 
 	return state.str();
 }

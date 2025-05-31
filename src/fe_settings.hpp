@@ -281,6 +281,8 @@ private:
 	void load_state();
 	void clear();
 
+	void load_display_size( FeDisplayInfo &display );
+
 	void construct_display_maps();
 
 	void internal_gather_config_files(

@@ -26,10 +26,12 @@
 #include "fe_cache.hpp"
 
 #include <iostream>
+#include <sstream>
 #include "nowide/fstream.hpp"
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <thread>
 
 #include <squirrel.h>
 #include <sqstdstring.h>
@@ -480,15 +482,20 @@ bool FeRomList::load_romlist(
 	if ( !(response & RomlistResponse::Loaded_Global) )
 		response |= apply_global_filter( display );
 
-	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";
-	FeLog() << romlist_size << " entries";
-	if ( response & RomlistResponse::Loaded_File ) 		FeLog() << " from romlist";
-	if ( response & RomlistResponse::Loaded_Romlist ) 	FeLog() << " from romlist cache";
-	if ( response & RomlistResponse::Loaded_Global ) 	FeLog() << " from globalfilter cache";
-	if ( response & RomlistResponse::Filtered_Global ) 	FeLog() << ", " << m_list.size() << " kept";
-	if ( response & RomlistResponse::Saved_Romlist ) 	FeLog() << ", updated romlist cache";
-	if ( response & RomlistResponse::Saved_Global ) 	FeLog() << ", updated globalfilter cache";
-	FeLog() << ")" << std::endl;
+	display.set_display_size( m_list.size() );
+	display.set_display_size_stale( false );
+
+	std::stringstream outlog;
+	outlog << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";
+	outlog << romlist_size << " entries";
+	if ( response & RomlistResponse::Loaded_File ) 		outlog << " from romlist";
+	if ( response & RomlistResponse::Loaded_Romlist ) 	outlog << " from romlist cache";
+	if ( response & RomlistResponse::Loaded_Global ) 	outlog << " from globalfilter cache";
+	if ( response & RomlistResponse::Filtered_Global ) 	outlog << ", " << as_str( m_list.size()) << " kept";
+	if ( response & RomlistResponse::Saved_Romlist ) 	outlog << ", updated romlist cache";
+	if ( response & RomlistResponse::Saved_Global ) 	outlog << ", updated globalfilter cache";
+	outlog << ")" << std::endl;
+	FeLog() << outlog.str();
 
 	return ( response & RomlistResponse::Loaded_Romlist )
 		|| ( response & RomlistResponse::Loaded_Global )
@@ -592,6 +599,9 @@ void FeRomList::sort_filter_entry(
 	// Sorting
 	if ( sort_by != FeRomInfo::LAST_INDEX )
 	{
+		// Lock since stable_sort is not thread-safe
+		std::lock_guard<std::mutex> l( m_list_mutex );
+
 		// Sort the filter list
 		std::stable_sort( filter_list.begin(), filter_list.end(), FeRomListSorter2( sort_by, rev ) );
 
@@ -667,34 +677,51 @@ void FeRomList::create_filters(
 
 	// If no filters configured create a single filter containing entire romlist
 	int filters_count = std::max( display.get_filter_count(), 1 );
-	int filters_cached = 0;
 	m_comparisons = 0;
 
 	// Apply filters
 	m_filtered_list.clear();
 	m_filtered_list.reserve( filters_count );
+	m_filters_cached = 0;
+	std::vector<std::thread> threads;
+
 	for ( int i=0; i<filters_count; i++ )
-	{
 		m_filtered_list.push_back( FeFilterEntry() );
 
-		// Attempt to load filter from cache
-		if ( FeCache::load_filter( display, m_filtered_list[i], i, lookup ) )
-		{
-			filters_cached++;
-			continue;
-		}
+	for ( int i=0; i<filters_count; i++ )
+		threads.push_back( std::thread( &FeRomList::create_single_filter, this, std::ref( display ), std::ref( lookup ), i ) );
 
-		// If no cache, build and save the filter from scratch
-		build_single_filter_list( display.get_filter( i ), m_filtered_list[i] );
-		FeCache::save_filter( display, m_filtered_list[i], i );
-	}
+	for ( std::vector<std::thread>::iterator itt = threads.begin(); itt != threads.end(); ++itt )
+		if ( (*itt).joinable() ) (*itt).join();
 
 	FeLog() << " - Loaded filters in "
 		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
 		<< filters_count << " filters, "
-		<< filters_cached << " from cache, "
+		<< m_filters_cached << " from cache, "
 		<< m_comparisons << " comparisons"
 		<< ")" << std::endl;
+}
+
+//
+// Create a single filtered_list entry
+// - Run in a thread
+//
+void FeRomList::create_single_filter(
+	FeDisplayInfo &display,
+	std::map<int, FeRomInfo*> &lookup,
+	int filter_index
+)
+{
+	// Attempt to load filter from cache
+	if ( FeCache::load_filter( display, m_filtered_list[filter_index], filter_index, lookup ) )
+	{
+		m_filters_cached++;
+		return;
+	}
+
+	// Build the filter from scratch and save it for next time
+	build_single_filter_list( display.get_filter( filter_index ), m_filtered_list[filter_index] );
+	FeCache::save_filter( display, m_filtered_list[filter_index], filter_index );
 }
 
 //

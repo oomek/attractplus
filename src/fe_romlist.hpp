@@ -28,6 +28,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <mutex>
 
 #include "cereal/cereal.hpp"
 #include <cereal/types/list.hpp>
@@ -177,6 +178,7 @@ private:
 	bool m_played_stats_checked;
 	bool m_group_clones;
 	int m_comparisons; // for keeping stats during load
+	int m_filters_cached;
 
 	FeRomList( const FeRomList & );
 	FeRomList &operator=( const FeRomList & );
@@ -213,6 +215,8 @@ private:
 	void load_shuffle_data();
 	int apply_global_filter( FeDisplayInfo &display );
 	void store_extra_tags( FeRomInfo &rom );
+	void create_single_filter( FeDisplayInfo &display, std::map<int, FeRomInfo*> &lookup, int filter_index );
+	std::mutex m_list_mutex;
 
 public:
 	FeRomList( const std::string &config_path );

@@ -95,6 +95,7 @@ public:
 		FavouriteHeart,
 		FavouriteHeartAlt,
 		PlayedAgo,
+		DisplaySize,
 		LAST_SPECIAL
 	};
 
@@ -332,6 +333,11 @@ public:
 	void delete_filter( int i );
 	void get_filters_list( std::vector<std::string> &l ) const;
 
+	void set_display_size( int s ) { m_display_size = s; }
+	void set_display_size_stale( bool s ) { m_display_size_stale = s; }
+	int get_display_size() const { return m_display_size; }
+	int get_display_size_stale() const { return m_display_size_stale; }
+
 	FeFilter *get_global_filter() { return &m_global_filter; };
 
 	std::string get_current_layout_file() const;
@@ -357,6 +363,8 @@ private:
 	std::string m_current_layout_file;
 	int m_rom_index; // only used if there are no filters on this display
 	int m_filter_index;
+	int m_display_size; // The globalfilter romlist size, will be -1 if not calculated.
+	bool m_display_size_stale; // True if the display has been invalidated
 	FeFilter *m_current_config_filter;
 	FeScriptConfigurable m_layout_per_display_params; // used to store "per display" layout parameters
 

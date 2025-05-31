@@ -127,13 +127,13 @@ void FeCache::set_displays( std::vector<FeDisplayInfo>* displays ) {}
 bool FeCache::validate_romlistmeta( FeRomList &romlist ) { return false; }
 bool FeCache::save_display( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
 bool FeCache::validate_display( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
-bool FeCache::save_available( const FeRomList &romlist, const std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
+bool FeCache::save_available( const FeRomList &romlist, std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
 bool FeCache::load_available( const FeRomList &romlist, std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
 bool FeCache::validate_available( FeRomList &romlist, std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
 bool FeCache::save_romlist( const FeRomList &romlist ) { return false; }
 bool FeCache::load_romlist( FeRomList &romlist ) { return false; }
-bool FeCache::save_globalfilter( const FeDisplayInfo &display, const FeRomList &romlist ) { return false; }
-bool FeCache::load_globalfilter( const FeDisplayInfo &display, FeRomList &romlist ) { return false; }
+bool FeCache::save_globalfilter( FeDisplayInfo &display, const FeRomList &romlist ) { return false; }
+bool FeCache::load_globalfilter( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
 bool FeCache::save_filter( FeDisplayInfo &display, const FeFilterEntry &entry, const int filter_index ) { return false; }
 bool FeCache::load_filter( FeDisplayInfo &display, FeFilterEntry &entry, const int filter_index, const std::map<int, FeRomInfo*> &lookup ) { return false; }
 void FeCache::invalidate_rominfo( const FeRomList &romlist, const std::set<FeRomInfo::Index> targets ) {}
@@ -396,7 +396,7 @@ bool FeCache::save_display(
 }
 
 bool FeCache::save_display(
-	const FeDisplayInfo &display,
+	FeDisplayInfo &display,
 	std::map<std::string, std::string> &info
 )
 {
@@ -409,7 +409,7 @@ bool FeCache::save_display(
 }
 
 bool FeCache::load_display(
-	const FeDisplayInfo &display,
+	FeDisplayInfo &display,
 	std::map<std::string, std::string> &info
 )
 {
@@ -422,7 +422,7 @@ bool FeCache::load_display(
 }
 
 void FeCache::invalidate_display(
-	const FeDisplayInfo &display
+	FeDisplayInfo &display
 )
 {
 	debug( "Invalidate Display", display.get_name() );
@@ -620,7 +620,7 @@ void FeCache::invalidate_romlist(
 //
 
 bool FeCache::save_globalfilter(
-	const FeDisplayInfo &display,
+	FeDisplayInfo &display,
 	const FeRomList &romlist
 )
 {
@@ -632,7 +632,7 @@ bool FeCache::save_globalfilter(
 }
 
 bool FeCache::load_globalfilter(
-	const FeDisplayInfo &display,
+	FeDisplayInfo &display,
 	FeRomList &romlist
 )
 {
@@ -644,11 +644,12 @@ bool FeCache::load_globalfilter(
 }
 
 void FeCache::invalidate_globalfilter(
-	const FeDisplayInfo &display
+	FeDisplayInfo &display
 )
 {
 	debug( "Invalidate GlobalFilter", display.get_name() );
 	delete_cache( get_globalfilter_filename( display ) );
+	display.set_display_size_stale( true );
 	// Invalidate ALL filters for this display
 	int filters_count = std::max( display.get_filter_count(), 1 );
 	for ( int i=0; i<filters_count; i++ )
