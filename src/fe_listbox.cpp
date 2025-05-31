@@ -142,7 +142,7 @@ void FeListBox::init_dimensions()
 	m_base_text.setCharacterSize( char_size * m_scale_factor );
 
 	// Re-create text elements only if row count has changed
-	if ( m_texts.size() != m_rows )
+	if ( (int)m_texts.size() != m_rows )
 	{
 		m_texts.clear();
 
