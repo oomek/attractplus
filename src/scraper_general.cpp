@@ -74,7 +74,7 @@ void write_romlist( const std::string &filename,
 		// one line header showing what the columns represent
 		//
 		outfile << "#" << FeRomInfo::indexStrings[i++];
-		while ( i < FeRomInfo::Favourite )
+		while ( i < FeRomInfo::LAST_INFO )
 			outfile << ";" << FeRomInfo::indexStrings[i++];
 		outfile << std::endl;
 

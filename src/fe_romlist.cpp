@@ -35,10 +35,9 @@
 #include <SFML/System/Clock.hpp>
 
 const char *FE_ROMLIST_FILE_EXTENSION	= ".txt";
-const char *FE_FAVOURITE_FILE_EXTENSION = ".tag";
-
-const char *FE_ROMLIST_SUBDIR	= "romlists/";
-const char *FE_STATS_SUBDIR                     = "stats/";
+const char *FE_TAG_FILE_EXTENSION		= ".tag";
+const char *FE_ROMLIST_SUBDIR			= "romlists/";
+const char *FE_STATS_SUBDIR				= "stats/";
 
 SQRex *FeRomListSorter::m_rex = NULL;
 
@@ -102,7 +101,7 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 	if ( m_comp == FeRomInfo::Title )
 		// Title sort
 		asc = icompare( get_trimmed_title( one ), get_trimmed_title( two ) ) < 0;
-	else if (( m_comp == FeRomInfo::PlayedCount ) || ( m_comp == FeRomInfo::PlayedTime ))
+	else if ( FeRomInfo::isNumeric( m_comp ) )
 		// Numeric sort
 		asc = as_int( one ) < as_int( two );
 	else
@@ -140,478 +139,518 @@ void FeRomList::init_as_empty_list()
 	m_romlist_name.clear();
 	m_list.clear();
 	m_filtered_list.clear();
-	m_filtered_list.push_back( FeFilterEntry()  ); // there always has to be at least one filter
+	m_filtered_list.push_back( FeFilterEntry() ); // there always has to be at least one filter
 	m_tags.clear();
+	m_extra_favs.clear();
+	m_extra_tags.clear();
+
 	m_availability_checked = false;
 	m_played_stats_checked = false;
 	m_group_clones = false;
-	m_fav_changed=false;
-	m_tags_changed=false;
-
-	m_extra_favs.clear();
-	m_extra_tags.clear();
+	m_fav_changed = false;
+	m_tags_changed = false;
 }
 
 void FeRomList::mark_favs_and_tags_changed()
 {
-	m_fav_changed=true;
-	m_tags_changed=true;
+	m_fav_changed = true;
+	m_tags_changed = true;
 }
 
-//
-// Returns true if FileIsAvailable is used by global or display filters
-//
-bool FeRomList::has_file_availability( FeDisplayInfo &display ) {
-	FeFilter *global_filter = display.get_global_filter();
-	bool has_global_rules = global_filter && (global_filter->get_rule_count() > 0);
-	if ( has_global_rules && global_filter->test_for_target( FeRomInfo::FileIsAvailable ) ) return true;
-
-	int filters_count = display.get_filter_count();
-	for ( int i=0; i<filters_count; i++ )
-		if ( display.get_filter( i )->test_for_target( FeRomInfo::FileIsAvailable ) ) return true;
-
-	return false;
-}
-
-//
-// Returns a simple romlist hash used to detect changes
-//
-size_t FeRomList::get_romlist_hash( std::set<std::string> emu_set )
+// Return path to the favourites tag file (not guaranteed to exist)
+std::string FeRomList::get_fav_path()
 {
-	// Find all unique romlist paths
-	std::set<std::string> paths;
-	for ( std::set<std::string>::iterator ite=emu_set.begin(); ite != emu_set.end(); ++ite )
-	{
-		FeEmulatorInfo *emu = get_emulator( *ite );
-		if ( !emu ) continue;
+	return m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + FE_TAG_FILE_EXTENSION;
+}
 
-		std::vector<std::string> emu_paths = emu->get_paths();
-		for ( std::vector<std::string>::iterator itn=emu_paths.begin(); itn != emu_paths.end(); ++itn )
-			paths.insert( emu->clean_path_with_wd( *itn, true ) );
+// Create tag dir, called prior to saving tags
+bool FeRomList::confirm_tag_dir()
+{
+	return confirm_directory( m_config_path + FE_ROMLIST_SUBDIR, m_romlist_name );
+}
+
+// Return dir containing tags for this romlist
+std::string FeRomList::get_tag_dir()
+{
+	return m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + "/";
+}
+
+// Return list of tag filenames in folder
+std::vector<std::string> FeRomList::get_tag_names()
+{
+	std::vector<std::string> names;
+	std::string tag_dir = get_tag_dir();
+	if ( directory_exists( tag_dir ) )
+		get_basename_from_extension( names, tag_dir, FE_TAG_FILE_EXTENSION );
+	return names;
+}
+
+// Return path to given tag file
+std::string FeRomList::get_tag_path( std::string tag )
+{
+	return get_tag_dir() + tag + FE_TAG_FILE_EXTENSION;
+}
+
+//
+// Populate map wih { id -> [rominfo] }, used for Tag application
+// - One id may have multiple rominfo items if the same rom appears multiple times in the romlist!
+//
+void FeRomList::get_romlist_map( std::map<std::string, std::vector<FeRomInfo*>> &rom_map )
+{
+	for ( FeRomInfoListType::iterator itr = m_list.begin(); itr != m_list.end(); ++itr )
+	{
+		rom_map[ (*itr).get_id() ].push_back( &(*itr) );
+		// Adds legacy id to match tag files that dont have emu info
+		rom_map[ (*itr).get_info( FeRomInfo::Romname ) + FE_TAGS_SEP ].push_back( &(*itr) );
+	}
+}
+
+//
+// Populate m_list data from cache or file
+// - Invalidates cache if outdated
+//
+int FeRomList::load_romlist_data(
+	FeDisplayInfo &display
+)
+{
+	FeFilter *global_filter = display.get_global_filter();
+	bool has_global_rules = global_filter && ( global_filter->get_rule_count() > 0 );
+
+	// Load globalfilter cache ( if has global rules )
+	if ( has_global_rules && FeCache::load_globalfilter( display, *this ) )
+		return RomlistResponse::Loaded_Global;
+
+	// Load romlist cache ( if no global rules )
+	if ( FeCache::load_romlist( *this ) )
+		return RomlistResponse::Loaded_Romlist;
+
+	// Reaching this point means the romlist was invalidated
+	// That means this display was also invalidated
+	// Re-save it now to prevent another invalidation in create_filters
+	FeCache::save_display( display, *this );
+
+	// Load romlist from file
+	if ( !FeBaseConfigurable::load_from_file( m_romlist_path, ";" ) )
+		return RomlistResponse::Loaded_None;
+
+	// If grouping by clones, partition the list so masters are ordered before clones
+	// This way masters will be used for the group label, and will be selected upon entering
+	if ( m_group_clones )
+		std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
+
+	return FeCache::save_romlist( *this )
+		? RomlistResponse::Loaded_File | RomlistResponse::Saved_Romlist
+		: RomlistResponse::Loaded_File;
+}
+
+//
+// Used during load_from_file to append rom to m_list
+//
+int FeRomList::process_setting(
+	const std::string &setting,
+	const std::string &value,
+	const std::string &fn )
+{
+	FeRomInfo rom( setting );
+	rom.process_setting( setting, value, fn );
+	rom.index = m_list.size(); // index for filter cache
+	m_list.push_back( rom );
+	return 0;
+}
+
+//
+// Apply Favourites from file to the current m_list
+// - Stores unused favs in m_extra_favs for saving
+//
+void FeRomList::load_fav_data(
+	std::map<std::string, std::vector<FeRomInfo*>> &rom_map
+)
+{
+	m_extra_favs.clear();
+	nowide::ifstream file( get_fav_path() );
+	if ( !file.is_open() ) return;
+
+	size_t pos;
+	std::string line, name, emu, id;
+	std::map<std::string, std::vector<FeRomInfo*>>::iterator itm;
+
+	while ( file.good() )
+	{
+		pos = 0;
+		getline( file, line );
+		token_helper( line, pos, name );
+		if ( name.empty() ) continue;
+		token_helper( line, pos, emu );
+		id = name + FE_TAGS_SEP + emu;
+
+		// Add fav to the rom, or the extra list if no rom
+		itm = rom_map.find( id );
+		if ( itm != rom_map.end() )
+		{
+			for ( std::vector<FeRomInfo*>::iterator itr=(*itm).second.begin(); itr!=(*itm).second.end(); ++itr )
+				(*itr)->set_info( FeRomInfo::Favourite, "1" );
+		}
+		else
+			m_extra_favs.insert( id );
 	}
 
-	// Return a hash of path subdirs and filenames
-	return get_path_content_hash( paths );
+	file.close();
 }
 
-bool FeRomList::load_romlist( const std::string &path,
+//
+// Apply Tags from file(s) to the current m_list
+// - Populates m_tags
+// - Stores unused tags in m_extra_tags for saving
+//
+void FeRomList::load_tag_data(
+	std::map<std::string, std::vector<FeRomInfo*>> &rom_map
+)
+{
+	m_tags.clear();
+	m_extra_tags.clear();
+	std::vector<std::string> tags = get_tag_names();
+
+	size_t pos;
+	std::string line, name, emu, tag;
+	std::map<std::string, std::vector<FeRomInfo*>>::iterator itm;
+
+	for ( std::vector<std::string>::iterator itt=tags.begin(); itt!=tags.end(); ++itt )
+	{
+		tag = *itt;
+		nowide::ifstream file( get_tag_path( tag ) );
+		if ( !file.is_open() ) continue;
+
+		// Add tag to the master list
+		m_tags.insert( std::pair<std::string, bool>( tag, false ) );
+
+		// Collect all tags into a set which removes any duplicates
+		std::set<std::string> ids;
+		while ( file.good() )
+		{
+			pos = 0;
+			getline( file, line );
+			token_helper( line, pos, name );
+			if ( name.empty() ) continue;
+			token_helper( line, pos, emu );
+			ids.insert( name + FE_TAGS_SEP + emu );
+		}
+		file.close();
+
+		// Go thru set and add tag to rom, or the extra list if no rom
+		for ( std::set<std::string>::iterator iti=ids.begin(); iti!=ids.end(); ++iti )
+		{
+			itm = rom_map.find( *iti );
+			if ( itm != rom_map.end() )
+			{
+				for ( std::vector<FeRomInfo*>::iterator itr=(*itm).second.begin(); itr!=(*itm).second.end(); ++itr )
+					(*itr)->append_tag( tag );
+			}
+			else
+				m_extra_tags.insert( std::pair( tag, *iti ) );
+		}
+
+	}
+}
+
+//
+// Add given rom tags to the extra lists for saving
+// - Called when rom is filtered from list
+//
+void FeRomList::store_extra_tags( FeRomInfo &rom )
+{
+	if ( !rom.get_info( FeRomInfo::Favourite ).empty() )
+		m_extra_favs.insert( rom.get_id() );
+
+	if ( !rom.get_info( FeRomInfo::Tags ).empty() )
+	{
+		const std::string &id = rom.get_id();
+		std::vector<std::pair<std::string, bool>> tags_list;
+		get_tags_list( rom, tags_list );
+
+		for ( std::vector<std::pair<std::string, bool>>::iterator itr=tags_list.begin(); itr!=tags_list.end(); ++itr )
+			if ( (*itr).second ) m_extra_tags.insert( std::pair( (*itr).first, id ) );
+	}
+}
+
+//
+// Apply global filter to current m_list
+// - This method is SLOW as it applies filters to ALL m_list entries
+//
+int FeRomList::apply_global_filter(
+	FeDisplayInfo &display
+)
+{
+	FeFilter *global_filter = display.get_global_filter();
+	bool has_global_rules = global_filter && (global_filter->get_rule_count() > 0);
+	if ( !has_global_rules ) return RomlistResponse::Loaded_None;
+
+	global_filter->init();
+
+	// Filter m_list and remove items directly
+	FeRomInfoListType::iterator last_it=m_list.begin();
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
+	{
+		// If filtered out, store rom tags for saving
+		if ( !global_filter->apply_filter( *it ) )
+		{
+			store_extra_tags( *it );
+			++it;
+			continue;
+		}
+
+		// Remove filtered roms
+		if ( last_it != it )
+			it = m_list.erase( last_it, it );
+		else
+			++it;
+
+		last_it = it;
+	}
+
+	// Remove trailing filtered roms
+	if ( last_it != m_list.end() )
+		m_list.erase( last_it, m_list.end() );
+
+	// Save globalfilter cache for next time
+	return FeCache::save_globalfilter( display, *this )
+		? RomlistResponse::Filtered_Global | RomlistResponse::Saved_Global
+		: RomlistResponse::Filtered_Global;
+}
+
+//
+// Loads a Romlist from cache (or file if not cache) into m_list
+// - Applies GlobalFilters and saves cache as necessary
+// - Does NOT create filter lists, caller must use `create_filters`
+//
+bool FeRomList::load_romlist(
+	const std::string &path,
 	const std::string &romlist_name,
 	FeDisplayInfo &display,
 	bool group_clones,
 	bool load_stats	)
 {
-	sf::Clock load_timer;
-	std::string romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
-	time_t mtime = file_mtime( romlist_path );
-	FeFilter *global_filter = display.get_global_filter();
-	bool has_global_rules = global_filter && (global_filter->get_rule_count() > 0);
-
-	// Reset all properties here in case cache load returns early
+	m_romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
 	m_romlist_name = romlist_name;
+	m_group_clones = group_clones;
 	m_fav_changed = false;
 	m_tags_changed = false;
 	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
+	m_list.clear();
+	m_filtered_list.clear();
 
-	int global_filtered_out_count = 0;
-	bool loaded_globalfilter_cache = false;
-	bool saved_globalfilter_cache = false;
-	bool loaded_romlist_cache = false;
-	bool saved_romlist_cache = false;
-	bool success = false;
+	sf::Clock load_timer;
 
-	// If any filter uses FileIsAvailable then check the romlist hash
-	if ( has_file_availability( display ) )
-	{
-		std::set<std::string> emu_set;
-		size_t prev_romlist_hash = 0;
-		FeCache::load_romhash_cache( romlist_name, emu_set, prev_romlist_hash );
-		size_t next_romlist_hash = get_romlist_hash( emu_set );
+	bool test_available = display.test_for_targets({ FeRomInfo::FileIsAvailable });
+	bool test_stats = display.test_for_targets( FeRomInfo::Stats );
+	std::map<std::string, std::vector<std::string>> emu_roms;
 
-		if ( next_romlist_hash != prev_romlist_hash ) {
-			FeCache::save_romhash_cache( romlist_name, emu_set, next_romlist_hash );
-			FeCache::invalidate_rominfo( romlist_name, FeRomInfo::FileIsAvailable );
-		}
-	}
+	FeCache::clear_stats();
+	if ( FeCache::validate_romlistmeta( *this ) && FeCache::validate_display( display, *this ) && test_available )
+		FeCache::validate_available( *this, emu_roms );
 
-	// Attempt to load globalfilter cache
-	if ( has_global_rules && FeCache::load_globalfilter_cache( display, *this ) )
-	{
-		// If globalfilter cache is not valid then invalidate all data for this display
-		success = ( m_group_clones == group_clones ) && ( m_modified_time == mtime );
-		if ( !success ) FeCache::invalidate_display( display );
-		loaded_globalfilter_cache = success;
-	}
+	int response = load_romlist_data( display );
+	int romlist_size = m_list.size();
 
-	// If invalid globalfilter we need to load the romlist to build a new one
-	if ( !has_global_rules || !loaded_globalfilter_cache ) {
+	std::map<std::string, std::vector<FeRomInfo*>> rom_map;
+	get_romlist_map( rom_map );
+	load_fav_data( rom_map );
+	load_tag_data( rom_map );
+	if ( test_available ) get_file_availability( emu_roms );
+	if ( test_stats ) get_played_stats();
 
-		// Attempt to load romlist cache
-		if ( FeCache::load_romlist_cache( m_romlist_name, *this ) )
-		{
-			// If romlist cache is not valid then invalidate all data for this romlist
-			success = ( m_group_clones == group_clones ) && ( m_modified_time == mtime );
-			if ( !success ) FeCache::invalidate_romlist( m_romlist_name );
-			loaded_romlist_cache = success;
-		}
-
-		// Romlist cache has NOT been loaded
-		if ( !loaded_romlist_cache )
-		{
-			m_group_clones = group_clones;
-			m_modified_time = mtime;
-			m_list.clear();
-
-			// Loaded romlist from the original csv (slow)
-			success = FeBaseConfigurable::load_from_file( romlist_path, ";" );
-
-			// Init index value to assist list lookup mapping for saving
-			int index = 0;
-			for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it, index++ )
-				(*it).index = index;
-
-			// Save romlist cache to improve speed for builds using this romlist
-			saved_romlist_cache = FeCache::save_romlist_cache( m_romlist_name, *this );
-		}
-	}
-
-	//
-	// Create rom name to romlist entry lookup map
-	//
-	std::map < std::string, FeRomInfo * > rom_map;
-	std::map < std::string, FeRomInfo * >::iterator rm_itr;
-	for ( FeRomInfoListType::iterator itr = m_list.begin(); itr != m_list.end(); ++itr )
-		rom_map[ (*itr).get_info( FeRomInfo::Romname ) ] = &(*itr);
-
-	//
-	// Load favourites
-	// - Unused favourites will go into m_extra_favs so they can be saved
-	//
-	m_extra_favs.clear();
-	std::string load_name( m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + FE_FAVOURITE_FILE_EXTENSION );
-	nowide::ifstream myfile( load_name.c_str() );
-
-	if ( myfile.is_open() )
-	{
-		while ( myfile.good() )
-		{
-			size_t pos=0;
-			std::string line, name;
-
-			getline( myfile, line );
-			token_helper( line, pos, name );
-
-			if ( !name.empty() )
-			{
-				rm_itr = rom_map.find( name );
-				if ( rm_itr != rom_map.end() )
-					(*rm_itr).second->set_info( FeRomInfo::Favourite, "1" );
-				else
-					m_extra_favs.insert( name );
-			}
-		}
-
-		myfile.close();
-	}
-
-	//
-	// Load tags
-	// - Unused tags will go into m_extra_tags so they can be saved
-	//
-	m_tags.clear();
-	m_extra_tags.clear();
-	load_name = m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + "/";
-
-	if ( directory_exists( load_name ) )
-	{
-		std::vector<std::string> temp_tags;
-		get_basename_from_extension( temp_tags, load_name, FE_FAVOURITE_FILE_EXTENSION );
-
-		for ( std::vector<std::string>::iterator itr=temp_tags.begin(); itr!=temp_tags.end(); ++itr )
-		{
-			if ( (*itr).empty() )
-				continue;
-
-			nowide::ifstream myfile( std::string(load_name + (*itr) + FE_FAVOURITE_FILE_EXTENSION).c_str() );
-
-			if ( !myfile.is_open() )
-				continue;
-
-			std::map<std::string, bool>::iterator itt = m_tags.begin();
-			itt = m_tags.insert( itt, std::pair<std::string,bool>( (*itr), false ) );
-
-			while ( myfile.good() )
-			{
-				size_t pos=0;
-				std::string line, rname;
-
-				getline( myfile, line );
-				token_helper( line, pos, rname );
-
-				if ( !rname.empty() )
-				{
-					rm_itr = rom_map.find( rname );
-					if ( rm_itr != rom_map.end() )
-						(*rm_itr).second->append_tag( (*itt).first.c_str() );
-					else
-						m_extra_tags.insert( std::pair<std::string,const char*>(rname, (*itt).first.c_str() ) );
-				}
-			}
-
-			myfile.close();
-		}
-	}
-
-	//
-	// Apply global filter (skip if already loaded from cache)
-	//
-	if ( has_global_rules && !loaded_globalfilter_cache )
-	{
-		global_filter->init();
-		std::set<std::string> emu_set;
-
-		if ( global_filter->test_for_target( FeRomInfo::FileIsAvailable ) )
-			get_file_availability();
-
-		if ( global_filter->test_for_target( FeRomInfo::PlayedCount )
-			|| global_filter->test_for_target( FeRomInfo::PlayedTime ) )
-			get_played_stats();
-
-		FeRomInfoListType::iterator last_it=m_list.begin();
-		for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); )
-		{
-			// Store a list of all emulators used in the romlist, since there may be multiple
-			emu_set.insert( (*it).get_info( FeRomInfo::Emulator ) );
-
-			if ( global_filter->apply_filter( *it ) )
-			{
-				if ( last_it != it )
-					it = m_list.erase( last_it, it );
-				else
-					++it;
-
-				last_it = it;
-			}
-			else
-			{
-				// This rom is being filtered out
-
-				// Unused favourites will go into m_extra_favs so they can be saved (same as Load favourites above)
-				if ( !(*it).get_info( FeRomInfo::Favourite ).empty() )
-					m_extra_favs.insert( (*it).get_info( FeRomInfo::Romname ) );
-
-				// Unused tags will go into m_extra_tags so they can be saved (same as Load tags above)
-				if ( !(*it).get_info( FeRomInfo::Tags ).empty() )
-				{
-					const std::string &name = (*it).get_info( FeRomInfo::Romname );
-					const std::string &tags = (*it).get_info( FeRomInfo::Tags );
-					const char sep[] = { FE_TAGS_SEP, 0 };
-
-					size_t pos=0;
-					while ( pos < tags.size() )
-					{
-						std::string one_tag;
-						token_helper( tags, pos, one_tag, sep );
-
-						std::map<std::string, bool>::iterator itt = m_tags.find( one_tag );
-						if ( itt != m_tags.end() )
-							m_extra_tags.insert( std::pair<std::string,const char *>( name, (*itt).first.c_str() ) );
-					}
-				}
-
-				global_filtered_out_count++;
-				++it;
-			}
-		}
-
-		if ( last_it != m_list.end() )
-			m_list.erase( last_it, m_list.end() );
-
-		// If grouping by clones partition list so clones are at the end.
-		if ( m_group_clones ) std::stable_partition( m_list.begin(), m_list.end(), fe_not_clone );
-
-		// Save globalfilter for next time
-		saved_globalfilter_cache = FeCache::save_globalfilter_cache( display, *this );
-
-		// Save hash for FileIsAvailable check on next load
-		size_t next_romlist_hash = get_romlist_hash( emu_set );
-		FeCache::save_romhash_cache( romlist_name, emu_set, next_romlist_hash );
-	}
+	if ( !(response & RomlistResponse::Loaded_Global) )
+		response |= apply_global_filter( display );
 
 	FeLog() << " - Loaded romlist '" << m_romlist_name << "' in " << load_timer.getElapsedTime().asMilliseconds() << " ms (";
-	if ( !has_global_rules && !loaded_romlist_cache ) FeLog() << m_list.size() << " entries from romlist";
-	if ( loaded_romlist_cache ) FeLog() << m_list.size() << " entries from romlist cache";
-	if ( has_global_rules && !loaded_globalfilter_cache ) FeLog() << m_list.size() << " kept, " << global_filtered_out_count << " discarded";
-	if ( loaded_globalfilter_cache ) FeLog() << m_list.size() << " entries from globalfilter cache";
-	if ( saved_romlist_cache ) FeLog() << ", cached romlist";
-	if ( saved_globalfilter_cache ) FeLog() << ", cached globalfilter";
+	FeLog() << romlist_size << " entries";
+	if ( response & RomlistResponse::Loaded_File ) 		FeLog() << " from romlist";
+	if ( response & RomlistResponse::Loaded_Romlist ) 	FeLog() << " from romlist cache";
+	if ( response & RomlistResponse::Loaded_Global ) 	FeLog() << " from globalfilter cache";
+	if ( response & RomlistResponse::Filtered_Global ) 	FeLog() << ", " << m_list.size() << " kept";
+	if ( response & RomlistResponse::Saved_Romlist ) 	FeLog() << ", updated romlist cache";
+	if ( response & RomlistResponse::Saved_Global ) 	FeLog() << ", updated globalfilter cache";
 	FeLog() << ")" << std::endl;
 
-	create_filters( display );
-	return success;
+	return ( response & RomlistResponse::Loaded_Romlist )
+		|| ( response & RomlistResponse::Loaded_Global )
+		|| ( response & RomlistResponse::Loaded_File );
 }
 
-void FeRomList::build_single_filter_list( FeFilter *f,
-	FeFilterEntry &result )
+//
+// Populate the filter entry
+//
+void FeRomList::build_single_filter_list(
+	FeFilter *f,
+	FeFilterEntry &result
+)
 {
+	build_filter_entry( f, result );
+	if ( f ) f->set_size( result.filter_list.size() ); // Store size of pre-limited list
+	sort_filter_entry( f, result );
+}
+
+inline void FeRomList::add_group_entry(
+	FeRomInfo &rom,
+	FeFilterEntry &result
+)
+{
+	// Find the group
+	std::string group_name = rom.get_clone_parent();
+	std::map<std::string,std::vector<FeRomInfo*>>::iterator itg = result.clone_group.find( group_name );
+
+	// Add a new group if none
+	if ( itg == result.clone_group.end() )
+	{
+		result.filter_list.push_back( &rom );
+		itg = result.clone_group.insert( itg, std::pair( group_name, std::vector<FeRomInfo*>() ) );
+	}
+
+	// Add current rom to the group
+	itg->second.push_back( &rom );
+}
+
+//
+// Apply the given filter to populate the filter_list and clone_group
+//
+void FeRomList::build_filter_entry(
+	FeFilter *f,
+	FeFilterEntry &result
+)
+{
+	// Clear clone_group and filter_list
+	result.clear();
+	std::vector<FeRomInfo*> &filter_list = result.filter_list;
+
+	// Since m_list could be large we make the filter loops as tight as possible
 	if ( f )
 	{
-		if ( f->get_size() > 0 ) // if this is non zero then we've loaded before and know how many to expect
-			result.filter_list.reserve( f->get_size() );
-
-		if ( f->test_for_target( FeRomInfo::FileIsAvailable ) )
-			get_file_availability();
-
-		if ( f->test_for_target( FeRomInfo::PlayedCount )
-				|| f->test_for_target( FeRomInfo::PlayedTime ) )
-			get_played_stats();
-
 		f->init();
-
-		for ( FeRomInfoListType::iterator itr=m_list.begin(); itr!=m_list.end(); ++itr )
-		{
-			if ( f->apply_filter( *itr ) )
-			{
-				if ( m_group_clones )
-				{
-					std::string id = (*itr).get_info( FeRomInfo::Cloneof );
-					if ( id.empty() )
-						id = (*itr).get_info( FeRomInfo::Romname );
-
-					std::map<std::string,std::vector<FeRomInfo *> >::iterator it;
-					it = result.clone_group.find( id );
-
-					if ( it == result.clone_group.end() )
-					{
-						result.filter_list.push_back( &( *itr ) );
-
-						it = result.clone_group.insert( it,
-							std::pair< std::string, std::vector < FeRomInfo * > >(
-								id,
-								std::vector<FeRomInfo *>() ) );
-					}
-					(*it).second.push_back( &( *itr ) );
-				}
-				else
-					result.filter_list.push_back( &( *itr ) );
-			}
-		}
-	}
-	else // no filter situation, so we just add the entire list...
-	{
-		result.filter_list.reserve( m_list.size() );
+		m_comparisons += m_list.size();
 		if ( m_group_clones )
 		{
-			std::string last_name, this_name;
 			for ( FeRomInfoListType::iterator itr=m_list.begin(); itr!=m_list.end(); ++itr )
-			{
-				std::string id = (*itr).get_info( FeRomInfo::Cloneof );
-				if ( id.empty() )
-					id = (*itr).get_info( FeRomInfo::Romname );
-
-				std::map<std::string,std::vector<FeRomInfo *> >::iterator it;
-				it = result.clone_group.find( id );
-
-				if ( it == result.clone_group.end() )
-				{
-					result.filter_list.push_back( &( *itr ) );
-					it = result.clone_group.insert( it,
-						std::pair< std::string, std::vector < FeRomInfo * > >(
-							id,
-							std::vector<FeRomInfo *>() ) );
-				}
-				(*it).second.push_back( &( *itr ) );
-			}
+				if ( f->apply_filter( *itr ) ) add_group_entry( *itr, result );
 		}
 		else
 		{
 			for ( FeRomInfoListType::iterator itr=m_list.begin(); itr!=m_list.end(); ++itr )
-				result.filter_list.push_back( &( *itr ) );
+				if ( f->apply_filter( *itr ) ) filter_list.push_back( &(*itr) );
 		}
 	}
-
-	if ( f )
+	else
 	{
-		// track the size of the filtered list in our filter info object
-		f->set_size( result.filter_list.size() );
-
-		//
-		// Sort and/or prune now if configured for this filter
-		//
-		FeRomInfo::Index sort_by=f->get_sort_by();
-		bool rev = f->get_reverse_order();
-		int list_limit = f->get_list_limit();
-
-		if ( sort_by != FeRomInfo::LAST_INDEX )
+		if ( m_group_clones )
 		{
-			if (( sort_by == FeRomInfo::PlayedCount )
-					|| ( sort_by == FeRomInfo::PlayedTime ))
-				get_played_stats();
-
-			std::stable_sort( result.filter_list.begin(),
-				result.filter_list.end(),
-				FeRomListSorter2( sort_by, rev ) );
-
-			std::map< std::string, std::vector < FeRomInfo * > >::iterator itg;
-			for ( itg= result.clone_group.begin(); itg != result.clone_group.end(); ++itg )
-			{
-				std::stable_sort( (*itg).second.begin(), (*itg).second.end(),
-					FeRomListSorter2( sort_by, rev ) );
-			}
+			for ( FeRomInfoListType::iterator itr=m_list.begin(); itr!=m_list.end(); ++itr )
+				add_group_entry( *itr, result );
 		}
-		else if ( rev != false )
-			std::reverse( result.filter_list.begin(), result.filter_list.end() );
-
-		if (( list_limit != 0 ) && ( (int)result.filter_list.size() > abs( list_limit ) ))
+		else
 		{
-			if ( list_limit > 0 )
-				result.filter_list.erase( result.filter_list.begin() + list_limit, result.filter_list.end() );
-			else
-				result.filter_list.erase( result.filter_list.begin(), result.filter_list.end() + list_limit );
+			filter_list.reserve( m_list.size() );
+			for ( FeRomInfoListType::iterator itr=m_list.begin(); itr!=m_list.end(); ++itr )
+				filter_list.push_back( &(*itr) );
 		}
 	}
 }
 
-void FeRomList::get_clone_group( int filter_idx, int idx, std::vector < FeRomInfo * > &group )
+//
+// Apply filter sorting and limiting to the entry
+//
+void FeRomList::sort_filter_entry(
+	FeFilter *f,
+	FeFilterEntry &result
+)
 {
-	FeRomInfo &ri = lookup( filter_idx, idx );
+	if ( !f ) return;
+	std::vector<FeRomInfo*> &filter_list = result.filter_list;
+	std::map<std::string, std::vector<FeRomInfo*>> &clone_group = result.clone_group;
 
-	std::string id;
-	id = ri.get_info( FeRomInfo::Cloneof );
+	// Sort and limit the filtered list
+	FeRomInfo::Index sort_by = f->get_sort_by();
+	bool rev = f->get_reverse_order();
+	int limit = f->get_list_limit();
 
-	if ( id.empty() )
-		id = ri.get_info( FeRomInfo::Romname );
+	// Sorting
+	if ( sort_by != FeRomInfo::LAST_INDEX )
+	{
+		// Sort the filter list
+		std::stable_sort( filter_list.begin(), filter_list.end(), FeRomListSorter2( sort_by, rev ) );
 
-	std::map< std::string, std::vector < FeRomInfo * > >::iterator it;
+		// Sort the clone groups
+		std::map<std::string, std::vector<FeRomInfo*>>::iterator itg;
+		for ( itg = clone_group.begin(); itg != clone_group.end(); ++itg )
+			std::stable_sort( (*itg).second.begin(), (*itg).second.end(), FeRomListSorter2( sort_by, rev ) );
+	}
+	else if ( rev != false )
+	{
+		// If not sorted the romlist entry order is used - but may still be reversed
+		std::reverse( filter_list.begin(), filter_list.end() );
 
-	it = m_filtered_list[filter_idx].clone_group.find( id );
+		// Reverse the clone groups
+		std::map<std::string, std::vector<FeRomInfo*>>::iterator itg;
+		for ( itg = clone_group.begin(); itg != clone_group.end(); ++itg )
+			std::reverse( (*itg).second.begin(), (*itg).second.end() );
+	}
+
+	// Limiting
+	if (( limit != 0 ) && ( (int)filter_list.size() > abs( limit ) ))
+	{
+		int a = limit > 0 ? limit : 0; // +ve limit keeps head
+		int b = limit > 0 ? 0 : limit; // -ve limit keeps tail
+		filter_list.erase( filter_list.begin() + a, filter_list.end() + b );
+	}
+}
+
+//
+// Populate group with clones of the rom at the given index
+//
+void FeRomList::get_clone_group(
+	int filter_idx,
+	int idx,
+	std::vector<FeRomInfo*> &group
+)
+{
+	FeRomInfo &rom = lookup( filter_idx, idx );
+
+	// Get the clone name
+	std::string group_name = rom.get_clone_parent();
+
+	// Find the clone group for the target group_name
+	std::map<std::string, std::vector<FeRomInfo*>>::iterator it = m_filtered_list[filter_idx].clone_group.find( group_name );
 	if ( it != m_filtered_list[filter_idx].clone_group.end() )
 	{
-		std::vector<FeRomInfo *>::iterator itr;
-
-		for ( itr= (*it).second.begin(); itr != (*it).second.end(); ++itr )
+		// Populate the group
+		std::vector<FeRomInfo*>::iterator itr;
+		for ( itr = (*it).second.begin(); itr != (*it).second.end(); ++itr )
 			group.push_back( (*itr) );
 	}
 	else
-		group.push_back( &ri );
+	{
+		// No group found, just return the target rom
+		group.push_back( &rom );
+	}
 }
 
 void FeRomList::create_filters(
 	FeDisplayInfo &display )
 {
+	// create_filters may be called by update_romlist_after_edit
+	// - we must validate AGAIN to clear any filters the rom may now appear in
+	// - NOTE: this may also invalidate the globalfilter - but it is NOT reloaded at this time... (same as legacy)
+	FeCache::validate_display( display, *this );
+
 	sf::Clock load_timer;
 
-	// Prepare an indexed lookup for faster filter cache loading
+	// Prepare an indexed lookup for filter cache loading
 	std::map<int, FeRomInfo*> lookup;
 	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
 		lookup[it->index] = &(*it);
 
-	int filters_cached = 0;
-
 	// If no filters configured create a single filter containing entire romlist
-	int filters_count = display.get_filter_count();
-	int display_filters_count = filters_count;
-	if ( filters_count == 0 ) filters_count = 1;
+	int filters_count = std::max( display.get_filter_count(), 1 );
+	int filters_cached = 0;
+	m_comparisons = 0;
 
 	// Apply filters
 	m_filtered_list.clear();
@@ -621,251 +660,207 @@ void FeRomList::create_filters(
 		m_filtered_list.push_back( FeFilterEntry() );
 
 		// Attempt to load filter from cache
-		if ( FeCache::load_filter_cache( display, m_filtered_list[i], i, lookup ) )
+		if ( FeCache::load_filter( display, m_filtered_list[i], i, lookup ) )
 		{
-			if (i < display_filters_count)
-				display.get_filter( i )->set_size( m_filtered_list[i].filter_list.size() );
 			filters_cached++;
 			continue;
 		}
 
 		// If no cache, build and save the filter from scratch
 		build_single_filter_list( display.get_filter( i ), m_filtered_list[i] );
-		FeCache::save_filter_cache( display, m_filtered_list[i], i );
+		FeCache::save_filter( display, m_filtered_list[i], i );
 	}
 
 	FeLog() << " - Loaded filters in "
 		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
 		<< filters_count << " filters, "
 		<< filters_cached << " from cache, "
-		<< ((filters_count - filters_cached) * m_list.size()) << " comparisons"
+		<< m_comparisons << " comparisons"
 		<< ")" << std::endl;
 }
 
-int FeRomList::process_setting( const std::string &setting,
-				const std::string &value,
-				const std::string &fn )
-{
-	FeRomInfo next_rom( setting );
-	next_rom.process_setting( setting, value, fn );
-	m_list.push_back( next_rom );
-
-	return 0;
-}
-
+//
+// Save changed favs and tags
+//
 void FeRomList::save_state()
 {
 	save_favs();
 	save_tags();
 }
 
+//
+// Save m_list and m_extra fav to file
+//
 void FeRomList::save_favs()
 {
-	if (( !m_fav_changed ) || ( m_romlist_name.empty() ))
+	// Exit early if no changes
+	if ( !m_fav_changed || m_romlist_name.empty() )
 		return;
 
-	//
-	// First gather all the favourites from the current list into our extra favs list
-	//
+	m_fav_changed = false;
+
+	// The list of favs to write
+	std::set<std::string> values;
+
+	// Add extra favs
+	for ( std::set<std::string>::const_iterator itr = m_extra_favs.begin(); itr != m_extra_favs.end(); ++itr )
+		values.insert( *itr );
+
+	// Add m_list favs
 	for ( FeRomInfoListType::const_iterator itr = m_list.begin(); itr != m_list.end(); ++itr )
+		if ( !(*itr).get_info( FeRomInfo::Favourite ).empty() )
+			values.insert( (*itr).get_id() );
+
+	// Delete file if no values
+	std::string path = get_fav_path();
+	if ( values.empty() )
 	{
-		if ( !((*itr).get_info( FeRomInfo::Favourite ).empty()) )
-			m_extra_favs.insert( (*itr).get_info( FeRomInfo::Romname ) );
+		delete_file( path );
+		return;
 	}
 
-	//
-	// Now save the contents of favs list
-	//
-	std::string fname = m_config_path + FE_ROMLIST_SUBDIR + m_romlist_name + FE_FAVOURITE_FILE_EXTENSION;
-
-	if ( m_extra_favs.empty() )
+	// Write values to file
+	nowide::ofstream file( path );
+	if ( file.is_open() )
 	{
-		delete_file( fname );
-	}
-	else
-	{
-		nowide::ofstream outfile( fname.c_str() );
-		if ( !outfile.is_open() )
-			return;
-
-		for ( std::set<std::string>::const_iterator itf = m_extra_favs.begin(); itf != m_extra_favs.end(); ++itf )
-			outfile << (*itf) << std::endl;
-
-		outfile.close();
+		for ( std::set<std::string>::const_iterator it = values.begin(); it != values.end(); ++it )
+			file << (*it) << std::endl;
+		file.close();
 	}
 }
 
+//
+// Save m_list and m_extra tags to named tag files
+//
 void FeRomList::save_tags()
 {
-	if (( !m_tags_changed ) || ( m_romlist_name.empty() ))
+	if ( !m_tags_changed || m_romlist_name.empty() )
 		return;
 
-	// First construct a mapping of tags to rom entries
-	//
-	std::multimap< std::string, const char * > tag_to_rom_map;
+	m_tags_changed = false;
 
-	for ( std::multimap< std::string, const char * >::const_iterator ite = m_extra_tags.begin(); ite != m_extra_tags.end(); ++ite )
+	// The list of tags to write
+	std::multimap<std::string, std::string> tag_roms;
+
+	// Add extra tags
+	for ( std::multimap<std::string, std::string>::const_iterator itr = m_extra_tags.begin(); itr != m_extra_tags.end(); ++itr )
+		tag_roms.insert( *itr );
+
+	// Add m_list tags
+	for ( FeRomInfoListType::iterator itr = m_list.begin(); itr != m_list.end(); ++itr )
 	{
-		tag_to_rom_map.insert(
-				std::pair<std::string,const char *>(
-						(*ite).second,
-						(*ite).first.c_str() ) );
+		const std::string id = (*itr).get_id();
+		std::set<std::string> tags;
+		(*itr).get_tags( tags );
+
+		for ( std::set<std::string>::iterator it = tags.begin(); it != tags.end(); ++it )
+			tag_roms.insert( std::pair( *it, id ) );
 	}
 
-	for ( FeRomInfoListType::const_iterator itr = m_list.begin(); itr != m_list.end(); ++itr )
-	{
-		const std::string &my_tags = (*itr).get_info( FeRomInfo::Tags );
+	// Ensure tags path exists
+	confirm_tag_dir();
 
-		size_t pos=0;
-		do
-		{
-			std::string one_tag;
-			const char sep[] = { FE_TAGS_SEP, 0 };
-			token_helper( my_tags, pos, one_tag, sep );
-
-			if ( !one_tag.empty() )
-			{
-				tag_to_rom_map.insert(
-						std::pair<std::string,const char *>(
-								one_tag,
-								((*itr).get_info( FeRomInfo::Romname )).c_str() ) );
-			}
-		} while ( pos < my_tags.size() );
-	}
-
-	std::string user_path = m_config_path + FE_ROMLIST_SUBDIR;
-	confirm_directory( user_path, m_romlist_name );
-	std::string my_path = user_path + m_romlist_name + "/";
-
-	//
-	// Now save the tags
-	//
-	std::map<std::string,bool>::const_iterator itt;
+	// Save the tags
+	std::map<std::string, bool>::const_iterator itt;
 	for ( itt = m_tags.begin(); itt != m_tags.end(); ++itt )
 	{
-		if ( (*itt).second == false )
-			continue;
+		// Exit early if this tag has not been flagged as changed
+		if ( (*itt).second == false ) continue;
+		std::string tag = (*itt).first;
 
-		std::string file_name = my_path + (*itt).first + FE_FAVOURITE_FILE_EXTENSION;
+		// Get values matching the current tag
+		std::pair<
+			std::multimap<std::string, std::string>::const_iterator,
+			std::multimap<std::string, std::string>::const_iterator
+		> values = tag_roms.equal_range( tag );
 
-		std::pair<std::multimap<std::string,const char *>::const_iterator,std::multimap<std::string,const char *>::const_iterator> ret;
-		ret = tag_to_rom_map.equal_range( (*itt).first );
-		if ( ret.first == ret.second )
+		// Delete file if no values
+		std::string path = get_tag_path( tag );
+		if ( values.first == values.second )
 		{
-			delete_file( file_name );
+			delete_file( path );
+			return;
 		}
-		else
+
+		// Write values to file
+		nowide::ofstream file( path );
+		if ( file.is_open() )
 		{
-			nowide::ofstream outfile( file_name.c_str() );
-			if ( !outfile.is_open() )
-				continue;
-
-			for ( std::multimap<std::string,const char *>::const_iterator ito = ret.first; ito != ret.second; ++ito )
-				outfile << (*ito).second << std::endl;
-
-			outfile.close();
+			for ( std::multimap<std::string, std::string>::const_iterator it = values.first; it != values.second; ++it )
+				file << (*it).second << std::endl;
+			file.close();
 		}
 	}
 }
 
-bool FeRomList::set_fav( FeRomInfo &r, FeDisplayInfo &display, bool fav )
+//
+// Set the favourite state for the given rom
+//
+bool FeRomList::set_fav( FeRomInfo &rom, FeDisplayInfo &display, bool fav )
 {
-	r.set_info( FeRomInfo::Favourite, fav ? "1" : "" );
-	m_fav_changed=true;
+	bool has_fav = !rom.get_info( FeRomInfo::Favourite ).empty();
+	if ( has_fav == fav ) return false;
 
-	FeCache::invalidate_rominfo( display.get_romlist_name(), FeRomInfo::Favourite );
-	return fix_filters( display, FeRomInfo::Favourite );
+	m_fav_changed = true;
+	rom.set_info( FeRomInfo::Favourite, fav ? "1" : "" );
+	return fix_filters( display, { FeRomInfo::Favourite } );
 }
 
-void FeRomList::get_tags_list( FeRomInfo &rom,
-		std::vector< std::pair<std::string, bool> > &tags_list ) const
+//
+// Populate given list with rom tag availability [{ tag, flagged }]
+//
+void FeRomList::get_tags_list(
+	FeRomInfo &rom,
+	std::vector<std::pair<std::string, bool>> &tags_list
+) const
 {
-	std::string curr_tags = rom.get_info(FeRomInfo::Tags);
-
-	std::set<std::string> my_set;
-	size_t pos=0;
-	do
-	{
-		std::string one_tag;
-		const char sep[] = { FE_TAGS_SEP, 0 };
-		token_helper( curr_tags, pos, one_tag, sep );
-		if ( !one_tag.empty() )
-		{
-			my_set.insert( one_tag );
-		}
-	} while ( pos < curr_tags.size() );
+	std::set<std::string> tags;
+	rom.get_tags( tags );
 
 	for ( std::map<std::string, bool>::const_iterator itr=m_tags.begin(); itr!=m_tags.end(); ++itr )
-	{
-		tags_list.push_back(
-				std::pair<std::string, bool>((*itr).first,
-						( my_set.find( (*itr).first ) != my_set.end() ) ) );
-	}
+		tags_list.push_back( std::pair( (*itr).first, tags.find( (*itr).first ) != tags.end() ) );
 }
 
+//
+// Add or remove tag from rom (flag = add tag)
+//
 bool FeRomList::set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::string &tag, bool flag )
 {
-	std::string curr_tags = rom.get_info(FeRomInfo::Tags);
-	size_t pos = curr_tags.find( FE_TAGS_SEP + tag + FE_TAGS_SEP );
+	bool found = rom.has_tag( tag );
+	bool changed = ( found != flag );
+	if ( !changed ) return false;
 
-	std::map<std::string, bool>::iterator itt = m_tags.begin();
+	if ( !found )
+		rom.append_tag( tag );
+	else
+		rom.remove_tag( tag );
 
-	if ( flag == true )
-	{
-		if ( pos == std::string::npos )
-		{
-			rom.append_tag( tag );
-			m_tags_changed = true;
+	// Update m_tags changed flag (whether added or removed)
+	m_tags_changed = true;
+	std::map<std::string, bool>::iterator itt = m_tags.find( tag );
+	if ( itt != m_tags.end() )
+		(*itt).second = true;
+	else
+		m_tags.insert( std::pair( tag, true ) );
 
-			itt = m_tags.find( tag );
-			if ( itt != m_tags.end() )
-				(*itt).second = true;
-			else
-				itt = m_tags.insert( itt, std::pair<std::string,bool>( tag, true ) );
-		}
-	}
-	else if ( pos != std::string::npos )
-	{
-		pos++; // because we searched for the preceeding FE_TAGS_SEP as well
-		int len = tag.size();
-
-		if (( ( pos + len ) < curr_tags.size() )
-				&& ( curr_tags.at( pos + len ) == FE_TAGS_SEP ))
-			len++;
-
-		curr_tags.erase( pos, len );
-
-		//
-		// Clean up our leading FE_TAGS_SEP if there are no tags left
-		//
-		if (( curr_tags.size() == 1 ) && (curr_tags[0] == FE_TAGS_SEP ))
-			curr_tags.clear();
-
-		rom.set_info( FeRomInfo::Tags, curr_tags );
-		m_tags_changed = true;
-
-		itt = m_tags.find( tag );
-		if ( itt != m_tags.end() )
-			(*itt).second = true;
-		else
-			itt = m_tags.insert( itt, std::pair<std::string,bool>( tag, true ) );
-	}
-
-	FeCache::invalidate_rominfo( display.get_romlist_name(), FeRomInfo::Tags );
-	return fix_filters( display, FeRomInfo::Tags );
+	return fix_filters( display, { FeRomInfo::Tags } );
 }
 
-bool FeRomList::fix_filters( FeDisplayInfo &display, FeRomInfo::Index target )
+//
+// Rebuild filters that use the given info-target for sorting or filtering
+//
+bool FeRomList::fix_filters( FeDisplayInfo &display, std::set<FeRomInfo::Index> targets )
 {
+	FeCache::invalidate_rominfo( display.get_romlist_name(), targets );
+
 	bool retval = false;
 	for ( int i=0; i<display.get_filter_count(); i++ )
 	{
 		FeFilter *f = display.get_filter( i );
 		ASSERT( f );
 
-		if ( f->test_for_target( target ) )
+		if ( f->test_for_targets( targets ) )
 		{
-			m_filtered_list[i].clear();
 			build_single_filter_list( f, m_filtered_list[i] );
 			retval = true;
 		}
@@ -874,56 +869,85 @@ bool FeRomList::fix_filters( FeDisplayInfo &display, FeRomInfo::Index target )
 	return retval;
 }
 
-void FeRomList::get_file_availability()
+//
+// Check availability of all roms in m_list
+//
+void FeRomList::get_file_availability(
+	std::map<std::string, std::vector<std::string>> emu_roms
+)
 {
 	if ( m_availability_checked )
 		return;
 
-	m_availability_checked = true;
+	std::map<std::string, std::vector<FeRomInfo*>> emu_map;
 
-	std::map<std::string,std::vector<FeRomInfo *> > emu_map;
-
+	// Create map of emulator->[rominfo] since m_list may contain multiple emulators
 	for ( FeRomInfoListType::iterator itr=m_list.begin(); itr != m_list.end(); ++itr )
 		emu_map[ ((*itr).get_info( FeRomInfo::Emulator )) ].push_back( &(*itr) );
 
-	// figure out what roms we have for each emulator
-	for ( std::map<std::string,std::vector<FeRomInfo *> >::iterator ite=emu_map.begin();
-					ite != emu_map.end(); ++ite )
+	// Check each emulator list
+	for ( std::map<std::string,std::vector<FeRomInfo*>>::iterator ite=emu_map.begin(); ite != emu_map.end(); ++ite )
 	{
-		FeEmulatorInfo *emu = get_emulator( (*ite).first );
-		if ( emu )
+		std::string emu_name = (*ite).first;
+		FeEmulatorInfo *emu = get_emulator( emu_name );
+		if ( !emu ) continue;
+
+		// Get a list of rom names, re-use given emu_roms if available
+		// - emu_roms comes from validate_available check
+		// - using it saves a second gather (it will be empty if invalid)
+		std::vector<std::string> rom_names;
+		if ( emu_roms.find( emu_name ) != emu_roms.end() )
+			rom_names = emu_roms[ emu_name ];
+		else
 		{
-			std::vector<std::string> name_vector;
-			emu->gather_rom_names( name_vector );
+			emu->gather_rom_names( rom_names );
+			emu_roms.insert( std::pair( emu_name, rom_names ));
+		}
 
-			std::set<std::string> name_set;
-			for ( std::vector<std::string>::iterator itv=name_vector.begin(); itv!=name_vector.end(); ++itv )
-				name_set.insert( *itv );
+		// convert to set for faster find
+		std::set<std::string> rom_set( rom_names.begin(), rom_names.end() );
 
-			for ( std::vector<FeRomInfo *>::iterator itp=(*ite).second.begin(); itp!=(*ite).second.end(); ++itp )
-			{
-				if ( name_set.find( (*itp)->get_info( FeRomInfo::Romname ) ) != name_set.end() )
-					(*itp)->set_info( FeRomInfo::FileIsAvailable, "1" );
-			}
+		// For each rom, check if it's in the romname set
+		for ( std::vector<FeRomInfo*>::iterator itr=(*ite).second.begin(); itr!=(*ite).second.end(); ++itr )
+		{
+			(*itr)->set_info(
+				FeRomInfo::FileIsAvailable,
+				( rom_set.find( (*itr)->get_info( FeRomInfo::Romname ) ) != rom_set.end() ) ? "1" : ""
+			);
 		}
 	}
+
+	// Store roms for future checks
+	FeCache::save_available( *this, emu_roms );
+
+	m_availability_checked = true;
 }
 
+//
+// Load stats into all roms in m_list
+//
 void FeRomList::get_played_stats()
 {
 	if ( m_played_stats_checked )
 		return;
 
+	// Force stat loading since globalfilter may have been loaded from cache with stale stats
+	std::string path = m_config_path + FE_STATS_SUBDIR;
 	for ( FeRomInfoListType::iterator itr=m_list.begin(); itr != m_list.end(); ++itr )
-		(*itr).load_stats( m_config_path + FE_STATS_SUBDIR );
+		(*itr).load_stats( path );
 
 	m_played_stats_checked = true;
 }
 
+//
+// Load stats into rom at given index
+//
 void FeRomList::load_stats( int filter_idx, int idx )
 {
 	lookup( filter_idx, idx ).load_stats( m_config_path + FE_STATS_SUBDIR );
 }
+
+// -------------------------------------------------------------------------------------
 
 // NOTE: this function is implemented in fe_settings.cpp
 bool internal_resolve_config_file(
@@ -1055,100 +1079,106 @@ void FeRomList::delete_emulator( const std::string & emu )
 //
 // Converts FeRomInfo pointers to indexes for caching
 //
-void FeFilterIndexes::filter_list_to_indexes(
-	std::vector<FeRomInfo*> &filter_list,
+bool FeFilterIndexes::filter_list_to_indexes(
+	const std::vector<FeRomInfo*> &filter_list,
 	std::vector<int> &indexes
 )
 {
 	indexes.clear();
 	indexes.reserve( filter_list.size() );
 
-	std::transform(
-		filter_list.begin(),
-		filter_list.end(),
-		std::back_inserter( indexes ),
-		[]( FeRomInfo* info ) { return info->index; }
-	);
-}
+	for ( std::vector<FeRomInfo*>::const_iterator it=filter_list.begin(); it!=filter_list.end(); ++it)
+		indexes.push_back( (*it)->index );
 
-//
-// Converts mapped FeRomInfo pointers to indexes for caching
-//
-void FeFilterIndexes::clone_group_to_indexes(
-	std::map<std::string, std::vector<FeRomInfo*>> &clone_group,
-	std::map<std::string, std::vector<int>> &indexes
-)
-{
-	indexes.clear();
-
-	std::for_each(
-		clone_group.begin(),
-		clone_group.end(),
-		[ this, &indexes ]( std::pair<std::string, std::vector<FeRomInfo*>> it )
-		{
-			indexes[ it.first ] = std::vector<int>();
-			filter_list_to_indexes( it.second, indexes[ it.first ] );
-		}
-	);
+	return true;
 }
 
 //
 // Restores indexes back to FeRomInfo pointers and inserts into list
+// - Returns false if index invalid (occurs when lookup or index is stale)
 //
-void FeFilterIndexes::indexes_to_filter_list(
-	std::vector<int> &indexes,
+bool FeFilterIndexes::indexes_to_filter_list(
+	const std::vector<int> &indexes,
 	std::vector<FeRomInfo*> &filter_list,
-	std::map<int, FeRomInfo*> &lookup
+	const std::map<int, FeRomInfo*> &lookup
 )
 {
 	filter_list.clear();
 	filter_list.reserve( indexes.size() );
 
-	std::transform(
-		indexes.begin(),
-		indexes.end(),
-		std::back_inserter( filter_list ),
-		[ &lookup ]( int index ) { return lookup[index]; }
-	);
+	try {
+		for ( std::vector<int>::const_iterator it=indexes.begin(); it!=indexes.end(); ++it)
+			filter_list.push_back( lookup.at( *it ) );
+
+		return true;
+	}
+	catch ( ... )
+	{
+		filter_list.clear();
+		return false;
+	}
+}
+
+//
+// Converts mapped FeRomInfo pointers to indexes for caching
+//
+bool FeFilterIndexes::clone_group_to_indexes(
+	const std::map<std::string, std::vector<FeRomInfo*>> &clone_group,
+	std::map<std::string, std::vector<int>> &indexes
+)
+{
+	indexes.clear();
+
+	for ( std::map<std::string, std::vector<FeRomInfo*>>::const_iterator it=clone_group.begin(); it!=clone_group.end(); ++it)
+	{
+		indexes[ (*it).first ] = std::vector<int>();
+		if ( !filter_list_to_indexes( (*it).second, indexes[ (*it).first ] ) )
+		{
+			indexes.clear();
+			return false;
+		}
+	}
+	return true;
 }
 
 //
 // Restores mapped indexes back to FeRomInfo pointers and inserts into map
 //
-void FeFilterIndexes::indexes_to_clone_group(
-	std::map<std::string, std::vector<int>> &indexes,
+bool FeFilterIndexes::indexes_to_clone_group(
+	const std::map<std::string, std::vector<int>> &indexes,
 	std::map<std::string, std::vector<FeRomInfo*>> &clone_group,
-	std::map<int, FeRomInfo*> &lookup
+	const std::map<int, FeRomInfo*> &lookup
 )
 {
 	clone_group.clear();
 
-	std::for_each(
-		indexes.begin(),
-		indexes.end(),
-		[ this, &clone_group, &lookup ]( std::pair<std::string, std::vector<int>> it )
+	for ( std::map<std::string, std::vector<int>>::const_iterator it=indexes.begin(); it!=indexes.end(); ++it)
+	{
+		clone_group[ (*it).first ] = std::vector<FeRomInfo*>();
+		if ( !indexes_to_filter_list( (*it).second, clone_group[ (*it).first ], lookup ) )
 		{
-			clone_group[ it.first ] = std::vector<FeRomInfo*>();
-			indexes_to_filter_list( it.second, clone_group[ it.first ], lookup );
+			clone_group.clear();
+			return false;
 		}
-	);
+	}
+	return true;
 }
 
 // Set indexes from given entry
-void FeFilterIndexes::entry_to_index(
-	FeFilterEntry &entry
+bool FeFilterIndexes::entry_to_index(
+	const FeFilterEntry &entry
 )
 {
-	filter_list_to_indexes( entry.filter_list, filter_list );
-	clone_group_to_indexes( entry.clone_group, clone_group );
+	return filter_list_to_indexes( entry.filter_list, m_filter_list )
+		&& clone_group_to_indexes( entry.clone_group, m_clone_group );
 }
 
 // Populate given entry from lookup indexes
-void FeFilterIndexes::index_to_entry(
+bool FeFilterIndexes::index_to_entry(
 	FeFilterEntry &entry,
-	std::map<int, FeRomInfo*> &lookup
+	const std::map<int, FeRomInfo*> &lookup
 )
 {
-	indexes_to_filter_list( filter_list, entry.filter_list, lookup );
-	indexes_to_clone_group( clone_group, entry.clone_group, lookup );
+	return indexes_to_filter_list( m_filter_list, entry.filter_list, lookup )
+		&& indexes_to_clone_group( m_clone_group, entry.clone_group, lookup );
 }

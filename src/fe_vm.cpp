@@ -1236,8 +1236,7 @@ bool FeVM::on_new_layout()
 		if ( ps == FeSettings::Intro_Showing )
 			return false; // silent fail if intro is not found
 		else
-			FeLog() << " ! Script file not found: " << path
-				<< " (" << filename << ")" << std::endl;
+			FeLog() << " ! Script file not found: " << path << filename << std::endl;
 	}
 
 
@@ -1248,8 +1247,7 @@ bool FeVM::on_new_layout()
 	if ( !skip_layout && ( ps == FeSettings::Layout_Showing ))
 	{
 		fep->set_layout_loaded( true );
-		FeLog() << " - Loaded layout: " << rep_path
-			<< " (" << filename << ")" << std::endl;
+		FeLog() << " - Loaded layout: " << rep_path << filename << std::endl;
 	}
 
 	// To avoid frame delay of nested surfaces we have to sort them here
@@ -2426,8 +2424,7 @@ void FeVM::do_nut( const char *script_file )
 
 	if ( !internal_do_nut( path, script_file ) )
 	{
-		FeLog() << "Error, file not found: " << path
-			<< " (" << script_file << ")" << std::endl;
+		FeLog() << "Error, file not found: " << path << script_file << std::endl;
 	}
 }
 

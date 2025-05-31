@@ -23,12 +23,9 @@
 #ifndef FE_INFO_HPP
 #define FE_INFO_HPP
 
-#ifndef FE_VERSION_NUM
-#define FE_VERSION_NUM 1
-#endif
-
 #include "fe_base.hpp"
 #include <map>
+#include <set>
 #include <vector>
 #include "nowide/fstream.hpp"
 #include "cereal/cereal.hpp"
@@ -66,7 +63,8 @@ public:
 		Language,
 		Region,
 		Rating,
-		Favourite,		// everything from Favourite on is not loaded from romlist
+
+		Favourite,		// everything from Favourite on is NOT loaded from romlist
 		Tags,
 		PlayedCount,
 		PlayedTime,
@@ -78,8 +76,13 @@ public:
 	// romlist building/importing...
 	static const Index BuildFullPath;
 	static const Index BuildScore;
+	static const Index LAST_INFO = Favourite; // Everything prior to Favourite is loaded from romlist
 
 	static const char *indexStrings[];
+
+	static const std::set<FeRomInfo::Index> Stats; // Set of indexes used for Stats
+	static const bool isNumeric( Index index ); // Returns true if FeRomInfo Index value should be considered numeric for sorting
+	static const bool isStat( Index index ); // Returns true if FeRomInfo Index is a Stat
 
 	FeRomInfo();
 	FeRomInfo( const std::string &romname );
@@ -87,7 +90,12 @@ public:
 	const std::string &get_info( int ) const;
 	void set_info( enum Index, const std::string & );
 
+	const std::string get_id() const;
+	const std::string get_clone_parent() const;
 	void append_tag( const std::string &tag );
+	void remove_tag( const std::string &tag );
+	void get_tags( std::set<std::string> &tags );
+	bool has_tag( const std::string &tag );
 
 	int process_setting( const std::string &setting,
 		const std::string &value,
@@ -97,29 +105,38 @@ public:
 	void load_stats( const std::string &path );
 	void update_stats( const std::string &path, int count_incr, int played_incr );
 
-	void clear();
+	void clear(); // Clear all m_info data
 
 	// convenience method to copy info attribute at idx from src
 	void copy_info( const FeRomInfo &src, Index idx );
 
 	bool operator==( const FeRomInfo & ) const;      // compares romname and emulator only
-	bool full_comparison( const FeRomInfo & ) const; // copares all fields that get loaded from the romlist file
+	bool full_comparison( const FeRomInfo & ) const; // compares all fields that get loaded from the romlist file
 	int index; // Stores the m_list index, after global_filter applied
 
+	// Save only the romlist info values (not the late-loaded stats data)
 	template<class Archive>
-	void serialize(Archive & archive, std::uint32_t const version)
+	void save(Archive &archive, std::uint32_t const version) const
 	{
-		if ( version != FE_VERSION_NUM ) throw "Invalid FeRomInfo cache";
+		if ( version != FE_CACHE_VERSION ) throw "Invalid FeRomInfo cache";
+		archive( std::vector<std::string>( m_info.begin(), m_info.begin() + LAST_INFO ), index );
+	}
+
+	template<class Archive>
+	void load(Archive &archive, std::uint32_t const version)
+	{
+		if ( version != FE_CACHE_VERSION ) throw "Invalid FeRomInfo cache";
 		archive( m_info, index );
 	}
 
 private:
 	std::string get_info_escaped( int ) const;
+	size_t get_tag_pos( const std::string &tag );
 
 	std::vector<std::string> m_info;
 };
 
-CEREAL_CLASS_VERSION( FeRomInfo, FE_VERSION_NUM );
+CEREAL_CLASS_VERSION( FeRomInfo, FE_CACHE_VERSION );
 
 //
 // Class for a single rule in a list filter
@@ -195,6 +212,7 @@ public:
 	int get_rom_index() const { return m_rom_index; };
 	void set_rom_index( int i ) { m_rom_index=i; };
 
+	// Get the total number of roms (prior to limiting)
 	int get_size() const { return m_size; };
 	void set_size( int s ) { m_size=s; };
 
@@ -209,8 +227,8 @@ public:
 	void set_reverse_order( bool r ) { m_reverse_order=r; }
 	void set_list_limit( int p ) { m_list_limit=p; }
 
-	// Returns true if the target RomInfo is used by sort or filter rule
-	bool test_for_target( FeRomInfo::Index target ) const;
+	// Returns true if any of the targets are used by sort or filter rules
+	bool test_for_targets( std::set<FeRomInfo::Index> targets ) const;
 
 	void clear();
 
@@ -301,6 +319,7 @@ public:
 
 	bool show_in_cycle() const;
 	bool show_in_menu() const;
+	bool test_for_targets( std::set<FeRomInfo::Index> targets );
 
 	FeScriptConfigurable &get_layout_per_display_params() { return m_layout_per_display_params; };
 
