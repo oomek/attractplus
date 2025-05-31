@@ -99,17 +99,17 @@ private:
 	// ----------------------------------------------------------------------------------
 
 	static bool save_display(
-		const FeDisplayInfo &display,
+		FeDisplayInfo &display,
 		std::map<std::string, std::string> &info
 	);
 
 	static bool load_display(
-		const FeDisplayInfo &display,
+		FeDisplayInfo &display,
 		std::map<std::string, std::string> &info
 	);
 
 	static void invalidate_display(
-		const FeDisplayInfo &display
+		FeDisplayInfo &display
 	);
 
 	static void get_display_metadata(
@@ -129,7 +129,7 @@ private:
 	);
 
 	static void invalidate_globalfilter(
-		const FeDisplayInfo &display
+		FeDisplayInfo &display
 	);
 
 	static void invalidate_filter(
@@ -218,12 +218,12 @@ public:
 	// ----------------------------------------------------------------------------------
 
 	static bool save_globalfilter(
-		const FeDisplayInfo &display,
+		FeDisplayInfo &display,
 		const FeRomList &romlist
 	);
 
 	static bool load_globalfilter(
-		const FeDisplayInfo &display,
+		FeDisplayInfo &display,
 		FeRomList &romlist
 	);
 

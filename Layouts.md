@@ -1282,7 +1282,8 @@ This class is a container for information about the available displays. Instance
 -  `layout` - Get the layout used by this display.
 -  `romlist` - Get the romlist used by this display.
 -  `in_cycle` - Get whether the display is shown in the prev display/next display cycle.
--  `in_menu` - Get whether the display is shown in the "Displays Menu"
+-  `in_menu` - Get whether the display is shown in the "Displays Menu".
+-  `size` - Get the number of global filter results for this display.
 
 ---
 
