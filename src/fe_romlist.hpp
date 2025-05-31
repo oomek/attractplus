@@ -210,6 +210,7 @@ private:
 	int load_romlist_data( FeDisplayInfo &display );
 	void load_fav_data( std::map<std::string, std::vector<FeRomInfo*>> &rom_map );
 	void load_tag_data( std::map<std::string, std::vector<FeRomInfo*>> &rom_map );
+	void load_shuffle_data();
 	int apply_global_filter( FeDisplayInfo &display );
 	void store_extra_tags( FeRomInfo &rom );
 

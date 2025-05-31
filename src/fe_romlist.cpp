@@ -28,6 +28,8 @@
 #include <iostream>
 #include "nowide/fstream.hpp"
 #include <algorithm>
+#include <numeric>
+#include <random>
 
 #include <squirrel.h>
 #include <sqstdstring.h>
@@ -353,6 +355,20 @@ void FeRomList::load_tag_data(
 }
 
 //
+// Add shuffle data to romlist for randomized sorting
+//
+void FeRomList::load_shuffle_data()
+{
+	std::mt19937 rnd{ std::random_device{}() };
+	std::vector<int> shuffle( m_list.size() );
+	std::iota( shuffle.begin(), shuffle.end(), 0 );
+	std::shuffle( shuffle.begin(), shuffle.end(), rnd );
+	int i = 0;
+	for ( FeRomInfoListType::iterator it=m_list.begin(); it!=m_list.end(); ++it )
+		(*it).set_info( FeRomInfo::Shuffle, as_str( shuffle[i++] ) );
+}
+
+//
 // Add given rom tags to the extra lists for saving
 // - Called when rom is filtered from list
 //
@@ -443,6 +459,7 @@ bool FeRomList::load_romlist(
 
 	bool test_available = display.test_for_targets({ FeRomInfo::FileIsAvailable });
 	bool test_stats = display.test_for_targets( FeRomInfo::Stats );
+	bool test_shuffle = display.test_for_targets({ FeRomInfo::Shuffle });
 	std::map<std::string, std::vector<std::string>> emu_roms;
 
 	FeCache::clear_stats();
@@ -458,6 +475,7 @@ bool FeRomList::load_romlist(
 	load_tag_data( rom_map );
 	if ( test_available ) get_file_availability( emu_roms );
 	if ( test_stats ) get_played_stats();
+	if ( test_shuffle ) load_shuffle_data();
 
 	if ( !(response & RomlistResponse::Loaded_Global) )
 		response |= apply_global_filter( display );

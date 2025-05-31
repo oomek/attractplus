@@ -69,6 +69,7 @@ public:
 		PlayedCount,
 		PlayedTime,
 		FileIsAvailable,
+		Shuffle,
 		LAST_INDEX
 	};
 

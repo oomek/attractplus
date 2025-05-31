@@ -1,4 +1,5 @@
 #include "fe_cache.hpp"
+#include <ctime>
 
 // Enable the romlist cache
 // - disabling prevents all caching
@@ -476,8 +477,13 @@ void FeCache::get_display_metadata(
 	for ( std::vector<std::string>::iterator itt=tags.begin(); itt!=tags.end(); ++itt )
 		data["tag_" + (*itt) + "_mtime"] = as_str( file_mtime( romlist.get_tag_path(*itt) ) );
 
-	// filters
-	data["global_filter"] = get_filter_id( display.get_global_filter() );
+	// global_filter
+	FeFilter *f = display.get_global_filter();
+	data["global_filter"] = get_filter_id( f );
+
+	// shuffle - if globalfilter has a rule using shuffle (!?) add a value here that will always invalidate
+	bool shuffle = f ? f->test_for_targets({ FeRomInfo::Shuffle }) : false;
+	data["shuffle"] = shuffle ? as_str( time( NULL ) ) : "";
 }
 
 // -------------------------------------------------------------------------------------
@@ -661,13 +667,10 @@ bool FeCache::save_filter(
 	const int filter_index
 )
 {
-	FeFilter *f = display.get_filter_count()
-		? display.get_filter( filter_index )
-		: display.get_global_filter();
-
+	FeFilter *f = display.get_filter_count() ? display.get_filter( filter_index ) : display.get_global_filter();
 	FeFilterIndexes indexes;
 	indexes.entry_to_index( entry );
-	indexes.set_size( f->get_size() );
+	indexes.set_size( f ? f->get_size() : 0 );
 	indexes.set_filter_id( get_filter_id( f ) );
 
 	bool success = save_cache( get_filter_filename( display, filter_index ), indexes );
@@ -684,15 +687,15 @@ bool FeCache::load_filter(
 	const std::map<int, FeRomInfo*> &lookup
 )
 {
+	// Special case - filters using Shuffle will always invalidate (their content changes every load)
+	FeFilter *f = display.get_filter_count() ? display.get_filter( filter_index ) : display.get_global_filter();
+	bool shuffle = f ? f->test_for_targets({ FeRomInfo::Shuffle }) : false;
+
 	FeFilterIndexes indexes;
-	bool success = load_cache( get_filter_filename( display, filter_index ), indexes );
+	bool success = !shuffle && load_cache( get_filter_filename( display, filter_index ), indexes );
 	debug( "Load Filter Cache", display.get_name() + ":" + as_str(filter_index), success );
 	if ( success )
 	{
-		FeFilter *f = display.get_filter_count()
-			? display.get_filter( filter_index )
-			: display.get_global_filter();
-
 		if ( indexes.get_filter_id() != get_filter_id( f )
 			|| !indexes.index_to_entry( entry, lookup ))
 		{
@@ -727,6 +730,8 @@ std::string FeCache::get_filter_id(
 )
 {
 	std::string id = "";
+	if ( !filter ) return id;
+
 	id += as_str( filter->get_reverse_order() )+ ";";
 	id += as_str( filter->get_sort_by() ) + ";";
 

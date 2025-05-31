@@ -68,6 +68,7 @@ const char *FeRomInfo::indexStrings[] =
 	"PlayedCount",
 	"PlayedTime",
 	"FileIsAvailable",
+	"Shuffle",
 	NULL
 };
 
@@ -95,7 +96,8 @@ const bool FeRomInfo::isNumeric( Index index )
 {
 	return ( index == FeRomInfo::Players )
 		|| ( index == FeRomInfo::PlayedCount )
-		|| ( index == FeRomInfo::PlayedTime );
+		|| ( index == FeRomInfo::PlayedTime )
+		|| ( index == FeRomInfo::Shuffle );
 }
 
 // Returns true if FeRomInfo Index is a Stat
