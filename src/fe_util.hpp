@@ -80,7 +80,7 @@ bool tail_compare(
 
 //
 // Case insensitive compare of one and two
-// returns 0 if equal
+// - Returns -1 if one < two, 1 if one > two, 0 if equal
 //
 int icompare( const std::string &one,
 	const std::string &two );
@@ -289,9 +289,11 @@ std::string as_str( float f, int decimals=3 );
 int as_int( const std::string &s );
 
 //
-// Return config string (i.e. "yes", "true", "no", "false" as bool
+// Return bool representing given string
+// - "yes" or "true" = true, anything else = false
+// - If permissive "no" or "false" = false, anything else = true
 //
-bool config_str_to_bool( const std::string &s );
+bool config_str_to_bool( const std::string &s, bool permissive = false );
 
 //
 // Return the name of the operating system.
