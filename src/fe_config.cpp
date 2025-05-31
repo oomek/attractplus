@@ -934,11 +934,15 @@ void FeFilterEditMenu::get_options( FeConfigContext &ctx )
 
 		if ( m_index >= 0 ) // don't add the following options for the global filter
 		{
-			std::vector<std::string> sort_opts = ctx.fe_settings.get_translation( FeRomInfo::indexStrings );
+            FeRomInfo::Index sort_by = f->get_sort_by();
+			bool reverse_order = f->get_reverse_order();
+			if ( FeRomInfo::isNumeric( sort_by ) ) reverse_order = !reverse_order;
+            std::vector<std::string> sort_opts = ctx.fe_settings.get_translation( FeRomInfo::indexStrings );
 			sort_opts.push_back( ctx.fe_settings.get_translation( "No Sort" ) );
-			std::string sort_str = value_at( sort_opts, f->get_sort_by() );
+			std::string sort_str = value_at( sort_opts, sort_by );
 
 			ctx.add_opt( Opt::LIST, "Sort By", sort_str, "_help_filter_sort_by" )->append_vlist( sort_opts );
+			ctx.add_opt( Opt::TOGGLE, "Reverse Order", reverse_order, "_help_filter_reverse_order" );
 			ctx.add_opt( Opt::EDIT, "List Limit", as_str( f->get_list_limit() ), "_help_filter_list_limit" );
 			ctx.add_opt( Opt::EXIT, "Delete this Filter", "", "_help_filter_delete", 3);
 		}
@@ -1002,20 +1006,19 @@ bool FeFilterEditMenu::save( FeConfigContext &ctx )
 		std::string name = ctx.opt_list[0].get_value();
 		f->set_name( name );
 
-		int sort_pos = ctx.opt_list.size() - 4;
+		int sort_pos = ctx.opt_list.size() - 5;
 		FeRomInfo::Index sort_by = (FeRomInfo::Index)ctx.opt_list[ sort_pos ].get_vindex();
-
 		f->set_sort_by( sort_by );
 
-		//
-		// TODO - make reverse order configurable from the config menu
-		//
-		// right now we just arbitrarily sort players, playcount and playtime in "reverse" order so
-		// higher values are first.
-		//
-		f->set_reverse_order( FeRomInfo::isNumeric( sort_by ) );
+		// NOTE: reverse_order is *displayed* opposite for numerically sorted fields (stats)
+		// Users expect numeric fields to display descending by default
+		// - False (Default) = A-Z, Large-Small
+		// - True (Reversed) = Z-A, Small-Large
+		bool reverse_order = ctx.opt_list[ sort_pos + 1 ].get_vindex() == 0;
+		if ( FeRomInfo::isNumeric( sort_by ) ) reverse_order = !reverse_order;
+		f->set_reverse_order( reverse_order );
 
-		std::string limit_str = ctx.opt_list[ sort_pos + 1 ].get_value();
+		std::string limit_str = ctx.opt_list[ sort_pos + 2 ].get_value();
 		int list_limit = as_int( limit_str );
 		f->set_list_limit( list_limit );
 	}
