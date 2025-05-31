@@ -22,6 +22,7 @@
 
 #include "fe_romlist.hpp"
 #include "fe_util.hpp"
+#include "fe_util_sq.hpp"
 #include "fe_cache.hpp"
 
 #include <iostream>
@@ -57,8 +58,7 @@ void FeRomListSorter::init_title_rex( const std::string &re_mask )
 		return;
 
 	const SQChar *err( NULL );
-	m_rex = sqstd_rex_compile(
-		(const SQChar *)re_mask.c_str(), &err );
+	m_rex = sqstd_rex_compile( scsqchar( re_mask ), &err );
 
 	if ( !m_rex )
 		FeLog() << "Error compiling regular expression \""
@@ -79,81 +79,46 @@ FeRomListSorter::FeRomListSorter( FeRomInfo::Index c, bool rev )
 {
 }
 
+// Returns a new string without prefixes such as "The" and "Vs."
+std::string FeRomListSorter::get_trimmed_title( const std::string &title ) const
+{
+	SQRexMatch subexp;
+	return (
+		!title.empty()
+		&& m_rex
+		&& sqstd_rex_match( m_rex, scsqchar( title ) )
+		&& sqstd_rex_getsubexp( m_rex, 1, &subexp )
+	)
+		? scstdstr( subexp.begin )
+		: title;
+}
+
 bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two_obj ) const
 {
 	const std::string &one = one_obj.get_info( m_comp );
 	const std::string &two = two_obj.get_info( m_comp );
+	bool asc;
 
-	if (( m_comp == FeRomInfo::Title ) && m_rex )
-	{
-		size_t one_begin( 0 ), one_len( one.size() ), two_begin( 0 ), two_len( two.size() );
-
-		const SQChar *one_begin_ptr( NULL );
-		const SQChar *one_end_ptr( NULL );
-		const SQChar *two_begin_ptr( NULL );
-		const SQChar *two_end_ptr( NULL );
-
-		//
-		// I couldn't get Squirrel's no capture regexp (?:) working the way I would expect it to.
-		// I'm probably doing something dumb but I can't figure it out and docs seem nonexistent
-		//
-		// So we do this kind of backwards, instead of defining what we want to compare based on,
-		// the regexp instead defines the part of the string we want to strip out up front
-		//
-		if ( sqstd_rex_search( m_rex, one.c_str(), &one_begin_ptr, &one_end_ptr ) == SQTrue )
-		{
-			one_begin = one_end_ptr - one.c_str();
-			one_len -= one_begin;
-		}
-
-		if ( sqstd_rex_search( m_rex, two.c_str(), &two_begin_ptr, &two_end_ptr ) == SQTrue )
-		{
-			two_begin = two_end_ptr - two.c_str();
-			two_len -= two_begin;
-		}
-
-		//
-		// Convert to uppercase to perform case-insensitive sorting.
-		//
-		std::string ONE = one.substr( one_begin, one_len );
-		std::string TWO = two.substr( two_begin, two_len );
-		for (int i = 0; i < (int)ONE.length(); i++) ONE[i] = toupper(ONE[i]);
-		for (int i = 0; i < (int)TWO.length(); i++) TWO[i] = toupper(TWO[i]);
-
-		return ( ONE.compare( TWO ) < 0 );
-	}
-	else if (( m_comp == FeRomInfo::PlayedCount )
-				|| ( m_comp == FeRomInfo::PlayedTime ))
-	{
-		return ( as_int( one ) > as_int( two ) );
-	}
-
-	if ( m_reverse )
-		return ( one.compare( two ) > 0 );
+	if ( m_comp == FeRomInfo::Title )
+		// Title sort
+		asc = icompare( get_trimmed_title( one ), get_trimmed_title( two ) ) < 0;
+	else if (( m_comp == FeRomInfo::PlayedCount ) || ( m_comp == FeRomInfo::PlayedTime ))
+		// Numeric sort
+		asc = as_int( one ) < as_int( two );
 	else
-		return ( one.compare( two ) < 0 );
+		// String sort
+		asc = icompare( one, two ) < 0;
+
+	// If reverse_order then invert sorting
+	return m_reverse ? !asc : asc;
 }
 
+// Returns first character of the trimmed lowercase rom title, or '0' if none
 const char FeRomListSorter::get_first_letter( const FeRomInfo *one_info )
 {
-	if ( !one_info )
-		return '0';
-
-	const std::string &name = one_info->get_info( FeRomInfo::Title );
-	if ( name.empty() )
-		return '0';
-
-	size_t b( 0 );
-
-	if ( m_rex )
-	{
-		const SQChar *bp;
-		const SQChar *ep;
-		if ( sqstd_rex_search( m_rex, name.c_str(), &bp, &ep ) == SQTrue )
-			b = ep - name.c_str();
-	}
-
-	return name.at( b );
+	if ( !one_info ) return '0';
+	const std::string &title = get_trimmed_title( one_info->get_info( FeRomInfo::Title ) );
+	return title.empty() ? '0' : std::tolower( title.at( 0 ) );
 }
 
 FeRomList::FeRomList( const std::string &config_path )

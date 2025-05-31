@@ -60,6 +60,7 @@ public:
 
 	bool operator()( const FeRomInfo &obj1, const FeRomInfo &obj2 ) const;
 
+	std::string get_trimmed_title( const std::string &title ) const;
 	const char get_first_letter( const FeRomInfo *one );
 
 	static void init_title_rex( const std::string & );

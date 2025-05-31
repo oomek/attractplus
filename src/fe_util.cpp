@@ -223,18 +223,20 @@ int icompare(
 	const std::string &one,
 	const std::string &two )
 {
-	unsigned int one_len = one.size();
+	int s1 = one.size();
+	int s2 = two.size();
+	int size = std::min( s1, s2 );
+	int c1, c2;
 
-	if ( one_len != two.size() )
-		return ( one_len - two.size() );
-
-	for ( unsigned int i=0; i < one_len; i++ )
+	for ( int i = 0; i < size; i++ )
 	{
-		if ( std::tolower( one[i] ) != std::tolower( two[i] ) )
-			return ( one[i] - two[i] );
+		c1 = std::tolower( one[i] );
+		c2 = std::tolower( two[i] );
+		if ( c1 != c2 )
+			return std::clamp( c1 - c2, -1, 1 );
 	}
 
-	return 0;
+	return std::clamp( s1 - s2, -1, 1 );
 }
 
 bool base_compare( const std::string &path,
@@ -855,12 +857,11 @@ int as_int( const std::string &s )
 	return atoi( s.c_str() );
 }
 
-bool config_str_to_bool( const std::string &s )
+bool config_str_to_bool( const std::string &s, bool permissive )
 {
-	if (( s.compare( "yes" ) == 0 ) || ( s.compare( "true" ) == 0 ))
-		return true;
-	else
-		return false;
+	return permissive
+		? !(( s.compare( "no" ) == 0 ) || ( s.compare( "false" ) == 0 ))
+		: (( s.compare( "yes" ) == 0 ) || ( s.compare( "true" ) == 0 ));
 }
 
 const char *get_OS_string()
