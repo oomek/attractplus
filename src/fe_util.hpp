@@ -399,3 +399,8 @@ void hide_console();
 // - Returns true on success
 //
 bool hex_to_color( std::string hex, sf::Color &dest_color );
+
+//
+// Return index of token in tokens, or -1 if not found
+//
+int get_token_index( const char *tokens[], std::string &token );

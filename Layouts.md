@@ -154,8 +154,10 @@ The following _Magic Tokens_ are currently supported:
 -  `[DisplayType]` - The display type for the selected game
 -  `[AltRomname]` - The alternative Romname for the selected game
 -  `[AltTitle]` - The alternative title for the selected game
--  `[PlayedTime]` - The amount of time the selected game has been played
 -  `[PlayedCount]` - The number of times the selected game has been played
+-  `[PlayedTime]` - The amount of time the selected game has been played
+-  `[PlayedLast]` - The date and time the selected game was last played
+-  `[PlayedAgo]` - The last played date relative to now, for example: "5 Minutes Ago"
 -  `[SortValue]` - The value used to order the selected game in the list
 -  `[System]` - The first "System" name configured for the selected game's emulator
 -  `[SystemN]` - The last "System" name configured for the selected game's emulator
@@ -658,6 +660,7 @@ Get information about the selected game.
    -  `Info.Tags`
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
+   -  `Info.PlayedLast`
    -  `Info.FileIsAvailable`
    -  `Info.System`
    -  `Info.Overview`
@@ -1314,6 +1317,7 @@ This class is a container for information about the available filters. Instances
    -  `Info.Tags`
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
+   -  `Info.PlayedLast`
    -  `Info.FileIsAvailable`
 -  `reverse_order` - [boolean] Will be equal to `true` if the list order has been reversed.
 -  `list_limit` - Get the value of the list limit applied to the filter game list.

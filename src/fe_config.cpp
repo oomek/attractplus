@@ -2306,6 +2306,7 @@ void FeEditGameMenu::get_options( FeConfigContext &ctx )
 
 		case FeRomInfo::PlayedCount:
 		case FeRomInfo::PlayedTime:
+		case FeRomInfo::PlayedLast:
 			type = Opt::EDIT;
 			opaque = 3;
 			break;
@@ -2374,7 +2375,7 @@ bool FeEditGameMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *&
 		ctx.tags_dialog();
 		break;
 
-	case 3: // PlayedCount, PlayedTime
+	case 3: // PlayedCount, PlayedTime, PlayedLast
 		m_update_stats = true;
 		break;
 

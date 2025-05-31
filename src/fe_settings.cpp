@@ -37,6 +37,7 @@
 #include <random>
 #include <stdlib.h>
 #include <cctype>
+#include <ctime>
 
 #include <SFML/System/Clock.hpp>
 #include <SFML/Config.hpp>
@@ -100,6 +101,13 @@ const char *FE_LIST_DEFAULT			= "default-display.cfg";
 const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
+
+const float SECONDS_IN_MINUTE	= 60;
+const float SECONDS_IN_HOUR		= 60 * SECONDS_IN_MINUTE;
+const float SECONDS_IN_DAY		= 24 * SECONDS_IN_HOUR;
+const float SECONDS_IN_WEEK		= 7 * SECONDS_IN_DAY;
+const float SECONDS_IN_YEAR		= 365.2425 * SECONDS_IN_DAY; // Accounts for leap year
+const float SECONDS_IN_MONTH	= SECONDS_IN_YEAR / 12.0; // Average
 
 const int FE_DEFAULT_UI_COLOR_TOKEN = 1; // Blue
 
@@ -672,7 +680,7 @@ void FeSettings::init_display()
 	if ( m_current_display < 0 )
 	{
 		m_rl.init_as_empty_list();
-		FeRomInfoListType &l = m_rl.get_list();
+		FeRomInfoListType &rl = m_rl.get_list();
 
 
 		for ( unsigned int i=0; i<m_display_menu.size(); i++ )
@@ -683,7 +691,7 @@ void FeSettings::init_display()
 			rom.set_info( FeRomInfo::Title, p->get_info( FeDisplayInfo::Name ) );
 			rom.set_info( FeRomInfo::Emulator, "@" );
 
-			l.push_back( rom );
+			rl.push_back( rom );
 		}
 
 		if ( m_displays_menu_exit )
@@ -696,7 +704,7 @@ void FeSettings::init_display()
 			rom.set_info( FeRomInfo::Emulator, "@exit" );
 			rom.set_info( FeRomInfo::AltRomname, "exit" );
 
-			l.push_back( rom );
+			rl.push_back( rom );
 		}
 
 		FeDisplayInfo empty( "" );
@@ -2463,7 +2471,7 @@ bool FeSettings::update_stats( int play_count, int play_time )
 
 	rom->update_stats( path, play_count, play_time );
 
-	bool fixed = m_rl.fix_filters( m_displays[m_current_display], FeRomInfo::Stats );
+	bool fixed = m_rl.fix_filters( m_displays[m_current_display], std::set<FeRomInfo::Index>( FeRomInfo::Stats.begin(), FeRomInfo::Stats.end() ) );
 
 	if ( fixed && ( &m_rl.lookup( filter_index, rom_index ) != rom ))
 	{
@@ -2511,251 +2519,258 @@ void FeSettings::get_exit_question( std::string &exit_question ) const
 		exit_question = m_exit_question;
 }
 
+//
+// Perform substitutions of the [MagicString] sequences occurring in str
+//
 void FeSettings::do_text_substitutions( std::string &str, int filter_offset, int index_offset )
 {
 	int filter_index = get_filter_index_from_offset( filter_offset );
-	do_text_substitutions_absolute(
-				str,
-				filter_index,
-				get_rom_index( filter_index, index_offset ) );
+	int rom_index = get_rom_index( filter_index, index_offset );
+	do_text_substitutions_absolute( str, filter_index, rom_index );
 }
 
+//
+// Perform substitutions of the [MagicString] sequences occurring in str
+//
 void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_index, int rom_index )
 {
-	//
-	// Perform substitutions of the [XXX] sequences occurring in str
-	//
-	size_t pos = str.find( "[" );
+	size_t pos = str.find( '[' );
 	while ( pos != std::string::npos )
 	{
 		size_t close = str.find_first_of( ']', pos+1 );
-
 		if ( close == std::string::npos )
 			break; // done, no more enclosed tokens
 
 		std::string token = str.substr( pos+1, close-pos-1 );
-		bool matched=false;
-
-		//
-		// First check for rom info attribute matches
-		//
-		for ( int i=0; i<FeRomInfo::LAST_INDEX; i++ )
-		{
-			// these are special cases dealt with elsewhere
-			if (( i == FeRomInfo::Title )
-					|| ( i == FeRomInfo::PlayedTime ))
-				continue;
-
-			if ( token.compare( FeRomInfo::indexStrings[i] ) == 0 )
-			{
-				const std::string &rep = get_rom_info_absolute(
-						filter_index,
-						rom_index,
-						(FeRomInfo::Index)i );
-
-				str.replace( pos, close-pos+1, rep );
-				pos += rep.size();
-				matched=true;
-			}
-		}
-
-		if ( matched )
-		{
-			pos = str.find( "[", pos );
-			continue;
-		}
-
-		//
-		// Next check for various special case attributes
-		//
-		const char *tokenStrings[] =
-		{
-			"DisplayName",
-			"ListTitle", // deprecated as of 1.5
-			"FilterName",
-			"ListFilterName", // deprecated as of 1.5
-			"ListSize",
-			"ListEntry",
-			"Search",
-			FeRomInfo::indexStrings[FeRomInfo::Title],
-			"TitleFull",
-			FeRomInfo::indexStrings[FeRomInfo::PlayedTime],
-			"SortName",
-			"SortValue",
-			"System",
-			"SystemN",
-			"Overview",
-			NULL
-		};
-
-		int i=0;
-		while ( tokenStrings[i] != NULL )
-		{
-			if ( token.compare( tokenStrings[i] ) == 0 )
-			{
-				matched = true;
-				break;
-			}
-
-			i++;
-		}
-
-		if ( !matched )
-		{
-			pos = str.find( "[", pos+1 );
-			continue;
-		}
-
 		std::string rep;
-		switch ( i )
+
+		if ( get_token_value( token, filter_index, rom_index, rep ) )
 		{
-		case 0: // "DisplayName"
-		case 1: // "ListTitle" // deprecated as of 1.5
-			rep = get_current_display_title();
-			break;
-
-		case 2:	// "FilterName"
-		case 3: // "ListFilterName" // deprecated as of 1.5
-			rep = get_filter_name( filter_index );
-			break;
-
-		case 4: // "ListSize"
-			rep = as_str( get_filter_size( filter_index ) );
-			break;
-
-		case 5: // "ListEntry"
-			rep = as_str( rom_index + 1 );
-			break;
-
-		case 6: // "Search"
-			rep = m_current_search_str;
-			break;
-
-		case 7: // "Title"
-		case 8: // "TitleFull"
-			rep = get_rom_info_absolute( filter_index,
-				rom_index, FeRomInfo::Title );
-			if (( m_hide_brackets ) && ( i == 7 )) // 7 == Title
-			{
-				// Don't strip brackets when showing a clones group
-				if ( m_clone_index < 0 )
-					rep = name_with_brackets_stripped( rep );
-			}
-			break;
-
-		case 9: // "PlayedTime"
-			rep = get_played_display_string( filter_index, rom_index );
-			break;
-
-		case 10: // "SortName"
-		case 11: // "SortValue"
-			{
-				FeRomInfo::Index sort_by;
-				bool reverse_sort;
-				int list_limit;
-				std::string sort_name;
-
-				get_current_sort( sort_by, reverse_sort, list_limit );
-
-				if ( sort_by == FeRomInfo::LAST_INDEX )
-				{
-					get_translation( "None", sort_name );
-					sort_by = FeRomInfo::Title;
-				}
-				else
-					get_translation( FeRomInfo::indexStrings[sort_by], sort_name );
-
-
-				if ( i == 10 ) // SortName
-				{
-					rep = sort_name;
-				}
-				else
-				{
-					if ( sort_by == FeRomInfo::PlayedTime )
-						rep = get_played_display_string(
-							filter_index,
-							rom_index );
-					else
-						rep = get_rom_info_absolute(
-							filter_index,
-							rom_index, sort_by );
-				}
-			}
-			break;
-
-		case 12: // "System"
-		case 13: // "SystemN"
-			{
-				const std::string &en
-					= get_rom_info_absolute(
-						filter_index,
-						rom_index,
-						FeRomInfo::Emulator );
-
-				const FeEmulatorInfo *emu = get_emulator( en );
-				if ( emu )
-				{
-					const std::vector< std::string > &ss =
-						emu->get_systems();
-
-					if ( !ss.empty() )
-					{
-						rep = ( i == 12 )
-							? ss.front()
-							: ss.back();
-					}
-				}
-			}
-			break;
-
-		case 14: // "Overview"
-			get_game_overview_absolute( filter_index, rom_index, rep );
-			break;
-
-		default:
-			ASSERT( 0 ); // unhandled token
-			break;
+			str.replace( pos, close-pos+1, rep );
+			pos += rep.size();
 		}
 
-		str.replace( pos, close-pos+1, rep );
-		pos = str.find( "[", pos+rep.size() );
+		pos = str.find( '[', pos+1 );
 	}
 }
 
-std::string FeSettings::get_played_display_string( int filter_index, int rom_index )
+//
+// Populate value with the given magic token result
+// - Returns false if the given token is invalid
+//
+bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_index, std::string &value )
 {
-	std::string label;
-
-	int raw = as_int(
-		get_rom_info_absolute( filter_index,
-			rom_index,
-			FeRomInfo::PlayedTime ) );
-
-	float num;
-
-	if ( raw < 3600 )
+	int i = get_token_index( FeRomInfo::indexStrings, token );
+	switch ( i )
 	{
-		num = raw / 60.f;
-		label = "Minutes";
+		case FeRomInfo::Title:
+			// Don't strip brackets when showing a clones group
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
+			if ( m_hide_brackets && m_clone_index < 0 ) value = name_with_brackets_stripped( value );
+			return true;
+		case FeRomInfo::PlayedTime:
+			value = get_played_time_display_string( filter_index, rom_index );
+			return true;
+		case FeRomInfo::PlayedLast:
+			value = get_played_last_display_string( filter_index, rom_index );
+			return true;
+		default:
+			value = get_rom_info_absolute( filter_index, rom_index, (FeRomInfo::Index)i );
+			return true;
+		case -1:
+			return get_special_token_value( token, filter_index, rom_index, value );
 	}
-	else if ( raw < 86400 )
-	{
-		num = raw / 3600.f;
-		label = "Hours";
-	}
-	else
-	{
-		num = raw / 86400.f;
-		label = "Days";
-	}
-
-	std::string op_label;
-	get_translation( label, op_label );
-
-	return as_str( num, 1 ) + " " + op_label;
 }
 
+//
+// Special attributes
+//
+bool FeSettings::get_special_token_value( std::string &token, int filter_index, int rom_index, std::string &value )
+{
+	int i = get_token_index( FeRomInfo::specialStrings, token );
+	switch ( i )
+	{
+		case FeRomInfo::DisplayName:
+		case FeRomInfo::ListTitle:
+			value = get_current_display_title();
+			return true;
+		case FeRomInfo::FilterName:
+		case FeRomInfo::ListFilterName:
+			value = get_filter_name( filter_index );
+			return true;
+		case FeRomInfo::ListSize:
+			value = as_str( get_filter_size( filter_index ) );
+			return true;
+		case FeRomInfo::ListEntry:
+			value = as_str( rom_index + 1 );
+			return true;
+		case FeRomInfo::Search:
+			value = m_current_search_str;
+			return true;
+		case FeRomInfo::TitleFull:
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
+			return true;
+		case FeRomInfo::SortName:
+		{
+			FeRomInfo::Index sort_by;
+			bool reverse_sort;
+			int list_limit;
+			get_current_sort( sort_by, reverse_sort, list_limit );
+			std::string sort_token = ( sort_by == FeRomInfo::LAST_INDEX ) ? "None" : FeRomInfo::indexStrings[sort_by];
+			get_translation( sort_token, value );
+			return true;
+		}
+		case FeRomInfo::SortValue:
+		{
+			FeRomInfo::Index sort_by;
+			bool reverse_sort;
+			int list_limit;
+			get_current_sort( sort_by, reverse_sort, list_limit );
+			std::string sort_token = FeRomInfo::indexStrings[ ( sort_by == FeRomInfo::LAST_INDEX ) ? FeRomInfo::Title : sort_by ];
+			return get_token_value( sort_token, filter_index, rom_index, value );
+		}
+		case FeRomInfo::System:
+		case FeRomInfo::SystemN:
+		{
+			value = "";
+			const std::string &emu_name = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Emulator );
+			const FeEmulatorInfo *emu = get_emulator( emu_name );
+			if ( emu ) {
+				const std::vector<std::string> &systems = emu->get_systems();
+				if ( !systems.empty() ) value = ( i == FeRomInfo::SystemN ) ? systems.back() : systems.front();
+			}
+			return true;
+		}
+		case FeRomInfo::Overview:
+			value = get_game_overview_absolute( filter_index, rom_index, value );
+			return true;
+		case FeRomInfo::PlayedAgo:
+			value = get_played_ago_display_string( filter_index, rom_index );
+			return true;
+		default:
+			return false;
+	}
+}
+
+//
+// Format PlayedTime to "# Unit(s)" where Units is Seconds, Minutes, Hours, or Days
+// - A single decimal is shown for time over 1 hour
+//
+std::string FeSettings::get_played_time_display_string( int filter_index, int rom_index )
+{
+	int seconds = as_int( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedTime ) );
+	float val;
+	std::string unit;
+
+	if ( seconds < SECONDS_IN_MINUTE )
+	{
+		val = seconds;
+		unit = "Second";
+	}
+	else if ( seconds < SECONDS_IN_HOUR )
+	{
+		val = seconds / SECONDS_IN_MINUTE;
+		unit = "Minute";
+	}
+	else if ( seconds < SECONDS_IN_DAY )
+	{
+		val = seconds / SECONDS_IN_HOUR;
+		unit = "Hour";
+	}
+	else // seconds >= SECONDS_IN_DAY
+	{
+		val = seconds / SECONDS_IN_DAY;
+		unit = "Day";
+	}
+
+	if ( seconds < SECONDS_IN_HOUR )
+	{
+		int v = floor( val );
+		std::string plural = ( v == 1 ) ? unit : unit + "s";
+		std::string label = get_translation( "$1 " + plural );
+		perform_substitution( label, { as_str( v ) });
+		return label;
+	}
+
+	float v = floor( val * 10 ) / 10;
+	bool single = ( v == 1.0 );
+	std::string plural = single ? unit : unit + "s";
+	std::string label = get_translation( "$1 " + plural );
+	perform_substitution( label, { as_str( v, single ? 0 : 1 ) });
+	return label;
+}
+
+//
+// Format PlayedLast to "YYYY-mm-dd HH:MM:SS"
+//
+std::string FeSettings::get_played_last_display_string( int filter_index, int rom_index )
+{
+	std::string value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast );
+	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+
+	if ( timestamp == 0 )
+		return get_translation( "Never" );
+
+	char label[128]; // buffer large enough to fit formatted timestamp
+	std::strftime( std::data(label), std::size(label), "%Y-%m-%d %H:%M:%S", std::localtime( &timestamp ) );
+	return label;
+}
+
+//
+// Format PlayedLast to "# Unit(s) Ago"
+//
+std::string FeSettings::get_played_ago_display_string( int filter_index, int rom_index )
+{
+	std::string value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast );
+	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+
+	if ( timestamp == 0 )
+		return get_translation( "Never" );
+
+	int seconds = std::time(0) - timestamp;
+	if ( seconds < SECONDS_IN_MINUTE )
+		return get_translation( "A Moment Ago" );
+
+	float val;
+	std::string unit;
+
+	if ( seconds < SECONDS_IN_HOUR )
+	{
+		val = seconds / SECONDS_IN_MINUTE;
+		unit = "Minute";
+	}
+	else if ( seconds < SECONDS_IN_DAY )
+	{
+		val = seconds / SECONDS_IN_HOUR;
+		unit = "Hour";
+	}
+	else if ( seconds < SECONDS_IN_WEEK )
+	{
+		val = seconds / SECONDS_IN_DAY;
+		unit = "Day";
+	}
+	else if ( seconds < SECONDS_IN_MONTH )
+	{
+		val = seconds / SECONDS_IN_WEEK;
+		unit = "Week";
+	}
+	else if ( seconds < SECONDS_IN_YEAR )
+	{
+		val = seconds / SECONDS_IN_MONTH;
+		unit = "Month";
+	}
+	else // seconds >= SECONDS_IN_YEAR
+	{
+		val = seconds / SECONDS_IN_YEAR;
+		unit = "Year";
+	}
+
+	int v = floor( val );
+	std::string plural = ( v == 1 ) ? unit : unit + "s";
+	std::string label = get_translation( "$1 " + plural + " Ago" );
+	perform_substitution( label, { as_str( v ) });
+	return label;
+}
 
 FeEmulatorInfo *FeSettings::get_emulator( const std::string &n )
 {
