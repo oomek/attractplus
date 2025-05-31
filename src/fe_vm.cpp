@@ -1668,6 +1668,9 @@ void FePresent::script_process_magic_strings( std::string &str,
 			FeLog() << "Script Error in magic string function: "
 				<< magic << " - "
 				<< e.Message() << std::endl;
+
+			// Skip the magic token that's causing an error to avoid throwing an exception
+			pos += TOK_LEN;
 		}
 
 		pos = str.find( TOK, pos );
