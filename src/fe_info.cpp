@@ -343,8 +343,13 @@ void FeRomInfo::copy_info( const FeRomInfo &src, Index idx )
 
 bool FeRomInfo::operator==( const FeRomInfo &o ) const
 {
-	return (( m_info[Romname].compare( o.m_info[Romname] ) == 0 )
-				&& ( m_info[Emulator].compare( o.m_info[Emulator] ) == 0 ));
+	return ( m_info[Romname].compare( o.m_info[Romname] ) == 0 )
+		&& ( m_info[Emulator].compare( o.m_info[Emulator] ) == 0 );
+}
+
+bool FeRomInfo::operator!=( const FeRomInfo &o ) const
+{
+	return !( *this == o );
 }
 
 bool FeRomInfo::full_comparison( const FeRomInfo &o ) const

@@ -565,10 +565,30 @@ public:
 	// original is assumed to be the currently selected rom
 	//
 	enum UpdateType { UpdateEntry, EraseEntry, InsertEntry };
-	void update_romlist_after_edit(
-		const FeRomInfo &original,		// original rom values
-		const FeRomInfo &replacement,		// new rom values
-		UpdateType erase=UpdateEntry );
+
+	bool update_romlist_after_edit(
+		const FeRomInfo &original,		// original rom value
+		const FeRomInfo &replacement,	// new rom value
+		UpdateType u_type=UpdateEntry	// update type
+	);
+
+	bool update_romlist_entry(
+		const FeRomInfo &original,		// original rom value
+		const FeRomInfo &replacement,	// new rom value
+		UpdateType u_type=UpdateEntry	// update type
+	);
+
+	bool update_romlist_file(
+		const std::string &romlist_name,// name of romlist to update
+		const FeRomInfo &original,		// original rom value
+		const FeRomInfo &replacement,	// new rom value
+		UpdateType u_type=UpdateEntry	// update type
+	);
+
+	bool write_romlist(
+		const std::string &filename,
+		const FeRomInfoListType &romlist
+	);
 
 	// Returns true if the stats update may have altered the current filters
 	bool update_stats( int count_incr, int time_incr );

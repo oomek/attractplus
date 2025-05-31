@@ -60,34 +60,6 @@ void build_basic_romlist( FeImporterContext &c )
 	FeLog() << " - Found " << names.size() << " files." << std::endl;
 }
 
-void write_romlist( const std::string &filename,
-				const FeRomInfoListType &romlist )
-{
-
-	FeLog() << " + Writing " << romlist.size() << " entries to: "
-				<< filename << std::endl;
-
-	int i=0;
-	nowide::ofstream outfile( filename.c_str() );
-	if ( outfile.is_open() )
-	{
-		// one line header showing what the columns represent
-		//
-		outfile << "#" << FeRomInfo::indexStrings[i++];
-		while ( i < FeRomInfo::LAST_INFO )
-			outfile << ";" << FeRomInfo::indexStrings[i++];
-		outfile << std::endl;
-
-		// Now output the list
-		//
-		for ( FeRomInfoListType::const_iterator itl=romlist.begin();
-				itl != romlist.end(); ++itl )
-			outfile << (*itl).as_output() << std::endl;
-
-		outfile.close();
-	}
-}
-
 struct myclasscmp
 {
 	bool operator() ( const std::string &lhs, const std::string &rhs ) const

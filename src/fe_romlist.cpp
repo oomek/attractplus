@@ -445,7 +445,7 @@ bool FeRomList::load_romlist(
 	bool group_clones,
 	bool load_stats	)
 {
-	m_romlist_path = path + romlist_name + FE_ROMLIST_FILE_EXTENSION;
+	m_romlist_path = path;
 	m_romlist_name = romlist_name;
 	m_group_clones = group_clones;
 	m_fav_changed = false;
