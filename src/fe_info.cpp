@@ -24,8 +24,10 @@
 #include "fe_util.hpp"
 #include "fe_util_sq.hpp"
 #include "fe_cache.hpp"
+#include <algorithm>
 #include <iostream>
 #include <sstream>
+#include <ctime>
 
 #include <iomanip>
 
@@ -67,14 +69,36 @@ const char *FeRomInfo::indexStrings[] =
 	"Tags",
 	"PlayedCount",
 	"PlayedTime",
+	"PlayedLast",
 	"FileIsAvailable",
 	"Shuffle",
 	NULL
 };
 
-const std::set<FeRomInfo::Index> FeRomInfo::Stats = {
+const char *FeRomInfo::specialStrings[] =
+{
+	"DisplayName",
+	"ListTitle",
+	"FilterName",
+	"ListFilterName",
+	"ListSize",
+	"ListEntry",
+	"Search",
+	"TitleFull",
+	"SortName",
+	"SortValue",
+	"System",
+	"SystemN",
+	"Overview",
+	"PlayedAgo",
+	NULL
+};
+
+// Stats are list in the order they appear in the .stat file
+const std::vector<FeRomInfo::Index> FeRomInfo::Stats = {
 	FeRomInfo::PlayedCount,
-	FeRomInfo::PlayedTime
+	FeRomInfo::PlayedTime,
+	FeRomInfo::PlayedLast
 };
 
 FeRomInfo::FeRomInfo()
@@ -97,13 +121,14 @@ const bool FeRomInfo::isNumeric( Index index )
 	return ( index == FeRomInfo::Players )
 		|| ( index == FeRomInfo::PlayedCount )
 		|| ( index == FeRomInfo::PlayedTime )
+		|| ( index == FeRomInfo::PlayedLast )
 		|| ( index == FeRomInfo::Shuffle );
 }
 
 // Returns true if FeRomInfo Index is a Stat
 const bool FeRomInfo::isStat( Index index )
 {
-	return Stats.find( index ) != Stats.end();
+	return std::find( Stats.begin(), Stats.end(), index ) != Stats.end();
 }
 
 const std::string &FeRomInfo::get_info( int i ) const
@@ -221,6 +246,7 @@ void FeRomInfo::load_stats(
 
 	m_info[PlayedCount] = "0";
 	m_info[PlayedTime] = "0";
+	m_info[PlayedLast] = "0";
 
 	if ( path.empty() )
 		return;
@@ -230,18 +256,17 @@ void FeRomInfo::load_stats(
 	if ( !myfile.is_open() )
 		return;
 
-	std::string line;
-	if ( myfile.good() )
-	{
-		getline( myfile, line );
-		m_info[PlayedCount] = line;
-	}
+	std::string played_count;
+	std::string played_time;
+	std::string played_last;
 
-	if ( myfile.good() )
-	{
-		getline( myfile, line );
-		m_info[PlayedTime] = line;
-	}
+	if ( myfile.good() ) getline( myfile, played_count );
+	if ( myfile.good() ) getline( myfile, played_time );
+	if ( myfile.good() ) getline( myfile, played_last );
+
+	m_info[PlayedCount] = played_count.empty() ? "0" : played_count;
+	m_info[PlayedTime] = played_time.empty() ? "0" : played_time;
+	m_info[PlayedLast] = played_last.empty() ? "0" : played_last;
 
 	myfile.close();
 }
@@ -252,9 +277,11 @@ void FeRomInfo::update_stats( const std::string &path, int count_incr, int playe
 
 	int new_count = as_int( m_info[PlayedCount] ) + count_incr;
 	int new_time = as_int( m_info[PlayedTime] ) + played_incr;
+	int new_last = std::time(0);
 
 	m_info[PlayedCount] = as_str( new_count );
 	m_info[PlayedTime] = as_str( new_time );
+	m_info[PlayedLast] = as_str( new_last );
 
 	// Save stats to cache, and continue to save original stat file as well
 	FeCache::set_stats_info( path, m_info );
@@ -270,7 +297,9 @@ void FeRomInfo::update_stats( const std::string &path, int count_incr, int playe
 		return;
 	}
 
-	myfile << m_info[PlayedCount] << std::endl << m_info[PlayedTime] << std::endl;
+	myfile << m_info[PlayedCount] << std::endl
+		<< m_info[PlayedTime] << std::endl
+		<< m_info[PlayedLast] << std::endl;
 	myfile.close();
 }
 

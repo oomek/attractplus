@@ -458,7 +458,7 @@ bool FeRomList::load_romlist(
 	sf::Clock load_timer;
 
 	bool test_available = display.test_for_targets({ FeRomInfo::FileIsAvailable });
-	bool test_stats = display.test_for_targets( FeRomInfo::Stats );
+	bool test_stats = display.test_for_targets( std::set<FeRomInfo::Index>( FeRomInfo::Stats.begin(), FeRomInfo::Stats.end() ) );
 	bool test_shuffle = display.test_for_targets({ FeRomInfo::Shuffle });
 	std::map<std::string, std::vector<std::string>> emu_roms;
 

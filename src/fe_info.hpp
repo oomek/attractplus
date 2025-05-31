@@ -68,9 +68,29 @@ public:
 		Tags,
 		PlayedCount,
 		PlayedTime,
+		PlayedLast,
 		FileIsAvailable,
 		Shuffle,
 		LAST_INDEX
+	};
+
+	enum Special
+	{
+		DisplayName = 0,
+		ListTitle, // Deprecated as of 1.5
+		FilterName,
+		ListFilterName, // Deprecated as of 1.5
+		ListSize,
+		ListEntry,
+		Search,
+		TitleFull,
+		SortName,
+		SortValue,
+		System,
+		SystemN,
+		Overview,
+		PlayedAgo,
+		LAST_SPECIAL
 	};
 
 	// Certain indices gets repurposed during -listsoftware
@@ -80,8 +100,9 @@ public:
 	static const Index LAST_INFO = Favourite; // Everything prior to Favourite is loaded from romlist
 
 	static const char *indexStrings[];
+	static const char *specialStrings[];
 
-	static const std::set<FeRomInfo::Index> Stats; // Set of indexes used for Stats
+	static const std::vector<FeRomInfo::Index> Stats; // List of indexes used for Stats
 	static const bool isNumeric( Index index ); // Returns true if FeRomInfo Index value should be considered numeric for sorting
 	static const bool isStat( Index index ); // Returns true if FeRomInfo Index is a Stat
 
