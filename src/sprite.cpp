@@ -175,22 +175,6 @@ sf::IntRect FeSprite::getLocalBounds() const
     int width = std::abs( m_textureRect.size.x );
     int height = std::abs( m_textureRect.size.y );
 
-    // If borders are active, extend bounds to include border areas
-    if (( m_border.position.x > 0 ) ||
-        ( m_border.position.y > 0 ) ||
-        ( m_border.size.x > 0 ) ||
-        ( m_border.size.y > 0 ))
-    {
-        sf::Vector2f scale = getScale();
-        int leftBorder = (int)(m_border.position.x / scale.x);
-        int topBorder = (int)(m_border.position.y / scale.y);
-        int rightBorder = (int)(m_border.size.x / scale.x);
-        int bottomBorder = (int)(m_border.size.y / scale.y);
-
-        return sf::IntRect({ -leftBorder, -topBorder },
-                          { width + leftBorder + rightBorder, height + topBorder + bottomBorder });
-    }
-
     return sf::IntRect({ 0, 0 }, { width, height });
 }
 
@@ -336,8 +320,18 @@ void FeSprite::updateGeometry()
 	    ( m_border.size.x > 0 ) ||
 	    ( m_border.size.y > 0 ))
 	{
-		float x[4] = { -( m_border.position.x / scale.x ), 0, std::abs( m_textureRect.size.x ), std::abs( m_textureRect.size.x ) + ( m_border.size.x / scale.x ) };
-		float y[4] = { -( m_border.position.y / scale.y ), 0, std::abs( m_textureRect.size.y ), std::abs( m_textureRect.size.y ) + ( m_border.size.y / scale.y ) };
+		float x[4], y[4];
+
+		x[0] = (( -m_border.position.x - m_padding.position.x ) / scale.x );
+		x[1] = (float)m_border.position.x / scale.x * ( -(float)m_padding.position.x  / (float)m_border.position.x );
+		x[2] = m_textureRect.size.x + ( m_padding.size.x / scale.x );
+		x[3] = m_textureRect.size.x + ( m_border.size.x + m_padding.size.x ) / scale.x;
+
+		y[0] = (( -m_border.position.y - m_padding.position.y ) / scale.y );
+		y[1] = (float)m_border.position.y / scale.y * ( -(float)m_padding.position.y  / (float)m_border.position.y );
+		y[2] = m_textureRect.size.y + ( m_padding.size.y / scale.y );
+		y[3] = m_textureRect.size.y + ( m_border.size.y + m_padding.size.y ) / scale.y;
+
 		float tx[4] = { left, left + ( m_border.position.x / m_textureRect.size.x ) * ( right - left) , right - ( m_border.size.x / m_textureRect.size.x ) * ( right - left ), right };
 		float ty[4] = { top, top + ( m_border.position.y / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.size.y / m_textureRect.size.y ) * ( bottom - top ), bottom };
 
