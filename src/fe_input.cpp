@@ -1104,148 +1104,190 @@ void FeInputMap::on_joystick_connect()
 	joy_raw_map_init( m_joy_config );
 }
 
-FeInputMap::Command FeInputMap::get_command_from_tracked_keys( const int joy_thresh ) const
+FeInputMap::Command FeInputMap::get_command_from_tracked_keys() const
 {
 	FeInputMap::Command retval = FeInputMap::LAST_COMMAND;
-	size_t rank=0; // only replace retval if we found a higher rank
 
-	for ( std::set< FeInputSingle >::iterator itt = m_tracked_keys.begin(); itt != m_tracked_keys.end(); ++itt )
+	// Rank is the number of inputs a command requires (ie: key combos)
+	// - Commands with higher ranks will be chosen over lower ones
+	size_t rank = 0;
+
+	for ( std::set<FeInputSingle>::iterator itt = m_tracked_keys.begin(); itt != m_tracked_keys.end(); ++itt )
 	{
-		//
-		// Check for trigger on tracked keys
-		//
-		std::map< FeInputSingle, std::vector< FeInputMapEntry * > >::const_iterator it;
+		std::map<FeInputSingle, std::vector<FeInputMapEntry*>>::const_iterator it;
 		it = m_single_map.find( *itt );
 
 		if ( it == m_single_map.end() )
 		{
 			// this should not happen!
+			// it means an un-mapped key has been added to m_tracked_keys
 			ASSERT( 0 );
 			continue;
 		}
 
-		std::vector< FeInputMapEntry *>::const_iterator itv;
+		// Multiple commands may be mapped to a single key
+		std::vector<FeInputMapEntry*>::const_iterator itv;
 		for ( itv = (*it).second.begin(); itv != (*it).second.end(); ++itv )
 		{
-			bool found=true;
+			bool found = true;
+			size_t it_rank = (*itv)->inputs.size();
 
-			for ( std::set< FeInputSingle >::const_iterator its = (*itv)->inputs.begin();
-					its != (*itv)->inputs.end(); ++its )
+			// Exit early if this command is outranked
+			if ( it_rank <= rank ) continue;
+
+			// Check if all keys for this command are tracked
+			for ( std::set<FeInputSingle>::const_iterator its = (*itv)->inputs.begin(); its != (*itv)->inputs.end(); ++its )
 			{
 				if ( m_tracked_keys.find( *its ) == m_tracked_keys.end() )
 				{
-					found=false;
+					found = false;
 					break;
 				}
 			}
 
-			if ( found && ( (*itv)->inputs.size() > rank ) )
-			{
+			// Select this command for return
+			if ( found ) {
 				retval = (*itv)->command;
-				rank = (*itv)->inputs.size();
+				rank = it_rank;
 			}
 		}
 	}
 
-	if ( rank > 0 )
-		m_tracked_keys.clear();
-
 	return retval;
+}
+
+void FeInputMap::clear_tracked_keys()
+{
+	m_tracked_keys.clear();
 }
 
 FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
 {
 	FeInputSingle index( e, mc_rect, joy_thresh, has_focus );
 
+	// Window focus has changed
+	if ( e.is<sf::Event::FocusLost>() || e.is<sf::Event::FocusGained>() )
+	{
+		clear_tracked_keys();
+	}
+
+	// Window has closed
 	if ( e.is<sf::Event::Closed>() )
 	{
-		m_tracked_keys.clear();
+		clear_tracked_keys();
 		return ExitToDesktop;
 	}
 
+	// Joystick has moved
 	else if ( e.is<sf::Event::JoystickMoved>() )
 	{
-		//
-		// Test that this is a release of a tracked key (joystick axis)
-		//
-		if (( !index.get_current_state( joy_thresh ) )
-			&& ( m_tracked_keys.find( index ) != m_tracked_keys.end() ))
+		if ( !index.get_current_state( joy_thresh ) )
 		{
-			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-			if ( temp != LAST_COMMAND )
-				return temp;
+			std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( index );
+			if ( itr != m_tracked_keys.end() )
+			{
+				FeInputMap::Command c = get_command_from_tracked_keys();
+				m_tracked_keys.erase( itr );
+				if ( c != LAST_COMMAND )
+					return c;
+			}
 		}
 	}
 
-	else if ( e.is<sf::Event::KeyReleased>() ||
-			  e.is<sf::Event::JoystickButtonReleased>() ||
-			  e.is<sf::Event::MouseButtonReleased>() )
+	// Keyboard key has been released
+	else if ( e.is<sf::Event::KeyReleased>() )
 	{
-		//
-		// Test that this is a release of a tracked key (button)
-		//
 		sf::Event te = e;
-		if ( const auto* key = e.getIf<sf::Event::KeyReleased>() )
-			te = sf::Event::KeyPressed{ key->code };
-		else if ( const auto* joy = e.getIf<sf::Event::JoystickButtonReleased>() )
-			te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
-		else if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() )
-			te = sf::Event::MouseButtonPressed{ mouse->button };
-
+		if ( const auto* key = e.getIf<sf::Event::KeyReleased>() ) te = sf::Event::KeyPressed{ key->code };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
-		if ( m_tracked_keys.find( tt ) != m_tracked_keys.end() )
+		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
+		if ( itr != m_tracked_keys.end() )
 		{
-			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-			if ( temp != LAST_COMMAND )
-				return temp;
+			FeInputMap::Command c = get_command_from_tracked_keys();
+			m_tracked_keys.erase( itr );
+			if ( c != LAST_COMMAND )
+				return c;
 		}
 	}
 
+	// Joystick button has been released
+	else if ( e.is<sf::Event::JoystickButtonReleased>() )
+	{
+		sf::Event te = e;
+		if ( const auto* joy = e.getIf<sf::Event::JoystickButtonReleased>() ) te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
+		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
+		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
+		if ( itr != m_tracked_keys.end() )
+		{
+			FeInputMap::Command c = get_command_from_tracked_keys();
+			m_tracked_keys.erase( itr );
+			if ( c != LAST_COMMAND )
+				return c;
+		}
+	}
+
+	// Mouse button has been released
+	else if ( e.is<sf::Event::MouseButtonReleased>() )
+	{
+		sf::Event te = e;
+		if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() ) te = sf::Event::MouseButtonPressed{ mouse->button };
+		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
+		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
+		if ( itr != m_tracked_keys.end() )
+		{
+			FeInputMap::Command c = get_command_from_tracked_keys();
+			m_tracked_keys.erase( itr );
+			if ( c != LAST_COMMAND )
+				return c;
+		}
+	}
+
+	// Touch event has ended
 	else if ( e.is<sf::Event::TouchEnded>() )
 	{
-		m_tracked_keys.insert( index );
-		FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-		if ( temp != LAST_COMMAND )
-			return temp;
-
-		m_tracked_keys.erase( index );
-		return LAST_COMMAND;
+		if ( m_single_map.find( index ) != m_single_map.end() )
+		{
+			m_tracked_keys.insert( index );
+			FeInputMap::Command c = get_command_from_tracked_keys();
+			m_tracked_keys.erase( index );
+			if ( c != LAST_COMMAND )
+				return c;
+		}
 	}
 
+	// Ignore unsupported input
 	if ( index.get_type() == FeInputSingle::Unsupported )
 		return LAST_COMMAND;
 
-	std::map< FeInputSingle, std::vector< FeInputMapEntry * > >::const_iterator it;
+	std::map<FeInputSingle, std::vector<FeInputMapEntry*>>::const_iterator it;
 	it = m_single_map.find( index );
 
+	// Ignore unmapped keys
 	if ( it == m_single_map.end() )
 		return LAST_COMMAND;
 
+	// Add any other mapped key to the list
+	m_tracked_keys.insert( index );
+
 	//
-	// Special case: if this is a single button press for a repeatable command
-	// then we trigger on the down event.  For everthing else we wait for up
-	// to trigger.
+	// Special case:
+	// If this is a repeatable command, trigger on the PRESS event.
+	// For everything else trigger on RELEASE.
 	//
-	std::vector< FeInputMapEntry *>::const_iterator itv;
+	std::vector<FeInputMapEntry*>::const_iterator itv;
 	for ( itv = (*it).second.begin(); itv != (*it).second.end(); ++itv )
 	{
-		FeInputMap::Command c = (*itv)->command;
-
-		if (( is_repeatable_command(c) || (is_ui_command(c) && ( c != Back )))
-			&& ( (*itv)->inputs.size() == 1 ) )
+		FeInputMap::Command cmd = (*itv)->command;
+		if ( is_repeatable_command( cmd ) || ( is_ui_command( cmd ) && ( cmd != Back )))
 		{
-			m_tracked_keys.insert( index );
-
-			FeInputMap::Command temp = get_command_from_tracked_keys( joy_thresh );
-
-			if ( temp != LAST_COMMAND )
-				return temp;
-
-			return c;
+			FeInputMap::Command c = get_command_from_tracked_keys();
+			if ( c != LAST_COMMAND )
+			{
+				m_tracked_keys.erase( index );
+				return c;
+			}
 		}
 	}
-
-	m_tracked_keys.insert( index );
 
 	return LAST_COMMAND;
 }
