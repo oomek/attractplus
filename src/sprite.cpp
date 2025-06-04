@@ -80,7 +80,10 @@ m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_border( 0, 0, 0, 0 ),
+m_padding( 0, 0, 0, 0 ),
+m_border_scale( 1.f )
 {
 }
 
@@ -91,7 +94,10 @@ m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_border( 0, 0, 0, 0 ),
+m_padding( 0, 0, 0, 0 ),
+m_border_scale( 1.f )
 {
     setTexture(texture);
 }
@@ -103,7 +109,10 @@ m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_border( 0, 0, 0, 0 ),
+m_padding( 0, 0, 0, 0 ),
+m_border_scale( 1.f )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -260,6 +269,48 @@ void FeSprite::setScale( const sf::Vector2f &s )
 	updateGeometry();
 }
 
+const IntEdges& FeSprite::getBorder() const
+{
+	return m_border;
+}
+
+void FeSprite::setBorder( const IntEdges &border )
+{
+	if ( border != m_border )
+	{
+		m_border = border;
+		updateGeometry();
+	}
+}
+
+const IntEdges& FeSprite::getPadding() const
+{
+	return m_padding;
+}
+
+void FeSprite::setPadding( const IntEdges &padding )
+{
+	if ( padding != m_padding )
+	{
+		m_padding = padding;
+		updateGeometry();
+	}
+}
+
+float FeSprite::getBorderScale() const
+{
+	return m_border_scale;
+}
+
+void FeSprite::setBorderScale( float s )
+{
+	if ( s != m_border_scale )
+	{
+		m_border_scale = s;
+		updateGeometry();
+	}
+}
+
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
 {
@@ -279,8 +330,111 @@ void FeSprite::updateGeometry()
 	sf::Vector2f sskew = m_skew;
 	sskew.x /= scale.x;
 	sskew.y /= scale.y;
+	if (( m_border.left > 0 ) ||
+	    ( m_border.top > 0 ) ||
+	    ( m_border.right > 0 ) ||
+	    ( m_border.bottom > 0 ))
+	{
+		float x[4], y[4];
 
-	if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
+		float total_width = m_textureRect.size.x + ( m_padding.left + m_padding.right ) / scale.x;
+		float total_height = m_textureRect.size.y + ( m_padding.top + m_padding.bottom ) / scale.y;
+
+		float min_scale = 1.0f;
+		float border_width = ( m_border.left + m_border.right ) / scale.x;
+		float border_height = ( m_border.top + m_border.bottom ) / scale.y;
+		if ( border_width * m_border_scale > total_width || border_height * m_border_scale > total_height )
+			if ( border_width > 0.0f && border_height > 0.0f )
+				min_scale = std::min( total_width / ( border_width * m_border_scale ), total_height / ( border_height * m_border_scale ));
+
+		float border_left = ( m_border.left / scale.x ) * min_scale * m_border_scale;
+		float border_right = ( m_border.right / scale.x ) * min_scale * m_border_scale;
+		float border_top = ( m_border.top / scale.y ) * min_scale * m_border_scale;
+		float border_bottom = ( m_border.bottom / scale.y ) * min_scale * m_border_scale;
+
+		if ( border_left + border_right > total_width || border_top + border_bottom > total_height )
+		{
+			float clamp_ratio = std::min(
+				border_left + border_right > 0.0f ? total_width / ( border_left + border_right ) : 1.0f,
+				border_top + border_bottom > 0.0f ? total_height / ( border_top + border_bottom ) : 1.0f );
+
+			border_left *= clamp_ratio;
+			border_right *= clamp_ratio;
+			border_top *= clamp_ratio;
+			border_bottom *= clamp_ratio;
+		}
+
+		x[0] = -m_padding.left / scale.x;
+		x[1] = x[0] + border_left;
+		x[2] = x[0] + total_width - border_right;
+		x[3] = x[0] + total_width;
+
+		y[0] = -m_padding.top / scale.y;
+		y[1] = y[0] + border_top;
+		y[2] = y[0] + total_height - border_bottom;
+		y[3] = y[0] + total_height;
+
+		x[2] = std::max( x[2], x[1] );
+		y[2] = std::max( y[2], y[1] );
+
+		float tx[4] = { left, left + ( m_border.left / m_textureRect.size.x ) * ( right - left) , right - ( m_border.right / m_textureRect.size.x ) * ( right - left ), right };
+		float ty[4] = { top, top + ( m_border.top / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.bottom / m_textureRect.size.y ) * ( bottom - top ), bottom };
+
+		const int rows = 4;
+		const int cols = 4;
+		const int vertex_count = ( rows - 1 ) * ( 2 * cols + 2 ) - 2;
+		m_vertices.resize( vertex_count );
+		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
+		int idx = 0;
+		for ( int row = 0; row < rows - 1; row++ )
+		{
+			if ( row % 2 == 0 )
+			{
+				for ( int col = 0; col < cols; col++ )
+				{
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row] );
+					idx++;
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row+1] );
+					idx++;
+				}
+				if ( row < rows - 2 )
+				{
+					// degenerate: repeat last vertex
+					m_vertices[idx] = m_vertices[idx-1];
+					idx++;
+					// degenerate: next row starts from right, so connect to rightmost vertex
+					m_vertices[idx].position = sf::Vector2f( x[cols-1], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[cols-1], ty[row+1] );
+					idx++;
+				}
+			}
+			else
+			{
+				for ( int col = cols - 1; col >= 0; col-- )
+				{
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row] );
+					idx++;
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row+1] );
+					idx++;
+				}
+				if ( row < rows - 2 )
+				{
+					// degenerate: repeat last vertex
+					m_vertices[idx] = m_vertices[idx-1];
+					idx++;
+					// degenerate: next row starts from left, so connect to leftmost vertex
+					m_vertices[idx].position = sf::Vector2f( x[0], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[0], ty[row+1] );
+					idx++;
+				}
+			}
+		}
+	}
+	else if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
 	{
 		sf::Vector2f spinch = m_pinch;
 		spinch.x /= scale.x;
