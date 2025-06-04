@@ -1428,6 +1428,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video. Setting this to `true` greatly improves the quality of scaled down images. The default value is `false`. It's advised to force anisotropic filtering in the display driver settings if the Image with auto generated mipmap is scaled by the ratio that is not isotropic.
 -  `volume` 🔶 - Get/set the volume of played video. Range is `[0...100]`
 -  `repeat` 🔶 - Enables texture repeat when set to `true`. Default value is `false`. To see the effect `subimg_width/height` must be set larger than `texture_width/height`
+-  `border_scale` 🔶 - Get/set the scaling factor of the border defined by `set_border()`. Default value is `1.0`.
 -  `clear` 🔶 - _[surface only]_ When set to `false` surface is not cleared before the next frame. This can be used for various accumulative effects.
 -  `redraw` 🔶 - _[surface only]_ When set to `false` surface's content is not redrawn which gives optimization opportunity for hidden surfaces. This in conjunction with `clear = false` can be used to freeze surface's content.
 
@@ -1439,6 +1440,8 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well.
+-  `set_border( left, top, right, bottom )` :🔶 - Define border dimensions for 9-slice image. All parameters are in pixels. The borders define constrained regions at the edges of the image, while the centre region scales normally. Follow this link for more information [9-slice](https://en.wikipedia.org/wiki/9-slice_scaling)
+-  `set_padding( left, top, right, bottom )` 🔶 - Define padding offsets that extend the sprite beyond its original dimensions. Padding creates additional space around the 9-slice borders. Positive values extend the sprite outward, while negative values bring the edges inward, effectively cropping the border regions. Used only with `set_padding()`
 -  `fix_masked_image()` - Takes the colour of the top left pixel in the image and makes all the pixels in the image with that colour transparent.
 -  `add_image()` - _[surface only]_ Add an image to the end of this surface's draw list, see [`fe.add_image()`](#feadd_image).
 -  `add_artwork()` - _[surface only]_ Add an artwork to the end of this surface's draw list, see [`fe.add_artwork()`](#feadd_artwork).

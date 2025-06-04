@@ -68,6 +68,44 @@ namespace sf
 	class Texture;
 };
 
+// sf::IntRect extended with edge-based fields
+struct IntEdges : public sf::IntRect
+{
+	int &left = position.x;
+	int &top = position.y;
+	int &right = size.x;
+	int &bottom = size.y;
+
+	IntEdges() : sf::IntRect() {}
+
+	IntEdges( int l, int t, int r, int b ) : sf::IntRect()
+	{
+		left = l;
+		top = t;
+		right = r;
+		bottom = b;
+	}
+
+	IntEdges( const sf::IntRect& rect ) : sf::IntRect( rect ) {}
+
+	IntEdges& operator=( const IntEdges& other )
+	{
+		sf::IntRect::operator=( other );
+		return *this;
+	}
+
+	bool operator==( const IntEdges& other ) const
+	{
+		return left == other.left && top == other.top &&
+			right == other.right && bottom == other.bottom;
+	}
+
+	bool operator!=( const IntEdges& other ) const
+	{
+		return !( *this == other );
+	}
+};
+
 ////////////////////////////////////////////////////////////
 /// \brief Drawable representation of a texture, with its
 ///        own transformations, color, etc.
@@ -208,12 +246,18 @@ public :
 	float getSkewY() const;
 	float getPinchX() const;
 	float getPinchY() const;
+	const IntEdges &getBorder() const;
+	const IntEdges &getPadding() const;
 
 	void setSkewX( float x );
 	void setSkewY( float y );
 	void setPinchX( float x );
 	void setPinchY( float y );
+	void setBorder( const IntEdges &b );
+	void setPadding( const IntEdges &p );
 	void setScale( const sf::Vector2f &s );
+	float getBorderScale() const;
+	void setBorderScale( float s );
 
 	using sf::Transformable::getRotation;
 	using sf::Transformable::setRotation;
@@ -245,6 +289,9 @@ private :
 	sf::FloatRect m_textureRect;      ///< Rectangle defining the area of the source texture to display
 	sf::Vector2f m_pinch;
 	sf::Vector2f m_skew;
+	IntEdges m_border;
+	IntEdges m_padding;
+	float m_border_scale;
 };
 
 
