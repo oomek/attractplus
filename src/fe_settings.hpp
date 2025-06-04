@@ -327,6 +327,7 @@ public:
 	void save_state();
 
 	FeInputMap::Command map_input( const std::optional<sf::Event> &e );
+	void reset_input();
 
 	void get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh );
 	FeInputMap::Command input_conflict_check( const FeInputMapEntry &e );

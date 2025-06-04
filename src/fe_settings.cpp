@@ -919,6 +919,11 @@ void FeSettings::load_state()
 	}
 }
 
+void FeSettings::reset_input()
+{
+	m_inputmap.clear_tracked_keys();
+}
+
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
 {
 	if ( e.has_value() )
