@@ -1843,3 +1843,13 @@ FePresentableParent *FeImage::get_presentable_parent()
 {
 	return m_tex->get_presentable_parent();
 }
+
+void FeImage::set_borders( int l, int t, int r, int b )
+{
+	sf::IntRect borders( { l, t }, { r, b } );
+	if ( borders != m_sprite.getBorders() )
+	{
+		m_sprite.setBorders( borders );
+		FePresent::script_flag_redraw();
+	}
+}

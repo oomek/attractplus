@@ -752,6 +752,7 @@ bool FeVM::on_new_layout()
 		// "set_origin" function deprecated as of 3.0.5, use the set_rotation_origin function instead
 		.Func(_SC("set_origin"), &FeImage::set_rotation_origin )
 		.Func(_SC("set_rotation_origin"), &FeImage::set_rotation_origin )
+		.Func(_SC("set_border"), &FeImage::set_borders )
 		.Func(_SC("swap"), &FeImage::transition_swap )
 		.Func(_SC("rawset_index_offset"), &FeImage::rawset_index_offset )
 		.Func(_SC("rawset_filter_offset"), &FeImage::rawset_filter_offset )

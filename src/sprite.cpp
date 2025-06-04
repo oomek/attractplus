@@ -80,7 +80,8 @@ m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_borders( { 0, 0 }, { 0, 0 } )
 {
 }
 
@@ -91,7 +92,8 @@ m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_borders( { 0, 0 }, { 0, 0 } )
 {
     setTexture(texture);
 }
@@ -103,7 +105,8 @@ m_vertices( sf::PrimitiveType::TriangleStrip, 4 ),
 m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
-m_skew( 0.f, 0.f )
+m_skew( 0.f, 0.f ),
+m_borders( { 0, 0 }, { 0, 0 } )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -260,6 +263,20 @@ void FeSprite::setScale( const sf::Vector2f &s )
 	updateGeometry();
 }
 
+const sf::IntRect& FeSprite::getBorders() const
+{
+	return m_borders;
+}
+
+void FeSprite::setBorders( const sf::IntRect& borders )
+{
+	if ( borders != m_borders )
+	{
+		m_borders = borders;
+		updateGeometry();
+	}
+}
+
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
 {
@@ -280,7 +297,71 @@ void FeSprite::updateGeometry()
 	sskew.x /= scale.x;
 	sskew.y /= scale.y;
 
-	if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
+	if (( m_borders.position.x > 0 ) ||
+	    ( m_borders.position.y > 0 ) ||
+	    ( m_borders.size.x > 0 ) ||
+	    ( m_borders.size.y > 0 ))
+	{
+		float x[4] = { 0, m_borders.position.x / scale.x, bounds.size.x - m_borders.size.x / scale.x, (float)bounds.size.x };
+		float y[4] = { 0, m_borders.position.y / scale.y, bounds.size.y - m_borders.size.y / scale.y, (float)bounds.size.y };
+		float tx[4] = { left, left + ( m_borders.position.x / m_textureRect.size.x ) * ( right - left) , right - ( m_borders.size.x / m_textureRect.size.x ) * ( right - left ), right };
+		float ty[4] = { top, top + ( m_borders.position.y / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_borders.size.y / m_textureRect.size.y ) * ( bottom - top ), bottom };
+
+		const int rows = 4;
+		const int cols = 4;
+		const int vertex_count = ( rows - 1 ) * ( 2 * cols + 2 ) - 2;
+		m_vertices.resize( vertex_count );
+		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
+		int idx = 0;
+		for ( int row = 0; row < rows - 1; row++ )
+		{
+			if ( row % 2 == 0 )
+			{
+				for ( int col = 0; col < cols; col++ )
+				{
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row] );
+					idx++;
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row+1] );
+					idx++;
+				}
+				if ( row < rows - 2 )
+				{
+					// degenerate: repeat last vertex
+					m_vertices[idx] = m_vertices[idx-1];
+					idx++;
+					// degenerate: next row starts from right, so connect to rightmost vertex
+					m_vertices[idx].position = sf::Vector2f( x[cols-1], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[cols-1], ty[row+1] );
+					idx++;
+				}
+			}
+			else
+			{
+				for ( int col = cols - 1; col >= 0; col-- )
+				{
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row] );
+					idx++;
+					m_vertices[idx].position = sf::Vector2f( x[col], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row+1] );
+					idx++;
+				}
+				if ( row < rows - 2 )
+				{
+					// degenerate: repeat last vertex
+					m_vertices[idx] = m_vertices[idx-1];
+					idx++;
+					// degenerate: next row starts from left, so connect to leftmost vertex
+					m_vertices[idx].position = sf::Vector2f( x[0], y[row+1] );
+					m_vertices[idx].texCoords = sf::Vector2f( tx[0], ty[row+1] );
+					idx++;
+				}
+			}
+		}
+	}
+	else if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
 	{
 		sf::Vector2f spinch = m_pinch;
 		spinch.x /= scale.x;
