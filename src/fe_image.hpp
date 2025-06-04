@@ -369,7 +369,8 @@ public:
 	void set_skew_y( float y );
 	void set_pinch_x( float x );
 	void set_pinch_y( float y );
-	void set_borders( int l, int t, int r, int b );
+	void set_border( int l, int t, int r, int b );
+	void set_padding( int l, int t, int r, int b );
 	void set_subimg_x( float x );
 	void set_subimg_y( float y );
 	void set_subimg_width( float w );

@@ -1844,12 +1844,22 @@ FePresentableParent *FeImage::get_presentable_parent()
 	return m_tex->get_presentable_parent();
 }
 
-void FeImage::set_borders( int l, int t, int r, int b )
+void FeImage::set_border( int l, int t, int r, int b )
 {
-	sf::IntRect borders( { l, t }, { r, b } );
-	if ( borders != m_sprite.getBorders() )
+	sf::IntRect border( { l, t }, { r, b } );
+	if ( border != m_sprite.getBorder() )
 	{
-		m_sprite.setBorders( borders );
+		m_sprite.setBorder( border );
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_padding( int l, int t, int r, int b )
+{
+	sf::IntRect padding( { l, t }, { r, b } );
+	if ( padding != m_sprite.getPadding() )
+	{
+		m_sprite.setPadding( padding );
 		FePresent::script_flag_redraw();
 	}
 }

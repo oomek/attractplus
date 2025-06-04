@@ -208,13 +208,15 @@ public :
 	float getSkewY() const;
 	float getPinchX() const;
 	float getPinchY() const;
-	const sf::IntRect& getBorders() const;
+	const sf::IntRect& getBorder() const;
+	const sf::IntRect& getPadding() const;
 
 	void setSkewX( float x );
 	void setSkewY( float y );
 	void setPinchX( float x );
 	void setPinchY( float y );
-	void setBorders( const sf::IntRect &b );
+	void setBorder( const sf::IntRect &b );
+	void setPadding( const sf::IntRect &p );
 	void setScale( const sf::Vector2f &s );
 
 	using sf::Transformable::getRotation;
@@ -247,7 +249,8 @@ private :
 	sf::FloatRect m_textureRect;      ///< Rectangle defining the area of the source texture to display
 	sf::Vector2f m_pinch;
 	sf::Vector2f m_skew;
-	sf::IntRect m_borders;
+	sf::IntRect m_border;
+	sf::IntRect m_padding;
 };
 
 

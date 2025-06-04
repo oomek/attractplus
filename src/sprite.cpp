@@ -81,7 +81,8 @@ m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
-m_borders( { 0, 0 }, { 0, 0 } )
+m_border( { 0, 0 }, { 0, 0 } ),
+m_padding( { 0, 0 }, { 0, 0 } )
 {
 }
 
@@ -93,7 +94,8 @@ m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
-m_borders( { 0, 0 }, { 0, 0 } )
+m_border( { 0, 0 }, { 0, 0 } ),
+m_padding( { 0, 0 }, { 0, 0 } )
 {
     setTexture(texture);
 }
@@ -106,7 +108,8 @@ m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
-m_borders( { 0, 0 }, { 0, 0 } )
+m_border( { 0, 0 }, { 0, 0 } ),
+m_padding( { 0, 0 }, { 0, 0 } )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -171,6 +174,22 @@ sf::IntRect FeSprite::getLocalBounds() const
 {
     int width = std::abs( m_textureRect.size.x );
     int height = std::abs( m_textureRect.size.y );
+
+    // If borders are active, extend bounds to include border areas
+    if (( m_border.position.x > 0 ) ||
+        ( m_border.position.y > 0 ) ||
+        ( m_border.size.x > 0 ) ||
+        ( m_border.size.y > 0 ))
+    {
+        sf::Vector2f scale = getScale();
+        int leftBorder = (int)(m_border.position.x / scale.x);
+        int topBorder = (int)(m_border.position.y / scale.y);
+        int rightBorder = (int)(m_border.size.x / scale.x);
+        int bottomBorder = (int)(m_border.size.y / scale.y);
+
+        return sf::IntRect({ -leftBorder, -topBorder },
+                          { width + leftBorder + rightBorder, height + topBorder + bottomBorder });
+    }
 
     return sf::IntRect({ 0, 0 }, { width, height });
 }
@@ -263,19 +282,34 @@ void FeSprite::setScale( const sf::Vector2f &s )
 	updateGeometry();
 }
 
-const sf::IntRect& FeSprite::getBorders() const
+const sf::IntRect& FeSprite::getBorder() const
 {
-	return m_borders;
+	return m_border;
 }
 
-void FeSprite::setBorders( const sf::IntRect& borders )
+void FeSprite::setBorder( const sf::IntRect& border )
 {
-	if ( borders != m_borders )
+	if ( border != m_border )
 	{
-		m_borders = borders;
+		m_border = border;
 		updateGeometry();
 	}
 }
+
+const sf::IntRect& FeSprite::getPadding() const
+{
+	return m_padding;
+}
+
+void FeSprite::setPadding( const sf::IntRect& padding )
+{
+	if ( padding != m_padding )
+	{
+		m_padding = padding;
+		updateGeometry();
+	}
+}
+
 
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
@@ -297,15 +331,15 @@ void FeSprite::updateGeometry()
 	sskew.x /= scale.x;
 	sskew.y /= scale.y;
 
-	if (( m_borders.position.x > 0 ) ||
-	    ( m_borders.position.y > 0 ) ||
-	    ( m_borders.size.x > 0 ) ||
-	    ( m_borders.size.y > 0 ))
+	if (( m_border.position.x > 0 ) ||
+	    ( m_border.position.y > 0 ) ||
+	    ( m_border.size.x > 0 ) ||
+	    ( m_border.size.y > 0 ))
 	{
-		float x[4] = { 0, m_borders.position.x / scale.x, bounds.size.x - m_borders.size.x / scale.x, (float)bounds.size.x };
-		float y[4] = { 0, m_borders.position.y / scale.y, bounds.size.y - m_borders.size.y / scale.y, (float)bounds.size.y };
-		float tx[4] = { left, left + ( m_borders.position.x / m_textureRect.size.x ) * ( right - left) , right - ( m_borders.size.x / m_textureRect.size.x ) * ( right - left ), right };
-		float ty[4] = { top, top + ( m_borders.position.y / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_borders.size.y / m_textureRect.size.y ) * ( bottom - top ), bottom };
+		float x[4] = { -( m_border.position.x / scale.x ), 0, std::abs( m_textureRect.size.x ), std::abs( m_textureRect.size.x ) + ( m_border.size.x / scale.x ) };
+		float y[4] = { -( m_border.position.y / scale.y ), 0, std::abs( m_textureRect.size.y ), std::abs( m_textureRect.size.y ) + ( m_border.size.y / scale.y ) };
+		float tx[4] = { left, left + ( m_border.position.x / m_textureRect.size.x ) * ( right - left) , right - ( m_border.size.x / m_textureRect.size.x ) * ( right - left ), right };
+		float ty[4] = { top, top + ( m_border.position.y / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.size.y / m_textureRect.size.y ) * ( bottom - top ), bottom };
 
 		const int rows = 4;
 		const int cols = 4;
