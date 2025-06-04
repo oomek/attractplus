@@ -1402,6 +1402,7 @@ void FePresent::post_run()
 	on_transition( FromGame, FromToNoValue );
 #endif
 
+	m_feSettings->reset_input();
 	reset_screen_saver();
 	update_to( ToNewList, false );
 }

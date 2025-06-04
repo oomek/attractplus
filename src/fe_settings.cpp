@@ -646,7 +646,7 @@ void FeSettings::load_layout_params()
 void FeSettings::init_display()
 {
 	FeLog() << std::endl << "*** Initializing display: '" << get_current_display_title() << "'" << std::endl;
-	
+
 	m_loaded_game_extras = false;
 
 	//
@@ -898,6 +898,11 @@ void FeSettings::load_state()
 			m_menu_layout_file = "";
 		}
 	}
+}
+
+void FeSettings::reset_input()
+{
+	m_inputmap.clear_tracked_keys();
 }
 
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
@@ -4188,10 +4193,10 @@ void FeSettings::update_romlist_after_edit(
 	UpdateType u_type )
 {
 	if ( m_current_display < 0 ) return;
-		
+
 	const std::string &romlist_name = m_displays[m_current_display].get_info(FeDisplayInfo::Romlist);
 	const std::string romlist_path = FE_ROMLIST_SUBDIR + romlist_name + FE_ROMLIST_FILE_EXTENSION;
-	
+
 	std::string in_path = m_config_path + romlist_path;
 	std::string out_path = in_path; // Out path is always in romlist directory
 
@@ -4203,11 +4208,11 @@ void FeSettings::update_romlist_after_edit(
 		std::string temp = FE_DATA_PATH + romlist_path;
 		if ( file_exists( temp ) ) in_path = temp;
 	}
-	
+
 	// Exit early if cannot open infile (do not even update in-memory romlist)
 	nowide::ifstream infile( in_path.c_str() );
 	if ( !infile.is_open() ) return;
-	
+
 	//
 	// Update the in-memory romlist now
 	//
@@ -4326,7 +4331,7 @@ void FeSettings::update_romlist_after_edit(
 
 		delete_file( path );
 	}
-	
+
 	// Finally, re-create filters *after* romlist file has been updated
 	// RomInfo operator== compares romname and emulator
 	if ( ( u_type == EraseEntry ) || (( u_type == UpdateEntry ) && !( original == replacement )) )
