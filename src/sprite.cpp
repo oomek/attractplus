@@ -337,32 +337,31 @@ void FeSprite::updateGeometry()
 	{
 		float x[4], y[4];
 
-		float clamped_border_scale = m_border_scale;
+		float total_width = m_textureRect.size.x + ( m_padding.left + m_padding.right ) / scale.x;
+		float total_height = m_textureRect.size.y + ( m_padding.top + m_padding.bottom ) / scale.y;
+		float border_width = ( m_border.left + m_border.right ) / scale.x;
+		float border_height = ( m_border.top + m_border.bottom ) / scale.y;
+		float auto_scale = 1.0f;
 
-		float sprite_width = m_textureRect.size.x * scale.x;
-		float sprite_height = m_textureRect.size.y * scale.y;
+		if ( border_width > 0 && border_height > 0 )
+			auto_scale = std::min( 1.0f, std::min( total_width / border_width, total_height / border_height ));
 
-		float padding_width = -( m_padding.left + m_padding.right );
-		float padding_height = -( m_padding.top + m_padding.bottom );
+		float final_border_scale = auto_scale * m_border_scale;
 
-		if ( padding_width > 0 && padding_width * clamped_border_scale > sprite_width )
-			clamped_border_scale = std::min( clamped_border_scale, sprite_width / padding_width );
+		float border_left = ( m_border.left / scale.x ) * final_border_scale;
+		float border_right = ( m_border.right / scale.x ) * final_border_scale;
+		float border_top = ( m_border.top / scale.y ) * final_border_scale;
+		float border_bottom = ( m_border.bottom / scale.y ) * final_border_scale;
 
-		if ( padding_height > 0 && padding_height * clamped_border_scale > sprite_height )
-			clamped_border_scale = std::min( clamped_border_scale, sprite_height / padding_height );
+		x[0] = -m_padding.left / scale.x;
+		x[1] = x[0] + border_left;
+		x[2] = x[0] + total_width - border_right;
+		x[3] = x[0] + total_width;
 
-		float border_offset_x = ( clamped_border_scale - 1.0f ) * ( m_border.left / scale.x );
-		float border_offset_y = ( clamped_border_scale - 1.0f ) * ( m_border.top / scale.y );
-
-		x[0] = (( -m_border.left - m_padding.left ) / scale.x );
-		x[1] = (float)m_border.left / scale.x * ( -(float)m_padding.left / (float)m_border.left ) + border_offset_x;
-		x[2] = m_textureRect.size.x + ( m_padding.right / scale.x ) - border_offset_x;
-		x[3] = m_textureRect.size.x + ( m_border.right + m_padding.right ) / scale.x;
-
-		y[0] = (( -m_border.top - m_padding.top ) / scale.y );
-		y[1] = (float)m_border.top / scale.y * ( -(float)m_padding.top / (float)m_border.top ) + border_offset_y;
-		y[2] = m_textureRect.size.y + ( m_padding.bottom / scale.y ) - border_offset_y;
-		y[3] = m_textureRect.size.y + ( m_border.bottom + m_padding.bottom ) / scale.y;
+		y[0] = -m_padding.top / scale.y;
+		y[1] = y[0] + border_top;
+		y[2] = y[0] + total_height - border_bottom;
+		y[3] = y[0] + total_height;
 
 		float tx[4] = { left, left + ( m_border.left / m_textureRect.size.x ) * ( right - left) , right - ( m_border.right / m_textureRect.size.x ) * ( right - left ), right };
 		float ty[4] = { top, top + ( m_border.top / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.bottom / m_textureRect.size.y ) * ( bottom - top ), bottom };
