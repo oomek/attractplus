@@ -337,8 +337,22 @@ void FeSprite::updateGeometry()
 	{
 		float x[4], y[4];
 
-		float border_offset_x = ( m_border_scale - 1.0 ) * ( m_border.left / scale.x );
-		float border_offset_y = ( m_border_scale - 1.0 ) * ( m_border.top / scale.y );
+		float clamped_border_scale = m_border_scale;
+
+		float sprite_width = m_textureRect.size.x * scale.x;
+		float sprite_height = m_textureRect.size.y * scale.y;
+
+		float padding_width = -( m_padding.left + m_padding.right );
+		float padding_height = -( m_padding.top + m_padding.bottom );
+
+		if ( padding_width > 0 && padding_width * clamped_border_scale > sprite_width )
+			clamped_border_scale = std::min( clamped_border_scale, sprite_width / padding_width );
+
+		if ( padding_height > 0 && padding_height * clamped_border_scale > sprite_height )
+			clamped_border_scale = std::min( clamped_border_scale, sprite_height / padding_height );
+
+		float border_offset_x = ( clamped_border_scale - 1.0f ) * ( m_border.left / scale.x );
+		float border_offset_y = ( clamped_border_scale - 1.0f ) * ( m_border.top / scale.y );
 
 		x[0] = (( -m_border.left - m_padding.left ) / scale.x );
 		x[1] = (float)m_border.left / scale.x * ( -(float)m_padding.left / (float)m_border.left ) + border_offset_x;
