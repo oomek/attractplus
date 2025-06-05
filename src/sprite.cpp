@@ -82,7 +82,8 @@ m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
 m_border( { 0, 0 }, { 0, 0 } ),
-m_padding( { 0, 0 }, { 0, 0 } )
+m_padding( { 0, 0 }, { 0, 0 } ),
+m_border_scale( 1.f )
 {
 }
 
@@ -95,7 +96,8 @@ m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
 m_border( { 0, 0 }, { 0, 0 } ),
-m_padding( { 0, 0 }, { 0, 0 } )
+m_padding( { 0, 0 }, { 0, 0 } ),
+m_border_scale( 1.f )
 {
     setTexture(texture);
 }
@@ -109,7 +111,8 @@ m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
 m_border( { 0, 0 }, { 0, 0 } ),
-m_padding( { 0, 0 }, { 0, 0 } )
+m_padding( { 0, 0 }, { 0, 0 } ),
+m_border_scale( 1.f )
 {
     setTexture(texture);
     setTextureRect(rectangle);
@@ -294,6 +297,19 @@ void FeSprite::setPadding( const sf::IntRect& padding )
 	}
 }
 
+float FeSprite::getBorderScale() const
+{
+	return m_border_scale;
+}
+
+void FeSprite::setBorderScale( float s )
+{
+	if ( s != m_border_scale )
+	{
+		m_border_scale = s;
+		updateGeometry();
+	}
+}
 
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()

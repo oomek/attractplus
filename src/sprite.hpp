@@ -218,6 +218,8 @@ public :
 	void setBorder( const sf::IntRect &b );
 	void setPadding( const sf::IntRect &p );
 	void setScale( const sf::Vector2f &s );
+    float getBorderScale() const;
+    void setBorderScale( float s );
 
 	using sf::Transformable::getRotation;
 	using sf::Transformable::setRotation;
@@ -251,6 +253,7 @@ private :
 	sf::Vector2f m_skew;
 	sf::IntRect m_border;
 	sf::IntRect m_padding;
+    float m_border_scale;
 };
 
 

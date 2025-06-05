@@ -354,6 +354,7 @@ public:
 	bool get_repeat() const;
 	bool get_redraw() const;
 	float get_volume() const;
+	float get_border_scale() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
@@ -383,6 +384,7 @@ public:
 	void set_redraw( bool );
 	void set_volume( float );
 	void set_blend_mode( int b );
+	void set_border_scale( float s );
 
 	void transition_swap( FeImage * );
 

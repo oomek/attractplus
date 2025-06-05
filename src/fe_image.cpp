@@ -1863,3 +1863,17 @@ void FeImage::set_padding( int l, int t, int r, int b )
 		FePresent::script_flag_redraw();
 	}
 }
+
+void FeImage::set_border_scale( float s )
+{
+	if ( s != m_sprite.getBorderScale() )
+	{
+		m_sprite.setBorderScale( s );
+		FePresent::script_flag_redraw();
+	}
+}
+
+float FeImage::get_border_scale() const
+{
+	return m_sprite.getBorderScale();
+}
