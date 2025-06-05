@@ -348,10 +348,10 @@ void FeSprite::updateGeometry()
 
 		float final_border_scale = auto_scale * m_border_scale;
 
-		float border_left = ( m_border.left / scale.x ) * final_border_scale;
-		float border_right = ( m_border.right / scale.x ) * final_border_scale;
-		float border_top = ( m_border.top / scale.y ) * final_border_scale;
-		float border_bottom = ( m_border.bottom / scale.y ) * final_border_scale;
+		float border_left = std::min(( m_border.left / scale.x ) * final_border_scale, total_width * 0.5f );
+		float border_right = std::min(( m_border.right / scale.x ) * final_border_scale, total_width * 0.5f );
+		float border_top = std::min(( m_border.top / scale.y ) * final_border_scale, total_height * 0.5f );
+		float border_bottom = std::min(( m_border.bottom / scale.y ) * final_border_scale, total_height * 0.5f );
 
 		x[0] = -m_padding.left / scale.x;
 		x[1] = x[0] + border_left;
@@ -362,6 +362,9 @@ void FeSprite::updateGeometry()
 		y[1] = y[0] + border_top;
 		y[2] = y[0] + total_height - border_bottom;
 		y[3] = y[0] + total_height;
+
+		x[2] = std::max( x[2], x[1] );
+		y[2] = std::max( y[2], y[1] );
 
 		float tx[4] = { left, left + ( m_border.left / m_textureRect.size.x ) * ( right - left) , right - ( m_border.right / m_textureRect.size.x ) * ( right - left ), right };
 		float ty[4] = { top, top + ( m_border.top / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.bottom / m_textureRect.size.y ) * ( bottom - top ), bottom };
