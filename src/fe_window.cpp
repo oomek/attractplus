@@ -35,6 +35,9 @@
 #include <windows.h>
 #ifndef WINDOWS_XP
 #include <dwmapi.h>
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 #endif
 #endif // SFML_SYSTEM_WINDOWS
 
@@ -469,6 +472,13 @@ void FeWindow::initial_create()
 #if defined(SFML_SYSTEM_WINDOWS)
 	set_win32_foreground_window( m_window->getNativeHandle(), m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
+
+#ifndef WINDOWS_XP
+	// Enable dark mode titlebar on Windows
+	BOOL value = TRUE;
+	DwmSetWindowAttribute( hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof( value ));
+#endif
+
 	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 #endif

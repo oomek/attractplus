@@ -1843,3 +1843,37 @@ FePresentableParent *FeImage::get_presentable_parent()
 {
 	return m_tex->get_presentable_parent();
 }
+
+void FeImage::set_border( int l, int t, int r, int b )
+{
+	IntEdges border( l, t, r, b );
+	if ( border != m_sprite.getBorder() )
+	{
+		m_sprite.setBorder( border );
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_padding( int l, int t, int r, int b )
+{
+	IntEdges padding( l, t, r, b );
+	if ( padding != m_sprite.getPadding() )
+	{
+		m_sprite.setPadding( padding );
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_border_scale( float s )
+{
+	if ( s != m_sprite.getBorderScale() )
+	{
+		m_sprite.setBorderScale( s );
+		FePresent::script_flag_redraw();
+	}
+}
+
+float FeImage::get_border_scale() const
+{
+	return m_sprite.getBorderScale();
+}
