@@ -29,6 +29,11 @@
 //
 // Squirrel utility functions.
 //
+
+std::string scstdstr( const SQChar* s );
+
+const SQChar *scsqchar( std::string s );
+
 bool fe_get_object_string(
 	HSQUIRRELVM vm,
 	const HSQOBJECT &obj,

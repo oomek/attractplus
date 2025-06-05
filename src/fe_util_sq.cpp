@@ -24,6 +24,26 @@
 #include "fe_util.hpp" // perform_substitution
 #include <sqrat.h>
 
+// Convert SQChar to std::string
+std::string scstdstr( const SQChar* s )
+{
+#ifdef SQUNICODE
+	return FeUtil::narrow( s );
+#else
+	return std::string( s );
+#endif
+}
+
+// Convert std::string to SQChar
+const SQChar *scsqchar( std::string s )
+{
+#ifdef SQUNICODE
+	return FeUtil::widen( s ).c_str();
+#else
+	return s.c_str();
+#endif
+}
+
 bool fe_get_object_string(
 	HSQUIRRELVM vm,
 	const HSQOBJECT &obj,
@@ -35,7 +55,7 @@ bool fe_get_object_string(
 	SQRESULT res = sq_getstring(vm, -1, &s);
 	bool r = SQ_SUCCEEDED(res);
 	if (r)
-		out_string = s;
+		out_string = scstdstr( s );
 
 	sq_pop(vm,2);
 	return r;
@@ -53,7 +73,7 @@ bool fe_get_attribute_string(
 	if ( key.empty() )
 		sq_pushnull(vm);
 	else
-		sq_pushstring(vm, key.c_str(), key.size());
+		sq_pushstring(vm, scsqchar( key ), key.size() );
 
 	if ( SQ_FAILED( sq_getattributes(vm, -2) ) )
 	{
@@ -71,7 +91,7 @@ bool fe_get_attribute_string(
 	if ( attTable.IsNull() )
 		return false;
 
-	Sqrat::Object attVal = attTable.GetSlot( attribute.c_str() );
+	Sqrat::Object attVal = attTable.GetSlot( scsqchar( attribute ) );
 	if ( attVal.IsNull() )
 		return false;
 
@@ -139,7 +159,7 @@ void fe_register_global_func(
 	const char *name )
 {
         sq_pushroottable( vm );
-        sq_pushstring( vm, name, -1 );
+        sq_pushstring( vm, scsqchar( name ), -1 );
         sq_newclosure( vm, f, 0 );
         sq_newslot( vm, -3, SQFalse );
         sq_pop( vm, 1 ); // pops the root table

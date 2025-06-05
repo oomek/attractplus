@@ -22,6 +22,7 @@
 
 #include "fe_info.hpp"
 #include "fe_util.hpp"
+#include "fe_util_sq.hpp"
 #include "fe_cache.hpp"
 #include <iostream>
 #include <sstream>
@@ -302,8 +303,7 @@ void FeRule::init()
 	// Compile the regular expression now
 	//
 	const SQChar *err( NULL );
-	m_rex = sqstd_rex_compile(
-		(const SQChar *)m_filter_what.c_str(), &err );
+	m_rex = sqstd_rex_compile( scsqchar( m_filter_what ), &err );
 
 	if ( !m_rex )
 		FeLog() << "Error compiling regular expression \""
@@ -324,40 +324,24 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 	switch ( m_filter_comp )
 	{
 	case FilterEquals:
-		if ( target.empty() )
-			return ( m_filter_what.empty() );
-
-		return ( sqstd_rex_match(
-					m_rex,
-					(const SQChar *)target.c_str() ) == SQTrue );
+		return target.empty()
+			? m_filter_what.empty()
+			: sqstd_rex_match( m_rex, scsqchar(target) );
 
 	case FilterNotEquals:
-		if ( target.empty() )
-			return ( !m_filter_what.empty() );
-
-		return ( sqstd_rex_match(
-					m_rex,
-					(const SQChar *)target.c_str() ) != SQTrue );
+		return target.empty()
+			? !m_filter_what.empty()
+			: !sqstd_rex_match( m_rex, scsqchar(target) );
 
 	case FilterContains:
-		if ( target.empty() )
-			return false;
-
-		return ( sqstd_rex_search(
-					m_rex,
-					(const SQChar *)target.c_str(),
-					&begin,
-					&end ) == SQTrue );
+		return target.empty()
+			? false
+			: sqstd_rex_search( m_rex, scsqchar(target), &begin, &end );
 
 	case FilterNotContains:
-		if ( target.empty() )
-			return true;
-
-		return ( sqstd_rex_search(
-					m_rex,
-					(const SQChar *)target.c_str(),
-					&begin,
-					&end ) != SQTrue );
+		return target.empty()
+			? true
+			: sqstd_rex_search( m_rex, scsqchar(target), &begin, &end );
 
 	default:
 		return true;
@@ -516,7 +500,7 @@ int FeFilter::process_setting( const std::string &setting,
 	}
 	else if ( setting.compare( indexStrings[ReverseOrder] ) == 0 ) // reverse_order
 	{
-		set_reverse_order( true );
+		set_reverse_order( config_str_to_bool( value, true ) );
 	}
 	else if ( setting.compare( indexStrings[ListLimit] ) == 0 ) // list_limit
 	{
