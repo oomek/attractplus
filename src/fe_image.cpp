@@ -1846,7 +1846,7 @@ FePresentableParent *FeImage::get_presentable_parent()
 
 void FeImage::set_border( int l, int t, int r, int b )
 {
-	sf::IntRect border( { l, t }, { r, b } );
+	IntEdges border( l, t, r, b );
 	if ( border != m_sprite.getBorder() )
 	{
 		m_sprite.setBorder( border );
@@ -1856,7 +1856,7 @@ void FeImage::set_border( int l, int t, int r, int b )
 
 void FeImage::set_padding( int l, int t, int r, int b )
 {
-	sf::IntRect padding( { l, t }, { r, b } );
+	IntEdges padding( l, t, r, b );
 	if ( padding != m_sprite.getPadding() )
 	{
 		m_sprite.setPadding( padding );

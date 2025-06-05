@@ -81,8 +81,8 @@ m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
-m_border( { 0, 0 }, { 0, 0 } ),
-m_padding( { 0, 0 }, { 0, 0 } ),
+m_border( 0, 0, 0, 0 ),
+m_padding( 0, 0, 0, 0 ),
 m_border_scale( 1.f )
 {
 }
@@ -95,8 +95,8 @@ m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
-m_border( { 0, 0 }, { 0, 0 } ),
-m_padding( { 0, 0 }, { 0, 0 } ),
+m_border( 0, 0, 0, 0 ),
+m_padding( 0, 0, 0, 0 ),
 m_border_scale( 1.f )
 {
     setTexture(texture);
@@ -110,8 +110,8 @@ m_texture    (NULL),
 m_textureRect(),
 m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
-m_border( { 0, 0 }, { 0, 0 } ),
-m_padding( { 0, 0 }, { 0, 0 } ),
+m_border( 0, 0, 0, 0 ),
+m_padding( 0, 0, 0, 0 ),
 m_border_scale( 1.f )
 {
     setTexture(texture);
@@ -269,12 +269,12 @@ void FeSprite::setScale( const sf::Vector2f &s )
 	updateGeometry();
 }
 
-const sf::IntRect& FeSprite::getBorder() const
+const IntEdges& FeSprite::getBorder() const
 {
 	return m_border;
 }
 
-void FeSprite::setBorder( const sf::IntRect& border )
+void FeSprite::setBorder( const IntEdges& border )
 {
 	if ( border != m_border )
 	{
@@ -283,12 +283,12 @@ void FeSprite::setBorder( const sf::IntRect& border )
 	}
 }
 
-const sf::IntRect& FeSprite::getPadding() const
+const IntEdges& FeSprite::getPadding() const
 {
 	return m_padding;
 }
 
-void FeSprite::setPadding( const sf::IntRect& padding )
+void FeSprite::setPadding( const IntEdges& padding )
 {
 	if ( padding != m_padding )
 	{
@@ -330,26 +330,28 @@ void FeSprite::updateGeometry()
 	sf::Vector2f sskew = m_skew;
 	sskew.x /= scale.x;
 	sskew.y /= scale.y;
-
-	if (( m_border.position.x > 0 ) ||
-	    ( m_border.position.y > 0 ) ||
-	    ( m_border.size.x > 0 ) ||
-	    ( m_border.size.y > 0 ))
+	if (( m_border.left > 0 ) ||
+	    ( m_border.top > 0 ) ||
+	    ( m_border.right > 0 ) ||
+	    ( m_border.bottom > 0 ))
 	{
 		float x[4], y[4];
 
-		x[0] = (( -m_border.position.x - m_padding.position.x ) / scale.x );
-		x[1] = (float)m_border.position.x / scale.x * ( -(float)m_padding.position.x  / (float)m_border.position.x ) + ( m_border_scale - 1.0 ) * ( m_border.position.x / scale.x );
-		x[2] = m_textureRect.size.x + ( m_padding.size.x / scale.x ) - ( m_border_scale - 1.0 ) * ( m_border.position.x / scale.x );
-		x[3] = m_textureRect.size.x + ( m_border.size.x + m_padding.size.x ) / scale.x;
+		float border_offset_x = ( m_border_scale - 1.0 ) * ( m_border.left / scale.x );
+		float border_offset_y = ( m_border_scale - 1.0 ) * ( m_border.top / scale.y );
 
-		y[0] = (( -m_border.position.y - m_padding.position.y ) / scale.y );
-		y[1] = (float)m_border.position.y / scale.y * ( -(float)m_padding.position.y  / (float)m_border.position.y ) + ( m_border_scale - 1.0 ) * ( m_border.position.y / scale.y );
-		y[2] = m_textureRect.size.y + ( m_padding.size.y / scale.y ) - ( m_border_scale - 1.0 ) * ( m_border.position.y / scale.y );
-		y[3] = m_textureRect.size.y + ( m_border.size.y + m_padding.size.y ) / scale.y;
+		x[0] = (( -m_border.left - m_padding.left ) / scale.x );
+		x[1] = (float)m_border.left / scale.x * ( -(float)m_padding.left / (float)m_border.left ) + border_offset_x;
+		x[2] = m_textureRect.size.x + ( m_padding.right / scale.x ) - border_offset_x;
+		x[3] = m_textureRect.size.x + ( m_border.right + m_padding.right ) / scale.x;
 
-		float tx[4] = { left, left + ( m_border.position.x / m_textureRect.size.x ) * ( right - left) , right - ( m_border.size.x / m_textureRect.size.x ) * ( right - left ), right };
-		float ty[4] = { top, top + ( m_border.position.y / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.size.y / m_textureRect.size.y ) * ( bottom - top ), bottom };
+		y[0] = (( -m_border.top - m_padding.top ) / scale.y );
+		y[1] = (float)m_border.top / scale.y * ( -(float)m_padding.top / (float)m_border.top ) + border_offset_y;
+		y[2] = m_textureRect.size.y + ( m_padding.bottom / scale.y ) - border_offset_y;
+		y[3] = m_textureRect.size.y + ( m_border.bottom + m_padding.bottom ) / scale.y;
+
+		float tx[4] = { left, left + ( m_border.left / m_textureRect.size.x ) * ( right - left) , right - ( m_border.right / m_textureRect.size.x ) * ( right - left ), right };
+		float ty[4] = { top, top + ( m_border.top / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.bottom / m_textureRect.size.y ) * ( bottom - top ), bottom };
 
 		const int rows = 4;
 		const int cols = 4;
