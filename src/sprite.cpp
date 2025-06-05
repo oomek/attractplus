@@ -339,19 +339,30 @@ void FeSprite::updateGeometry()
 
 		float total_width = m_textureRect.size.x + ( m_padding.left + m_padding.right ) / scale.x;
 		float total_height = m_textureRect.size.y + ( m_padding.top + m_padding.bottom ) / scale.y;
+
+		float min_scale = 1.0f;
 		float border_width = ( m_border.left + m_border.right ) / scale.x;
 		float border_height = ( m_border.top + m_border.bottom ) / scale.y;
-		float auto_scale = 1.0f;
+		if ( border_width * m_border_scale > total_width || border_height * m_border_scale > total_height )
+			if ( border_width > 0.0f && border_height > 0.0f )
+				min_scale = std::min( total_width / ( border_width * m_border_scale ), total_height / ( border_height * m_border_scale ));
 
-		if ( border_width > 0 && border_height > 0 )
-			auto_scale = std::min( 1.0f, std::min( total_width / border_width, total_height / border_height ));
+		float border_left = ( m_border.left / scale.x ) * min_scale * m_border_scale;
+		float border_right = ( m_border.right / scale.x ) * min_scale * m_border_scale;
+		float border_top = ( m_border.top / scale.y ) * min_scale * m_border_scale;
+		float border_bottom = ( m_border.bottom / scale.y ) * min_scale * m_border_scale;
 
-		float final_border_scale = auto_scale * m_border_scale;
+		if ( border_left + border_right > total_width || border_top + border_bottom > total_height )
+		{
+			float clamp_ratio = std::min(
+				border_left + border_right > 0.0f ? total_width / ( border_left + border_right ) : 1.0f,
+				border_top + border_bottom > 0.0f ? total_height / ( border_top + border_bottom ) : 1.0f );
 
-		float border_left = std::min(( m_border.left / scale.x ) * final_border_scale, total_width * 0.5f );
-		float border_right = std::min(( m_border.right / scale.x ) * final_border_scale, total_width * 0.5f );
-		float border_top = std::min(( m_border.top / scale.y ) * final_border_scale, total_height * 0.5f );
-		float border_bottom = std::min(( m_border.bottom / scale.y ) * final_border_scale, total_height * 0.5f );
+			border_left *= clamp_ratio;
+			border_right *= clamp_ratio;
+			border_top *= clamp_ratio;
+			border_bottom *= clamp_ratio;
+		}
 
 		x[0] = -m_padding.left / scale.x;
 		x[1] = x[0] + border_left;
