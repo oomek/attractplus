@@ -26,6 +26,7 @@
 #include "fe_file.hpp"
 #include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
+#include "fe_audio_fx.hpp"
 
 extern "C"
 {
@@ -860,6 +861,29 @@ FeMedia::~FeMedia()
 	delete m_imp;
 }
 
+void FeMedia::setup_effect_processor()
+{
+	setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	                            float *output_frames, unsigned int &output_frame_count,
+	                            unsigned int frame_channel_count )
+	{
+		if ( input_frames && input_frame_count > 0 && is_playing() )
+			m_audio_visualiser.process( input_frames, input_frame_count,
+			                                         frame_channel_count,
+			                                         static_cast<float>( getSampleRate() ));
+		else
+			m_audio_visualiser.reset();
+
+		if ( input_frames && output_frames && input_frame_count > 0 )
+		{
+			const unsigned int total_samples = input_frame_count * frame_channel_count;
+			std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
+		}
+
+		output_frame_count = input_frame_count;
+	});
+}
+
 sf::Time FeMedia::get_video_time()
 {
 	//
@@ -891,6 +915,8 @@ void FeMedia::signal_stop()
 
 	if ( m_video )
 		m_video->signal_stop();
+
+	m_audio_visualiser.reset();
 }
 
 void FeMedia::stop()
@@ -917,6 +943,7 @@ void FeMedia::stop()
 	}
 
 	m_imp->m_read_eof = false;
+	m_audio_visualiser.reset();
 }
 
 void FeMedia::close()
@@ -927,6 +954,8 @@ void FeMedia::close()
 	std::lock_guard<std::mutex> l( m_callback_mutex );
 
 	stop();
+
+	setEffectProcessor( nullptr );
 
 	if (m_audio)
 	{
@@ -1116,12 +1145,19 @@ bool FeMedia::open( const std::string &archive,
 				int nb_channels = codec_ctx->channels;
 #endif
 
+				std::vector<sf::SoundChannel> channelMap;
+				channelMap.push_back( sf::SoundChannel::FrontLeft );
+				if ( nb_channels > 1 )
+					channelMap.push_back( sf::SoundChannel::FrontRight );
+
 				sf::SoundStream::initialize(
 					nb_channels,
 					codec_ctx->sample_rate,
-					{ sf::SoundChannel::FrontLeft, sf::SoundChannel::FrontRight } );
+					channelMap );
 
 				sf::SoundStream::setLooping( false );
+
+				setup_effect_processor();
 			}
 		}
 	}
@@ -1294,6 +1330,9 @@ bool FeMedia::tick()
 {
 	if (( !m_video ) && ( !m_audio ))
 		return false;
+
+	if ( m_audio )
+		m_audio_visualiser.update();
 
 	if ( m_video )
 	{
@@ -1587,4 +1626,34 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 				<< av_hwdevice_get_type_name( fe_hw_accels[i] ) << std::endl;
 	}
 #endif
+}
+
+float FeMedia::get_vu_left()
+{
+	return m_audio_visualiser.get_vu_left();
+}
+
+float FeMedia::get_vu_right()
+{
+	return m_audio_visualiser.get_vu_right();
+}
+
+float FeMedia::get_vu_mono()
+{
+	return m_audio_visualiser.get_vu_mono();
+}
+
+Sqrat::Array FeMedia::get_fft_array_mono()
+{
+	return m_audio_visualiser.get_fft_array_mono();
+}
+
+Sqrat::Array FeMedia::get_fft_array_left()
+{
+	return m_audio_visualiser.get_fft_array_left();
+}
+
+Sqrat::Array FeMedia::get_fft_array_right()
+{
+	return m_audio_visualiser.get_fft_array_right();
 }

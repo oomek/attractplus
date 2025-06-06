@@ -20,6 +20,7 @@
  *
  */
 
+#define _USE_MATH_DEFINES
 #include "fe_overlay.hpp"
 #include "fe_settings.hpp"
 #include "fe_config.hpp"
@@ -28,9 +29,6 @@
 #include "fe_text.hpp"
 #include <SFML/Graphics.hpp>
 #include "base64.hpp"
-
-#include <iostream>
-#define _USE_MATH_DEFINES
 #include <cmath>
 
 class FeConfigContextImp : public FeConfigContext

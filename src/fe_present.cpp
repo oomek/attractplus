@@ -1291,6 +1291,10 @@ bool FePresent::video_tick()
 			its != m_sounds.end(); ++its )
 		(*its)->tick();
 
+	for ( std::vector<FeMusic *>::iterator itm=m_musics.begin();
+			itm != m_musics.end(); ++itm )
+		(*itm)->tick();
+
 	return ret_val;
 }
 
