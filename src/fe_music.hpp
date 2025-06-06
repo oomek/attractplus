@@ -25,6 +25,9 @@
 
 #include <SFML/Audio.hpp>
 #include <cstring>
+#include <vector>
+#include <complex>
+#include <sqrat.h>
 
 class FeMusic
 {
@@ -36,7 +39,24 @@ private:
 
 	std::string m_file_name;
 	bool m_play_state;
-	float m_volume;
+	float m_volume;	mutable float m_vu;
+	mutable float m_vu_left;
+	mutable float m_vu_right;
+	mutable float m_vu_display;
+	mutable float m_vu_left_display;
+	mutable float m_vu_right_display;
+	mutable std::vector<float> m_fft_bands;
+	mutable std::vector<float> m_fft_display_values;
+	mutable std::vector<float> m_fft_bands_left;
+	mutable std::vector<float> m_fft_display_values_left;
+	mutable std::vector<float> m_fft_bands_right;
+	mutable std::vector<float> m_fft_display_values_right;
+	mutable std::vector<std::complex<float>> m_fft_buffer;
+	mutable float m_last_frame_time;
+	mutable sf::Clock m_system_clock;
+	mutable float m_fft_linearity; // 0.0 = linear, 1.0 = logarithmic
+	static const int FFT_BANDS = 32;
+	static const int FFT_SIZE = 16384;
 
 public:
 	FeMusic( bool loop=false );
@@ -69,6 +89,24 @@ public:
 	int get_duration();
 	int get_time();
 	const char *get_metadata( const char * );
+	float get_vu();
+	float get_vu_left();
+	float get_vu_right();
+	const std::vector<float>& get_fft();
+	const std::vector<float>& get_fft_left();
+	const std::vector<float>& get_fft_right();
+	float get_fft_linearity();
+	void set_fft_linearity( float linearity );
+
+	Sqrat::Array get_fft_array();
+	Sqrat::Array get_fft_left_array();
+	Sqrat::Array get_fft_right_array();
+
+private:
+	void calculate_fft(const float* samples, unsigned int sampleCount) const;
+	void calculate_fft_stereo(const float* samples, unsigned int sampleCount, unsigned int frameChannelCount) const;
+	void calculate_fft_channel(const float* samples, unsigned int sampleCount, std::vector<float>& fft_bands) const;
+	void update_bands_fall() const;
 };
 
 #endif // FE_MUSIC_HPP
