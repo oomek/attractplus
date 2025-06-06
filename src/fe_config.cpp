@@ -1585,6 +1585,9 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 		int v = ctx.fe_settings.get_set_volume( (FeSoundInfo::SoundType)i );
 		ctx.add_opt( Opt::LIST, FeSoundInfo::settingDispStrings[i], as_str(v), "_help_volume" )->append_vlist( volumes );
 	}
+	// Loudness Normalisation toggle
+	//
+	ctx.add_opt( Opt::TOGGLE, FeSoundInfo::settingDispStrings[3], ctx.fe_settings.get_loudness(), "_help_loudness_normalisation" );
 
 	//
 	// Get the list of available sound files
@@ -1635,9 +1638,14 @@ bool FeSoundMenu::save( FeConfigContext &ctx )
 		);
 
 	//
+	// Loudness Normalisation
+	//
+	ctx.fe_settings.set_loudness( ctx.opt_list[3].get_vindex() == 0 );
+
+	//
 	// Save the sound settings
 	//
-	for ( i=3; i< (int)ctx.opt_list.size(); i++ )
+	for ( i=4; i< (int)ctx.opt_list.size(); i++ )
 	{
 		if ( ctx.opt_list[i].opaque >= 0 )
 			ctx.fe_settings.set_sound_file(

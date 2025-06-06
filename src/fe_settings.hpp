@@ -346,6 +346,8 @@ public:
 	int get_play_volume( FeSoundInfo::SoundType ) const;
 	bool get_mute() const;
 	void set_mute( bool );
+	bool get_loudness() const;
+	void set_loudness( bool );
 	bool get_sound_file( FeInputMap::Command, std::string &s, bool full_path=true ) const;
 	void set_sound_file( FeInputMap::Command, const std::string &s );
 	void get_sounds_list( std::vector < std::string > &ll ) const;

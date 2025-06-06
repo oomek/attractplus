@@ -151,6 +151,7 @@ _DEP =\
 	fe_image.hpp \
 	fe_sound.hpp \
 	fe_music.hpp \
+	fe_audio_fx.hpp \
 	fe_shader.hpp \
 	fe_overlay.hpp \
 	fe_window.hpp \
@@ -188,6 +189,7 @@ _OBJ =\
 	fe_image.o \
 	fe_sound.o \
 	fe_music.o \
+	fe_audio_fx.o \
 	fe_shader.o \
 	fe_overlay.o \
 	fe_window.o \

@@ -28,6 +28,8 @@
 #include <string>
 #include <atomic>
 #include <mutex>
+#include <functional>
+#include "fe_audio_fx.hpp"
 
 class FeMediaImp;
 class FeAudioImp;
@@ -97,6 +99,15 @@ public:
 	static std::string get_current_decoder();
 	static void set_current_decoder( const std::string & );
 
+	float get_vu_mono();
+	float get_vu_left();
+	float get_vu_right();
+	Sqrat::Array get_fft_array_mono();
+	Sqrat::Array get_fft_array_left();
+	Sqrat::Array get_fft_array_right();
+
+	FeAudioVisualiser* get_audio_visualiser();
+
 protected:
 	// overrides from base class
 	//
@@ -112,6 +123,11 @@ private:
 	FeVideoImp *m_video;
 	std::atomic<bool> m_closing;
 	std::mutex m_callback_mutex;
+
+	FeAudioEffectsManager m_audio_effects;
+	void setup_effect_processor();
+
+	sf::Clock m_system_clock;
 
 	FeMedia( const FeMedia & );
 	FeMedia &operator=( const FeMedia & );

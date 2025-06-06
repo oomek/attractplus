@@ -157,6 +157,7 @@ Layout Options;Layout Options
 Layout Preview;Layout Preview
 Left;Left
 List Limit;List Limit
+Loudness Normalisation;Loudness Normalisation
 Manufacturer;Manufacturer
 Menu Colour;Menu Colour
 Menu Prompt;Menu Prompt
