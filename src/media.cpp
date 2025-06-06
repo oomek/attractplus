@@ -26,6 +26,7 @@
 #include "fe_file.hpp"
 #include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
+#include "fe_audio_fx.hpp"
 
 extern "C"
 {
@@ -48,6 +49,7 @@ extern "C"
 #include <iostream>
 #include <thread>
 #include <algorithm>
+#include <memory>
 
 #if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
@@ -851,6 +853,9 @@ FeMedia::FeMedia( Type t )
 	m_aspect_ratio( 1.0 )
 {
 	m_imp = new FeMediaImp( t );
+	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 }
 
 FeMedia::~FeMedia()
@@ -858,6 +863,44 @@ FeMedia::~FeMedia()
 	close();
 
 	delete m_imp;
+}
+
+void FeMedia::setup_effect_processor()
+{
+	setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	                            float *output_frames, unsigned int &output_frame_count,
+	                            unsigned int frame_channel_count )
+	{
+		FePresent *fep = FePresent::script_get_fep();
+		if ( fep )
+		{
+			auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+			if ( normaliser )
+			{
+				normaliser->set_enabled( fep->get_fes()->get_loudness() );
+			}
+		}
+
+		if ( input_frames && input_frame_count > 0 && is_playing() )
+		{
+			m_audio_effects.process_all( input_frames, output_frames,
+			                                       input_frame_count, frame_channel_count,
+			                                       static_cast<float>( getSampleRate() ));
+		}
+		else
+		{
+			m_audio_effects.reset_all();
+
+			// Copy input to output when not playing
+			if ( input_frames && output_frames && input_frame_count > 0 )
+			{
+				const unsigned int total_samples = input_frame_count * frame_channel_count;
+				std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
+			}
+		}
+
+		output_frame_count = input_frame_count;
+	});
 }
 
 sf::Time FeMedia::get_video_time()
@@ -876,6 +919,8 @@ void FeMedia::play()
 {
 	if ( !is_playing() )
 	{
+		m_audio_effects.reset_all();
+
 		if ( m_video )
 			m_video->play();
 
@@ -891,6 +936,8 @@ void FeMedia::signal_stop()
 
 	if ( m_video )
 		m_video->signal_stop();
+
+	m_audio_effects.reset_all();
 }
 
 void FeMedia::stop()
@@ -917,6 +964,8 @@ void FeMedia::stop()
 	}
 
 	m_imp->m_read_eof = false;
+
+	m_audio_effects.reset_all();
 }
 
 void FeMedia::close()
@@ -927,6 +976,8 @@ void FeMedia::close()
 	std::lock_guard<std::mutex> l( m_callback_mutex );
 
 	stop();
+
+	setEffectProcessor( nullptr );
 
 	if (m_audio)
 	{
@@ -967,6 +1018,10 @@ void FeMedia::setVolume(float volume)
 	}
 
 	sf::SoundStream::setVolume( volume );
+
+	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+	if ( normaliser )
+		normaliser->set_media_volume( volume / 100.0f );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
@@ -1012,6 +1067,7 @@ size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 bool FeMedia::open( const std::string &archive,
 	const std::string &name, sf::Texture *outt )
 {
+	m_audio_effects.reset_all();
 	close();
 
 	sf::InputStream *s = NULL;
@@ -1116,12 +1172,19 @@ bool FeMedia::open( const std::string &archive,
 				int nb_channels = codec_ctx->channels;
 #endif
 
+				std::vector<sf::SoundChannel> channelMap;
+				channelMap.push_back( sf::SoundChannel::FrontLeft );
+				if ( nb_channels > 1 )
+					channelMap.push_back( sf::SoundChannel::FrontRight );
+
 				sf::SoundStream::initialize(
 					nb_channels,
 					codec_ctx->sample_rate,
-					{ sf::SoundChannel::FrontLeft, sf::SoundChannel::FrontRight } );
+					channelMap );
 
 				sf::SoundStream::setLooping( false );
+
+				setup_effect_processor();
 			}
 		}
 	}
@@ -1294,6 +1357,9 @@ bool FeMedia::tick()
 {
 	if (( !m_video ) && ( !m_audio ))
 		return false;
+
+	if ( m_audio )
+		m_audio_effects.update_all();
 
 	if ( m_video )
 	{
@@ -1587,4 +1653,60 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 				<< av_hwdevice_get_type_name( fe_hw_accels[i] ) << std::endl;
 	}
 #endif
+}
+
+FeAudioVisualiser* FeMedia::get_audio_visualiser()
+{
+	return m_audio_effects.get_effect<FeAudioVisualiser>();
+}
+
+float FeMedia::get_vu_left()
+{
+	auto* visualiser = get_audio_visualiser();
+	return visualiser ? visualiser->get_vu_left() : 0.0f;
+}
+
+float FeMedia::get_vu_right()
+{
+	auto* visualiser = get_audio_visualiser();
+	return visualiser ? visualiser->get_vu_right() : 0.0f;
+}
+
+float FeMedia::get_vu_mono()
+{
+	auto* visualiser = get_audio_visualiser();
+	return visualiser ? visualiser->get_vu_mono() : 0.0f;
+}
+
+Sqrat::Array FeMedia::get_fft_array_mono()
+{
+	auto* visualiser = get_audio_visualiser();
+	if ( visualiser )
+		return visualiser->get_fft_array_mono();
+
+	// Return empty array if no visualiser
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	return Sqrat::Array( vm );
+}
+
+Sqrat::Array FeMedia::get_fft_array_left()
+{
+	auto* visualiser = get_audio_visualiser();
+	if ( visualiser )
+		return visualiser->get_fft_array_left();
+
+	// Return empty array if no visualiser
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	return Sqrat::Array( vm );
+}
+
+Sqrat::Array FeMedia::get_fft_array_right()
+{
+	auto* visualiser = get_audio_visualiser();
+	if ( visualiser )
+		return visualiser->get_fft_array_right();
+
+	// Return empty array if no visualiser
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	return Sqrat::Array( vm );
 }

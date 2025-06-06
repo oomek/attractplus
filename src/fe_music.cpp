@@ -20,6 +20,8 @@
  *
  */
 
+#define _USE_MATH_DEFINES
+
 #include "fe_music.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
@@ -28,16 +30,69 @@
 
 #include <fstream>
 #include <unordered_map>
+#include <cmath>
+#include <memory>
+
+// Undefine Windows GetObject macro that conflict with Sqrat
+#ifdef GetObject
+#undef GetObject
+#endif
+
 
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
-	m_volume( 100.0 )
+	m_volume( 100.0 ),
+	m_audio_effects()
 {
 	m_music.setLooping( loop );
+	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
-		m_music.setVolume( fep->get_fes()->get_play_volume( FeSoundInfo::Sound ));
+	{
+		float volume = fep->get_fes()->get_play_volume( FeSoundInfo::Sound );
+		m_music.setVolume( volume );
+
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_media_volume( volume / 100.0f );
+	}
+	m_music.setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	                                    float *output_frames, unsigned int &output_frame_count,
+	                                    unsigned int frame_channel_count )
+	{
+		FePresent *fep = FePresent::script_get_fep();
+		if ( fep )
+		{
+			auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+			if ( normaliser )
+			{
+				normaliser->set_enabled( fep->get_fes()->get_loudness() );
+			}
+		}
+
+		if ( input_frames && input_frame_count > 0 && get_playing() )
+		{
+			m_audio_effects.process_all( input_frames, output_frames,
+			                                       input_frame_count, frame_channel_count,
+			                                       static_cast<float>( m_music.getSampleRate() ));
+		}
+		else
+		{
+			m_audio_effects.reset_all();
+
+			// Copy input to output when not playing
+			if ( input_frames && output_frames && input_frame_count > 0 )
+			{
+				const unsigned int total_samples = input_frame_count * frame_channel_count;
+				std::memcpy( output_frames, input_frames, total_samples * sizeof(float) );
+			}
+		}
+
+		output_frame_count = input_frame_count;
+	});
 }
 
 FeMusic::~FeMusic()
@@ -96,6 +151,10 @@ void FeMusic::set_volume( float v )
 			v = v * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
 
 		m_music.setVolume( v );
+
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_media_volume( v / 100.0f );
 	}
 }
 
@@ -205,4 +264,44 @@ const char *FeMusic::get_metadata( const char* tag )
 	std::unordered_map< std::string, std::string >::iterator it = metadata.find( tag );
 
 	return it != metadata.end() ? it->second.c_str() : "";
+}
+
+void FeMusic::tick()
+{
+	m_audio_effects.update_all();
+}
+
+FeAudioVisualiser* FeMusic::get_audio_visualiser()
+{
+	return m_audio_effects.get_effect<FeAudioVisualiser>();
+}
+
+float FeMusic::get_vu_mono()
+{
+	return get_audio_visualiser()->get_vu_mono();
+}
+
+float FeMusic::get_vu_left()
+{
+	return get_audio_visualiser()->get_vu_left();
+}
+
+float FeMusic::get_vu_right()
+{
+	return get_audio_visualiser()->get_vu_right();
+}
+
+Sqrat::Array FeMusic::get_fft_array_mono()
+{
+	return get_audio_visualiser()->get_fft_array_mono();
+}
+
+Sqrat::Array FeMusic::get_fft_array_left()
+{
+	return get_audio_visualiser()->get_fft_array_left();
+}
+
+Sqrat::Array FeMusic::get_fft_array_right()
+{
+	return get_audio_visualiser()->get_fft_array_right();
 }

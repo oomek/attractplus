@@ -25,18 +25,22 @@
 
 #include <SFML/Audio.hpp>
 #include <cstring>
+#include <sqrat.h>
+#include "fe_audio_fx.hpp"
 
 class FeMusic
 {
 private:
 	FeMusic( const FeMusic & );
 	FeMusic &operator=( const FeMusic & );
-
 	sf::Music m_music;
 
 	std::string m_file_name;
 	bool m_play_state;
 	float m_volume;
+	sf::Clock m_system_clock;
+
+	mutable FeAudioEffectsManager m_audio_effects;
 
 public:
 	FeMusic( bool loop=false );
@@ -69,6 +73,17 @@ public:
 	int get_duration();
 	int get_time();
 	const char *get_metadata( const char * );
+
+	void tick();
+
+	FeAudioVisualiser* get_audio_visualiser();
+
+	float get_vu_mono();
+	float get_vu_left();
+	float get_vu_right();
+	Sqrat::Array get_fft_array_mono();
+	Sqrat::Array get_fft_array_left();
+	Sqrat::Array get_fft_array_right();
 };
 
 #endif // FE_MUSIC_HPP

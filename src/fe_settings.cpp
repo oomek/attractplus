@@ -2231,6 +2231,16 @@ void FeSettings::set_mute( bool m )
 	m_sounds.set_mute( m );
 }
 
+bool FeSettings::get_loudness() const
+{
+	return m_sounds.get_loudness();
+}
+
+void FeSettings::set_loudness( bool enabled )
+{
+	m_sounds.set_loudness( enabled );
+}
+
 bool FeSettings::get_sound_file( FeInputMap::Command c, std::string &s, bool full_path ) const
 {
 	std::string filename;

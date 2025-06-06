@@ -22,6 +22,7 @@
 
 #include "fe_input.hpp"
 #include "fe_util.hpp"
+#include "fe_settings.hpp"
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
@@ -1524,6 +1525,7 @@ const char *FeSoundInfo::settingStrings[] =
 	"sound_volume",
 	"ambient_volume",
 	"movie_volume",
+	"loudness_normalisation",
 	NULL
 };
 const char *FeSoundInfo::settingDispStrings[] =
@@ -1531,6 +1533,7 @@ const char *FeSoundInfo::settingDispStrings[] =
 	"Sound Volume",
 	"Ambient Volume",
 	"Movie Volume",
+	"Loudness Normalisation",
 	NULL
 };
 
@@ -1538,7 +1541,8 @@ FeSoundInfo::FeSoundInfo()
 	: m_sound_vol( 100 ),
 	m_ambient_vol( 100 ),
 	m_movie_vol( 100 ),
-	m_mute( false )
+	m_mute( false ),
+	m_loudness( true )
 {
 }
 
@@ -1599,16 +1603,27 @@ void FeSoundInfo::set_mute( bool m )
 	m_mute=m;
 }
 
+bool FeSoundInfo::get_loudness() const
+{
+	return m_loudness;
+}
+
+void FeSoundInfo::set_loudness( bool enabled )
+{
+	m_loudness = enabled;
+}
+
 int FeSoundInfo::process_setting( const std::string &setting,
 	const std::string &value,
 	const std::string &fn )
-{
-	if ( setting.compare( settingStrings[0] ) == 0 ) // sound_vol
+{	if ( setting.compare( settingStrings[0] ) == 0 ) // sound_vol
 		set_volume( Sound, value );
 	else if ( setting.compare( settingStrings[1] ) == 0 ) // ambient_vol
 		set_volume( Ambient, value );
 	else if ( setting.compare( settingStrings[2] ) == 0 ) // movie_vol
 		set_volume( Movie, value );
+	else if ( setting.compare( settingStrings[3] ) == 0 ) // loudness
+		set_loudness( config_str_to_bool( value ) );
 	else
 	{
 		bool found=false;
@@ -1664,6 +1679,8 @@ void FeSoundInfo::save( nowide::ofstream &f ) const
 	for ( int i=0; i< 3; i++ )
 		f << '\t' << std::setw(20) << std::left << settingStrings[i] << ' '
 			<< get_set_volume( (SoundType)i ) << std::endl;
+	f << '\t' << std::setw(20) << std::left << settingStrings[3] << ' '
+		<< ( m_loudness ? FE_CFG_YES_STR : FE_CFG_NO_STR ) << std::endl;
 
 	for ( it=m_sounds.begin(); it!=m_sounds.end(); ++it )
 		f << '\t' << std::setw(20) << std::left

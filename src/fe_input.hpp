@@ -308,6 +308,8 @@ public:
 
 	bool get_mute() const;
 	void set_mute( bool );
+	bool get_loudness() const;
+	void set_loudness( bool );
 
 	int process_setting( const std::string &setting,
 		const std::string &value,
@@ -323,6 +325,7 @@ private:
 	int m_ambient_vol;
 	int m_movie_vol;
 	bool m_mute;
+	bool m_loudness;
 
 	std::map<FeInputMap::Command, std::string> m_sounds;
 };

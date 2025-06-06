@@ -24,6 +24,7 @@
 #define FE_IMAGE_HPP
 
 #include <SFML/Graphics.hpp>
+#include <sqrat.h>
 #include "sprite.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
@@ -184,6 +185,8 @@ public:
 	float get_volume() const;
 
 	float get_sample_aspect_ratio() const;
+
+	FeMedia *get_media() const;
 
 protected:
 	FeTextureContainer *get_derived_texture_container();
@@ -357,6 +360,13 @@ public:
 	bool get_redraw() const;
 	float get_volume() const;
 	float get_border_scale() const;
+
+	float get_vu_mono() const;
+	float get_vu_left() const;
+	float get_vu_right() const;
+	Sqrat::Array get_fft_array_mono();
+	Sqrat::Array get_fft_array_left();
+	Sqrat::Array get_fft_array_right();
 
 	void set_auto_width( bool w );
 	void set_auto_height( bool h );

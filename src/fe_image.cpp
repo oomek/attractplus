@@ -26,6 +26,8 @@
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
 #include "fe_blend.hpp"
+#include "fe_vm.hpp"
+#include "fe_audio_fx.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
 #include <cmath>
@@ -574,41 +576,44 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		return false;
 
 #ifndef NO_MOVIE
-	if (( m_movie ) && ( m_movie_status > 0 ))
+	if ( m_movie )
 	{
-		if ( m_movie_status < PLAY_COUNT )
+		if ( m_movie_status > 0 )
 		{
-			//
-			// We skip the first few "ticks" after the movie
-			// is first loaded because the user may just be
-			// scrolling rapidly through the game list (there
-			// are ticks between each selection scrolling by)
-			//
-			m_movie_status++;
-			return false;
-		}
-		else if ( m_movie_status == PLAY_COUNT )
-		{
-			m_movie_status++;
+			if ( m_movie_status < PLAY_COUNT )
+			{
+				//
+				// We skip the first few "ticks" after the movie
+				// is first loaded because the user may just be
+				// scrolling rapidly through the game list (there
+				// are ticks between each selection scrolling by)
+				//
+				m_movie_status++;
+				return false;
+			}
+			else if ( m_movie_status == PLAY_COUNT )
+			{
+				m_movie_status++;
 
-			//
-			// Start playing now if this is a video...
-			//
-			if ( m_video_flags & VF_NoAudio )
-				m_movie->setVolume( 0.f );
-			else
-				m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
+				//
+				// Start playing now if this is a video...
+				//
+				if ( m_video_flags & VF_NoAudio )
+					m_movie->setVolume( 0.f );
+				else
+					m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
 
-			m_movie->play();
-		}
+				m_movie->play();
+			}
 
-		// restart looped video
-		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
-		{
-			m_movie->stop();
-			m_movie->play();
+			// restart looped video
+			if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
+			{
+				m_movie->stop();
+				m_movie->play();
 
-			FeDebug() << "Restarted looped video" << std::endl;
+				FeDebug() << "Restarted looped video" << std::endl;
+			}
 		}
 
 		if ( m_movie->tick() )
@@ -889,6 +894,15 @@ float FeTextureContainer::get_sample_aspect_ratio() const
 		return m_movie->get_aspect_ratio();
 #endif
 		return 1.0;
+}
+
+FeMedia *FeTextureContainer::get_media() const
+{
+#ifndef NO_MOVIE
+	return m_movie;
+#else
+	return NULL;
+#endif
 }
 
 void FeTextureContainer::release_audio( bool state )
@@ -1813,6 +1827,93 @@ void FeImage::set_volume( float v )
 float FeImage::get_volume() const
 {
 	return m_tex->get_volume();
+}
+
+float FeImage::get_vu_mono() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_vu_mono();
+	}
+	return 0.0f;
+}
+
+float FeImage::get_vu_left() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_vu_left();
+	}
+	return 0.0f;
+}
+
+float FeImage::get_vu_right() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_vu_right();
+	}
+	return 0.0f;
+}
+
+Sqrat::Array FeImage::get_fft_array_mono()
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_fft_array_mono();
+	}
+
+	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS );
+	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS; ++i )
+		arr.SetValue( i, 0.0f );
+
+	return arr;
+}
+
+Sqrat::Array FeImage::get_fft_array_left()
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_fft_array_left();
+	}
+
+	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS );
+	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS; ++i )
+		arr.SetValue( i, 0.0f );
+
+	return arr;
+}
+
+Sqrat::Array FeImage::get_fft_array_right()
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_fft_array_right();
+	}
+
+	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS );
+	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS; ++i )
+		arr.SetValue( i, 0.0f );
+
+	return arr;
 }
 
 void FeImage::transition_swap( FeImage *o )
