@@ -550,7 +550,14 @@ int main(int argc, char *argv[])
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
+				first_intro = false;
+				redraw = true;
+				c = FeInputMap::LAST_COMMAND;
 				bool has_layout = false;
+
+				// Clear any commands the intro may have queued up
+				// - Fixes intro "select" error
+				feVM.clear_commands();
 
 				if ( first_intro && mode == FeSettings::LaunchLastGame )
 				{
@@ -562,9 +569,9 @@ int main(int argc, char *argv[])
 
 				if ( mode == FeSettings::ShowDisplaysMenu )
 				{
-					// If there is a custom displays_menu clear the state so it loads on cb_signal
+					// Update command to show DisplaysMenu in the current loop
 					has_layout = feSettings.has_custom_displays_menu();
-					if ( has_layout ) feSettings.set_present_state( FeSettings::Layout_Showing );
+					c = FeInputMap::DisplaysMenu;
 				}
 
 				if ( !has_layout )
@@ -573,12 +580,7 @@ int main(int argc, char *argv[])
 					feVM.load_layout( true );
 				}
 
-				if ( mode == FeSettings::ShowDisplaysMenu )
-					FeVM::cb_signal( "displays_menu" );
-
-				first_intro = false;
-				redraw = true;
-				continue;
+				if ( c == FeInputMap::LAST_COMMAND ) continue;
 			}
 
 			//
