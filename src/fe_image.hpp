@@ -327,6 +327,8 @@ public:
 
 	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
 
+	bool get_auto_width() const;
+	bool get_auto_height() const;
 	float get_origin_x() const;
 	float get_origin_y() const;
 	int get_anchor_type() const;
@@ -356,6 +358,8 @@ public:
 	float get_volume() const;
 	float get_border_scale() const;
 
+	void set_auto_width( bool w );
+	void set_auto_height( bool h );
 	void set_origin_x( float x );
 	void set_origin_y( float y );
 	void set_anchor( float x, float y );
@@ -393,6 +397,13 @@ public:
 	bool fix_masked_image();
 	FePresentableParent *get_presentable_parent();
 
+	// Override from base class:
+	float get_width() const;
+	float get_height() const;
+	void set_width( float w );
+	void set_height( float h );
+	void set_pos(float x, float y, float w, float h);
+
 	//
 	// Callback functions for use with surface objects
 	//
@@ -414,6 +425,7 @@ protected:
 	FeSprite m_sprite;
 	sf::Vector2f m_pos;
 	sf::Vector2f m_size;
+	sf::Vector2u m_auto_size;
 	sf::Vector2f m_scale;
 	sf::Vector2f m_origin;
 	sf::Vector2f m_rotation_origin;

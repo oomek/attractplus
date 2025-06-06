@@ -262,10 +262,10 @@ The default blend mode for images is `BlendMode.Alpha`
 **Parameters**
 
 -  `name` - The name of an image/video file to show. If a relative path is provided (i.e. `"bg.png"`) it is assumed to be relative to the current layout directory (or the plugin directory, if called from a plugin script). If a relative path is provided and the layout/plugin is contained in an archive, Attract-Mode will open the corresponding file stored inside of the archive. Supported image formats are: `PNG`, `JPEG`, `GIF`, `BMP` and `TGA`. Videos can be in any format supported by FFmpeg. One or more [_Magic Tokens_](#magic-tokens) can be used in the name, in which case Attract-Mode will automatically update the image/video file appropriately in response to user navigation. For example `"man/[Manufacturer]"` will load the file corresponding to the manufacturer's name from the man subdirectory of the layout/plugin (example: `"man/Konami.png"`). When Magic Tokens are used, the file extension specified in `name` is ignored (if present) and Attract-Mode will load any supported media file that matches the Magic Token.
--  `x` - The x coordinate of the top left corner of the image (in layout coordinates).
--  `y` - The y coordinate of the top left corner of the image (in layout coordinates).
--  `w` - The width of the image (in layout coordinates). Image will be scaled accordingly. If set to `0` image is left unscaled. Default value is `0`.
--  `h` - The height of the image (in layout coordinates). Image will be scaled accordingly. If set to `0` image is left unscaled. Default value is `0`.
+-  `x` - The x position of the image (in layout coordinates).
+-  `y` - The y position of the image (in layout coordinates).
+-  `w` - The width of the image (in layout coordinates). Default value is `0`, which enables `auto_width`.
+-  `h` - The height of the image (in layout coordinates). Default value is `0`, which enables `auto_height`.
 
 **Return Value**
 
@@ -288,10 +288,10 @@ The default blend mode for artwork is `BlendMode.Alpha`
 **Parameters**
 
 -  `label` - The label of the artwork to display. This should correspond to an artwork configured in Attract-Mode (artworks are configured per emulator in the config menu) or scraped using the scraper. Attract-Mode's standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
--  `x` - The x coordinate of the top left corner of the artwork (in layout coordinates).
--  `y` - The y coordinate of the top left corner of the artwork (in layout coordinates).
--  `w` - The width of the artwork (in layout coordinates). Artworks will be scaled accordingly. If set to `0` artwork is left unscaled. Default value is `0`.
--  `h` - The height of the artwork (in layout coordinates). Artworks will be scaled accordingly. If set to `0` artwork is left unscaled. Default value is `0`.
+-  `x` - The x position of the artwork (in layout coordinates).
+-  `y` - The y position of the artwork (in layout coordinates).
+-  `w` - The width of the artwork (in layout coordinates). Default value is `0`, which enables `auto_width`.
+-  `h` - The height of the artwork (in layout coordinates). Default value is `0`, which enables `auto_height`.
 
 **Return Value**
 
@@ -1353,10 +1353,12 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 
 **Properties**
 
--  `x` - Get/set x position of image (in layout coordinates).
--  `y` - Get/set y position of image (in layout coordinates).
--  `width` - Get/set width of image (in layout coordinates), `0` if the image is unscaled. Default value is `0`.
--  `height` - Get/set height of image (in layout coordinates), if `0` the image is unscaled. Default value is `0`.
+-  `x` - Get/set the x position of the image (in layout coordinates).
+-  `y` - Get/set the y position of the image (in layout coordinates).
+-  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
+-  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
+-  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
+-  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
 -  `rotation` - Get/set rotation of image around its rotation origin. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for image. Range is `[0...255]`. Default value is `255`.
@@ -1453,35 +1455,27 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 
 <a name="artwork-notes">**Notes**</a>
 
--  Attract-Mode defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the artwork/dynamic image resource. These attributes are available during transition callbacks, and in particular during the `Transition.FromOldSelection` and `Transition.ToNewList` transitions. Example:
-
+-  Using a negative `width` or `height` will flip the image about its anchor point. To flip an image in-place `subimg` properties can be used:
    ```squirrel
-   local my_art = fe.add_artwork( "snap", 0, 0, 100, 100 )
+   // flip img vertically
+   local img = fe.add_image( "my_image.png" )
+   img.subimg_height = img.texture_height * -1
+   img.subimg_y = img.texture_height
+   ```
+-  Attract-Mode defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
+   ```squirrel
+   local art = fe.add_artwork( "snap" )
+   // dynamic art texture_width and texture_height are not yet available
 
    fe.add_transition_callback( "artwork_transition" )
    function artwork_transition( ttype, var, ttime )
    {
-     if (( ttype == Transition.FromOldSelection )
-       || ( ttype == Transition.ToNewList ))
+     if (( ttype == Transition.FromOldSelection ) || ( ttype == Transition.ToNewList ))
      {
-       // do stuff with my_art's texture_width or texture_height here...
-       // for example, flip the image vertically:
-       my_art.subimg_height = -1 * texture_height
-       my_art.subimg_y = texture_height
+       // dynamic art texture_width and texture_height are now available
+       art.subimg_height = texture_height * -1
+       art.subimg_y = texture_height
      }
-
-     return false
-   }
-   ```
-
--  To flip an image vertically, set the `subimg_height` property to `-1 * texture_height` and `subimg_y` to `texture_height`.
--  To flip an image horizontally, set the `subimg_width` property to `-1 * texture_width` and `subimg_x` to `texture_width`.
-   ```squirrel
-   // flip "img" vertically
-   function flip_y( img )
-   {
-     img.subimg_height = -1 * img.texture_height
-     img.subimg_y = img.texture_height
    }
    ```
 
@@ -1647,10 +1641,10 @@ The class representing a rectangle in Attract-Mode. Instances of this class are 
 
 **Properties**
 
--  `x` - Get/set x position of the rectangle (in layout coordinates).
--  `y` - Get/set y position of the rectangle (in layout coordinates).
--  `width` - Get/set width of the rectangle (in layout coordinates), `0` if the image is unscaled. Default value is `0`.
--  `height` - Get/set height of the rectangle (in layout coordinates), `0` if the image is unscaled. Default value is `0`.
+-  `x` - Get/set the x position of the rectangle (in layout coordinates).
+-  `y` - Get/set the y position of the rectangle (in layout coordinates).
+-  `width` - Get/set the width of the rectangle (in layout coordinates).
+-  `height` - Get/set the height of the rectangle (in layout coordinates).
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `rotation` - Get/set rotation of the rectangle around its origin. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
