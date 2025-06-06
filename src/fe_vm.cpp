@@ -954,6 +954,13 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("duration"), &FeMusic::get_duration )
 		.Prop( _SC("time"), &FeMusic::get_time )
 		.Prop( _SC("volume"), &FeMusic::get_volume, &FeMusic::set_volume )
+		.Prop( _SC("vu"), &FeMusic::get_vu )
+		.Prop( _SC("vu_left"), &FeMusic::get_vu_left )
+		.Prop( _SC("vu_right"), &FeMusic::get_vu_right )
+		.Prop( _SC("fft_linearity"), &FeMusic::get_fft_linearity, &FeMusic::set_fft_linearity )
+		.Prop( _SC("fft"), &FeMusic::get_fft_array )
+		.Prop( _SC("fft_left"), &FeMusic::get_fft_left_array )
+		.Prop( _SC("fft_right"), &FeMusic::get_fft_right_array )
 		.Func( _SC("get_metadata"), &FeMusic::get_metadata )
 	);
 
