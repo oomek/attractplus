@@ -344,6 +344,12 @@ void FeVM::set_overlay( FeOverlay *feo )
 	m_overlay = feo;
 }
 
+void FeVM::clear_commands()
+{
+	while ( !m_posted_commands.empty() )
+		m_posted_commands.pop();
+}
+
 void FeVM::post_command( FeInputMap::Command c )
 {
 	m_posted_commands.push( c );
@@ -393,9 +399,7 @@ void FeVM::clear()
 	m_ticks.clear();
 	m_trans.clear();
 	m_sig_handlers.clear();
-
-	while ( !m_posted_commands.empty() )
-		m_posted_commands.pop();
+	clear_commands();
 }
 
 void FeVM::add_ticks_callback( Sqrat::Object func, const char *slot )
@@ -511,7 +515,7 @@ bool FeVM::on_new_layout()
 
 	// Loaded layout settings prior to starting the layout
 	m_feSettings->load_layout_params();
-	
+
 	const FeLayoutInfo &layout_params
 		= m_feSettings->get_current_config( FeSettings::Current );
 
@@ -2748,40 +2752,23 @@ void FeVM::cb_signal( const char *sig )
 	//
 	// Next check for special case signals
 	//
-	const char *signals[] =
-	{
-		"reset_window",
-		"reload",
-		NULL
-	};
 
-	int i=0;
-	while ( signals[i] != 0 )
+	if ( strcmp( "reset_window", sig ) == 0 )
 	{
-		if ( strcmp( signals[i], sig ) == 0 )
-			break;
-
-		i++;
-	}
-
-	switch (i)
-	{
-	case 0: // "reset_window"
 		fev->m_window.on_exit();
 		fev->m_window.initial_create();
 		fev->init_monitors();
 		fev->post_command( FeInputMap::Reload );
-		break;
-
-	case 1: // "reload"
-		fev->post_command( FeInputMap::Reload );
-		break;
-
-	default:
-		FeLog() << "Error, unrecognized signal: " << sig << std::endl;
-		break;
-
+		return;
 	}
+
+	if ( strcmp( "reload", sig ) == 0 )
+	{
+		fev->post_command( FeInputMap::Reload );
+		return;
+	}
+
+	FeLog() << "Error, unrecognized signal: " << sig << std::endl;
 }
 
 void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
