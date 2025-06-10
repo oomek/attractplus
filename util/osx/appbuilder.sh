@@ -52,7 +52,7 @@ resolve_links() {
     # --- Special case: @rpath/libsfml* -> am/obj/sfml/install/lib ---
     if [[ "$lib" == @rpath/libsfml* ]]; then
       local libfile="${lib#@rpath/}"
-      local sfml_candidate="am/obj/sfml/install/lib/$libfile"
+      local sfml_candidate="$basedir/obj/sfml/install/lib/$libfile"
       if [[ -f "$sfml_candidate" ]]; then
         resolved="$sfml_candidate"
         echo "Resolved SFML override: $lib -> $resolved"
