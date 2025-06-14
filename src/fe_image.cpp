@@ -1029,6 +1029,7 @@ FeImage::FeImage( FePresentableParent &p,
 	m_tex( tc ),
 	m_pos( x, y ),
 	m_size( w, h ),
+	m_auto_size( w == 0, h == 0 ),
 	m_origin( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
@@ -1036,7 +1037,8 @@ FeImage::FeImage( FePresentableParent &p,
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
-	m_preserve_aspect_ratio( false )
+	m_preserve_aspect_ratio( false ),
+	m_drawn( false )
 {
 	ASSERT( m_tex );
 	m_tex->register_image( this );
@@ -1049,6 +1051,7 @@ FeImage::FeImage( FeImage *o )
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
+	m_auto_size( o->m_auto_size ),
 	m_origin( o->m_origin ),
 	m_rotation_origin( o->m_rotation_origin ),
 	m_anchor( o->m_anchor ),
@@ -1056,7 +1059,8 @@ FeImage::FeImage( FeImage *o )
 	m_anchor_type( o->m_anchor_type ),
 	m_rotation_origin_type( o->m_rotation_origin_type ),
 	m_blend_mode( o->m_blend_mode ),
-	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio )
+	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio ),
+	m_drawn( false )
 {
 	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
@@ -1095,6 +1099,7 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 		sf::FloatRect({ 0, 0 }, { static_cast<float>( m_tex->get_texture().getSize().x ), static_cast<float>( m_tex->get_texture().getSize().y )}));
 
 	scale();
+	m_drawn = true;
 }
 
 sf::Vector2f FeImage::alignTypeToVector( int type )
@@ -1188,69 +1193,88 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 void FeImage::scale()
 {
 	sf::FloatRect texture_rect = m_sprite.getTextureRect();
-	float ratio = m_tex->get_sample_aspect_ratio();
+	sf::Vector2f tex_size = sf::Vector2f(
+		abs( texture_rect.size.x ),
+		abs( texture_rect.size.y )
+	);
 
-	if (( texture_rect.size.x == 0 ) || ( texture_rect.size.y == 0 ))
-		return;
+	// Exit early if texture has an invalid size
+	if (( tex_size.x == 0 ) || ( tex_size.y == 0 )) return;
 
-	bool scale=false;
-	float scale_x( 1.0 ), scale_y( 1.0 );
-	sf::Vector2f final_pos = m_pos;
+	sf::Vector2f pos = m_pos;
+	sf::Angle rotation = sf::degrees( m_rotation );
 
-	if ( m_size.x > 0.0 )
+	// Find the target size, use the texture size if auto_sizing
+	sf::Vector2f size = sf::Vector2f(
+		m_auto_size.x ? tex_size.x : m_size.x,
+		m_auto_size.y ? tex_size.y : m_size.y
+	);
+
+	// This scale will stretch the texture to fit the target size
+	sf::Vector2f scale = sf::Vector2f(
+		size.x / tex_size.x,
+		size.y / tex_size.y
+	);
+
+	// Use the texture SAR if preserving ratio, otherwise use the scale ratio
+	float scale_ratio = scale.x / scale.y;
+	float ratio = m_preserve_aspect_ratio
+		? m_tex->get_sample_aspect_ratio() * ( scale_ratio < 0.0 ? -1.0 : 1.0 )
+		: scale_ratio;
+
+	// Decide which dimension to adjust to maintain ratio, depending on the given sizes
+	// - Width + Height = adjust y if larger, this will reduce to fit ratio
+	// - Width Only = always adjust y
+	// - Height Only = always adjust x
+	// - None = adjust y if smaller, this will enlarge to fit ratio
+	bool adjust_y = ( !m_auto_size.x && !m_auto_size.y ) ? abs( scale.y * ratio ) > abs( scale.x )
+		: !m_auto_size.x ? true
+		: !m_auto_size.y ? false
+		: abs( scale.y * ratio ) < abs( scale.x );
+
+	// Adjust the scale to maintain the target ratio
+	if ( adjust_y )
+		scale.y = scale.x / ratio;
+	else
+		scale.x = scale.y * ratio;
+
+	// Apply the scale get the final texture size
+	// - Could be simplified (tex_size * scale) but checks adjust_y to prevent precision loss
+	sf::Vector2f scale_size = sf::Vector2f(
+		adjust_y ? size.x : tex_size.x * scale.x,
+		adjust_y ? tex_size.y * scale.y : size.y
+	);
+
+	if ( !m_auto_size.x && !m_auto_size.y )
 	{
-		scale_x = (float) m_size.x / abs( texture_rect.size.x );
-
-		if ( m_preserve_aspect_ratio )
-			scale_y = scale_x;
-
-		scale = true;
-	}
-
-	if ( m_size.y > 0.0 )
-	{
-		scale_y = (float) m_size.y / abs( texture_rect.size.y );
-
 		if ( m_preserve_aspect_ratio )
 		{
-			if ( m_size.x <= 0.0 )
-			{
-				scale_x = scale_y;
-			}
-			else
-			{
-				// We have a size set in both directions and are preserving the aspect
-				// ratio, so calculate how we will centre the image in the space we have
-				//
-				sf::Transform t;
-				t.rotate( sf::degrees( m_rotation ));
-
-				if ( scale_x > scale_y * ratio ) // centre in x direction
-					final_pos += t.transformPoint({ static_cast<float>(( m_size.x - abs( texture_rect.size.x ) * scale_y * ratio ) / 2.0 ), 0 });
-				else // centre in y direction
-					final_pos += t.transformPoint({ 0, static_cast<float>(( m_size.y - abs( texture_rect.size.y ) * scale_x / ratio ) / 2.0 )});
-			}
+			// Center only if both dimensions set, and preserving ratio
+			sf::Transform t;
+			t.rotate( rotation );
+			pos += t.transformPoint( sf::Vector2f(
+				( size.x - scale_size.x ) / 2.0,
+				( size.y - scale_size.y ) / 2.0
+			) );
 		}
-
-		scale = true;
 	}
-
-	if ( m_preserve_aspect_ratio )
+	else
 	{
-		if ( scale_y * ratio > scale_x )
-			scale_y = scale_x / ratio;
-		else
-			scale_x = scale_y * ratio;
+		// If either size is unscaled use the scaled size as-is (enlarges)
+		size = scale_size;
 	}
 
-	if ( scale )
-		m_sprite.setScale( sf::Vector2f( scale_x, scale_y ) );
-
-	final_pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * m_size.x, ( m_rotation_origin.y -  m_anchor.y ) * m_size.y );
-
-	m_sprite.setPosition( final_pos );
-	m_sprite.setRotation( sf::degrees( m_rotation ));
-	m_sprite.setOrigin({( m_origin.x + m_rotation_origin.x * m_size.x ) / scale_x, ( m_origin.y + m_rotation_origin.y * m_size.y ) / scale_y });
+	// Apply all the transformations
+	m_sprite.setScale( scale );
+	m_sprite.setPosition( pos + sf::Vector2f(
+		( m_rotation_origin.x - m_anchor.x ) * size.x,
+		( m_rotation_origin.y - m_anchor.y ) * size.y
+	));
+	m_sprite.setRotation( rotation );
+	m_sprite.setOrigin({
+		( m_origin.x + m_rotation_origin.x * size.x ) / scale.x,
+		( m_origin.y + m_rotation_origin.y * size.y ) / scale.y
+	});
 }
 
 sf::Vector2f FeImage::getPosition() const
@@ -1261,6 +1285,65 @@ sf::Vector2f FeImage::getPosition() const
 sf::Vector2f FeImage::getSize() const
 {
 	return m_size;
+}
+
+bool FeImage::get_auto_width() const
+{
+	return m_auto_size.x;
+}
+
+bool FeImage::get_auto_height() const
+{
+	return m_auto_size.y;
+}
+
+float FeImage::get_width() const
+{
+	return FeBasePresentable::get_width();
+}
+
+float FeImage::get_height() const
+{
+	return FeBasePresentable::get_height();
+}
+
+void FeImage::set_auto_width( bool w )
+{
+	if ( m_auto_size.x != w )
+	{
+		m_auto_size.x = w;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_auto_height( bool h )
+{
+	if ( m_auto_size.y != h )
+	{
+		m_auto_size.y = h;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_width( float w )
+{
+	m_auto_size.x = m_drawn ? false : ( w == 0.0 );
+	FeBasePresentable::set_width( w );
+}
+
+void FeImage::set_height( float h )
+{
+	m_auto_size.y = m_drawn ? false : ( h == 0.0 );
+	FeBasePresentable::set_height( h );
+}
+
+void FeImage::set_pos(float x, float y, float w, float h)
+{
+	m_auto_size.x = m_drawn ? false : ( w == 0.0 );
+	m_auto_size.y = m_drawn ? false : ( h == 0.0 );
+	FeBasePresentable::set_pos( x, y, w, h);
 }
 
 void FeImage::setSize( const sf::Vector2f &s )
