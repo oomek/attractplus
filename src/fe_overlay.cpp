@@ -1513,9 +1513,9 @@ int FeOverlay::display_config_dialog(
 			// Update the UI and enter the appropriate event loop
 			//
 			layout_focus( sdialog, vdialog, LayoutFocus::Edit );
-			FeTextPrimitive *tp = vdialog.getSelectedText();
 
-			if ( tp == NULL )
+			FeTextPrimitive *tp;
+			if ( !vdialog.getSelectedText( tp ) )
 				continue;
 
 			if ( t == Opt::LIST )
