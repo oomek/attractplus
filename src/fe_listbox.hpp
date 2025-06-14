@@ -88,7 +88,7 @@ public:
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
 
-	FeTextPrimitive *getSelectedText();
+	bool getSelectedText( FeTextPrimitive* &sel );
 
 	void setRotation( float );
 
@@ -100,6 +100,7 @@ public:
 
 	void clear();
 	void init_dimensions();
+	void update_styles();
 
 	// Overrides from base class:
 	//
@@ -168,7 +169,7 @@ private:
 
 
 	FeTextPrimitive m_base_text;
-	std::vector<std::string> m_displayList;
+	std::vector<std::string> m_custom_list;
 	std::vector<FeTextPrimitive> m_texts;
 	std::string m_font_name;
 	std::string m_format_string;
@@ -180,11 +181,16 @@ private:
 	int m_filter_offset;
 	float m_rotation;
 	float m_scale_factor;
-	bool m_scripted;
+	bool m_scripted; // True when the list is used in a layout, false when used in the builtin-menu
 	int m_mode;
 	int m_selected_row;
 	int m_list_start_offset;
 	int m_selection_margin;
+
+	int m_display_filter_index;
+	int m_display_filter_size;
+	int m_display_rom_index;
+	FeSettings *m_feSettings;
 
 	// this contains the custom selection index, if custom text has been
 	// set (in which case m_displayList contains the custom set text). If

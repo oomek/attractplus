@@ -27,6 +27,8 @@
 #include "fe_util.hpp"
 #include <iostream>
 
+const std::string DEFAULT_FORMAT_STRING = "[Title]";
+
 FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	: FeBasePresentable( p ),
 	m_selColour( sf::Color::Yellow ),
@@ -131,42 +133,60 @@ void FeListBox::init_dimensions()
 	sf::Vector2f pos = getPosition();
 
 	int actual_spacing = (int)size.y / m_rows;
-	int char_size = 8 * m_scale_factor;
+	int char_size = ( m_userCharSize > 0 ) ? m_userCharSize
+		: ( actual_spacing > 12 ) ? actual_spacing - 4
+		: 8;
 
-	// Set the character size now
-	//
-	if ( m_userCharSize > 0 )
-		char_size = m_userCharSize * m_scale_factor;
-	else if ( actual_spacing > 12 )
-		char_size = ( actual_spacing - 4 ) * m_scale_factor;
+	m_base_text.setTextScale( sf::Vector2f( 1.0, 1.0 ) / m_scale_factor );
+	m_base_text.setCharacterSize( char_size * m_scale_factor );
 
-	m_base_text.setTextScale( sf::Vector2f( 1.f / m_scale_factor, 1.f / m_scale_factor ) );
-	m_base_text.setCharacterSize( char_size );
+	// Re-create text elements only if row count has changed
+	if ( m_texts.size() != m_rows )
+	{
+		m_texts.clear();
 
-	m_texts.clear();
-
-	if ( m_rows > 0 )
-		m_texts.reserve( m_rows );
+		if ( m_rows > 0 )
+		{
+			m_texts.reserve( m_rows );
+			for ( int i=0; i < m_rows; i++ )
+				m_texts.push_back( FeTextPrimitive() );
+		}
+	}
 
 	sf::Transform rotater;
 	rotater.rotate( sf::degrees( m_rotation ), { pos.x, pos.y });
 
+	// Re-position text elements
 	for ( int i=0; i< m_rows; i++ )
 	{
-		FeTextPrimitive t( m_base_text );
+		m_texts[i].setFrom( m_base_text );
+		m_texts[i].setPosition( rotater.transformPoint({ pos.x, pos.y + ( i * actual_spacing )}));
+		m_texts[i].setSize( size.x, actual_spacing );
+		m_texts[i].setRotation( m_rotation );
+	}
 
+	update_styles();
+}
+
+void FeListBox::update_styles()
+{
+	sf::Color color = m_base_text.getColor();
+	sf::Color bgColor = m_base_text.getBgColor();
+	int style = m_base_text.getStyle();
+
+	for ( int i=0; i< m_rows; i++ )
+	{
 		if ( i == m_selected_row )
 		{
-			t.setColor( m_selColour );
-			t.setBgColor( m_selBg );
-			t.setStyle( m_selStyle );
+			m_texts[i].setColor( m_selColour );
+			m_texts[i].setBgColor( m_selBg );
+			m_texts[i].setStyle( m_selStyle );
+			continue;
 		}
 
-		t.setPosition( rotater.transformPoint({ pos.x, pos.y + ( i * actual_spacing )}));
-		t.setSize( size.x, actual_spacing );
-		t.setRotation( m_rotation );
-
-		m_texts.push_back( t );
+		m_texts[i].setColor( color );
+		m_texts[i].setBgColor( bgColor );
+		m_texts[i].setStyle( style );
 	}
 }
 
@@ -191,10 +211,8 @@ void FeListBox::setSelColor( sf::Color c )
 		return;
 
 	m_selColour = c;
-
-	if ( m_texts.size() > 0 )
-		if ( m_selected_row >= 0 && m_selected_row < (int)m_texts.size() )
-			m_texts[ m_selected_row ].setColor( m_selColour );
+	FeTextPrimitive *sel;
+	if ( getSelectedText( sel ) ) sel->setColor( m_selColour );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
@@ -206,9 +224,8 @@ void FeListBox::setSelBgColor( sf::Color c )
 		return;
 
 	m_selBg = c;
-	if ( m_texts.size() > 0 )
-		if ( m_selected_row >= 0 && m_selected_row < (int)m_texts.size() )
-			m_texts[ m_selected_row ].setBgColor( m_selBg );
+	FeTextPrimitive *sel;
+	if ( getSelectedText( sel ) ) sel->setBgColor( m_selBg );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
@@ -220,9 +237,8 @@ void FeListBox::setSelStyle( int s )
 		return;
 
 	m_selStyle = s;
-	if ( m_texts.size() > 0 )
-		if ( m_selected_row >= 0 && m_selected_row < (int)m_texts.size() )
-			m_texts[ m_selected_row ].setStyle( m_selStyle );
+	FeTextPrimitive *sel;
+	if ( getSelectedText( sel ) ) sel->setStyle( m_selStyle );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
@@ -241,12 +257,14 @@ void FeListBox::setTextScale( const sf::Vector2f &scale )
 		m_texts[i].setTextScale( scale );
 }
 
-FeTextPrimitive *FeListBox::getSelectedText()
+bool FeListBox::getSelectedText( FeTextPrimitive* &sel )
 {
-	if ( m_texts.size() == 0 )
-		return NULL;
+	int n = m_texts.size();
+	if (( n == 0 ) || ( m_selected_row < 0 ) || ( m_selected_row >= n ))
+		return false;
 
-	return &m_texts[ m_selected_row ];
+	sel = &m_texts[ m_selected_row ];
+	return true;
 }
 
 void FeListBox::setCustomSelection( const int index )
@@ -258,28 +276,24 @@ void FeListBox::setCustomSelection( const int index )
 void FeListBox::setCustomText( const int index,
 			const std::vector<std::string> &list )
 {
-	if ( list.empty() )
-		m_custom_sel = -1;
-	else
-		m_custom_sel = index;
-
-	m_displayList = list;
+	m_custom_sel = list.empty() ? -1 : index;
+	m_custom_list = list;
 	internalSetText( m_custom_sel );
 }
 
 void FeListBox::internalSetText( const int index )
 {
-	if ( m_texts.empty() || m_displayList.empty() )
+	int list_size = get_list_size();
+	if ( m_texts.empty() || ( list_size == 0 ))
 		return;
 
 	int offset;
+	int display_rows = (int)m_texts.size();
 
 	switch ( m_mode )
 	{
 		case Moving:
 		{
-			int list_size = (int)m_displayList.size();
-			int display_rows = (int)m_texts.size();
 			int margin = m_selection_margin;
 
 			if ( margin < 0 ) margin = 0;
@@ -328,9 +342,6 @@ void FeListBox::internalSetText( const int index )
 
 		case Paged:
 		{
-			int display_rows = (int)m_texts.size();
-			int list_size = (int)m_displayList.size();
-
 			if ( list_size <= display_rows )
 			{
 				m_selected_row = index % display_rows;
@@ -348,34 +359,47 @@ void FeListBox::internalSetText( const int index )
 
 		case Static:
 		default: // Fallback to Static mode
-			m_selected_row = m_texts.size() / 2;
+			m_selected_row = display_rows / 2;
 			offset = index - m_selected_row;
 			m_list_start_offset = offset;
 			break;
 	}
 
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	std::string text_string;
+	std::string format_string;
+
+	if ( m_scripted )
+		format_string = m_format_string.empty()
+			? DEFAULT_FORMAT_STRING
+			: m_format_string;
+
+	for ( int i=0; i < display_rows; i++ )
 	{
-		int listentry = offset + i;
-		if ( listentry < 0 || listentry >= (int)m_displayList.size() )
-			m_texts[i].setString( "" );
+		int listentry = i + offset;
+		if ( listentry < 0 || listentry >= list_size )
+			text_string = "";
+		else if ( m_scripted )
+		{
+			// Substitute magic string on-demand
+			text_string = format_string;
+			FePresent::script_process_magic_strings(
+				text_string,
+				m_filter_offset,
+				listentry - m_display_rom_index
+			);
+			m_feSettings->do_text_substitutions_absolute(
+				text_string,
+				m_display_filter_index,
+				listentry
+			);
+		}
 		else
-			m_texts[i].setString( m_displayList[listentry] );
+			text_string = m_custom_list[ listentry ];
+
+		m_texts[i].setString( text_string );
 	}
 
-	for ( int i=0; i < (int)m_texts.size(); i++ )
-	{
-		m_texts[i].setColor( m_base_text.getColor() );
-		m_texts[i].setBgColor( m_base_text.getBgColor() );
-		m_texts[i].setStyle( m_base_text.getStyle() );
-	}
-
-	if ( m_selected_row >= 0 && m_selected_row < (int)m_texts.size() )
-	{
-		m_texts[m_selected_row].setColor( m_selColour );
-		m_texts[m_selected_row].setBgColor( m_selBg );
-		m_texts[m_selected_row].setStyle( m_selStyle );
-	}
+	update_styles();
 }
 
 void FeListBox::setRotation( float r )
@@ -402,30 +426,12 @@ void FeListBox::on_new_list( FeSettings *s )
 		return;
 	}
 
-	int filter_index = s->get_filter_index_from_offset( m_filter_offset );
-	int filter_size = s->get_filter_size( filter_index );
-	int current_sel = s->get_rom_index( filter_index, 0 );
+	m_feSettings = s;
+	m_display_filter_index = s->get_filter_index_from_offset( m_filter_offset );
+	m_display_filter_size = s->get_filter_size( m_display_filter_index );
+	m_display_rom_index = s->get_rom_index( m_display_filter_index, 0 );
 
-	m_displayList.clear();
-	m_displayList.reserve( filter_size );
-
-	std::string format_string = m_format_string;
-	if ( format_string.empty() )
-		format_string = "[Title]";
-
-	for ( int i=0; i < filter_size; i++ )
-	{
-		m_displayList.push_back( format_string );
-
-		FePresent::script_process_magic_strings(
-			m_displayList.back(),
-			m_filter_offset, i - current_sel );
-
-		s->do_text_substitutions_absolute(
-			m_displayList.back(), filter_index, i );
-	}
-
-	internalSetText( current_sel );
+	internalSetText( m_display_rom_index );
 }
 
 void FeListBox::on_new_selection( FeSettings *s )
@@ -532,7 +538,9 @@ int FeListBox::get_rows()
 
 int FeListBox::get_list_size()
 {
-	return m_displayList.size();
+	return m_scripted
+		? m_display_filter_size
+		: m_custom_list.size();
 }
 
 int FeListBox::get_style()
@@ -574,10 +582,8 @@ void FeListBox::setBgColor( sf::Color c )
 
 	m_base_text.setBgColor(c);
 	for ( int i=0; i < m_texts.size(); i++ )
-	{
 		if ( i != m_selected_row )
 			m_texts[i].setBgColor( c );
-	}
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();

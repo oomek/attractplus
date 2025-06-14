@@ -66,18 +66,23 @@ FeTextPrimitive::FeTextPrimitive(
 }
 
 FeTextPrimitive::FeTextPrimitive( const FeTextPrimitive &c )
-	: m_bgRect( c.m_bgRect ),
-	m_texts( c.m_texts ),
-	m_align( c.m_align ),
-	m_first_line( c.m_first_line ),
-	m_lines( c.m_lines ),
-	m_lines_total( c.m_lines_total ),
-	m_margin( c.m_margin ),
-	m_outline( c.m_outline ),
-	m_line_spacing( c.m_line_spacing ),
-	m_word_wrap( c.m_word_wrap ),
-	m_needs_pos_set( c.m_needs_pos_set )
 {
+	setFrom( c );
+}
+
+void FeTextPrimitive::setFrom( const FeTextPrimitive &c )
+{
+	m_bgRect = c.m_bgRect;
+	m_texts = c.m_texts;
+	m_align = c.m_align;
+	m_first_line = c.m_first_line;
+	m_lines = c.m_lines;
+	m_lines_total = c.m_lines_total;
+	m_margin = c.m_margin;
+	m_outline = c.m_outline;
+	m_line_spacing = c.m_line_spacing;
+	m_word_wrap = c.m_word_wrap;
+	m_needs_pos_set = c.m_needs_pos_set;
 }
 
 void FeTextPrimitive::setColor( sf::Color c )
