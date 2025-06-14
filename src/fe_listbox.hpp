@@ -88,7 +88,7 @@ public:
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
 
-	FeTextPrimitive *getSelectedText();
+	bool getSelectedText( FeTextPrimitive* &sel );
 
 	void setRotation( float );
 
@@ -100,6 +100,7 @@ public:
 
 	void clear();
 	void init_dimensions();
+	void update_styles();
 
 	// Overrides from base class:
 	//
@@ -185,6 +186,9 @@ private:
 	int m_selected_row;
 	int m_list_start_offset;
 	int m_selection_margin;
+
+	int m_displayList_display_index;
+	int m_displayList_filter_index;
 
 	// this contains the custom selection index, if custom text has been
 	// set (in which case m_displayList contains the custom set text). If
