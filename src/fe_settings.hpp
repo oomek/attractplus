@@ -50,6 +50,9 @@ extern const char *FE_LAYOUT_FILE_EXTENSION;
 extern const char *FE_CFG_YES_STR;
 extern const char *FE_CFG_NO_STR;
 
+extern const int FE_DEFAULT_UI_COLOR_TOKEN;
+
+
 // A container for each task when importing/building romlists from the command line
 class FeImportTask
 {

@@ -62,6 +62,8 @@ private:
 public:
 	int type;		// see Opt namespace for values
 	bool trigger_reload = false; // this option will trigger a ui reload on change
+	bool trigger_colour = false; // special case for menu colour options
+
 	std::string setting;	// the name of the setting
 	std::string help_msg;	// the help message for this option
 	std::vector<std::string> values_list; // list options
