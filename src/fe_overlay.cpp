@@ -295,15 +295,21 @@ void FeOverlay::init()
 void FeOverlay::style_init()
 {
 	// Defaults to the first uiColorTokens value, which is the class blue
-	if ( !hex_to_color( m_feSettings.get_info( FeSettings::UIColor ), m_theme_color ))
-		hex_to_color( FeSettings::uiColorTokens[0], m_theme_color );
+	sf::Color col;
+	if ( !hex_to_color( m_feSettings.get_info( FeSettings::UIColor ), col ))
+		hex_to_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ], col );
+	style_init( col );
+}
 
+void FeOverlay::style_init( sf::Color theme_color )
+{
+	m_theme_color = theme_color;
 	m_bg_color = sf::Color( 0, 0, 0, 230 );
 	m_text_color = sf::Color( 255, 255, 255, 255 );
-	m_letterbox_color = m_theme_color * sf::Color( 64, 64, 64, 255 );
-	m_border_color = m_theme_color * sf::Color( 192, 192, 192, 255 );
-	m_focus_color = m_theme_color * sf::Color( 160, 160, 160, 255 );
-	m_blur_color = m_theme_color * sf::Color( 88, 88, 88, 255 );
+	m_letterbox_color = theme_color * sf::Color( 64, 64, 64, 255 );
+	m_border_color = theme_color * sf::Color( 192, 192, 192, 255 );
+	m_focus_color = theme_color * sf::Color( 160, 160, 160, 255 );
+	m_blur_color = theme_color * sf::Color( 88, 88, 88, 255 );
 }
 
 // Simple overlay with message and footer
@@ -1032,7 +1038,7 @@ sf::RectangleShape FeOverlay::layout_letterbox( int style )
 	sf::RectangleShape rect;
 	rect.setSize( sf::Vector2f( m_screen_size.x, height ) );
 	rect.setPosition( m_screen_pos + sf::Vector2f( 0, y ));
-	rect.setFillColor( m_letterbox_color );
+	theme_letterbox( rect );
 	return rect;
 }
 
@@ -1049,7 +1055,7 @@ sf::RectangleShape FeOverlay::layout_border( int style )
 	sf::RectangleShape rect;
 	rect.setSize( sf::Vector2f( m_screen_size.x, m_border_thickness ) );
 	rect.setPosition( m_screen_pos + sf::Vector2f( 0, y ) );
-	rect.setFillColor( m_border_color );
+	theme_border( rect );
 	return rect;
 }
 
@@ -1230,15 +1236,30 @@ FeListBox FeOverlay::layout_list( int style )
 	list.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
 	list.set_margin( m_text_margin );
 	list.setTextScale( m_text_scale );
-	list.setColor( m_text_color );
-	list.setBgColor( sf::Color::Transparent );
-	list.setSelColor( m_text_color );
-	list.setSelBgColor( m_focus_color );
 	list.set_rows( rows );
 	list.setPosition( m_screen_pos + sf::Vector2f( x, y ) );
 	list.setSize( sf::Vector2f( width, height ) );
 	list.init_dimensions();
+	theme_list( list );
 	return list;
+}
+
+void FeOverlay::theme_letterbox( sf::RectangleShape &rect )
+{
+	rect.setFillColor( m_letterbox_color );
+}
+
+void FeOverlay::theme_border( sf::RectangleShape &rect )
+{
+	rect.setFillColor( m_border_color );
+}
+
+void FeOverlay::theme_list( FeListBox &list )
+{
+	list.setColor( m_text_color );
+	list.setBgColor( sf::Color::Transparent );
+	list.setSelColor( m_text_color );
+	list.setSelBgColor( m_focus_color );
 }
 
 // Return row height for given style
@@ -1524,6 +1545,7 @@ int FeOverlay::display_config_dialog(
 				{
 					int original_value = ctx.curr_opt().get_vindex();
 					int new_value = original_value;
+					bool refresh_colour = ctx.opt_list[ctx.curr_sel].trigger_colour;
 
 					FeEventLoopCtx c( draw_list, new_value, -1, ctx.curr_opt().values_list.size() - 1 );
 					c.extra_exit = extra_exit;
@@ -1534,6 +1556,22 @@ int FeOverlay::display_config_dialog(
 					while ( text_index( vdialog, vindex, ctx.curr_opt().values_list, is_preview ? c.sel : -1 ) && event_loop( c ) == false )
 					{
 						vdialog.setCustomText( new_value, ctx.curr_opt().values_list );
+
+						// Special case for menu colour option only
+						if ( refresh_colour )
+						{
+							sf::Color col;
+							hex_to_color( FeSettings::uiColorTokens[ c.sel ], col );
+
+							style_init( col );
+							theme_letterbox( letterbox_top );
+							theme_letterbox( letterbox_bottom );
+							theme_border( border_top );
+							theme_border( border_bottom );
+							theme_list( sdialog );
+							theme_list( vdialog );
+							layout_focus( sdialog, vdialog, LayoutFocus::Edit );
+						}
 					}
 
 					if (( new_value >= 0 ) && ( new_value != original_value ))
@@ -1541,6 +1579,17 @@ int FeOverlay::display_config_dialog(
 						ctx.save_req = true;
 						ctx.curr_opt().set_value( new_value );
 						ctx.right_list[ctx.curr_sel] = ctx.curr_opt().get_value();
+					}
+					else if ( refresh_colour )
+					{
+						style_init();
+						theme_letterbox( letterbox_top );
+						theme_letterbox( letterbox_bottom );
+						theme_border( border_top );
+						theme_border( border_bottom );
+						theme_list( sdialog );
+						theme_list( vdialog );
+						layout_focus( sdialog, vdialog, LayoutFocus::Edit );
 					}
 
 					vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
