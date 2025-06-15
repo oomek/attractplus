@@ -88,6 +88,7 @@ public:
 	void setOutlineThickness( float );
 	float getOutlineThickness();
 	void setTextScale( const sf::Vector2f & );
+    void setFrom( const FeTextPrimitive &c );
 
 	const sf::Font *getFont() const;
 	sf::Color getColor() const;
