@@ -101,6 +101,8 @@ const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
 
+const int FE_DEFAULT_UI_COLOR_TOKEN = 1; // Blue
+
 const std::string FE_EMPTY_STRING;
 
 bool internal_resolve_config_file(
@@ -261,32 +263,46 @@ const char *FeSettings::startupDispTokens[] =
 
 std::vector<std::string> FeSettings::uiColorTokens =
 {
-	"#2850A0", // Blue (Default)
-	"#00BBFF", // Cyan
-	"#00CC44", // Green
-	"#444444", // Grey
-	"#4400BB", // Indigo
-	"#FF8800", // Orange
-	"#FF4488", // Pink
-	"#8822BB", // Purple
-	"#BB0011", // Red
-	"#BBBBBB", // White
-	"#FFCC00" // Yellow
+	"#4400BB",
+	"#2850A0", // default
+	"#00BBFF",
+	"#00C3AA",
+	"#00CC44",
+	"#88CC33",
+	"#CCCC33",
+	"#FFCC00",
+	"#FF8800",
+	"#996622",
+	"#CC4411",
+	"#BB0011",
+	"#FF4488",
+	"#BB22BB",
+	"#8822BB",
+	"#444444",
+	"#797979",
+	"#BBBBBB",
 };
 
 std::vector<std::string> FeSettings::uiColorDispTokens =
 {
+	"Indigo",
 	"Blue",
 	"Cyan",
+	"Turquoise",
 	"Green",
-	"Grey",
-	"Indigo",
+	"Acid",
+	"Gold",
+	"Yellow",
 	"Orange",
-	"Pink",
-	"Purple",
+	"Brown",
+	"Rust",
 	"Red",
-	"White",
-	"Yellow"
+	"Pink",
+	"Magenta",
+	"Purple",
+	"Grey",
+	"Neutral",
+	"White"
 };
 
 FeSettings::FeSettings( const std::string &config_path )
@@ -351,7 +367,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
 	m_ui_font_size( 0 ),
-	m_ui_color( FeSettings::uiColorTokens[0] )
+	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );

@@ -98,7 +98,11 @@ private:
 	sf::Sprite layout_logo( sf::Texture &texture );
 	FeListBox layout_list( int style = LayoutStyle::None );
 
-    int list_row_height( int style );
+	void theme_letterbox( sf::RectangleShape &rect );
+	void theme_border( sf::RectangleShape &rect );
+	void theme_list( FeListBox &list );
+
+	int list_row_height( int style );
 
 	bool text_index(
 		FeListBox &list,
@@ -202,6 +206,7 @@ public:
 
 	void init();
 	void style_init();
+	void style_init( sf::Color theme_color );
 	void swap_yes_no_to_pill_glyphs( FeSettings &settings, std::vector< std::string > &right_list, const std::vector< FeMenuOpt > &opt_list, int idx );
 };
 
