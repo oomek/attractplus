@@ -341,7 +341,7 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 	case FilterNotContains:
 		return target.empty()
 			? true
-			: sqstd_rex_search( m_rex, scsqchar(target), &begin, &end );
+			: !sqstd_rex_search( m_rex, scsqchar(target), &begin, &end );
 
 	default:
 		return true;
