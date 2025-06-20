@@ -207,7 +207,9 @@ public:
 	void init();
 	void style_init();
 	void style_init( sf::Color theme_color );
-	void swap_yes_no_to_pill_glyphs( FeSettings &settings, std::vector< std::string > &right_list, const std::vector< FeMenuOpt > &opt_list, int idx );
+
+	const bool is_yes_no_list( const std::vector<std::string> &values ) const;
+	void swap_yes_no_to_pill_glyphs( std::vector<std::string> &right_list, const std::vector<FeMenuOpt> &opt_list, int idx );
 };
 
 #endif

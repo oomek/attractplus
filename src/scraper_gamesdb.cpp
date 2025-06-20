@@ -322,7 +322,7 @@ bool get_json_doc( const std::string &api_key, rapidjson::Document &doc, const c
 {
 	std::string my_url = HOSTNAME;
 	my_url += req;
-	perform_substitution( my_url, "$1", api_key );
+	perform_substitution( my_url, { api_key } );
 
 	FeNetTask my_task( my_url, 0 );
 	my_task.do_task();
@@ -670,8 +670,7 @@ void create_single_id_query(
 		id = IMAGE_QUERY;
 	}
 
-	perform_substitution( my_req, "$1", api_key );
-	perform_substitution( my_req, "$2", id_str );
+	perform_substitution( my_req, { api_key, id_str } );
 
 	FeDebug() << " - db query: " << my_req << std::endl;
 	q.add_buffer_task( my_req, id );
@@ -773,8 +772,7 @@ bool FeSettings::thegamesdb_scraper( FeImporterContext &c )
 		// Get emulator specific images
 		std::string my_req = HOSTNAME;
 		my_req += "/Platforms/Images?apikey=$1&platforms_id=$2";
-		perform_substitution( my_req, "$1", api_key );
-		perform_substitution( my_req, "$2", as_str( plats[0].second ) );
+		perform_substitution( my_req, { api_key, as_str( plats[0].second ) } );
 
 		FeNetTask my_task( my_req, 0 );
 		if ( !my_task.do_task() )
@@ -863,9 +861,11 @@ fail_emu_scrape:
 
 		std::string my_req = HOSTNAME;
 		my_req += "/Games/ByGameName?apikey=$1&name=$2&fields=players%2Cpublishers%2Cgenres%2Coverview&filter%5Bplatform%5D=$3";
-		perform_substitution( my_req, "$1", api_key );
-		perform_substitution( my_req, "$2", url_escape( name_with_brackets_stripped( temp ) ) );
-		perform_substitution( my_req, "$3", plat_id_str );
+		perform_substitution( my_req, {
+			api_key,
+			url_escape( name_with_brackets_stripped( temp ) ),
+			plat_id_str
+		});
 
 		my_fuzz_map[ get_fuzzy( temp ) ] = name_worklist.back();
 		name_worklist.pop_back();

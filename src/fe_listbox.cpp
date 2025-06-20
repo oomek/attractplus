@@ -197,7 +197,7 @@ void FeListBox::setColor( sf::Color c )
 
 	m_base_text.setColor( c );
 
-	for ( int i=0; i < m_texts.size(); i++ )
+	for ( int i=0; i < (int)m_texts.size(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setColor( c );
 
@@ -253,7 +253,7 @@ void FeListBox::setTextScale( const sf::Vector2f &scale )
 {
 	m_base_text.setTextScale( scale );
 
-	for ( unsigned int i=0; i < m_texts.size(); i++ )
+	for ( int i=0; i < (int)m_texts.size(); i++ )
 		m_texts[i].setTextScale( scale );
 }
 
@@ -409,7 +409,7 @@ void FeListBox::setRotation( float r )
 
 	m_rotation = r;
 
-	for ( unsigned int i=0; i < m_texts.size(); i++ )
+	for ( int i=0; i < (int)m_texts.size(); i++ )
 		m_texts[i].setRotation( m_rotation );
 
 	if ( m_scripted )
@@ -581,7 +581,7 @@ void FeListBox::setBgColor( sf::Color c )
 		return;
 
 	m_base_text.setBgColor(c);
-	for ( int i=0; i < m_texts.size(); i++ )
+	for ( int i=0; i < (int)m_texts.size(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setBgColor( c );
 
@@ -663,7 +663,7 @@ void FeListBox::set_style(int s)
 		return;
 
 	m_base_text.setStyle(s);
-	for ( int i=0; i < m_texts.size(); i++ )
+	for ( int i=0; i < (int)m_texts.size(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setStyle( s );
 
@@ -678,7 +678,7 @@ void FeListBox::set_align(int a)
 
 	m_base_text.setAlignment( (FeTextPrimitive::Alignment)a);
 
-	for ( unsigned int i=0; i < m_texts.size(); i++ )
+	for ( int i=0; i < (int)m_texts.size(); i++ )
 		m_texts[i].setAlignment( (FeTextPrimitive::Alignment)a );
 
 	if ( m_scripted )

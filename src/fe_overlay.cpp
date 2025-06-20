@@ -79,7 +79,7 @@ public:
 	bool edit_dialog( const std::string &m, std::string &t );
 
 	bool confirm_dialog( const std::string &m,
-		const std::string &rep );
+		const std::string &rep="" );
 
         int option_dialog( const std::string &title,
                 const std::vector < std::string > &options,
@@ -325,7 +325,8 @@ void FeOverlay::splash_message( const std::string &msg,
 	FeTextPrimitive extra = layout_footer();
 
 	std::string msg_str;
-	m_feSettings.get_translation( msg, rep, msg_str );
+	m_feSettings.get_translation( msg, msg_str );
+	perform_substitution( msg_str, { rep });
 	message.setString( msg_str );
 	extra.setString( aux );
 
@@ -352,7 +353,8 @@ int FeOverlay::confirm_dialog( const std::string &msg,
 	FeInputMap::Command default_exit )
 {
 	std::string msg_str;
-	m_feSettings.get_translation( msg, rep, msg_str );
+	m_feSettings.get_translation( msg, msg_str );
+	perform_substitution( msg_str, { rep });
 
 	std::vector<std::string> list(2);
 	m_feSettings.get_translation( "Yes", list[0] );
@@ -558,10 +560,8 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 				itr!=tags_list.end(); ++itr )
 		{
 			std::string msg;
-			m_feSettings.get_translation(
-				(*itr).second ? "» $1 «" : "$1",
-				(*itr).first,
-				msg );
+			m_feSettings.get_translation( (*itr).second ? "» $1 «" : "$1", msg );
+			perform_substitution( msg, { (*itr).first });
 
 			list.push_back( msg );
 		}
@@ -1110,8 +1110,6 @@ FeTextPrimitive FeOverlay::layout_message( int style )
 	float y;
 	float width = m_screen_size.x;
 	float height;
-	int h1 = m_letterbox_top_height + m_border_thickness;
-	int h2 = m_letterbox_bottom_height + m_border_thickness;
 
 	if ( style & LayoutStyle::Top ) height = m_screen_size.y / 2 - m_header_char_size;
 	if ( style & LayoutStyle::Bottom ) height = m_screen_size.y / 2 - m_header_char_size;
@@ -1392,7 +1390,7 @@ int FeOverlay::display_config_dialog(
 	m->last_sel = ctx.curr_sel;
 
 	for ( size_t i = 0; i < ctx.right_list.size(); ++i )
-		swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, i );
+		swap_yes_no_to_pill_glyphs( ctx.right_list, ctx.opt_list, i );
 
 	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
@@ -1433,7 +1431,7 @@ int FeOverlay::display_config_dialog(
 			layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
 
 			for ( size_t i = 0; i < ctx.right_list.size(); ++i )
-				swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, i );
+				swap_yes_no_to_pill_glyphs( ctx.right_list, ctx.opt_list, i );
 
 			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
@@ -1466,20 +1464,12 @@ int FeOverlay::display_config_dialog(
 		}
 
 		int t = ctx.curr_opt().type;
-
-		// Convert list to toggle if it's a Yes/No list
-		const auto &values = ctx.curr_opt().values_list;
-		std::string yes, no;
-		m_feSettings.get_translation( "Yes", yes );
-		m_feSettings.get_translation( "No", no );
-		if ( t == Opt::LIST && values.size() == 2
-			&& ( ( values[0] == yes && values[1] == no ) || ( values[0] == no && values[1] == yes ) ) )
-				t = Opt::TOGGLE;
+		if ( t == Opt::LIST && is_yes_no_list( ctx.curr_opt().values_list ) )
+			t = Opt::TOGGLE;
 
 		switch ( t )
 		{
 		case Opt::MENU:
-		case Opt::SUBMENU:
 		case Opt::RELOAD:
 		case Opt::EXIT:
 		case Opt::DEFAULTEXIT:
@@ -1502,7 +1492,6 @@ int FeOverlay::display_config_dialog(
 			case Opt::RELOAD:
 				return display_config_dialog( m, parent_setting_changed, ctx.curr_sel, extra_exit );
 			case Opt::MENU:
-			case Opt::SUBMENU:
 				if ( sm )
 				{
 					bool submenu_setting_changed( false );
@@ -1644,7 +1633,7 @@ int FeOverlay::display_config_dialog(
 			ctx.curr_opt().set_value( new_value );
 			ctx.right_list[ ctx.curr_sel ] = ctx.curr_opt().get_value();
 
-			swap_yes_no_to_pill_glyphs( m_feSettings, ctx.right_list, ctx.opt_list, ctx.curr_sel );
+			swap_yes_no_to_pill_glyphs( ctx.right_list, ctx.opt_list, ctx.curr_sel );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 			layout_focus( sdialog, vdialog, LayoutFocus::Edit );
@@ -2228,7 +2217,7 @@ bool FeOverlay::common_exit()
 	std::string exit_msg;
 	m_feSettings.get_exit_question( exit_msg );
 
-	int retval = confirm_dialog( exit_msg, "" );
+	int retval = confirm_dialog( exit_msg );
 
 	//
 	// retval is 0 if the user confirmed exit.
@@ -2245,21 +2234,24 @@ bool FeOverlay::common_exit()
 	return false;
 }
 
-void FeOverlay::swap_yes_no_to_pill_glyphs( FeSettings &settings, std::vector< std::string > &right_list, const std::vector< FeMenuOpt > &opt_list, int idx )
+// Returns true if the give list has options "Yes" and "No" in any order
+const bool FeOverlay::is_yes_no_list( const std::vector<std::string> &values ) const
 {
-    std::string yes, no;
+	if ( values.size() != 2 ) return false;
+	std::string yes = m_feSettings.get_translation( "Yes" );
+	std::string no = m_feSettings.get_translation( "No" );
+	return ( values[0] == yes && values[1] == no )
+		|| ( values[0] == no && values[1] == yes );
+}
 
-    settings.get_translation( "Yes", yes );
-    settings.get_translation( "No", no );
-
-    const auto &values = opt_list[ idx ].values_list;
-    if ( values.size() == 2 &&
-        ( ( values[ 0 ] == yes && values[ 1 ] == no ) ||
-        ( values[ 0 ] == no && values[ 1 ] == yes ) ) )
-    {
-        if ( right_list[ idx ] == yes )
-            right_list[ idx ] = "☒";
-        else if ( right_list[ idx ] == no )
-            right_list[ idx ] = "☐";
-    }
+// Replaces right list value with pill glyph
+void FeOverlay::swap_yes_no_to_pill_glyphs( std::vector<std::string> &right_list, const std::vector<FeMenuOpt> &opt_list, int idx )
+{
+	if ( !is_yes_no_list( opt_list[idx].values_list )) return;
+	std::string yes = m_feSettings.get_translation( "Yes" );
+	std::string no = m_feSettings.get_translation( "No" );
+	if ( right_list[ idx ] == yes )
+		right_list[ idx ] = "☒";
+	else if ( right_list[ idx ] == no )
+		right_list[ idx ] = "☐";
 }

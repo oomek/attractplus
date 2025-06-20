@@ -43,11 +43,15 @@ namespace Opt
 	const int	LIST        = 2; // option gets selected from values_list
 	const int	INFO        = 3; // option is just for info (no changes)
 	const int	MENU        = 4; // option leads to another menu
-	const int	SUBMENU     = 5; // option leads to submenu of current menu
-	const int	RELOAD      = 6; // option reloads menu
-	const int	EXIT        = 7; // option results in exiting the menu
-	const int	DEFAULTEXIT = 8; // option is default for exiting the menu
-	const int	TOGGLE      = 9; // option is a toggle (yes/no)
+	const int	RELOAD      = 5; // option reloads menu
+	const int	EXIT        = 6; // option results in exiting the menu
+	const int	DEFAULTEXIT = 7; // option is default for exiting the menu
+	const int	TOGGLE      = 8; // option is a toggle (yes/no)
+};
+
+namespace OptFlag {
+	const int TRANSLATE_NONE	= 1 << 0; // do no translate label
+	const int TRANSLATE_LABEL	= 1 << 1; // translate the label
 };
 
 //
@@ -87,6 +91,7 @@ public:
 
 	const std::string &get_value() const;
 	int get_vindex() const;
+	const char* get_bool();
 
 	void append_vlist( const char **clist );
 	void append_vlist( const std::vector< std::string > &list );
@@ -105,8 +110,8 @@ private:
 public:
 	enum Style
 	{
-		SelectionList,
-		EditList
+		SelectionList,	// A single list
+		EditList		// A split option/value list
 	};
 
 	FeSettings &fe_settings;
@@ -121,24 +126,34 @@ public:
 
 	FeConfigContext( FeSettings & );
 
-	//
-	// Convenient addition of menu options
-	//
-	// set and val are added without language lookup.  help gets lookup.
-	void add_opt( int type, const std::string &set,
-		const std::string &val="", const std::string &help="" );
 
-	// set and help get language lookup
-	void add_optl( int type, const std::string &set,
-		const std::string &val="", const std::string &help="" );
+	// Add menu option. Help always gets translated.
+	FeMenuOpt *add_opt(
+		const int type,
+		const std::string &label,
+		const std::string &value,
+		const std::string &help="",
+		const int &opaque=0,
+		const int &flags=OptFlag::TRANSLATE_LABEL
+	);
+
+	// Add menu toggle option.
+	FeMenuOpt *add_opt(
+		const int type,
+		const std::string &label,
+		const bool &value,
+		const std::string &help="",
+		const int &opaque=0,
+		const int &flags=OptFlag::TRANSLATE_LABEL
+	);
 
 	// set the Style and title for the menu.
 	void set_style( Style s, const std::string &t );
 
-	//
-	// Convenient access
-	//
+	// Return curr_sel option
 	FeMenuOpt &curr_opt() { return opt_list[curr_sel]; }
+
+	// Return last option in opt_list; }
 	FeMenuOpt &back_opt() { return opt_list.back(); }
 
 	//

@@ -757,22 +757,39 @@ bool token_helper( const std::string &from,
 	return retval;
 }
 
-int perform_substitution( std::string &target,
-					const std::string &from,
-					const std::string &to )
+int perform_substitution(
+	std::string &target,
+	const std::string &from,
+	const std::string &to
+)
 {
-	int count=0;
+	int count = 0;
 
 	if ( from.empty() )
 		return count;
 
-	size_t loc=0;
+	size_t loc = 0;
+	size_t from_size = from.size();
+	size_t to_size = to.size();
+
 	while ( (loc = target.find( from, loc )) != std::string::npos )
 	{
-		target.replace( loc, from.size(), to );
-		loc += to.size();
+		target.replace( loc, from_size, to );
+		loc += to_size;
 		count++;
 	}
+
+	return count;
+}
+
+int perform_substitution(
+	std::string &target,
+	const std::vector<std::string> &rep
+)
+{
+	int count = 0;
+	for ( int i=rep.size()-1; i>=0; i-- )
+		count += perform_substitution( target, "$" + as_str( i+1 ), rep[i] );
 
 	return count;
 }
@@ -839,9 +856,12 @@ bool confirm_directory( const std::string &base, const std::string &sub )
 
 std::string as_str( int i )
 {
-	std::ostringstream ss;
-	ss << i;
-	return ss.str();
+	return std::to_string( i );
+}
+
+std::string as_str( size_t t )
+{
+	return std::to_string( t );
 }
 
 std::string as_str( float f, int decimals )
@@ -850,7 +870,6 @@ std::string as_str( float f, int decimals )
 	ss << std::setprecision( decimals ) << std::fixed << f;
 	return ss.str();
 }
-
 
 int as_int( const std::string &s )
 {
