@@ -50,14 +50,22 @@ bool token_helper( const std::string &from,
 	size_t &pos, std::string &token, const char *sep=";" );
 
 //
-// Substitute all occurrences of "from" that appear in "target" with
-// the text from "to"
+// Substitute all occurrences of "from" that appear in "target" with the text from "to"
+// - Returns the number of substitutions made
 //
-// returns the number of substitutions made
-//
-int perform_substitution( std::string &target,
+int perform_substitution(
+	std::string &target,
 	const std::string &from,
-	const std::string &to );
+	const std::string &to
+);
+
+//
+// Substitute placeholders in target with values in list, $1 = rep[0], etc
+//
+int perform_substitution(
+	std::string &target,
+	const std::vector<std::string> &rep
+);
 
 //
 //
@@ -277,6 +285,11 @@ void delete_file( const std::string &file );
 // Return integer as a string
 //
 std::string as_str( int i );
+
+//
+// Return size_t as a string
+//
+std::string as_str( size_t t );
 
 //
 // Return float as a string

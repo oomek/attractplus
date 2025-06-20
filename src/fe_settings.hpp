@@ -626,9 +626,12 @@ public:
 
 	void save() const;
 
-	void get_translation( const std::string &token, std::string &str ) const;
-	void get_translation( const std::string &token, const std::string &rep,
-		std::string &str ) const;
+	const void get_translation( const char* &token, std::string &str ) const;
+	const void get_translation( const std::string &token, std::string &str ) const;
+	const std::string get_translation( const char* value ) const;
+	const std::string get_translation( const std::string &value ) const;
+	const std::vector<std::string> get_translation( const char* tokens[] ) const;
+	const std::vector<std::string> get_translation( const std::vector<std::string> &tokens ) const;
 
 	void set_language( const std::string &l );
 	void get_languages_list( std::vector < FeLanguage > &ll ) const;

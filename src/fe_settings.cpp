@@ -3529,18 +3529,60 @@ void FeSettings::save() const
 	}
 }
 
-void FeSettings::get_translation( const std::string &token, std::string &str ) const
+// Populate str with char translation
+const void FeSettings::get_translation( const char* &token, std::string &str ) const
+{
+	if ( token ) m_translation_map.get_translation( token, str );
+}
+
+// Populate str with string translation
+const void FeSettings::get_translation( const std::string &token, std::string &str ) const
 {
 	m_translation_map.get_translation( token, str );
 }
 
-void FeSettings::get_translation( const std::string &token,
-					const std::string &rep, std::string &str ) const
+// Return translated char, if null returns empty string
+const std::string FeSettings::get_translation( const char* value ) const
 {
-	m_translation_map.get_translation( token, str );
+	std::string t;
+	if ( value ) get_translation( value, t );
+	return t;
+}
 
-	if ( !rep.empty() )
-		perform_substitution( str, "$1", rep );
+// Return translated string
+const std::string FeSettings::get_translation( const std::string &value ) const
+{
+	std::string t;
+	get_translation( value, t );
+	return t;
+}
+
+// Return translated array of chars, omits null tokens
+const std::vector<std::string> FeSettings::get_translation( const char* tokens[] ) const
+{
+    int n = 0;
+	while ( tokens[n] != 0 ) n++;
+	std::vector<std::string> ret;
+	ret.reserve( n );
+	for ( int i=0; i<n; i++ )
+	{
+		ret.push_back( std::string() );
+		get_translation( tokens[i], ret.back() );
+	}
+	return ret;
+}
+
+// Return translated array of strings
+const std::vector<std::string> FeSettings::get_translation( const std::vector<std::string> &tokens ) const
+{
+	std::vector<std::string> ret;
+	ret.reserve( tokens.size() );
+	for ( std::vector<std::string>::const_iterator it=tokens.begin(); it!=tokens.end(); ++it)
+	{
+		ret.push_back( std::string() );
+		get_translation( *it, ret.back() );
+	}
+	return ret;
 }
 
 int FeSettings::displays_count() const
