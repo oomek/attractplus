@@ -198,6 +198,7 @@ private:
 	// automagically updated with game info whenever the selection
 	// changes, etc
 	int m_custom_sel;
+	bool has_custom_list() { return m_custom_sel != -1; }
 
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 };

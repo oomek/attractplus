@@ -378,7 +378,9 @@ void FeListBox::internalSetText( const int index )
 		int listentry = i + offset;
 		if ( listentry < 0 || listentry >= list_size )
 			text_string = "";
-		else if ( m_scripted )
+		else if ( has_custom_list() )
+			text_string = m_custom_list[ listentry ];
+		else
 		{
 			// Substitute magic string on-demand
 			text_string = format_string;
@@ -393,8 +395,6 @@ void FeListBox::internalSetText( const int index )
 				listentry
 			);
 		}
-		else
-			text_string = m_custom_list[ listentry ];
 
 		m_texts[i].setString( text_string );
 	}
@@ -420,7 +420,7 @@ void FeListBox::on_new_list( FeSettings *s )
 {
 	init_dimensions();
 
-	if ( m_custom_sel >= 0 )
+	if ( has_custom_list() )
 	{
 		internalSetText( m_custom_sel );
 		return;
@@ -436,7 +436,7 @@ void FeListBox::on_new_list( FeSettings *s )
 
 void FeListBox::on_new_selection( FeSettings *s )
 {
-	if ( m_custom_sel >= 0 )
+	if ( has_custom_list() )
 		internalSetText( m_custom_sel );
 	else
 		internalSetText(
@@ -538,9 +538,9 @@ int FeListBox::get_rows()
 
 int FeListBox::get_list_size()
 {
-	return m_scripted
-		? m_display_filter_size
-		: m_custom_list.size();
+	return has_custom_list()
+		? m_custom_list.size()
+		: m_display_filter_size;
 }
 
 int FeListBox::get_style()
