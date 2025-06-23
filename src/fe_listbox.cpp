@@ -273,12 +273,10 @@ void FeListBox::setCustomSelection( const int index )
 	internalSetText( index );
 }
 
-void FeListBox::setCustomText( const int index,
-			const std::vector<std::string> &list )
+void FeListBox::setCustomText( const int index, const std::vector<std::string> &list )
 {
-	m_custom_sel = list.empty() ? -1 : index;
 	m_custom_list = list;
-	internalSetText( m_custom_sel );
+	setCustomSelection( list.empty() ? -1 : index );
 }
 
 void FeListBox::internalSetText( const int index )
@@ -365,20 +363,18 @@ void FeListBox::internalSetText( const int index )
 			break;
 	}
 
+	bool use_custom_list = has_custom_list();
 	std::string text_string;
-	std::string format_string;
-
-	if ( m_scripted )
-		format_string = m_format_string.empty()
-			? DEFAULT_FORMAT_STRING
-			: m_format_string;
+	std::string format_string = m_format_string.empty()
+		? DEFAULT_FORMAT_STRING
+		: m_format_string;
 
 	for ( int i=0; i < display_rows; i++ )
 	{
 		int listentry = i + offset;
 		if ( listentry < 0 || listentry >= list_size )
 			text_string = "";
-		else if ( has_custom_list() )
+		else if ( use_custom_list )
 			text_string = m_custom_list[ listentry ];
 		else
 		{

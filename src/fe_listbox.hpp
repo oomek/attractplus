@@ -192,13 +192,10 @@ private:
 	int m_display_rom_index;
 	FeSettings *m_feSettings;
 
-	// this contains the custom selection index, if custom text has been
-	// set (in which case m_displayList contains the custom set text). If
-	// no custom text is set, then this is set to -1, and the control gets
-	// automagically updated with game info whenever the selection
-	// changes, etc
+	// Contains the selection index of m_custom_list, if the list is not empty.
+	// Otherwise the control gets automagically updated with game info whenever the selection changes.
 	int m_custom_sel;
-	bool has_custom_list() { return m_custom_sel != -1; }
+	bool has_custom_list() { return m_custom_list.size() > 0; }
 
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 };
