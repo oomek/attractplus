@@ -1448,27 +1448,26 @@ int FeInputMap::process_setting( const std::string &setting,
 
 void FeInputMap::save( nowide::ofstream &f ) const
 {
-	std::vector< FeInputMapEntry >::const_iterator it;
-
-	for ( it = m_inputs.begin(); it != m_inputs.end(); ++it )
-	{
-		f << '\t' << std::setw(20) << std::left
-			<< commandStrings[ (*it).command ] << ' '
-			<< (*it).as_string() << std::endl;
-	}
+	for ( std::vector<FeInputMapEntry>::const_iterator it = m_inputs.begin(); it != m_inputs.end(); ++it )
+		write_pair( f, commandStrings[(*it).command], (*it).as_string(), 1 );
 
 	for ( int i=0; i < (int)Select; i++ )
-	{
-		std::string def_str = ( m_defaults[i] == LAST_COMMAND ) ? "" : commandStrings[ m_defaults[i] ];
-		f << '\t' << std::setw(20) << std::left << "default "
-			<< commandStrings[ i ] << '\t' << def_str << std::endl;
-	}
+		write_param(
+			f,
+			"default",
+			commandStrings[i],
+			( m_defaults[i] == LAST_COMMAND ) ? "" : commandStrings[m_defaults[i]],
+			1
+		);
 
 	for ( size_t i=0; i < m_joy_config.size(); i++ )
-	{
-		f << '\t' << std::setw(20) << std::left << "map "
-			<< "Joy" << m_joy_config[i].first << '\t' << m_joy_config[i].second << std::endl;
-	}
+		write_param(
+			f,
+			"map",
+			"Joy" + m_joy_config[i].first,
+			m_joy_config[i].second,
+			1
+		);
 }
 
 FeInputMap::Command FeInputMap::string_to_command( const std::string &s )
@@ -1676,14 +1675,11 @@ void FeSoundInfo::save( nowide::ofstream &f ) const
 {
 	std::map<FeInputMap::Command, std::string>::const_iterator it;
 
-	for ( int i=0; i< 3; i++ )
-		f << '\t' << std::setw(20) << std::left << settingStrings[i] << ' '
-			<< get_set_volume( (SoundType)i ) << std::endl;
-	f << '\t' << std::setw(20) << std::left << settingStrings[3] << ' '
-		<< ( m_loudness ? FE_CFG_YES_STR : FE_CFG_NO_STR ) << std::endl;
+	for ( int i=0; i<3; i++ )
+		write_pair( f, settingStrings[i], as_str( get_set_volume( (SoundType)i ) ), 1 );
+
+	write_pair( f, settingStrings[3], m_loudness ? FE_CFG_YES_STR : FE_CFG_NO_STR, 1 );
 
 	for ( it=m_sounds.begin(); it!=m_sounds.end(); ++it )
-		f << '\t' << std::setw(20) << std::left
-			<< FeInputMap::commandStrings[ (*it).first ]
-			<< ' ' << (*it).second << std::endl;
+		write_pair( f, FeInputMap::commandStrings[ (*it).first ], (*it).second, 1 );
 }

@@ -28,6 +28,7 @@
 #include <set>
 #include <SFML/Config.hpp>
 #include <SFML/Graphics.hpp>
+#include "nowide/fstream.hpp"
 
 #ifdef FE_DEBUG
 #include <cassert>
@@ -282,23 +283,22 @@ bool confirm_directory( const std::string &base, const std::string &sub );
 void delete_file( const std::string &file );
 
 //
-// Return integer as a string
+// Helpers for writing config files
+//
+std::string quote_config( std::string value );
+void write_indent( nowide::ofstream &f, int indent );
+void write_header( nowide::ofstream &f );
+void write_section( nowide::ofstream &f, std::string name, std::string value );
+void write_pair( nowide::ofstream &f, std::string name, std::string value, int indent=0 );
+void write_param( nowide::ofstream &f, std::string param, std::string name, std::string value, int indent=0 );
+
+//
+// Return argument as a string
 //
 std::string as_str( const int i );
-
-//
-// Return size_t as a string
-//
 std::string as_str( const size_t t );
-
-//
-// Return time as a string
-//
 std::string as_str( const time_t t );
-
-//
-// Return float as a string
-//
+std::string as_str( const char *t );
 std::string as_str( const float f, const int decimals=3 );
 
 //
