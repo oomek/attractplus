@@ -795,6 +795,7 @@ void FeRomList::save_tags()
 
 //
 // Set the favourite state for the given rom
+// - Returns true if the fav change has triggered a filter rebuild (used by a rule)
 //
 bool FeRomList::set_fav( FeRomInfo &rom, FeDisplayInfo &display, bool fav )
 {

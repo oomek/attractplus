@@ -545,66 +545,60 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 {
 	int sel = default_sel;
 	bool tags_changed = false;
+	bool list_changed = false;
+	std::string title = m_feSettings.get_translation( "Tags" );
 
 	// Remain in tags dialog until exited
 	while ( sel >= 0 )
 	{
-		std::vector< std::pair<std::string, bool> > tags_list;
+		// Prepare the list
+		std::vector<std::pair<std::string, bool>> tags_list;
 		m_feSettings.get_current_tags_list( tags_list );
 
 		std::vector<std::string> list;
-
-		for ( std::vector< std::pair<std::string, bool> >::iterator itr=tags_list.begin();
-				itr!=tags_list.end(); ++itr )
+		for ( std::vector<std::pair<std::string, bool>>::iterator itr=tags_list.begin(); itr!=tags_list.end(); ++itr )
 		{
-			std::string msg;
-			m_feSettings.get_translation( (*itr).second ? "» $1 «" : "$1", msg );
-			perform_substitution( msg, { (*itr).first });
-
-			list.push_back( msg );
+			list.push_back( m_feSettings.get_translation( (*itr).second ? "» $1 «" : "$1" ) );
+			perform_substitution( list.back(), { (*itr).first } );
 		}
+		list.push_back( m_feSettings.get_translation( "Create new tag" ) );
+		list.push_back( m_feSettings.get_translation( "Back") );
 
-		list.push_back( std::string() );
-		m_feSettings.get_translation( "Create new tag", list.back() );
-
-		list.push_back( std::string() );
-		m_feSettings.get_translation( "Back", list.back() );
-
-		std::string temp;
-		m_feSettings.get_translation( "Tags", temp );
-
-		sel = common_list_dialog( temp, list, sel, -1, extra_exit );
+		// Get the selection
+		sel = common_list_dialog( title, list, sel, -1, extra_exit );
 
 		if ( sel == (int)list.size() - 1 )
 		{
+			// Back
 			sel = -1;
 		}
 		else if ( sel == (int)list.size() - 2 )
 		{
-			std::string title;
-			m_feSettings.get_translation( "Enter new tag name", title );
+			// Create new tag
+			std::string tag_name;
+			edit_dialog( m_feSettings.get_translation( "Enter new tag name" ), tag_name );
 
-			std::string name;
-			edit_dialog( title, name );
-
-			if ( !name.empty() && m_feSettings.set_current_tag( name, true ) )
+			if ( !tag_name.empty() )
 			{
 				tags_changed = true;
+				if ( m_feSettings.set_current_tag( tag_name, true ) )
+					list_changed = true;
 			}
 		}
 		else if ( sel >= 0 )
 		{
-			if ( m_feSettings.set_current_tag( tags_list[sel].first, !(tags_list[sel].second) ) )
-			{
-				tags_changed = true;
-			}
+			// Toggle existing tag
+			tags_changed = true;
+			if ( m_feSettings.set_current_tag( tags_list[sel].first, !tags_list[sel].second ) )
+				list_changed = true;
 		}
 	}
 
-	// Changing tag status altered our current list
 	if ( tags_changed )
 	{
-		m_fePresent.update_to( ToNewList, true );
+		// Update without reset if the list has not been changed
+		// - This will allow layout lists to display the changed tags
+		m_fePresent.update_to( ToNewList, list_changed );
 		m_fePresent.on_transition( ToNewList, 0 );
 		m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 	}
