@@ -908,10 +908,11 @@ int main(int argc, char *argv[])
 				case FeInputMap::ToggleFavourite:
 					{
 						bool new_state = !feSettings.get_current_fav();
+						bool confirm_fav = true;
 
 						if ( feSettings.get_info_bool( FeSettings::ConfirmFavourites ) )
 						{
-							std::string msg = ( new_state )
+							std::string msg = new_state
 								? "Add '$1' to Favourites?"
 								: "Remove '$1' from Favourites?";
 
@@ -921,28 +922,20 @@ int main(int argc, char *argv[])
 								false,
 								FeInputMap::ToggleFavourite );
 
-							// returns 0 if user confirmed toggle
-							if ( sel_idx == 0 )
-							{
-								if ( feSettings.set_current_fav( new_state ) )
-								{
-									feVM.update_to_new_list( 0, true ); // our current display might have changed, so update
-									feVM.on_transition( ChangedTag, FeRomInfo::Favourite );
-								}
-							}
-							else if ( sel_idx == FeOverlay::ExitToDesktop )
-							{
+							confirm_fav = ( sel_idx == 0 );
+							if ( sel_idx == FeOverlay::ExitToDesktop )
 								exit_selected = true;
-							}
 						}
-						else
+
+						if ( confirm_fav )
 						{
-							if ( feSettings.set_current_fav( new_state ) )
-							{
-								feVM.update_to_new_list( 0, true ); // our current display might have changed, so update
-								feVM.on_transition( ChangedTag, FeRomInfo::Favourite );
-							}
+							// Update without reset if the list has not been changed
+							// - This will allow layout lists to display the changed favs
+							bool list_changed = feSettings.set_current_fav( new_state );
+							feVM.update_to_new_list( 0, list_changed );
+							feVM.on_transition( ChangedTag, FeRomInfo::Favourite );
 						}
+
 						redraw = true;
 					}
 					break;
