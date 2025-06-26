@@ -427,6 +427,13 @@ void FeListBox::on_new_list( FeSettings *s )
 	m_display_filter_size = s->get_filter_size( m_display_filter_index );
 	m_display_rom_index = s->get_rom_index( m_display_filter_index, 0 );
 
+	// Calculate the initial position for Moving mode
+	if ( m_mode == Moving && m_display_filter_size > m_texts.size() )
+	{
+		m_list_start_offset = std::max( 0, std::min( m_display_rom_index - (int)m_texts.size() / 2, m_display_filter_size - (int)m_texts.size() ));
+		m_selected_row = m_display_rom_index - m_list_start_offset;
+	}
+
 	internalSetText( m_display_rom_index );
 }
 
@@ -846,13 +853,6 @@ void FeListBox::set_selection_mode(int m)
 		return;
 
 	m_mode = m;
-
-	// Reset selection position when mode changes
-	m_selected_row = 0;
-	m_list_start_offset = 0;
-
-	if ( m_scripted )
-		FePresent::script_do_update( this );
 }
 
 int FeListBox::get_selection_margin()
