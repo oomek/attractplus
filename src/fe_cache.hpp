@@ -6,6 +6,11 @@
 
 #include <algorithm>
 
+#include "cereal/cereal.hpp"
+#include <cereal/types/list.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+
 class FeCache
 {
 private:
@@ -74,7 +79,7 @@ private:
 
 	static bool save_romlistmeta(
 		const FeRomList &romlist,
-		const std::map<std::string, std::string> &info
+		std::map<std::string, std::string> &info
 	);
 
 	static bool load_romlistmeta(
@@ -95,7 +100,7 @@ private:
 
 	static bool save_display(
 		const FeDisplayInfo &display,
-		const std::map<std::string, std::string> &info
+		std::map<std::string, std::string> &info
 	);
 
 	static bool load_display(
@@ -187,7 +192,7 @@ public:
 
 	static bool save_available(
 		const FeRomList &romlist,
-		const std::map<std::string, std::vector<std::string>> &emu_roms
+		std::map<std::string, std::vector<std::string>> &emu_roms
 	);
 
 	static bool load_available(
@@ -259,5 +264,39 @@ public:
 	);
 
 };
+
+// Cache class used to save versioned map<string,string> data
+class FeCacheMap
+{
+private:
+	std::map<std::string, std::string> &m_data;
+public:
+	FeCacheMap ( std::map<std::string, std::string> &data ): m_data( data ) {};
+	template<class Archive>
+	void serialize( Archive &archive, std::uint32_t const version )
+	{
+		if ( version != FE_CACHE_VERSION ) throw "Invalid FeCacheMap cache";
+		archive( m_data );
+	}
+};
+
+CEREAL_CLASS_VERSION( FeCacheMap, FE_CACHE_VERSION );
+
+// Cache class used to save versioned map<string,vector<string>> data
+class FeCacheList
+{
+private:
+	std::map<std::string, std::vector<std::string>> &m_data;
+public:
+	FeCacheList ( std::map<std::string, std::vector<std::string>> &data ): m_data( data ) {};
+	template<class Archive>
+	void serialize( Archive &archive, std::uint32_t const version )
+	{
+		if ( version != FE_CACHE_VERSION ) throw "Invalid FeCacheList cache";
+		archive( m_data );
+	}
+};
+
+CEREAL_CLASS_VERSION( FeCacheList, FE_CACHE_VERSION );
 
 #endif

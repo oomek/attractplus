@@ -52,7 +52,7 @@ const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/";
 const char *FE_EMULATOR_FILE_EXTENSION   = ".cfg";
 const char *FE_EMULATOR_DEFAULT          = "default-emulator.cfg";
 
-const std::uint32_t FE_CACHE_VERSION = std::hash<std::string>{}( std::string( FE_VERSION ) + FE_BUILD_NUMBER );
+const std::uint32_t FE_CACHE_VERSION = FE_CACHE_VERSION_D;
 
 namespace {
 	nowide::ofstream g_logfile;

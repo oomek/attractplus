@@ -304,10 +304,11 @@ void FeCache::delete_cache(
 
 bool FeCache::save_romlistmeta(
 	const FeRomList &romlist,
-	const std::map<std::string, std::string> &info
+	std::map<std::string, std::string> &info
 )
 {
-	bool success = save_cache( get_romlistmeta_filename( romlist ), info );
+	FeCacheMap cacheMap( info );
+	bool success = save_cache( get_romlistmeta_filename( romlist ), cacheMap );
 	debug( "Save RomlistMeta Cache", romlist.get_romlist_name(), success );
 	if ( !success ) invalidate_romlistmeta( romlist );
 	_debug();
@@ -319,7 +320,8 @@ bool FeCache::load_romlistmeta(
 	std::map<std::string, std::string> &info
 )
 {
-	bool success = load_cache( get_romlistmeta_filename( romlist ), info );
+	FeCacheMap cacheMap( info );
+	bool success = load_cache( get_romlistmeta_filename( romlist ), cacheMap );
 	debug( "Load RomlistMeta Cache", romlist.get_romlist_name(), success );
 	if ( !success ) invalidate_romlistmeta( romlist );
 	_debug();
@@ -394,10 +396,11 @@ bool FeCache::save_display(
 
 bool FeCache::save_display(
 	const FeDisplayInfo &display,
-	const std::map<std::string, std::string> &info
+	std::map<std::string, std::string> &info
 )
 {
-	bool success = save_cache( get_display_filename( display ), info );
+	FeCacheMap cacheMap( info );
+	bool success = save_cache( get_display_filename( display ), cacheMap );
 	debug( "Save Display Cache", display.get_name(), success );
 	if ( !success ) invalidate_display( display );
 	_debug();
@@ -409,7 +412,8 @@ bool FeCache::load_display(
 	std::map<std::string, std::string> &info
 )
 {
-	bool success = load_cache( get_display_filename( display ), info );
+	FeCacheMap cacheMap( info );
+	bool success = load_cache( get_display_filename( display ), cacheMap );
 	debug( "Load Display Cache", display.get_name(), success );
 	if ( !success ) invalidate_display( display );
 	_debug();
@@ -484,10 +488,11 @@ void FeCache::get_display_metadata(
 
 bool FeCache::save_available(
 	const FeRomList &romlist,
-	const std::map<std::string, std::vector<std::string>> &emu_roms
+	std::map<std::string, std::vector<std::string>> &emu_roms
 )
 {
-	bool success = save_cache( get_available_filename( romlist ), emu_roms );
+	FeCacheList cacheList( emu_roms );
+	bool success = save_cache( get_available_filename( romlist ), cacheList );
 	debug( "Save Available Cache", romlist.get_romlist_name(), success );
 	if ( !success ) invalidate_available( romlist );
 	_debug();
@@ -499,7 +504,8 @@ bool FeCache::load_available(
 	std::map<std::string, std::vector<std::string>> &emu_roms
 )
 {
-	bool success = load_cache( get_available_filename( romlist ), emu_roms );
+	FeCacheList cacheList( emu_roms );
+	bool success = load_cache( get_available_filename( romlist ), cacheList );
 	debug( "Load Available Cache", romlist.get_romlist_name(), success );
 	if ( !success ) invalidate_available( romlist );
 	_debug();
@@ -786,7 +792,8 @@ bool FeCache::save_stats(
 )
 {
 	if ( m_stats_cache.find(emulator) == m_stats_cache.end() ) return false;
-	bool success = save_cache( get_stats_filename( emulator ), m_stats_cache[emulator] );
+	FeCacheList cacheList( m_stats_cache[emulator] );
+	bool success = save_cache( get_stats_filename( emulator ), cacheList );
 	debug( "Save Stats Cache", emulator, success );
 	if ( !success ) invalidate_stats( emulator );
 	_debug();
@@ -797,7 +804,8 @@ bool FeCache::load_stats(
 	const std::string &emulator
 )
 {
-	bool success = load_cache( get_stats_filename( emulator ), m_stats_cache[emulator] );
+	FeCacheList cacheList( m_stats_cache[emulator] );
+	bool success = load_cache( get_stats_filename( emulator ), cacheList );
 	debug( "Load Stats Cache", emulator, success );
 	if ( !success ) invalidate_stats( emulator );
 	_debug();
