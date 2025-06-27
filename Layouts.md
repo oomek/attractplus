@@ -71,6 +71,22 @@ Functions and parameters unique to Attract-Mode Plus are marked with a 🔶 symb
    -  [`fe.Sound`](#fesound)
    -  [`fe.Music`](#femusic-) 🔶
    -  [`fe.Shader`](#feshader)
+-  [Enums](#enums)
+   -  [`Align`](#align)
+   -  [`Anchor`](#anchor-) 🔶
+   -  [`Art`](#art)
+   -  [`BlendMode`](#blendmode)
+   -  [`FromTo`](#fromto)
+   -  [`Info`](#info)
+   -  [`Origin`](#origin-) 🔶
+   -  [`Overlay`](#overlay)
+   -  [`PathTest`](#pathtest)
+   -  [`Rotation`](#rotation)
+   -  [`Selection`](#selection-) 🔶
+   -  [`Shader`](#shader)
+   -  [`Style`](#style)
+   -  [`Transition`](#transition)
+   -  [`Vid`](#vid)
 -  [Constants](#constants)
 
 ---
@@ -79,13 +95,13 @@ Functions and parameters unique to Attract-Mode Plus are marked with a 🔶 symb
 
 The Attract-mode layout sets out what gets displayed to the user. Layouts consist of a `layout.nut` script file and a collection of related resources (images, other scripts, etc.) used by the script.
 
-Layouts are stored under the "layouts" subdirectory of the Attract-Mode config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode can read layouts and plugins directly from `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar` files).
+Layouts are stored under the `layouts` subdirectory of the Attract-Mode config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode can read layouts and plugins directly from `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar` files).
 
-Each layout can have one or more `layout*.nut` script files. The "Toggle Layout" command in Attract-Mode allows users to cycle between each of the `layout*.nut` script files located in the layout's directory. Attract-Mode remembers the last layout file toggled to for each layout and will go back to that same file the next time the layout is loaded. This allows for variations of a particular layout to be implemented and easily selected by the user (for example, a layout could provide a `layout.nut` for horizontal monitor orientations and a `layout-vert.nut` for vertical).
+Each layout can have one or more `layout*.nut` script files. The `toggle_layout` command in Attract-Mode allows users to cycle between each of the `layout*.nut` script files located in the layout's directory. Attract-Mode remembers the last layout file toggled to for each layout and will go back to that same file the next time the layout is loaded. This allows for variations of a particular layout to be implemented and easily selected by the user (for example, a layout could provide a `layout.nut` for horizontal monitor orientations and a `layout-vert.nut` for vertical).
 
-The Attract-Mode screen saver and intro modes are really just special case layouts. The screensaver gets loaded after a user-configured period of inactivity, while the intro mode gets run when the frontend first starts and exits as soon as any action is triggered (for example if the user hits the select button). The screen saver script is located in the `screensaver.nut` file stored in the "screensaver" subdirectory. The intro script is located in the `intro.nut` file stored in the "intro" subdirectory.
+The Attract-Mode screen saver and intro modes are really just special case layouts. The screensaver gets loaded after a user-configured period of inactivity, while the intro mode gets run when the frontend first starts and exits as soon as any action is triggered (for example if the user hits the select button). The screen saver script is located in the `screensaver.nut` file stored in the `screensaver` subdirectory. The intro script is located in the `intro.nut` file stored in the `intro` subdirectory.
 
-Plug-ins are similar to layouts in that they consist of at least one squirrel script file and a collection of related resources. Plug-ins are stored in the "plugins" subdirectory of the Attract-Mode config directory. Plug-ins can be a single ".nut" file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
+Plug-ins are similar to layouts in that they consist of at least one Squirrel script file and a collection of related resources. Plug-ins are stored in the `plugins` subdirectory of the Attract-Mode config directory. Plug-ins can be a single `.nut` file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
 
 ---
 
@@ -104,10 +120,10 @@ Also check out the Introduction to Squirrel on the Attract-Mode wiki:
 
 ### Language Extensions
 
-Attract-Mode includes the following home-brewed extensions to the squirrel language and standard libraries:
+Attract-Mode includes the following home-brewed extensions to the Squirrel language and standard libraries:
 
--  A `zip_extract_archive( zipfile, filename )` function that will open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob.
--  A `zip_get_dir( zipfile )` function that will return an array of the filenames contained in the `zipfile` archive file.
+-  `zip_extract_archive( zipfile, filename )` - Open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a Squirrel blob.
+-  `zip_get_dir( zipfile )` - Returns an array of the filenames contained in the `zipfile` archive file.
 
 Supported archive formats are: `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar`.
 
@@ -123,13 +139,11 @@ local marquee = fe.add_artwork( "marquee", 256, 20, 512, 256 )
 marquee.set_rgb( 100, 100, 100 )
 ```
 
-The remainder of this document describes the functions, objects, classes and constants that are exposed to layout and plug-in scripts.
-
 ---
 
 ### Magic Tokens
 
-Image names, as well as the messages displayed by Text and Listbox objects, can all contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them accordingly as the user navigates the frontend. So for example, a Text message set to `"[Manufacturer]"` will be automatically updated with the appropriate Manufacturer's name. There are more examples below.
+[`fe.Image`](#feimage) names, as well as the messages displayed by [`fe.Text`](#fetext) and [`fe.ListBox`](#felist) objects, can all contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them accordingly as the user navigates the frontend. So for example, a Text message set to `"[Manufacturer]"` will be automatically updated with the appropriate Manufacturer's name. There are more examples below.
 
 The following _Magic Tokens_ are currently supported:
 
@@ -157,17 +171,19 @@ The following _Magic Tokens_ are currently supported:
 -  `[PlayedTime]` - The amount of time the selected game has been played
 -  `[PlayedCount]` - The number of times the selected game has been played
 -  `[SortValue]` - The value used to order the selected game in the list
--  `[System]` - The first "System" name configured for the selected game's emulator
--  `[SystemN]` - The last "System" name configured for the selected game's emulator
+-  `[System]` - The first System name configured for the selected game's emulator
+-  `[SystemN]` - The last System name configured for the selected game's emulator
 -  `[Overview]` - The overview description for the selected game
 
-_Magic Tokens_ can also be used to run a function defined in your layout or plugin's squirrel script to obtain the desired text. These tokens are in the form `[!<function_name>]`. When used, Attract-Mode will run the corresponding function (defined in the squirrel "root table"). This function should then return the string value that you wish to have replace the _Magic Token_. The function defined in squirrel can optionally have up to two parameters passed to it. If it is defined with a first parameter, Attract-Mode will supply the appropriate index_offset in that parameter when it calls the function. If a second parameter is present as well, the appropriate filter_offset is supplied.
+_Magic Tokens_ can also be used to run a function defined in your layout or plugin's Squirrel script to obtain the desired text. These tokens are in the form `[!<function_name>]`. When used, Attract-Mode will run the corresponding function (defined in the Squirrel _root table_). This function should then return the string value that you wish to have replace the _Magic Token_. The function defined in Squirrel can optionally have up to two parameters passed to it. If it is defined with a first parameter, Attract-Mode will supply the appropriate index_offset in that parameter when it calls the function. If a second parameter is present as well, the appropriate filter_offset is supplied.
 
 ```squirrel
 // Add a text that displays the filter name and list location
 //
-fe.add_text( "[FilterName] [[ListEntry]/[ListSize]]", 0, 0, 400, 20 )
+fe.add_text( "[FilterName] [ListEntry]/[ListSize]", 0, 0, 400, 20 )
+```
 
+```squirrel
 // Add an image that will match to the first word in the
 // Manufacturer name (i.e. "Atari.png", "Nintendo.jpg")
 //
@@ -176,8 +192,11 @@ function strip_man( ioffset )
   local m = fe.game_info(Info.Manufacturer, ioffset)
   return split( m, " " )[0]
 }
-fe.add_image( "[!strip_man]", 0, 0 )
 
+fe.add_image( "[!strip_man]", 0, 0 )
+```
+
+```squirrel
 // Add a text that will display a copyright message if both
 // the manufacturer name and a year are present.  Otherwise,
 // just show the Manufacturer name.
@@ -194,6 +213,7 @@ function well_formatted()
 
   return m
 }
+
 fe.add_text( "[!well_formatted]", 0, 0 )
 ```
 
@@ -257,11 +277,11 @@ fe.add_image( name, x, y, w, h )
 
 Adds an image or video to the end of Attract-Mode's draw list.
 
-The default blend mode for images is `BlendMode.Alpha`
+The default [BlendMode](#blendmode) for images is `BlendMode.Alpha`.
 
 **Parameters**
 
--  `name` - The name of an image/video file to show. If a relative path is provided (i.e. `"bg.png"`) it is assumed to be relative to the current layout directory (or the plugin directory, if called from a plugin script). If a relative path is provided and the layout/plugin is contained in an archive, Attract-Mode will open the corresponding file stored inside of the archive. Supported image formats are: `PNG`, `JPEG`, `GIF`, `BMP` and `TGA`. Videos can be in any format supported by FFmpeg. One or more [_Magic Tokens_](#magic-tokens) can be used in the name, in which case Attract-Mode will automatically update the image/video file appropriately in response to user navigation. For example `"man/[Manufacturer]"` will load the file corresponding to the manufacturer's name from the man subdirectory of the layout/plugin (example: `"man/Konami.png"`). When Magic Tokens are used, the file extension specified in `name` is ignored (if present) and Attract-Mode will load any supported media file that matches the Magic Token.
+-  `name` - The name of an image/video file to show. If a relative path is provided (i.e. `"bg.png"`) it is assumed to be relative to the current layout directory (or the plugin directory, if called from a plugin script). If a relative path is provided and the layout/plugin is contained in an archive, Attract-Mode will open the corresponding file stored inside of the archive. Supported image formats are: `PNG`, `JPEG`, `GIF`, `BMP` and `TGA`. Videos can be in any format supported by FFmpeg. One or more [_Magic Tokens_](#magic-tokens) can be used in the name, in which case Attract-Mode will automatically update the image/video file appropriately in response to user navigation. For example `"man/[Manufacturer]"` will load the file corresponding to the manufacturer's name from the man subdirectory of the layout/plugin such as `"man/Konami.png"`. When Magic Tokens are used, the file extension specified in `name` is ignored (if present) and Attract-Mode will load any supported media file that matches the Magic Token.
 -  `x` - The x position of the image (in layout coordinates).
 -  `y` - The y position of the image (in layout coordinates).
 -  `w` - The width of the image (in layout coordinates). Default value is `0`, which enables `auto_width`.
@@ -283,7 +303,7 @@ fe.add_artwork( label, x, y, w, h )
 
 Add an artwork to the end of Attract-Mode's draw list. The image/video displayed in an artwork is updated automatically whenever the user changes the game selection.
 
-The default blend mode for artwork is `BlendMode.Alpha`
+The default [BlendMode](#blendmode) for artwork is `BlendMode.Alpha`.
 
 **Parameters**
 
@@ -306,9 +326,9 @@ fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
 ```
 
-Add a surface to the end of Attract-Mode's draw list. A surface is an off-screen texture upon which you can draw other [`fe.Image`](#feadd_image), [`fe.Artwork`](#feadd_artwork), [`fe.Text`](#feadd_text), [`fe.Listbox`](#feadd_listbox) and [`fe.Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
+Add a surface to the end of Attract-Mode's draw list. A surface is an off-screen texture upon which you can draw other [`fe.Image`](#feadd_image), [`fe.Artwork`](#feadd_artwork), [`fe.Text`](#feadd_text), [`fe.ListBox`](#feadd_listbox) and [`fe.Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
-The default blend mode for surfaces is `BlendMode.Premultiplied`
+The default [BlendMode](#blendmode) for surfaces is `BlendMode.Premultiplied`.
 
 **Parameters**
 
@@ -418,11 +438,7 @@ Add a GLSL shader (vertex and/or fragment) for use in the layout.
 
 **Parameters**
 
--  `type` - The type of shader to add. Can be one of the following values:
-   -  `Shader.VertexAndFragment` - Add a combined vertex and fragment shader
-   -  `Shader.Vertex` - Add a vertex shader
-   -  `Shader.Fragment` - Add a fragment shader
-   -  `Shader.Empty` - Add an empty shader. An object's shader property can be set to an empty shader to stop using a shader on that object where one was set previously.
+-  `type` - The type of shader to add. Must be a [Shader](#shader) enum value.
 -  `file1` - The name of the shader file located in the layout/plugin directory. For the VertexAndFragment type, this should be the vertex shader.
 -  `file2` - This parameter is only used with the VertexAndFragment type, and should be the name of the fragment shader file located in the layout/plugin directory.
 
@@ -509,16 +525,12 @@ fe.add_ticks_callback( environment, function_name )
 fe.add_ticks_callback( function_name )
 ```
 
-The single parameter passed to the tick function is the amount of time (in milliseconds) since the layout began. Register a function in your script to get "tick" callbacks. Tick callbacks occur continuously during the running of the frontend.
+The single parameter passed to the tick function is the amount of time (in milliseconds) since the layout began. Register a function in your script to get _tick_ callbacks. Tick callbacks occur continuously during the running of the frontend.
 
 **Parameters**
 
--  `environment` - The squirrel object that the function is associated with (default value: the root table of the squirrel vm)
+-  `environment` - The Squirrel object that the function is associated with. Default value is the root table of the Squirrel VM.
 -  `function_name` - A string naming the function to be called.
-
-**Return Value**
-
--  None.
 
 **Callback**
 
@@ -544,12 +556,8 @@ Register a function in your script to get transition callbacks. Transition callb
 
 **Parameters**
 
--  `environment` - The squirrel object that the function is associated with (default value: the root table of the squirrel vm)
+-  `environment` - The Squirrel object that the function is associated with. Default value is the root table of the Squirrel VM.
 -  `function_name` - A string naming the function to be called.
-
-**Return Value**
-
--  None.
 
 **Callback**
 
@@ -571,57 +579,32 @@ Register a function in your script to get transition callbacks. Transition callb
    }
    ```
 
-The `ttype` parameter passed to the transition function indicates what is happening. It will have one of the following values:
+The `ttype` parameter passed to the transition function indicates what is happening. It will contain a [Transition](#transition) enum value.
 
--  `Transition.StartLayout`
--  `Transition.EndLayout`
--  `Transition.ToNewSelection`
--  `Transition.FromOldSelection`
--  `Transition.ToGame`
--  `Transition.FromGame`
--  `Transition.ToNewList`
--  `Transition.EndNavigation`
--  `Transition.ShowOverlay`
--  `Transition.HideOverlay`
--  `Transition.NewSelOverlay`
--  `Transition.ChangedTag`
+The `var` parameter passed to the transition function depends upon the value of `ttype`:
 
-The value of the `var` parameter passed to the transition function depends upon the value of `ttype`:
-
--  `Transition.ToNewSelection`, `var` will be:
-   -  The index offset of the selection being transitioned to (i.e. `-1` when moving back one position in the list, `1` when moving forward one position, `2` when moving forward two positions, etc.)
--  `Transition.FromOldSelection`, `var` will be:
-   -  The index offset of the selection being transitioned from (i.e. `1` after moving back one position in the list, `-1` after moving forward one position, `-2` after moving forward two positions, etc.)
--  `Transition.StartLayout`, `var` will be:
-   -  `FromTo.Frontend` - If the frontend is just starting,
-   -  `FromTo.ScreenSaver` - If the layout is starting (or the list is being loaded) because the built-in screen saver has stopped, or
-   -  `FromTo.NoValue` - Otherwise.
--  `Transition.EndLayout`, `var` will be:
-   -  `FromTo.Frontend` - If the frontend is shutting down,
-   -  `FromTo.ScreenSaver` - If the layout is stopping because the built-in screen saver is starting, or
-   -  `FromTo.NoValue` - Otherwise.
--  `Transition.ToNewList`, `var` will be:
-   -  The filter index offset of the filter being transitioned to (i.e. `-1` when moving back one filter, `1` when moving forward) if known, otherwise `var` is `0`.
--  `Transition.ShowOverlay`, var will be:
-   -  `Overlay.Custom` - If a script generated overlay is being shown.
-   -  `Overlay.Exit` - If the exit menu is being shown.
-   -  `Overlay.Favourite` - If the add/remove favourite menu is being shown.
-   -  `Overlay.Displays` - If the displays menu is being shown.
-   -  `Overlay.Filters` - If the filters menu is being shown.
-   -  `Overlay.Tags` - If the tags menu is being shown.
--  `Transition.NewSelOverlay`, `var` will be:
-   -  The index of the new selection in the Overlay menu.
--  `Transition.ChangedTag`, `var` will be:
-   -  `Info.Favourite` if the favourite status of the current game was changed.
-   -  `Info.Tags` if a tag for the current game was changed.
--  `Transition.ToGame`, `Transition.FromGame`, `Transition.EndNavigation`, or `Transition.HideOverlay`, `var` will be:
-   -  `FromTo.NoValue`.
+| `ttype`                       | `var`                                                          | Example                                                                                                                                                                         |
+| ----------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Transition.ToNewSelection`   | The index offset of the selection being transitioned **to**.   | `-1` - Moving back one position.<br>`1` - Moving forward one position.<br>`2` - Moving forward two positions.                                                                   |
+| `Transition.FromOldSelection` | The index offset of the selection being transitioned **from**. | `1` - Moving back one position.<br>`-1` - Moving forward one position.<br>`-2` - Moving forward two positions.                                                                  |
+| `Transition.StartLayout`      | A [FromTo](#fromto) enum value                                 | `FromTo.Frontend` - The frontend is just starting.<br>`FromTo.ScreenSaver` - The layout is starting because the built-in screen saver has stopped.<br>`FromTo.NoValue` - Other. |
+| `Transition.EndLayout`        | A [FromTo](#fromto) enum value                                 | `FromTo.Frontend` - The frontend is shutting down.<br>`FromTo.ScreenSaver` - The layout is stopping because the built-in screen saver is starting.<br>`FromTo.NoValue` - Other. |
+| `Transition.ToNewList`        | The filter index offset of the filter being transitioned to.   | `-1` - Moving back one filter.<br>`1` - Moving forward one filter.<br>`0` - Other.                                                                                              |
+| `Transition.ShowOverlay`      | An [Overlay](#overlay) enum value.                             | See [Overlay](#overlay).                                                                                                                                                        |
+| `Transition.NewSelOverlay`    | The index of the new selection in the Overlay menu.            | `0` - The first list item.<br>`1` - The second list item.                                                                                                                       |
+| `Transition.ChangedTag`       | An [Info](#info) enum value.                                   | `Info.Favourite` - The favourite status of the current game was changed.<br>`Info.Tags` - A tag for the current game was changed.                                               |
+| `Transition.ToGame`           | `FromTo.NoValue`                                               |                                                                                                                                                                                 |
+| `Transition.FromGame`         | `FromTo.NoValue`                                               |                                                                                                                                                                                 |
+| `Transition.EndNavigation`    | `FromTo.NoValue`                                               |                                                                                                                                                                                 |
+| `Transition.HideOverlay`      | `FromTo.NoValue`                                               |                                                                                                                                                                                 |
 
 The `transition_time` parameter passed to the transition function is the amount of time (in milliseconds) since the transition began.
 
-The transition function must return a boolean value. It should return `true` if a redraw is required, in which case Attract-Mode will redraw the screen and immediately call the transition function again with an updated `transition_time`.
+The transition may return `true` if a redraw is required, in which case Attract-Mode will redraw the screen and immediately call the transition function again with an updated `transition_time`.
 
-**_The transition function must eventually return `false` to notify Attract-Mode that the transition effect is done, allowing the normal operation of the frontend to proceed._**
+**Notes**
+
+-  The transition function **must** eventually return `false` to notify Attract-Mode that the transition effect is done, allowing the normal operation of the frontend to proceed.
 
 ---
 
@@ -637,32 +620,7 @@ Get information about the selected game.
 
 **Parameters**
 
--  `id` - Id of the information attribute to get. Can be one of the following values:
-   -  `Info.Name`
-   -  `Info.Title`
-   -  `Info.Emulator`
-   -  `Info.CloneOf`
-   -  `Info.Year`
-   -  `Info.Manufacturer`
-   -  `Info.Category`
-   -  `Info.Players`
-   -  `Info.Rotation`
-   -  `Info.Control`
-   -  `Info.Status`
-   -  `Info.DisplayCount`
-   -  `Info.DisplayType`
-   -  `Info.AltRomname`
-   -  `Info.AltTitle`
-   -  `Info.Extra`
-   -  `Info.Favourite`
-   -  `Info.Tags`
-   -  `Info.PlayedCount`
-   -  `Info.PlayedTime`
-   -  `Info.FileIsAvailable`
-   -  `Info.System`
-   -  `Info.Overview`
-   -  `Info.IsPaused`
-   -  `Info.SortValue`
+-  `id` - The information attribute to get. Must be an [Info](#info) enum value.
 -  `index_offset` - The offset (from the current selection) of the game to retrieve info on. i.e. `-1` = previous game, `0` = current game, `1` = next game, and so on. Default value is `0`.
 -  `filter_offset` - The offset (from the current filter) of the filter containing the selection to retrieve info on. i.e. `-1` = previous filter, `0` = current filter. Default value is `0`.
 
@@ -692,11 +650,7 @@ Get the filename of an artwork for the selected game.
 -  `label` - The label of the artwork to retrieve. This should correspond to an artwork configured in Attract-Mode (artworks are configured per emulator in the config menu) or scraped using the scraper. Attract-Mode's standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
 -  `index_offset` - The offset (from the current selection) of the game to retrieve the filename for. i.e. `-1` = previous game, `0` = current game, `1` = next game, and so on. Default value is `0`.
 -  `filter_offset` - The offset (from the current filter) of the filter containing the selection to retrieve the filename for. i.e. `-1` = previous filter, `0` = current filter. Default value is `0`.
--  `flags` - Flags to control the filename that gets returned. Can be set
-   to any combination of none or more of the following (i.e. `Art.ImagesOnly | Art.FullList`):
-   -  `Art.Default` - Return single match, video or image
-   -  `Art.ImagesOnly` - Only return an image match (no video)
-   -  `Art.FullList` - Return a full list of the matches made (if multiples available). Names are returned in a single string, semicolon separated
+-  `flags` - Controls the filename that gets returned. Can be zero or more [Art](#art) enum values separated by `|`.
 
 **Return Value**
 
@@ -750,59 +704,25 @@ Signal that a particular frontend action should occur.
 
 **Parameters**
 
--  `signal_str` - The action to signal for. Can be one of the following strings:
-   -  `"back"`
-   -  `"up"`
-   -  `"down"`
-   -  `"left"`
-   -  `"right"`
-   -  `"select"`
-   -  `"prev_game"`
-   -  `"next_game"`
-   -  `"prev_page"`
-   -  `"next_page"`
-   -  `"prev_display"`
-   -  `"next_display"`
-   -  `"displays_menu"`
-   -  `"prev_filter"`
-   -  `"next_filter"`
-   -  `"filters_menu"`
+-  `signal_str` - The action to signal. Can be one of the following strings:
+   -  `"select"` `"back"`
+   -  `"up"` `"down"` `"left"` `"right"`
+   -  `"prev_game"` `"next_game"`
+   -  `"prev_page"` `"next_page"`
+   -  `"prev_letter"` `"next_letter"`
+   -  `"prev_favourite"` `"next_favourite"` `"add_favourite"` `"add_tags"`
+   -  `"prev_filter"` `"next_filter"` `"filters_menu"`
+   -  `"prev_display"` `"next_display"` `"displays_menu"`
+   -  `"random_game"` `"replay_last_game"`
    -  `"toggle_layout"`
-   -  `"toggle_movie"`
-   -  `"toggle_mute"`
-   -  `"toggle_rotate_right"`
-   -  `"toggle_flip"`
-   -  `"toggle_rotate_left"`
-   -  `"exit"`
-   -  `"exit_to_desktop"`
+   -  `"toggle_movie"` `"toggle_mute"`
+   -  `"toggle_rotate_left"` `"toggle_rotate_right"` `"toggle_flip"`
+   -  `"screen_saver"` `"intro"`
+   -  `"custom1"` `"custom2"` `"custom3"` `"custom4"` `"custom5"` `"custom6"` `"custom7"` `"custom8"` `"custom9"` `"custom10"`
    -  `"screenshot"`
    -  `"configure"`
-   -  `"random_game"`
-   -  `"replay_last_game"`
-   -  `"add_favourite"`
-   -  `"prev_favourite"`
-   -  `"next_favourite"`
-   -  `"add_tags"`
-   -  `"screen_saver"`
-   -  `"prev_letter"`
-   -  `"next_letter"`
-   -  `"intro"`
-   -  `"custom1"`
-   -  `"custom2"`
-   -  `"custom3"`
-   -  `"custom4"`
-   -  `"custom5"`
-   -  `"custom6"`
-   -  `"custom7"`
-   -  `"custom8"`
-   -  `"custom9"`
-   -  `"custom10"`
-   -  `"reset_window"`
-   -  `"reload"`
-
-**Return Value**
-
--  None.
+   -  `"reload"` `"reset_window"`
+   -  `"exit"` `"exit_to_desktop"`
 
 ---
 
@@ -819,12 +739,8 @@ Change to the display at the specified index. This should align with the index o
 **Parameters**
 
 -  `index` - The index of the display to change to. This should correspond to the index in the [`fe.displays`](#fedisplays) array of the intended new display. The index for the current display is stored in [`fe.list.display_index`](#fecurrentlist).
--  `stack_previous` - [boolean] if set to `true`, the new display is stacked on the current one, so that when the user selects the `"Back"` UI button the frontend will navigate back to the earlier display. Default value is `false`.
--  `reload` 🔶 - [boolean] if set to `false` and the current display shares the same layout file the layout is not reloaded. Default value is `true`.
-
-**Return Value**
-
--  None.
+-  `stack_previous` - [boolean] If set to `true`, the new display is stacked on the current one, so that when the user selects the `"Back"` UI button the frontend will navigate back to the earlier display. Default value is `false`.
+-  `reload` 🔶 - [boolean] If set to `false` and the current display shares the same layout file the layout is not reloaded. Default value is `true`.
 
 ---
 
@@ -839,12 +755,8 @@ Register a function in your script to handle signals. Signals are sent whenever 
 
 **Parameters**
 
--  `environment` - The squirrel object that the function is associated with (default value: the root table of the squirrel vm)
+-  `environment` - The Squirrel object that the function is associated with. Default value is the root table of the Squirrel VM.
 -  `function_name` - A string naming the signal handler function to be added.
-
-**Return Value**
-
--  None.
 
 **Callback**
 
@@ -883,12 +795,8 @@ Remove a signal handler that has been added with the [`fe.add_signal_handler()`]
 
 **Parameters**
 
--  `environment` - The squirrel object that the signal handler function is associated with (default value: the root table of the squirrel vm)
+-  `environment` - The Squirrel object that the signal handler function is associated with. Default value is the root table of the Squirrel VM.
 -  `function_name` - A string naming the signal handler function to remove.
-
-**Return Value**
-
--  None.
 
 ---
 
@@ -904,10 +812,6 @@ Execute another Squirrel script.
 
 -  `name` - The name of the script file. If a relative path is provided, it is treated as relative to the directory for the layout/plugin that called this function.
 
-**Return Value**
-
--  None.
-
 ---
 
 ### `fe.load_module()`
@@ -916,11 +820,11 @@ Execute another Squirrel script.
 fe.load_module( name )
 ```
 
-Loads a module (a "library" Squirrel script).
+Loads a module (a _library_ Squirrel script).
 
 **Parameters**
 
--  `name` - The name of the library module to load. This should correspond to a script file in the "modules" subdirectory of your Attract-Mode configuration (without the file extension).
+-  `name` - The name of the library module to load. This should correspond to a script file in the `modules` subdirectory of your Attract-Mode configuration (without the file extension).
 
 **Return Value**
 
@@ -942,12 +846,8 @@ Execute a plug-in command and wait until the command is done.
 
 -  `executable` - The name of the executable to run.
 -  `arg_string` - The arguments to pass when running the executable.
--  `environment` - The squirrel object that the callback function is associated with.
+-  `environment` - The Squirrel object that the callback function is associated with.
 -  `callback_function` - A string containing the name of the function in Squirrel to call with any output that the executable provides on stdout.
-
-**Return Value**
-
--  None.
 
 **Callback**
 
@@ -981,10 +881,6 @@ Execute a plug-in command in the background and return immediately.
 -  `executable` - The name of the executable to run.
 -  `arg_string` - The arguments to pass when running the executable.
 
-**Return Value**
-
--  None.
-
 ---
 
 ### `fe.path_expand()`
@@ -1016,17 +912,11 @@ Check whether the specified path has the status indicated by `flag`.
 **Parameters**
 
 -  `path` - The path to test.
--  `flag` - What to test for. Can be one of the following values:
-   -  `PathTest.IsFileOrDirectory`
-   -  `PathTest.IsFile`
-   -  `PathTest.IsDirectory`
-   -  `PathTest.IsRelativePath`
-   -  `PathTest.IsSupportedArchive`
-   -  `PathTest.IsSupportedMedia`
+-  `flag` - What to test for. Must be a [PathTest](#pathtest) enum value.
 
 **Return Value**
 
--  (boolean) result.
+-  [boolean] The result of the test.
 
 ---
 
@@ -1044,7 +934,7 @@ Returns the modified time of the given file.
 
 **Return Value**
 
--  An integer containing the GMT timestamp.
+-  [integer] The GMT timestamp.
 
 ---
 
@@ -1055,10 +945,6 @@ fe.get_config()
 ```
 
 Get the user configured settings for this layout/plugin/screensaver/intro.
-
-**Parameters**
-
--  None.
 
 **Return Value**
 
@@ -1184,17 +1070,9 @@ This class is a container for global layout settings. The instance of this class
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
--  `base_rotation` - Get the base orientation of Attract Mode which is set in General Settings. This property cannot be set from the script. This can be one of the following values:
-   -  `RotateScreen.None` (default)
-   -  `RotateScreen.Right`
-   -  `RotateScreen.Flip`
-   -  `RotateScreen.Left`
--  `toggle_rotation` - Get/set the "toggle" orientation of the layout. The toggle rotation is added to the rotation set in general settings to determine what the actual rotation is at any given time. The user can change this value using the Rotation Toggle inputs. This can be one of the following values:
-   -  `RotateScreen.None` (default)
-   -  `RotateScreen.Right`
-   -  `RotateScreen.Flip`
-   -  `RotateScreen.Left`
--  `page_size` - Get/set the number of entries to jump each time the `"Next Page"` or `"Previous Page"` button is pressed.
+-  `base_rotation` - Get the base orientation of Attract-Mode which is set in General Settings. This property cannot be set from the script. Will return a [Rotation](#rotation) enum value.
+-  `toggle_rotation` - Get/set the _user toggled_ orientation of the layout. The toggle rotation is added to the rotation set in general settings to determine what the actual rotation is at any given time. The user can change this value using the Rotation Toggle inputs. Must be a [Rotation](#rotation) enum value.
+-  `page_size` - Get/set the number of entries to jump each time the `"next_page"` or `"previous_page"` button is pressed.
 -  `preserve_aspect_ratio` - Get/set whether the overall layout aspect ratio should be preserved by the frontend. Default value is `false`.
 -  `time` - Get the number of milliseconds that the layout has been showing.
 -  `mouse_pointer` 🔶 - When set to `true` mouse pointer will be visible.
@@ -1205,7 +1083,10 @@ This class is a container for global layout settings. The instance of this class
 
 **Notes**
 
--  The actual rotation of the layout can be determined using the following equation: `( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4`
+-  The actual [Rotation](#rotation) of the layout can be determined using the following equation:
+   ```squirrel
+   local rotation = ( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4
+   ```
 
 ---
 
@@ -1216,7 +1097,7 @@ This class is a container for status information regarding the current display. 
 **Properties**
 
 -  `name` - Get the name of the current display.
--  `display_index` - Get the index of the current display. Use the [`fe.set_display()`](#feset_display) function if you want to change the current display. If this value is less than `0`, then the "Displays Menu" (with a custom layout) is currently showing.
+-  `display_index` - Get the index of the current display. Use the [`fe.set_display()`](#feset_display) function if you want to change the current display. If this value is less than `0`, then the `displays_menu` (with a custom layout) is currently showing.
 -  `filter_index` - Get/set the index of the currently selected filter, see [`fe.filters`](#fefilters) for the list of available filters.
 -  `index` - Get/set the index of the currently selected game.
 -  `search_rule` - Get/set the search rule applied to the current game list. If you set this and the resulting search finds no results, then the current game list remains displayed in its entirety. If there are results, then those results are shown instead, until search_rule is cleared or the user navigates away from the display/filter.
@@ -1238,7 +1119,7 @@ This class is a container for Attract-Mode's internal image cache. The instance 
 
 **Member Functions**
 
--  `add_image( filename )` - Add `filename` image to the internal cache and/or flag it as "most recently used". Least recently used images are cleared from the cache first when space is needed. If filename is contained in an archive, the parameter should be formatted: `"<archive_name>|<filename>"`
+-  `add_image( filename )` - Add `filename` image to the internal cache and/or flag it as _recently used_. Least recently used images are cleared from the cache first when space is needed. If filename is contained in an archive, the parameter should be formatted: `"<archive_name>|<filename>"`
 -  `name_at( pos )` - Return the name of the image at position `pos` in the internal cache. `pos` can be an integer between `0` and `fe.image_cache.count - 1`.
 -  `size_at( pos )` - Return the size (in bytes) of the image at position `pos` in the internal cache. `pos` can be an integer between `0` and `fe.image_cache.count - 1`
 
@@ -1256,16 +1137,27 @@ This class is a container for overlay functionality. The instance of this class 
 
 -  `set_custom_controls( caption_text, options_listbox )`
 -  `set_custom_controls( caption_text )`
--  `set_custom_controls()` - Tells the frontend that the layout will provide custom controls for displaying overlay menus such as the exit dialog, displays menu, etc. The `caption_text` parameter is the FeText object that the frontend end should use to display the overlay caption (i.e. `"Exit Attract-Mode?"`). The `options_listbox` parameter is the FeListBox object that the frontend should use to display the overlay options.
+-  `set_custom_controls()` - Tells the frontend that the layout will provide custom controls for displaying overlay menus such as the exit dialog and displays menu.
+   -  `caption_text` - The [`fe.Text`](#fetext) object that the frontend end should use to display the overlay caption.
+   -  `options_listbox` - The [`fe.ListBox`](#felistbox) object that the frontend should use to display the overlay options.
 -  `clear_custom_controls()` - Tell the frontend that the layout will NOT do any custom control handling for overlay menus. This will result in the frontend using its built-in default menus instead for overlays.
 -  `list_dialog( options, title, default_sel, cancel_sel )`
 -  `list_dialog( options, title, default_sel )`
 -  `list_dialog( options, title )`
--  `list_dialog( options )` - The list_dialog function prompts the user with a menu containing a list of options, returning the index of the selection. The `options` parameter is an array of strings that are the menu options to display in the list. The `title` parameter is a caption for the list. `default_sel` is the index of the entry to be selected initially (default is `0`). `cancel_sel` is the index to return if the user cancels (default is `-1`). The return value is the index selected by the user.
--  `edit_dialog( msg, text )` - Prompt the user to input/edit text. The `msg` parameter is the prompt caption. `text` is the initial text to be edited. The return value a the string of text as edited by the user.
+-  `list_dialog( options )` - The list_dialog function prompts the user with a menu containing a list of options, returning the index of the selection. Returns the index selected by the user.
+   -  `options` - An array of strings that are the menu options to display in the list.
+   -  `title` - A caption for the list.
+   -  `default_sel` - The index of the entry to be selected initially. Default value is `0`.
+   -  `cancel_sel` - The index to return if the user cancels. Default value is `-1`.
+-  `edit_dialog( msg, text )` - Prompt the user to input/edit text. Returns the string of text as edited by the user.
+   -  `msg` - The prompt caption.
+   -  `text` - The initial text to be edited.
 -  `splash_message( msg, replace, footer_msg )`
 -  `splash_message( msg, replace )`
--  `splash_message( msg )` - Immediately provide text feedback to the user. This could be useful during computationally-intensive operations. The `msg` parameter may contain a `$1` placeholder that gets replaced by `replace`. The `footer_msg` text is displayed in the footer.
+-  `splash_message( msg )` - Immediately provide text feedback to the user. This could be useful during computationally-intensive operations.
+   -  `msg` - Message to display, may contain a `$1` placeholder that gets substituted with `replace`.
+   -  `replace` - Message to substitute the `$1` placeholder, gets translated separately.
+   -  `footer_msg` - Message to display in the footer.
 
 ---
 
@@ -1279,7 +1171,7 @@ This class is a container for information about the available displays. Instance
 -  `layout` - Get the layout used by this display.
 -  `romlist` - Get the romlist used by this display.
 -  `in_cycle` - Get whether the display is shown in the prev display/next display cycle.
--  `in_menu` - Get whether the display is shown in the "Displays Menu"
+-  `in_menu` - Get whether the display is shown in the `displays_menu`.
 
 ---
 
@@ -1292,29 +1184,7 @@ This class is a container for information about the available filters. Instances
 -  `name` - Get the filter name.
 -  `index` - Get the index of the currently selected game in this filter.
 -  `size` - Get the size of the game list in this filter.
--  `sort_by` - Get the attribute that the game list has been sorted by. Will be equal to one of the following values:
-   -  `Info.NoSort`
-   -  `Info.Name`
-   -  `Info.Title`
-   -  `Info.Emulator`
-   -  `Info.CloneOf`
-   -  `Info.Year`
-   -  `Info.Manufacturer`
-   -  `Info.Category`
-   -  `Info.Players`
-   -  `Info.Rotation`
-   -  `Info.Control`
-   -  `Info.Status`
-   -  `Info.DisplayCount`
-   -  `Info.DisplayType`
-   -  `Info.AltRomname`
-   -  `Info.AltTitle`
-   -  `Info.Extra`
-   -  `Info.Favourite`
-   -  `Info.Tags`
-   -  `Info.PlayedCount`
-   -  `Info.PlayedTime`
-   -  `Info.FileIsAvailable`
+-  `sort_by` - Get the attribute that the game list has been sorted by. Must be an [Info](#info) enum value.
 -  `reverse_order` - [boolean] Will be equal to `true` if the list order has been reversed.
 -  `list_limit` - Get the value of the list limit applied to the filter game list.
 
@@ -1365,7 +1235,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `green` - Get/set green colour level for image. Range is `[0...255]`. Default value is `255`.
 -  `blue` - Get/set blue colour level for image. Range is `[0...255]`. Default value is `255`.
 -  `alpha` - Get/set alpha level for image. Range is `[0...255]`. Default value is `255`.
--  `index_offset` - Get/set offset from current selection for the artwork/ dynamic image to display. For example, set to `-1` for the image corresponding to the previous list entry, or `1` for the next list entry, etc. Default value is `0`.
+-  `index_offset` - Get/set offset from current selection for the artwork/dynamic image to display. For example, set to `-1` for the image corresponding to the previous list entry, or `1` for the next list entry, etc. Default value is `0`.
 -  `filter_offset` - Get/set filter offset from current filter for the artwork/dynamic image to display. For example, set to `-1` for an image indexed in the previous filter, or `1` for the next filter, etc. Default value is `0`.
 -  `skew_x` - Get/set the amount of x-direction image skew (in layout coordinates). Default value is `0`. Use a negative value to skew the image to the left instead.
 -  `skew_y` - Get/set the amount of y-direction image skew (in layout coordinates). Default value is `0`. Use a negative value to skew the image up instead.
@@ -1377,62 +1247,32 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `subimg_y` - Get/set the y position of top left corner of the image texture sub-rectangle to display. Default value is `0`.
 -  `subimg_width` - Get/set the width of the image texture sub-rectangle to display. Default value is `texture_width`.
 -  `subimg_height` - Get/set the height of the image texture sub-rectangle to display. Default value is `texture_height`.
--  `sample_aspect_ratio` - Get the "sample aspect ratio", which is the width of a pixel divided by the height of the pixel.
+-  `sample_aspect_ratio` - Get the sample aspect ratio, which is the width of a pixel divided by the height of the pixel.
 -  `origin_x` - (deprecated) Get/set the x position of the local origin for the image. The origin defines the centre point for any positioning or rotation of the image. Default origin is `( 0, 0 )` (top-left corner).
 -  `origin_y` - (deprecated) Get/set the y position of the local origin for the image. The origin defines the centre point for any positioning or rotation of the image. Default origin is `( 0, 0 )` (top-left corner).
--  `anchor` 🔶 - Set the midpoint for position and scale. Can be set to one of the following modes:
-   -  `Anchor.Left`
-   -  `Anchor.Centre`
-   -  `Anchor.Right`
-   -  `Anchor.Top`
-   -  `Anchor.Bottom`
-   -  `Anchor.TopLeft` (default)
-   -  `Anchor.TopRight`
-   -  `Anchor.BottomLeft`
-   -  `Anchor.BottomRight`
--  `rotation_origin` 🔶 - Set the midpoint for rotation Can be set to one of the following modes:
-   -  `Origin.Left`
-   -  `Origin.Centre`
-   -  `Origin.Right`
-   -  `Origin.Top`
-   -  `Origin.Bottom`
-   -  `Origin.TopLeft` (default)
-   -  `Origin.TopRight`
-   -  `Origin.BottomLeft`
-   -  `Origin.BottomRight`
--  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `anchor_y` 🔶 - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `rotation_origin_x` 🔶 - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `rotation_origin_y` 🔶 - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `video_flags` - _[image & artwork only]_ Get/set video flags for this object. These flags allow you to override Attract-Mode's default video playback behaviour. Can be set to any combination of none or more of the following (i.e. `Vid.NoAudio | Vid.NoLoop`):
-   -  `Vid.Default`
-   -  `Vid.ImagesOnly` (disable video playback, display images instead)
-   -  `Vid.NoAudio` (silence the audio track)
-   -  `Vid.NoAutoStart` (don't automatically start video playback)
-   -  `Vid.NoLoop` (don't loop video playback)
+-  `anchor` 🔶 - Set the midpoint for position and scale. Must be an [Anchor](#anchor-) enum value.
+-  `rotation_origin` 🔶 - Set the midpoint for rotation Must be an [Origin](#origin-) enum value.
+-  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `anchor_y` 🔶 - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `rotation_origin_x` 🔶 - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `rotation_origin_y` 🔶 - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `video_flags` - _[image & artwork only]_ Get/set video flags for this object. These flags allow you to override Attract-Mode's default video playback behaviour. Can be zero or more [Vid](#vid) enum values separated by `|`.
 -  `video_playing` - _[image & artwork only]_ [boolean] Get/set whether video is currently playing in this artwork.
 -  `video_duration` - Get the video duration (in milliseconds).
 -  `video_time` - Get the time that the video is current at (in milliseconds).
 -  `preserve_aspect_ratio` - Get/set whether the aspect ratio from the source image is to be preserved. Default value is `false`.
--  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>".
+-  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: `"<archive_name>|<filename>"`.
 -  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
--  `trigger` - Get/set the transition that triggers updates of this artwork/ dynamic image. Can be set to `Transition.ToNewSelection` or `Transition.EndNavigation`. Default value is `Transition.ToNewSelection`.
+-  `trigger` - Get/set the transition that triggers updates of this artwork/dynamic image. Can be set to `Transition.ToNewSelection` or `Transition.EndNavigation`. Default value is `Transition.ToNewSelection`.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.
 -  `zorder` - Get/set the Image's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
--  `blend_mode` - Get/set the blend mode for this image. Can have one of the following values:
-   -  `BlendMode.Alpha` (default for images and artwork)
-   -  `BlendMode.Add`
-   -  `BlendMode.Screen`
-   -  `BlendMode.Multiply`
-   -  `BlendMode.Overlay`
-   -  `BlendMode.Premultiplied` (default for surfaces)
-   -  `BlendMode.None`
--  `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video. Setting this to `true` greatly improves the quality of scaled down images. The default value is `false`. It's advised to force anisotropic filtering in the display driver settings if the Image with auto generated mipmap is scaled by the ratio that is not isotropic.
+-  `blend_mode` - Get/set the blend mode for this image. Must be a [BlendMode](#blendmode) enum value.
+-  `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video. Setting this to `true` greatly improves the quality of scaled down images. Default value is `false`. It's advised to force anisotropic filtering in the display driver settings if the Image with auto generated mipmap is scaled by the ratio that is not isotropic.
 -  `volume` 🔶 - Get/set the volume of played video. Range is `[0...100]`
 -  `vu` 🔶 - _[video only]_ Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` 🔶 - _[video only]_ Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` 🔶 - _[video only]_ Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
--  `fft` 🔶 - _[video only]_ Get the Fast Fourier Transform data for mono audio from video content as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft` 🔶 - _[video only]_ Get the Fast Fourier Transform data for mono audio as an array of 32 values. Range is `[0.0...1.0]`.
 -  `fft_left` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
 -  `fft_right` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
 -  `repeat` 🔶 - Enables texture repeat when set to `true`. Default value is `false`. To see the effect `subimg_width/height` must be set larger than `texture_width/height`
@@ -1448,7 +1288,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well.
--  `set_border( left, top, right, bottom )` :🔶 - Define border dimensions for 9-slice image. All parameters are in pixels. The borders define constrained regions at the edges of the image, while the centre region scales normally. Follow this link for more information [9-slice](https://en.wikipedia.org/wiki/9-slice_scaling)
+-  `set_border( left, top, right, bottom )` 🔶 - Define border dimensions for 9-slice image. All parameters are in pixels. The borders define constrained regions at the edges of the image, while the centre region scales normally. See [9-slice](https://en.wikipedia.org/wiki/9-slice_scaling) on wikipedia.
 -  `set_padding( left, top, right, bottom )` 🔶 - Define padding offsets that extend the sprite beyond its original dimensions. Padding creates additional space around the 9-slice borders. Positive values extend the sprite outward, while negative values bring the edges inward, effectively cropping the border regions. Used only with `set_padding()`
 -  `fix_masked_image()` - Takes the colour of the top left pixel in the image and makes all the pixels in the image with that colour transparent.
 -  `add_image()` - _[surface only]_ Add an image to the end of this surface's draw list, see [`fe.add_image()`](#feadd_image).
@@ -1469,6 +1309,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
    img.subimg_y = img.texture_height
    ```
 -  Attract-Mode defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
+
    ```squirrel
    local art = fe.add_artwork( "snap" )
    // dynamic art texture_width and texture_height are not yet available
@@ -1499,7 +1340,7 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
--  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
+-  `visible` - [boolean] Get/set whether text is visible. Default value is `true`.
 -  `rotation` - Get/set rotation of text. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.
@@ -1514,34 +1355,17 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on `height`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
--  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
+-  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5`. It's advised to use this property with the new align modes.
 -  `outline` 🔶 - Get/set the thickness of the outline applied to text. Value is set in pixels and can be fractional. Default value is `0.0`
 -  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background. Value is set in pixels and can be fractional. Default value is `0.0`
--  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
-   -  `Style.Regular` (default)
-   -  `Style.Bold`
-   -  `Style.Italic`
-   -  `Style.Underlined`
--  `align` - Get/set the text alignment. Can be one of the following values:
-   -  ~~`Align.Centre`~~ (default)
-   -  ~~`Align.Left`~~
-   -  ~~`Align.Right`~~
-   -  `Align.TopCentre`
-   -  `Align.TopLeft`
-   -  `Align.TopRight`
-   -  `Align.BottomCentre`
-   -  `Align.BottomLeft`
-   -  `Align.BottomRight`
-   -  `Align.MiddleCentre`
-   -  `Align.MiddleLeft`
-   -  `Align.MiddleRight`
-   -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
--  `word_wrap` - Get/set whether word wrapping is enabled in this text (boolean). Default is `false`.
--  `msg_width` - Get the width of the text message, in layout coordinates.
--  `msg_height` 🔶 - Get the height of the text message, in layout coordinates.
+-  `style` - Get/set the text style. Must be one or more [Style](#style) enum values separated by `|`.
+-  `align` - Get/set the text alignment. Must be an [Align](#align) enum value.
+-  `word_wrap` - [boolean] Get/set whether word wrapping is enabled in this text. Default value is `false`.
+-  `msg_width` - Get the width of the text message (in layout coordinates).
+-  `msg_height` 🔶 - Get the height of the text message (in layout coordinates).
 -  `lines` 🔶 - Get the maximum line count that can be fitted inside the text box.
 -  `lines_total` 🔶 - Get the total line count of the formatted text message.
--  `line_height` 🔶 - Get the distance between two lines of text in layout coordinates.
+-  `line_height` 🔶 - Get the distance between two lines of text (in layout coordinates).
 -  `first_line_hint` 🔶 - Get/set the line in the formatted text that is shown as first line in the text object
 -  `font` - Get/set the filename of the font used for this text. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the `char_size`.
@@ -1553,7 +1377,7 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the text. Range is `[0...255]`.
 -  `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for the text background. Range is `[0...255]`.
 -  `set_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the text outline. Range is `[0...255]`.
--  `set_bg_outline_rgb()` 🔶 - Set the red, green and blue colour values for the outline of the text background. Range is `[0...255]`.
+-  `set_bg_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the outline of the text background. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the text position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the text position and size (in layout coordinates).
 
@@ -1569,7 +1393,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
--  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
+-  `visible` - [boolean] Get/set whether listbox is visible. Default value is `true`.
 -  `rotation` - Get/set rotation of listbox. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.
@@ -1594,39 +1418,15 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on the value of `height`/`rows`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
--  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
-   -  `Style.Regular` (default)
-   -  `Style.Bold`
-   -  `Style.Italic`
-   -  `Style.Underlined`
--  `align` - Get/set the text alignment. Can be one of the following values:
-   -  ~~`Align.Centre`~~ (default)
-   -  ~~`Align.Left`~~
-   -  ~~`Align.Right`~~
-   -  `Align.TopCentre`
-   -  `Align.TopLeft`
-   -  `Align.TopRight`
-   -  `Align.BottomCentre`
-   -  `Align.BottomLeft`
-   -  `Align.BottomRight`
-   -  `Align.MiddleCentre`
-   -  `Align.MiddleLeft`
-   -  `Align.MiddleRight`
-   -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
--  `sel_style` - Get/set the selection text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
-   -  `Style.Regular` (default)
-   -  `Style.Bold`
-   -  `Style.Italic`
-   -  `Style.Underlined`
--  `sel_mode` - Get/set the selection mode. Controls how the ListBox behaves when navigating. Can be one of the following values:
-   -  `Selection.Static` (default) - The selection stays in the centre of the ListBox. The list scrolls
-   -  `Selection.Moving` - The selection moves and the list scrolls when margin is reached. Margin can be adjusted with `sel_margin`
-   -  `Selection.Paged` - The selection moves and the list scrolls in pages
--  `sel_margin` - Get/set the selection margin in rows. When using `Selection.Moving` mode, the list will scroll to keep the selection at least this many rows away from the edges.
--  `sel_row` - Returns the index of the row that is currently selected within the visible rows of the ListBox.
+-  `style` - Get/set the text style. Must be one or more [Style](#style) enum values separated by `|`.
+-  `align` - Get/set the text alignment. Must be an [Align](#align) enum value.
+-  `sel_style` - Get/set the selection text style. Must be one or more [Style](#style) enum values separated by `|`.
+-  `sel_mode` 🔶 - Get/set the selection mode. Controls how the ListBox behaves when navigating. Must be a [Selection](#selection-) enum.
+-  `sel_margin` 🔶 - Get/set the selection margin in rows. When using `Selection.Moving` mode, the list will scroll to keep the selection at least this many rows away from the edges.
+-  `sel_row` 🔶 - Returns the index of the row that is currently selected within the visible rows of the ListBox.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
--  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
+-  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default value is empty.
 -  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
 -  `zorder` - Get/set the Listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
@@ -1664,30 +1464,12 @@ The class representing a rectangle in Attract-Mode. Instances of this class are 
 -  `outline_alpha` - Get/set alpha level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `origin_x` - (deprecated) Get/set the x position of the local origin for the rectangle. The origin defines the centre point for any positioning or rotation of the rectangle. Default origin in `( 0, 0 )` (top-left corner).
 -  `origin_y` - (deprecated) Get/set the y position of the local origin for the rectangle. The origin defines the centre point for any positioning or rotation of the rectangle. Default origin is `( 0, 0 )` (top-left corner).
--  `anchor` Set the midpoint for position and scale. Can be set to one of the following modes:
-   -  `Anchor.Left`
-   -  `Anchor.Centre`
-   -  `Anchor.Right`
-   -  `Anchor.Top`
-   -  `Anchor.Bottom`
-   -  `Anchor.TopLeft` (default)
-   -  `Anchor.TopRight`
-   -  `Anchor.BottomLeft`
-   -  `Anchor.BottomRight`
--  `rotation_origin` Set the midpoint for rotation Can be set to one of the following modes:
-   -  `Origin.Left`
-   -  `Origin.Centre`
-   -  `Origin.Right`
-   -  `Origin.Top`
-   -  `Origin.Bottom`
-   -  `Origin.TopLeft` (default)
-   -  `Origin.TopRight`
-   -  `Origin.BottomLeft`
-   -  `Origin.BottomRight`
--  `anchor_x` - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `anchor_y` - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `rotation_origin_x` - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `rotation_origin_y` - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
+-  `anchor` Set the midpoint for position and scale. Must be an [Anchor](#anchor-) enum value.
+-  `rotation_origin` Set the midpoint for rotation Must be an [Origin](#origin-) enum value.
+-  `anchor_x` - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `anchor_y` - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `rotation_origin_x` - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
+-  `rotation_origin_y` - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`.
 -  `corner_radius` - Get/set the corner radius (in layout coordinates). This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
 -  `corner_radius_x` - Get/set the corner x radius (in layout coordinates). Default value is `0.0`.
 -  `corner_radius_y` - Get/set the corner y radius (in layout coordinates). Default value is `0.0`.
@@ -1697,14 +1479,7 @@ The class representing a rectangle in Attract-Mode. Instances of this class are 
 -  `corner_points` - Get/set the number of points used to draw the corner radius. More points produce smooth curves, while fewer points result in flat bevels. Range is `[1...32]`. Default value is `12`.
 -  `shader` - Get/set the GLSL shader for this rectangle. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
 -  `zorder` - Get/set the rectangles's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
--  `blend_mode` - Get/set the blend mode for this rectangle. Can have one of the following values:
-   -  `BlendMode.Alpha`
-   -  `BlendMode.Add`
-   -  `BlendMode.Screen`
-   -  `BlendMode.Multiply`
-   -  `BlendMode.Overlay`
-   -  `BlendMode.Premultiplied`
-   -  `BlendMode.None`
+-  `blend_mode` - Get/set the blend mode for this rectangle. Must be a [BlendMode](#blendmode) enum value.
 
 **Member Functions**
 
@@ -1727,8 +1502,8 @@ The class representing a sound object. Instances of this class are returned by t
 
 -  `file_name` - Get/set the sound filename.
 -  `volume` 🔶 - Get/set the volume of played sound. Range is `[0...100]`.
--  `playing` - Get/set whether the sound is currently playing (boolean).
--  `loop` - Get/set whether the sound should be looped (boolean).
+-  `playing` - [boolean] Get/set whether the sound is currently playing.
+-  `loop` - [boolean] Get/set whether the sound should be looped.
 -  `pitch` - Get/set the sound pitch (float). Default value is `1`.
 -  `x` - Get/set the x position of the sound. Default value is `0`.
 -  `y` - Get/set the y position of the sound. Default value is `0`.
@@ -1746,24 +1521,24 @@ The class representing an audio track. Instances of this class are returned by t
 
 -  `file_name` - Get/set the audio track filename.
 -  `volume` - Get/set the volume of played audio track. Range is `[0...100]`
--  `playing` - Get/set whether the audio track is currently playing (boolean).
--  `loop` - Get/set whether the audio track should be looped (boolean).
+-  `playing` - [boolean] Get/set whether the audio track is currently playing.
+-  `loop` - [boolean] Get/set whether the audio track should be looped.
 -  `pitch` - Get/set the audio track pitch (float). Default value is `1`.
 -  `x` - Get/set the x position of the audio track. Default value is `0`.
 -  `y` - Get/set the y position of the audio track. Default value is `0`.
 -  `z` - Get/set the z position of the audio track. Default value is `0`.
 -  `duration` - Get the audio track duration (in milliseconds).
 -  `time` - Get the time that the audio track is current at (in milliseconds).
--  `vu` - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
--  `vu_left` - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
--  `vu_right` - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
--  `fft` - Get the Fast Fourier Transform data for mono audio as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_left` - Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_right` - Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
+-  `vu` 🔶 - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
+-  `vu_left` 🔶 - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
+-  `vu_right` 🔶 - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
+-  `fft` 🔶 - Get the Fast Fourier Transform data for mono audio as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft_left` 🔶 - Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft_right` 🔶 - Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
 
 **Member Functions**
 
--  `get_metadata( tag )` - Get the meta data (if available in the source file) that corresponds to the specified tag (i.e. `"artist"`, `"album"`, etc.)
+-  `get_metadata( tag )` - Get the meta data (if available in the source file) that corresponds to the specified `tag` (i.e. `"artist"`, `"album"`, etc.)
 
 ---
 
@@ -1773,20 +1548,180 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 **Properties**
 
--  `type` - Get the shader type. Can be one of the following values:
-   -  `Shader.VertexAndFragment`
-   -  `Shader.Vertex`
-   -  `Shader.Fragment`
-   -  `Shader.Empty`
+-  `type` - Get the shader type. Will return a [Shader](#shader) enum value.
 
 **Member Functions**
 
--  `set_param( name, f )` - Set the float variable (float GLSL type) with the specified name to the value of `f`.
--  `set_param( name, f1, f2 )` - Set the 2-component vector variable (vec2 GLSL type) with the specified name to `(f1, f2)`.
--  `set_param( name, f1, f2, f3 )` - Set the 3-component vector variable (vec3 GLSL type) with the specified name to `(f1, f2, f3)`.
--  `set_param( name, f1, f2, f3, f4 )` - Set the 4-component vector variable (vec4 GLSL type) with the specified name to `(f1, f2, f3, f4)`.
--  `set_texture_param( name )` - Set the texture variable (sampler2D GLSL type) with the specified `name`. The texture used will be the texture for whatever object ([`fe.Image`](#feimage), [`fe.Text`](#fetext), [`fe.Listbox`](#felistbox)) the shader is drawing.
--  `set_texture_param( name, image )` - Set the texture variable (sampler2D GLSL type) with the specified `name` to the texture contained in `image`. `image` must be an instance of the [`fe.Image`](#feimage) class.
+-  `set_param( name, f )` - Set the shader uniform `name` to the float `f`.
+-  `set_param( name, f1, f2 )` - Set the shader uniform `name` to `vec2( f1, f2 )`.
+-  `set_param( name, f1, f2, f3 )` - Set the shader uniform `name` to `vec3( f1, f2, f3 )`.
+-  `set_param( name, f1, f2, f3, f4 )` - Set the shader uniform `name` to `vec4( f1, f2, f3, f4 )`.
+-  `set_texture_param( name )` - Set the shader uniform `name` to a `sampler2D` texture of the current object.
+-  `set_texture_param( name, image )` - Set the shader uniform `name` to a `sampler2D` texture of the given `image` [`fe.Image`](#feimage) object.
+
+---
+
+## Enums
+
+### Align
+
+-  ~~`Align.Centre`~~ - Preserved for compatibility. Default.
+-  ~~`Align.Left`~~ - Preserved for compatibility.
+-  ~~`Align.Right`~~ - Preserved for compatibility.
+-  `Align.TopCentre`
+-  `Align.TopLeft`
+-  `Align.TopRight`
+-  `Align.BottomCentre`
+-  `Align.BottomLeft`
+-  `Align.BottomRight`
+-  `Align.MiddleCentre` - Improved accuracy.
+-  `Align.MiddleLeft` - Improved accuracy.
+-  `Align.MiddleRight` - Improved accuracy.
+
+### Anchor 🔶
+
+-  `Anchor.Left`
+-  `Anchor.Centre`
+-  `Anchor.Right`
+-  `Anchor.Top`
+-  `Anchor.Bottom`
+-  `Anchor.TopLeft` - Default.
+-  `Anchor.TopRight`
+-  `Anchor.BottomLeft`
+-  `Anchor.BottomRight`
+
+### Art
+
+-  `Art.Default` - Return a single match, video or image.
+-  `Art.ImagesOnly` - Return an image match only (no video).
+-  `Art.FullList` - Return a full list of the matches delimited with `;`.
+
+### BlendMode
+
+-  `BlendMode.Alpha` - Default for images and artwork.
+-  `BlendMode.Add`
+-  `BlendMode.Screen`
+-  `BlendMode.Multiply`
+-  `BlendMode.Overlay`
+-  `BlendMode.Premultiplied` - Default for surfaces.
+-  `BlendMode.None`
+
+### FromTo
+
+-  `FromTo.Frontend`
+-  `FromTo.ScreenSaver`
+-  `FromTo.NoValue`
+
+### Info
+
+-  `Info.NoSort` - (Used for filter sorting only).
+-  `Info.Name`
+-  `Info.Title`
+-  `Info.Emulator`
+-  `Info.CloneOf`
+-  `Info.Year`
+-  `Info.Manufacturer`
+-  `Info.Category`
+-  `Info.Players`
+-  `Info.Rotation`
+-  `Info.Control`
+-  `Info.Status`
+-  `Info.DisplayCount`
+-  `Info.DisplayType`
+-  `Info.AltRomname`
+-  `Info.AltTitle`
+-  `Info.Extra`
+-  `Info.Favourite`
+-  `Info.Tags`
+-  `Info.PlayedCount`
+-  `Info.PlayedTime`
+-  `Info.FileIsAvailable`
+-  `Info.Shuffle`
+-  `Info.System`
+-  `Info.Overview`
+-  `Info.IsPaused`
+-  `Info.SortValue`
+
+### Origin 🔶
+
+-  `Origin.Left`
+-  `Origin.Centre`
+-  `Origin.Right`
+-  `Origin.Top`
+-  `Origin.Bottom`
+-  `Origin.TopLeft` - Default.
+-  `Origin.TopRight`
+-  `Origin.BottomLeft`
+-  `Origin.BottomRight`
+
+### Overlay
+
+-  `Overlay.Custom` - A script generated overlay is being shown.
+-  `Overlay.Favourite` - The favourite menu is being shown.
+-  `Overlay.Tags` - The tags menu is being shown.
+-  `Overlay.Filters` - The filters menu is being shown.
+-  `Overlay.Displays` - The displays menu is being shown.
+-  `Overlay.Exit` - The exit menu is being shown.
+
+### PathTest
+
+-  `PathTest.IsFileOrDirectory`
+-  `PathTest.IsFile`
+-  `PathTest.IsDirectory`
+-  `PathTest.IsRelativePath`
+-  `PathTest.IsSupportedArchive`
+-  `PathTest.IsSupportedMedia`
+
+### Rotation
+
+-  `RotateScreen.None` - Default.
+-  `RotateScreen.Right`
+-  `RotateScreen.Flip`
+-  `RotateScreen.Left`
+
+### Selection 🔶
+
+-  `Selection.Static` - The selection remains in the middle, and the list scrolls around it. Default.
+-  `Selection.Moving` - The selection moves, and the list scrolls when the `sel_margin` is reached.
+-  `Selection.Paged` - The selection moves, and the list scrolls a full set of `rows` when the edge is reached.
+
+### Shader
+
+-  `Shader.VertexAndFragment` - Both a Vertex and Fragment shader.
+-  `Shader.Vertex` - Vertex shader only.
+-  `Shader.Fragment` - Fragment shader only.
+-  `Shader.Empty` - An empty shader, used to removed a previously set shader.
+
+### Style
+
+-  `Style.Regular` - Default.
+-  `Style.Bold`
+-  `Style.Italic`
+-  `Style.Underlined`
+-  `Style.StrikeThrough`
+
+### Transition
+
+-  `Transition.StartLayout`
+-  `Transition.EndLayout`
+-  `Transition.ToNewSelection`
+-  `Transition.FromOldSelection`
+-  `Transition.ToGame`
+-  `Transition.FromGame`
+-  `Transition.ToNewList`
+-  `Transition.EndNavigation`
+-  `Transition.ShowOverlay`
+-  `Transition.HideOverlay`
+-  `Transition.NewSelOverlay`
+-  `Transition.ChangedTag`
+
+### Vid
+
+-  `Vid.Default` - Play a video with audio, or display an image.
+-  `Vid.ImagesOnly` - Display images only (no video).
+-  `Vid.NoAudio` - Silence the audio track.
+-  `Vid.NoAutoStart` - Do not automatically start video playback.
+-  `Vid.NoLoop` - Do not loop video playback.
 
 ---
 
