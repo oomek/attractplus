@@ -1529,12 +1529,12 @@ The class representing an audio track. Instances of this class are returned by t
 -  `z` - Get/set the z position of the audio track. Default value is `0`.
 -  `duration` - Get the audio track duration (in milliseconds).
 -  `time` - Get the time that the audio track is current at (in milliseconds).
--  `vu` 🔶 - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
--  `vu_left` 🔶 - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
--  `vu_right` 🔶 - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
--  `fft` 🔶 - Get the Fast Fourier Transform data for mono audio as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_left` 🔶 - Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_right` 🔶 - Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
+-  `vu` - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
+-  `vu_left` - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
+-  `vu_right` - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
+-  `fft` - Get the Fast Fourier Transform data for mono audio as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft_left` - Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft_right` - Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
 
 **Member Functions**
 
@@ -1565,6 +1565,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Align
 
+Used by [`fe.Text`](#fetext) [`fe.ListBox`](#felistbox)
+
 -  ~~`Align.Centre`~~ - Preserved for compatibility. Default.
 -  ~~`Align.Left`~~ - Preserved for compatibility.
 -  ~~`Align.Right`~~ - Preserved for compatibility.
@@ -1580,6 +1582,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Anchor 🔶
 
+Used by [`fe.Image`](#feimage-) [`fe.Rectangle`](#ferectangle-)
+
 -  `Anchor.Left`
 -  `Anchor.Centre`
 -  `Anchor.Right`
@@ -1592,11 +1596,15 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Art
 
+Used by [`fe.get_art()`](#feget_art)
+
 -  `Art.Default` - Return a single match, video or image.
 -  `Art.ImagesOnly` - Return an image match only (no video).
 -  `Art.FullList` - Return a full list of the matches delimited with `;`.
 
 ### BlendMode
+
+Used by [`fe.Image`](#feimage) [`fe.Rectangle`](#ferectangle-)
 
 -  `BlendMode.Alpha` - Default for images and artwork.
 -  `BlendMode.Add`
@@ -1608,11 +1616,15 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### FromTo
 
+Used by [`fe.add_transition_callback()`](#feadd_transition_callback)
+
 -  `FromTo.Frontend`
 -  `FromTo.ScreenSaver`
 -  `FromTo.NoValue`
 
 ### Info
+
+Used by [`fe.add_transition_callback()`](#feadd_transition_callback) [`fe.game_info()`](#fegame_info)
 
 -  `Info.NoSort` - (Used for filter sorting only).
 -  `Info.Name`
@@ -1644,6 +1656,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Origin 🔶
 
+Used by [`fe.Image`](#feimage) [`fe.Rectangle`](#ferectangle-)
+
 -  `Origin.Left`
 -  `Origin.Centre`
 -  `Origin.Right`
@@ -1656,6 +1670,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Overlay
 
+Used by [`fe.add_transition_callback()`](#feadd_transition_callback)
+
 -  `Overlay.Custom` - A script generated overlay is being shown.
 -  `Overlay.Favourite` - The favourite menu is being shown.
 -  `Overlay.Tags` - The tags menu is being shown.
@@ -1664,6 +1680,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 -  `Overlay.Exit` - The exit menu is being shown.
 
 ### PathTest
+
+Used by [`fe.path_test()`](#fepath_test)
 
 -  `PathTest.IsFileOrDirectory`
 -  `PathTest.IsFile`
@@ -1674,6 +1692,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Rotation
 
+Used by [`fe.LayoutGlobals`](#felayoutglobals)
+
 -  `RotateScreen.None` - Default.
 -  `RotateScreen.Right`
 -  `RotateScreen.Flip`
@@ -1681,11 +1701,15 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Selection 🔶
 
+Used by [`fe.ListBox`](#felistbox)
+
 -  `Selection.Static` - The selection remains in the middle, and the list scrolls around it. Default.
 -  `Selection.Moving` - The selection moves, and the list scrolls when the `sel_margin` is reached.
 -  `Selection.Paged` - The selection moves, and the list scrolls a full set of `rows` when the edge is reached.
 
 ### Shader
+
+Used by [`fe.Shader`](#feshader) [`fe.add_shader`](#feadd_shader)
 
 -  `Shader.VertexAndFragment` - Both a Vertex and Fragment shader.
 -  `Shader.Vertex` - Vertex shader only.
@@ -1694,6 +1718,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ### Style
 
+Used by [`fe.Text`](#fetext) [`fe.ListBox`](#felistbox)
+
 -  `Style.Regular` - Default.
 -  `Style.Bold`
 -  `Style.Italic`
@@ -1701,6 +1727,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 -  `Style.StrikeThrough`
 
 ### Transition
+
+Used by [`fe.add_transition_callback()`](#feadd_transition_callback)
 
 -  `Transition.StartLayout`
 -  `Transition.EndLayout`
@@ -1716,6 +1744,8 @@ The class representing a GLSL shader. Instances of this class are returned by th
 -  `Transition.ChangedTag`
 
 ### Vid
+
+Used by [`fe.Image`](#feimage)
 
 -  `Vid.Default` - Play a video with audio, or display an image.
 -  `Vid.ImagesOnly` - Display images only (no video).
