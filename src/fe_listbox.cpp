@@ -26,6 +26,7 @@
 #include "fe_present.hpp"
 #include "fe_util.hpp"
 #include <iostream>
+#include <algorithm>
 
 const std::string DEFAULT_FORMAT_STRING = "[Title]";
 
@@ -383,7 +384,7 @@ void FeListBox::internalSetText( const int index )
 			FePresent::script_process_magic_strings(
 				text_string,
 				m_filter_offset,
-				listentry - m_display_rom_index
+				i - m_selected_row
 			);
 			m_feSettings->do_text_substitutions_absolute(
 				text_string,
@@ -428,9 +429,11 @@ void FeListBox::on_new_list( FeSettings *s )
 	m_display_rom_index = s->get_rom_index( m_display_filter_index, 0 );
 
 	// Calculate the initial position for Moving mode
-	if ( m_mode == Moving && m_display_filter_size > m_texts.size() )
+	// - Maintains the current m_selected_row if possible
+	// - Required since fav/tag changes trigger new_list which shouldn't move the list
+	if ( m_mode == Moving )
 	{
-		m_list_start_offset = std::max( 0, std::min( m_display_rom_index - (int)m_texts.size() / 2, m_display_filter_size - (int)m_texts.size() ));
+		m_list_start_offset = std::clamp( m_display_rom_index - m_selected_row, 0, std::max( 0, m_display_filter_size - (int)m_texts.size() ) );
 		m_selected_row = m_display_rom_index - m_list_start_offset;
 	}
 
