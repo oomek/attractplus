@@ -1965,3 +1965,14 @@ bool hex_to_color( std::string hex, sf::Color &dest_color )
 		return false;
 	}
 }
+
+int get_token_index( const char *tokens[], std::string &token )
+{
+	int i = 0;
+	while ( tokens[i] != NULL )
+	{
+		if ( token.compare( tokens[i] ) == 0 ) return i;
+		i++;
+	}
+	return -1;
+}

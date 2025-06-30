@@ -849,20 +849,21 @@ bool FeCache::validate_stats(
 	m_stats_cache[emulator] = {};
 
 	// Parse ALL stat files into cache object
-	std::string played_count;
-	std::string played_time;
+	int stats_size = FeRomInfo::Stats.size();
+	std::string stat_line;
 	for ( std::vector<std::string>::iterator itf=file_list.begin(); itf != file_list.end(); ++itf )
 	{
 		nowide::ifstream stat_file( stats_path + *itf + FE_STAT_FILE_EXTENSION );
 		if ( !stat_file.is_open() ) continue;
 
-		played_count = "0";
-		played_time = "0";
-		if ( stat_file.good() ) getline( stat_file, played_count );
-		if ( stat_file.good() ) getline( stat_file, played_time );
+		m_stats_cache[emulator][*itf].reserve( stats_size );
+		for ( int i=0; i<stats_size; i++ )
+		{
+			stat_line.clear();
+			if ( stat_file.good() ) getline( stat_file, stat_line );
+			m_stats_cache[emulator][*itf].push_back( stat_line.empty() ? "0" : stat_line );
+		}
 		stat_file.close();
-
-		m_stats_cache[emulator][*itf] = { played_count, played_time };
 	}
 
 	// Save stats cache for next time
@@ -884,10 +885,9 @@ bool FeCache::get_stats_info(
 )
 {
 	// Reset all info to default
-	std::set<FeRomInfo::Index>::iterator index = FeRomInfo::Stats.begin();
 	int size = (int)FeRomInfo::Stats.size();
 	for ( int i=0; i<size; i++ )
-		rominfo[ *index + i ] = "0";
+		rominfo[ FeRomInfo::Stats[i] ] = "0";
 
 	// Exit early if there are NO stats at all
 	std::string emulator = rominfo[FeRomInfo::Emulator];
@@ -899,9 +899,9 @@ bool FeCache::get_stats_info(
 
 	// Copy available stats to the rominfo object
 	std::vector<std::string> &info = m_stats_cache[emulator][romname];
-	int info_size = info.size();
+	int info_size = std::min( size, (int)info.size() );
 	for ( int i=0; i<info_size; i++ )
-		rominfo[ *index + i ] = info[i];
+		rominfo[ FeRomInfo::Stats[i] ] = info[i];
 
 	return true;
 }
@@ -919,7 +919,7 @@ bool FeCache::set_stats_info(
 	// Update stats in cache object
 	std::string romname = rominfo[FeRomInfo::Romname];
 	m_stats_cache[emulator][romname].clear();
-	for ( std::set<FeRomInfo::Index>::iterator its=FeRomInfo::Stats.begin(); its != FeRomInfo::Stats.end(); ++its )
+	for ( std::vector<FeRomInfo::Index>::const_iterator its=FeRomInfo::Stats.begin(); its != FeRomInfo::Stats.end(); ++its )
 		m_stats_cache[emulator][romname].push_back( rominfo[ *its ] );
 
 	// Save the updated stats cache
