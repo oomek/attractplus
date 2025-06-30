@@ -90,6 +90,7 @@ const char *FeRomInfo::specialStrings[] =
 	"System",
 	"SystemN",
 	"Overview",
+	"PlayedAgo",
 	NULL
 };
 

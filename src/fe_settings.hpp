@@ -291,6 +291,7 @@ private:
 
 	std::string get_played_time_display_string( int filter_index, int rom_index );
 	std::string get_played_last_display_string( int filter_index, int rom_index );
+	std::string get_played_ago_display_string( int filter_index, int rom_index );
 
 	bool internal_get_best_artwork_file(
 		const FeRomInfo &rom,

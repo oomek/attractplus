@@ -102,6 +102,13 @@ const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
 
+const float SECONDS_IN_MINUTE	= 60;
+const float SECONDS_IN_HOUR		= 60 * SECONDS_IN_MINUTE;
+const float SECONDS_IN_DAY		= 24 * SECONDS_IN_HOUR;
+const float SECONDS_IN_WEEK		= 7 * SECONDS_IN_DAY;
+const float SECONDS_IN_MONTH	= 30 * SECONDS_IN_DAY; // Average
+const float SECONDS_IN_YEAR		= 365 * SECONDS_IN_DAY;
+
 const int FE_DEFAULT_UI_COLOR_TOKEN = 1; // Blue
 
 const std::string FE_EMPTY_STRING;
@@ -2637,45 +2644,65 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 		case FeRomInfo::Overview:
 			value = get_game_overview_absolute( filter_index, rom_index, value );
 			return true;
+		case FeRomInfo::PlayedAgo:
+			value = get_played_ago_display_string( filter_index, rom_index );
+			return true;
 		default:
 			return false;
 	}
 }
 
-const float SECONDS_IN_MINUTE = 60;
-const float SECONDS_IN_HOUR = 3600;
-const float SECONDS_IN_DAY = 86400;
-
 //
-// Format played time to #.# Minutes, Hours, or Days
+// Format PlayedTime to "# Unit(s)" where Units is Seconds, Minutes, Hours, or Days
+// - A single decimal is shown for time over 1 hour
 //
 std::string FeSettings::get_played_time_display_string( int filter_index, int rom_index )
 {
 	int seconds = as_int( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedTime ) );
-	float num;
-	std::string label;
+	float val;
+	std::string unit;
 
-	if ( seconds < SECONDS_IN_HOUR )
+	if ( seconds < SECONDS_IN_MINUTE )
 	{
-		num = seconds / SECONDS_IN_MINUTE;
-		label = "$1 Minutes";
+		val = seconds;
+		unit = "Second";
+	}
+	else if ( seconds < SECONDS_IN_HOUR )
+	{
+		val = seconds / SECONDS_IN_MINUTE;
+		unit = "Minute";
 	}
 	else if ( seconds < SECONDS_IN_DAY )
 	{
-		num = seconds / SECONDS_IN_HOUR;
-		label = "$1 Hours";
+		val = seconds / SECONDS_IN_HOUR;
+		unit = "Hour";
 	}
-	else
+	else // seconds >= SECONDS_IN_DAY
 	{
-		num = seconds / SECONDS_IN_DAY;
-		label = "$1 Days";
+		val = seconds / SECONDS_IN_DAY;
+		unit = "Day";
 	}
 
-	label = get_translation( label );
-	perform_substitution( label, { as_str( num, 1 ) });
+	if ( seconds < SECONDS_IN_HOUR )
+	{
+		int v = floor( val );
+		std::string plural = ( v == 1 ) ? unit : unit + "s";
+		std::string label = get_translation( "$1 " + plural );
+		perform_substitution( label, { as_str( v ) });
+		return label;
+	}
+
+	float v = floor( val * 10 ) / 10;
+	bool single = ( v == 1.0 );
+	std::string plural = single ? unit : unit + "s";
+	std::string label = get_translation( "$1 " + plural );
+	perform_substitution( label, { as_str( v, single ? 0 : 1 ) });
 	return label;
 }
 
+//
+// Format PlayedLast to "YYYY-mm-dd HH:MM:SS"
+//
 std::string FeSettings::get_played_last_display_string( int filter_index, int rom_index )
 {
 	std::string value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast );
@@ -2686,6 +2713,62 @@ std::string FeSettings::get_played_last_display_string( int filter_index, int ro
 
 	char label[128]; // buffer large enough to fit formatted timestamp
 	std::strftime( std::data(label), std::size(label), "%Y-%m-%d %H:%M:%S", std::localtime( &timestamp ) );
+	return label;
+}
+
+//
+// Format PlayedLast to "# Unit(s) Ago"
+//
+std::string FeSettings::get_played_ago_display_string( int filter_index, int rom_index )
+{
+	std::string value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast );
+	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+
+	if ( timestamp == 0 )
+		return get_translation( "Never" );
+
+	int seconds = std::time(0) - timestamp;
+	if ( seconds < SECONDS_IN_MINUTE )
+		return get_translation( "A Moment Ago" );
+
+	float val;
+	std::string unit;
+
+	if ( seconds < SECONDS_IN_HOUR )
+	{
+		val = seconds / SECONDS_IN_MINUTE;
+		unit = "Minute";
+	}
+	else if ( seconds < SECONDS_IN_DAY )
+	{
+		val = seconds / SECONDS_IN_HOUR;
+		unit = "Hour";
+	}
+	else if ( seconds < SECONDS_IN_WEEK )
+	{
+		val = seconds / SECONDS_IN_DAY;
+		unit = "Day";
+	}
+	else if ( seconds < SECONDS_IN_MONTH )
+	{
+		val = seconds / SECONDS_IN_WEEK;
+		unit = "Week";
+	}
+	else if ( seconds < SECONDS_IN_YEAR )
+	{
+		val = seconds / SECONDS_IN_MONTH;
+		unit = "Month";
+	}
+	else // seconds >= SECONDS_IN_YEAR
+	{
+		val = seconds / SECONDS_IN_YEAR;
+		unit = "Year";
+	}
+
+	int v = floor( val );
+	std::string plural = ( v == 1 ) ? unit : unit + "s";
+	std::string label = get_translation( "$1 " + plural + " Ago" );
+	perform_substitution( label, { as_str( v ) });
 	return label;
 }
 

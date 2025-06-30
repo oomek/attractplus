@@ -89,6 +89,7 @@ public:
 		System,
 		SystemN,
 		Overview,
+		PlayedAgo,
 		LAST_SPECIAL
 	};
 
