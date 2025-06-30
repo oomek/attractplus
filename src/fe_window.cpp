@@ -171,6 +171,12 @@ void FeWindow::check_for_sleep()
 {
 	if ( s_system_resumed )
 	{
+		if ( m_window )
+		{
+			m_window->clear();
+			m_window->display();
+		}
+
 		FeDebug() << "! NOTE: Resume from sleep detected. Resetting audio device" << std::endl;
 		sf::sleep( sf::milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
 
