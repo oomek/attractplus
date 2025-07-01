@@ -63,16 +63,6 @@ FeMusic::FeMusic( bool loop )
 	                                    float *output_frames, unsigned int &output_frame_count,
 	                                    unsigned int frame_channel_count )
 	{
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
-		{
-			auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-			if ( normaliser )
-			{
-				normaliser->set_enabled( fep->get_fes()->get_loudness() );
-			}
-		}
-
 		if ( input_frames && input_frame_count > 0 && get_playing() )
 		{
 			m_audio_effects.process_all( input_frames, output_frames,

@@ -120,6 +120,14 @@ bool FeAudioEffectsManager::process_all( const float *input_frames, float *outpu
 
 void FeAudioEffectsManager::update_all()
 {
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		auto* normaliser = get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_enabled( fep->get_fes()->get_loudness() );
+	}
+
 	for ( auto& effect : m_effects )
 	{
 		if ( effect && effect->is_enabled() )
