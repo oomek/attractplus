@@ -277,7 +277,7 @@ _help_plugin_command;Exécutable associé à ce plug-in
 _help_plugin_enabled;Indiquer si ce plug-in est activé
 _help_plugin_sel;Configurer le plug-in
 _help_plugins;Configurer les plug-ins
-_help_quick_menu;Activez le basculement entre les menus à l'aide d'un seul bouton, ce qui élimine le besoin d'un bouton Retour. Permet également de basculer entre les menus ouverts
+_help_quick_menu;Permet d'ouvrir et de fermer les menus avec le même bouton. Permet également de passer d'un menu à l'autre sans avoir à les fermer au préalable
 _help_rule_comp;Règle de comparaison pour le filtre
 _help_rule_delete;Supprimer cette règle de filtrage
 _help_rule_target;L'attribut du jeu que vous souhaitez filtrer sur la base de
@@ -383,7 +383,7 @@ Please Wait;Please Wait
 Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Previous Game;Previous Game
-Quick Menu;Menu rapide
+Menu Toggle;Basculement de menu
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Videos (MAME only);Scrape Videos (MAME only)
@@ -398,11 +398,11 @@ Video Decoder;Video Decoder
 Window (No Border);Window (No Border)
 Working Directory;Working Directory
 multi;multi
-_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
 _help_art;An artwork resource available for use by layouts
 _help_back;Exit menu
-_help_confirm_exit;Confirm before exiting Attact-Mode?
+_help_confirm_exit;Confirm before exiting Attract-Mode?
 _help_control_back;Set the control(s) that go back
 _help_control_edit_game;Set the control(s) to edit the current selection
 _help_control_intro;Set the control(s) that show the intro video
@@ -439,7 +439,7 @@ _help_joystick_map;Map the frontend's joystick slots to specifically named joyst
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_layout_preview;Show layout configuration changes immediately
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
+_help_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
 _help_shortcut_delete;Delete this shortcut from the Romlist
