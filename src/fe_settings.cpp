@@ -39,6 +39,8 @@
 #include <cctype>
 #include <ctime>
 
+#include "language.h"
+
 #include <SFML/System/Clock.hpp>
 #include <SFML/Config.hpp>
 
@@ -155,8 +157,11 @@ int find_idx_in_vec( int idx, const std::vector<int> &vec )
 	return i;
 }
 
-FeLanguage::FeLanguage( const std::string &l )
-	: language( l )
+FeLanguage::FeLanguage(
+	const std::string &language,
+	const std::string &label):
+	language( language ),
+	label( label )
 {
 }
 
@@ -171,7 +176,7 @@ const char *FeSettings::windowModeTokens[] =
 
 const char *FeSettings::windowModeDispTokens[] =
 {
-	"Fill Screen (Default)",
+	"Fill Screen", // Default
 	"Fullscreen Mode",
 	"Window",
 	"Window (No Border)",
@@ -189,7 +194,7 @@ const char *FeSettings::screenRotationTokens[] =
 
 const char *FeSettings::screenRotationDispTokens[] =
 {
-	"None (Default)",
+	"None", // Default
 	"Right",
 	"Flip",
 	"Left",
@@ -207,7 +212,7 @@ const char *FeSettings::antialiasingTokens[] =
 
 const char *FeSettings::antialiasingDispTokens[] =
 {
-	"None (Default)",
+	"None", // Default
 	"MSAA x2",
 	"MSAA x4",
 	"MSAA x8",
@@ -226,7 +231,7 @@ const char *FeSettings::anisotropicTokens[] =
 
 const char *FeSettings::anisotropicDispTokens[] =
 {
-	"None (Default)",
+	"None", // Default
 	"x2",
 	"x4",
 	"x8",
@@ -244,7 +249,7 @@ const char *FeSettings::filterWrapTokens[] =
 
 const char *FeSettings::filterWrapDispTokens[] =
 {
-	"Wrap within Display (Default)",
+	"Wrap within Display", // Default
 	"Jump to Next Display",
 	"No Wrap",
 	NULL
@@ -260,7 +265,7 @@ const char *FeSettings::startupTokens[] =
 
 const char *FeSettings::startupDispTokens[] =
 {
-	"Show Last Selection (Default)",
+	"Show Last Selection", // Default
 	"Launch Last Game",
 	"Show Displays Menu",
 	NULL
@@ -330,6 +335,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_joy_thresh( 75 ),
 	m_mouse_thresh( 10 ),
 	m_current_search_index( 0 ),
+	m_custom_languages( false ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
 	m_group_clones( false ),
@@ -406,7 +412,7 @@ void FeSettings::load()
 {
 	clear();
 
-	std::string load_language( "en" );
+	std::string load_language( FE_DEFAULT_LANGUAGE );
 	std::string filename = m_config_path + FE_CFG_FILE;
 
 	if (( FE_DATA_PATH != NULL ) && ( !directory_exists( FE_DATA_PATH ) ))
@@ -424,7 +430,7 @@ void FeSettings::load()
 		FeLog() << "Config: " << filename << std::endl;
 
 		if ( m_language.empty() )
-			m_language = "en";
+			m_language = FE_DEFAULT_LANGUAGE;
 
 		load_language = m_language;
 	}
@@ -461,13 +467,14 @@ void FeSettings::load()
 	// If no menu prompt is configured, default to calling it "Displays Menu" (in current language)
 	//
 	if ( m_menu_prompt.empty() )
-		get_translation( "Displays Menu", m_menu_prompt );
+		m_menu_prompt = _( "Displays Menu" );
 }
 
 // These values must align with fe_settings enum ConfigSettingIndex
 const char *FeSettings::configSettingStrings[] =
 {
 	"language",
+	"custom_language",
 	"exit_command",
 	"exit_message",
 	"ui_font_size",
@@ -2516,19 +2523,16 @@ int FeSettings::exit_command() const
 
 void FeSettings::get_exit_message( std::string &exit_message ) const
 {
-	if ( m_exit_message.empty() )
-		get_translation( "Exit Attract-Mode", exit_message );
-	else
-		exit_message = m_exit_message;
+	exit_message = m_exit_message.empty()
+		? _( "Exit Attract-Mode" )
+		: m_exit_message;
 }
 
 void FeSettings::get_exit_question( std::string &exit_question ) const
 {
-	// Question string is never empty; check message.
-	if ( m_exit_message.empty() )
-		get_translation( "Exit Attract-Mode?", exit_question );
-	else
-		exit_question = m_exit_question;
+	exit_question = m_exit_message.empty()
+		? _( "Exit Attract-Mode?" )
+		: m_exit_question;
 }
 
 //
@@ -2629,7 +2633,7 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			int list_limit;
 			get_current_sort( sort_by, reverse_sort, list_limit );
 			std::string sort_token = ( sort_by == FeRomInfo::LAST_INDEX ) ? "None" : FeRomInfo::indexStrings[sort_by];
-			get_translation( sort_token, value );
+			value = _( sort_token );
 			return true;
 		}
 		case FeRomInfo::SortValue:
@@ -2700,39 +2704,35 @@ std::string FeSettings::get_played_time_display_string( int filter_index, int ro
 	if ( seconds < SECONDS_IN_MINUTE )
 	{
 		val = seconds;
-		unit = "Second";
+		unit = "$1 Second";
 	}
 	else if ( seconds < SECONDS_IN_HOUR )
 	{
 		val = seconds / SECONDS_IN_MINUTE;
-		unit = "Minute";
+		unit = "$1 Minute";
 	}
 	else if ( seconds < SECONDS_IN_DAY )
 	{
 		val = seconds / SECONDS_IN_HOUR;
-		unit = "Hour";
+		unit = "$1 Hour";
 	}
 	else // seconds >= SECONDS_IN_DAY
 	{
 		val = seconds / SECONDS_IN_DAY;
-		unit = "Day";
+		unit = "$1 Day";
 	}
 
 	if ( seconds < SECONDS_IN_HOUR )
 	{
 		int v = floor( val );
-		std::string plural = ( v == 1 ) ? unit : unit + "s";
-		std::string label = get_translation( "$1 " + plural );
-		perform_substitution( label, { as_str( v ) });
-		return label;
+		if ( v != 1 ) unit += "s";
+		return _( unit, { as_str( v ) });
 	}
 
 	float v = floor( val * 10 ) / 10;
 	bool single = ( v == 1.0 );
-	std::string plural = single ? unit : unit + "s";
-	std::string label = get_translation( "$1 " + plural );
-	perform_substitution( label, { as_str( v, single ? 0 : 1 ) });
-	return label;
+	if ( !single ) unit += "s";
+	return _( unit, { as_str( v, single ? 0 : 1 ) });
 }
 
 //
@@ -2744,10 +2744,10 @@ std::string FeSettings::get_played_last_display_string( int filter_index, int ro
 	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
 
 	if ( timestamp == 0 )
-		return get_translation( "Never" );
+		return _( "Never" );
 
 	char label[128]; // buffer large enough to fit formatted timestamp
-	std::strftime( std::data(label), std::size(label), "%Y-%m-%d %H:%M:%S", std::localtime( &timestamp ) );
+	std::strftime( std::data(label), std::size(label), _( "_datetime" ).c_str(), std::localtime( &timestamp ) );
 	return label;
 }
 
@@ -2760,11 +2760,11 @@ std::string FeSettings::get_played_ago_display_string( int filter_index, int rom
 	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
 
 	if ( timestamp == 0 )
-		return get_translation( "Never" );
+		return _( "Never" );
 
 	int seconds = std::time(0) - timestamp;
 	if ( seconds < SECONDS_IN_MINUTE )
-		return get_translation( "A Moment Ago" );
+		return _( "A Moment Ago" );
 
 	float val;
 	std::string unit;
@@ -2772,39 +2772,37 @@ std::string FeSettings::get_played_ago_display_string( int filter_index, int rom
 	if ( seconds < SECONDS_IN_HOUR )
 	{
 		val = seconds / SECONDS_IN_MINUTE;
-		unit = "Minute";
+		unit = "$1 Minute";
 	}
 	else if ( seconds < SECONDS_IN_DAY )
 	{
 		val = seconds / SECONDS_IN_HOUR;
-		unit = "Hour";
+		unit = "$1 Hour";
 	}
 	else if ( seconds < SECONDS_IN_WEEK )
 	{
 		val = seconds / SECONDS_IN_DAY;
-		unit = "Day";
+		unit = "$1 Day";
 	}
 	else if ( seconds < SECONDS_IN_MONTH )
 	{
 		val = seconds / SECONDS_IN_WEEK;
-		unit = "Week";
+		unit = "$1 Week";
 	}
 	else if ( seconds < SECONDS_IN_YEAR )
 	{
 		val = seconds / SECONDS_IN_MONTH;
-		unit = "Month";
+		unit = "$1 Month";
 	}
 	else // seconds >= SECONDS_IN_YEAR
 	{
 		val = seconds / SECONDS_IN_YEAR;
-		unit = "Year";
+		unit = "$1 Year";
 	}
 
 	int v = floor( val );
-	std::string plural = ( v == 1 ) ? unit : unit + "s";
-	std::string label = get_translation( "$1 " + plural + " Ago" );
-	perform_substitution( label, { as_str( v ) });
-	return label;
+	if ( v != 1 ) unit += "s";
+	return _( unit + " Ago", { as_str( v ) });
 }
 
 FeEmulatorInfo *FeSettings::get_emulator( const std::string &n )
@@ -2969,6 +2967,7 @@ const std::string FeSettings::get_info( int index ) const
 	case ThegamesdbKey:
 		return m_tgdb_key;
 
+	case CustomLanguages:
 	case DisplaysMenuExit:
 	case HideBrackets:
 	case GroupClones:
@@ -3019,6 +3018,8 @@ bool FeSettings::get_info_bool( int index ) const
 {
 	switch ( index )
 	{
+	case CustomLanguages:
+		return m_custom_languages;
 	case DisplaysMenuExit:
 		return m_displays_menu_exit;
 	case HideBrackets:
@@ -3075,6 +3076,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 	{
 	case Language:
 		m_language = value;
+		break;
+
+	case CustomLanguages:
+		m_custom_languages = config_str_to_bool( value );
 		break;
 
 	case ExitCommand:
@@ -3564,62 +3569,6 @@ void FeSettings::save() const
 	}
 }
 
-// Populate str with char translation
-const void FeSettings::get_translation( const char* &token, std::string &str ) const
-{
-	if ( token ) m_translation_map.get_translation( token, str );
-}
-
-// Populate str with string translation
-const void FeSettings::get_translation( const std::string &token, std::string &str ) const
-{
-	m_translation_map.get_translation( token, str );
-}
-
-// Return translated char, if null returns empty string
-const std::string FeSettings::get_translation( const char* value ) const
-{
-	std::string t;
-	if ( value ) get_translation( value, t );
-	return t;
-}
-
-// Return translated string
-const std::string FeSettings::get_translation( const std::string &value ) const
-{
-	std::string t;
-	get_translation( value, t );
-	return t;
-}
-
-// Return translated array of chars, omits null tokens
-const std::vector<std::string> FeSettings::get_translation( const char* tokens[] ) const
-{
-    int n = 0;
-	while ( tokens[n] != 0 ) n++;
-	std::vector<std::string> ret;
-	ret.reserve( n );
-	for ( int i=0; i<n; i++ )
-	{
-		ret.push_back( std::string() );
-		get_translation( tokens[i], ret.back() );
-	}
-	return ret;
-}
-
-// Return translated array of strings
-const std::vector<std::string> FeSettings::get_translation( const std::vector<std::string> &tokens ) const
-{
-	std::vector<std::string> ret;
-	ret.reserve( tokens.size() );
-	for ( std::vector<std::string>::const_iterator it=tokens.begin(); it!=tokens.end(); ++it)
-	{
-		ret.push_back( std::string() );
-		get_translation( *it, ret.back() );
-	}
-	return ret;
-}
-
 int FeSettings::displays_count() const
 {
 	return m_displays.size();
@@ -3766,15 +3715,47 @@ void FeSettings::get_plugin_full_path( int id,
 	get_plugin_full_path( m_plugins[id].get_name(), path, ignored );
 }
 
-void FeSettings::internal_load_language( const std::string &lang )
+//
+// Loads language resources
+// - Always loads the default language, since it contains ALL translations
+// - Load the selected language over the default one, any missing entries will use default values
+// - Optionally load a custom language from a file
+//
+void FeSettings::internal_load_language( const std::string &language )
 {
 	m_translation_map.clear();
 
-	std::string fname;
-	if ( internal_resolve_config_file( m_config_path, fname, FE_LANGUAGE_SUBDIR, lang + FE_LANGUAGE_FILE_EXTENSION ) )
-		m_translation_map.load_from_file( fname, ";" );
-	else
-		FeLog() << "Error loading language resource file: " << lang << std::endl;
+	// Find the builtin languages first
+	const char* key = 0;
+	const char* defaultKey = 0;
+	for ( std::map<const char*, const char*>::const_iterator itl=_binary_languages.begin(); itl!=_binary_languages.end(); ++itl)
+	{
+		size_t pos = 0;
+		std::string itl_language;
+		token_helper( itl->first, pos, itl_language );
+
+		if ( itl_language.compare( language ) == 0 )
+			key = itl->first;
+		if ( itl_language.compare( FE_DEFAULT_LANGUAGE ) == 0 )
+			defaultKey = itl->first;
+	}
+
+	// Optionally find the custom language file
+	std::string filename = "";
+	bool hasCustom = get_info_bool( CustomLanguages )
+		&& internal_resolve_config_file( m_config_path, filename, FE_LANGUAGE_SUBDIR, language + FE_LANGUAGE_FILE_EXTENSION );
+
+	if ( defaultKey )
+		m_translation_map.load_from_binary( _binary_languages.at( defaultKey ), ";" );
+
+	if ( key && ( key != defaultKey ) )
+		m_translation_map.load_from_binary( _binary_languages.at( key ), ";" );
+
+	if ( hasCustom )
+		m_translation_map.load_from_file( filename, ";" );
+
+	if ( !key && !hasCustom )
+		FeLog() << "Error loading language resource: " << language << std::endl;
 }
 
 void FeSettings::set_language( const std::string &s )
@@ -3786,62 +3767,67 @@ void FeSettings::set_language( const std::string &s )
 	}
 }
 
-void FeSettings::get_languages_list( std::vector < FeLanguage > &ll ) const
+namespace
 {
-	std::vector<std::string> temp;
-	internal_gather_config_files(
-		temp,
-		FE_LANGUAGE_FILE_EXTENSION,
-		FE_LANGUAGE_SUBDIR );
-
-	if ( temp.empty() )
+	bool language_comp( const FeLanguage &a, const FeLanguage &b )
 	{
-		ll.push_back( FeLanguage( "en" ) );
-		get_translation( "en", ll.back().label );
+		return icompare( a.language, b.language ) < 0;
 	}
-	else
-	{
-		ll.clear();
-		for ( std::vector<std::string>::iterator itr=temp.begin();
-			itr!=temp.end(); ++itr )
-		{
-			ll.push_back( FeLanguage( *itr ) );
-			get_translation( *itr, ll.back().label );
+};
 
-			std::string fname;
-			if ( !internal_resolve_config_file(
-				m_config_path,
-				fname,
-				FE_LANGUAGE_SUBDIR,
-				(*itr) + FE_LANGUAGE_FILE_EXTENSION ))
+void FeSettings::get_languages_list( std::vector<FeLanguage> &ll ) const
+{
+
+	ll.clear();
+	std::set<std::string> languages;
+
+	// Add all the built-in language options
+	for ( std::map<const char*, const char*>::const_iterator itl=_binary_languages.begin(); itl!=_binary_languages.end(); ++itl)
+	{
+		size_t pos = 0;
+		std::string language;
+		std::string label;
+		token_helper( itl->first, pos, language );
+		token_helper( itl->first, pos, label );
+		languages.insert( language );
+		ll.push_back( FeLanguage( language, label ) );
+	}
+
+	if ( get_info_bool( CustomLanguages ) )
+	{
+		// Read msg files from language folder
+		// - First line must be: #@Label
+		std::vector<std::string> names;
+		internal_gather_config_files( names, FE_LANGUAGE_FILE_EXTENSION, FE_LANGUAGE_SUBDIR );
+		for ( std::vector<std::string>::iterator itr=names.begin(); itr!=names.end(); ++itr )
+		{
+			if ( languages.count( *itr ) )
 				continue;
 
-			// Read first line of file to get key info
-			//
-			nowide::ifstream myfile( fname.c_str() );
+			std::string filename;
+			if ( !internal_resolve_config_file( m_config_path, filename, FE_LANGUAGE_SUBDIR, (*itr) + FE_LANGUAGE_FILE_EXTENSION ))
+				continue;
+
+			nowide::ifstream myfile( filename );
 			if ( !myfile.is_open() )
 				continue;
 
 			std::string line;
 			getline( myfile, line );
-
-			if (( line.size() < 2 )
-				|| ( line.compare( 0, 2, "#@" ) != 0 ))
-			{
-				myfile.close();
-				continue;
-			}
-
-			size_t pos(2);
-			std::string tok;
-			token_helper( line, pos, tok, ";" );
-
-			if ( !tok.empty() )
-				ll.back().label = tok;
-
 			myfile.close();
+
+			if (( line.size() < 2 ) || ( line.compare( 0, 2, "#@" ) != 0 ))
+				continue;
+
+			std::string label = line.substr( 2 );
+			if ( label.empty() )
+				continue;
+
+			ll.push_back( FeLanguage( *itr, label ) );
 		}
 	}
+
+	std::sort( ll.begin(), ll.end(), language_comp );
 }
 
 void FeSettings::get_romlists_list( std::vector < std::string > &ll ) const

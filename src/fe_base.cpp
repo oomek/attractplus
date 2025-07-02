@@ -22,6 +22,7 @@
 
 #include "fe_base.hpp"
 #include "fe_util.hpp"
+#include "base64.hpp"
 
 #ifndef NO_MOVIE
 extern "C"
@@ -30,6 +31,8 @@ extern "C"
 }
 #endif
 
+#include <string>
+#include <sstream>
 #include <iomanip>
 #include "nowide/fstream.hpp"
 #include "nowide/iostream.hpp"
@@ -56,6 +59,7 @@ const char *FE_NO_ICON          = "☐";
 const char *FE_TAG_PREFIX       = "🏷 ";
 const char *FE_TAG_DELIM        = "  ";
 
+const char *FE_DEFAULT_LANGUAGE          = "en";
 const char *FE_DEFAULT_ARTWORK           = "snap";
 const char *FE_EMULATOR_SUBDIR           = "emulators/";
 const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/";
@@ -188,40 +192,53 @@ void FeBaseConfigurable::invalid_setting(
 	FeLog() << std::endl;
 }
 
-bool FeBaseConfigurable::load_from_file( const std::string &filename,
-	const char *sep )
-{
-	// Open in binary mode for better performance
-	nowide::ifstream myfile( filename.c_str(), std::ios::binary );
+const int DEBUG_MAX_LINES = 20;
 
+bool FeBaseConfigurable::load_from_file( const std::string &filename, const char *sep )
+{
+	nowide::ifstream myfile( filename, std::ios::binary );
 	if ( !myfile.is_open() )
 		return false;
 
-	const int DEBUG_MAX_LINES=20;
-	int count=0;
+	bool debug = g_log_level == FeLog_Debug;
+	int count = 0;
+	std::string line, setting, value;
 
 	while ( myfile.good() )
 	{
-		std::string line, setting, value;
 		getline( myfile, line );
-
 		if ( line_to_setting_and_value( line, setting, value, sep ) )
 		{
-			if (( g_log_level == FeLog_Debug ) && ( count <= DEBUG_MAX_LINES ))
+			if ( debug && ( count <= DEBUG_MAX_LINES ))
 			{
-				FeDebug() << "[" << filename <<  "] " << std::setw(15) << std::left << setting
-					<< " = " << value << std::endl;
-
-				if ( count == DEBUG_MAX_LINES )
-					FeDebug() << "[" << filename <<  "] DEBUG_MAX_LINES exceeded, truncating further debug output from this file." << std::endl;
-
-				count++;
+				debug = count++ < DEBUG_MAX_LINES;
+				FeDebug() << "[" << filename << "] " << std::setw(15) << std::left << setting << " = " << value << std::endl;
+				if ( !debug )
+					FeDebug() << "[" << filename << "] DEBUG_MAX_LINES exceeded, truncating further debug output from this file." << std::endl;
 			}
-
 			process_setting( setting, value, filename );
 		}
 	}
 
 	myfile.close();
 	return true;
+}
+
+bool FeBaseConfigurable::load_from_string( const std::string &content, const char *sep )
+{
+	std::stringstream ss(content);
+	std::string line, setting, value;
+
+	while ( std::getline( ss, line ) )
+		if ( line_to_setting_and_value( line, setting, value, sep ) )
+			process_setting( setting, value, "" );
+
+	return true;
+}
+
+bool FeBaseConfigurable::load_from_binary( const char *content, const char *sep )
+{
+	std::vector<unsigned char> data = base64_decode( content );
+	std::string value = std::string( data.begin(), data.end() );
+	return load_from_string( value, sep );
 }

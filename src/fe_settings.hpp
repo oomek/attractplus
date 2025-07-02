@@ -78,11 +78,13 @@ public:
 class FeLanguage
 {
 public:
-	FeLanguage( const std::string &l );
+	FeLanguage(
+		const std::string &language,
+		const std::string &label
+	);
 
 	std::string language;
 	std::string label;
-	std::vector< std::string > font;
 };
 
 class FeSettings : public FeBaseConfigurable
@@ -123,6 +125,7 @@ public:
 	enum ConfigSettingIndex
 	{
 		Language=0,
+		CustomLanguages,
 		ExitCommand,
 		ExitMessage,
 		UIFontSize,
@@ -231,6 +234,7 @@ private:
 	int m_joy_thresh;		// [1..100], 100=least sensitive
 	int m_mouse_thresh;	// [1..100], 100=least sensitive
 	int m_current_search_index; // used when custom searching
+	bool m_custom_languages;
 	bool m_displays_menu_exit;
 	bool m_hide_brackets;
 	bool m_group_clones;
@@ -652,13 +656,6 @@ public:
 	void get_romlists_list( std::vector < std::string > &ll ) const;
 
 	void save() const;
-
-	const void get_translation( const char* &token, std::string &str ) const;
-	const void get_translation( const std::string &token, std::string &str ) const;
-	const std::string get_translation( const char* value ) const;
-	const std::string get_translation( const std::string &value ) const;
-	const std::vector<std::string> get_translation( const char* tokens[] ) const;
-	const std::vector<std::string> get_translation( const std::vector<std::string> &tokens ) const;
 
 	void set_language( const std::string &l );
 	void get_languages_list( std::vector < FeLanguage > &ll ) const;

@@ -1283,9 +1283,8 @@ This class is a container for overlay functionality. The instance of this class 
 -  `list_dialog( options, title )`
 -  `list_dialog( options )` - The list_dialog function prompts the user with a menu containing a list of options, returning the index of the selection. The `options` parameter is an array of strings that are the menu options to display in the list. The `title` parameter is a caption for the list. `default_sel` is the index of the entry to be selected initially (default is `0`). `cancel_sel` is the index to return if the user cancels (default is `-1`). The return value is the index selected by the user.
 -  `edit_dialog( msg, text )` - Prompt the user to input/edit text. The `msg` parameter is the prompt caption. `text` is the initial text to be edited. The return value a the string of text as edited by the user.
--  `splash_message( msg, replace, footer_msg )`
--  `splash_message( msg, replace )`
--  `splash_message( msg )` - Immediately provide text feedback to the user. This could be useful during computationally-intensive operations. The `msg` parameter may contain a `$1` placeholder that gets replaced by `replace`. The `footer_msg` text is displayed in the footer.
+-  `splash_message( msg, footer_msg )`
+-  `splash_message( msg )` - Immediately provide text feedback to the user. This could be useful during computationally-intensive operations. The `footer_msg` text is displayed in the footer.
 
 ---
 

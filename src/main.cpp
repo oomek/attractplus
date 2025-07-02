@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 
 		if ( !exit_selected )
 		{
-			if ( feOverlay.confirm_dialog( "Auto-detect emulators?" ) == 0 )
+			if ( feOverlay.confirm_dialog( _( "Auto-detect emulators?" ) ) == 0 )
 			{
 				FeLog() << "Performing emulator auto-detection" << std::endl;
 				feVM.setup_wizard();
@@ -685,24 +685,12 @@ int main(int argc, char *argv[])
 
 				case FeInputMap::InsertGame:
 					{
-						std::vector< std::string > options;
-						std::string temp;
-
-						// 0
-						feSettings.get_translation(  "Insert Game Entry", temp );
-						options.push_back( temp );
-
-						// 1
-						feSettings.get_translation(  "Insert Display Shortcut", temp );
-						options.push_back( temp );
-
-						// 2
-						feSettings.get_translation(  "Insert Command Shortcut", temp );
-						options.push_back( temp );
-
-						feSettings.get_translation(  "Insert Menu Entry", temp );
-
-						int sel_idx = feOverlay.common_list_dialog( temp, options, 0, -1, c );
+						std::vector<std::string> options = {
+							_( "Insert Game Entry" ), // 0
+							_( "Insert Display Shortcut" ), // 1
+							_( "Insert Command Shortcut" ) // 2
+						};
+						int sel_idx = feOverlay.common_list_dialog( _( "Insert Menu Entry" ), options, 0, -1, c );
 
 						if ( sel_idx == FeOverlay::ExitToDesktop )
 							exit_selected = true;
@@ -716,19 +704,18 @@ int main(int argc, char *argv[])
 						{
 						case 0:
 							{
+								def_name = _( "Blank Game" );
 								std::vector<std::string> tl;
 								feSettings.get_list_of_emulators( tl );
 								if ( !tl.empty() )
 									emu_name = tl[0];
-
-								feSettings.get_translation( "Blank Game", def_name );
 							}
 							break;
 
 						case 1:
 							{
 								emu_name = "@";
-								feSettings.get_translation( "Display Shortcut", def_name );
+								def_name = _( "Display Shortcut" );
 
 								if ( feSettings.displays_count() > 0 )
 									def_name = feSettings.get_display( 0 )
@@ -738,7 +725,7 @@ int main(int argc, char *argv[])
 
 						case 2:
 							emu_name = "@exit";
-							feSettings.get_translation( "Exit", def_name );
+							def_name = _( "Exit" );
 							break;
 
 						default:
@@ -886,11 +873,8 @@ int main(int argc, char *argv[])
 						std::vector<std::string> names_list;
 						feSettings.get_current_display_filter_names( names_list );
 
-						std::string title;
-						feSettings.get_translation( "Filters", title );
-
 						int sel_idx = feOverlay.common_list_dialog(
-										title,
+										_( "Filters" ),
 										names_list,
 										feSettings.get_current_filter_index(),
 										-1,
@@ -917,13 +901,13 @@ int main(int argc, char *argv[])
 
 						if ( feSettings.get_info_bool( FeSettings::ConfirmFavourites ) )
 						{
+							std::string title = feSettings.get_rom_info( 0, 0, FeRomInfo::Title );
 							std::string msg = new_state
-								? "Add '$1' to Favourites?"
-								: "Remove '$1' from Favourites?";
+								? _( "Add '$1' to Favourites?", { title })
+								: _( "Remove '$1' from Favourites?", { title });
 
 							int sel_idx = feOverlay.confirm_dialog(
 								msg,
-								feSettings.get_rom_info( 0, 0, FeRomInfo::Title ),
 								false,
 								FeInputMap::ToggleFavourite );
 

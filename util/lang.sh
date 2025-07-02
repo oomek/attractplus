@@ -1,142 +1,85 @@
 #!/bin/bash
 #
 # Attract-Mode language utility script
+# - Updates *.msg files to match the master_msg file (en.msg)
+# - Additional translations will be placed at the end of their respective file
+# - All comments in the translation files will be lost
+# - Run from the attractplus folder using:
 #
-# - applies a consistent format to language resource files
-# - updates them accordingly when new strings are added to msg_template.txt
-#
-if [ ! -d config/language ]
-then
-	echo "Error, config/language subdirectory not found"
-	exit 1
+#   ./util/lang.sh
+
+language_path=resources/language
+master_msg=$language_path/en.msg
+
+# Ensure path exists
+if [ ! -d "$language_path" ]; then
+    echo "Error, $language_path subdirectory not found"
+    exit 1
 fi
 
-echo "Updating languages:"
-for f in config/language/*.msg
+# Ensure master message exists
+if [ ! -f "$master_msg" ]; then
+    echo "Error, $master_msg not found"
+    exit 1
+fi
+
+# Read all the master translations
+# - These will be used to check for "extra" (unused) language translations
+master_key=""
+declare -A master
+while IFS=";" read -r key value; do
+    if [[ -z "$master_key" && "${key:0:2}" == "#@" ]]; then
+        master_key=$key
+        continue
+    fi
+    [[ -z "$key" || "${key:0:1}" == "#" ]] && continue
+    master["$key"]="$value"
+done <<< $(tr -d '\r' < "$master_msg")
+
+
+echo "Updating languages"
+for f in $language_path/*.msg
 do
-	echo -e "\t$f"
-	cat config/language/msg_template.txt $f | gawk '
-BEGIN {
-	PROCINFO[ "sorted_in" ] ="@ind_str_asc"
-	FS=";"
-	OFS=""
-	first_line="";
-	second_line="";
-	reading_template=1;
-	reading_translated=1;
-}
-{
-	if ( !reading_template )
-	{
-		if ( length( first_line ) == 0 )
-			first_line = $0;
-		else if ( length( second_line ) == 0 )
-			second_line = $0;
-	}
+    [[ "$f" == "$master_msg" ]] && continue
+    echo "- $f"
 
-	if ( substr( $0, 1, 1 ) == "#" )
-	{
-		if ( $1 == "#@DONE_TEMPLATE" )
-			reading_template=0;
-		if ( $1 == "#@DONE_TRANSLATED" )
-			reading_translated=0;
-	}
-	else
-	{
-		if ( substr( $1, 1, 1 ) == "_" )
-		{
-			if ( reading_template )
-				templ_help[$1]=$2;
-			else if ( reading_translated )
-			{
-				if ( $1 in templ_help )
-				{
-					templ_help[$1]=$2;
-					templ_help_found[$1]=1;
-				}
-				else
-					extra_help[$1]=$2;
-			}
-		}
-		else
-		{
-			if ( reading_template )
-				templ[$1]=$2;
-			else if ( reading_translated )
-			{
-				if ( $1 in templ )
-				{
-					templ[$1]=$2;
-					templ_found[$1]=1;
-				}
-				else
-					extra[$1]=$2;
-			}
-		}
-	}
-}
-END {
-	print first_line;
-	if ( length( second_line ) > 1 )
-	{
-		print second_line;
-	}
+    # Read translations from the target file
+    language_key=""
+    declare -A language
+    while IFS=";" read -r key value; do
+        if [[ -z "$language_key" && "${key:0:2}" == "#@" ]]; then
+            language_key=$key
+        fi
+        [[ -z "$key" || "${key:0:1}" == "#" ]] && continue
+        language["$key"]="$value"
+    done <<< $(tr -d '\r' < "$f")
 
-	print "#";
-	print "# Interface strings";
-	print "#";
+    # Write the master structure using the given translations
+    # - Comments left as-is
+    # - Identical values will be cleared (ie: untranslated)
+    # - Missing values will be commented out
+    # - Will result in a line-for-line match with master
+    echo -n "" > "$f"
+    while IFS=";" read -r key value; do
+        if [[ "$key" == "$master_key" ]]; then
+            echo "$language_key" >> "$f"
+        elif [[ -z "$key" || "${key:0:1}" == "#" ]]; then
+            echo "$key" >> "$f"
+        else
+            if [[ -v language['$key'] && "$value" != "${language[$key]}" ]]; then
+                echo "$key;${language[$key]}" >> "$f"
+            else
+                echo "#$key;" >> "$f"
+            fi
+        fi
+    done <<< $(tr -d '\r' < "$master_msg")
 
-	for ( t in templ )
-	{
-		if (( length( t ) > 1 ) && ( t in templ_found ))
-			print t,";",templ[t];
-	}
+    # Write extra (unused) translations to the end
+    for key in "${!language[@]}"; do
+        if [[ ! -v master['$key'] ]]; then
+            echo "$key;${language[$key]}" >> "$f"
+        fi
+    done
 
-	print "";
-	print "#";
-	print "# Help messages";
-	print "#";
-
-	for ( t in templ_help )
-	{
-		if (( length( t ) > 1 ) && ( t in templ_help_found ))
-			print t,";",templ_help[t];
-	}
-
-	print "";
-	print "#";
-	print "# Extra strings provided by translation";
-	print "#";
-
-	for ( t in extra )
-	{
-		if ( length( t ) > 1 )
-			print t,";",extra[t];
-	}
-	for ( t in extra_help )
-	{
-		if ( length( t ) > 1 )
-			print t,";",extra_help[t];
-	}
-
-	print "";
-	print "#@DONE_TRANSLATED"
-	print "#";
-	print "# Strings still needing translation";
-	print "#";
-
-	for ( t in templ )
-	{
-		if (( length( t ) > 1 ) && (!( t in templ_found )))
-			print t,";",templ[t];
-	}
-	for ( t in templ_help )
-	{
-		if (( length( t ) > 1 ) && (!( t in templ_help_found )))
-			print t,";",templ_help[t];
-	}
-}
-' > config/language/temp.msg
-
-	mv config/language/temp.msg $f
+    unset language
 done

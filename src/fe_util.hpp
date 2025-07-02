@@ -389,8 +389,9 @@ void string_to_vector( const std::string &input,
 	std::vector< std::string > &vec, bool allow_empty=false );
 
 //
-// Take config file line and output setting and value pairs
-// return true if setting and value found, false otherwise (for example if comment line encountered)
+// Take config file line and populate setting and value pairs
+// - Return true if setting found (value may be empty)
+// - Return false otherwise (ie: comment line) and populate with empty strings
 //
 bool line_to_setting_and_value( const std::string &line,
 	std::string &setting,

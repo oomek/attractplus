@@ -45,6 +45,7 @@ extern const char *FE_NO_ICON;
 extern const char *FE_TAG_PREFIX;
 extern const char *FE_TAG_DELIM;
 
+extern const char *FE_DEFAULT_LANGUAGE;
 extern const char *FE_DEFAULT_ARTWORK;
 extern const char *FE_EMULATOR_SUBDIR;
 extern const char *FE_EMULATOR_TEMPLATES_SUBDIR;
@@ -78,12 +79,26 @@ protected:
 		const char *label="setting" );
 
 public:
-	virtual int process_setting( const std::string &setting,
+	virtual int process_setting(
+		const std::string &setting,
 		const std::string &value,
-		const std::string &filename )=0;
+		const std::string &filename
+	) = 0;
 
-	bool load_from_file( const std::string &filename,
-		const char *sep=FE_WHITESPACE );
+	bool load_from_file(
+		const std::string &filename,
+		const char *sep=FE_WHITESPACE
+	);
+
+	bool load_from_string(
+		const std::string &content,
+		const char *sep=FE_WHITESPACE
+	);
+
+	bool load_from_binary(
+		const char *content,
+		const char *sep=FE_WHITESPACE
+	);
 };
 
 #endif
