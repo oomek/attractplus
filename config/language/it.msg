@@ -169,7 +169,7 @@ Previous Filter;Filtro precedente
 Previous Game;Gioco precedente
 Previous Letter;Lettera precedente
 Previous Page;Pagina precedente
-Quick Menu;Menù rapido
+Menu Toggle;Menu Alterna
 Random Game;Gioco casuale
 Reload;Ricaricare
 Remove '$1' from Favourites?;Elimino '$1' dai preferiti?
@@ -243,7 +243,7 @@ _help_art_add;Aggiunge una nuova risorsa immagini (marquee, flyer, screenshot, e
 _help_art_label;Nome che identifica questa risorsa immagini (viene utilizzato nei temi)
 _help_art_path;Percorso nel quale è possibile trovare le immagini. Possono essere specificate più directory separandole con il punto e virgola.
 _help_back;Menù precedente
-_help_confirm_exit;Permette di chiedere la conferma prima di uscire da Attact-Mode
+_help_confirm_exit;Permette di chiedere la conferma prima di uscire da Attract-Mode
 _help_confirm_favs;Conferma l'aggiunta/rimozione del gioco dai preferiti
 _help_control_add_favourite;Configura i controlli per aggiungere/togliere dai preferiti il gioco selezionato
 _help_control_add_tags;Configura i controlli per aggiungere/togliere etichette al gioco selezionato
@@ -362,7 +362,7 @@ _help_plugin_command;Eseguibile associato a questo plugin
 _help_plugin_enabled;Configura se questo plugin è abilitato
 _help_plugin_sel;Configura i plugin
 _help_plugins;Configura i plugin disponibili
-_help_quick_menu;Abilita la commutazione del menu con un solo pulsante, che elimina la necessità di un pulsante Indietro. Consente inoltre di passare da un menu aperto all'altro
+_help_quick_menu;Imposta se i menu possono essere aperti e chiusi con lo stesso pulsante. Permette anche di passare da un menu all'altro senza doverli prima chiudere
 _help_rule_comp;Tipo di comparazione per questo filtro
 _help_rule_delete;Cancellare questa regola
 _help_rule_target;L'attributo del gioco sul quale basare il filtro
@@ -448,7 +448,7 @@ Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Screen Rotation;Screen Rotation
 Select template to use for emulator settings;Select template to use for emulator settings
-_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
 _help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
 _help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
@@ -459,7 +459,7 @@ _help_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal i
 _help_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_layout_preview;Show layout configuration changes immediately
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
+_help_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
 _help_shortcut_delete;Delete this shortcut from the Romlist

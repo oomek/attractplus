@@ -283,7 +283,7 @@ _help_plugin_command;プラグインのコマンドを設定します
 _help_plugin_enabled;プラグインを使うかを設定します
 _help_plugin_sel;プラグインを設定します
 _help_plugins;外部プラグインを設定します
-_help_quick_menu;ワンボタンメニュー切り替えを有効にすると、戻るボタンが不要になります。また、開いているメニュー間の切り替えも可能になります。
+_help_quick_menu;同じボタンでメニューを開いたり閉じたりできるかどうかを設定します。また、メニューを閉じなくてもメニューを切り替えることができます
 _help_rule_comp;フィルターのルールを比較する方式を設定します
 _help_rule_delete;このルールを削除します
 _help_rule_target;フィルターが使うゲームのカテゴリーを設定します
@@ -385,7 +385,7 @@ Power Saving;Power Saving
 Press Hotkey;Press Hotkey
 Previous Game;Previous Game
 Previous Page;Previous Page
-Quick Menu;クイックメニュー
+Menu Toggle;Menu Toggle
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Remove tag: '$1';Remove tag: '$1'
 Scrape Fanart;Scrape Fanart
@@ -401,11 +401,11 @@ Video Decoder;Video Decoder
 Window (No Border);Window (No Border)
 Working Directory;Working Directory
 multi;multi
-_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
 _help_art;An artwork resource available for use by layouts
 _help_back;Exit menu
-_help_confirm_exit;Confirm before exiting Attact-Mode?
+_help_confirm_exit;Confirm before exiting Attract-Mode?
 _help_control_back;Set the control(s) that go back
 _help_control_custom3;Set the "Custom3" control(s)
 _help_control_custom4;Set the "Custom4" control(s)
@@ -448,7 +448,7 @@ _help_joystick_map;Map the frontend's joystick slots to specifically named joyst
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_layout_preview;Show layout configuration changes immediately
 _help_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
+_help_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_scrape_vids;Set whether game videos should be downloaded when scraping
 _help_screen_rotation;Set the base rotation of the screen
 _help_shortcut_artwork_name_edit;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
