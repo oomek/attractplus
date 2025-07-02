@@ -49,11 +49,6 @@ namespace Opt
 	const int	TOGGLE      = 8; // option is a toggle (yes/no)
 };
 
-namespace OptFlag {
-	const int TRANSLATE_NONE	= 1 << 0; // do no translate label
-	const int TRANSLATE_LABEL	= 1 << 1; // translate the label
-};
-
 //
 // This class is used to set out a single menu option
 //
@@ -133,8 +128,7 @@ public:
 		const std::string &label,
 		const std::string &value,
 		const std::string &help="",
-		const int &opaque=0,
-		const int &flags=OptFlag::TRANSLATE_LABEL
+		const int &opaque=0
 	);
 
 	// Add menu toggle option.
@@ -143,8 +137,7 @@ public:
 		const std::string &label,
 		const bool &value,
 		const std::string &help="",
-		const int &opaque=0,
-		const int &flags=OptFlag::TRANSLATE_LABEL
+		const int &opaque=0
 	);
 
 	// set the Style and title for the menu.
@@ -161,16 +154,14 @@ public:
 	//
 	virtual bool edit_dialog( const std::string &msg, std::string &text )=0;
 
-	virtual bool confirm_dialog( const std::string &msg,
-		const std::string &rep="" )=0;
+	virtual bool confirm_dialog( const std::string &msg )=0;
 
 	virtual int option_dialog( const std::string &title,
 		const std::vector < std::string > &options,
 		int default_sel=0 )=0;
 
 	virtual void splash_message( const std::string &msg,
-		const std::string &rep,
-		const std::string &aux )=0;
+		const std::string &aux = "" )=0;
 
 	virtual void input_map_dialog( const std::string &msg,
 		FeInputMapEntry &res,

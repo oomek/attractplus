@@ -433,8 +433,7 @@ bool get_tgdb_matching_platform_list(
 		case FeEmulatorInfo::Scummvm:
 			plats.push_back( std::pair < std::string, int > ("PC", pc_id) ); break;
 		default:
-			fes.get_translation( "Error: None of the configured system identifier(s) are recognized by thegamesdb.net.",
-				c.user_message );
+			c.user_message = "Error: None of the configured system identifier(s) are recognized by thegamesdb.net.";
 			FeLog() << " ! " << c.user_message << std::endl;
 			return false;
 		}

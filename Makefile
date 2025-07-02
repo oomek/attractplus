@@ -76,6 +76,8 @@ WINDRES=windres
 CMAKE=cmake
 LD=objcopy
 B64FLAGS = -w0
+OPEN_BRACE={
+CLOSE_BRACE=}
 
 CFLAGS += -DSQUSEDOUBLE
 CFLAGS += -std=c++17
@@ -127,12 +129,12 @@ EXE_EXT=
 OBJ_DIR=obj
 SRC_DIR=src
 EXTLIBS_DIR=extlibs
-RES_DIR=resources
 FE_FLAGS=
-RES_SRC_DIR=resources
-RES_DIR=$(OBJ_DIR)/$(RES_SRC_DIR)
-RES_FONTS_DIR = $(RES_DIR)/fonts
-RES_IMGS_DIR = $(RES_DIR)/images
+RES_DIR=$(OBJ_DIR)/resources
+RES_FONTS_DIR=$(RES_DIR)/fonts
+RES_IMGS_DIR=$(RES_DIR)/images
+RES_LANGUAGE_DIR=$(RES_DIR)/language
+RES_LANGUAGE_FILE=$(RES_LANGUAGE_DIR)/language.h
 
 _DEP =\
 	fe_base.hpp \
@@ -213,6 +215,17 @@ _RES =\
 	resources/fonts/BarlowCJK.ttf \
 	resources/fonts/Attract.ttf \
 	resources/images/Logo.png
+
+_LANGUAGE =\
+	resources/language/cn.msg \
+	resources/language/de.msg \
+	resources/language/en.msg \
+	resources/language/es.msg \
+	resources/language/fr.msg \
+	resources/language/it.msg \
+	resources/language/jp.msg \
+	resources/language/kr.msg \
+	resources/language/tw.msg
 
 #
 # Backward compatibility with WINDOWS_STATIC
@@ -392,7 +405,7 @@ else
  _OBJ += media.o
 endif
 
-CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR)
+CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR) -I$(RES_LANGUAGE_DIR)
 
 ifeq ($(shell $(PKG_CONFIG) --libs $(PKG_CONFIG_LIBS) && echo "1" || echo "0"), 0)
   $(error pkg-config couldn't find some libraries, aborting)
@@ -460,7 +473,7 @@ $(OBJ_DIR)/%.res: $(SRC_DIR)/%.rc | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(WINDRES) $(FE_FLAGS) $< -O coff -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP) $(RES) | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP) $(RES) $(RES_LANGUAGE_FILE) | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(CXX) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
 
@@ -470,9 +483,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(DEP) | $(OBJ_DIR)
 
 .PRECIOUS: $(OBJ_DIR)/%.h
 $(OBJ_DIR)/%.h: % | $(RES_FONTS_DIR) $(RES_IMGS_DIR)
-	$(info Converting $< to $@ ...)
+	$(info Converting $< to $@...)
 	$(shell (echo 'const char* _binary_$(subst .,_,$(subst /,_,$<)) = "' ; base64 $(B64FLAGS) $< ; echo '";') | tr -d '\n' > $@)
-
 
 $(EXE): $(OBJ) $(EXPAT) $(SQUIRREL)
 	$(EXE_MSG)
@@ -484,7 +496,6 @@ endif
 .PHONY: clean
 .PHONY: install
 .PHONY: sfml sfmlbuild
-.PHONY: bin2h
 
 SFML_FLAGS =
 ifneq ($(USE_SYSTEM_SFML),1)
@@ -549,6 +560,14 @@ $(RES_FONTS_DIR): $(OBJ_DIR)
 
 $(RES_IMGS_DIR): $(OBJ_DIR)
 	$(MD) $@
+
+$(RES_LANGUAGE_DIR): $(OBJ_DIR)
+	$(MD) $@
+
+$(RES_LANGUAGE_FILE): $(_LANGUAGE) $(RES_LANGUAGE_DIR)
+	$(info Converting $(RES_LANGUAGE_FILE)...)
+	$(shell (echo 'const std::map<const char*, const char*> _binary_languages =\n$(OPEN_BRACE)\n$(CLOSE_BRACE);') > $(RES_LANGUAGE_FILE))
+	$(foreach f,$(_LANGUAGE),$(shell (sed -i '4i\\t$(OPEN_BRACE) "$(word 3,$(subst ., ,$(subst /, ,$f)));$(subst #@,,$(shell (sed 1q $f)))", "$(shell base64 $(B64FLAGS) $f)" $(CLOSE_BRACE),' $(RES_LANGUAGE_FILE))))
 
 headerinfo: sfml
 	$(info flags: $(CFLAGS) $(FE_FLAGS))
@@ -665,7 +684,7 @@ install: $(EXE) $(DATA_PATH)
 	cp -r config/* $(DESTDIR)$(DATA_PATH)
 
 smallclean:
-	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h
+	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h
 
 clean:
-	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core

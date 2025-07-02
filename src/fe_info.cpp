@@ -1495,28 +1495,79 @@ bool FeLayoutInfo::operator!=( const FeLayoutInfo &o )
 		|| ( m_params != o.m_params ));
 }
 
+
+std::map<std::string, std::string> FeTranslationMap::m_map = {};
+
 FeTranslationMap::FeTranslationMap()
 {
 }
 
-int FeTranslationMap::process_setting( const std::string &setting,
-                        const std::string &value,
-                        const std::string &filename )
+void FeTranslationMap::clear()
+{
+	m_map.clear();
+}
+
+int FeTranslationMap::process_setting(
+	const std::string &setting,
+	const std::string &value,
+	const std::string &filename
+)
 {
 	m_map[setting] = value;
 	return 0;
 }
 
-void FeTranslationMap::get_translation( const std::string &token,
-            std::string &str ) const
+const std::string FeTranslationMap::get_translation( const std::string &token, const std::vector<std::string> &rep )
 {
 	if ( token.empty() )
-		return;
+		return "";
 
 	std::map<std::string, std::string>::const_iterator it = m_map.find( token );
 
+	std::string value;
 	if ( it != m_map.end() )
-		str = (*it).second;
-	else if ( token[0] != '_' )
-		str = token;
+		value = (*it).second;
+	else
+	{
+		// FeLog() << "Missing translation: '" << token << "'" << std::endl;
+		// Use token itself if not an "id" token, such as _help_name
+		if ( token[0] != '_' )
+			value = token;
+	}
+
+	perform_substitution( value, rep );
+	return value;
+}
+
+// Return translated string
+const std::string _( const std::string &token, const std::vector<std::string> &rep )
+{
+	return FeTranslationMap::get_translation( token, rep );
+}
+
+// Return translated char
+const std::string _( const char* token, const std::vector<std::string> &rep )
+{
+	return _( std::string( token ), rep );
+}
+
+// Return translated list of strings
+const std::vector<std::string> _( const std::vector<std::string> &tokens, const std::vector<std::string> &rep )
+{
+	int n = (int)tokens.size();
+	std::vector<std::string> ret;
+	ret.reserve( n );
+	for ( int i=0; i<n; i++ ) ret.push_back( _( tokens[i], rep ) );
+	return ret;
+}
+
+// Return translated list of chars
+const std::vector<std::string> _( const char* tokens[], const std::vector<std::string> &rep )
+{
+	int n = 0;
+	while ( tokens[n] != 0 ) n++;
+	std::vector<std::string> ret;
+	ret.reserve( n );
+	for ( int i=0; i<n; i++ ) ret.push_back( _( tokens[i], rep ) );
+	return ret;
 }

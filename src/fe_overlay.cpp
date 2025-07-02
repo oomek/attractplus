@@ -76,16 +76,14 @@ public:
 	FeConfigContextImp( FeSettings &fes, FeOverlay &feo );
 	bool edit_dialog( const std::string &m, std::string &t );
 
-	bool confirm_dialog( const std::string &m,
-		const std::string &rep="" );
+	bool confirm_dialog( const std::string &m  );
 
         int option_dialog( const std::string &title,
                 const std::vector < std::string > &options,
                 int default_sel=0 );
 
 	void splash_message( const std::string &msg,
-		const std::string &rep,
-		const std::string &aux );
+		const std::string &aux = "" );
 
 	void input_map_dialog( const std::string &m,
 		FeInputMapEntry &res,
@@ -103,17 +101,14 @@ FeConfigContextImp::FeConfigContextImp( FeSettings &fes, FeOverlay &feo )
 {
 }
 
-bool FeConfigContextImp::edit_dialog( const std::string &m, std::string &t )
+bool FeConfigContextImp::edit_dialog( const std::string &msg, std::string &t )
 {
-	std::string trans;
-	fe_settings.get_translation( m, trans );
-	return m_feo.edit_dialog( trans, t );
+	return m_feo.edit_dialog( msg, t );
 }
 
-bool FeConfigContextImp::confirm_dialog( const std::string &msg,
-	const std::string &rep )
+bool FeConfigContextImp::confirm_dialog( const std::string &msg  )
 {
-	return !m_feo.confirm_dialog( msg, rep );
+	return !m_feo.confirm_dialog( msg );
 }
 
 int FeConfigContextImp::option_dialog( const std::string &title,
@@ -125,19 +120,16 @@ int FeConfigContextImp::option_dialog( const std::string &title,
 
 void FeConfigContextImp::splash_message(
 			const std::string &msg,
-			const std::string &rep,
 			const std::string &aux )
 {
-	m_feo.splash_message( msg, rep, aux );
+	m_feo.splash_message( msg, aux );
 }
 
-void FeConfigContextImp::input_map_dialog( const std::string &m,
+void FeConfigContextImp::input_map_dialog( const std::string &msg,
 		FeInputMapEntry &res,
 		FeInputMap::Command &conflict )
 {
-	std::string t;
-	fe_settings.get_translation( m, t );
-	m_feo.input_map_dialog( t, res, conflict );
+	m_feo.input_map_dialog( msg, res, conflict );
 }
 
 void FeConfigContextImp::tags_dialog()
@@ -315,17 +307,13 @@ void FeOverlay::style_init( sf::Color theme_color )
 // - `fe.overlay.splash_menu`
 //
 void FeOverlay::splash_message( const std::string &msg,
-				const std::string &rep,
 				const std::string &aux )
 {
 	sf::RectangleShape bg = layout_background();
 	FeTextPrimitive message = layout_message( LayoutStyle::Middle );
 	FeTextPrimitive extra = layout_footer();
 
-	std::string msg_str;
-	m_feSettings.get_translation( msg, msg_str );
-	perform_substitution( msg_str, { rep });
-	message.setString( msg_str );
+	message.setString( msg );
 	extra.setString( aux );
 
 	const sf::Transform &t = m_fePresent.get_ui_transform();
@@ -346,19 +334,11 @@ void FeOverlay::splash_message( const std::string &msg,
 // - Exit, Clear, Delete confirmations
 //
 int FeOverlay::confirm_dialog( const std::string &msg,
-	const std::string &rep,
 	bool default_yes,
 	FeInputMap::Command default_exit )
 {
-	std::string msg_str;
-	m_feSettings.get_translation( msg, msg_str );
-	perform_substitution( msg_str, { rep });
-
-	std::vector<std::string> list(2);
-	m_feSettings.get_translation( "Yes", list[0] );
-	m_feSettings.get_translation( "No", list[1] );
-
-	return common_basic_dialog( msg_str, list, (default_yes ? 0 : 1), 1, default_exit );
+	std::vector<std::string> list = { _( "Yes" ), _( "No" ) };
+	return common_basic_dialog( msg, list, (default_yes ? 0 : 1), 1, default_exit );
 }
 
 // Dialog with header and list, triggered by layouts
@@ -477,7 +457,7 @@ int FeOverlay::languages_dialog()
 	{
 		// if there is nothing to select, then set what we can and get out of here
 		//
-		std::string fallback = ll.empty() ? "en" : ll.front().language;
+		std::string fallback = ll.empty() ? FE_DEFAULT_LANGUAGE : ll.front().language;
 
 		m_feSettings.set_language( fallback );
 		FeLog() << "Error: " << ll.size() << " Language resource(s) found, forcing language to \""
@@ -489,7 +469,7 @@ int FeOverlay::languages_dialog()
 	//
 	// TODO: figure out how to do this right on Windows...
 	//
-	std::string loc, test( "en" );
+	std::string loc, test( FE_DEFAULT_LANGUAGE );
 	try { loc = std::locale("").name(); } catch (...) {}
 	if ( loc.size() > 1 )
 		test = loc;
@@ -507,7 +487,7 @@ int FeOverlay::languages_dialog()
 			current_i = i;
 			status = -1;
 		}
-		else if (( status < -2 ) && ( (*itr).language.compare( 0, 2, "en" ) == 0 ))
+		else if (( status < -2 ) && ( (*itr).language.compare( 0, 2, FE_DEFAULT_LANGUAGE ) == 0 ))
 		{
 			current_i = i;
 			status = -2;
@@ -546,7 +526,7 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 	int sel = default_sel;
 	bool tags_changed = false;
 	bool list_changed = false;
-	std::string title = m_feSettings.get_translation( "Tags" );
+	std::string title = _( "Tags" );
 
 	// Remain in tags dialog until exited
 	while ( sel >= 0 )
@@ -561,8 +541,8 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 			list.push_back( (*itr).second ? as_str( FE_TAG_PREFIX ) + "$1" : "$1" );
 			perform_substitution( list.back(), { (*itr).first } );
 		}
-		list.push_back( m_feSettings.get_translation( "Create new tag" ) );
-		list.push_back( m_feSettings.get_translation( "Back") );
+		list.push_back( _( "Create new tag" ) );
+		list.push_back( _( "Back") );
 
 		// Get the selection
 		sel = common_list_dialog( title, list, sel, -1, extra_exit );
@@ -576,7 +556,7 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 		{
 			// Create new tag
 			std::string tag_name;
-			edit_dialog( m_feSettings.get_translation( "Enter new tag name" ), tag_name );
+			edit_dialog( _( "Enter new tag name" ), tag_name );
 
 			if ( !tag_name.empty() )
 			{
@@ -2229,18 +2209,18 @@ bool FeOverlay::common_exit()
 // Returns > 0 if value is "truthy"
 const int FeOverlay::is_truthy( const std::string value )
 {
-	if ( icompare( value, m_feSettings.get_translation( "Yes" )) == 0 ) return 1;
-	if ( icompare( value, m_feSettings.get_translation( "On" )) == 0 ) return 2;
-	if ( icompare( value, m_feSettings.get_translation( "True" )) == 0 ) return 3;
+	if ( icompare( value, _( "Yes" )) == 0 ) return 1;
+	if ( icompare( value, _( "On" )) == 0 ) return 2;
+	if ( icompare( value, _( "True" )) == 0 ) return 3;
 	return 0;
 }
 
 // Returns > 0 if value is "falsy"
 const int FeOverlay::is_falsy( const std::string value )
 {
-	if ( icompare( value, m_feSettings.get_translation( "No" )) == 0 ) return 1;
-	if ( icompare( value, m_feSettings.get_translation( "Off" )) == 0 ) return 2;
-	if ( icompare( value, m_feSettings.get_translation( "False" )) == 0 ) return 3;
+	if ( icompare( value, _( "No" )) == 0 ) return 1;
+	if ( icompare( value, _( "Off" )) == 0 ) return 2;
+	if ( icompare( value, _( "False" )) == 0 ) return 3;
 	return 0;
 }
 

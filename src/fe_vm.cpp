@@ -957,7 +957,6 @@ bool FeVM::on_new_layout()
 		.Overload<int (FeVM::*)(Array, const char *)>(_SC("list_dialog"), &FeVM::list_dialog)
 		.Overload<int (FeVM::*)(Array)>(_SC("list_dialog"), &FeVM::list_dialog)
 		.Func( _SC("edit_dialog"), &FeVM::edit_dialog )
-		.Overload<bool (FeVM::*)(const char *, const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 		.Overload<bool (FeVM::*)(const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 		.Overload<bool (FeVM::*)(const char *)>( _SC("splash_message"), &FeVM::splash_message )
 	);
@@ -1594,20 +1593,15 @@ void FeVM::overlay_clear_custom_controls()
 	m_custom_overlay = false;
 }
 
-bool FeVM::splash_message( const char *msg, const char *rep, const char *aux )
+bool FeVM::splash_message( const char *msg, const char *aux )
 {
-	m_overlay->splash_message( msg, rep, aux );
+	m_overlay->splash_message( msg, aux );
 	return m_overlay->check_for_cancel();
-}
-
-bool FeVM::splash_message( const char *msg, const char *rep )
-{
-	return splash_message( msg, rep, "" );
 }
 
 bool FeVM::splash_message( const char *msg )
 {
-	return splash_message( msg, "", "" );
+	return splash_message( msg );
 }
 
 //
@@ -1761,7 +1755,6 @@ public:
 			//
 			fe.Bind( _SC("Overlay"), Sqrat::Class <FeVM, Sqrat::NoConstructor>()
 				.Prop( _SC("is_up"), &FeVM::overlay_is_on )
-				.Overload<bool (FeVM::*)(const char *, const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 				.Overload<bool (FeVM::*)(const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 				.Overload<bool (FeVM::*)(const char *)>( _SC("splash_message"), &FeVM::splash_message )
 			);
@@ -2048,14 +2041,14 @@ namespace
 		msg += " ";
 		msg += as_str( i );
 
-		gi->ov->splash_message( "Generating Rom List: $1%", msg, aux );
+		gi->ov->splash_message( _( "Generating Rom List: $1%", { msg }), aux );
 		return !gi->ov->check_for_cancel();
 	}
 };
 
 bool FeVM::setup_wizard()
 {
-	m_overlay->splash_message( "Please Wait" );
+	m_overlay->splash_message( _( "Please Wait" ) );
 
 	std::string path, fname;
 	if ( !m_feSettings->get_emulator_setup_script( path, fname ) )
@@ -2092,8 +2085,8 @@ bool FeVM::setup_wizard()
 
 	// return 0 if user confirms import
 	if ( m_overlay->confirm_dialog(
-		"Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?",
-		"", true ) != 0 ) // default to "yes"
+		_( "Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?" ),
+		true ) != 0 ) // default to "yes"
 	{
 		return false;
 	}
@@ -2836,16 +2829,7 @@ void FeVM::cb_set_display( int idx )
 
 const char *FeVM::cb_get_text( const char *t )
 {
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
-	FeSettings *fes = fev->m_feSettings;
-
-	static std::string retval;
-	retval.clear();
-
-	if ( t )
-		fes->get_translation( t, retval );
-
+	static std::string retval = _( t );
 	return retval.c_str();
 }
 

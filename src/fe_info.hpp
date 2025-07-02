@@ -541,20 +541,36 @@ class FeTranslationMap : public FeBaseConfigurable
 {
 public:
 	FeTranslationMap();
-	void clear() { m_map.clear(); }
 
-	int process_setting( const std::string &setting,
+	void clear();
+
+	int process_setting(
+		const std::string &setting,
 		const std::string &value,
-		const std::string &filename );
+		const std::string &filename
+	);
 
-	void get_translation( const std::string &token,
-		std::string &str ) const;
+	// Return token translation string
+	static const std::string get_translation(
+		const std::string &token,
+		const std::vector<std::string> &rep = {}
+	);
 
 private:
 	FeTranslationMap( const FeTranslationMap & );
 	FeTranslationMap &operator=( const FeTranslationMap & );
 
-	std::map<std::string, std::string> m_map;
+	// Holds the src/translation pairs
+	// - Note that an instance is require to setup this map
+	static std::map<std::string, std::string> m_map;
 };
+
+//
+// Global translation function, accepts optional replacement list
+//
+const std::string _( const std::string &token, const std::vector<std::string> &rep = {} );
+const std::string _( const char* token, const std::vector<std::string> &rep = {} );
+const std::vector<std::string> _( const std::vector<std::string> &tokens, const std::vector<std::string> &rep = {} );
+const std::vector<std::string> _( const char* tokens[], const std::vector<std::string> &rep = {} );
 
 #endif

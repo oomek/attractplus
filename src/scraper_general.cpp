@@ -834,13 +834,9 @@ bool FeSettings::build_romlist( const std::vector<std::string> &emu_list, const 
 
 	write_romlist( filename, total_romlist );
 
-	if ( user_message.empty() )
-	{
-		get_translation( "Wrote $1 entries to Collection/Rom List", msg );
-		perform_substitution( msg, { as_str( total_romlist.size() ) });
-	}
-	else
-		msg = user_message;
+	msg = user_message.empty()
+		? _( "Wrote $1 entries to Collection/Rom List", { as_str( total_romlist.size() ) })
+		: user_message;
 
 	return !cancelled;
 }
@@ -902,13 +898,9 @@ bool FeSettings::scrape_artwork( const std::string &emu_name, UiUpdate uiu, void
 
 	FeLog() << "*** Scraping done." << std::endl;
 
-	if ( ctx.user_message.empty() )
-	{
-		get_translation( "Scraped $1 artwork file(s)", msg );
-		perform_substitution( msg, { as_str( ctx.download_count ) });
-	}
-	else
-		msg = ctx.user_message;
+	msg = ctx.user_message.empty()
+		? _( "Scraped $1 artwork file(s)", { as_str( ctx.download_count ) })
+		: ctx.user_message;
 
 	// if we scraped something then make sure our path caches are reloaded
 	if ( ctx.download_count > 0 )

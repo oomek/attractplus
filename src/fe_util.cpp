@@ -977,8 +977,8 @@ int as_int( const std::string &s )
 bool config_str_to_bool( const std::string &s, bool permissive )
 {
 	return permissive
-		? !(( s.compare( "no" ) == 0 ) || ( s.compare( "false" ) == 0 ))
-		: (( s.compare( "yes" ) == 0 ) || ( s.compare( "true" ) == 0 ));
+		? !(( icompare( s, "no" ) == 0 ) || ( icompare( s, "false" ) == 0 ))
+		: (( icompare( s, "yes" ) == 0 ) || ( icompare( s, "true" ) == 0 ));
 }
 
 const char *get_OS_string()
@@ -1835,24 +1835,31 @@ bool line_to_setting_and_value( const std::string &line,
 	std::string &value,
 	const char *sep )
 {
-	size_t pos( 0 );
-
+	size_t pos = 0;
 	std::string tmp_setting;
 	token_helper( line, pos, tmp_setting, sep );
 
-	// skip comments
-	if (( tmp_setting.size() > 0 ) && ( tmp_setting[0] != '#' ))
+	// Return false if empty or comment
+	if (( tmp_setting.size() == 0 ) || ( tmp_setting[0] == '#' ))
 	{
-		pos = line.find_first_not_of( FE_WHITESPACE, pos );
-		size_t end = line.find_last_not_of( FE_WHITESPACE );
-		if ( pos != std::string::npos )
-			value = line.substr( pos, end - pos + 1 );
-
-		setting.swap( tmp_setting );
-		return true;
+		setting.clear();
+		value.clear();
+		return false;
 	}
 
-	return false;
+	setting.swap( tmp_setting );
+	pos = line.find_first_not_of( FE_WHITESPACE, pos );
+	if ( pos != std::string::npos )
+	{
+		size_t end = line.find_last_not_of( FE_WHITESPACE );
+		value = line.substr( pos, end - pos + 1 );
+	}
+	else
+	{
+		value.clear();
+	}
+
+	return true;
 }
 
 bool get_console_stdin( std::string &str )
