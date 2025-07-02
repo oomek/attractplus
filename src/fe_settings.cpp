@@ -2642,7 +2642,7 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			return true;
 		}
 		case FeRomInfo::Overview:
-			value = get_game_overview_absolute( filter_index, rom_index, value );
+			get_game_overview_absolute( filter_index, rom_index, value );
 			return true;
 		case FeRomInfo::PlayedAgo:
 			value = get_played_ago_display_string( filter_index, rom_index );
