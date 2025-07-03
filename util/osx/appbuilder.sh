@@ -150,6 +150,8 @@ cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
 #cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
 
+chmod +x "$bundlecontent"/MacOS/*
+
 # Prepare plist file
 LASTTAG=$(git -C $basedir/ describe --tag --abbrev=0)
 VERSION=$(git -C $basedir/ describe --tag | sed 's/-[^-]\{8\}$//')
