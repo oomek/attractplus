@@ -220,6 +220,7 @@ private:
 
 	int m_current_display; // The index of the current display, -1 if showing a custom displays_menu
 	int m_selected_display; // The index of the displays_menu selected display, -1 if EXIT is selected. Equals m_current_display if displays_menu not shown.
+	int m_actual_display_index; // The most recent actual display index that was selected (for saving)
 	FeBaseConfigurable *m_current_config_object;
 	int m_ssaver_time;
 	int m_last_launch_display;
@@ -378,6 +379,7 @@ public:
 	bool back_displays_available() { return !m_display_stack.empty(); };
 
 	int get_current_display_index() const;
+	int get_actual_display_index() const;
 	int get_selected_display_index() const;
 	int get_display_index_from_name( const std::string &name ) const;
 	int displays_count() const;
