@@ -133,6 +133,7 @@ public:
 	void copy_info( const FeRomInfo &src, Index idx );
 
 	bool operator==( const FeRomInfo & ) const;      // compares romname and emulator only
+	bool operator!=( const FeRomInfo & ) const;      // compares romname and emulator only
 	bool full_comparison( const FeRomInfo & ) const; // compares all fields that get loaded from the romlist file
 	int index; // Stores the m_list index, after global_filter applied
 

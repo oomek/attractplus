@@ -270,12 +270,29 @@ std::string get_available_filename(
 	std::string &result );
 
 //
+// Create directory
+//
+bool make_dir(
+    const std::string &dir
+);
+
+//
 // Create "base" directory if it doesn't exist
-// Create "sub" folder in "base" if it doesn't already exist
+// Create "base" and "sub" directory if they dont exist
+// Returns true if either directory had to be created
 //
-// returns true if directory created
+bool confirm_directory(
+    const std::string &base,
+    const std::string &sub // Optional
+);
+
 //
-bool confirm_directory( const std::string &base, const std::string &sub );
+// Create file if it doesn't exist
+// Returns true if file had to be created
+//
+bool confirm_file(
+    const std::string &path
+);
 
 //
 // Delete named file
