@@ -322,6 +322,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_display_menu_per_display_params( FeLayoutInfo::Menu ),
 	m_current_display( -1 ),
 	m_selected_display( 0 ),
+	m_actual_display_index( 0 ),
 	m_current_config_object( NULL ),
 	m_ssaver_time( 600 ),
 	m_last_launch_display( 0 ),
@@ -774,7 +775,7 @@ void FeSettings::construct_display_maps()
 
 void FeSettings::save_state()
 {
-	int display_idx = m_current_display;
+	int display_idx = m_actual_display_index;
 
 	// If we have a display stack we save the entry at the bottom of the stack as the
 	// 'current' display
@@ -876,6 +877,7 @@ void FeSettings::load_state()
 		m_current_display = 0;
 
 	m_selected_display = m_current_display;
+	m_actual_display_index = m_current_display;
 
 	// bound checking on the last launch state
 	if ( m_last_launch_display >= (int)m_displays.size() )
@@ -1564,7 +1566,10 @@ bool FeSettings::set_display( int index, bool stack_previous )
 	m_current_display = index;
 
 	if ( m_current_display != -1 )
+	{
+		m_actual_display_index = m_current_display;
 		m_selected_display = m_current_display;
+	}
 
 	m_rl.save_state();
 	init_display();
@@ -1647,6 +1652,11 @@ bool FeSettings::navigate_filter( int step )
 int FeSettings::get_current_display_index() const
 {
 	return m_current_display;
+}
+
+int FeSettings::get_actual_display_index() const
+{
+	return m_actual_display_index;
 }
 
 int FeSettings::get_selected_display_index() const
