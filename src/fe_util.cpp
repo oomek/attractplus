@@ -345,30 +345,31 @@ std::string clean_path( const std::string &path, bool add_trailing_slash )
 		return retval;
 
 #ifdef SFML_SYSTEM_WINDOWS
-	struct subs_struct
+	size_t pos = 0;
+	while ( pos < retval.length() )
 	{
-		const char *comp;
-		const char *env;
-	} subs[] =
-	{
-		{ "%SYSTEMROOT%", "SystemRoot" },
-		{ "%PROGRAMFILES%", "ProgramFiles" },
-		{ "%PROGRAMFILESx86%", "ProgramFiles(x86)" },
-		{ "%APPDATA%", "APPDATA" },
-		{ "%SYSTEMDRIVE%", "SystemDrive" },
-		{ NULL, NULL }
-	};
-
-	for ( int i=0; subs[i].comp != NULL; i++ )
-	{
-		size_t l = strlen( subs[i].comp );
-		if (( retval.size() >= l ) && ( retval.compare( 0, l, subs[i].comp ) == 0 ))
-		{
-			std::string temp;
-			str_from_c( temp, nowide::getenv( subs[i].env ) );
-			retval.replace( 0, l, temp );
+		size_t start = retval.find( '%', pos );
+		if ( start == std::string::npos )
 			break;
+
+		size_t end = retval.find( '%', start + 1 );
+		if ( end == std::string::npos )
+			break;
+
+		std::string var_name = retval.substr( start + 1, end - start - 1 );
+
+		// For backward compatibility
+		if ( icompare( var_name, "PROGRAMFILESX86" ) == 0 )
+			var_name = "PROGRAMFILES(X86)";
+
+		const char* value = nowide::getenv( var_name.c_str() );
+		if ( value && *value )
+		{
+			retval.replace( start, end - start + 1, value );
+			pos = start + strlen( value );
 		}
+		else
+			pos = end + 1;
 	}
 #endif
 

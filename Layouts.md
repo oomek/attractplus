@@ -996,7 +996,7 @@ Execute a plug-in command in the background and return immediately.
 fe.path_expand( path )
 ```
 
-Expand the given path name. A leading `~` or `$HOME` token will be become the user's home directory. On Windows systems, a leading `%SYSTEMROOT%` token will become the path to the Windows directory and a leading `%PROGRAMFILES%` or `%PROGRAMFILESx86%` will become the path to the applicable Windows `Program Files` directory.
+Expand the given path name. A leading `~` or `$HOME` token will be become the user's home directory. On Windows systems, a leading `%SYSTEMROOT%` token will become the path to the Windows directory and a leading `%PROGRAMFILES%` or `%PROGRAMFILES(X86)%` will become the path to the applicable Windows `Program Files` directory. For full list of Windows environment variables follow this [link](https://learn.microsoft.com/en-us/windows/deployment/usmt/usmt-recognized-environment-variables)
 
 **Parameters**
 
