@@ -69,6 +69,16 @@ int perform_substitution(
 );
 
 //
+// Strip surrounding quotes from a string
+//
+std::string strip_quotes( const std::string &str );
+
+//
+// Remove all quotes from inside a string and wrap with quotes if it contains spaces
+//
+std::string fix_quotes( const std::string &str );
+
+//
 //
 std::string name_with_brackets_stripped( const std::string &name );
 

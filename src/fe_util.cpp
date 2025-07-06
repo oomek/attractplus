@@ -794,6 +794,34 @@ int perform_substitution(
 	return count;
 }
 
+std::string strip_quotes( const std::string &str )
+{
+	if ( str.size() >= 2 && str.front() == '"' && str.back() == '"' )
+		return str.substr( 1, str.size() - 2 );
+
+	return str;
+}
+
+std::string fix_quotes( const std::string &str )
+{
+	if ( str.empty() )
+		return str;
+
+	// Remove all quotes from the string
+	std::string clean_str;
+	for ( char c : str )
+	{
+		if ( c != '"' )
+			clean_str += c;
+	}
+
+	// If the clean string contains spaces, wrap it with quotes
+	if ( clean_str.find( ' ' ) != std::string::npos )
+		return "\"" + clean_str + "\"";
+
+	return clean_str;
+}
+
 std::string get_available_filename(
 			const std::string &path,
 			const std::string &base,

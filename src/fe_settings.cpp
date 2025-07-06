@@ -2430,6 +2430,7 @@ void FeSettings::prep_for_launch( std::string &command,
 	}
 
 	do_text_substitutions_absolute( args, filter_index, rom_index );
+	args = fix_quotes( args );
 
 	std::string temp = get_game_extra( Executable );
 	if ( temp.empty() )
@@ -2437,7 +2438,7 @@ void FeSettings::prep_for_launch( std::string &command,
 
 	command = clean_path( temp );
 
-	work_dir = clean_path( emu->get_info( FeEmulatorInfo::Working_dir ), true );
+	work_dir = clean_path( strip_quotes( emu->get_info( FeEmulatorInfo::Working_dir )), true );
 	if ( work_dir.empty() )
 	{
 		size_t pos = command.find_last_of( "/\\" );
