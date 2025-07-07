@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 {
 	std::string config_path, log_file;
 	bool launch_game = false;
-	bool first_intro = true;
+	bool initial_load = true;
 	bool process_console = false;
 	int last_display_index = -1;
 	FeLogLevel log_level = FeLog_Info;
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
 
 #ifdef USE_DRM
 				feSettings.switch_from_clone_group();
-				feVM.load_layout(true);
+				feVM.load_layout();
 #else
 				if ( feSettings.switch_from_clone_group() )
 					feVM.update_to_new_list( 0, true );
@@ -567,7 +567,6 @@ int main(int argc, char *argv[])
 				move_state = FeInputMap::LAST_COMMAND;
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
-				first_intro = false;
 				redraw = true;
 				c = FeInputMap::LAST_COMMAND;
 				bool has_layout = false;
@@ -576,11 +575,15 @@ int main(int argc, char *argv[])
 				// - Fixes intro "select" error
 				feVM.clear_commands();
 
-				if ( first_intro && mode == FeSettings::LaunchLastGame )
+				if ( initial_load && mode == FeSettings::LaunchLastGame )
 				{
-					// Only LaunchLastGame on first run, not after manually triggered intro
-					has_layout = feSettings.select_last_launch();
-					if ( has_layout ) feVM.load_layout( true );
+					// Only LaunchLastGame on initial_load, not after manually triggered intro
+					has_layout = feSettings.select_last_launch( initial_load );
+					if ( has_layout )
+					{
+						feVM.load_layout( initial_load );
+						initial_load = false;
+					}
 					launch_game = true;
 				}
 
@@ -594,7 +597,8 @@ int main(int argc, char *argv[])
 				if ( !has_layout )
 				{
 					feSettings.set_display( feSettings.get_selected_display_index() );
-					feVM.load_layout( true );
+					feVM.load_layout( initial_load );
+					initial_load = false;
 				}
 
 				if ( c == FeInputMap::LAST_COMMAND ) continue;
@@ -641,7 +645,7 @@ int main(int argc, char *argv[])
 								display_index = last_display_index;
 								last_display_index = -1;
 								feSettings.set_display( display_index );
-								feVM.load_layout( true );
+								feVM.load_layout();
 								redraw=true;
 								break;
 							}
@@ -834,7 +838,8 @@ int main(int argc, char *argv[])
 							}
 
 							feSettings.set_display( display_index );
-							feVM.load_layout( true );
+							feVM.load_layout( initial_load );
+							initial_load = false;
 							redraw=true;
 							break;
 						}
