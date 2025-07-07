@@ -404,7 +404,7 @@ public:
 	bool switch_from_clone_group();
 	int get_clone_index();
 
-	bool select_last_launch();
+	bool select_last_launch( bool initial_load = false );
 	bool is_last_launch( int filter_offset, int index_offset );
 	int get_joy_thresh() const { return m_joy_thresh; }
 	void init_mouse_capture( sf::RenderWindow *window );

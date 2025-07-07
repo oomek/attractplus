@@ -839,7 +839,7 @@ void FeSettings::load_state()
 
 		int i=0;
 		size_t pos2=0;
-		while (( pos2 < tok.size() ) && ( i < 3 ))
+		while ( pos2 < tok.size() )
 		{
 			std::string tok2;
 			token_helper( tok, pos2, tok2, "," );
@@ -2008,11 +2008,14 @@ void FeSettings::step_current_selection( int step )
 	set_current_selection( filter_index, get_rom_index( filter_index, step )  );
 }
 
-bool FeSettings::select_last_launch()
+bool FeSettings::select_last_launch( bool initial_load )
 {
 	bool retval = false;
-	if (( m_current_display != m_last_launch_display )
-		&& ( m_last_launch_display < (int)m_displays.size() ))
+
+	// On initial_load m_current_display is set *before* the display is actually loaded
+	// - switch_to_clone_group requires the romlist, which is loaded by set_display
+	if (( initial_load || ( m_current_display != m_last_launch_display )) &&
+		( m_last_launch_display < (int)m_displays.size() ))
 	{
 		set_display( m_last_launch_display );
 		retval = true;
