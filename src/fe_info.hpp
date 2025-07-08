@@ -89,6 +89,11 @@ public:
 		System,
 		SystemN,
 		Overview,
+		TagList,
+		FavouriteStar,
+		FavouriteStarAlt,
+		FavouriteHeart,
+		FavouriteHeartAlt,
 		PlayedAgo,
 		LAST_SPECIAL
 	};
@@ -116,7 +121,7 @@ public:
 	const std::string get_clone_parent() const;
 	void append_tag( const std::string &tag );
 	void remove_tag( const std::string &tag );
-	void get_tags( std::set<std::string> &tags );
+	bool get_tags( std::set<std::string> &tags );
 	bool has_tag( const std::string &tag );
 
 	int process_setting( const std::string &setting,

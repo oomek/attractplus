@@ -45,8 +45,18 @@ const char *FE_BUILD_NUMBER = FE_BUILD_D;
 const char *FE_WHITESPACE   = " \t\r";
 const char *FE_DIR_TOKEN    = "<DIR>";
 
-const char *FE_DEFAULT_ARTWORK           = "snap";
+const char *FE_TAG_ICON         = "🏷";
+const char *FE_HEART_ICON       = "♥";
+const char *FE_HEART_ALT_ICON   = "♡";
+const char *FE_STAR_ICON        = "★";
+const char *FE_STAR_ALT_ICON    = "☆";
+const char *FE_YES_ICON         = "☒";
+const char *FE_NO_ICON          = "☐";
 
+const char *FE_TAG_PREFIX       = "🏷 ";
+const char *FE_TAG_DELIM        = "  ";
+
+const char *FE_DEFAULT_ARTWORK           = "snap";
 const char *FE_EMULATOR_SUBDIR           = "emulators/";
 const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/";
 const char *FE_EMULATOR_FILE_EXTENSION   = ".cfg";

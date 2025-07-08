@@ -558,7 +558,7 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 		std::vector<std::string> list;
 		for ( std::vector<std::pair<std::string, bool>>::iterator itr=tags_list.begin(); itr!=tags_list.end(); ++itr )
 		{
-			list.push_back( m_feSettings.get_translation( (*itr).second ? "» $1 «" : "$1" ) );
+			list.push_back( (*itr).second ? as_str( FE_TAG_PREFIX ) + "$1" : "$1" );
 			perform_substitution( list.back(), { (*itr).first } );
 		}
 		list.push_back( m_feSettings.get_translation( "Create new tag" ) );

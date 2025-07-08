@@ -123,71 +123,86 @@ local marquee = fe.add_artwork( "marquee", 256, 20, 512, 256 )
 marquee.set_rgb( 100, 100, 100 )
 ```
 
-The remainder of this document describes the functions, objects, classes and constants that are exposed to layout and plug-in scripts.
-
 ---
 
 ### Magic Tokens
 
-Image names, as well as the messages displayed by Text and Listbox objects, can all contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them accordingly as the user navigates the frontend. So for example, a Text message set to `"[Manufacturer]"` will be automatically updated with the appropriate Manufacturer's name. There are more examples below.
-
-The following _Magic Tokens_ are currently supported:
-
--  `[DisplayName]` - The name of the current display
--  `[ListSize]` - The number of items in the game list
--  `[ListEntry]` - The number of the current selection in the game list
--  `[FilterName]` - The name of the filter
--  `[Search]` - The search rule currently applied to the game list
--  `[SortName]` - The attribute that the list was sorted by
--  `[Name]` - The short name of the selected game
--  `[Title]` - The full name of the selected game
--  `[Emulator]` - The emulator to use for the selected game
--  `[CloneOf]` - The short name of the game that the selection is a clone of
--  `[Year]` - The year for the selected game
--  `[Manufacturer]` - The manufacturer for the selected game
--  `[Category]` - The category for the selected game
--  `[Players]` - The number of players for the selected game
--  `[Rotation]` - The rotation for the selected game
--  `[Control]` - The primary control for the selected game
--  `[Status]` - The emulation status for the selected game
--  `[DisplayCount]` - The number of displays for the selected game
--  `[DisplayType]` - The display type for the selected game
--  `[AltRomname]` - The alternative Romname for the selected game
--  `[AltTitle]` - The alternative title for the selected game
--  `[PlayedCount]` - The number of times the selected game has been played
--  `[PlayedTime]` - The amount of time the selected game has been played
--  `[PlayedLast]` - The date and time the selected game was last played
--  `[PlayedAgo]` - The last played date relative to now, for example: "5 Minutes Ago"
--  `[SortValue]` - The value used to order the selected game in the list
--  `[System]` - The first "System" name configured for the selected game's emulator
--  `[SystemN]` - The last "System" name configured for the selected game's emulator
--  `[Overview]` - The overview description for the selected game
-
-_Magic Tokens_ can also be used to run a function defined in your layout or plugin's squirrel script to obtain the desired text. These tokens are in the form `[!<function_name>]`. When used, Attract-Mode will run the corresponding function (defined in the squirrel "root table"). This function should then return the string value that you wish to have replace the _Magic Token_. The function defined in squirrel can optionally have up to two parameters passed to it. If it is defined with a first parameter, Attract-Mode will supply the appropriate index_offset in that parameter when it calls the function. If a second parameter is present as well, the appropriate filter_offset is supplied.
+Image names, as well as the messages displayed by Text and Listbox objects, can contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them as the user navigates the layout. For example, a Text message set to `"[Title]"` will be automatically updated with the appropriate game's Title.
 
 ```squirrel
-// Add a text that displays the filter name and list location
-//
-fe.add_text( "[FilterName] [[ListEntry]/[ListSize]]", 0, 0, 400, 20 )
+// A Text element that displays the current game's Title as well as it's List position
+fe.add_text( "[Title] - [ListEntry] of [ListSize]", 0, 0, 400, 20 )
+```
 
-// Add an image that will match to the first word in the
-// Manufacturer name (i.e. "Atari.png", "Nintendo.jpg")
-//
-function strip_man( ioffset )
-{
-  local m = fe.game_info(Info.Manufacturer, ioffset)
-  return split( m, " " )[0]
-}
-fe.add_image( "[!strip_man]", 0, 0 )
+The following _Magic Tokens_ are supported:
 
-// Add a text that will display a copyright message if both
-// the manufacturer name and a year are present.  Otherwise,
-// just show the Manufacturer name.
-//
-function well_formatted()
+-  List
+    -  `[DisplayName]` - The name of the Display
+    -  `[FilterName]` - The name of the Filter
+    -  `[ListSize]` - The number of items in the list
+    -  `[SortName]` - The attribute the list was sorted by
+    -  `[Search]` - The search rule applied to the list
+-  Game
+    -  `[Name]` - The short name of the game
+    -  `[Title]` - The full name of the game
+    -  `[Emulator]` - The emulator to use for the game
+    -  `[CloneOf]` - The short name of the game's parent
+    -  `[Year]` - The year for the game
+    -  `[Manufacturer]` - The manufacturer of the game
+    -  `[Category]` - The category for the game
+    -  `[Players]` - The number of players for the game
+    -  `[Rotation]` - The display rotation for the game
+    -  `[Control]` - The primary control for the game
+    -  `[Status]` - The emulation status for the game
+    -  `[DisplayCount]` - The number of displays used by the game
+    -  `[DisplayType]` - The display type for the game
+    -  `[AltRomname]` - The alternative rom name for the game
+    -  `[AltTitle]` - The alternative title for the game
+    -  `[Overview]` - The overview description for the game
+    -  `[System]` - The first System name for the game's emulator
+    -  `[SystemN]` - The last System name for the game's emulator
+    -  `[ListEntry]` - The index of the game within the list
+    -  `[SortValue]` - The value used to sort the game in the list
+-  Tags
+    -  `[Favourite]` - The string `1` if the game has the favourite status
+    -  `[FavouriteStar]` - The `★` icon if the game has the favourite status
+    -  `[FavouriteStarAlt]` - The `☆` icon if the game has the favourite status
+    -  `[FavouriteHeart]` - The `♥` icon if the game has the favourite status
+    -  `[FavouriteHeartAlt]` - The `♡` icon if the game has the favourite status
+    -  `[Tags]` - The tags attached to the game, delimited by `;` semicolons
+    -  `[TagList]` - The tags attached to the game, formatted with `🏷` icons
+-  Stats
+    -  `[PlayedCount]` - The number of times the game has been played
+    -  `[PlayedTime]` - The number of seconds the game has been played
+    -  `[PlayedLast]` - The timestamp the game was last played
+    -  `[PlayedAgo]` - The last played date formatted relative to now, for example: `5 Minutes Ago`
+
+#### Custom Magic Token Functions
+
+_Magic Tokens_ can also run user-defined functions in the form `[!token_function]`. When used, Attract-Mode will run the corresponding `token_function()` defined in the Squirrel "root table". The function may contain up to two parameters, and must return a string value to replace the _Magic Token_.
+
+-  `index_offset` - The offset (from the current selection) of the game.
+-  `filter_offset` - The offset (from the current filter) of the filter.
+
+```squirrel
+// Return the first word in the Manufacturer name
+function manufacturer_name()
 {
   local m = fe.game_info( Info.Manufacturer )
-  local y = fe.game_info( Info.Year )
+  return split( m, " " )[0]
+}
+
+// An Image element based on the Manufacturer name (ie: "Atari.png", "Nintendo.png")
+fe.add_image( "[!manufacturer_name].png", 0, 0 )
+```
+
+```squirrel
+// Return a copyright message if both Manufacturer and Year exist
+// Otherwise just return the Manufacturer's name
+function copyright( index_offset, filter_offset )
+{
+  local m = fe.game_info( Info.Manufacturer, index_offset, filter_offset )
+  local y = fe.game_info( Info.Year, index_offset, filter_offset )
 
   if (( m.len() > 0 ) && ( y.len() > 0 ))
   {
@@ -196,7 +211,9 @@ function well_formatted()
 
   return m
 }
-fe.add_text( "[!well_formatted]", 0, 0 )
+
+// A Text element displaying the copyright
+fe.add_text( "[!copyright]", 0, 0, 400, 20 )
 ```
 
 ---
@@ -1474,6 +1491,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
    img.subimg_y = img.texture_height
    ```
 -  Attract-Mode defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
+
    ```squirrel
    local art = fe.add_artwork( "snap" )
    // dynamic art texture_width and texture_height are not yet available
@@ -1563,7 +1581,7 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the text. Range is `[0...255]`.
 -  `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for the text background. Range is `[0...255]`.
 -  `set_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the text outline. Range is `[0...255]`.
--  `set_bg_outline_rgb()` 🔶 - Set the red, green and blue colour values for the outline of the text background. Range is `[0...255]`.
+-  `set_bg_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the outline of the text background. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the text position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the text position and size (in layout coordinates).
 

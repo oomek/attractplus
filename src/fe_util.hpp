@@ -69,6 +69,14 @@ int perform_substitution(
 );
 
 //
+// Join string parts using delim
+//
+std::string str_join(
+	const std::vector<std::string> &parts,
+	const std::string &delim
+);
+
+//
 //
 std::string name_with_brackets_stripped( const std::string &name );
 
