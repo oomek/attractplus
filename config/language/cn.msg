@@ -153,7 +153,7 @@ Previous Filter;上一分类
 Previous Game;上一游戏
 Previous Letter;上一关键词
 Previous Page;上一页
-Quick Menu;快捷菜单
+Menu Toggle;菜单切换
 Random Game;随机游戏
 Reload;重新加载
 Remove '$1' from Favourites?;从收藏中先锋队 '$1'？
@@ -293,14 +293,14 @@ Select template to use for emulator settings;Select template to use for emulator
 Window (No Border);Window (No Border)
 Working Directory;Working Directory
 multi;multi
-_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
 _help_art;An artwork resource available for use by layouts
 _help_art_add;Add a new artwork resource (marquee images, screen shots, etc.)
 _help_art_label;The label that identifies this artwork resource (used by layouts)
 _help_art_path;The path to the files for this artwork.  Multiple paths can be entered if separated by a semicolon.
 _help_back;Exit menu
-_help_confirm_exit;Confirm before exiting Attact-Mode?
+_help_confirm_exit;Confirm before exiting Attract-Mode?
 _help_confirm_favs;Confirm the addition/removal of Favourites?
 _help_control_add_favourite;Set the control(s) that mark/unmark the currently selected game as a favourite
 _help_control_add_tags;Set the control(s) that add/remove tags from the currently selected game
@@ -428,8 +428,8 @@ _help_plugin_command;The executable associated with this plug-in
 _help_plugin_enabled;Set whether this plug-in is enabled
 _help_plugin_sel;Configure plug-in
 _help_plugins;Configure available plug-ins
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
-_help_quick_menu;Enable single-button menu toggling, which removes the need for a Back button. Also allows switching between open menus
+_help_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
+_help_quick_menu;Set whether menus can be opened and closed using the same button.  Also enables switching between menus without having to close them first
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on

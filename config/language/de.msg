@@ -289,7 +289,7 @@ _help_plugin_command;Die ausführbare Datei, welche mit diesem Plug-in verknüpf
 _help_plugin_enabled;Festlegen, ob dieses Plug-in aktiviert ist
 _help_plugin_sel;Konfiguriere Plug-in
 _help_plugins;Konfiguriere verfügbare Plug-ins
-_help_quick_menu;Ermöglicht das Umschalten des Menüs mit nur einer Taste, sodass keine Zurück-Taste mehr erforderlich ist. Ermöglicht auch das Umschalten zwischen geöffneten Menüs
+_help_quick_menu;Legt fest, ob Menüs mit derselben Taste geöffnet und geschlossen werden können. Ermöglicht außerdem das Wechseln zwischen Menüs, ohne diese vorher schließen zu müssen
 _help_rule_comp;Vergleichstyp für diesen Filter
 _help_rule_delete;Diese Filterregel löschen
 _help_rule_target;Das Spiel-Informationsattribut nach welchem du filtern möchtest
@@ -379,7 +379,7 @@ Pause Hotkey;Pause Tastenkombination
 Please Wait;bitte warten
 Press Hotkey;betätige die Tastenkombination
 Previous Game;vorheriges Spiel
-Quick Menu;Schnellmenü
+Menu Toggle;Menü umschalten
 Remove '$1' from Favourites?;Entferne '$1' aus den Favoriten?
 Remove tag: '$1';Entferne Etikett: '$1'
 Scrape Fanart;Scrape Fanart
@@ -394,7 +394,7 @@ Video Decoder;Video Decoder
 Window (No Border);Window (ohne Umrandung)
 Working Directory;Arbeitsverzeichnis
 multi;multi
-_help_confirm_exit;Bestätigung vor Verlassen von Attact-Mode verlangen?
+_help_confirm_exit;Bestätigung vor Verlassen von Attract-Mode verlangen?
 _help_control_back;Definiere die Taste(n) für Zurück/Cancel
 _help_control_custom3;Definiere die Taste(n) für Eigendefiniert3
 _help_control_custom4;Definiere die Taste(n) für Eigendefiniert4
@@ -451,8 +451,8 @@ Auto-detect emulators?;Auto-detect emulators?
 Image Cache Size;Image Cache Size
 Power Saving;Power Saving
 Screen Rotation;Screen Rotation
-_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
 _help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
-_help_power_saving;Helps to save power by only redrawing the screen when it's neccessary. May cause animation stuttering on some layouts, or freezing on Linux
+_help_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_screen_rotation;Set the base rotation of the screen

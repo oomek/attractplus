@@ -1746,7 +1746,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::string startup_mode = value_at( startup_modes, ctx.fe_settings.get_startup_mode() );
 	ctx.add_opt( Opt::LIST, "Startup Mode", startup_mode, "_help_startup_mode" )->append_vlist( startup_modes );
 
-	ctx.add_opt( Opt::TOGGLE, "Quick Menu", ctx.fe_settings.get_info_bool( FeSettings::QuickMenu ), "_help_quick_menu" );
+	ctx.add_opt( Opt::TOGGLE, "Menu Toggle", ctx.fe_settings.get_info_bool( FeSettings::QuickMenu ), "_help_quick_menu" );
 	ctx.add_opt( Opt::TOGGLE, "Layout Preview", ctx.fe_settings.get_info_bool( FeSettings::LayoutPreview ), "_help_layout_preview" );
 	ctx.add_opt( Opt::TOGGLE, "Track Usage", ctx.fe_settings.get_info_bool( FeSettings::TrackUsage ), "_help_track_usage" );
 #if !defined(NO_MULTIMON)

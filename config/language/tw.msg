@@ -190,7 +190,7 @@ Previous Filter;上一個遊戲過濾
 Previous Game;上一個遊戲
 Previous Letter;上一個文字清單
 Previous Page;上一頁
-Quick Menu;快速選單
+Menu Toggle;選單切換
 Random Game;隨機選取遊戲
 Reload;重新載入
 Remove '$1' from Favourites?;要從我的最愛移除「$1」嗎？
@@ -265,7 +265,7 @@ _help_art_add;新增插圖資源 (遊戲招牌插圖、遊戲捉圖、其它...)
 _help_art_label;設定用來識別插圖資源類型的識別名稱 (使用在畫面佈局)
 _help_art_path;設定插圖資源檔案所存放的路徑 (多重路徑可用分號間隔)
 _help_back;離開選單
-_help_confirm_exit;結束 Attact-Mode 前先確認？
+_help_confirm_exit;結束 Attract-Mode 前先確認？
 _help_confirm_favs;加入/移除我的最愛前先確認？
 _help_control_add_favourite;設定「加入/移除當前遊戲至我的最愛」的控制鍵
 _help_control_add_tags;設定「加入/移除當前遊戲至分類標籤」的控制鍵
@@ -392,7 +392,7 @@ _help_plugin_enabled;設定這個外掛是否要啟用
 _help_plugin_sel;設定外掛
 _help_plugins;設定目前存在的外掛
 _help_power_saving;僅在需要時才重新繪製螢幕進而達成省電 (可能造成一些畫面佈局動畫卡頓或在 Linux 系統畫面凍結)
-_help_quick_menu;啟用單按鈕選單切換，無需後退按鈕。還允許在打開的選單之間切換
+_help_quick_menu;設定是否可以使用相同按鈕開啟和關閉選單。還可以在選單之間切換，而無需先關閉它們
 _help_rule_comp;這個過濾規則的比對方式
 _help_rule_delete;刪除這個過濾規則
 _help_rule_target;設定所要過濾的遊戲資訊內容
@@ -437,7 +437,7 @@ Anti-Aliasing;Anti-Aliasing
 Auto-detect emulators?;Auto-detect emulators?
 Group Clones;Group Clones
 Screen Rotation;Screen Rotation
-_help_anisotropic_filtering;Set the anisopic filtering level for textures. This will improve the quality of scaled textures
+_help_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_antialiasing;Set the anti-aliasing level
 _help_emu_sel_auto_detect;This will scan parent folder for known emulators and generate default configurations for every emulator found
 _help_group_clones;Group all clones of a game under one single list entry
