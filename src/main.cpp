@@ -497,23 +497,6 @@ int main(int argc, char *argv[])
 					}
 
 					//
-					// If we're in a custom Displays Menu, go back to the previous display
-					//
-					if ( feSettings.has_custom_displays_menu() )
-					{
-						int display_index = feSettings.get_current_display_index();
-						if ( display_index == -1 && last_display_index != -1 )
-						{
-							display_index = last_display_index;
-							last_display_index = -1;
-							feSettings.set_display( display_index );
-							feVM.load_layout( true );
-							redraw=true;
-							continue;
-						}
-					}
-
-					//
 					// If FE is configured to show displays menu on startup, then the "Back" UI
 					// button goes back to that menu accordingly...
 					//
@@ -640,7 +623,7 @@ int main(int argc, char *argv[])
 						if ( feSettings.get_startup_mode() != FeSettings::ShowDisplaysMenu && feSettings.has_custom_displays_menu() )
 						{
 							int display_index = feSettings.get_current_display_index();
-							if ( display_index == -1 && last_display_index != -1 && !feSettings.get_info_bool( FeSettings::DisplaysMenuExit ))
+							if ( display_index == -1 && last_display_index != -1 )
 							{
 								display_index = last_display_index;
 								last_display_index = -1;
