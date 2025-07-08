@@ -2644,7 +2644,6 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 		case FeRomInfo::System:
 		case FeRomInfo::SystemN:
 		{
-			value = "";
 			const std::string &emu_name = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Emulator );
 			const FeEmulatorInfo *emu = get_emulator( emu_name );
 			if ( emu ) {
@@ -2656,6 +2655,30 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 		case FeRomInfo::Overview:
 			get_game_overview_absolute( filter_index, rom_index, value );
 			return true;
+		case FeRomInfo::FavouriteStar:
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_STAR_ICON : "";
+			return true;
+		case FeRomInfo::FavouriteStarAlt:
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_STAR_ALT_ICON : "";
+			return true;
+		case FeRomInfo::FavouriteHeart:
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_HEART_ICON : "";
+			return true;
+		case FeRomInfo::FavouriteHeartAlt:
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_HEART_ALT_ICON : "";
+			return true;
+		case FeRomInfo::TagList:
+			{
+				FeRomInfo *rom = get_rom_absolute( filter_index, rom_index );
+				if ( !rom ) return true;
+				std::set<std::string> tagset;
+				if ( !rom->get_tags( tagset ) ) return true;
+				std::vector<std::string> tags( tagset.begin(), tagset.end() );
+				std::sort( tags.begin(), tags.end() );
+				std::string delim = as_str( FE_TAG_DELIM ) + as_str( FE_TAG_PREFIX );
+				value = as_str( FE_TAG_PREFIX ) + str_join( tags, delim );
+				return true;
+			}
 		case FeRomInfo::PlayedAgo:
 			value = get_played_ago_display_string( filter_index, rom_index );
 			return true;

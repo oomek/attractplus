@@ -769,7 +769,7 @@ void FeRomList::save_tags()
 	{
 		const std::string id = (*itr).get_id();
 		std::set<std::string> tags;
-		(*itr).get_tags( tags );
+		if ( !(*itr).get_tags( tags ) ) continue;
 
 		for ( std::set<std::string>::iterator it = tags.begin(); it != tags.end(); ++it )
 			tag_roms.insert( std::pair( *it, id ) );

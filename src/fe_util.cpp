@@ -803,6 +803,19 @@ int perform_substitution(
 	return count;
 }
 
+std::string str_join(
+	const std::vector<std::string> &parts,
+	const std::string &delim
+)
+{
+	if ( parts.size() == 0 ) return "";
+	std::vector<std::string>::const_iterator it = parts.begin();
+	std::stringstream value;
+	value << *it;
+	while ( ++it != parts.end() ) value << delim << *it;
+	return value.str();
+}
+
 std::string get_available_filename(
 			const std::string &path,
 			const std::string &base,

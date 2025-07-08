@@ -90,6 +90,11 @@ const char *FeRomInfo::specialStrings[] =
 	"System",
 	"SystemN",
 	"Overview",
+	"TagList",
+	"FavouriteStar",
+	"FavouriteStarAlt",
+	"FavouriteHeart",
+	"FavouriteHeartAlt",
 	"PlayedAgo",
 	NULL
 };
@@ -203,13 +208,15 @@ void FeRomInfo::remove_tag( const std::string &tag )
 
 //
 // Populate given set with individual info tag names
+// - Returns true if the set contains tags
 //
-void FeRomInfo::get_tags( std::set<std::string> &tags )
+bool FeRomInfo::get_tags( std::set<std::string> &tags )
 {
 	size_t pos = 0;
 	std::string tag;
 	while ( token_helper( m_info[Tags], pos, tag, TAGS_SEP_ARG ) )
 		if ( !tag.empty() ) tags.insert( tag );
+	return tags.size() > 0;
 }
 
 //
