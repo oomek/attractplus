@@ -20,21 +20,22 @@
  *
  */
 
-static const int FFT_BUFFER_SIZE = 1024;
-static const int ROLLING_BUFFER_SIZE = 2048;
-static const int FFT_FREQ_MIN = 20;
+static const int FFT_BUFFER_SIZE = 1024 * 8;
+static const int ROLLING_BUFFER_SIZE = FFT_BUFFER_SIZE * 2;
+static const int FFT_FREQ_MIN = 10;
 static const int FFT_FREQ_MAX = 16000;
 static const int RESAMPLE_RATE = 48000;
-static constexpr float FFT_FREQUENCY_LINEARITY = 0.9f; // 0.0 = linear, 1.0 = logarithmic
+static constexpr float FFT_FREQUENCY_LINEARITY = 0.95f; // 0.0 = linear, 1.0 = logarithmic
 static constexpr float FFT_AMPLITUDE_LINEARITY = 1.0f; // 0.0 = linear, 1.0 = logarithmic
-static constexpr float VU_AMPLITUDE_LINEARITY = 0.5f; // 0.0 = linear, 1.0 = logarithmic
+static constexpr float VU_AMPLITUDE_LINEARITY = 0.25f; // 0.0 = linear, 1.0 = logarithmic
 static constexpr float VU_FALL_SPEED = 2.4f;
 static constexpr float FFT_FALL_SPEED = 1.2f;
-static constexpr float DB_SCALE = 60.0f;
+static constexpr float DB_SCALE = 70.0f;
 static constexpr float MAX_GAIN = 128.0f;
 
 #define _USE_MATH_DEFINES
 
+#define MEOW_FFT_IMPLEMENTATION
 #include "fe_audio_fx.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
@@ -74,17 +75,14 @@ bool FeAudioEffectsManager::process_all( const float *input_frames, float *outpu
                                          float media_sample_rate )
 {
 	bool audio_modified = false;
+	m_reset_fx = true;
 
 	// First, copy input to output
-	if ( input_frames && output_frames && frame_count > 0 )
-	{
-		const unsigned int total_samples = frame_count * channel_count;
-		std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
-	}
+	const unsigned int total_samples = frame_count * channel_count;
+	std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
 
 	// Create a temporary buffer for chaining effects
 	std::vector<float> temp_buffer;
-	const unsigned int total_samples = frame_count * channel_count;
 	temp_buffer.resize( total_samples );
 
 	float* current_input = output_frames;
@@ -137,12 +135,18 @@ void FeAudioEffectsManager::update_all()
 
 void FeAudioEffectsManager::reset_all()
 {
-	for ( auto& effect : m_effects )
+	if ( m_reset_fx )
 	{
-		if ( effect )
-			effect->reset();
+		for ( auto& effect : m_effects )
+		{
+			if ( effect )
+				effect->reset();
+		}
+		m_reset_fx = false;
 	}
 }
+
+std::vector<float> FeAudioVisualiser::m_window_lut;
 
 FeAudioVisualiser::FeAudioVisualiser()
 	: m_vu_mono_in( 0.0f ),
@@ -151,42 +155,38 @@ FeAudioVisualiser::FeAudioVisualiser()
 	m_vu_left_out( 0.0f ),
 	m_vu_right_in( 0.0f ),
 	m_vu_right_out( 0.0f ),
-	m_fft_mono_in( FFT_BANDS, 0.0f ),
-	m_fft_mono_out( FFT_BANDS, 0.0f ),
-	m_fft_left_in( FFT_BANDS, 0.0f ),
-	m_fft_left_out( FFT_BANDS, 0.0f ),
-	m_fft_right_in( FFT_BANDS, 0.0f ),
-	m_fft_right_out( FFT_BANDS, 0.0f ),
+	m_fft_mono_in( FFT_BANDS_MAX, 0.0f ),
+	m_fft_mono_out( FFT_BANDS_MAX, 0.0f ),
+	m_fft_left_in( FFT_BANDS_MAX, 0.0f ),
+	m_fft_left_out( FFT_BANDS_MAX, 0.0f ),
+	m_fft_right_in( FFT_BANDS_MAX, 0.0f ),
+	m_fft_right_out( FFT_BANDS_MAX, 0.0f ),
 	m_last_frame_time( sf::Time::Zero ),
-	m_reset_done( false ),
 	m_vu_requested( false ),
 	m_fft_requested( false ),
+	m_vu_request_time( sf::Time::Zero ),
+	m_fft_request_time( sf::Time::Zero ),
+	m_fft_bands( 32 ),
 	m_rolling_buffer_mono( ROLLING_BUFFER_SIZE, 0.0f ),
 	m_rolling_buffer_left( ROLLING_BUFFER_SIZE, 0.0f ),
 	m_rolling_buffer_right( ROLLING_BUFFER_SIZE, 0.0f ),
-	m_window_lut( FFT_BUFFER_SIZE ),
 	m_buffer_write_pos( 0 ),
 	m_buffer_samples_count( 0 ),
-	m_phase_accumulator( 0.0 )
+	m_phase_accumulator( 0.0 ),
+	m_fft_workset( nullptr )
 {
-	// Pre-calculate Blackman window for FFT
-	const float a0 = 0.42f;
-	const float a1 = 0.5f;
-	const float a2 = 0.08f;
-	float coherent_gain_sum = 0.0f;
-	std::vector<float> temp_window( FFT_BUFFER_SIZE );
+	// Initialise Blackman window
+	if ( m_window_lut.empty() )
+		initialise_window_lut();
 
-	for ( unsigned int i = 0; i < FFT_BUFFER_SIZE; ++i )
-	{
-		temp_window[i] = a0 - a1 * std::cos( 2.0f * M_PI * i / ( FFT_BUFFER_SIZE - 1 ))
-		                    + a2 * std::cos( 4.0f * M_PI * i / ( FFT_BUFFER_SIZE - 1 ));
-		coherent_gain_sum += temp_window[i];
-	}
-	const float blackman_coherent_gain = coherent_gain_sum / FFT_BUFFER_SIZE;
-	const float window_scale = ( 2.0f / FFT_BUFFER_SIZE ) * ( 1.0f / blackman_coherent_gain ) * 2.0f; // multiply by 2.0 for SFML's -0.5 to 0.5 range
+	// Initialise MEOW_FFT
+	size_t workset_size = meow_fft_generate_workset_real( FFT_BUFFER_SIZE, nullptr );
+	m_fft_workset_storage.resize( workset_size );
+	m_fft_workset = reinterpret_cast<Meow_FFT_Workset_Real*>( m_fft_workset_storage.data() );
+	meow_fft_generate_workset_real( FFT_BUFFER_SIZE, m_fft_workset );
 
-	for ( unsigned int i = 0; i < FFT_BUFFER_SIZE; ++i )
-		m_window_lut[i] = temp_window[i] * window_scale;
+	// Allocate FFT output buffer
+	m_fft_output_buffer.resize( FFT_BUFFER_SIZE / 2 + 1 );
 }
 
 FeAudioVisualiser::~FeAudioVisualiser()
@@ -211,19 +211,16 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
                                  float media_sample_rate )
 {
 	// It's a passthrough effect
-	if ( input_frames && output_frames && frame_count > 0 && channel_count > 0 )
-	{
-		const unsigned int total_samples = frame_count * channel_count;
-		std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
-	}
+	const unsigned int total_samples = frame_count * channel_count;
+	std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
 
-	bool buffer_ready = resample_and_buffer_audio( input_frames, frame_count, channel_count );
-
-	if ( !buffer_ready )
+	if ( !m_fft_requested && !m_vu_requested )
 		return false;
 
-	if ( !m_vu_requested && !m_fft_requested )
-		return false;
+	resample_and_buffer_audio( input_frames, frame_count, channel_count );
+
+	const size_t MIN_FFT_SIZE = 1024;
+	bool should_process_fft = m_fft_requested && ( m_buffer_samples_count >= MIN_FFT_SIZE );
 
 	// Process VU meters only if requested
 	if ( m_vu_requested )
@@ -234,37 +231,60 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 
 		if ( channel_count == 1 )
 		{
-			for ( size_t i = 0; i < FFT_BUFFER_SIZE; ++i )
+			for ( unsigned int i = 0; i < frame_count; ++i )
 			{
-				size_t read_pos = ( m_buffer_write_pos + ROLLING_BUFFER_SIZE - FFT_BUFFER_SIZE + i ) % ROLLING_BUFFER_SIZE;
-				float sample = std::abs( m_rolling_buffer_mono[read_pos] );
+				float sample = std::abs( input_frames[i] );
 				if ( sample > peak_mono ) peak_mono = sample;
 			}
 			peak_left = peak_right = peak_mono;
 		}
 		else if ( channel_count >= 2 )
 		{
-			for ( size_t i = 0; i < FFT_BUFFER_SIZE; ++i )
+			for ( unsigned int i = 0; i < frame_count; ++i )
 			{
-				size_t read_pos = ( m_buffer_write_pos + ROLLING_BUFFER_SIZE - FFT_BUFFER_SIZE + i ) % ROLLING_BUFFER_SIZE;
-				float left_sample = std::abs( m_rolling_buffer_left[read_pos] );
+				float left_sample = std::abs( input_frames[i * channel_count] );
 				if ( left_sample > peak_left ) peak_left = left_sample;
 
-				float right_sample = std::abs( m_rolling_buffer_right[read_pos] );
+				float right_sample = std::abs( input_frames[i * channel_count + 1] );
 				if ( right_sample > peak_right ) peak_right = right_sample;
 
 				float max_sample = std::max( left_sample, right_sample );
 				if ( max_sample > peak_mono ) peak_mono = max_sample;
 			}
 		}
-		m_vu_mono_in = convert_to_log_scale( peak_mono * 2.0f, VU_AMPLITUDE_LINEARITY ); // multiply by 2.0 for SFML's -0.5 to 0.5 range
-		m_vu_left_in = convert_to_log_scale( peak_left * 2.0f, VU_AMPLITUDE_LINEARITY );
-		m_vu_right_in = convert_to_log_scale( peak_right * 2.0f, VU_AMPLITUDE_LINEARITY );
+
+		// Hold the maximum peak until fall processing
+		// Multiply by 2.0 to scale from SFML's -0.5 to 0.5 range
+		float new_mono = convert_to_log_scale( peak_mono * 2.0f, VU_AMPLITUDE_LINEARITY );
+		float new_left = convert_to_log_scale( peak_left * 2.0f, VU_AMPLITUDE_LINEARITY );
+		float new_right = convert_to_log_scale( peak_right * 2.0f, VU_AMPLITUDE_LINEARITY );
+
+		if ( new_mono > m_vu_mono_in ) m_vu_mono_in = new_mono;
+		if ( new_left > m_vu_left_in ) m_vu_left_in = new_left;
+		if ( new_right > m_vu_right_in ) m_vu_right_in = new_right;
 	}
 
-	// Process FFT only if requested
-	if ( m_fft_requested && channel_count >= 1 )
+	// Process FFT only if requested and we have enough data
+	if ( should_process_fft && channel_count >= 1 )
 	{
+		static int fft_call_counter = 0;
+		fft_call_counter++;
+
+		float sample_rate_factor = m_device_sample_rate / 48000.0f; // Normalise to 48kHz baseline
+		float band_factor = static_cast<float>(m_fft_bands) / 64.0f; // Normalise to 64 bands baseline
+		float computational_load = sample_rate_factor * band_factor;
+
+		int throttle_factor = 1;
+		if ( computational_load > 2.0f )
+			throttle_factor = static_cast<int>( std::min( 4.0f, 1.0f + ( computational_load - 2.0f ) * 1.5f ));
+
+		if ( throttle_factor > 1 && ( fft_call_counter % throttle_factor ) != 0 )
+			return false;
+
+		// Only process if we have enough samples
+		if ( m_buffer_samples_count < FFT_BUFFER_SIZE )
+			return false;
+
 		std::vector<float> temp_mono( FFT_BUFFER_SIZE );
 		std::vector<float> temp_left( FFT_BUFFER_SIZE );
 		std::vector<float> temp_right( FFT_BUFFER_SIZE );
@@ -277,34 +297,38 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 			temp_right[i] = m_rolling_buffer_right[read_pos];
 		}
 
+		// Use temporary vectors for FFT calculation to avoid race conditions
+		std::vector<float> temp_fft_mono( FFT_BANDS_MAX, 0.0f );
+		std::vector<float> temp_fft_left( FFT_BANDS_MAX, 0.0f );
+		std::vector<float> temp_fft_right( FFT_BANDS_MAX, 0.0f );
+
 		if ( channel_count == 1 )
 		{
-			calculate_fft_channel( temp_mono.data(), FFT_BUFFER_SIZE, m_fft_mono_in, RESAMPLE_RATE );
-			m_fft_left_in = m_fft_mono_in;
-			m_fft_right_in = m_fft_mono_in;
+			calculate_fft_channel( temp_mono.data(), FFT_BUFFER_SIZE, temp_fft_mono, RESAMPLE_RATE );
+
+			std::copy( temp_fft_mono.begin(), temp_fft_mono.begin() + m_fft_bands, m_fft_mono_in.begin() );
+			std::copy( temp_fft_mono.begin(), temp_fft_mono.begin() + m_fft_bands, m_fft_left_in.begin() );
+			std::copy( temp_fft_mono.begin(), temp_fft_mono.begin() + m_fft_bands, m_fft_right_in.begin() );
 		}
 		else
 		{
-			calculate_fft_channel( temp_left.data(), FFT_BUFFER_SIZE, m_fft_left_in, RESAMPLE_RATE );
-			calculate_fft_channel( temp_right.data(), FFT_BUFFER_SIZE, m_fft_right_in, RESAMPLE_RATE );
+			calculate_fft_channel( temp_left.data(), FFT_BUFFER_SIZE, temp_fft_left, RESAMPLE_RATE );
+			calculate_fft_channel( temp_right.data(), FFT_BUFFER_SIZE, temp_fft_right, RESAMPLE_RATE );
 
-			for ( int i = 0; i < FFT_BANDS; ++i )
-				m_fft_mono_in[i] = ( m_fft_left_in[i] + m_fft_right_in[i] ) * 0.5f;
+			for ( int i = 0; i < m_fft_bands; ++i )
+				temp_fft_mono[i] = ( temp_fft_left[i] + temp_fft_right[i] ) * 0.5f;
+
+			std::copy( temp_fft_left.begin(), temp_fft_left.begin() + m_fft_bands, m_fft_left_in.begin() );
+			std::copy( temp_fft_right.begin(), temp_fft_right.begin() + m_fft_bands, m_fft_right_in.begin() );
+			std::copy( temp_fft_mono.begin(), temp_fft_mono.begin() + m_fft_bands, m_fft_mono_in.begin() );
 		}
 	}
-
-	m_vu_requested = false;
-	m_fft_requested = false;
-	m_reset_done = false;
 
 	return false;
 }
 
 void FeAudioVisualiser::reset()
 {
-	if ( m_reset_done )
-		return;
-
 	m_vu_mono_in = 0.0f;
 	m_vu_left_in = 0.0f;
 	m_vu_right_in = 0.0f;
@@ -317,10 +341,14 @@ void FeAudioVisualiser::reset()
 	std::fill( m_rolling_buffer_left.begin(), m_rolling_buffer_left.end(), 0.0f );
 	std::fill( m_rolling_buffer_right.begin(), m_rolling_buffer_right.end(), 0.0f );
 
+	std::fill( m_fft_output_buffer.begin(), m_fft_output_buffer.end(), Meow_FFT_Complex{0.0f, 0.0f} );
+
 	m_buffer_write_pos = 0;
 	m_buffer_samples_count = 0;
 	m_phase_accumulator = 0.0;
-	m_reset_done = true;
+
+	m_vu_request_time = sf::Time::Zero;
+	m_fft_request_time = sf::Time::Zero;
 }
 
 void FeAudioVisualiser::update()
@@ -331,29 +359,38 @@ void FeAudioVisualiser::update()
 float FeAudioVisualiser::get_vu_mono() const
 {
 	m_vu_requested = true;
+	m_vu_request_time = m_system_clock.getElapsedTime();
 	return m_vu_mono_out;
 }
 
 float FeAudioVisualiser::get_vu_left() const
 {
 	m_vu_requested = true;
+	m_vu_request_time = m_system_clock.getElapsedTime();
 	return m_vu_left_out;
 }
 
 float FeAudioVisualiser::get_vu_right() const
 {
 	m_vu_requested = true;
+	m_vu_request_time = m_system_clock.getElapsedTime();
 	return m_vu_right_out;
 }
 
 Sqrat::Array FeAudioVisualiser::get_fft_array_mono() const
 {
 	m_fft_requested = true;
+	m_fft_request_time = m_system_clock.getElapsedTime();
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	Sqrat::Table fft_table( vm );
-	for ( size_t i = 0; i < m_fft_mono_out.size(); ++i )
-		fft_table.SetValue( static_cast<int>( i ), m_fft_mono_out[i] );
+	for ( int i = 0; i < FFT_BANDS_MAX; ++i )
+	{
+		if ( i < m_fft_bands )
+			fft_table.SetValue( i, m_fft_mono_out[i] );
+		else
+			fft_table.SetValue( i, 0.0f );
+	}
 
 	return Sqrat::Array( fft_table.GetObject(), vm );
 }
@@ -361,11 +398,17 @@ Sqrat::Array FeAudioVisualiser::get_fft_array_mono() const
 Sqrat::Array FeAudioVisualiser::get_fft_array_left() const
 {
 	m_fft_requested = true;
+	m_fft_request_time = m_system_clock.getElapsedTime();
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	Sqrat::Table fft_table( vm );
-	for ( size_t i = 0; i < m_fft_left_out.size(); ++i )
-		fft_table.SetValue( static_cast<int>( i ), m_fft_left_out[i] );
+	for ( int i = 0; i < FFT_BANDS_MAX; ++i )
+	{
+		if ( i < m_fft_bands )
+			fft_table.SetValue( i, m_fft_left_out[i] );
+		else
+			fft_table.SetValue( i, 0.0f );
+	}
 
 	return Sqrat::Array( fft_table.GetObject(), vm );
 }
@@ -373,11 +416,17 @@ Sqrat::Array FeAudioVisualiser::get_fft_array_left() const
 Sqrat::Array FeAudioVisualiser::get_fft_array_right() const
 {
 	m_fft_requested = true;
+	m_fft_request_time = m_system_clock.getElapsedTime();
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	Sqrat::Table fft_table( vm );
-	for ( size_t i = 0; i < m_fft_right_out.size(); ++i )
-		fft_table.SetValue( static_cast<int>( i ), m_fft_right_out[i] );
+	for ( int i = 0; i < FFT_BANDS_MAX; ++i )
+	{
+		if ( i < m_fft_bands )
+			fft_table.SetValue( i, m_fft_right_out[i] );
+		else
+			fft_table.SetValue( i, 0.0f );
+	}
 
 	return Sqrat::Array( fft_table.GetObject(), vm );
 }
@@ -385,55 +434,104 @@ Sqrat::Array FeAudioVisualiser::get_fft_array_right() const
 void FeAudioVisualiser::calculate_fft_channel( const float* samples, unsigned int sample_count,
                                                std::vector<float>& fft_bands, float sample_rate ) const
 {
-	std::fill( fft_bands.begin(), fft_bands.end(), 0.0f );
+	// Create a temporary input buffer
+	std::vector<float> fft_input( FFT_BUFFER_SIZE, 0.0f );
 
-	if ( sample_count < 256 || sample_count != FFT_BUFFER_SIZE ) return;
-	if ( sample_rate <= 0.0f ) return;
+	// Apply Blackman window
+	for ( unsigned int i = 0; i < sample_count; ++i )
+		fft_input[i] = samples[i] * m_window_lut[i];
 
-	float inv_sample_rate = 1.0f / sample_rate;
+	meow_fft_real( m_fft_workset, fft_input.data(), m_fft_output_buffer.data() );
+
+	// Convert FFT bins to frequency bands
+	// Accumulate energy across frequency ranges
 	float freq_min = static_cast<float>( FFT_FREQ_MIN );
 	float freq_max = static_cast<float>( FFT_FREQ_MAX );
+	float nyquist_freq = sample_rate * 0.5f;
+	float bin_width = sample_rate / FFT_BUFFER_SIZE;
 
-	for ( int band = 0; band < FFT_BANDS; ++band )
+	freq_max = std::min( freq_max, nyquist_freq );
+
+	for ( int band = 0; band < m_fft_bands; ++band )
 	{
-		float freq_ratio = static_cast<float>( band ) / ( FFT_BANDS - 1 );
-		float linear_freq = freq_min + freq_ratio * ( freq_max - freq_min );
-		float log_freq = freq_min * std::pow( freq_max / freq_min, freq_ratio );
-		float centre_freq = linear_freq * ( 1.0f - FFT_FREQUENCY_LINEARITY ) + log_freq * FFT_FREQUENCY_LINEARITY;
+		// Calculate frequency range for this band
+		float band_start_ratio = static_cast<float>( band ) / m_fft_bands;
+		float band_end_ratio = static_cast<float>( band + 1 ) / m_fft_bands;
 
-		centre_freq = std::min( centre_freq, freq_max );
+		// Apply linear/logarithmic blending to band edges
+		float linear_start = freq_min + band_start_ratio * ( freq_max - freq_min );
+		float linear_end = freq_min + band_end_ratio * ( freq_max - freq_min );
+		float log_start = freq_min * std::pow( freq_max / freq_min, band_start_ratio );
+		float log_end = freq_min * std::pow( freq_max / freq_min, band_end_ratio );
 
-		const float angle_step = 2.0f * M_PI * centre_freq * inv_sample_rate;
+		float start_freq = linear_start * ( 1.0f - FFT_FREQUENCY_LINEARITY ) + log_start * FFT_FREQUENCY_LINEARITY;
+		float end_freq = linear_end * ( 1.0f - FFT_FREQUENCY_LINEARITY ) + log_end * FFT_FREQUENCY_LINEARITY;
 
-		// Pre-calculate cos/sin step values for better performance
-		const float cos_step = std::cos( angle_step );
-		const float sin_step = std::sin( angle_step );
-		float real_sum = 0.0f;
-		float imag_sum = 0.0f;
-		float cos_angle = 1.0f; // cos(0)
-		float sin_angle = 0.0f; // sin(0)
+		// Convert to bin indices
+		int start_bin = std::max( 1, static_cast<int>( start_freq / bin_width ) ); // Skip DC bin
+		int end_bin = std::min( static_cast<int>( end_freq / bin_width ), static_cast<int>( m_fft_output_buffer.size() ) - 1 );
 
-		for ( unsigned int i = 0; i < FFT_BUFFER_SIZE; ++i )
+		// Ensure we have at least one bin
+		if ( end_bin <= start_bin ) end_bin = start_bin + 1;
+
+		// Accumulate energy across the frequency range
+		float max_energy = 0.0f;
+		float total_energy = 0.0f;
+		int bin_count = 0;
+
+		for ( int bin = start_bin; bin <= end_bin; ++bin )
 		{
-			float sample_val = samples[i] * m_window_lut[i];
-			real_sum += sample_val * cos_angle;
-			imag_sum += sample_val * sin_angle;
+			float real_part, imag_part;
 
-			// Update angle using recurrence relation
-			float new_cos = cos_angle * cos_step - sin_angle * sin_step;
-			float new_sin = sin_angle * cos_step + cos_angle * sin_step;
+			if ( bin == 0 )
+			{
+				real_part = m_fft_output_buffer[0].r;
+				imag_part = 0.0f;
+			}
+			else if ( bin == FFT_BUFFER_SIZE / 2 )
+			{
+				real_part = m_fft_output_buffer[0].j;
+				imag_part = 0.0f;
+			}
+			else
+			{
+				real_part = m_fft_output_buffer[bin].r;
+				imag_part = m_fft_output_buffer[bin].j;
+			}
 
-			cos_angle = new_cos;
-			sin_angle = new_sin;
+			float magnitude = std::sqrt( real_part * real_part + imag_part * imag_part );
+			float energy = magnitude * magnitude;
+
+			// Track both maximum and total energy
+			if ( energy > max_energy ) max_energy = energy;
+			total_energy += energy;
+			bin_count++;
 		}
 
-		float magnitude = std::sqrt( real_sum * real_sum + imag_sum * imag_sum );
+		// Use a blend of maximum and average energy for better responsiveness
+		float avg_energy = total_energy / bin_count;
+		float blend_factor = 0.7f;
+		float final_energy = max_energy * blend_factor + avg_energy * ( 1.0f - blend_factor );
 
-		// Fast approximation of frequency weighting
-		if ( centre_freq > freq_min )
-			magnitude *= 1.0f + ( centre_freq / freq_max ) * 6.0f;
+		// Convert back to magnitude
+		float band_magnitude = std::sqrt( final_energy );
 
-		fft_bands[band] = convert_to_log_scale( magnitude, FFT_AMPLITUDE_LINEARITY );
+		// Scale the output
+		band_magnitude *= 1.0f / FFT_BUFFER_SIZE;
+
+		// Frequency weighting
+		float center_freq = ( start_freq + end_freq ) * 0.5f;
+		if ( center_freq > freq_min )
+		{
+			float octaves = std::log2( center_freq / freq_min );
+			float db_per_octave = 1.0f;
+			float db_compensation = octaves * db_per_octave;
+			float linear_compensation = std::pow( 10.0f, db_compensation / 20.0f );
+			band_magnitude *= linear_compensation / db_per_octave;
+		}
+
+		float scaled_result = convert_to_log_scale( band_magnitude, FFT_AMPLITUDE_LINEARITY );
+		fft_bands[band] = scaled_result;
 	}
 }
 
@@ -546,11 +644,27 @@ void FeAudioVisualiser::update_fall() const
 	apply_vu_fall( m_vu_left_in, m_vu_left_out, vu_fall_amount );
 	apply_vu_fall( m_vu_right_in, m_vu_right_out, vu_fall_amount );
 
-	for ( int i = 0; i < FFT_BANDS; ++i )
+	m_vu_mono_in = 0.0f;
+	m_vu_left_in = 0.0f;
+	m_vu_right_in = 0.0f;
+
+	// Clear flags if 100ms has passed since last request
+	const float REQUEST_TIMEOUT_MS = 100.0f;
+	float vu_time_since_request = ( current_time - m_vu_request_time ).asMilliseconds();
+	float fft_time_since_request = ( current_time - m_fft_request_time ).asMilliseconds();
+
+	if ( vu_time_since_request > REQUEST_TIMEOUT_MS )
+		m_vu_requested = false;
+
+	if ( fft_time_since_request > REQUEST_TIMEOUT_MS )
+		m_fft_requested = false;
+
+	for ( int i = 0; i < m_fft_bands; ++i )
 	{
 		apply_vu_fall( m_fft_mono_in[i], m_fft_mono_out[i], fft_fall_amount );
 		apply_vu_fall( m_fft_left_in[i], m_fft_left_out[i], fft_fall_amount );
-		apply_vu_fall( m_fft_right_in[i], m_fft_right_out[i], fft_fall_amount );	}
+		apply_vu_fall( m_fft_right_in[i], m_fft_right_out[i], fft_fall_amount );
+	}
 }
 
 FeAudioNormaliser::FeAudioNormaliser()
@@ -675,9 +789,9 @@ bool FeAudioDCFilter::process( const float *input_frames, float *output_frames,
 {
 	if ( m_coefficient == 0.0f )
 	{
-		const float rc = 1.0f / ( 2.0f * M_PI * m_cutoff_freq );
-		const float dt = 1.0f / m_device_sample_rate;
-		m_coefficient = rc / ( rc + dt );
+		// Calculate one-pole one-zero DC filter coefficient
+		const float omega = 2.0f * M_PI * m_cutoff_freq / m_device_sample_rate;
+		m_coefficient = std::exp( -omega );
 	}
 
 	if ( m_prev_input.size() != channel_count )
@@ -686,14 +800,15 @@ bool FeAudioDCFilter::process( const float *input_frames, float *output_frames,
 		m_prev_output.resize( channel_count, 0.0f );
 	}
 
-	// Apply 1-pole highpass filter
+	// Apply one-pole one-zero DC filter
+	// y[n] = x[n] - x[n-1] + coefficient * y[n-1]
 	for ( unsigned int frame = 0; frame < frame_count; ++frame )
 	{
 		for ( unsigned int ch = 0; ch < channel_count; ++ch )
 		{
 			const unsigned int sample_idx = frame * channel_count + ch;
 			const float input_sample = input_frames[sample_idx];
-			const float output_sample = m_coefficient * ( m_prev_output[ch] + input_sample - m_prev_input[ch] );
+			const float output_sample = input_sample - m_prev_input[ch] + m_coefficient * m_prev_output[ch];
 			m_prev_input[ch] = input_sample;
 			m_prev_output[ch] = output_sample;
 			output_frames[sample_idx] = output_sample;
@@ -710,15 +825,36 @@ void FeAudioDCFilter::update()
 
 void FeAudioDCFilter::reset()
 {
-	bool needs_reset = false;
+	std::fill( m_prev_input.begin(), m_prev_input.end(), 0.0f );
+	std::fill( m_prev_output.begin(), m_prev_output.end(), 0.0f );
+	m_coefficient = 0.0f;
+}
 
-	for ( size_t i = 0; i < m_prev_input.size() && !needs_reset; ++i )
-		if ( std::abs( m_prev_input[i] ) > 0.1f || std::abs( m_prev_output[i] ) > 0.1f )
-			needs_reset = true;
+void FeAudioVisualiser::initialise_window_lut()
+{
+	// Pre-calculate Blackman window
+	const float a0 = 0.42f;
+	const float a1 = 0.5f;
+	const float a2 = 0.08f;
+	float coherent_gain_sum = 0.0f;
+	std::vector<float> temp_window( FFT_BUFFER_SIZE );
 
-	if ( needs_reset )
+	for ( int i = 0; i < FFT_BUFFER_SIZE; ++i )
 	{
-		std::fill( m_prev_input.begin(), m_prev_input.end(), 0.0f );
-		std::fill( m_prev_output.begin(), m_prev_output.end(), 0.0f );
+		temp_window[i] = a0 - a1 * std::cos( 2.0f * M_PI * i / ( FFT_BUFFER_SIZE - 1 ))
+		                    + a2 * std::cos( 4.0f * M_PI * i / ( FFT_BUFFER_SIZE - 1 ));
+		coherent_gain_sum += temp_window[i];
 	}
+	const float blackman_coherent_gain = coherent_gain_sum / FFT_BUFFER_SIZE;
+	const float window_scale = 1.0f / blackman_coherent_gain;
+
+	m_window_lut.resize( FFT_BUFFER_SIZE );
+	for ( int i = 0; i < FFT_BUFFER_SIZE; ++i )
+		m_window_lut[i] = temp_window[i] * window_scale;
+}
+
+void FeAudioVisualiser::set_fft_bands( int count )
+{
+	count = std::max( 2, std::min( count, FFT_BANDS_MAX ));
+	m_fft_bands = count;
 }

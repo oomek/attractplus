@@ -1645,7 +1645,7 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 #endif
 }
 
-FeAudioVisualiser* FeMedia::get_audio_visualiser()
+FeAudioVisualiser* FeMedia::get_audio_visualiser() const
 {
 	return m_audio_effects.get_effect<FeAudioVisualiser>();
 }
@@ -1699,4 +1699,20 @@ Sqrat::Array FeMedia::get_fft_array_right()
 	// Return empty array if no visualiser
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	return Sqrat::Array( vm );
+}
+
+void FeMedia::set_fft_bands( int count )
+{
+	auto* visualiser = get_audio_visualiser();
+	if ( visualiser )
+		visualiser->set_fft_bands( count );
+}
+
+int FeMedia::get_fft_bands() const
+{
+	auto* visualiser = get_audio_visualiser();
+	if ( visualiser )
+		return visualiser->get_fft_bands();
+
+	return 32;
 }

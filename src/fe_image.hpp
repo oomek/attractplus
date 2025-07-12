@@ -367,6 +367,8 @@ public:
 	Sqrat::Array get_fft_array_mono();
 	Sqrat::Array get_fft_array_left();
 	Sqrat::Array get_fft_array_right();
+	void set_fft_bands( int count );
+	int get_fft_bands() const;
 
 	void set_auto_width( bool w );
 	void set_auto_height( bool h );
