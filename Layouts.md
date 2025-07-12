@@ -1436,9 +1436,10 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `vu` 🔶 - _[video only]_ Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` 🔶 - _[video only]_ Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` 🔶 - _[video only]_ Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
--  `fft` 🔶 - _[video only]_ Get the Fast Fourier Transform data for mono audio from video content as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_left` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_right` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft` 🔶 - _[video only]_ Get the Fast Fourier Transform data for mono audio as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft_left` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the left audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft_right` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the right audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft_bands` 🔶 - _[video only]_ Get/set the Fast Fourier Transform band count. Range is `[2...128]` Default value is `32`.
 -  `repeat` 🔶 - Enables texture repeat when set to `true`. Default value is `false`. To see the effect `subimg_width/height` must be set larger than `texture_width/height`
 -  `border_scale` 🔶 - Get/set the scaling factor of the border defined by `set_border()`. Default value is `1.0`.
 -  `clear` 🔶 - _[surface only]_ When set to `false` surface is not cleared before the next frame. This can be used for various accumulative effects.
@@ -1772,9 +1773,10 @@ The class representing an audio track. Instances of this class are returned by t
 -  `vu` - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
--  `fft` - Get the Fast Fourier Transform data for mono audio as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_left` - Get the Fast Fourier Transform data for the left audio channel as an array of 32 values. Range is `[0.0...1.0]`.
--  `fft_right` - Get the Fast Fourier Transform data for the right audio channel as an array of 32 values. Range is `[0.0...1.0]`.
+-  `fft` - Get the Fast Fourier Transform data for mono audio as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft_left` - Get the Fast Fourier Transform data for the left audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft_right` - Get the Fast Fourier Transform data for the right audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft_bands` - Get/set the Fast Fourier Transform band count. Range is `[2...128]` Default value is `32`.
 
 **Member Functions**
 
