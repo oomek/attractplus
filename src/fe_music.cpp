@@ -261,7 +261,7 @@ void FeMusic::tick()
 	m_audio_effects.update_all();
 }
 
-FeAudioVisualiser* FeMusic::get_audio_visualiser()
+FeAudioVisualiser* FeMusic::get_audio_visualiser() const
 {
 	return m_audio_effects.get_effect<FeAudioVisualiser>();
 }
@@ -294,4 +294,14 @@ Sqrat::Array FeMusic::get_fft_array_left()
 Sqrat::Array FeMusic::get_fft_array_right()
 {
 	return get_audio_visualiser()->get_fft_array_right();
+}
+
+void FeMusic::set_fft_bands( int count )
+{
+	get_audio_visualiser()->set_fft_bands( count );
+}
+
+int FeMusic::get_fft_bands() const
+{
+	return get_audio_visualiser()->get_fft_bands();
 }

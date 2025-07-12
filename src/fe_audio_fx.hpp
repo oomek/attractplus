@@ -29,6 +29,8 @@
 #include <sqrat.h>
 #include <cmath>
 
+#include "meow_fft.h"
+
 class FeAudioEffect
 {
 public:
@@ -72,13 +74,14 @@ public:
 
 private:
 	std::vector<std::unique_ptr<FeAudioEffect>> m_effects;
+	bool m_reset_fx = false;
 };
 
 
 class FeAudioDCFilter : public FeAudioEffect
 {
 public:
-	FeAudioDCFilter( float cutoff_freq = 20.0f );
+	FeAudioDCFilter( float cutoff_freq = 5.0f );
 	~FeAudioDCFilter() override = default;
 
 	bool process( const float *input_frames, float *output_frames,
@@ -118,9 +121,14 @@ public:
 	Sqrat::Array get_fft_array_left() const;
 	Sqrat::Array get_fft_array_right() const;
 
-	static const int FFT_BANDS = 32;
+	static const int FFT_BANDS_MAX = 128;
+
+	void set_fft_bands( int count );
+	int get_fft_bands() const { return m_fft_bands; }
 
 private:
+	static void initialise_window_lut();
+
 	// VU meter data
 	mutable float m_vu_mono_in;
 	mutable float m_vu_mono_out;
@@ -139,19 +147,25 @@ private:
 
 	mutable sf::Time m_last_frame_time;
 	mutable sf::Clock m_system_clock;
-	mutable bool m_reset_done;
-
 	mutable bool m_vu_requested;
 	mutable bool m_fft_requested;
+	mutable sf::Time m_vu_request_time;
+	mutable sf::Time m_fft_request_time;
+	int m_fft_bands;
 
 	// Rolling buffer and resampling for FFT
-	mutable std::vector<float> m_rolling_buffer_mono;
-	mutable std::vector<float> m_rolling_buffer_left;
-	mutable std::vector<float> m_rolling_buffer_right;
-	mutable std::vector<float> m_window_lut;
-	mutable size_t m_buffer_write_pos;
-	mutable size_t m_buffer_samples_count;
-	mutable double m_phase_accumulator;
+	std::vector<float> m_rolling_buffer_mono;
+	std::vector<float> m_rolling_buffer_left;
+	std::vector<float> m_rolling_buffer_right;
+	static std::vector<float> m_window_lut;
+	size_t m_buffer_write_pos;
+	size_t m_buffer_samples_count;
+	double m_phase_accumulator;
+
+	// Meow FFT worksets and buffers
+	std::vector<uint8_t> m_fft_workset_storage;
+	Meow_FFT_Workset_Real* m_fft_workset;
+	mutable std::vector<Meow_FFT_Complex> m_fft_output_buffer;
 
 	void calculate_fft_channel( const float *samples , unsigned int sample_count ,
 	                            std::vector<float> &fft_bands , float sample_rate ) const;
@@ -177,9 +191,9 @@ public:
 	void set_media_volume( float volume );
 
 private:
-	mutable float m_current_gain = 1.0f;
-	mutable bool m_target_reached = false;
-	mutable size_t m_startup_delay = 0;
+	float m_current_gain = 1.0f;
+	bool m_target_reached = false;
+	size_t m_startup_delay = 0;
 	float m_media_volume = 1.0f;
 };
 
