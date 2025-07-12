@@ -1875,8 +1875,8 @@ Sqrat::Array FeImage::get_fft_array_mono()
 			return media->get_fft_array_mono();
 	}
 
-	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS );
-	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS; ++i )
+	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS_MAX );
+	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS_MAX; ++i )
 		arr.SetValue( i, 0.0f );
 
 	return arr;
@@ -1892,8 +1892,8 @@ Sqrat::Array FeImage::get_fft_array_left()
 			return media->get_fft_array_left();
 	}
 
-	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS );
-	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS; ++i )
+	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS_MAX );
+	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS_MAX; ++i )
 		arr.SetValue( i, 0.0f );
 
 	return arr;
@@ -1909,8 +1909,8 @@ Sqrat::Array FeImage::get_fft_array_right()
 			return media->get_fft_array_right();
 	}
 
-	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS );
-	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS; ++i )
+	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS_MAX );
+	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS_MAX; ++i )
 		arr.SetValue( i, 0.0f );
 
 	return arr;
@@ -2073,4 +2073,28 @@ void FeImage::set_border_scale( float s )
 float FeImage::get_border_scale() const
 {
 	return m_sprite.getBorderScale();
+}
+
+void FeImage::set_fft_bands( int count )
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			media->set_fft_bands( count );
+	}
+}
+
+int FeImage::get_fft_bands() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
+	if ( tc )
+	{
+		FeMedia *media = tc->get_media();
+		if ( media )
+			return media->get_fft_bands();
+	}
+
+	return 32;
 }

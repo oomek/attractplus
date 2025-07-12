@@ -106,7 +106,10 @@ public:
 	Sqrat::Array get_fft_array_left();
 	Sqrat::Array get_fft_array_right();
 
-	FeAudioVisualiser* get_audio_visualiser();
+	void set_fft_bands(int count);
+	int get_fft_bands() const;
+
+	FeAudioVisualiser* get_audio_visualiser() const;
 
 protected:
 	// overrides from base class

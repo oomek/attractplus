@@ -76,7 +76,7 @@ public:
 
 	void tick();
 
-	FeAudioVisualiser* get_audio_visualiser();
+	FeAudioVisualiser* get_audio_visualiser() const;
 
 	float get_vu_mono();
 	float get_vu_left();
@@ -84,6 +84,8 @@ public:
 	Sqrat::Array get_fft_array_mono();
 	Sqrat::Array get_fft_array_left();
 	Sqrat::Array get_fft_array_right();
+	void set_fft_bands( int count );
+	int get_fft_bands() const;
 };
 
 #endif // FE_MUSIC_HPP

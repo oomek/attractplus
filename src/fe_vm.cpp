@@ -773,6 +773,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("fft"), &FeImage::get_fft_array_mono )
 		.Prop(_SC("fft_left"), &FeImage::get_fft_array_left )
 		.Prop(_SC("fft_right"), &FeImage::get_fft_array_right )
+		.Prop(_SC("fft_bands"), &FeImage::get_fft_bands, &FeImage::set_fft_bands )
 		.Prop(_SC("border_scale"), &FeImage::get_border_scale, &FeImage::set_border_scale )
 		.Func(_SC("set_anchor"), &FeImage::set_anchor )
 		// "set_origin" function deprecated as of 3.0.5, use the set_rotation_origin function instead
@@ -991,6 +992,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("fft"), &FeMusic::get_fft_array_mono )
 		.Prop( _SC("fft_left"), &FeMusic::get_fft_array_left )
 		.Prop( _SC("fft_right"), &FeMusic::get_fft_array_right )
+		.Prop( _SC("fft_bands"), &FeMusic::get_fft_bands, &FeMusic::set_fft_bands )
 		.Func( _SC("get_metadata"), &FeMusic::get_metadata )
 	);
 
