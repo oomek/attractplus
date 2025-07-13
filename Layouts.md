@@ -1538,8 +1538,8 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
--  `outline` 🔶 - Get/set the thickness of the outline applied to text. Value is set in pixels and can be fractional. Default value is `0.0`
--  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background. Value is set in pixels and can be fractional. Default value is `0.0`
+-  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
+-  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background. Default value is `0.0`
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
@@ -1622,7 +1622,15 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on the value of `height`/`rows`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
+-  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
+-  `sel_outline` 🔶 - Get/set the thickness of the outline applied to the selection text. Default value is `0.0`.
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
+   -  `Style.Regular` (default)
+   -  `Style.Bold`
+   -  `Style.Italic`
+   -  `Style.Underlined`
+   -  `Style.StrikeThrough` 🔶
+-  `sel_style` - Get/set the selection text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
    -  `Style.Italic`
@@ -1646,12 +1654,6 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Align.MiddleLeft`
    -  `Align.MiddleRight`
    -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
--  `sel_style` - Get/set the selection text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
-   -  `Style.Regular` (default)
-   -  `Style.Bold`
-   -  `Style.Italic`
-   -  `Style.Underlined`
-   -  `Style.StrikeThrough` 🔶
 -  `sel_mode` - Get/set the selection mode. Controls how the ListBox behaves when navigating. Can be one of the following values:
    -  `Selection.Static` (default) - The selection stays in the centre of the ListBox. The list scrolls
    -  `Selection.Moving` - The selection moves and the list scrolls when margin is reached. Margin can be adjusted with `sel_margin`
@@ -1670,6 +1672,8 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for the text background. Range is `[0...255]`.
 -  `set_sel_rgb( r, g, b )` - Set the red, green and blue colour values for the selection text. Range is `[0...255]`.
 -  `set_selbg_rgb( r, g, b )` - Set the red, green and blue colour values for the selection background. Range is `[0...255]`.
+-  `set_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the text outline. Range is `[0...255]`.
+-  `set_sel_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the selection text outline. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the listbox position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the listbox position and size (in layout coordinates).
 
@@ -1691,7 +1695,7 @@ The class representing a rectangle in Attract-Mode. Instances of this class are 
 -  `green` - Get/set green colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `blue` - Get/set blue colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `alpha` - Get/set alpha level for the rectangle. Range is `[0...255]`. Default value is `255`.
--  `outline` Get/set the thickness of the outline applied to the rectangle. Value is set in pixels and can be fractional. Default value is `0.0`
+-  `outline` - Get/set the thickness of the outline applied to the rectangle. Default value is `0.0`
 -  `outline_red` - Get/set red colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `outline_green` - Get/set green colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `outline_blue` - Get/set blue colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.

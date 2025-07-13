@@ -34,6 +34,8 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	: FeBasePresentable( p ),
 	m_selColour( sf::Color::Yellow ),
 	m_selBg( sf::Color::Blue ),
+	m_selOutlineColour( sf::Color::Black ),
+	m_selOutlineThickness( 0 ),
 	m_selStyle( sf::Text::Regular ),
 	m_rows( 11 ),
 	m_userCharSize( 0 ),
@@ -67,6 +69,8 @@ FeListBox::FeListBox(
 	m_base_text( font, colour, bgcolour, charactersize, FeTextPrimitive::Centre ),
 	m_selColour( selcolour ),
 	m_selBg( selbgcolour ),
+	m_selOutlineColour( sf::Color::Black ),
+	m_selOutlineThickness( 0 ),
 	m_selStyle( sf::Text::Regular ),
 	m_rows( rows ),
 	m_userCharSize( charactersize ),
@@ -129,6 +133,79 @@ sf::Color FeListBox::getColor() const
 	return m_base_text.getColor();
 }
 
+void FeListBox::set_outline( float t )
+{
+	m_base_text.setOutlineThickness( t );
+	FePresent::script_do_update( this );
+}
+
+float FeListBox::get_outline()
+{
+	return m_base_text.getOutlineThickness();
+}
+
+void FeListBox::set_outline_rgb(int r, int g, int b )
+{
+	float a = getOutlineColor().a;
+	setOutlineColor( sf::Color( r, g, b, a ? a : 255 ) );
+}
+
+sf::Color FeListBox::getOutlineColor() const
+{
+	return m_base_text.getOutlineColor();
+}
+
+void FeListBox::setOutlineColor( sf::Color c )
+{
+	if ( c == getOutlineColor() )
+		return;
+
+	m_base_text.setOutlineColor( c );
+	FePresent::script_flag_redraw();
+}
+
+void FeListBox::set_sel_outline( float t )
+{
+	if ( t == m_selOutlineThickness )
+		return;
+
+	m_selOutlineThickness = t;
+	FeTextPrimitive *sel;
+	if ( getSelectedText( sel ) ) sel->setOutlineThickness( m_selOutlineThickness );
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
+}
+
+float FeListBox::get_sel_outline()
+{
+	return m_selOutlineThickness;
+}
+
+void FeListBox::set_sel_outline_rgb(int r, int g, int b )
+{
+	float a = getSelOutlineColor().a;
+	setSelOutlineColor( sf::Color( r, g, b, a ? a : 255 ) );
+}
+
+sf::Color FeListBox::getSelOutlineColor() const
+{
+	return m_selOutlineColour;
+}
+
+void FeListBox::setSelOutlineColor( sf::Color c )
+{
+	if ( c == m_selOutlineColour )
+		return;
+
+	m_selOutlineColour = c;
+	FeTextPrimitive *sel;
+	if ( getSelectedText( sel ) ) sel->setOutlineColor( m_selOutlineColour );
+
+	if ( m_scripted )
+		FePresent::script_flag_redraw();
+}
+
 void FeListBox::init_dimensions()
 {
 	sf::Vector2f size = getSize();
@@ -167,6 +244,8 @@ void FeListBox::update_styles()
 {
 	sf::Color color = m_base_text.getColor();
 	sf::Color bgColor = m_base_text.getBgColor();
+	sf::Color outlineColour = m_base_text.getOutlineColor();
+	float outlineThickness = m_base_text.getOutlineThickness();
 	int style = m_base_text.getStyle();
 
 	for ( int i=0; i< m_rows; i++ )
@@ -175,12 +254,16 @@ void FeListBox::update_styles()
 		{
 			m_texts[i].setColor( m_selColour );
 			m_texts[i].setBgColor( m_selBg );
+			m_texts[i].setOutlineColor( m_selOutlineColour );
+			m_texts[i].setOutlineThickness( m_selOutlineThickness );
 			m_texts[i].setStyle( m_selStyle );
 			continue;
 		}
 
 		m_texts[i].setColor( color );
 		m_texts[i].setBgColor( bgColor );
+		m_texts[i].setOutlineColor( outlineColour );
+		m_texts[i].setOutlineThickness( outlineThickness );
 		m_texts[i].setStyle( style );
 	}
 }
