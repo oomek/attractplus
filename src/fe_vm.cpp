@@ -856,6 +856,8 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("selbg_green"), &FeListBox::get_selbgg, &FeListBox::set_selbgg )
 		.Prop(_SC("selbg_blue"), &FeListBox::get_selbgb, &FeListBox::set_selbgb )
 		.Prop(_SC("selbg_alpha"), &FeListBox::get_selbga, &FeListBox::set_selbga )
+		.Prop(_SC("outline"), &FeListBox::get_outline, &FeListBox::set_outline )
+		.Prop(_SC("sel_outline"), &FeListBox::get_sel_outline, &FeListBox::set_sel_outline )
 		.Prop(_SC("rows"), &FeListBox::get_rows, &FeListBox::set_rows )
 		.Prop(_SC("list_size"), &FeListBox::get_list_size )
 		// "charsize" deprecated, use the char_size property instead
@@ -878,6 +880,8 @@ bool FeVM::on_new_layout()
 		.Func( _SC("set_bg_rgb"), &FeListBox::set_bg_rgb )
 		.Func( _SC("set_sel_rgb"), &FeListBox::set_sel_rgb )
 		.Func( _SC("set_selbg_rgb"), &FeListBox::set_selbg_rgb )
+		.Func( _SC("set_outline_rgb"), &FeListBox::set_outline_rgb )
+		.Func( _SC("set_sel_outline_rgb"), &FeListBox::set_sel_outline_rgb )
 	);
 
 	fe.Bind( _SC("Rectangle"), DerivedClass<FeRectangle, FeBasePresentable, NoConstructor>()

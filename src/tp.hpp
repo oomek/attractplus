@@ -90,7 +90,7 @@ public:
 	void setOutlineThickness( float );
 	float getOutlineThickness();
 	void setTextScale( const sf::Vector2f & );
-    void setFrom( const FeTextPrimitive &c );
+	void setFrom( const FeTextPrimitive &c );
 
 	const sf::Font *getFont() const;
 	sf::Color getColor() const;
@@ -132,7 +132,7 @@ private:
 	int m_lines;
 	int m_lines_total;
 	int m_margin;
-	int m_outline;
+	float m_outline;
 	float m_line_spacing;
 	bool m_word_wrap;
 

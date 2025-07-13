@@ -74,6 +74,8 @@ public:
 	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
 	float getRotation() const;
 	sf::Color getColor() const;
+	sf::Color getOutlineColor() const;
+	sf::Color getSelOutlineColor() const;
 
 	int getIndexOffset() const;
 	void setIndexOffset( int );
@@ -81,6 +83,8 @@ public:
 	void setFilterOffset( int );
 
 	void setColor( sf::Color );
+	void setOutlineColor( sf::Color );
+	void setSelOutlineColor( sf::Color );
 	void setBgColor( sf::Color );
 	void setSelColor( sf::Color );
 	void setSelBgColor( sf::Color );
@@ -159,6 +163,14 @@ public:
 	const char *get_font();
 	const char *get_format_string();
 
+	void set_outline( float );
+	void set_outline_rgb( int, int, int );
+	void set_sel_outline_rgb( int, int, int );
+	void set_sel_outline( float );
+
+	float get_outline();
+	float get_sel_outline();
+
 	void set_selbgr(int r);
 	void set_selbgg(int g);
 	void set_selbgb(int b);
@@ -178,6 +190,8 @@ private:
 	std::string m_format_string;
 	sf::Color m_selColour;
 	sf::Color m_selBg;
+	sf::Color m_selOutlineColour;
+	float m_selOutlineThickness;
 	int m_selStyle;
 	int m_rows;
 	int m_userCharSize;
