@@ -587,7 +587,7 @@ bool FeWindow::run()
 
 #if defined(USE_DRM)
 	FePresent *fep = FePresent::script_get_fep();
-	fep->clear();
+	fep->clear_global();
 
 	close();
 	delete m_window;
