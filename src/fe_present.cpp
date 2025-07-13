@@ -418,9 +418,24 @@ void FePresent::init_monitors()
 
 FePresent::~FePresent()
 {
-	clear();
+	clear_global();
 }
 
+//
+// Clears common resources as well as layout-specific ones
+// - DRM builds close the window before launching the emulator
+// - This requires the release of additional resources
+//
+void FePresent::clear_global()
+{
+	clear();
+	delete m_defaultFont;
+	m_defaultFont = NULL;
+}
+
+//
+// Clear layout-specific resources
+//
 void FePresent::clear()
 {
 	//
@@ -510,10 +525,6 @@ void FePresent::clear()
 	m_layoutScale.y = 1.0;
 
 	FeBlend::clear_default_shaders();
-
-	delete m_defaultFont;
-	m_defaultFont = NULL;
-	m_layoutFont = NULL;
 
 	set_mouse_pointer( false );
 

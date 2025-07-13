@@ -216,6 +216,7 @@ public:
 	virtual ~FePresent( void );
 
 	virtual void clear();
+	virtual void clear_global();
 
 	void init_monitors();
 
