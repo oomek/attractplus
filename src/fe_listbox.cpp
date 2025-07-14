@@ -45,7 +45,8 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_selected_row( 0 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
-	m_custom_sel( -1 )
+	m_custom_sel( -1 ),
+	m_has_custom_list( false )
 {
 	m_base_text.setPosition( sf::Vector2f( x, y ) );
 	m_base_text.setSize( sf::Vector2f( w, h ) );
