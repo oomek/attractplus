@@ -92,9 +92,10 @@ public:
 
 	void setRotation( float );
 
-	// Set an empty list here to reset control from "custom text" mode
+	// Call `removeCustomText` to reset control from "custom text" mode
 	void setCustomText( const int index, const std::vector<std::string> &list );
 	void setCustomSelection( const int index );
+	void removeCustomText();
 
 	int getRowCount() const;
 
@@ -197,7 +198,7 @@ private:
 	// Contains the selection index of m_custom_list, if the list is not empty.
 	// Otherwise the control gets automagically updated with game info whenever the selection changes.
 	int m_custom_sel;
-	bool has_custom_list() { return m_custom_list.size() > 0; }
+	bool m_has_custom_list;
 
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 };
