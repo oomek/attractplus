@@ -1382,7 +1382,7 @@ int FeOverlay::display_config_dialog(
 	m->last_sel = ctx.curr_sel;
 
 	for ( size_t i = 0; i < ctx.right_list.size(); ++i )
-		swap_yes_no_to_pill_glyphs( ctx.right_list, ctx.opt_list, i );
+		swap_bool_to_pill_glyphs( ctx.right_list, ctx.opt_list, i );
 
 	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
@@ -1423,7 +1423,7 @@ int FeOverlay::display_config_dialog(
 			layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
 
 			for ( size_t i = 0; i < ctx.right_list.size(); ++i )
-				swap_yes_no_to_pill_glyphs( ctx.right_list, ctx.opt_list, i );
+				swap_bool_to_pill_glyphs( ctx.right_list, ctx.opt_list, i );
 
 			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
@@ -1456,7 +1456,7 @@ int FeOverlay::display_config_dialog(
 		}
 
 		int t = ctx.curr_opt().type;
-		if ( t == Opt::LIST && is_yes_no_list( ctx.curr_opt().values_list ) )
+		if ( t == Opt::LIST && is_bool_list( ctx.curr_opt().values_list ) )
 			t = Opt::TOGGLE;
 
 		switch ( t )
@@ -1625,7 +1625,7 @@ int FeOverlay::display_config_dialog(
 			ctx.curr_opt().set_value( new_value );
 			ctx.right_list[ ctx.curr_sel ] = ctx.curr_opt().get_value();
 
-			swap_yes_no_to_pill_glyphs( ctx.right_list, ctx.opt_list, ctx.curr_sel );
+			swap_bool_to_pill_glyphs( ctx.right_list, ctx.opt_list, ctx.curr_sel );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 			layout_focus( sdialog, vdialog, LayoutFocus::Edit );
@@ -2226,24 +2226,44 @@ bool FeOverlay::common_exit()
 	return false;
 }
 
-// Returns true if the give list has options "Yes" and "No" in any order
-const bool FeOverlay::is_yes_no_list( const std::vector<std::string> &values ) const
+// Returns > 0 if value is "truthy"
+const int FeOverlay::is_truthy( const std::string value )
+{
+	if ( icompare( value, m_feSettings.get_translation( "Yes" )) == 0 ) return 1;
+	if ( icompare( value, m_feSettings.get_translation( "On" )) == 0 ) return 2;
+	if ( icompare( value, m_feSettings.get_translation( "True" )) == 0 ) return 3;
+	return 0;
+}
+
+// Returns > 0 if value is "falsy"
+const int FeOverlay::is_falsy( const std::string value )
+{
+	if ( icompare( value, m_feSettings.get_translation( "No" )) == 0 ) return 1;
+	if ( icompare( value, m_feSettings.get_translation( "Off" )) == 0 ) return 2;
+	if ( icompare( value, m_feSettings.get_translation( "False" )) == 0 ) return 3;
+	return 0;
+}
+
+// Returns true if the given list has a matching pair of truthy/falsy options in any order
+const bool FeOverlay::is_bool_list( const std::vector<std::string> &values )
 {
 	if ( values.size() != 2 ) return false;
-	std::string yes = m_feSettings.get_translation( "Yes" );
-	std::string no = m_feSettings.get_translation( "No" );
-	return ( values[0] == yes && values[1] == no )
-		|| ( values[0] == no && values[1] == yes );
+	int v0 = is_truthy( values[0] );
+	int v1 = is_falsy( values[1] );
+	if ( !v0 || !v1 )
+	{
+		v0 = is_falsy( values[0] );
+		v1 = is_truthy( values[1] );
+	}
+	return v0 && v1 && ( v0 == v1 );
 }
 
 // Replaces right list value with pill glyph
-void FeOverlay::swap_yes_no_to_pill_glyphs( std::vector<std::string> &right_list, const std::vector<FeMenuOpt> &opt_list, int idx )
+void FeOverlay::swap_bool_to_pill_glyphs( std::vector<std::string> &right_list, const std::vector<FeMenuOpt> &opt_list, int idx )
 {
-	if ( !is_yes_no_list( opt_list[idx].values_list )) return;
-	std::string yes = m_feSettings.get_translation( "Yes" );
-	std::string no = m_feSettings.get_translation( "No" );
-	if ( right_list[ idx ] == yes )
+	if ( !is_bool_list( opt_list[idx].values_list )) return;
+	if ( is_truthy( right_list[ idx ] ) )
 		right_list[ idx ] = "☒";
-	else if ( right_list[ idx ] == no )
+	else if ( is_falsy( right_list[ idx ] ) )
 		right_list[ idx ] = "☐";
 }
