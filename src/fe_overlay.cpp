@@ -424,7 +424,7 @@ int FeOverlay::common_list_dialog(
 
 		if ( custom_lb )
 		{
-			custom_lb->setCustomText( 0, std::vector<std::string>() );
+			custom_lb->removeCustomText();
 			custom_lb->on_new_list( &m_feSettings );
 		}
 	}
@@ -670,7 +670,7 @@ int FeOverlay::common_basic_dialog(
 
 		if ( custom_lb )
 		{
-			custom_lb->setCustomText( 0, std::vector<std::string>() );
+			custom_lb->removeCustomText();
 			custom_lb->on_new_list( &m_feSettings );
 		}
 	}

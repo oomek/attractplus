@@ -141,18 +141,11 @@ void FeListBox::init_dimensions()
 	m_base_text.setTextScale( sf::Vector2f( 1.0, 1.0 ) / m_scale_factor );
 	m_base_text.setCharacterSize( char_size * m_scale_factor );
 
-	// Re-create text elements only if row count has changed
-	if ( (int)m_texts.size() != m_rows )
-	{
-		m_texts.clear();
-
-		if ( m_rows > 0 )
-		{
-			m_texts.reserve( m_rows );
-			for ( int i=0; i < m_rows; i++ )
-				m_texts.push_back( FeTextPrimitive() );
-		}
-	}
+	// Add or remove text elements to match row count
+	while ( (int)m_texts.size() < m_rows )
+		m_texts.push_back( FeTextPrimitive() );
+	while ( (int)m_texts.size() > m_rows )
+		m_texts.pop_back();
 
 	sf::Transform rotater;
 	rotater.rotate( sf::degrees( m_rotation ), { pos.x, pos.y });
@@ -274,20 +267,36 @@ void FeListBox::setCustomSelection( const int index )
 	internalSetText( index );
 }
 
+//
+// Set a custom list
+// - List may be empty if user provides empty list, or no display filters
+//
 void FeListBox::setCustomText( const int index, const std::vector<std::string> &list )
 {
+	m_has_custom_list = true;
 	m_custom_list = list;
 	setCustomSelection( list.empty() ? -1 : index );
 }
 
+//
+// Remove a custom list (will revert to the romlist)
+//
+void FeListBox::removeCustomText()
+{
+	m_has_custom_list = false;
+	m_custom_list = std::vector<std::string>();
+	setCustomSelection( -1 );
+}
+
 void FeListBox::internalSetText( const int index )
 {
-	int list_size = get_list_size();
-	if ( m_texts.empty() || ( list_size == 0 ))
+	int display_rows = (int)m_texts.size();
+	if ( display_rows == 0 )
 		return;
 
+	// List size may be zero, but the display rows still need updating to clear them
+	int list_size = get_list_size();
 	int offset;
-	int display_rows = (int)m_texts.size();
 
 	switch ( m_mode )
 	{
@@ -364,7 +373,6 @@ void FeListBox::internalSetText( const int index )
 			break;
 	}
 
-	bool use_custom_list = has_custom_list();
 	std::string text_string;
 	std::string format_string = m_format_string.empty()
 		? DEFAULT_FORMAT_STRING
@@ -375,7 +383,7 @@ void FeListBox::internalSetText( const int index )
 		int listentry = i + offset;
 		if ( listentry < 0 || listentry >= list_size )
 			text_string = "";
-		else if ( use_custom_list )
+		else if ( m_has_custom_list )
 			text_string = m_custom_list[ listentry ];
 		else
 		{
@@ -417,7 +425,7 @@ void FeListBox::on_new_list( FeSettings *s )
 {
 	init_dimensions();
 
-	if ( has_custom_list() )
+	if ( m_has_custom_list )
 	{
 		internalSetText( m_custom_sel );
 		return;
@@ -442,7 +450,7 @@ void FeListBox::on_new_list( FeSettings *s )
 
 void FeListBox::on_new_selection( FeSettings *s )
 {
-	if ( has_custom_list() )
+	if ( m_has_custom_list )
 		internalSetText( m_custom_sel );
 	else
 		internalSetText(
@@ -544,7 +552,7 @@ int FeListBox::get_rows()
 
 int FeListBox::get_list_size()
 {
-	return has_custom_list()
+	return m_has_custom_list
 		? m_custom_list.size()
 		: m_display_filter_size;
 }
