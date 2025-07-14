@@ -121,7 +121,7 @@ public:
 	Sqrat::Array get_fft_array_left() const;
 	Sqrat::Array get_fft_array_right() const;
 
-	static const int FFT_BANDS_MAX = 128;
+	static constexpr int FFT_BANDS_MAX = 128;
 
 	void set_fft_bands( int count );
 	int get_fft_bands() const { return m_fft_bands; }
