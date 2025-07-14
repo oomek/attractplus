@@ -33,6 +33,7 @@
 #include "base64.hpp"
 
 #include "BarlowCJK.ttf.h"
+#include "Logo.png.h"
 
 #include <iostream>
 #include <cmath>
@@ -172,6 +173,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_window( wnd ),
 	m_layoutFont( NULL ),
 	m_defaultFont( NULL ),
+	m_logo_image( NULL ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
 	m_refresh_rate( 0 ),
@@ -418,7 +420,7 @@ void FePresent::init_monitors()
 
 FePresent::~FePresent()
 {
-	clear_global();
+	clear_resources();
 }
 
 //
@@ -426,17 +428,19 @@ FePresent::~FePresent()
 // - DRM builds close the window before launching the emulator
 // - This requires the release of additional resources
 //
-void FePresent::clear_global()
+void FePresent::clear_resources()
 {
-	clear();
+	clear_layout();
 	delete m_defaultFont;
 	m_defaultFont = NULL;
+	delete m_logo_image;
+	m_logo_image = NULL;
 }
 
 //
 // Clear layout-specific resources
 //
-void FePresent::clear()
+void FePresent::clear_layout()
 {
 	//
 	// keep toggle rotation, base rotation and mute state through clear
@@ -1191,7 +1195,7 @@ void FePresent::redraw_surfaces()
 // return false if the into should be cancelled
 bool FePresent::load_intro()
 {
-	clear();
+	clear_layout();
 	// m_baseRotation = FeSettings::RotateNone;
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Intro_Showing );
@@ -1208,7 +1212,7 @@ bool FePresent::load_intro()
 void FePresent::load_screensaver()
 {
 	on_transition( EndLayout, FromToScreenSaver );
-	clear();
+	clear_layout();
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::ScreenSaver_Showing );
 
@@ -1238,7 +1242,7 @@ void FePresent::load_layout( bool initial_load )
 	else
 		var = FromToFrontend;
 
-	clear();
+	clear_layout();
 
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Layout_Showing );
@@ -1487,6 +1491,16 @@ const FeFontContainer *FePresent::get_default_font_container()
 		m_defaultFont->load_default_font();
 	}
 	return m_defaultFont;
+}
+
+const sf::Image *FePresent::get_logo_image()
+{
+	if ( !m_logo_image )
+	{
+		std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
+		m_logo_image = new sf::Image( logo_data.data(), logo_data.size() );
+	}
+	return m_logo_image;
 }
 
 void FePresent::toggle_rotate( FeSettings::RotationState r )

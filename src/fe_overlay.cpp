@@ -1352,7 +1352,7 @@ int FeOverlay::display_config_dialog(
 	sf::RectangleShape border_bottom = layout_border( LayoutStyle::Bottom );
 	FeTextPrimitive header = layout_header( LayoutStyle::Left );
 	FeTextPrimitive footer = layout_footer();
-	sf::Texture logo_texture = sf::Texture( m_wnd.get_logo_image() );
+	sf::Texture logo_texture = sf::Texture( *(FePresent::script_get_fep()->get_logo_image()) );
 	sf::Sprite logo = layout_logo( logo_texture );
 	FeListBox sdialog = layout_list(( is_edit ? LayoutStyle::Left : LayoutStyle::Centre ) | ( is_preview ? LayoutStyle::Single : LayoutStyle::Middle ));
 	FeListBox vdialog = layout_list(( is_edit ? LayoutStyle::Right : LayoutStyle::Centre ) | ( is_preview ? LayoutStyle::Single : LayoutStyle::Middle ));

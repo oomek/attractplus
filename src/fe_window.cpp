@@ -28,7 +28,6 @@
 #include "fe_window.hpp"
 #include "fe_present.hpp"
 #include "base64.hpp"
-#include "Logo.png.h"
 
 #ifdef SFML_SYSTEM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -494,11 +493,6 @@ void FeWindow::initial_create()
 	// Only mess with the mouse position if mouse moves mapped
 	if ( m_fes.has_mouse_moves() )
 		sf::Mouse::setPosition( wsize / 2, *m_window );
-
-	// Logo sf::Image is kept here to prevent DRM build crashes
-	// This ensures its disposal on window destruction - DO NOT MOVE!
-	std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
-	std::ignore = m_logo_image.loadFromMemory( logo_data.data(), logo_data.size() );
 }
 
 void launch_callback( void *o )
@@ -587,7 +581,7 @@ bool FeWindow::run()
 
 #if defined(USE_DRM)
 	FePresent *fep = FePresent::script_get_fep();
-	fep->clear_global();
+	fep->clear_resources();
 
 	close();
 	delete m_window;
