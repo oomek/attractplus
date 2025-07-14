@@ -213,6 +213,9 @@ std::string get_program_path();
 // return path as an absolute path
 std::string absolute_path( const std::string &path );
 
+// return the value after the last dir separator
+std::string path_filename( const std::string &path );
+
 //
 // Search "base_path"'s dir structure for a file with the given "base_name".
 // Valid extensions for the "result" file are in the NULL terminated list

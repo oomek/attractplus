@@ -1,6 +1,6 @@
 # <img src="https://github.com/oomek/attractplus/blob/master/resources/images/Logo.png?raw=true" width="40" align="left"> Attract-Mode Plus Coding Reference
 
-Functions and parameters unique to Attract-Mode Plus are marked with a 🔶 symbol.
+> -  Features unique to Attract-Mode Plus are marked with a 🔶 symbol.
 
 ## Contents
 

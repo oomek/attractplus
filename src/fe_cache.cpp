@@ -732,8 +732,9 @@ std::string FeCache::get_filter_id(
 	std::string id = "";
 	if ( !filter ) return id;
 
-	id += as_str( filter->get_reverse_order() )+ ";";
 	id += as_str( filter->get_sort_by() ) + ";";
+	id += as_str( filter->get_reverse_order() ) + ";";
+	id += as_str( filter->get_list_limit() ) + ";";
 
 	std::vector<FeRule> &rules = filter->get_rules();
 	for ( std::vector<FeRule>::iterator itr=rules.begin(); itr!=rules.end(); ++itr )

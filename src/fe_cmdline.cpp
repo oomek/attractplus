@@ -31,6 +31,18 @@
 #include <SFML/OpenGL.hpp>
 #define GL_SHADING_LANGUAGE_VERSION    0x8B8C
 
+void write_section( std::string title )
+{
+	FeLog() << std::endl << title << ":" << std::endl;
+}
+
+void write_option( std::string args, std::string help = "" )
+{
+	FeLog() << "  " << std::setw(36) << std::left << args;
+	if ( !help.empty() ) FeLog() << " " << help;
+	FeLog() << std::endl;
+}
+
 void process_args( int argc, char *argv[],
 			std::string &config_path,
 			bool &process_console,
@@ -66,7 +78,8 @@ void process_args( int argc, char *argv[],
 				exit(1);
 			}
 		}
-		else if ( strcmp( argv[next_arg], "--logfile" ) == 0 )
+		else if (( strcmp( argv[next_arg], "-g" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--logfile" ) == 0 ))
 		{
 			next_arg++;
 			if ( next_arg < argc )
@@ -80,7 +93,8 @@ void process_args( int argc, char *argv[],
 				exit(1);
 			}
 		}
-		else if ( strcmp( argv[next_arg], "--loglevel" ) == 0 )
+		else if (( strcmp( argv[next_arg], "-l" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--loglevel" ) == 0 ))
 		{
 			next_arg++;
 			if ( next_arg < argc )
@@ -176,12 +190,14 @@ void process_args( int argc, char *argv[],
 				exit(1);
 			}
 		}
-		else if ( strcmp( argv[next_arg], "--full" ) == 0 )
+		else if (( strcmp( argv[next_arg], "-u" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--full" ) == 0 ))
 		{
 			full = true;
 			next_arg++;
 		}
 		else if (( strcmp( argv[next_arg], "-F" ) == 0 )
+				|| ( strcmp( argv[next_arg], "-f" ) == 0 )
 				|| ( strcmp( argv[next_arg], "--filter" ) == 0 ))
 		{
 			FeRule rule;
@@ -205,6 +221,7 @@ void process_args( int argc, char *argv[],
 			filter.get_rules().push_back( rule );
 		}
 		else if (( strcmp( argv[next_arg], "-E" ) == 0 )
+				|| ( strcmp( argv[next_arg], "-e" ) == 0 )
 				|| ( strcmp( argv[next_arg], "--exception" ) == 0 ))
 		{
 			FeRule ex;
@@ -291,7 +308,8 @@ void process_args( int argc, char *argv[],
 			}
 		}
 #ifndef SFML_SYSTEM_WINDOWS
-		else if ( strcmp( argv[next_arg], "--console" ) == 0 )
+		else if (( strcmp( argv[next_arg], "-n" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--console" ) == 0 ))
 		{
 			process_console=true;
 			next_arg++;
@@ -303,53 +321,39 @@ void process_args( int argc, char *argv[],
 			if (( strcmp( argv[next_arg], "-h" ) != 0 )
 				&& ( strcmp( argv[next_arg], "--help" ) != 0 ))
 			{
-				FeLog() << "Unrecognized command line option: "
-					<< argv[next_arg] <<  std::endl;
+				FeLog() << "Unrecognized command line option: " << argv[next_arg] <<  std::endl;
 				retval=0;
 			}
 
-			FeLog() << FE_COPYRIGHT << std::endl
-				<< "Usage: " << argv[0] << " [option...]" << std::endl
-				<< std::endl
-				<< "ROMLIST IMPORT/BUILD OPTIONS:" << std::endl
-				<< "  -b, --build-romlist <emu> [emu(s)...]" << std::endl
-				<< "     Builds a romlist using the configuration for the specified emulator(s)" << std::endl
-				<< "  -i, --import-romlist <file> [emu]" << std::endl
-				<< "     Import romlist from the specified file. Supported formats:" << std::endl
-				<< "        *.lst (Mamewah/Wahcade!)" << std::endl
-				<< "        *.txt (Attract-Mode)" << std::endl
-				<< "        *.xml (Mame listxml format or HyperSpin)" << std::endl
-				<< "     The emulator to use for list entries can be specified as well" << std::endl
-				<< "  -F, --filter <rule>" << std::endl
-				<< "     Apply the specified filter rule when creating romlist" << std::endl
-				<< "  -E, --exception <exception>" << std::endl
-				<< "     Apply the specified filter rules exception when creating romlist" << std::endl
-				<< "  --full" << std::endl
-				<< "     Use with --build-romlist to include all possible roms (Mame only)" << std::endl
-				<< "  -o, --output <romlist>" << std::endl
-				<< "     Specify the name of the romlist to create, overwriting any existing" << std::endl
-				<< std::endl
-				<< "ARTWORK SCRAPER OPTIONS:" << std::endl
-				<< "  -s, --scrape-art <emu> [emu(s)...]" << std::endl
-				<< "     Scrape missing artwork for the specified emulator(s)" << std::endl
-				<< std::endl
-				<< "OTHER OPTIONS:" << std::endl
-				<< "  -c, --config <config_directory>" << std::endl
-				<< "     Specify the configuration to use" << std::endl
-				<< "  --logfile <log_file>" << std::endl
-				<< "     Write log info to the specified file" << std::endl
-				<< "  --loglevel (silent,info,debug)" << std::endl
-				<< "     Set logging level" << std::endl
-				<< "  -t, --topmost" << std::endl
-				<< "     Keep the window always on top" << std::endl
-				<< "  -w, --window <x> <y> <width> <height>" << std::endl
-				<< "     Set the position and size for window modes" << std::endl
+			FeLog() << FE_COPYRIGHT << std::endl;
+
+			write_section("Usage");
+			write_option( path_filename( argv[0] ) + " [option]..." );
+
+			write_section( "Romlist Creation" );
+			write_option( "-b, --build-romlist <emu>...", "Build romlists for the given emulator(s)" );
+			write_option( "-i, --import-romlist <file> [emu]", "Import a romlist, optionally override emulator. Accepts: *.txt (AM), *.xml (Mame), *.lst (MameWah)" );
+			write_option( "-f, --filter <rule>", "Apply the given filter when creating a romlist" );
+			write_option( "-e, --exception <rule>", "Apply the given exception when creating a romlist" );
+			write_option( "-o, --output <name>", "The name for the created romlist (will overwrite existing)" );
+			write_option( "-u, --full", "Include all possible roms, used with --build-romlist (Mame only)" );
+
+			write_section( "Artwork Scraping" );
+			write_option( "-s, --scrape-art <emu>...", "Scrape missing artwork for the given emulator(s)" );
+
+			write_section( "Options" );
+			write_option( "-l, --loglevel (silent|info|debug)", "Set the logging level" );
+			write_option( "-g, --logfile <file>", "Write log output to the given file" );
 #ifndef SFML_SYSTEM_WINDOWS
-				<< "  --console" << std::endl
-				<< "     Enable script console" << std::endl
+			write_option( "-n, --console", "Enable script console" );
 #endif
-				<< "  -h, --help: Show this message" << std::endl
-				<< "  -v, --version: Show version information" << std::endl;
+			write_option( "-c, --config <dir>", "Set the directory containing attract.cfg" );
+			write_option( "-w, --window <x> <y> <w> <h>", "Set the position and size for window modes" );
+			write_option( "-t, --topmost", "Keep the window always on top" );
+			write_option( "-v, --version", "Show version information" );
+			write_option( "-h, --help", "Show this message" );
+
+			FeLog() << std::endl;
 			exit( retval );
 		}
 	}
