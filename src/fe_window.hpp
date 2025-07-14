@@ -52,7 +52,6 @@ private:
 #endif
 	int m_win_mode;
 	bool m_mouse_outside = true;
-	sf::Image m_logo_image;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -75,7 +74,6 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
-	sf::Image &get_logo_image() { return m_logo_image; };
 };
 
 #endif

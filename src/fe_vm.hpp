@@ -122,7 +122,7 @@ public:
 	void post_command( FeInputMap::Command c );
 	bool poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, bool &from_ui );
 	void clear_handlers();
-	void clear(); // override of base class clear()
+	void clear_layout(); // override of base class clear_layout()
 
 	void update_to_new_list( int var=0, bool reset_display=false );
 

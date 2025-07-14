@@ -128,6 +128,7 @@ protected:
 	const FeFontContainer *m_layoutFont;
 	FeFontContainer *m_defaultFont;
 	std::string m_layoutFontName;
+	sf::Image *m_logo_image;
 
 	sf::Clock m_layoutTimer;
 	sf::Time m_lastInput;
@@ -215,8 +216,8 @@ public:
 	FePresent( FeSettings *fesettings, FeWindow &wnd );
 	virtual ~FePresent( void );
 
-	virtual void clear();
-	virtual void clear_global();
+	virtual void clear_layout();
+	virtual void clear_resources();
 
 	void init_monitors();
 
@@ -254,6 +255,7 @@ public:
 	const sf::Font *get_layout_font();
 	const sf::Font *get_default_font();
 	const FeFontContainer *get_default_font_container();
+	const sf::Image *get_logo_image();
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;
