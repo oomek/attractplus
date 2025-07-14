@@ -439,6 +439,14 @@ std::string absolute_path( const std::string &path )
 	return path;
 }
 
+std::string path_filename( const std::string &path )
+{
+	size_t pos = path.find_last_of( "/\\" );
+	return ( pos != std::string::npos )
+		? path.substr( pos + 1 )
+		: "";
+}
+
 bool search_for_file( const std::string &base_path,
 						const std::string &base_name,
 						const char **valid_exts,

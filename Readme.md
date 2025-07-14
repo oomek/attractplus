@@ -1,9 +1,11 @@
 # <img src="https://github.com/oomek/attractplus/blob/master/resources/images/Logo.png?raw=true" width="40" align="left"> Attract-Mode Plus Frontend
 
 > -  Attract-Mode Plus is a fork of [Attract-Mode](https://github.com/mickelson/attract) with various community improvements and fixes.
-> -  The latest binaries can be found in [Actions](https://github.com/oomek/attractplus/actions) tab (you have to be logged into Github to see the binaries).
-> -  The differences in scripting can be found in [Layouts.md](./Layouts.md) file.
-> -  Feel free to join our [Discord Server](https://discord.gg/86bB9dD).
+> -  New releases can be found on the [Releases](https://github.com/oomek/attractplus/releases) page.
+> -  Work-in-progress binaries can be found in the [Actions](https://github.com/oomek/attractplus/actions) tab (requires login).
+> -  The Layout Coding Reference can be found in the [Layouts.md](./Layouts.md) file.
+> -  Features unique to Attract-Mode Plus are marked with a 🔶 symbol.
+> -  Join our [Discord](https://discord.gg/86bB9dD) Server and share your creations.
 
 ## Contents
 
@@ -12,7 +14,7 @@
 -  [Basic Organization](#basic-organization)
 -  [Further Customization](#further-customization)
    -  [Controls](#controls)
-   -  [Filters](#filters-1)
+   -  [Filters](#filters)
    -  [Sound](#sound)
    -  [Artwork](#artwork)
    -  [Layouts](#layouts)
@@ -31,7 +33,7 @@ Attract-Mode was originally developed for Linux. It is known to work on Linux (x
 
 Attract-Mode is licensed under the terms of the GNU General Public License, version 3 or later.
 
-Please visit <http://attractmode.org> for more information.
+Visit <http://attractmode.org> for more information.
 
 See [Compile.md](./Compile.md) if you intend to compile Attract-Mode from source.
 
@@ -99,17 +101,32 @@ The inputs used to control Attract-Mode can be configured from from the `Control
 
 ### Filters
 
-Filters can be added to a Display in config mode. Filters are a list of `rules` and `exceptions` that the frontend steps through, in order, to determine whether or not to list a game. If a game does not match a `rule`, then it is not shown. If a game matches to an `exception`, then it gets listed no matter what (ignoring the rest of the rules in the filter). In other words, in order to be listed, a game has to match _all_ the rules or _just one_ of the exceptions configured for the filter.
+Filters are used to control what games are shown, how they are sorted, and how many are displayed. They can be added to a Display in `Configure > Displays > Display Edit > Add Filter`. Filters use list of `rules` and `exceptions` that the frontend steps through, in order, to determine whether or not to list a game. If a game does not match a `rule`, then it is not shown. If a game matches to an `exception`, then it gets listed no matter what (ignoring the rest of the rules in the filter). In other words, in order to be listed, a game has to match _all_ the rules or _just one_ of the exceptions configured for the filter.
 
 For example, you might want to have a filter that only shows 1980's multiplayer sports games. This would be achieved by creating a filter with three rules:
 
-1. The year be in the 1980s (`Year equals "198."`).
-2. The number of players in not 1 (`Players not_equals "1"`).
-3. The category contains "Sports" (`Category contains "Sports"`).
+1. The year is in the 1980s - `Year equals 198.`
+2. The number of players in not 1 - `Players not_equals 1`
+3. The category contains "Sports" - `Category contains Sports`
 
-Filters use regular expressions, which allow for powerful text matching capabilities. From the example above, the `"198."` will match any four letter word that starts with `"198"`.
+Filters use regular expressions, which allow for powerful text matching capabilities. From the example above, the `198.` will match any four letter word that starts with `198`, with the `.` matching _any_ character thereafter.
 
-Filters also allow you to do some other stuff as well, such as controlling how the gamelist gets sorted, and how many entries are listed.
+Filters are stored in `attract.cfg` and may be edited directly. Keep in mind that changes to this file are only loaded when AM first starts, and the file is overwritten when AM exits. Rules are in the format `target comparison value`.
+
+-  `target` - Can be one of the Rule Targets listed below.
+-  `comparison` - Can be one of the following:
+   -  `equals` - The target must equal the value.
+   -  `not_equals` - The target must not equal the value.
+   -  `contains` - The target must contain the value.
+   -  `not_contains` - The target must not contain the value.
+-  `value` - A regular expression.
+
+**Rule Targets**
+
+- Any field from the romlist: `Name`, `Title`, `Emulator`, `CloneOf`, `Year`, `Manufacturer`, `Category`, `Players`, `Rotation`, `Control`, `Status`, `DisplayCount`, `DisplayType`, `AltRomname`, `AltTitle`, `Extra`, `Buttons`, `Series`, `Language`, `Region`, `Rating`
+- Tags: `Favourite`, `Tags`
+- Stats: `PlayedCount`, `PlayedTime`, `PlayedLast`
+- Other: `FileIsAvailable`, `Shuffle`
 
 ### Sound
 
@@ -169,33 +186,32 @@ Collection/Rom lists are saved in the `romlist` subdirectory of your Attract-Mod
 
 ## Romlist Generation
 
-In addition to the romlist generation function available in config mode, Attract-Mode can generate a single romlist containing roms for multiple emulators from the command line using the following command:
+In addition to the romlist generation function available in config mode, Attract-Mode can generate a single romlist containing roms from multiple emulators using the command line.
 
 ```sh
-attract --build-romlist <emulator names...>
+attract --build-romlist <emu>...
 ```
 
-You can also import romlists from mame listxml files as well as gamelists for other frontends. Supported source files include: `_.lst` (MameWah lists), `_.txt` (Attract-Mode lists) and `\*.xml` (Mame listxml, listsoftware and HyperSpin lists):
+You can also import romlists from other frontends. Supported files include:
+- `*.txt` - Attract-Mode lists
+- `*.xml` - Mame listxml, listsoftware, and HyperSpin lists
+- `*.lst` - MameWah, Wah!Cade
 
 ```sh
-attract --import-romlist <source_file> [emulator name]
+attract --import-romlist <file> [emu]
 ```
 
-The `--build-romlist` and `--import-romlist` options can be chained together in all sorts of strange and wonderful ways to generate combined Attract-Mode romlists. So:
+The `--build-romlist` and `--import-romlist` options can be chained together to generate combined Attract-Mode romlists. The following example combines the entries from `mame.lst` and `nintendo.lst` (located in the current directory) into a single Attract-Mode romlist. The `mame` emulator will be used for the `mame.lst` games, while the `nestopia` emulator will be used for the `nintendo.lst` games.
 
 ```sh
 attract --import-romlist mame.lst --import-romlist nintendo.lst nestopia
 ```
 
-Combines the entries from the `mame.lst` and `nintendo.lst` files (located in the current directory) into a single Attract-Mode romlist. The `mame` emulator will be used for the `mame.lst` games, while the `nestopia` emulator will be used for the `nintendo.lst` games.
-
-One or more filter rules can also be applied when importing or building a romlist from the command line using the `--filter <FILTER RULE>` option. So for example the following command line:
+Filter rules can be applied when importing or building a romlist using the `--filter <rule>` option. The `<rule>` argument uses the same format as the rules in the `attract.cfg` file.
 
 ```sh
-attract --build-romlist mame --filter "Rotation equals 90|270"
+attract --build-romlist mame --filter "Year equals 198."
 ```
-
-Builds a romlist that contains only the vertical games in your collection. The `<FILTER RULE>` can be specified in exactly the same format as how filter rules are specified in Attract-Mode's `attract.cfg` file.
 
 If you wish to specify the name of the created romlist at the command line, you can do so with the `--output <name>` option. Beware that this will overwrite any existing Attract-Mode romlist with the specified name.
 
@@ -203,13 +219,13 @@ If you wish to specify the name of the created romlist at the command line, you 
 
 ## Command Line Options
 
-For a full description of the command line options available, run:
+A complete list of command line options can be found by running:
 
 ```sh
 attract --help
 ```
 
-Attract-Mode by default will print log messages to the console window (stdout). To suppress these messages, run with the following command line:
+Attract-Mode by default will print log messages to the console window (stdout). To suppress these messages, run with the following option:
 
 ```sh
 attract --loglevel silent
