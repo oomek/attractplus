@@ -48,6 +48,7 @@ extern "C"
 #include <queue>
 #include <iostream>
 #include <thread>
+#include <condition_variable>
 #include <algorithm>
 #include <memory>
 
@@ -202,6 +203,7 @@ public:
 	//
 	std::recursive_mutex image_swap_mutex;
 	std::uint8_t *display_frame;
+	std::condition_variable_any frame_displayed;
 
 	FeVideoImp( FeMedia *parent );
 	~FeVideoImp();
@@ -722,6 +724,11 @@ void FeVideoImp::video_thread()
 		{
 			// flushed last time we did do_process branch below, so this time we
 			// exit
+
+			// Wait for the main thread to display the last frame
+			std::unique_lock<std::recursive_mutex> lock( image_swap_mutex );
+			frame_displayed.wait( lock, [this] { return !display_frame || !run_video_thread; });
+
 			goto the_end;
 		}
 
@@ -1358,6 +1365,7 @@ bool FeMedia::tick()
 		{
 			m_video->display_texture->update( m_video->display_frame );
 			m_video->display_frame = NULL;
+			m_video->frame_displayed.notify_one();
 			return true;
 		}
 	}
