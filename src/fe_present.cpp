@@ -1185,11 +1185,12 @@ bool FePresent::load_intro()
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Intro_Showing );
 
-	m_layoutTimer.restart();
+	m_layoutTimer.reset();
 	if ( !on_new_layout() )
 		return false;
 
 	update_to( ToNewList, true );
+	m_layoutTimer.start();
 	return ( !m_mon[0].elements.empty() );
 }
 
@@ -1203,7 +1204,7 @@ void FePresent::load_screensaver()
 	//
 	// Run the script which actually sets up the screensaver
 	//
-	m_layoutTimer.restart();
+	m_layoutTimer.reset();
 	on_new_layout();
 
 	//
@@ -1211,6 +1212,7 @@ void FePresent::load_screensaver()
 	//
 	on_transition( StartLayout, FromToNoValue );
 	update_to( ToNewList, true );
+	m_layoutTimer.start();
 }
 
 void FePresent::load_layout( bool initial_load )
@@ -1236,7 +1238,7 @@ void FePresent::load_layout( bool initial_load )
 	//
 	// Run the script which actually sets up the layout
 	//
-	m_layoutTimer.restart();
+	m_layoutTimer.reset();
 	on_new_layout();
 
 	// make things usable if the layout is empty
@@ -1260,6 +1262,7 @@ void FePresent::load_layout( bool initial_load )
 	on_transition( StartLayout, var );
 	update_to( ToNewList, true );
 	on_transition( ToNewList, FromToNoValue );
+	m_layoutTimer.start();
 }
 
 // Only called when the overlay is up
