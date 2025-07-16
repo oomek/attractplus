@@ -601,6 +601,7 @@ void FeVideoImp::video_thread()
 	AVFrame *detached_frame = NULL;
 	bool degrading = false;
 	bool do_flush = false;
+	bool flush_packet_sent = false;
 
 	int64_t prev_pts = 0;
 	int64_t prev_duration = 0;
@@ -720,16 +721,45 @@ void FeVideoImp::video_thread()
 			//
 		}
 
-		if ( do_flush )
+		if ( do_flush && flush_packet_sent && !detached_frame )
 		{
-			// flushed last time we did do_process branch below, so this time we
-			// exit
+			// We've sent the flush packet and have no more frames to display
+			// Try to get any remaining buffered frames
+			AVFrame *raw_frame = av_frame_alloc();
+			int r = avcodec_receive_frame( codec_ctx, raw_frame );
 
-			// Wait for the main thread to display the last frame
-			std::unique_lock<std::recursive_mutex> lock( image_swap_mutex );
-			frame_displayed.wait( lock, [this] { return !display_frame || !run_video_thread; });
+			if ( r == 0 )
+			{
+				raw_frame->pts = raw_frame->best_effort_timestamp;
+				if ( raw_frame->pts == AV_NOPTS_VALUE )
+					raw_frame->pts = prev_pts + prev_duration;
 
-			goto the_end;
+#if (LIBAVUTIL_VERSION_MICRO >= 100 )
+				if ( raw_frame->pts < prev_pts )
+					raw_frame->pts = prev_pts + prev_duration;
+
+				prev_pts = raw_frame->pts;
+#if HAVE_DURATION
+				prev_duration = raw_frame->duration;
+#else
+				prev_duration = raw_frame->pkt_duration;
+#endif
+#endif
+				detached_frame = raw_frame;
+			}
+			else
+			{
+				av_frame_free( &raw_frame );
+				if ( r == AVERROR_EOF )
+				{
+					// Decoder is fully drained so now we can goto the_end
+					// Wait for the main thread to display the last frame
+					std::unique_lock<std::recursive_mutex> lock( image_swap_mutex );
+					frame_displayed.wait( lock, [this] { return !display_frame || !run_video_thread; });
+
+					goto the_end;
+				}
+			}
 		}
 
 		if ( do_process )
@@ -748,7 +778,7 @@ void FeVideoImp::video_thread()
 						do_flush = true; // NULL packet will be fed to avcodec_send_packet()
 				}
 
-				if (( packet != NULL ) || ( do_flush ))
+				if (( packet != NULL ) || ( do_flush && !flush_packet_sent ))
 				{
 					//
 					// decompress packet and put it in our frame queue
@@ -762,12 +792,15 @@ void FeVideoImp::video_thread()
 							<< buff << std::endl;
 					}
 
+					if ( do_flush && !packet )
+						flush_packet_sent = true;
+
 					AVFrame *raw_frame = av_frame_alloc();
 					r = avcodec_receive_frame( codec_ctx, raw_frame );
 
 					if ( r != 0 )
 					{
-						if (( r != AVERROR( EAGAIN )) && (!do_flush)) // Ignore EOF on do_flush
+						if (( r != AVERROR( EAGAIN )) && ( r != AVERROR_EOF ))
 						{
 							char buff[256];
 							av_strerror( r, buff, 256 );
@@ -781,8 +814,7 @@ void FeVideoImp::video_thread()
 						raw_frame->pts = raw_frame->best_effort_timestamp;
 
 						if ( raw_frame->pts == AV_NOPTS_VALUE )
-							raw_frame->pts = packet->dts;
-
+							raw_frame->pts = packet ? packet->dts : prev_pts + prev_duration;
 
 #if (LIBAVUTIL_VERSION_MICRO >= 100 )
 						// This only works on FFmpeg, exclude libav (it doesn't have pkt_duration
