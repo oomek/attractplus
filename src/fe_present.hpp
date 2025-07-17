@@ -159,6 +159,7 @@ protected:
 	std::vector<FeShader *> m_scriptShaders;
 	std::vector<FeFontContainer *> m_fontPool;
 	std::vector<FeMonitor> m_mon;
+	FeImage *m_main_surface;
 	int m_refresh_rate;
 	bool m_playMovies;
 	int m_user_page_size;
@@ -296,6 +297,8 @@ public:
 	int get_refresh_rate();
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
+	FeImage *get_main_surface() const;
+	FePresentableParent *get_main_presentable() const;
 
 	//
 	// Script static functions

@@ -186,7 +186,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
-	m_layout_loaded( false )
+	m_layout_loaded( false ),
+	m_main_surface( NULL )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -1772,6 +1773,15 @@ const sf::Vector2i FePresent::get_screen_size()
 		return sf::Vector2i( m_mon[0].size.y, m_mon[0].size.x);
 	else
 		return m_mon[0].size;
+}
+FeImage *FePresent::get_main_surface() const
+{
+	return m_main_surface;
+}
+
+FePresentableParent *FePresent::get_main_presentable() const
+{
+	return m_main_surface->get_presentable_parent();
 }
 
 FeStableClock::FeStableClock()

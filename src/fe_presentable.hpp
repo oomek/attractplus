@@ -101,6 +101,8 @@ public:
 
 	int get_zorder();
 	void set_zorder( int );
+
+	FePresentableParent *get_parent();
 };
 
 class FeImage;
