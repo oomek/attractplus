@@ -966,7 +966,14 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 {
 	//
 	// Draw the surface's draw list to the render texture
+	// If it's the main surface apply layout transform to drawables
 	//
+	sf::RenderStates states;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		if ( this == fep->get_main_presentable() )
+			states.transform = fep->get_transform();
+
 	if ( m_clear ) m_texture.clear( sf::Color::Transparent );
 	if ( m_redraw )
 	{

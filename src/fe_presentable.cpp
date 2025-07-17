@@ -233,6 +233,11 @@ void FeBasePresentable::set_zorder( int pos )
 	FePresent::script_flag_redraw();
 }
 
+FePresentableParent *FeBasePresentable::get_parent()
+{
+	return &m_parent;
+};
+
 int FePresentableParent::get_nesting_level()
 {
 	return m_nesting_level;
