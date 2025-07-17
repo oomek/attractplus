@@ -428,7 +428,9 @@ FeRule &FeRule::operator=( const FeRule &r )
 
 void FeRule::init()
 {
-	if (( m_rex ) || ( m_filter_what.empty() ))
+	m_use_rex = m_filter_what.find_first_of( ".+*?^$()[]{}|\\" ) != std::string::npos;
+
+	if ( !m_use_rex || m_rex || m_filter_what.empty() )
 		return;
 
 	//
@@ -446,7 +448,7 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 {
 	if (( m_filter_target == FeRomInfo::LAST_INDEX )
 		|| ( m_filter_comp == FeRule::LAST_COMPARISON )
-		|| ( m_rex == NULL ))
+		|| ( m_use_rex && !m_rex ))
 		return true;
 
 	const SQChar *begin( NULL );
@@ -458,22 +460,30 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 	case FilterEquals:
 		return target.empty()
 			? m_filter_what.empty()
-			: sqstd_rex_match( m_rex, scsqchar(target) );
+			: m_use_rex
+				? sqstd_rex_match( m_rex, scsqchar(target) )
+				: ( target.compare( m_filter_what ) == 0 );
 
 	case FilterNotEquals:
 		return target.empty()
 			? !m_filter_what.empty()
-			: !sqstd_rex_match( m_rex, scsqchar(target) );
+			: m_use_rex
+				? !sqstd_rex_match( m_rex, scsqchar(target) )
+				: ( target.compare( m_filter_what ) != 0 );
 
 	case FilterContains:
 		return target.empty()
 			? false
-			: sqstd_rex_search( m_rex, scsqchar(target), &begin, &end );
+			: m_use_rex
+				? sqstd_rex_search( m_rex, scsqchar(target), &begin, &end )
+				: ( target.find( m_filter_what ) != std::string::npos );
 
 	case FilterNotContains:
 		return target.empty()
 			? true
-			: !sqstd_rex_search( m_rex, scsqchar(target), &begin, &end );
+			: m_use_rex
+				? !sqstd_rex_search( m_rex, scsqchar(target), &begin, &end )
+				: ( target.find( m_filter_what ) == std::string::npos );
 
 	default:
 		return true;

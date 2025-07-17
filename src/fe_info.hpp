@@ -214,6 +214,7 @@ private:
 	std::string m_filter_what;
 	SQRex *m_rex;
 	bool m_is_exception;
+	bool m_use_rex;
 };
 
 //
