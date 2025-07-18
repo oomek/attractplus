@@ -567,7 +567,7 @@ $(RES_LANGUAGE_DIR): $(OBJ_DIR)
 $(RES_LANGUAGE_FILE): $(_LANGUAGE) $(RES_LANGUAGE_DIR)
 	$(info Converting $(RES_LANGUAGE_FILE)...)
 	$(shell (echo 'const std::map<const char*, const char*> _binary_languages =\n$(OPEN_BRACE)\n$(CLOSE_BRACE);') > $(RES_LANGUAGE_FILE))
-	$(foreach f,$(_LANGUAGE),$(shell (sed -i '4i\\t$(OPEN_BRACE) "$(word 3,$(subst ., ,$(subst /, ,$f)));$(subst #@,,$(shell (sed 1q $f)))", "$(shell base64 $(B64FLAGS) $f)" $(CLOSE_BRACE),' $(RES_LANGUAGE_FILE))))
+	$(foreach f,$(_LANGUAGE),$(shell (sed -i '3i\\t$(OPEN_BRACE) "$(word 3,$(subst ., ,$(subst /, ,$f)));$(subst #@,,$(shell (sed 1q $f)))", "$(shell base64 $(B64FLAGS) $f)" $(CLOSE_BRACE),' $(RES_LANGUAGE_FILE))))
 
 headerinfo: sfml
 	$(info flags: $(CFLAGS) $(FE_FLAGS))
