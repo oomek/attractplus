@@ -1058,7 +1058,8 @@ FeImage::FeImage( FePresentableParent &p,
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
-	m_preserve_aspect_ratio( false )
+	m_preserve_aspect_ratio( false ),
+	m_using_external_texture( false )
 {
 	ASSERT( m_tex );
 	m_tex->register_image( this );
@@ -1079,7 +1080,8 @@ FeImage::FeImage( FeImage *o )
 	m_anchor_type( o->m_anchor_type ),
 	m_rotation_origin_type( o->m_rotation_origin_type ),
 	m_blend_mode( o->m_blend_mode ),
-	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio )
+	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio ),
+	m_using_external_texture( o->m_using_external_texture )
 {
 	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
@@ -1111,11 +1113,25 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 	if ( new_tex )
 		m_tex = new_tex;
 
+	if ( m_using_external_texture )
+		return;
+
 	m_sprite.setTexture( m_tex->get_texture() );
 
 	//  reset texture rect now to the one reported by the new texture object
 	m_sprite.setTextureRect(
 		sf::FloatRect({ 0, 0 }, { static_cast<float>( m_tex->get_texture().getSize().x ), static_cast<float>( m_tex->get_texture().getSize().y )}));
+
+	scale();
+}
+
+void FeImage::set_texture( const sf::Texture &texture )
+{
+	m_using_external_texture = true;
+
+	m_sprite.setTexture( texture );
+	m_sprite.setTextureRect(
+		sf::FloatRect({ 0, 0 }, { static_cast<float>( texture.getSize().x ), static_cast<float>( texture.getSize().y )}));
 
 	scale();
 }
@@ -1488,6 +1504,7 @@ void FeImage::setFileName( const char *n )
 {
 	std::string filename = n;
 
+	m_using_external_texture = false;
 	m_tex->load_file( filename.c_str() );
 }
 
