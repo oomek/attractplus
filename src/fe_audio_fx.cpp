@@ -62,6 +62,7 @@ FeAudioEffectsManager::FeAudioEffectsManager()
 
 FeAudioEffectsManager::~FeAudioEffectsManager()
 {
+	m_destroying = true;
 }
 
 void FeAudioEffectsManager::add_effect( std::unique_ptr<FeAudioEffect> effect )
@@ -91,13 +92,15 @@ bool FeAudioEffectsManager::process_all( const float *input_frames, float *outpu
 
 	for ( size_t i = 0; i < m_effects.size(); ++i )
 	{
+		if ( m_destroying ) break;
+
 		auto& effect = m_effects[i];
 		if ( effect && effect->is_enabled() )
 		{
 			if ( effect->process( current_input, current_output, frame_count, channel_count, media_sample_rate ))
 				audio_modified = true;
 		}
-		else if ( effect )
+		else
 		{
 			// Pass-through
 			std::memcpy( current_output, current_input, frame_count * channel_count * sizeof( float ) );
@@ -128,6 +131,7 @@ void FeAudioEffectsManager::update_all()
 
 	for ( auto& effect : m_effects )
 	{
+		if ( m_destroying ) break;
 		if ( effect && effect->is_enabled() )
 			effect->update();
 	}
@@ -135,7 +139,7 @@ void FeAudioEffectsManager::update_all()
 
 void FeAudioEffectsManager::reset_all()
 {
-	if ( m_reset_fx )
+	if ( m_reset_fx && !m_destroying )
 	{
 		for ( auto& effect : m_effects )
 		{

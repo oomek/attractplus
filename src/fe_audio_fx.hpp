@@ -26,6 +26,7 @@
 #include <SFML/System.hpp>
 #include <vector>
 #include <memory>
+#include <atomic>
 #include <sqrat.h>
 #include <cmath>
 
@@ -75,6 +76,7 @@ public:
 private:
 	std::vector<std::unique_ptr<FeAudioEffect>> m_effects;
 	bool m_reset_fx = false;
+	std::atomic<bool> m_destroying = false;
 };
 
 
@@ -202,8 +204,11 @@ T* FeAudioEffectsManager::get_effect() const
 {
 	for ( const auto& effect : m_effects )
 	{
-		if ( T* casted = dynamic_cast<T*>( effect.get() ) )
-			return casted;
+		if ( effect )
+		{
+			if ( T* casted = dynamic_cast<T*>( effect.get() ) )
+				return casted;
+		}
 	}
 	return nullptr;
 }
