@@ -160,6 +160,8 @@ protected:
 	std::vector<FeFontContainer *> m_fontPool;
 	std::vector<FeMonitor> m_mon;
 	FeImage *m_main_surface;
+	FeImage *m_main_surface_snapshot;
+	sf::Texture m_main_surface_snapshot_texture;
 	int m_refresh_rate;
 	bool m_playMovies;
 	int m_user_page_size;
@@ -298,6 +300,7 @@ public:
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
 	FeImage *get_main_surface() const;
+	FeImage *get_main_surface_snapshot() const;
 	FePresentableParent *get_main_presentable() const;
 
 	//

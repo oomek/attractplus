@@ -329,6 +329,7 @@ public:
 	bool get_visible() const;
 
 	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
+	void set_texture( const sf::Texture &texture );
 
 	bool get_auto_width() const;
 	bool get_auto_height() const;
@@ -447,6 +448,7 @@ protected:
 	FeImage::Alignment m_rotation_origin_type;
 	FeBlend::Mode m_blend_mode;
 	bool m_preserve_aspect_ratio;
+	bool m_using_external_texture;
 
 	void scale();
 	sf::Vector2f alignTypeToVector( int a );

@@ -187,7 +187,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
 	m_layout_loaded( false ),
-	m_main_surface( NULL )
+	m_main_surface( NULL ),
+	m_main_surface_snapshot( NULL )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -570,7 +571,19 @@ void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 		for ( itl=m_mon[i].elements.begin(); itl != m_mon[i].elements.end(); ++itl )
 		{
 			if ( (*itl)->get_visible() )
-				target.draw( (*itl)->drawable(), states );
+			{
+				// Skip layout transform for main surface and its snapshot
+				if ( (*itl) == m_main_surface || (*itl) == m_main_surface_snapshot )
+				{
+					sf::RenderStates no_transform_states = states;
+					no_transform_states.transform = m_mon[i].transform;
+					target.draw( (*itl)->drawable(), no_transform_states );
+				}
+				else
+				{
+					target.draw( (*itl)->drawable(), states );
+				}
+			}
 		}
 	}
 }
@@ -1245,6 +1258,9 @@ void FePresent::load_layout( bool initial_load )
 	else
 		var = FromToFrontend;
 
+	m_main_surface_snapshot_texture.resize( m_main_surface->getTextureSize() );
+	m_main_surface_snapshot_texture.update( *m_main_surface->get_texture() );
+
 	clear_layout();
 
 	set_transforms();
@@ -1258,6 +1274,9 @@ void FePresent::load_layout( bool initial_load )
 	//
 	m_layoutTimer.reset();
 	on_new_layout();
+
+	if ( m_main_surface_snapshot )
+		m_main_surface_snapshot->set_texture( m_main_surface_snapshot_texture );
 
 	// make things usable if the layout is empty
 	//
@@ -1774,9 +1793,15 @@ const sf::Vector2i FePresent::get_screen_size()
 	else
 		return m_mon[0].size;
 }
+
 FeImage *FePresent::get_main_surface() const
 {
 	return m_main_surface;
+}
+
+FeImage *FePresent::get_main_surface_snapshot() const
+{
+	return m_main_surface_snapshot;
 }
 
 FePresentableParent *FePresent::get_main_presentable() const
