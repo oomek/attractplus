@@ -538,7 +538,10 @@ void FeVideoImp::play()
 void FeVideoImp::stop()
 {
 	if ( run_video_thread )
+	{
 		run_video_thread = false;
+		frame_displayed.notify_all();
+	}
 
 	if ( m_video_thread.joinable() )
 		m_video_thread.join();
@@ -549,7 +552,10 @@ void FeVideoImp::stop()
 void FeVideoImp::signal_stop()
 {
 	if ( run_video_thread )
+	{
 		run_video_thread = false;
+		frame_displayed.notify_all();
+	}
 }
 
 namespace
@@ -701,14 +707,25 @@ void FeVideoImp::video_thread()
 					}
 				}
 
-				std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-				displayed++;
+				std::unique_lock<std::recursive_mutex> lock( image_swap_mutex, std::try_to_lock );
+				if ( lock.owns_lock() )
+				{
+					displayed++;
 
-				sws_scale( sws_ctx, detached_frame->data, detached_frame->linesize,
-							0, codec_ctx->height, rgba_buffer,
-							rgba_linesize );
+					sws_scale( sws_ctx, detached_frame->data, detached_frame->linesize,
+								0, codec_ctx->height, rgba_buffer,
+								rgba_linesize );
 
-				display_frame = rgba_buffer[0];
+					display_frame = rgba_buffer[0];
+				}
+				else
+				{
+					// failed to lock, drop frame
+					if ( qscore > QMIN )
+						qscore--;
+					set_avdiscard_from_qscore( codec_ctx, qscore );
+					degrading = true;
+				}
 
 				av_frame_free( &detached_frame );
 				detached_frame = NULL;
@@ -863,9 +880,12 @@ the_end:
 	at_end=true;
 
 	{
-		std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-		if (display_frame)
-			display_frame=NULL;
+		std::unique_lock<std::recursive_mutex> lock( image_swap_mutex, std::try_to_lock );
+		if ( lock.owns_lock() )
+		{
+			if (display_frame)
+				display_frame=NULL;
+		}
 	}
 
 	if ( detached_frame )
@@ -1001,10 +1021,9 @@ void FeMedia::close()
 {
 	m_closing = true;
 
-	// wait for on getData() callback to release the mutex and return false
-	std::lock_guard<std::mutex> l( m_callback_mutex );
-
 	stop();
+
+	std::lock_guard<std::mutex> l( m_callback_mutex );
 
 	setEffectProcessor( nullptr );
 
