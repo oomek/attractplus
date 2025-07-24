@@ -549,7 +549,10 @@ void FeVideoImp::stop()
 void FeVideoImp::signal_stop()
 {
 	if ( run_video_thread )
+	{
 		run_video_thread = false;
+		frame_displayed.notify_one();
+	}
 }
 
 namespace
