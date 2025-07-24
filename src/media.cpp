@@ -233,7 +233,7 @@ void FeMediaImp::close()
 	if (m_io_ctx)
 	{
 		if ( m_io_ctx->opaque )
-			delete (sf::InputStream *)(m_io_ctx->opaque);
+			delete (FeFileInputStream *)(m_io_ctx->opaque);
 
 		av_free( m_io_ctx->buffer );
 		av_free( m_io_ctx );
@@ -1099,7 +1099,7 @@ bool FeMedia::open( const std::string &archive,
 	m_audio_effects.reset_all();
 	close();
 
-	sf::InputStream *s = NULL;
+	FeFileInputStream *s = NULL;
 
 	if ( !archive.empty() )
 	{
@@ -1121,10 +1121,10 @@ bool FeMedia::open( const std::string &archive,
 			}
 		}
 
-		s = (sf::InputStream *)z;
+		s = (FeFileInputStream *)z;
 	}
 	else
-		s = new sf::FileInputStream( name );
+		s = new FeFileInputStream( name );
 
 	m_imp->m_format_ctx = avformat_alloc_context();
 

@@ -68,9 +68,16 @@ std::optional<std::size_t> FeFileInputStream::getSize()
 {
 	if ( m_file )
 	{
-		std::size_t pos = tell();
+		auto pos_opt = tell();
+		if ( !pos_opt.has_value() ) return -1;
+		std::size_t pos = pos_opt.value();
+
 		fseek( m_file, 0, SEEK_END );
-		std::size_t size = tell();
+
+		auto size_opt = tell();
+		if ( !size_opt.has_value() ) return -1;
+		std::size_t size = size_opt.value();
+
 		seek( pos );
 		return size;
 	}
