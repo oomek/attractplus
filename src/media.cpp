@@ -895,9 +895,9 @@ FeMedia::FeMedia( Type t )
 	m_aspect_ratio( 1.0 )
 {
 	m_imp = new FeMediaImp( t );
-	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
+	// m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
+	// m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
+	// m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 }
 
 FeMedia::~FeMedia()
@@ -951,7 +951,7 @@ void FeMedia::play()
 {
 	if ( !is_playing() )
 	{
-		m_audio_effects.reset_all();
+		// m_audio_effects.reset_all();
 
 		if ( m_video )
 			m_video->play();
@@ -969,7 +969,7 @@ void FeMedia::signal_stop()
 	if ( m_video )
 		m_video->signal_stop();
 
-	m_audio_effects.reset_all();
+	// m_audio_effects.reset_all();
 }
 
 void FeMedia::stop()
@@ -997,7 +997,7 @@ void FeMedia::stop()
 
 	m_imp->m_read_eof = false;
 
-	m_audio_effects.reset_all();
+	// m_audio_effects.reset_all();
 }
 
 void FeMedia::close()
@@ -1009,7 +1009,7 @@ void FeMedia::close()
 
 	stop();
 
-	setEffectProcessor( nullptr );
+	// setEffectProcessor( nullptr );
 
 	if (m_audio)
 	{
@@ -1051,9 +1051,9 @@ void FeMedia::setVolume(float volume)
 
 	sf::SoundStream::setVolume( volume );
 
-	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-	if ( normaliser )
-		normaliser->set_media_volume( volume / 100.0f );
+	// auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+	// if ( normaliser )
+	// 	normaliser->set_media_volume( volume / 100.0f );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
@@ -1099,7 +1099,7 @@ size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 bool FeMedia::open( const std::string &archive,
 	const std::string &name, sf::Texture *outt )
 {
-	m_audio_effects.reset_all();
+	// m_audio_effects.reset_all();
 	close();
 
 	FeFileInputStream *s = NULL;
@@ -1216,7 +1216,7 @@ bool FeMedia::open( const std::string &archive,
 
 				sf::SoundStream::setLooping( false );
 
-				setup_effect_processor();
+				// setup_effect_processor();
 			}
 		}
 	}
@@ -1390,8 +1390,8 @@ bool FeMedia::tick()
 	if (( !m_video ) && ( !m_audio ))
 		return false;
 
-	if ( m_audio )
-		m_audio_effects.update_all();
+	// if ( m_audio )
+	// 	m_audio_effects.update_all();
 
 	if ( m_video )
 	{
@@ -1690,7 +1690,7 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 
 FeAudioVisualiser* FeMedia::get_audio_visualiser() const
 {
-	return m_audio_effects.get_effect<FeAudioVisualiser>();
+	return nullptr;//m_audio_effects.get_effect<FeAudioVisualiser>();
 }
 
 float FeMedia::get_vu_left()
