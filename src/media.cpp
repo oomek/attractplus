@@ -913,11 +913,19 @@ void FeMedia::setup_effect_processor()
 	                            float *output_frames, unsigned int &output_frame_count,
 	                            unsigned int frame_channel_count )
 	{
-		if ( input_frames && input_frame_count > 0 && is_playing() )
+		std::lock_guard<std::mutex> l( m_closing_mutex );
+
+        if ( m_closing )
+		{
+			// FeLog() << "m_closing = true" << std::endl;
+            return;
+        }
+
+		if ( input_frames && input_frame_count > 0 )
 		{
 			m_audio_effects.process_all( input_frames, output_frames,
 			                                       input_frame_count, frame_channel_count,
-			                                       static_cast<float>( getSampleRate() ));
+			                                       44100.0f );
 		}
 		else
 		{
@@ -1002,14 +1010,34 @@ void FeMedia::stop()
 
 void FeMedia::close()
 {
+	// sf::Clock clk;
 	m_closing = true;
+	// setEffectProcessor( nullptr );
 
 	// wait for on getData() callback to release the mutex and return false
-	std::lock_guard<std::mutex> l( m_callback_mutex );
+	{
+		std::lock_guard<std::mutex> callback_mutex( m_callback_mutex );
+	} // Release the mutex
+
+	setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	                            float *output_frames, unsigned int &output_frame_count,
+	                            unsigned int frame_channel_count )
+	{
+		// FeLog() << "BYPASS" << std::endl;
+		if ( input_frames && output_frames && input_frame_count > 0 )
+		{
+			const unsigned int total_samples = input_frame_count * frame_channel_count;
+			std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
+		}
+		output_frame_count = input_frame_count;
+	});
+
+	// wait for on setEffectsProcessor() callback
+	{
+		std::lock_guard<std::mutex> closing_mutex( m_closing_mutex );
+	} // Release the mutex
 
 	stop();
-
-	setEffectProcessor( nullptr );
 
 	if (m_audio)
 	{
@@ -1024,7 +1052,9 @@ void FeMedia::close()
 	}
 
 	m_imp->close();
+	// FeLog() << clk.getElapsedTime().asMicroseconds() << " us" << std::endl;
 	m_closing = false;
+	// sf::sleep( sf::milliseconds( 1000 ));
 }
 
 bool FeMedia::is_playing()
@@ -1100,7 +1130,7 @@ bool FeMedia::open( const std::string &archive,
 	const std::string &name, sf::Texture *outt )
 {
 	m_audio_effects.reset_all();
-	close();
+	// close();
 
 	FeFileInputStream *s = NULL;
 

@@ -126,6 +126,7 @@ private:
 	FeVideoImp *m_video;
 	std::atomic<bool> m_closing;
 	std::mutex m_callback_mutex;
+	std::mutex m_closing_mutex;
 
 	FeAudioEffectsManager m_audio_effects;
 	void setup_effect_processor();

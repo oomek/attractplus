@@ -42,12 +42,12 @@
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
 	m_volume( 100.0 ),
-	m_audio_effects()
+	m_audio_effects( std::make_shared<FeAudioEffectsManager>() )
 {
 	m_music.setLooping( loop );
-	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
+	m_audio_effects->add_effect( std::make_unique<FeAudioDCFilter>() );
+	m_audio_effects->add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects->add_effect( std::make_unique<FeAudioVisualiser>() );
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -55,23 +55,25 @@ FeMusic::FeMusic( bool loop )
 		float volume = fep->get_fes()->get_play_volume( FeSoundInfo::Sound );
 		m_music.setVolume( volume );
 
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		auto* normaliser = m_audio_effects->get_effect<FeAudioNormaliser>();
 		if ( normaliser )
 			normaliser->set_media_volume( volume / 100.0f );
 	}
-	m_music.setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	// Capture m_audio_effects by value since it's a shared_ptr
+	auto effects = m_audio_effects;
+	m_music.setEffectProcessor( [effects]( const float *input_frames, unsigned int &input_frame_count,
 	                                    float *output_frames, unsigned int &output_frame_count,
 	                                    unsigned int frame_channel_count )
 	{
-		if ( input_frames && input_frame_count > 0 && get_playing() )
+		if ( input_frames && input_frame_count > 0 )
 		{
-			m_audio_effects.process_all( input_frames, output_frames,
+			effects->process_all( input_frames, output_frames,
 			                                       input_frame_count, frame_channel_count,
-			                                       static_cast<float>( m_music.getSampleRate() ));
+			                                       44100.0f ); // TODO: Get actual sample rate
 		}
 		else
 		{
-			m_audio_effects.reset_all();
+			effects->reset_all();
 
 			// Copy input to output when not playing
 			if ( input_frames && output_frames && input_frame_count > 0 )
@@ -142,7 +144,7 @@ void FeMusic::set_volume( float v )
 
 		m_music.setVolume( v );
 
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		auto* normaliser = m_audio_effects->get_effect<FeAudioNormaliser>();
 		if ( normaliser )
 			normaliser->set_media_volume( v / 100.0f );
 	}
@@ -258,12 +260,12 @@ const char *FeMusic::get_metadata( const char* tag )
 
 void FeMusic::tick()
 {
-	m_audio_effects.update_all();
+	m_audio_effects->update_all();
 }
 
 FeAudioVisualiser* FeMusic::get_audio_visualiser() const
 {
-	return m_audio_effects.get_effect<FeAudioVisualiser>();
+	return m_audio_effects->get_effect<FeAudioVisualiser>();
 }
 
 float FeMusic::get_vu_mono()
