@@ -541,7 +541,10 @@ void FeVideoImp::stop()
 		run_video_thread = false;
 
 	if ( m_video_thread.joinable() )
+	{
+		frame_displayed.notify_one();
 		m_video_thread.join();
+	}
 
 	FeBaseStream::stop();
 }
