@@ -83,6 +83,18 @@ FeMusic::FeMusic( bool loop )
 
 FeMusic::~FeMusic()
 {
+	m_music.setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	                                    float *output_frames, unsigned int &output_frame_count,
+	                                    unsigned int frame_channel_count )
+	{
+		if ( input_frames && output_frames && input_frame_count > 0 )
+		{
+			const unsigned int total_samples = input_frame_count * frame_channel_count;
+			std::memcpy( output_frames, input_frames, total_samples * sizeof(float) );
+		}
+		output_frame_count = input_frame_count;
+	});
+	m_music.stop();
 }
 
 void FeMusic::load( const std::string &fn )
