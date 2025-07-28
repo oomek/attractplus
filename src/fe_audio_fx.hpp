@@ -39,8 +39,7 @@ public:
 
 	// Pure virtual methods that all effects must implement
 	virtual bool process( const float *input_frames, float *output_frames,
-	                           unsigned int frame_count, unsigned int channel_count,
-	                           float media_sample_rate ) = 0;
+	                      unsigned int frame_count, unsigned int channel_count ) = 0;
 	virtual void update() = 0;
 	virtual void reset() = 0;
 
@@ -62,8 +61,7 @@ public:
 
 	void add_effect( std::unique_ptr<FeAudioEffect> effect );
 	bool process_all( const float *input_frames, float *output_frames,
-	                            unsigned int frame_count, unsigned int channel_count,
-	                            float media_sample_rate );
+	                  unsigned int frame_count, unsigned int channel_count );
 
 	void update_all();
 	void reset_all();
@@ -85,8 +83,7 @@ public:
 	~FeAudioDCFilter() override = default;
 
 	bool process( const float *input_frames, float *output_frames,
-	                   unsigned int frame_count, unsigned int channel_count,
-	                   float media_sample_rate ) override;
+	              unsigned int frame_count, unsigned int channel_count ) override;
 
 	void update() override;
 	void reset() override;
@@ -106,8 +103,7 @@ public:
 	~FeAudioVisualiser() override;
 
 	bool process( const float *input_frames, float *output_frames,
-	                   unsigned int frame_count, unsigned int channel_count,
-	                   float media_sample_rate ) override;
+	              unsigned int frame_count, unsigned int channel_count ) override;
 
 	void update() override;
 	void reset() override;
@@ -182,8 +178,7 @@ public:
 	~FeAudioNormaliser() override = default;
 
 	bool process( const float *input_frames, float *output_frames,
-	                   unsigned int frame_count, unsigned int channel_count,
-	                   float media_sample_rate ) override;
+	              unsigned int frame_count, unsigned int channel_count ) override;
 
 	void update() override;
 	void reset() override;

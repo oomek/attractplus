@@ -41,8 +41,7 @@
 
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
-	m_volume( 100.0 ),
-	m_audio_effects()
+	m_volume( 100.0 )
 {
 	m_music.setLooping( loop );
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
@@ -63,17 +62,14 @@ FeMusic::FeMusic( bool loop )
 	                                    float *output_frames, unsigned int &output_frame_count,
 	                                    unsigned int frame_channel_count )
 	{
-		if ( input_frames && input_frame_count > 0 && get_playing() )
+		if ( input_frames && input_frame_count > 0 )
 		{
-			m_audio_effects.process_all( input_frames, output_frames,
-			                                       input_frame_count, frame_channel_count,
-			                                       static_cast<float>( m_music.getSampleRate() ));
+			m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
 		}
 		else
 		{
 			m_audio_effects.reset_all();
 
-			// Copy input to output when not playing
 			if ( input_frames && output_frames && input_frame_count > 0 )
 			{
 				const unsigned int total_samples = input_frame_count * frame_channel_count;

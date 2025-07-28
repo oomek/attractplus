@@ -71,8 +71,7 @@ void FeAudioEffectsManager::add_effect( std::unique_ptr<FeAudioEffect> effect )
 }
 
 bool FeAudioEffectsManager::process_all( const float *input_frames, float *output_frames,
-                                         unsigned int frame_count, unsigned int channel_count,
-                                         float media_sample_rate )
+                                         unsigned int frame_count, unsigned int channel_count )
 {
 	bool audio_modified = false;
 	m_reset_fx = true;
@@ -94,7 +93,7 @@ bool FeAudioEffectsManager::process_all( const float *input_frames, float *outpu
 		auto& effect = m_effects[i];
 		if ( effect && effect->is_enabled() )
 		{
-			if ( effect->process( current_input, current_output, frame_count, channel_count, media_sample_rate ))
+			if ( effect->process( current_input, current_output, frame_count, channel_count ))
 				audio_modified = true;
 		}
 		else if ( effect )
@@ -207,8 +206,7 @@ float FeAudioVisualiser::convert_to_log_scale( float linear_value, float amplitu
 }
 
 bool FeAudioVisualiser::process( const float* input_frames, float* output_frames,
-                                 unsigned int frame_count, unsigned int channel_count,
-                                 float media_sample_rate )
+                                 unsigned int frame_count, unsigned int channel_count )
 {
 	// It's a passthrough effect
 	const unsigned int total_samples = frame_count * channel_count;
@@ -676,8 +674,7 @@ FeAudioNormaliser::FeAudioNormaliser()
 }
 
 bool FeAudioNormaliser::process( const float *input_frames, float *output_frames,
-                                 unsigned int frame_count, unsigned int channel_count,
-                                 float media_sample_rate )
+                                 unsigned int frame_count, unsigned int channel_count )
 {
 	float current_peak = 0.0f;
 	for ( unsigned int i = 0; i < frame_count; ++i )
@@ -784,8 +781,7 @@ FeAudioDCFilter::FeAudioDCFilter( float cutoff_freq )
 }
 
 bool FeAudioDCFilter::process( const float *input_frames, float *output_frames,
-                               unsigned int frame_count, unsigned int channel_count,
-                               float media_sample_rate )
+                               unsigned int frame_count, unsigned int channel_count )
 {
 	if ( m_coefficient == 0.0f )
 	{

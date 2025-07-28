@@ -40,7 +40,7 @@ private:
 	float m_volume;
 	sf::Clock m_system_clock;
 
-	mutable FeAudioEffectsManager m_audio_effects;
+	FeAudioEffectsManager m_audio_effects;
 
 public:
 	FeMusic( bool loop=false );
