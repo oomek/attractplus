@@ -32,11 +32,9 @@
 #ifdef SFML_SYSTEM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#ifndef WINDOWS_XP
 #include <dwmapi.h>
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#endif
 #endif
 #endif // SFML_SYSTEM_WINDOWS
 
@@ -156,11 +154,11 @@ void FeWindow::display()
 {
 	m_window->display();
 
-	// Starting from Windows Vista all window modes
-	// go through DWM, so we have to flush here to sync to the DMW's v-sync
-	// to avoid stuttering.
+	// Starting from Windows Vista non fullscreen window modes
+	// should be synced by DWM, instead of v-sync
 #ifdef SFML_SYSTEM_WINDOWS
-	DwmFlush();
+	if ( m_win_mode != FeSettings::Fullscreen )
+		DwmFlush();
 	check_for_sleep();
 #endif
 }
@@ -210,16 +208,7 @@ void FeWindow::initial_create()
 	int style_map[4] =
 	{
 		sf::Style::None,       // FeSettings::Default
-		// On Windows Vista and above we do not set fullscreen flag explicitly.
-		// Instead we create a fullscreen borderless window, and let the system handle it.
-		// When the window resolution matches the display resolution
-		// we have all the advantages of native fullscreen
-		// double/triple buffering, fullscreen optimizations and faster window creation/switching
-#if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
 		sf::Style::None,       // FeSettings::Fullscreen
-#else
-		sf::Style::None,       // FeSettings::Fullscreen
-#endif
 		sf::Style::Default,    // FeSettings::Window
 		sf::Style::None        // FeSettings::WindowNoBorder
 	};
@@ -227,11 +216,7 @@ void FeWindow::initial_create()
 	sf::State state_map[4] =
 	{
 		sf::State::Windowed,   // FeSettings::Default
-#if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
-		sf::State::Windowed,   // FeSettings::Fullscreen
-#else
 		sf::State::Fullscreen, // FeSettings::Fullscreen
-#endif
 		sf::State::Windowed,   // FeSettings::Window
 		sf::State::Windowed    // FeSettings::WindowNoBorder
 	};
@@ -377,7 +362,6 @@ void FeWindow::initial_create()
 
 #if defined(SFML_SYSTEM_WINDOWS)
 
-#if !defined(WINDOWS_XP)
 	// If the window mode is set to Window (No Border) and the values in window.am
 	// match the display resolution we treat it as if it was Fullscreen
 	// to properly handle borderless fulscreen optimizations.
@@ -397,7 +381,6 @@ void FeWindow::initial_create()
 			wpos.x = 0;
 			wpos.y = 0;
 		}
-#endif
 
 	// To avoid problems with black screen on launching games when window mode is set to Fullscreen
 	// we hide the main renderwindow and show this m_blackout window instead
@@ -433,7 +416,7 @@ void FeWindow::initial_create()
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
 	// when we rely solely on DwmFlush()
-#if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_XP)
+#if defined(SFML_SYSTEM_WINDOWS)
 	m_window->setVerticalSyncEnabled( m_win_mode == FeSettings::Fullscreen );
 #else
 	m_window->setVerticalSyncEnabled(true);
@@ -478,11 +461,9 @@ void FeWindow::initial_create()
 	set_win32_foreground_window( m_window->getNativeHandle(), m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
 
-#ifndef WINDOWS_XP
 	// Enable dark mode titlebar on Windows
 	BOOL value = TRUE;
 	DwmSetWindowAttribute( hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof( value ));
-#endif
 
 	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));

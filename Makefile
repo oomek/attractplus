@@ -59,7 +59,6 @@
 
 #FE_DEBUG=1
 #VERBOSE=1
-#WINDOWS_XP=1
 
 override FE_VERSION := v3.1.2
 
@@ -311,11 +310,7 @@ endif
 ifeq ($(FE_WINDOWS_COMPILE),1)
  _DEP += attractplus.rc
  _OBJ += attractplus.res
- ifeq ($(WINDOWS_XP),1)
-  FE_FLAGS += -DWINDOWS_XP
- else
-  LIBS += -ldwmapi
- endif
+ LIBS += -ldwmapi
  ifeq ($(WINDOWS_CONSOLE),1)
   CFLAGS += -mconsole
   FE_FLAGS += -DWINDOWS_CONSOLE
