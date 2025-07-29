@@ -277,6 +277,7 @@ public:
 	bool get_video_toggle() { return m_playMovies; };
 
 	int get_layout_ms();
+	sf::Time get_layout_time();
 	int get_refresh_rate();
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );

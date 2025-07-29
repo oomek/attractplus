@@ -1680,6 +1680,11 @@ int FePresent::get_layout_ms()
 	return m_layoutTimer.getElapsedTime().asMilliseconds();
 }
 
+sf::Time FePresent::get_layout_time()
+{
+	return m_layoutTimer.getElapsedTime();
+}
+
 int FePresent::get_refresh_rate()
 {
 	return m_refresh_rate;
