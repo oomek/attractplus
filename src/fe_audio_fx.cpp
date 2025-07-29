@@ -620,13 +620,12 @@ void FeAudioVisualiser::update_fall() const
 {
 	sf::Time current_time = m_system_clock.getElapsedTime();
 
-	float delta_time = ( current_time - m_last_frame_time ).asSeconds();
-	m_last_frame_time = current_time;
-
-	float refresh_rate = 60.0f;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
-		refresh_rate = static_cast<float>( fep->get_refresh_rate() );
+		current_time = fep->get_layout_time();
+
+	float delta_time = ( current_time - m_last_frame_time ).asSeconds();
+	m_last_frame_time = current_time;
 
 	float vu_fall_amount = VU_FALL_SPEED * delta_time;
 	float fft_fall_amount = FFT_FALL_SPEED * delta_time;
