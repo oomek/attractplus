@@ -1362,6 +1362,8 @@ bool FeVM::on_tick()
 			++itr;
 	}
 
+	m_layoutTimer.tick();
+
 	return m_redraw_triggered;
 }
 

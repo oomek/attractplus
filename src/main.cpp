@@ -1151,10 +1151,7 @@ int main(int argc, char *argv[])
 		else
 			has_focus = window.hasFocus();
 
-		if ( feVM.on_tick() )
-			redraw=true;
-
-		if ( feVM.video_tick() )
+		if ( feVM.tick() )
 			redraw=true;
 
 		if ( feVM.saver_activation_check() )

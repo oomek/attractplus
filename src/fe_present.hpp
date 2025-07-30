@@ -107,6 +107,21 @@ public:
 	int num;
 };
 
+class FeStableTimer
+{
+public:
+	FeStableTimer();
+	void start();
+	void reset();
+	void tick();
+	sf::Time getElapsedTime();
+	void set_refresh_rate( int rate );
+
+private:
+	sf::Clock m_real_timer;
+	sf::Time m_time;
+	int m_refresh_rate;
+};
 
 class FePresent
 	: public sf::Drawable
@@ -130,7 +145,7 @@ protected:
 	std::string m_layoutFontName;
 	sf::Image *m_logo_image;
 
-	sf::Clock m_layoutTimer;
+	FeStableTimer m_layoutTimer;
 	sf::Time m_lastInput;
 
 	FeSettings::RotationState m_baseRotation;

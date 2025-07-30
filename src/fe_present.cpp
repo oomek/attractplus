@@ -416,6 +416,8 @@ void FePresent::init_monitors()
 	}
 	else
 		FeDebug() << "Monitor's Refresh Rate: " << m_refresh_rate << " Hz" << std::endl;
+
+	m_layoutTimer.set_refresh_rate( m_refresh_rate );
 }
 
 FePresent::~FePresent()
@@ -1280,7 +1282,6 @@ void FePresent::load_layout( bool initial_load )
 	m_layoutTimer.start();
 }
 
-// Only called when the overlay is up
 bool FePresent::tick()
 {
 	bool ret_val = false;
@@ -1327,6 +1328,8 @@ void FePresent::redraw()
 	redraw_surfaces();
 	m_window.draw( *this, m_layout_transform );
 	m_window.display();
+
+	m_layoutTimer.tick();
 }
 
 bool FePresent::saver_activation_check()
@@ -1769,4 +1772,51 @@ const sf::Vector2i FePresent::get_screen_size()
 		return sf::Vector2i( m_mon[0].size.y, m_mon[0].size.x);
 	else
 		return m_mon[0].size;
+}
+
+FeStableTimer::FeStableTimer()
+	: m_time( sf::Time::Zero ),
+	m_refresh_rate( 60 )
+{
+	m_real_timer.stop();
+	m_real_timer.reset();
+}
+
+void FeStableTimer::start()
+{
+	m_real_timer.start();
+}
+
+void FeStableTimer::reset()
+{
+	m_real_timer.reset();
+	m_time = sf::Time::Zero;
+}
+
+void FeStableTimer::tick()
+{
+	sf::Time real_elapsed = m_real_timer.getElapsedTime();
+	sf::Time stable_increment = sf::microseconds( 1000000 / m_refresh_rate );
+
+	sf::Time new_time = m_time + stable_increment;
+
+	// If the new time is lagging behind the real time, catch up.
+	if ( new_time < real_elapsed )
+		new_time = real_elapsed;
+
+	m_time = new_time;
+
+	// Start after the first tick
+	if ( !m_real_timer.isRunning() )
+		m_real_timer.start();
+}
+
+sf::Time FeStableTimer::getElapsedTime()
+{
+	return m_time;
+}
+
+void FeStableTimer::set_refresh_rate( int rate )
+{
+	m_refresh_rate = rate;
 }
