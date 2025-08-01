@@ -1774,7 +1774,7 @@ const sf::Vector2i FePresent::get_screen_size()
 		return m_mon[0].size;
 }
 
-FeStableTimer::FeStableTimer()
+FeStableClock::FeStableClock()
 	: m_time( sf::Time::Zero ),
 	m_refresh_rate( 60 )
 {
@@ -1782,18 +1782,18 @@ FeStableTimer::FeStableTimer()
 	m_real_timer.reset();
 }
 
-void FeStableTimer::start()
+void FeStableClock::start()
 {
 	m_real_timer.start();
 }
 
-void FeStableTimer::reset()
+void FeStableClock::reset()
 {
 	m_real_timer.reset();
 	m_time = sf::Time::Zero;
 }
 
-void FeStableTimer::tick()
+void FeStableClock::tick()
 {
 	sf::Time real_elapsed = m_real_timer.getElapsedTime();
 	sf::Time stable_increment = sf::microseconds( 1000000 / m_refresh_rate );
@@ -1811,12 +1811,12 @@ void FeStableTimer::tick()
 		m_real_timer.start();
 }
 
-sf::Time FeStableTimer::getElapsedTime()
+sf::Time FeStableClock::getElapsedTime()
 {
 	return m_time;
 }
 
-void FeStableTimer::set_refresh_rate( int rate )
+void FeStableClock::set_refresh_rate( int rate )
 {
 	m_refresh_rate = rate;
 }
