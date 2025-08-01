@@ -107,10 +107,10 @@ public:
 	int num;
 };
 
-class FeStableTimer
+class FeStableClock
 {
 public:
-	FeStableTimer();
+	FeStableClock();
 	void start();
 	void reset();
 	void tick();
@@ -145,7 +145,7 @@ protected:
 	std::string m_layoutFontName;
 	sf::Image *m_logo_image;
 
-	FeStableTimer m_layoutTimer;
+	FeStableClock m_layoutTimer;
 	sf::Time m_lastInput;
 
 	FeSettings::RotationState m_baseRotation;

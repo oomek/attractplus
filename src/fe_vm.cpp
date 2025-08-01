@@ -1375,7 +1375,7 @@ void FeVM::on_transition(
 
 	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
 
-	sf::Clock clk;
+	FeStableClock clk;
 	int ttime = 0;
 
 	std::vector<FeCallback *> worklist( m_trans.size() );
@@ -1429,6 +1429,7 @@ void FeVM::on_transition(
 		if (( !worklist.empty() ) && ( m_window.isOpen() ))
 		{
 			video_tick();
+			clk.tick();
 
 			redraw_surfaces();
 			m_window.clear();

@@ -131,8 +131,6 @@ private:
 	FeAudioEffectsManager m_audio_effects;
 	void setup_effect_processor();
 
-	sf::Clock m_system_clock;
-
 	FeMedia( const FeMedia & );
 	FeMedia &operator=( const FeMedia & );
 	float m_aspect_ratio;

@@ -38,7 +38,6 @@ private:
 	std::string m_file_name;
 	bool m_play_state;
 	float m_volume;
-	sf::Clock m_system_clock;
 
 	FeAudioEffectsManager m_audio_effects;
 
