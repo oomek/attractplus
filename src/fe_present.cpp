@@ -568,28 +568,16 @@ void FePresent::sort_zorder()
 
 void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 {
-	std::vector<FeBasePresentable *>::const_iterator itl;
+	sf::RenderStates transform_states = states;
 
-	//
-	for ( unsigned int i=0; i<m_mon.size(); i++ )
+	for ( const auto& mon : m_mon )
 	{
-		// use m_transform on monitor 0
-		states.transform = i ? m_mon[i].transform : m_layout_transform;
-		for ( itl=m_mon[i].elements.begin(); itl != m_mon[i].elements.end(); ++itl )
+		transform_states.transform = mon.transform;
+		for ( const auto* element : mon.elements )
 		{
-			if ( (*itl)->get_visible() )
+			if ( element->get_visible() )
 			{
-				// Skip layout transform for main surface and its snapshot
-				if ( (*itl) == m_main_surface || (*itl) == m_main_surface_snapshot )
-				{
-					sf::RenderStates no_transform_states = states;
-					no_transform_states.transform = m_mon[i].transform;
-					target.draw( (*itl)->drawable(), no_transform_states );
-				}
-				else
-				{
-					target.draw( (*itl)->drawable(), states );
-				}
+				target.draw( element->drawable(), transform_states );
 			}
 		}
 	}
