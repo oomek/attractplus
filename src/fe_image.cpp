@@ -981,7 +981,7 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 					itr != elements.end(); ++itr )
 		{
 			if ( (*itr)->get_visible() )
-				m_texture.draw( (*itr)->drawable() );
+				m_texture.draw( (*itr)->drawable(), states );
 		}
 
 		m_texture.display();

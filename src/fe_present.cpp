@@ -567,22 +567,22 @@ void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 	for ( unsigned int i=0; i<m_mon.size(); i++ )
 	{
 		// use m_transform on monitor 0
-		states.transform = i ? m_mon[i].transform : m_layout_transform;
+		// states.transform = i ? m_mon[i].transform : m_layout_transform;
 		for ( itl=m_mon[i].elements.begin(); itl != m_mon[i].elements.end(); ++itl )
 		{
 			if ( (*itl)->get_visible() )
 			{
 				// Skip layout transform for main surface and its snapshot
-				if ( (*itl) == m_main_surface || (*itl) == m_main_surface_snapshot )
-				{
+				// if ( (*itl) == m_main_surface || (*itl) == m_main_surface_snapshot )
+				// {
 					sf::RenderStates no_transform_states = states;
 					no_transform_states.transform = m_mon[i].transform;
 					target.draw( (*itl)->drawable(), no_transform_states );
-				}
-				else
-				{
-					target.draw( (*itl)->drawable(), states );
-				}
+				// }
+				// else
+				// {
+					// target.draw( (*itl)->drawable(), states );
+				// }
 			}
 		}
 	}
