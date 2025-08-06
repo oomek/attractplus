@@ -1344,8 +1344,8 @@ void FePresent::redraw()
 	if ( is_layout_loaded() )
 		tick();
 
-	m_window.clear();
 	redraw_surfaces();
+	m_window.clear();
 	m_window.draw( *this, m_layout_transform );
 	m_window.display();
 
@@ -1812,6 +1812,14 @@ FePresentableParent *FePresent::get_main_presentable() const
 FeStableClock::FeStableClock()
 	: m_time( sf::Time::Zero ),
 	m_refresh_rate( 60 )
+{
+	m_real_timer.stop();
+	m_real_timer.reset();
+}
+
+FeStableClock::FeStableClock( int refresh_rate )
+	: m_time( sf::Time::Zero ),
+	m_refresh_rate( refresh_rate )
 {
 	m_real_timer.stop();
 	m_real_timer.reset();

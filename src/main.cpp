@@ -316,6 +316,7 @@ int main(int argc, char *argv[])
 				if ( !window.run() )
 					exit_selected = true;
 
+				feVM.clear_commands();
 				feVM.post_run();
 				soundsys.release_audio( false );
 				soundsys.update_volumes();

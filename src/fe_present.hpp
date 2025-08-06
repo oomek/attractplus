@@ -111,6 +111,7 @@ class FeStableClock
 {
 public:
 	FeStableClock();
+	FeStableClock( int refresh_rate );
 	void start();
 	void reset();
 	void tick();
