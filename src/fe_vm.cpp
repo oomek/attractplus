@@ -387,6 +387,8 @@ void FeVM::clear_commands()
 {
 	while ( !m_posted_commands.empty() )
 		m_posted_commands.pop();
+
+	m_layout_time.tick();
 }
 
 void FeVM::post_command( FeInputMap::Command c )
