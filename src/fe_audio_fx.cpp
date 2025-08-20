@@ -226,6 +226,8 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 	const unsigned int total_samples = frame_count * channel_count;
 	std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
 
+	std::lock_guard<std::mutex> lock( m_mutex );
+
 	if ( !m_fft_requested && !m_vu_requested )
 		return false;
 
@@ -341,6 +343,7 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 
 void FeAudioVisualiser::reset()
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_vu_mono_in = 0.0f;
 	m_vu_left_in = 0.0f;
 	m_vu_right_in = 0.0f;
@@ -365,6 +368,7 @@ void FeAudioVisualiser::reset()
 
 void FeAudioVisualiser::update()
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	update_fall();
 }
 

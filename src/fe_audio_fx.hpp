@@ -130,6 +130,8 @@ public:
 private:
 	static void initialise_window_lut();
 
+	mutable std::mutex m_mutex;
+
 	// VU meter data
 	mutable float m_vu_mono_in;
 	mutable float m_vu_mono_out;
