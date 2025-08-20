@@ -687,11 +687,25 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 		}
 	}
 
-	// Ignore the first 100ms to allow the DC filter to settle down
-	size_t startup_delay = static_cast<size_t>( 0.1f * m_device_sample_rate );
-	if ( m_startup_delay < startup_delay )
+	float current_gain;
+	bool target_reached;
+	size_t startup_delay;
+	float media_volume;
+
+	// Read shared variables with minimal lock
 	{
-		m_startup_delay += frame_count;
+		std::lock_guard<std::mutex> lock( m_mutex );
+		current_gain = m_current_gain;
+		target_reached = m_target_reached;
+		startup_delay = m_startup_delay;
+		media_volume = m_media_volume;
+	}
+
+	// Ignore the first 100ms to allow the DC filter to settle down
+	size_t startup_delay_threshold = static_cast<size_t>( 0.1f * m_device_sample_rate );
+	if ( startup_delay < startup_delay_threshold )
+	{
+		startup_delay += frame_count;
 		for ( unsigned int i = 0; i < frame_count; ++i )
 		{
 			for ( unsigned int ch = 0; ch < channel_count; ++ch )
@@ -700,19 +714,23 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 				output_frames[idx] = input_frames[idx];
 			}
 		}
+
+		std::lock_guard<std::mutex> lock( m_mutex );
+		m_startup_delay = startup_delay;
+
 		return true;
 	}
 
-	const float target_level = 0.5f * m_media_volume;
+	const float target_level = 0.5f * media_volume;
 
 	if ( current_peak > 0.0001f )
 	{
-		float output_level = current_peak * m_current_gain;
+		float output_level = current_peak * current_gain;
 
-		if ( !m_target_reached && output_level >= target_level )
-			m_target_reached = true;
+		if ( !target_reached && output_level >= target_level )
+			target_reached = true;
 
-		if ( m_target_reached )
+		if ( target_reached )
 		{
 			if ( output_level > target_level )
 			{
@@ -721,26 +739,26 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 				const float buffers_per_second = m_device_sample_rate / frame_count;
 				const float fast_response = 1.0f / ( decrease_time_ms * 0.001f * buffers_per_second );
 				float needed_gain = target_level / current_peak;
-				m_current_gain += ( needed_gain - m_current_gain ) * fast_response;
+				current_gain += ( needed_gain - current_gain ) * fast_response;
 			}
 		}
-		else if ( !m_target_reached && output_level < target_level )
+		else if ( !target_reached && output_level < target_level )
 		{
 			// Slow gain increase
 			const float increase_time_ms = 1000.0f;
 			const float buffers_per_second = m_device_sample_rate / frame_count;
 			const float slow_response = 1.0f / ( increase_time_ms * 0.001f * buffers_per_second );
 			float needed_gain = target_level / current_peak;
-			m_current_gain += (needed_gain - m_current_gain) * slow_response;
+			current_gain += ( needed_gain - current_gain ) * slow_response;
 		}
 		// Otherwise, maintain current gain
 	}
 
-	if ( m_current_gain > MAX_GAIN )
-		m_current_gain = MAX_GAIN;
+	if ( current_gain > MAX_GAIN )
+		current_gain = MAX_GAIN;
 
-	if ( m_current_gain < 1.0f )
-		m_current_gain = 1.0f;
+	if ( current_gain < 1.0f )
+		current_gain = 1.0f;
 
 	// Apply gain to output
 	for ( unsigned int i = 0; i < frame_count; ++i )
@@ -748,9 +766,13 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 		for ( unsigned int ch = 0; ch < channel_count; ++ch )
 		{
 			size_t idx = i * channel_count + ch;
-			output_frames[idx] = input_frames[idx] * m_current_gain;
+			output_frames[idx] = input_frames[idx] * current_gain;
 		}
 	}
+
+	std::lock_guard<std::mutex> lock( m_mutex );
+	m_current_gain = current_gain;
+	m_target_reached = target_reached;
 
 	return true;
 }
@@ -762,6 +784,7 @@ void FeAudioNormaliser::update()
 
 void FeAudioNormaliser::reset()
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_current_gain = 1.0f;
 	m_target_reached = false;
 	m_startup_delay = 0;
@@ -769,6 +792,7 @@ void FeAudioNormaliser::reset()
 
 void FeAudioNormaliser::set_media_volume( float volume )
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_target_reached = false;
 	m_media_volume = volume;
 }
