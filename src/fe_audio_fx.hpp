@@ -91,6 +91,7 @@ public:
 
 private:
 	float m_cutoff_freq;
+	mutable std::mutex m_mutex;
 	mutable float m_coefficient;
 	mutable std::vector<float> m_prev_input;  // Previous input samples per channel
 	mutable std::vector<float> m_prev_output; // Previous output samples per channel
