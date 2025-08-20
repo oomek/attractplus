@@ -47,6 +47,9 @@ FeMusic::FeMusic( bool loop )
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
+	
+	// Mark effects manager as ready for processing after all effects are constructed
+	m_audio_effects.set_ready_for_processing();
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )

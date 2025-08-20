@@ -73,6 +73,15 @@ void FeAudioEffectsManager::add_effect( std::unique_ptr<FeAudioEffect> effect )
 bool FeAudioEffectsManager::process_all( const float *input_frames, float *output_frames,
                                          unsigned int frame_count, unsigned int channel_count )
 {
+	// Don't process until all effects are fully constructed
+	if ( !m_ready_for_processing )
+	{
+		// Pass-through during construction
+		const unsigned int total_samples = frame_count * channel_count;
+		std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
+		return false;
+	}
+
 	bool audio_modified = false;
 	m_reset_fx = true;
 
@@ -143,6 +152,11 @@ void FeAudioEffectsManager::reset_all()
 		}
 		m_reset_fx = false;
 	}
+}
+
+void FeAudioEffectsManager::set_ready_for_processing()
+{
+	m_ready_for_processing = true;
 }
 
 std::vector<float> FeAudioVisualiser::m_window_lut;
