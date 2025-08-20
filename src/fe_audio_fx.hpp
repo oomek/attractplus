@@ -26,6 +26,7 @@
 #include <SFML/System.hpp>
 #include <vector>
 #include <memory>
+#include <mutex>
 #include <sqrat.h>
 #include <cmath>
 
@@ -186,6 +187,7 @@ public:
 	void set_media_volume( float volume );
 
 private:
+	mutable std::mutex m_mutex;
 	float m_current_gain = 1.0f;
 	bool m_target_reached = false;
 	size_t m_startup_delay = 0;
