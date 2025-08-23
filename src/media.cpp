@@ -364,13 +364,15 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 			}
 
 #if HAVE_CH_LAYOUT
-			AVChannelLayout layout;
+			AVChannelLayout layout = AV_CHANNEL_LAYOUT_MASK(0, 0);
 			av_channel_layout_copy(&layout, &frame->ch_layout);
 			if (!av_channel_layout_check(&layout)) {
+				av_channel_layout_uninit(&layout);
 				av_channel_layout_default(&layout, codec_ctx->ch_layout.nb_channels);
 			}
 			av_opt_set_chlayout(resample_ctx, "in_chlayout", &layout, 0);
 			av_opt_set_chlayout(resample_ctx, "out_chlayout", &layout, 0);
+			av_channel_layout_uninit(&layout);
 #else
 			int64_t channel_layout = frame->channel_layout;
 			if ( !channel_layout )
