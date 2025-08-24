@@ -125,6 +125,7 @@ private:
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
 	std::atomic<bool> m_closing;
+	std::atomic<bool> m_ready{false};
 	std::mutex m_callback_mutex;
 	std::mutex m_closing_mutex;
 
