@@ -806,17 +806,29 @@ FeAudioDCFilter::FeAudioDCFilter( float cutoff_freq )
 bool FeAudioDCFilter::process( const float *input_frames, float *output_frames,
                                unsigned int frame_count, unsigned int channel_count )
 {
-	if ( m_coefficient == 0.0f )
+	float coefficient;
+	std::vector<float> prev_input;
+	std::vector<float> prev_output;
+
+	// Read shared variables with minimal lock
+	{
+		std::lock_guard<std::mutex> lock( m_mutex );
+		coefficient = m_coefficient;
+		prev_input = m_prev_input;
+		prev_output = m_prev_output;
+	}
+
+	if ( coefficient == 0.0f )
 	{
 		// Calculate one-pole one-zero DC filter coefficient
 		const float omega = 2.0f * M_PI * m_cutoff_freq / m_device_sample_rate;
-		m_coefficient = std::exp( -omega );
+		coefficient = std::exp( -omega );
 	}
 
-	if ( m_prev_input.size() != channel_count )
+	if ( prev_input.size() != channel_count )
 	{
-		m_prev_input.resize( channel_count, 0.0f );
-		m_prev_output.resize( channel_count, 0.0f );
+		prev_input.resize( channel_count, 0.0f );
+		prev_output.resize( channel_count, 0.0f );
 	}
 
 	// Apply one-pole one-zero DC filter
@@ -827,12 +839,17 @@ bool FeAudioDCFilter::process( const float *input_frames, float *output_frames,
 		{
 			const unsigned int sample_idx = frame * channel_count + ch;
 			const float input_sample = input_frames[sample_idx];
-			const float output_sample = input_sample - m_prev_input[ch] + m_coefficient * m_prev_output[ch];
-			m_prev_input[ch] = input_sample;
-			m_prev_output[ch] = output_sample;
+			const float output_sample = input_sample - prev_input[ch] + coefficient * prev_output[ch];
+			prev_input[ch] = input_sample;
+			prev_output[ch] = output_sample;
 			output_frames[sample_idx] = output_sample;
 		}
 	}
+
+	std::lock_guard<std::mutex> lock( m_mutex );
+	m_coefficient = coefficient;
+	m_prev_input = prev_input;
+	m_prev_output = prev_output;
 
 	return true;
 }
@@ -844,6 +861,7 @@ void FeAudioDCFilter::update()
 
 void FeAudioDCFilter::reset()
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	std::fill( m_prev_input.begin(), m_prev_input.end(), 0.0f );
 	std::fill( m_prev_output.begin(), m_prev_output.end(), 0.0f );
 	m_coefficient = 0.0f;
