@@ -124,8 +124,8 @@ private:
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
-	std::atomic<bool> m_closing;
-	std::atomic<bool> m_ready{false};
+    std::atomic<bool> m_alive{true};   // lifetime guard
+    std::atomic<bool> m_ready{false};  // init guard
 	std::mutex m_callback_mutex;
 	std::mutex m_closing_mutex;
 
