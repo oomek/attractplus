@@ -27,6 +27,7 @@
 #include <vector>
 #include <memory>
 #include <mutex>
+#include <atomic>
 #include <sqrat.h>
 #include <cmath>
 
@@ -49,7 +50,7 @@ public:
 	virtual void set_enabled( bool enabled ) { m_enabled = enabled; }
 
 protected:
-	bool m_enabled = true;
+	std::atomic<bool> m_enabled = true;
 	float m_device_sample_rate;
 };
 
@@ -66,6 +67,7 @@ public:
 
 	void update_all();
 	void reset_all();
+	void set_ready_for_processing();
 
 	// Get specific effect (returns nullptr if not found or wrong type)
 	template<typename T>
@@ -73,7 +75,8 @@ public:
 
 private:
 	std::vector<std::unique_ptr<FeAudioEffect>> m_effects;
-	bool m_reset_fx = false;
+	std::atomic<bool> m_reset_fx{false};
+	std::atomic<bool> m_ready_for_processing{false};
 };
 
 
