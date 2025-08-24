@@ -1017,12 +1017,13 @@ void FeMedia::stop()
 void FeMedia::close()
 {
 	m_closing = true;
+	m_ready = false;
 
 	{ // Wait for getData() callback
 		std::lock_guard<std::mutex> callback_mutex( m_callback_mutex );
 	} // Release the mutex
 
-	setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	setEffectProcessor( []( const float *input_frames, unsigned int &input_frame_count,
 	                            float *output_frames, unsigned int &output_frame_count,
 	                            unsigned int frame_channel_count )
 	{
