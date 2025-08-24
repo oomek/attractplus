@@ -894,7 +894,6 @@ FeMedia::FeMedia( Type t )
 	: sf::SoundStream(),
 	m_audio( NULL ),
 	m_video( NULL ),
-	m_closing( false ),
 	m_aspect_ratio( 1.0 )
 {
 	m_imp = new FeMediaImp( t );
@@ -906,11 +905,12 @@ FeMedia::FeMedia( Type t )
 	m_audio_effects.set_ready_for_processing();
 	
 	// Mark FeMedia object as ready for audio callbacks
-	m_ready = true;
+	m_ready.store( true, std::memory_order_release );
 }
 
 FeMedia::~FeMedia()
 {
+	m_alive.store(false, std::memory_order_release);
 	close();
 
 	delete m_imp;
@@ -922,13 +922,13 @@ void FeMedia::setup_effect_processor()
 	                            float *output_frames, unsigned int &output_frame_count,
 	                            unsigned int frame_channel_count )
 	{
-		if ( !m_ready )
+		if ( !m_alive.load( std::memory_order_acquire ))
+			return;
+
+		if ( !m_ready.load( std::memory_order_acquire ))
 			return;
 
 		std::lock_guard<std::mutex> l( m_closing_mutex );
-
-		if ( m_closing )
-			return;
 
 		if ( input_frames && input_frame_count > 0 )
 		{
@@ -1016,24 +1016,10 @@ void FeMedia::stop()
 
 void FeMedia::close()
 {
-	m_closing = true;
-	m_ready = false;
 
 	{ // Wait for getData() callback
 		std::lock_guard<std::mutex> callback_mutex( m_callback_mutex );
 	} // Release the mutex
-
-	setEffectProcessor( []( const float *input_frames, unsigned int &input_frame_count,
-	                            float *output_frames, unsigned int &output_frame_count,
-	                            unsigned int frame_channel_count )
-	{
-		if ( input_frames && output_frames && input_frame_count > 0 )
-		{
-			const unsigned int total_samples = input_frame_count * frame_channel_count;
-			std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
-		}
-		output_frame_count = input_frame_count;
-	});
 
 	{ // Wait for setEffectsProcessor() callback
 		std::lock_guard<std::mutex> closing_mutex( m_closing_mutex );
@@ -1444,21 +1430,21 @@ bool FeMedia::onGetData( Chunk &data )
 	data.samples = NULL;
 	data.sampleCount = 0;
 
-	if ( (!m_audio) || end_of_file() || m_closing )
+	if ( (!m_audio) || end_of_file() )
 		return false;
 
 	std::lock_guard<std::mutex> l( m_callback_mutex );
 
 	while ( offset < m_audio->codec_ctx->sample_rate )
 	{
-		if ( m_closing )
+		if ( !m_alive.load( std::memory_order_acquire ))
 			return false;
 
 		AVPacket *packet = m_audio->pop_packet();
 		while (( packet == NULL ) && ( !end_of_file() ))
 		{
 			read_packet();
-			if ( m_closing )
+			if ( !m_alive.load( std::memory_order_acquire ))
 			{
 				av_packet_free( &packet );
 				return false;
@@ -1475,7 +1461,7 @@ bool FeMedia::onGetData( Chunk &data )
 			return false;
 		}
 
-		if ( m_closing )
+		if ( !m_alive.load( std::memory_order_acquire ))
 		{
 			FeLog() << "Error: Closing stream before avcodec_send_packet()" << std::endl;
 			av_packet_free( &packet );
