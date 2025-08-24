@@ -904,6 +904,9 @@ FeMedia::FeMedia( Type t )
 	
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
+	
+	// Mark FeMedia object as ready for audio callbacks
+	m_ready = true;
 }
 
 FeMedia::~FeMedia()
@@ -919,6 +922,9 @@ void FeMedia::setup_effect_processor()
 	                            float *output_frames, unsigned int &output_frame_count,
 	                            unsigned int frame_channel_count )
 	{
+		if ( !m_ready )
+			return;
+
 		std::lock_guard<std::mutex> l( m_closing_mutex );
 
 		if ( m_closing )
