@@ -227,8 +227,13 @@ FeMediaImp::FeMediaImp( FeMedia::Type t )
 
 void FeMediaImp::close()
 {
+	std::lock_guard<std::recursive_mutex> l( m_read_mutex );
+
 	if ( m_format_ctx )
+	{
 		avformat_close_input( &m_format_ctx );
+		m_format_ctx = NULL;
+	}
 
 	if ( m_io_ctx )
 	{
@@ -239,7 +244,6 @@ void FeMediaImp::close()
 		av_free( m_io_ctx );
 		m_io_ctx=NULL;
 	}
-
 
 	m_read_eof=false;
 }
@@ -646,9 +650,20 @@ void FeVideoImp::video_thread()
 		if ( detached_frame )
 		{
 
-			wait_time = sf::seconds( detached_frame->pts
-						* av_q2d( m_parent->m_imp->m_format_ctx->streams[stream_id]->time_base ))
-						- m_parent->get_video_time() + half_frame_offset;
+			sf::Time frame_time;
+			{
+				std::lock_guard<std::recursive_mutex> l( m_parent->m_imp->m_read_mutex );
+				if ( m_parent->m_imp->m_format_ctx && stream_id >= 0 )
+				{
+					frame_time = sf::seconds( detached_frame->pts
+						* av_q2d( m_parent->m_imp->m_format_ctx->streams[stream_id]->time_base ));
+				}
+				else
+				{
+					frame_time = sf::Time::Zero;
+				}
+			}
+			wait_time = frame_time - m_parent->get_video_time() + half_frame_offset;
 
 			if ( wait_time < max_sleep )
 			{
@@ -995,8 +1010,14 @@ void FeMedia::stop()
 		sf::SoundStream::stop();
 		m_audio->stop();
 
-		av_seek_frame( m_imp->m_format_ctx, m_audio->stream_id, 0,
-							AVSEEK_FLAG_BACKWARD );
+		{
+			std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
+			if ( m_imp->m_format_ctx )
+			{
+				av_seek_frame( m_imp->m_format_ctx, m_audio->stream_id, 0,
+									AVSEEK_FLAG_BACKWARD );
+			}
+		}
 
 		avcodec_flush_buffers( m_audio->codec_ctx );
 	}
@@ -1005,13 +1026,22 @@ void FeMedia::stop()
 	{
 		m_video->stop();
 
-		av_seek_frame( m_imp->m_format_ctx, m_video->stream_id, 0,
-							AVSEEK_FLAG_BACKWARD );
+		{
+			std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
+			if ( m_imp->m_format_ctx )
+			{
+				av_seek_frame( m_imp->m_format_ctx, m_video->stream_id, 0,
+									AVSEEK_FLAG_BACKWARD );
+			}
+		}
 
 		avcodec_flush_buffers( m_video->codec_ctx );
 	}
 
-	m_imp->m_read_eof = false;
+	{
+		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
+		m_imp->m_read_eof = false;
+	}
 
 	m_audio_effects.reset_all();
 }
@@ -1370,18 +1400,15 @@ bool FeMedia::read_packet()
 		return false;
 	}
 
-	int r = -1;
-	try
+	if ( !m_imp->m_format_ctx )
 	{
-		r = av_read_frame( m_imp->m_format_ctx, pkt );
-	}
-	catch (...)
-	{
-		FeLog() << "Error: Failed to read frame: " << FORMAT_CTX_URL << std::endl;
+		FeLog() << "Error: Format context was closed during read operation" << std::endl;
 		av_packet_free( &pkt );
 		m_imp->m_read_eof = true;
 		return false;
 	}
+
+	int r = av_read_frame( m_imp->m_format_ctx, pkt );
 
 	if ( r < 0 )
 	{
@@ -1539,7 +1566,10 @@ bool FeMedia::is_multiframe() const
 {
 	if ( m_video && m_imp->m_format_ctx )
 	{
-		AVStream *s = m_imp->m_format_ctx->streams[ m_video->stream_id ];
+		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
+		if ( m_imp->m_format_ctx && m_video->stream_id >= 0 )
+		{
+			AVStream *s = m_imp->m_format_ctx->streams[ m_video->stream_id ];
 
 #if ( LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 56, 13, 0 ))
 		if (( s->nb_frames > 1 )
@@ -1547,10 +1577,10 @@ bool FeMedia::is_multiframe() const
 				|| ( s->id == AV_CODEC_ID_GIF ))
 			return true;
 #else
-		if ( s->nb_frames > 1 )
-			return true;
+			if ( s->nb_frames > 1 )
+				return true;
 #endif
-
+		}
 	}
 
 	return false;
@@ -1565,9 +1595,13 @@ sf::Time FeMedia::get_duration() const
 {
 	if ( m_video && m_imp->m_format_ctx )
 	{
-		return sf::seconds(
-				av_q2d( m_imp->m_format_ctx->streams[m_video->stream_id]->time_base ) *
+		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
+		if ( m_imp->m_format_ctx && m_video->stream_id >= 0 )
+		{
+			return sf::seconds(
+					av_q2d( m_imp->m_format_ctx->streams[m_video->stream_id]->time_base ) *
 							m_imp->m_format_ctx->streams[ m_video->stream_id ]->duration );
+		}
 	}
 
 	return sf::Time::Zero;
