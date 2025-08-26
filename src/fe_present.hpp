@@ -145,7 +145,9 @@ protected:
 	std::string m_layoutFontName;
 	sf::Image *m_logo_image;
 
-	FeStableClock m_layoutTimer;
+	FeStableClock m_layout_time;
+	sf::Time m_layout_time_old;
+	float m_frame_time;
 	sf::Time m_lastInput;
 
 	FeSettings::RotationState m_baseRotation;
@@ -293,6 +295,7 @@ public:
 
 	int get_layout_ms();
 	sf::Time get_layout_time();
+	float get_layout_frame_time();
 	int get_refresh_rate();
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );

@@ -174,6 +174,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_layoutFont( NULL ),
 	m_defaultFont( NULL ),
 	m_logo_image( NULL ),
+	m_layout_time_old( sf::Time::Zero ),
+	m_frame_time( 0.0f ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
 	m_refresh_rate( 0 ),
@@ -417,7 +419,7 @@ void FePresent::init_monitors()
 	else
 		FeDebug() << "Monitor's Refresh Rate: " << m_refresh_rate << " Hz" << std::endl;
 
-	m_layoutTimer.set_refresh_rate( m_refresh_rate );
+	m_layout_time.set_refresh_rate( m_refresh_rate );
 }
 
 FePresent::~FePresent()
@@ -1011,7 +1013,7 @@ bool FePresent::reset_screen_saver()
 		return true;
 	}
 
-	m_lastInput=m_layoutTimer.getElapsedTime();
+	m_lastInput=m_layout_time.getElapsedTime();
 	return false;
 }
 
@@ -1202,12 +1204,12 @@ bool FePresent::load_intro()
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Intro_Showing );
 
-	m_layoutTimer.reset();
+	m_layout_time.reset();
 	if ( !on_new_layout() )
 		return false;
 
 	update_to( ToNewList, true );
-	m_layoutTimer.start();
+	m_layout_time.start();
 	return ( !m_mon[0].elements.empty() );
 }
 
@@ -1221,7 +1223,7 @@ void FePresent::load_screensaver()
 	//
 	// Run the script which actually sets up the screensaver
 	//
-	m_layoutTimer.reset();
+	m_layout_time.reset();
 	on_new_layout();
 
 	//
@@ -1229,7 +1231,7 @@ void FePresent::load_screensaver()
 	//
 	on_transition( StartLayout, FromToNoValue );
 	update_to( ToNewList, true );
-	m_layoutTimer.start();
+	m_layout_time.start();
 }
 
 void FePresent::load_layout( bool initial_load )
@@ -1255,7 +1257,9 @@ void FePresent::load_layout( bool initial_load )
 	//
 	// Run the script which actually sets up the layout
 	//
-	m_layoutTimer.reset();
+	m_layout_time.reset();
+	m_layout_time_old = sf::Time::Zero;
+
 	on_new_layout();
 
 	// make things usable if the layout is empty
@@ -1279,11 +1283,16 @@ void FePresent::load_layout( bool initial_load )
 	on_transition( StartLayout, var );
 	update_to( ToNewList, true );
 	on_transition( ToNewList, FromToNoValue );
-	m_layoutTimer.start();
+	m_layout_time.start();
 }
 
 bool FePresent::tick()
 {
+	sf::Time current_time = m_layout_time.getElapsedTime();
+	sf::Time delta_time = current_time - m_layout_time_old;
+	m_layout_time_old = current_time;
+	m_frame_time = delta_time.asSeconds() * 1000.0f;
+
 	bool ret_val = false;
 	if ( on_tick())
 		ret_val = true;
@@ -1329,7 +1338,7 @@ void FePresent::redraw()
 	m_window.draw( *this, m_layout_transform );
 	m_window.display();
 
-	m_layoutTimer.tick();
+	m_layout_time.tick();
 }
 
 bool FePresent::saver_activation_check()
@@ -1339,7 +1348,7 @@ bool FePresent::saver_activation_check()
 
 	if ( !saver_active && ( saver_timeout > 0 ))
 	{
-		if ( ( m_layoutTimer.getElapsedTime() - m_lastInput )
+		if ( ( m_layout_time.getElapsedTime() - m_lastInput )
 				> sf::seconds( saver_timeout ) )
 		{
 			load_screensaver();
@@ -1352,7 +1361,7 @@ bool FePresent::saver_activation_check()
 	//
 	// THis means the layout is forced by AM to reset after about a month of running
 	//
-	if ( m_layoutTimer.getElapsedTime().asMilliseconds() > std::numeric_limits<std::int32_t>::max() - 10000 )
+	if ( m_layout_time.getElapsedTime().asMilliseconds() > std::numeric_limits<std::int32_t>::max() - 10000 )
 		load_layout();
 
 	return false;
@@ -1422,6 +1431,9 @@ void FePresent::post_run()
 		(*its)->set_volume( m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
 
 	set_video_play_state( m_playMovies );
+
+	m_layout_time.tick();
+	m_layout_time_old = m_layout_time.getElapsedTime();
 
 #if !defined(USE_DRM)
 	on_transition( FromGame, FromToNoValue );
@@ -1680,12 +1692,17 @@ bool FePresent::get_overlay_custom_controls( FeText *&t, FeListBox *&lb )
 
 int FePresent::get_layout_ms()
 {
-	return m_layoutTimer.getElapsedTime().asMilliseconds();
+	return m_layout_time.getElapsedTime().asMilliseconds();
 }
 
 sf::Time FePresent::get_layout_time()
 {
-	return m_layoutTimer.getElapsedTime();
+	return m_layout_time.getElapsedTime();
+}
+
+float FePresent::get_layout_frame_time()
+{
+	return m_frame_time;
 }
 
 int FePresent::get_refresh_rate()

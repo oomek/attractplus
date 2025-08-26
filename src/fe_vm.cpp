@@ -370,7 +370,7 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 		if ( event.has_value() )
 		{
 			ev = event;
-			int t = m_layoutTimer.getElapsedTime().asMilliseconds();
+			int t = m_layout_time.getElapsedTime().asMilliseconds();
 
 			// Debounce to stop multiples when triggered by a key combo
 			//
@@ -380,7 +380,7 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 			c = m_feSettings->map_input( ev );
 
 			if ( c != FeInputMap::LAST_COMMAND )
-				m_last_ui_cmd = m_layoutTimer.getElapsedTime();
+				m_last_ui_cmd = m_layout_time.getElapsedTime();
 
 			from_ui = true;
 			return true;
@@ -929,6 +929,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("page_size"), &FePresent::get_page_size, &FePresent::set_page_size )
 		.Prop(_SC("preserve_aspect_ratio"), &FePresent::get_preserve_aspect_ratio, &FePresent::set_preserve_aspect_ratio )
 		.Prop(_SC("time"), &FePresent::get_layout_ms )
+		.Prop(_SC("frame_time"), &FePresent::get_layout_frame_time )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 		.Func(_SC("redraw"), &FePresent::redraw )
 	);
@@ -1343,7 +1344,7 @@ bool FeVM::on_tick()
 		{
 			Function &func = (*itr).get_fn();
 			if ( !func.IsNull() )
-				func.Execute( m_layoutTimer.getElapsedTime().asMilliseconds() );
+				func.Execute( m_layout_time.getElapsedTime().asMilliseconds() );
 		}
 		catch( const Exception &e )
 		{
@@ -1362,7 +1363,7 @@ bool FeVM::on_tick()
 			++itr;
 	}
 
-	m_layoutTimer.tick();
+	m_layout_time.tick();
 
 	return m_redraw_triggered;
 }
