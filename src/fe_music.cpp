@@ -47,7 +47,7 @@ FeMusic::FeMusic( bool loop )
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
-	
+
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
 
@@ -105,10 +105,10 @@ void FeMusic::load( const std::string &fn )
 	if ( !m_music.openFromFile( fn ))
 	{
 		FeLog() << "Error loading audio file: " << fn << std::endl;
-        m_file_name = "";
+		m_file_name = "";
 		return;
 	}
-    m_file_name = fn;
+	m_file_name = fn;
 }
 
 void FeMusic::set_file_name( const char *n )
@@ -125,12 +125,12 @@ void FeMusic::set_file_name( const char *n )
 	if ( is_relative_path( filename ))
 		filename = FePresent::script_get_base_path() + filename;
 
-    load( filename );
+	load( filename );
 }
 
 const char *FeMusic::get_file_name()
 {
-    return m_file_name.c_str();
+	return m_file_name.c_str();
 }
 
 float FeMusic::get_volume()
