@@ -77,7 +77,7 @@ public:
 	//
 	bool tick();
 
-	void setVolume(float volume);
+	void setVolume( float volume );
 
 	bool is_playing();
 	bool is_multiframe() const;
@@ -106,7 +106,7 @@ public:
 	Sqrat::Array get_fft_array_left();
 	Sqrat::Array get_fft_array_right();
 
-	void set_fft_bands(int count);
+	void set_fft_bands( int count );
 	int get_fft_bands() const;
 
 	FeAudioVisualiser* get_audio_visualiser() const;
@@ -124,8 +124,8 @@ private:
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
-    std::atomic<bool> m_alive{true};   // lifetime guard
-    std::atomic<bool> m_ready{false};  // init guard
+	std::atomic<bool> m_alive{ true };
+	std::atomic<bool> m_ready{ false };
 	std::mutex m_callback_mutex;
 	std::mutex m_closing_mutex;
 

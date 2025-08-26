@@ -38,7 +38,7 @@ extern "C"
 #include <libavutil/imgutils.h>
 #include <libavutil/opt.h>
 
-#define FE_HWACCEL (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 55, 78, 100 ))
+#define FE_HWACCEL ( LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 55, 78, 100 ))
 
 #if FE_HWACCEL
 #include <libavutil/hwcontext.h>
@@ -52,20 +52,20 @@ extern "C"
 #include <algorithm>
 #include <memory>
 
-#if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
+#if ( LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
 #else
 typedef AVCodec FeAVCodec;
 #endif
 
-#if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 58, 7, 100 ))
+#if ( LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 58, 7, 100 ))
   #define FORMAT_CTX_URL m_imp->m_format_ctx->url
 #else
   #define FORMAT_CTX_URL m_imp->m_format_ctx->filename
 #endif
 
-#define HAVE_CH_LAYOUT (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(57, 28, 100))
-#define HAVE_DURATION (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(58, 2, 100))
+#define HAVE_CH_LAYOUT ( LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 57, 28, 100 ))
+#define HAVE_DURATION ( LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 58, 2, 100 ))
 
 void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec );
 
@@ -227,13 +227,13 @@ FeMediaImp::FeMediaImp( FeMedia::Type t )
 
 void FeMediaImp::close()
 {
-	if (m_format_ctx)
+	if ( m_format_ctx )
 		avformat_close_input( &m_format_ctx );
 
-	if (m_io_ctx)
+	if ( m_io_ctx )
 	{
 		if ( m_io_ctx->opaque )
-			delete (FeFileInputStream *)(m_io_ctx->opaque);
+			delete (FeFileInputStream *)( m_io_ctx->opaque );
 
 		av_free( m_io_ctx->buffer );
 		av_free( m_io_ctx );
@@ -339,15 +339,15 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 		NULL,
 		nb_channels,
 		frame->nb_samples,
-		codec_ctx->sample_fmt, 1);
+		codec_ctx->sample_fmt, 1 );
 
 	if ( codec_ctx->sample_fmt == AV_SAMPLE_FMT_S16 )
 	{
 		std::lock_guard<std::recursive_mutex> l( audio_buff_mutex );
 
-		memcpy( (audio_buff + offset), frame->data[0], data_size );
+		memcpy(( audio_buff + offset ), frame->data[0], data_size );
 		offset += data_size / sizeof( std::int16_t );
-		data.sampleCount += data_size / sizeof(std::int16_t);
+		data.sampleCount += data_size / sizeof( std::int16_t );
 		data.samples = audio_buff;
 	}
 	else
@@ -364,21 +364,21 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 			}
 
 #if HAVE_CH_LAYOUT
-			AVChannelLayout layout = AV_CHANNEL_LAYOUT_MASK(0, 0);
-			av_channel_layout_copy(&layout, &frame->ch_layout);
-			if (!av_channel_layout_check(&layout)) {
-				av_channel_layout_uninit(&layout);
-				av_channel_layout_default(&layout, codec_ctx->ch_layout.nb_channels);
+			AVChannelLayout layout = AV_CHANNEL_LAYOUT_MASK( 0, 0 );
+			av_channel_layout_copy( &layout, &frame->ch_layout );
+			if ( !av_channel_layout_check( &layout ))
+			{
+				av_channel_layout_uninit( &layout );
+				av_channel_layout_default( &layout, codec_ctx->ch_layout.nb_channels );
 			}
-			av_opt_set_chlayout(resample_ctx, "in_chlayout", &layout, 0);
-			av_opt_set_chlayout(resample_ctx, "out_chlayout", &layout, 0);
-			av_channel_layout_uninit(&layout);
+			av_opt_set_chlayout( resample_ctx, "in_chlayout", &layout, 0 );
+			av_opt_set_chlayout( resample_ctx, "out_chlayout", &layout, 0 );
+			av_channel_layout_uninit( &layout );
 #else
 			int64_t channel_layout = frame->channel_layout;
 			if ( !channel_layout )
 			{
-				channel_layout = av_get_default_channel_layout(
-						codec_ctx->channels );
+				channel_layout = av_get_default_channel_layout( codec_ctx->channels );
 			}
 			av_opt_set_int( resample_ctx, "in_channel_layout", channel_layout, 0 );
 			av_opt_set_int( resample_ctx, "out_channel_layout", channel_layout, 0 );
@@ -420,7 +420,7 @@ bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, in
 				frame->nb_samples,
 				AV_SAMPLE_FMT_S16, 0 );
 
-			uint8_t *tmp_ptr = (uint8_t *)(audio_buff + offset);
+			uint8_t *tmp_ptr = (uint8_t *)( audio_buff + offset );
 
 			int out_samples = swr_convert(
 				resample_ctx,
@@ -468,8 +468,8 @@ FeVideoImp::~FeVideoImp()
 {
 	stop();
 
-	if (rgba_buffer[0])
-		av_freep(&rgba_buffer[0]);
+	if ( rgba_buffer[0] )
+		av_freep( &rgba_buffer[0] );
 }
 
 #if FE_HWACCEL
@@ -499,7 +499,7 @@ bool FeVideoImp::hw_retrieve_data( AVFrame *f )
 	if ( f->format == AV_PIX_FMT_NONE )
 		return false;
 
-	if ( !(av_pix_fmt_desc_get( (AVPixelFormat)f->format )->flags & AV_PIX_FMT_FLAG_HWACCEL) )
+	if ( !( av_pix_fmt_desc_get( (AVPixelFormat)f->format )->flags & AV_PIX_FMT_FLAG_HWACCEL ))
 		return false;
 
 	AVFrame *sw_frame = av_frame_alloc();
@@ -584,14 +584,14 @@ void FeVideoImp::init_rgba_buffer()
 {
 	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
 
-	if (rgba_buffer[0])
-		av_freep(&rgba_buffer[0]);
+	if ( rgba_buffer[0] )
+		av_freep( &rgba_buffer[0] );
 
-	int ret = av_image_alloc(rgba_buffer, rgba_linesize,
+	int ret = av_image_alloc( rgba_buffer, rgba_linesize,
 			disptex_width, disptex_height,
-			AV_PIX_FMT_RGBA, 32);
+			AV_PIX_FMT_RGBA, 32 );
 
-	if (ret < 0)
+	if ( ret < 0 )
 		FeLog() << "Error allocating rgba buffer" << std::endl;
 
 	// Override linesize with original video width
@@ -617,7 +617,7 @@ void FeVideoImp::video_thread()
 
 	sf::Time wait_time;
 
-	if (!rgba_buffer[0])
+	if ( !rgba_buffer[0] )
 	{
 		FeLog() << "Error initializing video thread" << std::endl;
 		goto the_end;
@@ -633,7 +633,7 @@ void FeVideoImp::video_thread()
 		// so we flag the video to be restarted on the next tick.
 		// This prevents displaying only keyframes for several seconds on wake.
 		//
-		if ( wait_time < sf::seconds( -5.0f ) )
+		if ( wait_time < sf::seconds( -5.0f ))
 		{
 			wait_time = sf::seconds( 0 );
 			far_behind = true;
@@ -694,7 +694,7 @@ void FeVideoImp::video_thread()
 						pfmt = hwaccel_output_format;
 #endif
 					int sws_flags( SWS_BILINEAR );
-					if ( (codec_ctx->width & 0x7) || (codec_ctx->height & 0x7) )
+					if (( codec_ctx->width & 0x7 ) || ( codec_ctx->height & 0x7 ))
 						sws_flags |= SWS_ACCURATE_RND;
 
 					sws_ctx = sws_getCachedContext( NULL,
@@ -742,7 +742,7 @@ void FeVideoImp::video_thread()
 				if ( raw_frame->pts == AV_NOPTS_VALUE )
 					raw_frame->pts = prev_pts + prev_duration;
 
-#if (LIBAVUTIL_VERSION_MICRO >= 100 )
+#if ( LIBAVUTIL_VERSION_MICRO >= 100 )
 				if ( raw_frame->pts < prev_pts )
 					raw_frame->pts = prev_pts + prev_duration;
 
@@ -763,7 +763,7 @@ void FeVideoImp::video_thread()
 					// Decoder is fully drained so now we can goto the_end
 					// Wait for the main thread to display the last frame
 					std::unique_lock<std::recursive_mutex> lock( image_swap_mutex );
-					frame_displayed.wait( lock, [this] { return !display_frame || !run_video_thread; });
+					frame_displayed.wait( lock, [this]{ return !display_frame || !run_video_thread; });
 
 					goto the_end;
 				}
@@ -792,7 +792,7 @@ void FeVideoImp::video_thread()
 					// decompress packet and put it in our frame queue
 					//
 					int r = avcodec_send_packet( codec_ctx, packet );
-					if (( r < 0 ) && ( r != AVERROR(EAGAIN) ))
+					if (( r < 0 ) && ( r != AVERROR( EAGAIN )))
 					{
 						char buff[256];
 						av_strerror( r, buff, 256 );
@@ -824,7 +824,7 @@ void FeVideoImp::video_thread()
 						if ( raw_frame->pts == AV_NOPTS_VALUE )
 							raw_frame->pts = packet ? packet->dts : prev_pts + prev_duration;
 
-#if (LIBAVUTIL_VERSION_MICRO >= 100 )
+#if ( LIBAVUTIL_VERSION_MICRO >= 100 )
 						// This only works on FFmpeg, exclude libav (it doesn't have pkt_duration
 						// Correct for out of bounds pts
 						if ( raw_frame->pts < prev_pts )
@@ -872,7 +872,7 @@ the_end:
 
 	{
 		std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-		if (display_frame)
+		if ( display_frame )
 			display_frame=NULL;
 	}
 
@@ -880,7 +880,7 @@ the_end:
 		av_frame_free( &detached_frame );
 
 	if ( sws_ctx )
-		sws_freeContext(sws_ctx);
+		sws_freeContext( sws_ctx );
 
 	int average = ( displayed == 0 ) ? qscore_accum : ( qscore_accum / displayed );
 
@@ -902,17 +902,17 @@ FeMedia::FeMedia( Type t )
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
-	
+
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
-	
+
 	// Mark FeMedia object as ready for audio callbacks
 	m_ready.store( true, std::memory_order_release );
 }
 
 FeMedia::~FeMedia()
 {
-	m_alive.store(false, std::memory_order_release);
+	m_alive.store( false, std::memory_order_release );
 	close();
 
 	delete m_imp;
@@ -1029,13 +1029,13 @@ void FeMedia::close()
 
 	stop();
 
-	if (m_audio)
+	if ( m_audio )
 	{
 		delete m_audio;
 		m_audio=NULL;
 	}
 
-	if (m_video)
+	if ( m_video )
 	{
 		delete m_video;
 		m_video=NULL;
@@ -1046,16 +1046,16 @@ void FeMedia::close()
 
 bool FeMedia::is_playing()
 {
-	if ((m_video) && (m_video->far_behind))
+	if (( m_video ) && ( m_video->far_behind ))
 		return false;
 
-	if ((m_video) && (!m_video->at_end))
-		return (m_video->run_video_thread);
+	if (( m_video ) && ( !m_video->at_end ))
+		return ( m_video->run_video_thread );
 
-	return ((m_audio) && (sf::SoundStream::getStatus() == sf::SoundStream::Status::Playing));
+	return (( m_audio ) && (sf::SoundStream::getStatus() == sf::SoundStream::Status::Playing ));
 }
 
-void FeMedia::setVolume(float volume)
+void FeMedia::setVolume( float volume )
 {
 	if ( m_audio )
 	{
@@ -1124,12 +1124,12 @@ bool FeMedia::open( const std::string &archive,
 	{
 		FeZipStream *z = new FeZipStream( archive );
 
-		if ( !z->open( name ) )
+		if ( !z->open( name ))
 		{
 			// Error opening specified filename. Try to correct
 			// in case filname is in a subdir of the archive
 			std::string temp;
-			if ( get_archive_filename_with_base( temp, archive, name ) )
+			if ( get_archive_filename_with_base( temp, archive, name ))
 			{
 				z->open( temp );
 			}
@@ -1161,7 +1161,7 @@ bool FeMedia::open( const std::string &archive,
 
 	m_imp->m_format_ctx->pb = m_imp->m_io_ctx;
 
-	if ( avformat_open_input( &(m_imp->m_format_ctx), name.c_str(), NULL, NULL ) < 0 )
+	if ( avformat_open_input( &m_imp->m_format_ctx, name.c_str(), NULL, NULL ) < 0 )
 	{
 		FeLog() << "Error opening input file: " << name << std::endl;
 		return false;
@@ -1265,15 +1265,15 @@ bool FeMedia::open( const std::string &archive,
 			// Note also: http://trac.ffmpeg.org/ticket/4404
 			codec_ctx->thread_count=1;
 
-			if (dec)
-				prev_dec_name = std::string(dec->name);
+			if ( dec )
+				prev_dec_name = std::string( dec->name );
 
 			try_hw_accel( codec_ctx, dec );
 
 			av_result = avcodec_open2( codec_ctx, dec, NULL );
 			if ( av_result < 0 )
 			{
-				if ( !prev_dec_name.empty() && (g_decoder.compare( "mmal" ) == 0) )
+				if ( !prev_dec_name.empty() && ( g_decoder.compare( "mmal" ) == 0 ))
 				{
 					switch( dec->id )
 					{
@@ -1287,7 +1287,7 @@ bool FeMedia::open( const std::string &archive,
 							<< ") not supported for file (trying software): "
 							<< FORMAT_CTX_URL << std::endl;
 
-						dec = avcodec_find_decoder_by_name(prev_dec_name.c_str());
+						dec = avcodec_find_decoder_by_name( prev_dec_name.c_str() );
 
 						av_result = avcodec_open2( codec_ctx, dec, NULL );
 						break;
@@ -1305,7 +1305,7 @@ bool FeMedia::open( const std::string &archive,
 				}
 			}
 
-			if ( av_result >=0  )
+			if ( av_result >=0 )
 			{
 				m_video = new FeVideoImp( this );
 
@@ -1313,10 +1313,9 @@ bool FeMedia::open( const std::string &archive,
 				m_video->codec_ctx = codec_ctx;
 
 				m_video->codec = dec;
-				m_video->time_base = sf::seconds(
-						av_q2d(m_imp->m_format_ctx->streams[stream_id]->time_base) );
+				m_video->time_base = sf::seconds( av_q2d( m_imp->m_format_ctx->streams[stream_id]->time_base ));
 
-				m_video->max_sleep = sf::seconds( 0.5 / av_q2d(m_imp->m_format_ctx->streams[stream_id]->r_frame_rate));
+				m_video->max_sleep = sf::seconds( 0.5 / av_q2d( m_imp->m_format_ctx->streams[stream_id]->r_frame_rate ));
 
 				if ( codec_ctx->sample_aspect_ratio.num != 0 )
 					m_aspect_ratio = av_q2d( codec_ctx->sample_aspect_ratio );
@@ -1327,15 +1326,15 @@ bool FeMedia::open( const std::string &archive,
 				m_video->disptex_height = codec_ctx->height;
 
 				m_video->display_texture = outt;
-				if ( outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ) )
-					std::ignore = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height ) });
+				if ( outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ))
+					std::ignore = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height )});
 
 				m_video->init_rgba_buffer();
 			}
 		}
 	}
 
-	if ( (!m_video) && (!m_audio) )
+	if (( !m_video ) && ( !m_audio ))
 		return false;
 
 	return true;
@@ -1391,9 +1390,9 @@ bool FeMedia::read_packet()
 		return false;
 	}
 
-	if ( ( m_audio ) && ( pkt->stream_index == m_audio->stream_id ) )
+	if (( m_audio ) && ( pkt->stream_index == m_audio->stream_id ))
 		m_audio->push_packet( pkt );
-	else if ( ( m_video ) && (pkt->stream_index == m_video->stream_id ) )
+	else if (( m_video ) && (pkt->stream_index == m_video->stream_id ))
 		m_video->push_packet( pkt );
 	else
 		av_packet_free( &pkt );
@@ -1432,7 +1431,7 @@ bool FeMedia::onGetData( Chunk &data )
 	data.samples = NULL;
 	data.sampleCount = 0;
 
-	if ( (!m_audio) || end_of_file() )
+	if (( !m_audio ) || end_of_file() )
 		return false;
 
 	std::lock_guard<std::mutex> l( m_callback_mutex );
@@ -1471,7 +1470,7 @@ bool FeMedia::onGetData( Chunk &data )
 		}
 
 		int r = avcodec_send_packet( m_audio->codec_ctx, packet );
-		if (( r < 0 ) && ( r != AVERROR(EAGAIN) ))
+		if (( r < 0 ) && ( r != AVERROR( EAGAIN )))
 		{
 			char buff[256];
 			av_strerror( r, buff, 256 );
@@ -1480,7 +1479,7 @@ bool FeMedia::onGetData( Chunk &data )
 
 		av_packet_free( &packet );
 
-		r = AVERROR(EAGAIN);
+		r = AVERROR( EAGAIN );
 
 		//
 		// Note that avcodec_receive_frame() may need to return multiple frames per packet
@@ -1493,12 +1492,12 @@ bool FeMedia::onGetData( Chunk &data )
 
 			if ( r == 0 )
 			{
-				if ( !m_audio->process_frame( frame, data, offset ) )
+				if ( !m_audio->process_frame( frame, data, offset ))
 					return false;
 			}
 			else
 			{
-				if ( r != AVERROR(EAGAIN) )
+				if ( r != AVERROR( EAGAIN ))
 				{
 					char buff[256];
 					av_strerror( r, buff, 256 );
@@ -1507,7 +1506,7 @@ bool FeMedia::onGetData( Chunk &data )
 			}
 			av_frame_unref( frame );
 
-		} while ( r != AVERROR(EAGAIN) );
+		} while ( r != AVERROR( EAGAIN ));
 
 		av_frame_free( &frame );
 	}
@@ -1528,10 +1527,9 @@ bool FeMedia::is_supported_media_file( const std::string &filename )
 	size_t pos = filename.find_last_of( '.' );
 	if ( pos != std::string::npos )
 	{
-		std::string f = filename.substr(pos+1);
+		std::string f = filename.substr( pos + 1 );
 		std::transform( f.begin(), f.end(), f.begin(), ::tolower );
-		return ( av_guess_format( f.c_str(), filename.c_str(),
-			NULL ) != NULL );
+		return ( av_guess_format( f.c_str(), filename.c_str(), NULL ) != NULL );
 	}
 
 	return ( av_guess_format( NULL, filename.c_str(), NULL ) != NULL );
@@ -1543,7 +1541,7 @@ bool FeMedia::is_multiframe() const
 	{
 		AVStream *s = m_imp->m_format_ctx->streams[ m_video->stream_id ];
 
-#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 56, 13, 0 ))
+#if ( LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 56, 13, 0 ))
 		if (( s->nb_frames > 1 )
 				|| ( s->id == AV_CODEC_ID_APNG )
 				|| ( s->id == AV_CODEC_ID_GIF ))
@@ -1590,13 +1588,13 @@ enum AVHWDeviceType fe_hw_accels[] =
 
 #ifdef SFML_SYSTEM_WINDOWS
 	AV_HWDEVICE_TYPE_DXVA2,
- #if (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 56, 67, 100 ))
+ #if ( LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 56, 67, 100 ))
 	AV_HWDEVICE_TYPE_D3D11VA,
  #endif
 #endif
 
 #ifdef SFML_SYSTEM_MACOS
- #if (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 57, 63, 100 ))
+ #if ( LIBAVUTIL_VERSION_INT >= AV_VERSION_INT( 57, 63, 100 ))
 	AV_HWDEVICE_TYPE_VIDEOTOOLBOX,
  #endif
 #endif
@@ -1611,11 +1609,11 @@ void FeMedia::get_decoder_list( std::vector< std::string > &l )
 
 	l.push_back( "software" );
 
-#if defined(USE_MMAL)
+#if defined( USE_MMAL )
 	//
 	// Raspberry Pi specific - check for mmal
 	//
-	if ( avcodec_find_decoder_by_name( "mpeg4_mmal" ) )
+	if ( avcodec_find_decoder_by_name( "mpeg4_mmal" ))
 		l.push_back( "mmal" );
 #endif
 
@@ -1647,7 +1645,7 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 	if ( g_decoder.empty() || ( g_decoder.compare( "software" ) == 0 ))
 		return;
 
-#if defined(USE_MMAL)
+#if defined( USE_MMAL )
 	if ( g_decoder.compare( "mmal" ) == 0 )
 	{
 		switch( dec->id )
@@ -1682,7 +1680,7 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 #if FE_HWACCEL
 	for ( int i=0; fe_hw_accels[i] != AV_HWDEVICE_TYPE_NONE; i++ )
 	{
-		if ( g_decoder.compare( av_hwdevice_get_type_name( fe_hw_accels[i] ) ) != 0 )
+		if ( g_decoder.compare( av_hwdevice_get_type_name( fe_hw_accels[i] )) != 0 )
 			continue;
 
 		AVBufferRef *device_ctx=NULL;
