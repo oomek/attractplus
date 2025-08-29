@@ -418,8 +418,6 @@ void FePresent::init_monitors()
 	}
 	else
 		FeDebug() << "Monitor's Refresh Rate: " << m_refresh_rate << " Hz" << std::endl;
-
-	m_layout_time.set_refresh_rate( m_refresh_rate );
 }
 
 FePresent::~FePresent()
@@ -1792,8 +1790,7 @@ const sf::Vector2i FePresent::get_screen_size()
 }
 
 FeStableClock::FeStableClock()
-	: m_time( sf::Time::Zero ),
-	m_refresh_rate( 60 )
+	: m_time( sf::Time::Zero )
 {
 	m_real_timer.stop();
 	m_real_timer.reset();
@@ -1813,7 +1810,8 @@ void FeStableClock::reset()
 void FeStableClock::tick()
 {
 	sf::Time real_elapsed = m_real_timer.getElapsedTime();
-	sf::Time stable_increment = sf::microseconds( 1000000 / m_refresh_rate );
+	FePresent *fep = FePresent::script_get_fep();
+	sf::Time stable_increment = sf::microseconds( 1000000 / fep->get_refresh_rate() );
 
 	sf::Time new_time = m_time + stable_increment;
 
@@ -1831,9 +1829,4 @@ void FeStableClock::tick()
 sf::Time FeStableClock::getElapsedTime()
 {
 	return m_time;
-}
-
-void FeStableClock::set_refresh_rate( int rate )
-{
-	m_refresh_rate = rate;
 }

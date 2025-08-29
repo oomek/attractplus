@@ -115,12 +115,10 @@ public:
 	void reset();
 	void tick();
 	sf::Time getElapsedTime();
-	void set_refresh_rate( int rate );
 
 private:
 	sf::Clock m_real_timer;
 	sf::Time m_time;
-	int m_refresh_rate;
 };
 
 class FePresent

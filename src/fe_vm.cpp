@@ -1437,6 +1437,7 @@ void FeVM::on_transition(
 			m_window.draw( *this );
 			m_window.display();
 			ttime = clk.getElapsedTime().asMilliseconds();
+			m_layout_time.tick();
 
 #ifdef SFML_SYSTEM_LINUX
 			//
