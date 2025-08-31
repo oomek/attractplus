@@ -1,4 +1,4 @@
-name: Realase
+name: Release
 
 on:
   push:
@@ -37,11 +37,13 @@ jobs:
     - name: Prepare
       id: vars
       run: |
-        [[ "${{ matrix.platform.video }}" == "X11" ]] && sed -i 's/USE_DRM=1//' am/debian/rules
+        if [ "${{ matrix.platform.video }}" = "X11" ]; then
+          sed -i 's/DRM_FLAGS \\?= USE_DRM=1/DRM_FLAGS =/' am/debian/rules
+        fi
         deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
         docker_image="$(echo "${{ matrix.os }}" | sed "s/-/:/")"
         fe_version=
-        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        case "${GITHUB_REF}" in refs/tags/*) fe_version="${GITHUB_REF#refs/*/}";; esac
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
         echo "deb_version=${deb_version}" >> $GITHUB_OUTPUT
         echo "docker_image=${docker_image}" >> $GITHUB_OUTPUT
@@ -93,10 +95,12 @@ jobs:
     - name: Prepare
       id: vars
       run: |
-        [[ "${{ matrix.video }}" == "X11" ]] && sed -i 's/USE_DRM=1//' am/debian/rules
+        if [ "${{ matrix.video }}" = "X11" ]; then 
+          sed -i 's/DRM_FLAGS \\?= USE_DRM=1/DRM_FLAGS =/' am/debian/rules
+        fi
         deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
         fe_version=
-        [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
+        case "${GITHUB_REF}" in refs/tags/*) fe_version="${GITHUB_REF#refs/*/}";; esac
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
         echo "deb_version=${deb_version}" >> $GITHUB_OUTPUT
 
@@ -111,15 +115,20 @@ jobs:
         docker-image: debian:${{ matrix.os }}-slim
         #apt-opts: -t ${{ matrix.os }}-backports
         setup-hook: |
-          echo "deb http://deb.debian.org/debian ${{matrix.os}}-backports main" > /etc/apt/sources.list.d/debian-backports.list
-          apt update
-          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libboost-filesystem-dev libboost-system-dev libxi-dev
+          if [ "${{matrix.os}}" = "bookworm" ]; then
+            backports_url="http://deb.debian.org/debian"
+          else
+            backports_url="http://archive.debian.org/debian/"
+          fi
+          echo "deb ${backports_url} ${{matrix.os}}-backports main" > /etc/apt/sources.list.d/debian-backports.list
+          cat /etc/apt/sources.list.d/debian-backports.list
+          apt-get update
+          apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libboost-filesystem-dev libboost-system-dev libxi-dev ca-certificates
           apt-get install -y -t ${{matrix.os}}-backports cmake
 
     - name: Rename AM+
       run: |
         find ./ -name '*.deb'
-        version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
         cp "./debian/artifacts/attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.platform.arch }}.deb" "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}.deb"
 
     - name: Upload artifacts

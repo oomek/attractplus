@@ -17,6 +17,9 @@ include /usr/share/dpkg/buildtools.mk
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+# Default to DRM build, can be overridden
+DRM_FLAGS ?= USE_DRM=1
+
 
 # main packaging script based on dh7 syntax
 %:
@@ -26,10 +29,13 @@ override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
 
 override_dh_auto_build:
-	dh_auto_build -- prefix="/usr" USE_DRM=1 STATIC=1
+	dh_auto_build -- prefix="/usr" $(DRM_FLAGS) STATIC=1
 
 override_dh_auto_install:
-	dh_auto_install -- prefix="/usr"
+	mkdir -p $(CURDIR)/debian/attractplus/usr/bin
+	mkdir -p $(CURDIR)/debian/attractplus/usr/share/attract
+	cp attractplus $(CURDIR)/debian/attractplus/usr/bin/
+	cp -r config/* $(CURDIR)/debian/attractplus/usr/share/attract/
 
 # debmake generated override targets
 # This is example for Cmake (See http://bugs.debian.org/641051 )
