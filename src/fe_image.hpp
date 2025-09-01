@@ -184,6 +184,9 @@ public:
 	void set_volume( float );
 	float get_volume() const;
 
+	void set_fft_bands( int );
+	int get_fft_bands() const;
+
 	float get_sample_aspect_ratio() const;
 
 	FeMedia *get_media() const;
@@ -224,6 +227,7 @@ private:
 	bool m_mipmap;
 	bool m_smooth;
 	float m_volume;
+	int m_fft_bands;
 	FeImageLoaderEntry *m_entry;
 };
 

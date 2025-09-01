@@ -252,6 +252,7 @@ FeTextureContainer::FeTextureContainer(
 	m_mipmap( false ),
 	m_smooth( false ),
 	m_volume( 100.0 ),
+	m_fft_bands( 32 ),
 	m_entry( NULL )
 {
 	if ( is_artwork )
@@ -350,6 +351,9 @@ bool FeTextureContainer::load_with_ffmpeg(
 		m_movie = NULL;
 		return false;
 	}
+
+	if ( m_movie )
+		m_movie->set_fft_bands( m_fft_bands );
 
 	if ( is_image && (!m_movie->is_multiframe()) )
 	{
@@ -885,6 +889,22 @@ void FeTextureContainer::set_volume( float v )
 float FeTextureContainer::get_volume() const
 {
 	return m_volume;
+}
+
+void FeTextureContainer::set_fft_bands( int count )
+{
+	m_fft_bands = count;
+
+	if ( m_movie )
+		m_movie->set_fft_bands( count );
+}
+
+int FeTextureContainer::get_fft_bands() const
+{
+	if ( m_movie )
+		return m_movie->get_fft_bands();
+	else
+		return m_fft_bands;
 }
 
 float FeTextureContainer::get_sample_aspect_ratio() const
@@ -2079,22 +2099,14 @@ void FeImage::set_fft_bands( int count )
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
-	{
-		FeMedia *media = tc->get_media();
-		if ( media )
-			media->set_fft_bands( count );
-	}
+		tc->set_fft_bands( count );
 }
 
 int FeImage::get_fft_bands() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
-	{
-		FeMedia *media = tc->get_media();
-		if ( media )
-			return media->get_fft_bands();
-	}
+		return tc->get_fft_bands();
 
 	return 32;
 }
