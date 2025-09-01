@@ -375,28 +375,40 @@ void FeAudioVisualiser::update()
 float FeAudioVisualiser::get_vu_mono() const
 {
 	m_vu_requested = true;
-	m_vu_request_time = m_system_clock.getElapsedTime();
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_vu_request_time = fep->get_layout_time();
+
 	return m_vu_mono_out;
 }
 
 float FeAudioVisualiser::get_vu_left() const
 {
 	m_vu_requested = true;
-	m_vu_request_time = m_system_clock.getElapsedTime();
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_vu_request_time = fep->get_layout_time();
+
 	return m_vu_left_out;
 }
 
 float FeAudioVisualiser::get_vu_right() const
 {
 	m_vu_requested = true;
-	m_vu_request_time = m_system_clock.getElapsedTime();
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_vu_request_time = fep->get_layout_time();
+
 	return m_vu_right_out;
 }
 
 Sqrat::Array FeAudioVisualiser::get_fft_array_mono() const
 {
 	m_fft_requested = true;
-	m_fft_request_time = m_system_clock.getElapsedTime();
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_fft_request_time = fep->get_layout_time();
+
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	Sqrat::Table fft_table( vm );
@@ -414,7 +426,10 @@ Sqrat::Array FeAudioVisualiser::get_fft_array_mono() const
 Sqrat::Array FeAudioVisualiser::get_fft_array_left() const
 {
 	m_fft_requested = true;
-	m_fft_request_time = m_system_clock.getElapsedTime();
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_fft_request_time = fep->get_layout_time();
+
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	Sqrat::Table fft_table( vm );
@@ -432,7 +447,10 @@ Sqrat::Array FeAudioVisualiser::get_fft_array_left() const
 Sqrat::Array FeAudioVisualiser::get_fft_array_right() const
 {
 	m_fft_requested = true;
-	m_fft_request_time = m_system_clock.getElapsedTime();
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_fft_request_time = fep->get_layout_time();
+
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	Sqrat::Table fft_table( vm );
@@ -636,17 +654,18 @@ bool FeAudioVisualiser::resample_and_buffer_audio( const float* input_frames, un
 
 void FeAudioVisualiser::update_fall() const
 {
-	sf::Time current_time = m_system_clock.getElapsedTime();
+	sf::Time current_time =  sf::Time::Zero;
+	float frame_time = 0.0;
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
+	{
 		current_time = fep->get_layout_time();
+		frame_time = fep->get_layout_frame_time() * 0.001f;
+	}
 
-	float delta_time = ( current_time - m_last_frame_time ).asSeconds();
-	m_last_frame_time = current_time;
-
-	float vu_fall_amount = VU_FALL_SPEED * delta_time;
-	float fft_fall_amount = FFT_FALL_SPEED * delta_time;
+	float vu_fall_amount = VU_FALL_SPEED * frame_time;
+	float fft_fall_amount = FFT_FALL_SPEED * frame_time;
 
 	// Lambda for fall-off calculation ( compiler inlined, faster than a function call )
 	auto apply_vu_fall = []( float input_value, float& output_value, float fall_amount )
