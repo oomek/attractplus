@@ -31,6 +31,7 @@
 #include "fe_blend.hpp"
 #include "zip.hpp"
 #include "base64.hpp"
+#include "image_loader.hpp"
 
 #include "BarlowCJK.ttf.h"
 #include "Logo.png.h"
@@ -460,6 +461,9 @@ void FePresent::clear_layout()
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
+
+	FeImageLoader &il = FeImageLoader::get_ref();
+	il.set_background_loading( false );
 
 	for ( std::vector<FeMonitor>::iterator itr=m_mon.begin(); itr!=m_mon.end(); ++itr )
 	{
