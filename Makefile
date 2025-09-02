@@ -676,7 +676,7 @@ $(NOWIDE_OBJ_DIR):
 $(DATA_PATH):
 	$(MD) -p $(DESTDIR)$@
 
-install: $(EXE) $(DATA_PATH)
+install: $(DATA_PATH)
 	install -D $(EXE) $(DESTDIR)$(bindir)/$(EXE)
 	mkdir -p $(DESTDIR)$(DATA_PATH)
 	cp -r config/* $(DESTDIR)$(DATA_PATH)
