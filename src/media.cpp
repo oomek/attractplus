@@ -1759,37 +1759,28 @@ float FeMedia::get_vu_mono()
 	return visualiser ? visualiser->get_vu_mono() : 0.0f;
 }
 
-Sqrat::Array FeMedia::get_fft_array_mono()
+const std::vector<float> *FeMedia::get_fft_mono_ptr()
 {
 	auto* visualiser = get_audio_visualiser();
 	if ( visualiser )
-		return visualiser->get_fft_array_mono();
-
-	// Return empty array if no visualiser
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	return Sqrat::Array( vm );
+		return visualiser->get_fft_mono_ptr();
+	return nullptr;
 }
 
-Sqrat::Array FeMedia::get_fft_array_left()
+const std::vector<float> *FeMedia::get_fft_left_ptr()
 {
 	auto* visualiser = get_audio_visualiser();
 	if ( visualiser )
-		return visualiser->get_fft_array_left();
-
-	// Return empty array if no visualiser
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	return Sqrat::Array( vm );
+		return visualiser->get_fft_left_ptr();
+	return nullptr;
 }
 
-Sqrat::Array FeMedia::get_fft_array_right()
+const std::vector<float> *FeMedia::get_fft_right_ptr()
 {
 	auto* visualiser = get_audio_visualiser();
 	if ( visualiser )
-		return visualiser->get_fft_array_right();
-
-	// Return empty array if no visualiser
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	return Sqrat::Array( vm );
+		return visualiser->get_fft_right_ptr();
+	return nullptr;
 }
 
 void FeMedia::set_fft_bands( int count )

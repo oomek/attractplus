@@ -28,6 +28,7 @@
 #include "sprite.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
+#include "sqrat_array_wrapper.hpp"
 
 class FeSettings;
 class FeMedia;
@@ -368,9 +369,9 @@ public:
 	float get_vu_mono() const;
 	float get_vu_left() const;
 	float get_vu_right() const;
-	Sqrat::Array get_fft_array_mono();
-	Sqrat::Array get_fft_array_left();
-	Sqrat::Array get_fft_array_right();
+	const SqratArrayWrapper& get_fft_array_mono() const;
+	const SqratArrayWrapper& get_fft_array_left() const;
+	const SqratArrayWrapper& get_fft_array_right() const;
 	void set_fft_bands( int count );
 	int get_fft_bands() const;
 
@@ -457,6 +458,12 @@ protected:
 
 	// Override from base class:
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+
+private:
+	std::vector<float> m_fft_data_zero;
+	mutable SqratArrayWrapper m_fft_zero_wrapper;
+	mutable SqratArrayWrapper m_fft_array_wrapper;
+
 };
 
 #endif

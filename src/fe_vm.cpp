@@ -1059,6 +1059,12 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("bg_load"), &FeImageLoader::get_background_loading, &FeImageLoader::set_background_loading )
 	);
 
+	Sqrat::Class<SqratArrayWrapper> SqratWrapperClass( fe.GetVM(), _SC("SqratWrapperClass") );
+	SqratWrapperClass.Func( _SC("_get"), &SqratArrayWrapper::_get );
+	SqratWrapperClass.Func( _SC("_nexti"), &SqratArrayWrapper::_nexti );
+	SqratWrapperClass.Func( _SC("len"), &SqratArrayWrapper::len );
+	fe.Bind( _SC("SqratArrayWrapper"), SqratWrapperClass );
+
 	//
 	// Define functions that get exposed to Squirrel
 	//
