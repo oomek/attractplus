@@ -41,7 +41,10 @@
 
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
-	m_volume( 100.0 )
+	m_volume( 100.0 ),
+	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
+	m_fft_zero_wrapper( &m_fft_data_zero ),
+	m_fft_array_wrapper( &m_fft_data_zero )
 {
 	m_music.setLooping( loop );
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
@@ -292,19 +295,46 @@ float FeMusic::get_vu_right()
 	return get_audio_visualiser()->get_vu_right();
 }
 
-Sqrat::Array FeMusic::get_fft_array_mono()
+const SqratArrayWrapper& FeMusic::get_fft_array_mono() const
 {
-	return get_audio_visualiser()->get_fft_array_mono();
+	if ( get_audio_visualiser() )
+	{
+		if ( get_audio_visualiser()->get_fft_mono_ptr() )
+			{
+				m_fft_array_wrapper.set_data( get_audio_visualiser()->get_fft_mono_ptr() );
+				return m_fft_array_wrapper;
+			}
+	}
+
+	return m_fft_zero_wrapper;
 }
 
-Sqrat::Array FeMusic::get_fft_array_left()
+const SqratArrayWrapper& FeMusic::get_fft_array_left() const
 {
-	return get_audio_visualiser()->get_fft_array_left();
+	if ( get_audio_visualiser() )
+	{
+		if ( get_audio_visualiser()->get_fft_left_ptr() )
+			{
+				m_fft_array_wrapper.set_data( get_audio_visualiser()->get_fft_left_ptr() );
+				return m_fft_array_wrapper;
+			}
+	}
+
+	return m_fft_zero_wrapper;
 }
 
-Sqrat::Array FeMusic::get_fft_array_right()
+const SqratArrayWrapper& FeMusic::get_fft_array_right() const
 {
-	return get_audio_visualiser()->get_fft_array_right();
+	if ( get_audio_visualiser() )
+	{
+		if ( get_audio_visualiser()->get_fft_right_ptr() )
+			{
+				m_fft_array_wrapper.set_data( get_audio_visualiser()->get_fft_right_ptr() );
+				return m_fft_array_wrapper;
+			}
+	}
+
+	return m_fft_zero_wrapper;
 }
 
 void FeMusic::set_fft_bands( int count )

@@ -402,67 +402,34 @@ float FeAudioVisualiser::get_vu_right() const
 	return m_vu_right_out;
 }
 
-Sqrat::Array FeAudioVisualiser::get_fft_array_mono() const
+const std::vector<float> *FeAudioVisualiser::get_fft_mono_ptr() const
 {
 	m_fft_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
 		m_fft_request_time = fep->get_layout_time();
 
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-
-	Sqrat::Table fft_table( vm );
-	for ( int i = 0; i < FFT_BANDS_MAX; ++i )
-	{
-		if ( i < m_fft_bands )
-			fft_table.SetValue( i, m_fft_mono_out[i] );
-		else
-			fft_table.SetValue( i, 0.0f );
-	}
-
-	return Sqrat::Array( fft_table.GetObject(), vm );
+	return &m_fft_mono_out;
 }
 
-Sqrat::Array FeAudioVisualiser::get_fft_array_left() const
+const std::vector<float> *FeAudioVisualiser::get_fft_left_ptr() const
 {
 	m_fft_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
 		m_fft_request_time = fep->get_layout_time();
 
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-
-	Sqrat::Table fft_table( vm );
-	for ( int i = 0; i < FFT_BANDS_MAX; ++i )
-	{
-		if ( i < m_fft_bands )
-			fft_table.SetValue( i, m_fft_left_out[i] );
-		else
-			fft_table.SetValue( i, 0.0f );
-	}
-
-	return Sqrat::Array( fft_table.GetObject(), vm );
+	return &m_fft_left_out;
 }
 
-Sqrat::Array FeAudioVisualiser::get_fft_array_right() const
+const std::vector<float> *FeAudioVisualiser::get_fft_right_ptr() const
 {
 	m_fft_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
 		m_fft_request_time = fep->get_layout_time();
 
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-
-	Sqrat::Table fft_table( vm );
-	for ( int i = 0; i < FFT_BANDS_MAX; ++i )
-	{
-		if ( i < m_fft_bands )
-			fft_table.SetValue( i, m_fft_right_out[i] );
-		else
-			fft_table.SetValue( i, 0.0f );
-	}
-
-	return Sqrat::Array( fft_table.GetObject(), vm );
+	return &m_fft_right_out;
 }
 
 void FeAudioVisualiser::calculate_fft_channel( const float* samples, unsigned int sample_count,

@@ -1060,6 +1060,9 @@ FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 FeImage::FeImage( FePresentableParent &p,
 	FeBaseTextureContainer *tc, float x, float y, float w, float h )
 	: FeBasePresentable( p ),
+	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
+	m_fft_zero_wrapper( &m_fft_data_zero ),
+	m_fft_array_wrapper( &m_fft_data_zero ),
 	m_tex( tc ),
 	m_pos( x, y ),
 	m_size( w, h ),
@@ -1080,6 +1083,9 @@ FeImage::FeImage( FePresentableParent &p,
 
 FeImage::FeImage( FeImage *o )
 	: FeBasePresentable( *o ),
+	m_fft_data_zero( 128, 0.0f ),
+	m_fft_zero_wrapper( &m_fft_data_zero ),
+	m_fft_array_wrapper( &m_fft_data_zero ),
 	m_tex( o->m_tex ),
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
@@ -1885,55 +1891,61 @@ float FeImage::get_vu_right() const
 	return 0.0f;
 }
 
-Sqrat::Array FeImage::get_fft_array_mono()
+const SqratArrayWrapper& FeImage::get_fft_array_mono() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
 	{
 		FeMedia *media = tc->get_media();
 		if ( media )
-			return media->get_fft_array_mono();
+		{
+			if ( media->get_fft_mono_ptr() )
+			{
+				m_fft_array_wrapper.set_data( media->get_fft_mono_ptr() );
+				return m_fft_array_wrapper;
+			}
+		}
 	}
 
-	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS_MAX );
-	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS_MAX; ++i )
-		arr.SetValue( i, 0.0f );
-
-	return arr;
+	return m_fft_zero_wrapper;
 }
 
-Sqrat::Array FeImage::get_fft_array_left()
+const SqratArrayWrapper& FeImage::get_fft_array_left() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
 	{
 		FeMedia *media = tc->get_media();
 		if ( media )
-			return media->get_fft_array_left();
+		{
+			if ( media->get_fft_left_ptr() )
+			{
+				m_fft_array_wrapper.set_data( media->get_fft_left_ptr() );
+				return m_fft_array_wrapper;
+			}
+		}
 	}
 
-	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS_MAX );
-	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS_MAX; ++i )
-		arr.SetValue( i, 0.0f );
-
-	return arr;
+	return m_fft_zero_wrapper;
 }
 
-Sqrat::Array FeImage::get_fft_array_right()
+const SqratArrayWrapper& FeImage::get_fft_array_right() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
 	{
 		FeMedia *media = tc->get_media();
 		if ( media )
-			return media->get_fft_array_right();
+		{
+			if ( media->get_fft_right_ptr() )
+			{
+				m_fft_array_wrapper.set_data( media->get_fft_right_ptr() );
+				return m_fft_array_wrapper;
+			}
+		}
 	}
 
-	Sqrat::Array arr( Sqrat::DefaultVM::Get(), FeAudioVisualiser::FFT_BANDS_MAX );
-	for ( int i = 0; i < FeAudioVisualiser::FFT_BANDS_MAX; ++i )
-		arr.SetValue( i, 0.0f );
-
-	return arr;
+	return m_fft_zero_wrapper;
 }
 
 void FeImage::transition_swap( FeImage *o )

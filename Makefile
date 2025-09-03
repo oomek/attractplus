@@ -169,6 +169,7 @@ _DEP =\
 	path_cache.hpp \
 	image_loader.hpp \
 	base64.hpp \
+	sqrat_array_wrapper.hpp \
 	zip.hpp
 
 _OBJ =\
@@ -210,6 +211,7 @@ _OBJ =\
 	path_cache.o \
 	image_loader.o \
 	base64.o \
+	sqrat_array_wrapper.o \
 	main.o
 
 _RES =\
