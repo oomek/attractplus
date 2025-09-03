@@ -117,10 +117,9 @@ public:
 	float get_vu_left() const;
 	float get_vu_right() const;
 
-	// Sqrat bindings for FFT arrays
-	Sqrat::Array get_fft_array_mono() const;
-	Sqrat::Array get_fft_array_left() const;
-	Sqrat::Array get_fft_array_right() const;
+	const std::vector<float> *get_fft_mono_ptr() const;
+	const std::vector<float> *get_fft_left_ptr() const;
+	const std::vector<float> *get_fft_right_ptr() const;
 
 	static constexpr int FFT_BANDS_MAX = 128;
 

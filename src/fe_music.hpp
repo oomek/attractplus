@@ -27,6 +27,7 @@
 #include <cstring>
 #include <sqrat.h>
 #include "fe_audio_fx.hpp"
+#include "sqrat_array_wrapper.hpp"
 
 class FeMusic
 {
@@ -80,11 +81,17 @@ public:
 	float get_vu_mono();
 	float get_vu_left();
 	float get_vu_right();
-	Sqrat::Array get_fft_array_mono();
-	Sqrat::Array get_fft_array_left();
-	Sqrat::Array get_fft_array_right();
+	const SqratArrayWrapper& get_fft_array_mono() const;
+	const SqratArrayWrapper& get_fft_array_left() const;
+	const SqratArrayWrapper& get_fft_array_right() const;
 	void set_fft_bands( int count );
 	int get_fft_bands() const;
+
+private:
+	std::vector<float> m_fft_data_zero;
+	mutable SqratArrayWrapper m_fft_zero_wrapper;
+	mutable SqratArrayWrapper m_fft_array_wrapper;
+
 };
 
 #endif // FE_MUSIC_HPP

@@ -102,9 +102,10 @@ public:
 	float get_vu_mono();
 	float get_vu_left();
 	float get_vu_right();
-	Sqrat::Array get_fft_array_mono();
-	Sqrat::Array get_fft_array_left();
-	Sqrat::Array get_fft_array_right();
+
+	const std::vector<float> *get_fft_mono_ptr();
+	const std::vector<float> *get_fft_left_ptr();
+	const std::vector<float> *get_fft_right_ptr();
 
 	void set_fft_bands( int count );
 	int get_fft_bands() const;
