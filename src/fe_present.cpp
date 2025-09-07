@@ -1813,6 +1813,9 @@ void FeStableClock::reset()
 
 void FeStableClock::tick()
 {
+	if ( !m_real_timer.isRunning() )
+		m_real_timer.start();
+
 	sf::Time real_elapsed = m_real_timer.getElapsedTime();
 	FePresent *fep = FePresent::script_get_fep();
 	sf::Time stable_increment = sf::microseconds( 1000000 / fep->get_refresh_rate() );
@@ -1824,13 +1827,18 @@ void FeStableClock::tick()
 		new_time = real_elapsed;
 
 	m_time = new_time;
-
-	// Start after the first tick
-	if ( !m_real_timer.isRunning() )
-		m_real_timer.start();
 }
 
 sf::Time FeStableClock::getElapsedTime()
 {
+	if ( !m_real_timer.isRunning() )
+		m_real_timer.start();
+
+	sf::Time real_elapsed = m_real_timer.getElapsedTime();
+
+	// If the new time is lagging behind the real time, catch up.
+	if ( m_time < real_elapsed )
+		m_time = real_elapsed;
+
 	return m_time;
 }
