@@ -154,6 +154,8 @@ public:
 	int list_dialog( Sqrat::Array );
 	const char *edit_dialog( const char *, const char * );
 	bool overlay_is_on();
+	int overlay_get_list_index();
+	int overlay_get_list_size();
 	void overlay_set_custom_controls( FeText *caption, FeListBox *opts );
 	void overlay_set_custom_controls( FeText *caption );
 	void overlay_set_custom_controls();

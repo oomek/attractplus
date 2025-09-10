@@ -1271,6 +1271,8 @@ This class is a container for overlay functionality. The instance of this class 
 **Properties**
 
 -  `is_up` - Get whether the overlay is currently being displayed (i.e. config mode, etc).
+-  `list_index` - Returns the index of the overlay option that is currently selected.
+-  `list_size` - Get the size of the overlay options list.
 
 **Member Functions**
 

@@ -385,15 +385,20 @@ int FeOverlay::common_list_dialog(
 		if ( custom_lb )
 			custom_lb->setCustomText( sel, options );
 
+		m_overlay_list_index = sel;
+		m_overlay_list_size = options.size();
+
 		m_fePresent.on_transition( ShowOverlay, var );
 
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
 		{
-			m_fePresent.on_transition( NewSelOverlay, sel );
+			m_overlay_list_index = sel;
 
 			if ( custom_lb )
 				custom_lb->setCustomSelection( sel );
+
+			m_fePresent.on_transition( NewSelOverlay, sel );
 		}
 
 		m_fePresent.on_transition( HideOverlay, 0 );
@@ -428,15 +433,21 @@ int FeOverlay::common_list_dialog(
 		header.setString( title );
 		dialog.setCustomText( sel, options );
 
+		m_overlay_list_index = sel;
+		m_overlay_list_size = options.size();
+
 		if ( fm.flag_set() )
 			m_fePresent.on_transition( ShowOverlay, var );
 
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
 		{
+			m_overlay_list_index = sel;
+
+			dialog.setCustomSelection( sel );
+
 			if ( fm.flag_set() )
 				m_fePresent.on_transition( NewSelOverlay, sel );
-			dialog.setCustomSelection( sel );
 		}
 
 		if ( fm.flag_set() )
@@ -628,6 +639,9 @@ int FeOverlay::common_basic_dialog(
 			custom_caption->set_string( msg_str.c_str() );
 		}
 
+		m_overlay_list_index = sel;
+		m_overlay_list_size = list.size();
+
 		if ( custom_lb )
 			custom_lb->setCustomText( sel, list );
 
@@ -636,10 +650,12 @@ int FeOverlay::common_basic_dialog(
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
 		{
-			m_fePresent.on_transition( NewSelOverlay, sel );
+			m_overlay_list_index = sel;
 
 			if ( custom_lb )
 				custom_lb->setCustomSelection( sel );
+
+			m_fePresent.on_transition( NewSelOverlay, sel );
 		}
 
 		m_fePresent.on_transition( HideOverlay, 0 );
@@ -670,15 +686,21 @@ int FeOverlay::common_basic_dialog(
 		draw_list.push_back( &message );
 		draw_list.push_back( &dialog );
 
+		m_overlay_list_index = sel;
+		m_overlay_list_size = list.size();
+
 		if ( fm.flag_set() )
 			m_fePresent.on_transition( ShowOverlay, var );
 
 		init_event_loop( c );
 		while ( event_loop( c ) == false )
 		{
+			m_overlay_list_index = sel;
+
+			dialog.setCustomSelection( sel );
+
 			if ( fm.flag_set() )
 				m_fePresent.on_transition( NewSelOverlay, sel );
-			dialog.setCustomSelection( sel );
 		}
 
 		if ( fm.flag_set() )

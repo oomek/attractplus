@@ -55,6 +55,8 @@ private:
 	sf::Color m_blur_color;
 
 	bool m_overlay_is_on;
+	int m_overlay_list_index;
+	int m_overlay_list_size;
 	sf::Vector2f m_screen_size;
 	sf::Vector2f m_screen_pos;
 	sf::Vector2f m_text_scale;
@@ -193,6 +195,8 @@ public:
 	bool edit_dialog( const std::string &msg_str, std::string &text );
 
 	bool overlay_is_on() const { return m_overlay_is_on; };
+	int overlay_get_list_index() const { return m_overlay_list_index; };
+	int overlay_get_list_size() const { return m_overlay_list_size; };
 
 	bool check_for_cancel();
 
