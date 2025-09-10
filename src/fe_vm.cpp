@@ -952,6 +952,8 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Overlay"), Class <FeVM, NoConstructor>()
 		.Prop( _SC("is_up"), &FeVM::overlay_is_on )
+		.Prop( _SC("list_index"), &FeVM::overlay_get_list_index )
+		.Prop( _SC("list_size"), &FeVM::overlay_get_list_size )
 		.Overload<void (FeVM::*)(FeText *, FeListBox *)>(_SC("set_custom_controls"), &FeVM::overlay_set_custom_controls)
 		.Overload<void (FeVM::*)(FeText *)>(_SC("set_custom_controls"), &FeVM::overlay_set_custom_controls)
 		.Overload<void (FeVM::*)()>(_SC("set_custom_controls"), &FeVM::overlay_set_custom_controls)
@@ -1584,6 +1586,16 @@ bool FeVM::overlay_is_on()
 	return m_overlay->overlay_is_on();
 }
 
+int FeVM::overlay_get_list_index()
+{
+	return m_overlay->overlay_get_list_index();
+}
+
+int FeVM::overlay_get_list_size()
+{
+	return m_overlay->overlay_get_list_size();
+}
+
 void FeVM::overlay_set_custom_controls( FeText *caption, FeListBox *opts )
 {
 	m_overlay_caption = caption;
@@ -1770,6 +1782,8 @@ public:
 			//
 			fe.Bind( _SC("Overlay"), Sqrat::Class <FeVM, Sqrat::NoConstructor>()
 				.Prop( _SC("is_up"), &FeVM::overlay_is_on )
+				.Prop( _SC("list_index"), &FeVM::overlay_get_list_index )
+				.Prop( _SC("list_size"), &FeVM::overlay_get_list_size )
 				.Overload<bool (FeVM::*)(const char *, const char *)>( _SC("splash_message"), &FeVM::splash_message )
 				.Overload<bool (FeVM::*)(const char *)>( _SC("splash_message"), &FeVM::splash_message )
 			);
