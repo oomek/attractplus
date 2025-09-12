@@ -293,7 +293,7 @@ void FePresent::init_monitors()
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen
 		//
-		if ( m_feSettings->get_window_mode() == FeSettings::Default )
+		if ( m_feSettings->get_window_mode() == FeSettings::Fillscreen )
 		{
 			translate_x += 1;
 			translate_y += 1;
@@ -397,7 +397,7 @@ void FePresent::init_monitors()
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen.
 		//
-		if ( m_feSettings->get_window_mode() == FeSettings::Default )
+		if ( m_feSettings->get_window_mode() == FeSettings::Fillscreen )
 		{
 			mc.size.x -= 2;
 			mc.size.y -= 2;

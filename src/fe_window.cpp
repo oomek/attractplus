@@ -207,7 +207,7 @@ void FeWindow::initial_create()
 
 	int style_map[4] =
 	{
-		sf::Style::None,       // FeSettings::Default
+		sf::Style::None,       // FeSettings::Fillscreen
 		sf::Style::None,       // FeSettings::Fullscreen
 		sf::Style::Default,    // FeSettings::Window
 		sf::Style::None        // FeSettings::WindowNoBorder
@@ -215,7 +215,7 @@ void FeWindow::initial_create()
 
 	sf::State state_map[4] =
 	{
-		sf::State::Windowed,   // FeSettings::Default
+		sf::State::Windowed,   // FeSettings::Fillscreen
 		sf::State::Fullscreen, // FeSettings::Fullscreen
 		sf::State::Windowed,   // FeSettings::Window
 		sf::State::Windowed    // FeSettings::WindowNoBorder
@@ -292,7 +292,7 @@ void FeWindow::initial_create()
 		// have detected that multiple monitors are available
 		//
 		FeLog() << " ! NOTE: Switching to 'Fill Screen' window mode (required for multiple monitor support)." << std::endl;
-		m_win_mode = FeSettings::Default;
+		m_win_mode = FeSettings::Fillscreen;
 	}
 
 	// Cover all available monitors with our window in multimonitor config
@@ -319,7 +319,7 @@ void FeWindow::initial_create()
 	// which seems to be the cause of this issue.  This is actually the same behaviour that earlier
 	// versions of Attract-Mode had (first by design, then by accident).
 	//
-	if ( m_win_mode == FeSettings::Default )
+	if ( m_win_mode == FeSettings::Fillscreen )
 	{
 		wpos.x -= 1;
 		wpos.y -= 1;
@@ -436,7 +436,7 @@ void FeWindow::initial_create()
 	display();
 
 #ifdef SFML_SYSTEM_MACOS
-	if ( m_win_mode == FeSettings::Default )
+	if ( m_win_mode == FeSettings::Fillscreen )
 	{
 		// note ordering req: pretty sure this needs to be before the setPosition() call below
 		osx_hide_menu_bar();
@@ -444,7 +444,7 @@ void FeWindow::initial_create()
 #endif
 
 #if defined(USE_XLIB)
-	if ( m_win_mode == FeSettings::Default )
+	if ( m_win_mode == FeSettings::Fillscreen )
 		set_x11_fullscreen_state( m_window->getNativeHandle() );
 #endif
 
