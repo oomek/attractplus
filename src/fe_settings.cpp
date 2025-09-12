@@ -167,7 +167,7 @@ FeLanguage::FeLanguage(
 
 const char *FeSettings::windowModeTokens[] =
 {
-	"default",
+	"fillscreen",
 	"fullscreen",
 	"window",
 	"window_no_border",
@@ -241,7 +241,7 @@ const char *FeSettings::anisotropicDispTokens[] =
 
 const char *FeSettings::filterWrapTokens[] =
 {
-	"default",
+	"wrap_within_display",
 	"jump_to_next_display",
 	"no_wrap",
 	NULL
@@ -257,7 +257,7 @@ const char *FeSettings::filterWrapDispTokens[] =
 
 const char *FeSettings::startupTokens[] =
 {
-	"default",
+	"show_last_selection",
 	"launch_last_game",
 	"displays_menu",
 	NULL
@@ -349,7 +349,7 @@ FeSettings::FeSettings( const std::string &config_path )
 #if defined(SFML_SYSTEM_LINUX) || defined(FORCE_FULLSCREEN)
 	m_window_mode( Fullscreen ),
 #else
-	m_window_mode( Default ),
+	m_window_mode( Fillscreen ),
 #endif
 	m_smooth_images( true ),
 	m_filter_wrap_mode( WrapWithinDisplay ),

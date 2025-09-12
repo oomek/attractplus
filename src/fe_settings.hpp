@@ -105,7 +105,7 @@ public:
 		ScreenSaver_Showing
 	};
 
-	enum WindowType { Default=0, Fullscreen, Window, WindowNoBorder };
+	enum WindowType { Fillscreen=0, Fullscreen, Window, WindowNoBorder };
 	static const char *windowModeTokens[];
 	static const char *windowModeDispTokens[];
 
