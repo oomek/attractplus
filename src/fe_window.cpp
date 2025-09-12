@@ -27,6 +27,7 @@
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
 #include "fe_present.hpp"
+#include "fe_vm.hpp"
 #include "base64.hpp"
 
 #ifdef SFML_SYSTEM_WINDOWS
@@ -196,6 +197,10 @@ void FeWindow::check_for_sleep()
 			FeLog() << "ERROR: No current audio device" << std::endl;
 
 		s_system_resumed = false;
+
+		HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+		FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+		fev->cb_signal( "reset_window" );
 	}
 }
 #endif
