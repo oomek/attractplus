@@ -138,6 +138,7 @@ FeRomList::~FeRomList()
 
 void FeRomList::init_as_empty_list()
 {
+	m_romlist_path.clear();
 	m_romlist_name.clear();
 	m_list.clear();
 	m_filtered_list.clear();
@@ -445,15 +446,11 @@ bool FeRomList::load_romlist(
 	bool group_clones,
 	bool load_stats	)
 {
+	init_as_empty_list();
 	m_romlist_path = path;
 	m_romlist_name = romlist_name;
 	m_group_clones = group_clones;
-	m_fav_changed = false;
-	m_tags_changed = false;
-	m_availability_checked = false;
 	m_played_stats_checked = !load_stats;
-	m_list.clear();
-	m_filtered_list.clear();
 
 	sf::Clock load_timer;
 

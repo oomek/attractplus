@@ -742,6 +742,7 @@ void FeSettings::init_display()
 		romlist_name + FE_ROMLIST_FILE_EXTENSION
 	))
 	{
+		m_rl.init_as_empty_list();
 		FeLog() << "Cannot find romlist: " << romlist_name << std::endl;
 		return;
 	}
