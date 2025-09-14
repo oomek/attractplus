@@ -695,6 +695,7 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 	}
 
 	float current_gain;
+	float previous_gain;
 	bool target_reached;
 	size_t startup_delay;
 	float media_volume;
@@ -704,6 +705,7 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 	{
 		std::lock_guard<std::mutex> lock( m_mutex );
 		current_gain = m_current_gain;
+		previous_gain = m_current_gain;
 		target_reached = m_target_reached;
 		startup_delay = m_startup_delay;
 		media_volume = m_media_volume;
@@ -770,13 +772,21 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 	if ( current_gain < 1.0f )
 		current_gain = 1.0f;
 
-	// Apply gain to output
+	// Apply gain ramp to output using weighted average
 	for ( unsigned int i = 0; i < frame_count; ++i )
 	{
+		float weight;
+		if ( frame_count <= 1 ) // Sanity check to prevent div 0
+			weight = 1.0f;
+		else
+			weight = (float)i / (float)( frame_count - 1 );
+
+		float interpolated_gain = previous_gain * ( 1.0f - weight ) + current_gain * weight;
+
 		for ( unsigned int ch = 0; ch < channel_count; ++ch )
 		{
 			size_t idx = i * channel_count + ch;
-			output_frames[idx] = input_frames[idx] * current_gain;
+			output_frames[idx] = input_frames[idx] * interpolated_gain;
 		}
 	}
 
