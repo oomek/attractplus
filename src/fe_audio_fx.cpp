@@ -32,6 +32,9 @@ static constexpr float VU_FALL_SPEED = 2.4f;
 static constexpr float FFT_FALL_SPEED = 1.2f;
 static constexpr float DB_SCALE = 70.0f;
 static constexpr float MAX_GAIN = 128.0f;
+static constexpr float NORMALISE_MAX_GAIN = 128.0f;
+static constexpr float NORMALISE_INCREASE_TIME_MS = 1000.0f;
+static constexpr float NORMALISE_DECREASE_TIME_MS = 2.0f;
 
 #define _USE_MATH_DEFINES
 
@@ -695,6 +698,7 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 	bool target_reached;
 	size_t startup_delay;
 	float media_volume;
+	float max_peak;
 
 	// Read shared variables with minimal lock
 	{
@@ -703,6 +707,7 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 		target_reached = m_target_reached;
 		startup_delay = m_startup_delay;
 		media_volume = m_media_volume;
+		max_peak = m_max_peak;
 	}
 
 	// Ignore the first 100ms to allow the DC filter to settle down
@@ -727,7 +732,10 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 
 	const float target_level = 0.5f * media_volume;
 
-	if ( current_peak > 0.0001f )
+	if ( current_peak > max_peak )
+		max_peak = current_peak;
+
+	if ( max_peak > 0.0001f )
 	{
 		float output_level = current_peak * current_gain;
 
@@ -739,27 +747,25 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 			if ( output_level > target_level )
 			{
 				// Over the target, fast gain decrease
-				const float decrease_time_ms = 10.0f;
 				const float buffers_per_second = m_device_sample_rate / frame_count;
-				const float fast_response = 1.0f / ( decrease_time_ms * 0.001f * buffers_per_second );
-				float needed_gain = target_level / current_peak;
-				current_gain += ( needed_gain - current_gain ) * fast_response;
+				const float alpha = 1.0f - std::exp( -1.0f / ( NORMALISE_DECREASE_TIME_MS * 0.001f * buffers_per_second ));
+				float needed_gain = target_level / max_peak;
+				current_gain = current_gain * ( 1.0f - alpha ) + needed_gain * alpha;
 			}
 		}
 		else if ( !target_reached && output_level < target_level )
 		{
 			// Slow gain increase
-			const float increase_time_ms = 1000.0f;
 			const float buffers_per_second = m_device_sample_rate / frame_count;
-			const float slow_response = 1.0f / ( increase_time_ms * 0.001f * buffers_per_second );
-			float needed_gain = target_level / current_peak;
-			current_gain += ( needed_gain - current_gain ) * slow_response;
+			const float alpha = 1.0f - std::exp( -1.0f / ( NORMALISE_INCREASE_TIME_MS * 0.001f * buffers_per_second ));
+			float needed_gain = target_level / max_peak;
+			current_gain = current_gain * ( 1.0f - alpha ) + needed_gain * alpha;
 		}
 		// Otherwise, maintain current gain
 	}
 
-	if ( current_gain > MAX_GAIN )
-		current_gain = MAX_GAIN;
+	if ( current_gain > NORMALISE_MAX_GAIN )
+		current_gain = NORMALISE_MAX_GAIN;
 
 	if ( current_gain < 1.0f )
 		current_gain = 1.0f;
@@ -777,6 +783,7 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 	std::lock_guard<std::mutex> lock( m_mutex );
 	m_current_gain = current_gain;
 	m_target_reached = target_reached;
+	m_max_peak = max_peak;
 
 	return true;
 }
@@ -792,6 +799,7 @@ void FeAudioNormaliser::reset()
 	m_current_gain = 1.0f;
 	m_target_reached = false;
 	m_startup_delay = 0;
+	m_max_peak = 0.0f;
 }
 
 void FeAudioNormaliser::set_media_volume( float volume )

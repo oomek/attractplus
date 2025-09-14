@@ -197,6 +197,7 @@ private:
 	bool m_target_reached = false;
 	size_t m_startup_delay = 0;
 	float m_media_volume = 1.0f;
+	float m_max_peak = 0.0f;
 };
 
 template<typename T>
