@@ -38,6 +38,7 @@
    -  [`fe.path_expand()`](#fepath_expand)
    -  [`fe.path_test()`](#fepath_test)
    -  [`fe.get_file_mtime()`](#feget_file_mtime-) 🔶
+   -  [`fe.get_general_config()`](#feget_general_config) 🔶
    -  [`fe.get_config()`](#feget_config)
    -  [`fe.get_text()`](#feget_text)
    -  [`fe.get_url()`](#feget_url-) 🔶
@@ -1065,6 +1066,24 @@ Returns the modified time of the given file.
 **Return Value**
 
 -  An integer containing the GMT timestamp.
+
+---
+
+### `fe.get_general_config()` 🔶
+
+```squirrel
+fe.get_general_config()
+```
+
+Get the Attract-Mode general configuration settings.
+
+**Parameters**
+
+-  None.
+
+**Return Value**
+
+-  A table containing AM's `general` configuration settings.
 
 ---
 

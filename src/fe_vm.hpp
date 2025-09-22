@@ -254,6 +254,7 @@ public:
 	static const char *cb_get_art( const char *,int,int);
 	static const char *cb_get_art( const char *,int);
 	static const char *cb_get_art( const char *);
+	static Sqrat::Table cb_get_general_config();
 	static Sqrat::Table cb_get_config();
 	static void cb_signal( const char * );
 	static void cb_set_display( int, bool, bool );

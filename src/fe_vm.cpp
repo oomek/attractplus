@@ -1121,6 +1121,7 @@ bool FeVM::on_new_layout()
 	fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 	fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
+	fe.Func<Table (*)()>(_SC("get_general_config"), &FeVM::cb_get_general_config);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
 	fe.Func<void (*)(const char *)>(_SC("signal"), &FeVM::cb_signal);
 	fe.Overload<void (*)(int, bool, bool)>(_SC("set_display"), &FeVM::cb_set_display);
@@ -2751,6 +2752,25 @@ const char *FeVM::cb_get_art( const char *art, int index_offset )
 const char *FeVM::cb_get_art( const char *art )
 {
 	return cb_get_art( art, 0, 0, AF_Default );
+}
+
+Sqrat::Table FeVM::cb_get_general_config()
+{
+	Sqrat::Table retval;
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	FeSettings *fes = fev->m_feSettings;
+
+	int i = 0;
+	while ( FeSettings::configSettingStrings[i] != NULL )
+	{
+		std::string key = FeSettings::configSettingStrings[i];
+		std::string value = fes->get_info( i );
+		retval.SetValue( key.c_str(), value.c_str() );
+		i++;
+	}
+
+	return retval;
 }
 
 Sqrat::Table FeVM::cb_get_config()
