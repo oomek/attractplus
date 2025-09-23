@@ -147,6 +147,8 @@ echo STEP 5 - POPULATE BUNDLE FOLDER
 cp -a $basedir/config/ "$bundlecontent"/share/attractplus
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
+cp -a $basedir/util/osx/AppIcon.icns "$bundlecontent"/Resources/
+cp -a $basedir/util/osx/Assets.car "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/launch.sh "$bundlecontent"/MacOS/
 #cp "$bundlelibs"/libfreetype.6.dylib "$bundlelibs"/freetype
 
