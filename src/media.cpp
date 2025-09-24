@@ -1277,6 +1277,24 @@ bool FeMedia::open( const std::string &archive,
 		stream_id = av_find_best_stream( m_imp->m_format_ctx, AVMEDIA_TYPE_VIDEO,
 					-1, -1, &dec, 0 );
 
+		// Force libvpx decoders for VP8/VP9 content to get alpha support
+		if ( stream_id >= 0 )
+		{
+			AVCodecID codec_id = m_imp->m_format_ctx->streams[stream_id]->codecpar->codec_id;
+
+			if ( codec_id == AV_CODEC_ID_VP8 )
+			{
+				FeAVCodec *libvpx_dec = avcodec_find_decoder_by_name( "libvpx" );
+				if ( libvpx_dec ) dec = libvpx_dec;
+			}
+			else if ( codec_id == AV_CODEC_ID_VP9 )
+			{
+				FeAVCodec *libvpx_dec = avcodec_find_decoder_by_name( "libvpx-vp9" );
+				if ( libvpx_dec ) dec = libvpx_dec;
+			}
+
+		}
+
 		if ( stream_id < 0 )
 		{
 			FeLog() << "No video stream found, file: "
