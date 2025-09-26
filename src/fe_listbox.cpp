@@ -38,15 +38,17 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_selOutlineThickness( 0 ),
 	m_selStyle( sf::Text::Regular ),
 	m_rows( 11 ),
+	m_row_align( FeTextPrimitive::Top ),
 	m_userCharSize( 0 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
 	m_scripted( true ),
-	m_mode( 0 ),
-	m_selected_row( 0 ),
+	m_mode( Static ),
+	m_selected_row( -1 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
+	m_selection_margin_restrict( false ),
 	m_custom_sel( -1 ),
 	m_has_custom_list( false )
 {
@@ -73,15 +75,17 @@ FeListBox::FeListBox(
 	m_selOutlineThickness( 0 ),
 	m_selStyle( sf::Text::Regular ),
 	m_rows( rows ),
+	m_row_align( FeTextPrimitive::Top ),
 	m_userCharSize( charactersize ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
 	m_scripted( false ),
-	m_mode( 0 ),
-	m_selected_row( 0 ),
+	m_mode( Static ),
+	m_selected_row( -1 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
+	m_selection_margin_restrict( false ),
 	m_custom_sel( -1 )
 {
 }
@@ -104,6 +108,9 @@ sf::Vector2f FeListBox::getPosition() const
 
 void FeListBox::setPosition( const sf::Vector2f &p )
 {
+	if ( p == m_base_text.getPosition() )
+		return;
+
 	m_base_text.setPosition( p );
 
 	if ( m_scripted )
@@ -117,6 +124,9 @@ sf::Vector2f FeListBox::getSize() const
 
 void FeListBox::setSize( const sf::Vector2f &s )
 {
+	if ( s == m_base_text.getSize() )
+		return;
+
 	m_base_text.setSize( s );
 
 	if ( m_scripted )
@@ -135,8 +145,13 @@ sf::Color FeListBox::getColor() const
 
 void FeListBox::set_outline( float t )
 {
+	if ( t == m_base_text.getOutlineThickness() )
+		return;
+
 	m_base_text.setOutlineThickness( t );
-	FePresent::script_do_update( this );
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 float FeListBox::get_outline()
@@ -220,9 +235,9 @@ void FeListBox::init_dimensions()
 	m_base_text.setCharacterSize( char_size * m_scale_factor );
 
 	// Add or remove text elements to match row count
-	while ( (int)m_texts.size() < m_rows )
+	while ( getRowCount() < m_rows )
 		m_texts.push_back( FeTextPrimitive() );
-	while ( (int)m_texts.size() > m_rows )
+	while ( getRowCount() > m_rows )
 		m_texts.pop_back();
 
 	sf::Transform rotater;
@@ -275,7 +290,7 @@ void FeListBox::setColor( sf::Color c )
 
 	m_base_text.setColor( c );
 
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	for ( int i=0; i < getRowCount(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setColor( c );
 
@@ -331,13 +346,13 @@ void FeListBox::setTextScale( const sf::Vector2f &scale )
 {
 	m_base_text.setTextScale( scale );
 
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	for ( int i=0; i < getRowCount(); i++ )
 		m_texts[i].setTextScale( scale );
 }
 
 bool FeListBox::getSelectedText( FeTextPrimitive* &sel )
 {
-	int n = m_texts.size();
+	int n = getRowCount();
 	if (( n == 0 ) || ( m_selected_row < 0 ) || ( m_selected_row >= n ))
 		return false;
 
@@ -345,10 +360,13 @@ bool FeListBox::getSelectedText( FeTextPrimitive* &sel )
 	return true;
 }
 
+//
+// Set the selection index of a custom list
+//
 void FeListBox::setCustomSelection( const int index )
 {
 	m_custom_sel = index;
-	internalSetText( index );
+	refresh_selection();
 }
 
 //
@@ -359,101 +377,78 @@ void FeListBox::setCustomText( const int index, const std::vector<std::string> &
 {
 	m_has_custom_list = true;
 	m_custom_list = list;
-	setCustomSelection( list.empty() ? -1 : index );
+	m_custom_sel = list.empty() ? -1 : index;
+	refresh_list();
 }
 
 //
 // Remove a custom list (will revert to the romlist)
+// - Caller must call `on_new_list` afterward to re-establish the non-custom listbox
 //
 void FeListBox::removeCustomText()
 {
 	m_has_custom_list = false;
 	m_custom_list = std::vector<std::string>();
-	setCustomSelection( -1 );
+	m_custom_sel = -1;
 }
 
-void FeListBox::internalSetText( const int index )
+void FeListBox::refresh_selection()
 {
-	int display_rows = (int)m_texts.size();
+	int display_rows = getRowCount();
 	if ( display_rows == 0 )
 		return;
 
 	// List size may be zero, but the display rows still need updating to clear them
 	int list_size = get_list_size();
-	int offset;
+	int sel = get_list_sel();
 
 	switch ( m_mode )
 	{
 		case Moving:
 		{
-			int margin = m_selection_margin;
-
-			if ( margin < 0 ) margin = 0;
-			if ( margin > display_rows / 2 ) margin = display_rows / 2;
-
+			int margin = get_selection_margin();
 			int window_start = m_list_start_offset;
 			int window_end = window_start + display_rows - 1;
 
-			if ( list_size <= display_rows )
+			if ( list_size > display_rows || m_selection_margin_restrict )
 			{
-				// All items fit, no scrolling
-				m_selected_row = index;
-				m_list_start_offset = 0;
-			}
-			else
-			{
-				if ( index < window_start + margin )
+				if ( sel < window_start + margin )
 				{
 					// Scroll the list up
-					m_list_start_offset = std::max( 0, index - margin );
-					m_selected_row = index - m_list_start_offset;
+					m_list_start_offset = sel - margin;
+					if ( !m_selection_margin_restrict ) m_list_start_offset = std::max( 0, m_list_start_offset );
 				}
-				else if (index > window_end - margin)
+				else if ( sel > window_end - margin )
 				{
+					// If the margin is *exactly* half of the display_rows,
+					// adjust the margin to match the scroll up behavior for symmetry
+					bool is_margin_middle = ( display_rows % 2 == 0 ) && ( margin == display_rows / 2 );
+					int down_margin = is_margin_middle ? margin : display_rows - 1 - margin;
+
 					// Scroll the list down
-					int target_selection_pos_for_down_scroll = display_rows - 1 - margin;
-
-					// If display_rows is even and the margin is exactly half of display_rows,
-					// adjust the target selection position to match the scroll up behavior for symmetry
-					if ( (display_rows % 2 == 0) && (margin == display_rows / 2) )
-						target_selection_pos_for_down_scroll = margin;
-
-					m_list_start_offset = std::min( list_size - display_rows, index - target_selection_pos_for_down_scroll );
-					m_selected_row = index - m_list_start_offset;
-				}
-				else
-				{
-					// No scroll, just move selection
-					m_selected_row = index - m_list_start_offset;
+					m_list_start_offset = sel - down_margin;
+					if ( !m_selection_margin_restrict ) m_list_start_offset = std::min( list_size - display_rows, m_list_start_offset );
 				}
 			}
 
-			offset = m_list_start_offset;
+			m_selected_row = sel - m_list_start_offset;
 			break;
 		}
 
 		case Paged:
 		{
-			if ( list_size <= display_rows )
-			{
-				m_selected_row = index % display_rows;
-				m_list_start_offset = 0;
-			}
-			else
-			{
-				int page = index / display_rows;
-				m_selected_row = index % display_rows;
-				m_list_start_offset = page * display_rows;
-			}
-			offset = m_list_start_offset;
+			int margin = get_selection_margin();
+			int page_size = std::max( 1, display_rows - margin * 2 );
+			int page = sel / page_size;
+
+			m_list_start_offset = page * page_size - margin;
+			m_selected_row = (sel % page_size) + margin;
 			break;
 		}
 
 		case Static:
 		default: // Fallback to Static mode
-			m_selected_row = display_rows / 2;
-			offset = index - m_selected_row;
-			m_list_start_offset = offset;
+			m_list_start_offset = sel - m_selected_row;
 			break;
 	}
 
@@ -464,7 +459,7 @@ void FeListBox::internalSetText( const int index )
 
 	for ( int i=0; i < display_rows; i++ )
 	{
-		int listentry = i + offset;
+		int listentry = i + m_list_start_offset;
 		if ( listentry < 0 || listentry >= list_size )
 			text_string = "";
 		else if ( m_has_custom_list )
@@ -498,49 +493,84 @@ void FeListBox::setRotation( float r )
 
 	m_rotation = r;
 
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	for ( int i=0; i < getRowCount(); i++ )
 		m_texts[i].setRotation( m_rotation );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
 }
 
-void FeListBox::on_new_list( FeSettings *s )
+void FeListBox::update_list_settings( FeSettings *s )
+{
+	m_feSettings = s;
+	if ( !m_has_custom_list )
+	{
+		m_display_filter_index = s->get_filter_index_from_offset( m_filter_offset );
+		m_display_filter_size = s->get_filter_size( m_display_filter_index );
+		m_display_rom_index = s->get_rom_index( m_display_filter_index, 0 );
+	}
+}
+
+void FeListBox::refresh_list()
 {
 	init_dimensions();
 
-	if ( m_has_custom_list )
+	int sel = get_list_sel();
+	int size = get_list_size();
+	int rows = getRowCount();
+
+	// Default m_selected_row to middle row
+	if ( m_selected_row == -1 )
+		m_selected_row = rows / 2;
+
+	switch ( m_mode )
 	{
-		internalSetText( m_custom_sel );
-		return;
+		case Moving:
+		{
+			// Maintain m_selected_row on list change (if possible)
+			int goal_sel_row = m_selected_row;
+
+			// When using row alignment, m_selected_row will be changed to align the list
+			int empty_rows = rows - size;
+			if ( empty_rows > 0 )
+			{
+				switch ( m_row_align )
+				{
+					case FeTextPrimitive::Top:
+						goal_sel_row = sel;
+						break;
+					case FeTextPrimitive::Middle:
+						goal_sel_row = sel + empty_rows / 2;
+						break;
+					case FeTextPrimitive::Bottom:
+						goal_sel_row = sel + empty_rows;
+						break;
+				}
+			}
+
+			int margin = m_selection_margin_restrict ? get_selection_margin() : 0;
+			int ma = -margin;
+			int mb = size - rows + margin;
+
+			m_list_start_offset = std::clamp( sel - goal_sel_row, std::min(ma, mb), std::max(ma, mb));
+			m_selected_row = sel - m_list_start_offset;
+			break;
+		}
 	}
 
-	m_feSettings = s;
-	m_display_filter_index = s->get_filter_index_from_offset( m_filter_offset );
-	m_display_filter_size = s->get_filter_size( m_display_filter_index );
-	m_display_rom_index = s->get_rom_index( m_display_filter_index, 0 );
+	refresh_selection();
+}
 
-	// Calculate the initial position for Moving mode
-	// - Maintains the current m_selected_row if possible
-	// - Required since fav/tag changes trigger new_list which shouldn't move the list
-	if ( m_mode == Moving )
-	{
-		m_list_start_offset = std::clamp( m_display_rom_index - m_selected_row, 0, std::max( 0, m_display_filter_size - (int)m_texts.size() ) );
-		m_selected_row = m_display_rom_index - m_list_start_offset;
-	}
-
-	internalSetText( m_display_rom_index );
+void FeListBox::on_new_list( FeSettings *s )
+{
+	update_list_settings( s );
+	refresh_list();
 }
 
 void FeListBox::on_new_selection( FeSettings *s )
 {
-	if ( m_has_custom_list )
-		internalSetText( m_custom_sel );
-	else
-		internalSetText(
-			s->get_rom_index(
-				s->get_filter_index_from_offset(
-					m_filter_offset ), 0 ) );
+	update_list_settings( s );
+	refresh_selection();
 }
 
 void FeListBox::set_scale_factor( float scale_x, float scale_y )
@@ -586,7 +616,13 @@ int FeListBox::getIndexOffset() const
 
 void FeListBox::setFilterOffset( int fo )
 {
+	if (fo == m_filter_offset)
+		return;
+
 	m_filter_offset = fo;
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 int FeListBox::getFilterOffset() const
@@ -634,6 +670,18 @@ int FeListBox::get_rows()
 	return m_rows;
 }
 
+int FeListBox::get_row_align()
+{
+	return m_row_align;
+}
+
+int FeListBox::get_list_sel()
+{
+	return m_has_custom_list
+		? m_custom_sel
+		: m_display_rom_index;
+}
+
 int FeListBox::get_list_size()
 {
 	return m_has_custom_list
@@ -658,8 +706,13 @@ int FeListBox::get_align()
 
 void FeListBox::set_no_margin( bool m )
 {
+	if ( m == m_base_text.getNoMargin() )
+		return;
+
 	m_base_text.setNoMargin( m );
-	FePresent::script_do_update( this );
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 bool FeListBox::get_no_margin()
@@ -669,8 +722,13 @@ bool FeListBox::get_no_margin()
 
 void FeListBox::set_margin( int m )
 {
+	if ( m == m_base_text.getMargin() )
+		return;
+
 	m_base_text.setMargin( m );
-	FePresent::script_do_update( this );
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 int FeListBox::get_margin()
@@ -684,7 +742,7 @@ void FeListBox::setBgColor( sf::Color c )
 		return;
 
 	m_base_text.setBgColor(c);
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	for ( int i=0; i < getRowCount(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setBgColor( c );
 
@@ -731,33 +789,55 @@ void FeListBox::set_bg_rgb(int r, int g, int b )
 
 void FeListBox::set_charsize(int s)
 {
+	if ( s == m_userCharSize )
+		return;
+
 	m_userCharSize = s;
 
-	// We call script_do_update to trigger a call to our init_demensions() function
-	// with the appropriate parameters
-	//
 	if ( m_scripted )
 		FePresent::script_do_update( this );
 }
 
 void FeListBox::set_spacing(float s)
 {
+	if ( s == m_base_text.getCharacterSpacing() )
+		return;
+
 	m_base_text.setCharacterSpacing(s);
-	FePresent::script_do_update( this );
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 void FeListBox::set_rows(int r)
 {
-	//
-	// Don't allow m_rows to ever be zero or negative
-	//
-	if ( r > 0 )
-	{
-		m_rows = r;
+	r = std::max( 1, r );
+	if ( r == m_rows )
+		return;
 
-		if ( m_scripted )
-			FePresent::script_do_update( this );
-	}
+	m_rows = r;
+
+	// To maintain legacy behavior, trigger m_selected_row re-calc on static row changes
+	if ( m_row_align == Static )
+		m_selected_row = -1;
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
+}
+
+void FeListBox::set_row_align(int a)
+{
+	if ( a == m_row_align )
+		return;
+
+	m_row_align = a;
+
+	// Trigger m_selected_row re-calc, which aligns the list
+	if ( a )
+		m_selected_row = -1;
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 void FeListBox::set_style(int s)
@@ -766,7 +846,7 @@ void FeListBox::set_style(int s)
 		return;
 
 	m_base_text.setStyle(s);
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	for ( int i=0; i < getRowCount(); i++ )
 		if ( i != m_selected_row )
 			m_texts[i].setStyle( s );
 
@@ -780,10 +860,8 @@ void FeListBox::set_justify(int j)
 		return;
 
 	m_base_text.setJustify(j);
-	for ( unsigned int i=0; i < m_texts.size(); i++ )
-	{
+	for ( int i=0; i < getRowCount(); i++ )
 		m_texts[i].setJustify( j );
-	}
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
@@ -796,7 +874,7 @@ void FeListBox::set_align(int a)
 
 	m_base_text.setAlignment( (FeTextPrimitive::Alignment)a);
 
-	for ( int i=0; i < (int)m_texts.size(); i++ )
+	for ( int i=0; i < getRowCount(); i++ )
 		m_texts[i].setAlignment( (FeTextPrimitive::Alignment)a );
 
 	if ( m_scripted )
@@ -951,6 +1029,9 @@ const char *FeListBox::get_format_string()
 
 void FeListBox::set_format_string( const char *s )
 {
+	if ( s == m_format_string )
+		return;
+
 	m_format_string = s;
 
 	if ( m_scripted )
@@ -968,20 +1049,56 @@ void FeListBox::set_selection_mode(int m)
 		return;
 
 	m_mode = m;
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 int FeListBox::get_selection_margin()
 {
-	return m_selection_margin;
+	return std::min( m_selection_margin, getRowCount() / 2 );
 }
 
 void FeListBox::set_selection_margin(int m)
 {
-	if ( m < 0 ) m = 0;
+	m = std::max( 0, m );
+	if ( m == m_selection_margin )
+		return;
+
 	m_selection_margin = m;
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
+}
+
+bool FeListBox::get_selection_margin_restrict()
+{
+	return m_selection_margin_restrict;
+}
+
+void FeListBox::set_selection_margin_restrict(bool c)
+{
+	if ( c == m_selection_margin_restrict )
+		return;
+
+	m_selection_margin_restrict = c;
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }
 
 int FeListBox::get_selected_row() const
 {
 	return m_selected_row;
+}
+
+void FeListBox::set_selected_row( int r )
+{
+	r = std::max( 0, r );
+	if ( r == m_selected_row )
+		return;
+
+	m_selected_row = r;
+
+	if ( m_scripted )
+		FePresent::script_do_update( this );
 }

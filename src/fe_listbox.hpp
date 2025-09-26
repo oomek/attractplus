@@ -128,12 +128,15 @@ public:
 	int get_glyph_size();
 	float get_spacing();
 	int get_rows();
+	int get_row_align();
+	int get_list_sel();
 	int get_list_size();
 	int get_style();
 	int get_justify();
 	int get_align();
 	int get_selection_mode();
 	int get_selection_margin();
+	bool get_selection_margin_restrict();
 	void set_bgr(int r);
 	void set_bgg(int g);
 	void set_bgb(int b);
@@ -142,11 +145,13 @@ public:
 	void set_charsize(int s);
 	void set_spacing(float s);
 	void set_rows(int r);
+	void set_row_align(int a);
 	void set_style(int s);
 	void set_justify(int j);
 	void set_align(int a);
 	void set_selection_mode(int m);
 	void set_selection_margin(int m);
+	void set_selection_margin_restrict(bool c);
 	int get_selr();
 	int get_selg();
 	int get_selb();
@@ -179,9 +184,11 @@ public:
 	void set_font( const char *f );
 	void set_format_string( const char *s );
 	int get_selected_row() const;
+	void set_selected_row( int r );
 private:
-	void internalSetText( const int index );
-
+	void update_list_settings( FeSettings *s );
+	void refresh_selection();
+	void refresh_list();
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_custom_list;
@@ -194,6 +201,7 @@ private:
 	float m_selOutlineThickness;
 	int m_selStyle;
 	int m_rows;
+	int m_row_align;
 	int m_userCharSize;
 	int m_filter_offset;
 	float m_rotation;
@@ -203,6 +211,7 @@ private:
 	int m_selected_row;
 	int m_list_start_offset;
 	int m_selection_margin;
+	bool m_selection_margin_restrict;
 
 	int m_display_filter_index;
 	int m_display_filter_size;
