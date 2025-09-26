@@ -1680,17 +1680,17 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 
 	// ---------------------------------------------------------------------------------
 
-	std::string uicol_hex = ctx.fe_settings.get_ui_color();
+	std::string uicol_token = ctx.fe_settings.get_ui_color();
 	std::vector<std::string>::iterator uicol_item = FeSettings::uiColorTokens.begin();
-	if ( !uicol_hex.empty() )
+	if ( !uicol_token.empty() )
 	{
 		// Find the selected ui colour
-		uicol_item = std::find( FeSettings::uiColorTokens.begin(), FeSettings::uiColorTokens.end(), uicol_hex );
+		uicol_item = std::find( FeSettings::uiColorTokens.begin(), FeSettings::uiColorTokens.end(), uicol_token );
 
 		// If not found add a custom colour option to the lists
 		if ( uicol_item == FeSettings::uiColorTokens.end() )
 		{
-			FeSettings::uiColorTokens.push_back( uicol_hex );
+			FeSettings::uiColorTokens.push_back( uicol_token );
 			FeSettings::uiColorDispTokens.push_back( _( "Custom" ) );
 			uicol_item = --FeSettings::uiColorTokens.end();
 		}

@@ -273,24 +273,24 @@ const char *FeSettings::startupDispTokens[] =
 
 std::vector<std::string> FeSettings::uiColorTokens =
 {
-	"#4400BB",
-	"#2850A0", // default
-	"#00BBFF",
-	"#00C3AA",
-	"#00CC44",
-	"#88CC33",
-	"#CCCC33",
-	"#FFCC00",
-	"#FF8800",
-	"#996622",
-	"#CC4411",
-	"#BB0011",
-	"#FF4488",
-	"#BB22BB",
-	"#8822BB",
-	"#444444",
-	"#797979",
-	"#BBBBBB",
+	"68,0,187",
+	"40,80,160", // default
+	"0,187,255",
+	"0,195,170",
+	"0,204,68",
+	"136,204,51",
+	"204,204,51",
+	"255,204,0",
+	"255,136,0",
+	"153,102,34",
+	"204,68,17",
+	"187,0,17",
+	"255,68,136",
+	"187,34,187",
+	"136,34,187",
+	"68,68,68",
+	"121,121,121",
+	"187,187,187",
 };
 
 std::vector<std::string> FeSettings::uiColorDispTokens =
@@ -3348,8 +3348,12 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case UIColor:
-		m_ui_color = value;
+	{
+		sf::Color col;
+		if ( str_to_color( value, col ) )
+			color_to_rgb( col, m_ui_color );
 		break;
+	}
 
 	default:
 		return false;

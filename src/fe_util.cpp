@@ -1990,18 +1990,46 @@ std::string get_focus_process()
 	return retval;
 }
 
-bool hex_to_color( std::string hex, sf::Color &dest_color )
+bool str_to_color( const std::string &str, sf::Color &col )
 {
-	try
-	{
-		std::string h = ( hex[0] == '#' ) ? hex.substr(1) : hex;
-		dest_color = sf::Color( std::stoul( "0x" + h + "FF", nullptr, 16 ) );
-		return true;
-	}
-	catch ( ... )
-	{
+	if ( rgb_to_color( str, col ) ) return true;
+	if ( hex_to_color( str, col ) ) return true;
+	return false;
+}
+
+bool rgb_to_color( const std::string &str, sf::Color &col )
+{
+	std::smatch m;
+	if ( !std::regex_search( str, m, std::regex( "^(\\d{1,3})[, ]+(\\d{1,3})[, ]+(\\d{1,3})$" ) ) )
 		return false;
-	}
+
+	col = sf::Color( as_int( m[1].str() ), as_int( m[2].str() ), as_int( m[3].str() ) );
+	return true;
+}
+
+bool hex_to_color( const std::string &str, sf::Color &col )
+{
+	std::smatch m;
+	if ( !std::regex_search( str, m, std::regex( "^#?([0-9A-F]{6})$" ) ) )
+		return false;
+
+	col = sf::Color( std::stoul( "0x" + m[1].str() + "FF", nullptr, 16 ) );
+	return true;
+}
+
+void color_to_rgb( const sf::Color &col, std::string &str )
+{
+	str = as_str( col.r ) + "," + as_str( col.g ) + "," + as_str( col.b );
+}
+
+void color_to_hex( const sf::Color &col, std::string &str )
+{
+	std::stringstream hex;
+	hex << "#"
+		<< std::hex << std::setw(2) << std::setfill('0') << (int)col.r
+		<< std::hex << std::setw(2) << std::setfill('0') << (int)col.g
+		<< std::hex << std::setw(2) << std::setfill('0') << (int)col.b;
+	str = hex.str();
 }
 
 int get_token_index( const char *tokens[], std::string &token )
