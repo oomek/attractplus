@@ -38,7 +38,7 @@
    -  [`fe.path_expand()`](#fepath_expand)
    -  [`fe.path_test()`](#fepath_test)
    -  [`fe.get_file_mtime()`](#feget_file_mtime-) 🔶
-   -  [`fe.get_general_config()`](#feget_general_config) 🔶
+   -  [`fe.get_general_config()`](#feget_general_config-) 🔶
    -  [`fe.get_config()`](#feget_config)
    -  [`fe.get_text()`](#feget_text)
    -  [`fe.get_url()`](#feget_url-) 🔶
@@ -138,45 +138,45 @@ fe.add_text( "[Title] - [ListEntry] of [ListSize]", 0, 0, 400, 20 )
 The following _Magic Tokens_ are supported:
 
 -  List
-    -  `[DisplayName]` - The name of the Display
-    -  `[FilterName]` - The name of the Filter
-    -  `[ListSize]` - The number of items in the list
-    -  `[SortName]` - The attribute the list was sorted by
-    -  `[Search]` - The search rule applied to the list
+   -  `[DisplayName]` - The name of the Display
+   -  `[FilterName]` - The name of the Filter
+   -  `[ListSize]` - The number of items in the list
+   -  `[SortName]` - The attribute the list was sorted by
+   -  `[Search]` - The search rule applied to the list
 -  Game
-    -  `[Name]` - The short name of the game
-    -  `[Title]` - The full name of the game
-    -  `[Emulator]` - The emulator to use for the game
-    -  `[CloneOf]` - The short name of the game's parent
-    -  `[Year]` - The year for the game
-    -  `[Manufacturer]` - The manufacturer of the game
-    -  `[Category]` - The category for the game
-    -  `[Players]` - The number of players for the game
-    -  `[Rotation]` - The display rotation for the game
-    -  `[Control]` - The primary control for the game
-    -  `[Status]` - The emulation status for the game
-    -  `[DisplayCount]` - The number of displays used by the game
-    -  `[DisplayType]` - The display type for the game
-    -  `[AltRomname]` - The alternative rom name for the game
-    -  `[AltTitle]` - The alternative title for the game
-    -  `[Overview]` - The overview description for the game
-    -  `[System]` - The first System name for the game's emulator
-    -  `[SystemN]` - The last System name for the game's emulator
-    -  `[ListEntry]` - The index of the game within the list
-    -  `[SortValue]` - The value used to sort the game in the list
+   -  `[Name]` - The short name of the game
+   -  `[Title]` - The full name of the game
+   -  `[Emulator]` - The emulator to use for the game
+   -  `[CloneOf]` - The short name of the game's parent
+   -  `[Year]` - The year for the game
+   -  `[Manufacturer]` - The manufacturer of the game
+   -  `[Category]` - The category for the game
+   -  `[Players]` - The number of players for the game
+   -  `[Rotation]` - The display rotation for the game
+   -  `[Control]` - The primary control for the game
+   -  `[Status]` - The emulation status for the game
+   -  `[DisplayCount]` - The number of displays used by the game
+   -  `[DisplayType]` - The display type for the game
+   -  `[AltRomname]` - The alternative rom name for the game
+   -  `[AltTitle]` - The alternative title for the game
+   -  `[Overview]` - The overview description for the game
+   -  `[System]` - The first System name for the game's emulator
+   -  `[SystemN]` - The last System name for the game's emulator
+   -  `[ListEntry]` - The index of the game within the list
+   -  `[SortValue]` - The value used to sort the game in the list
 -  Tags
-    -  `[Favourite]` - The string `1` if the game has the favourite status
-    -  `[FavouriteStar]` - The `★` icon if the game has the favourite status
-    -  `[FavouriteStarAlt]` - The `☆` icon if the game has the favourite status
-    -  `[FavouriteHeart]` - The `♥` icon if the game has the favourite status
-    -  `[FavouriteHeartAlt]` - The `♡` icon if the game has the favourite status
-    -  `[Tags]` - The tags attached to the game, delimited by `;` semicolons
-    -  `[TagList]` - The tags attached to the game, formatted with `🏷` icons
+   -  `[Favourite]` - The string `1` if the game has the favourite status
+   -  `[FavouriteStar]` - The `★` icon if the game has the favourite status
+   -  `[FavouriteStarAlt]` - The `☆` icon if the game has the favourite status
+   -  `[FavouriteHeart]` - The `♥` icon if the game has the favourite status
+   -  `[FavouriteHeartAlt]` - The `♡` icon if the game has the favourite status
+   -  `[Tags]` - The tags attached to the game, delimited by `;` semicolons
+   -  `[TagList]` - The tags attached to the game, formatted with `🏷` icons
 -  Stats
-    -  `[PlayedCount]` - The number of times the game has been played
-    -  `[PlayedTime]` - The number of seconds the game has been played
-    -  `[PlayedLast]` - The timestamp the game was last played
-    -  `[PlayedAgo]` - The last played date formatted relative to now, for example: `5 Minutes Ago`
+   -  `[PlayedCount]` - The number of times the game has been played
+   -  `[PlayedTime]` - The number of seconds the game has been played
+   -  `[PlayedLast]` - The timestamp the game was last played
+   -  `[PlayedAgo]` - The last played date formatted relative to now, for example: `5 Minutes Ago`
 
 #### Custom Magic Token Functions
 
@@ -1638,7 +1638,12 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `selbg_blue` - Get/set blue colour level for selection background. Range is `[0...255]`. Default value is `255`.
 -  `selbg_alpha` - Get/set alpha level for selection background. Range is `[0...255]`. Default value is `255`.
 -  `rows` - Get/set the number of listbox rows. Default value is `11`.
--  `list_size` - Get the size of the list shown by listbox. When listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
+-  `row_align` - Get/set the row alignment for the `Selection.Moving` mode. Only affects listbox's where `list_size` is less than the number of `rows`.
+   -  `RowAlign.Top` (default) - Aligns options to the top.
+   -  `RowAlign.Middle` - Aligns options to the middle.
+   -  `RowAlign.Bottom` - Aligns options to the bottom.
+   -  `RowAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
+-  `list_size` - Get the size of the list shown by the listbox. When the listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
 -  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on the value of `height`/`rows`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
@@ -1674,17 +1679,18 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Align.MiddleLeft`
    -  `Align.MiddleRight`
    -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
--  `sel_mode` - Get/set the selection mode. Controls how the ListBox behaves when navigating. Can be one of the following values:
-   -  `Selection.Static` (default) - The selection stays in the centre of the ListBox. The list scrolls
-   -  `Selection.Moving` - The selection moves and the list scrolls when margin is reached. Margin can be adjusted with `sel_margin`
-   -  `Selection.Paged` - The selection moves and the list scrolls in pages
--  `sel_margin` - Get/set the selection margin in rows. When using `Selection.Moving` mode, the list will scroll to keep the selection at least this many rows away from the edges.
--  `sel_row` - Returns the index of the row that is currently selected within the visible rows of the ListBox.
+-  `sel_mode` 🔶 - Get/set the selection mode. Controls how the listbox behaves when navigating. Can be one of the following values:
+   -  `Selection.Static` (default) - The selection remains at the `sel_row` (middle by default) while the list scrolls.
+   -  `Selection.Moving` - The selection moves freely, and the list scrolls when the `sel_margin` is reached.
+   -  `Selection.Paged` - The selection moves freely, and the list scrolls _in pages_ when the `sel_margin` is reached.
+-  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
+-  `sel_margin_restrict` 🔶 - Get/set whether to prevent the selection from entering `sel_margin` rows for `Selection.Moving` mode. Default value is `false`.
+-  `sel_row` 🔶 - Get the index of the row that is currently selected. Can be set for `Selection.Moving` and `Selection.Static` modes, with respect to `sel_margin` and `list_size`. Defaults to the middle row.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
 -  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
--  `zorder` - Get/set the Listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
+-  `zorder` - Get/set the listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
 **Member Functions**
 

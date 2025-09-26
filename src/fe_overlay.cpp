@@ -401,8 +401,6 @@ int FeOverlay::common_list_dialog(
 			m_fePresent.on_transition( NewSelOverlay, sel );
 		}
 
-		m_fePresent.on_transition( HideOverlay, 0 );
-
 		// reset to the old text in these controls when done
 		if ( custom_caption )
 			custom_caption->set_string( old_cap.c_str() );
@@ -412,6 +410,9 @@ int FeOverlay::common_list_dialog(
 			custom_lb->removeCustomText();
 			custom_lb->on_new_list( &m_feSettings );
 		}
+
+		// Transition *after* reset so sel_row reflects the current state
+		m_fePresent.on_transition( HideOverlay, 0 );
 	}
 	else
 	{
@@ -658,8 +659,6 @@ int FeOverlay::common_basic_dialog(
 			m_fePresent.on_transition( NewSelOverlay, sel );
 		}
 
-		m_fePresent.on_transition( HideOverlay, 0 );
-
 		// reset to the old text in these controls when done
 		if ( custom_caption )
 			custom_caption->set_string( old_cap.c_str() );
@@ -669,6 +668,9 @@ int FeOverlay::common_basic_dialog(
 			custom_lb->removeCustomText();
 			custom_lb->on_new_list( &m_feSettings );
 		}
+
+		// Transition *after* reset so sel_row reflects the current state
+		m_fePresent.on_transition( HideOverlay, 0 );
 	}
 	else
 	{

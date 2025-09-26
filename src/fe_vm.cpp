@@ -583,6 +583,12 @@ bool FeVM::on_new_layout()
 			.Const( _SC("MiddleCentre"), FeTextPrimitive::Middle | FeTextPrimitive::Centre )
 			.Const( _SC("MiddleRight"), FeTextPrimitive::Middle | FeTextPrimitive::Right )
 			)
+		.Enum( _SC("RowAlign"), Enumeration()
+			.Const( _SC("Selection"), 0 )
+			.Const( _SC("Top"), FeTextPrimitive::Top )
+			.Const( _SC("Middle"), FeTextPrimitive::Middle )
+			.Const( _SC("Bottom"), FeTextPrimitive::Bottom )
+			)
 		.Enum( _SC("RotateScreen"), Enumeration()
 			.Const( _SC("None"), FeSettings::RotateNone )
 			.Const( _SC("Right"), FeSettings::RotateRight )
@@ -859,6 +865,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("outline"), &FeListBox::get_outline, &FeListBox::set_outline )
 		.Prop(_SC("sel_outline"), &FeListBox::get_sel_outline, &FeListBox::set_sel_outline )
 		.Prop(_SC("rows"), &FeListBox::get_rows, &FeListBox::set_rows )
+		.Prop(_SC("row_align"), &FeListBox::get_row_align, &FeListBox::set_row_align )
 		.Prop(_SC("list_size"), &FeListBox::get_list_size )
 		// "charsize" deprecated, use the char_size property instead
 		.Prop(_SC("charsize"), &FeListBox::get_charsize, &FeListBox::set_charsize )
@@ -871,7 +878,8 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("sel_style"), &FeListBox::getSelStyle, &FeListBox::setSelStyle )
 		.Prop(_SC("sel_mode"), &FeListBox::get_selection_mode, &FeListBox::set_selection_mode )
 		.Prop(_SC("sel_margin"), &FeListBox::get_selection_margin, &FeListBox::set_selection_margin )
-		.Prop(_SC("sel_row"), &FeListBox::get_selected_row )
+		.Prop(_SC("sel_margin_restrict"), &FeListBox::get_selection_margin_restrict, &FeListBox::set_selection_margin_restrict )
+		.Prop(_SC("sel_row"), &FeListBox::get_selected_row, &FeListBox::set_selected_row )
 		.Prop(_SC("font"), &FeListBox::get_font, &FeListBox::set_font )
 		// "nomargin" deprecated, use the margin property instead
 		.Prop(_SC("nomargin"), &FeListBox::get_no_margin, &FeListBox::set_no_margin )
@@ -1558,17 +1566,17 @@ int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel, int c
 
 int FeVM::list_dialog( Sqrat::Array t, const char *title, int default_sel )
 {
-	return list_dialog( t, title, default_sel, -1, FeInputMap::LAST_COMMAND );
+	return list_dialog( t, title, default_sel, -1 );
 }
 
 int FeVM::list_dialog( Sqrat::Array t, const char *title )
 {
-	return list_dialog( t, title, 0, -1, FeInputMap::LAST_COMMAND );
+	return list_dialog( t, title, 0 );
 }
 
 int FeVM::list_dialog( Sqrat::Array t )
 {
-	return list_dialog( t, NULL, 0, -1, FeInputMap::LAST_COMMAND );
+	return list_dialog( t, "" );
 }
 
 const char *FeVM::edit_dialog( const char *msg, const char *txt )
