@@ -422,12 +422,20 @@ void hide_console();
 
 #endif
 
-//
-// Hex string to sf::Color
-// - On invalid hex the dest_color will not be changed
-// - Returns true on success
-//
-bool hex_to_color( std::string hex, sf::Color &dest_color );
+// Auto string to sf::Color
+bool str_to_color( const std::string &str, sf::Color &col );
+
+// rgb string to sf::Color
+bool rgb_to_color( const std::string &str, sf::Color &col );
+
+// hex string to sf::Color
+bool hex_to_color( const std::string &str, sf::Color &col );
+
+// sf::Color to rgb string
+void color_to_rgb( const sf::Color &col, std::string &str );
+
+// sf::Color to hex string
+void color_to_hex( const sf::Color &col, std::string &str );
 
 //
 // Return index of token in tokens, or -1 if not found

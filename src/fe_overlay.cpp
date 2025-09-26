@@ -286,8 +286,8 @@ void FeOverlay::style_init()
 {
 	// Defaults to the first uiColorTokens value, which is the class blue
 	sf::Color col;
-	if ( !hex_to_color( m_feSettings.get_info( FeSettings::UIColor ), col ))
-		hex_to_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ], col );
+	if ( !str_to_color( m_feSettings.get_info( FeSettings::UIColor ), col ))
+		str_to_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ], col );
 	style_init( col );
 }
 
@@ -1544,7 +1544,7 @@ int FeOverlay::display_config_dialog(
 						if ( refresh_colour )
 						{
 							sf::Color col;
-							hex_to_color( FeSettings::uiColorTokens[ c.sel ], col );
+							str_to_color( FeSettings::uiColorTokens[ c.sel ], col );
 
 							style_init( col );
 							theme_letterbox( letterbox_top );
