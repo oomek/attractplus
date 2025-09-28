@@ -1410,6 +1410,12 @@ void FeVM::on_transition(
 			itr != worklist.end(); )
 		{
 			set_for_callback( *(*itr) );
+
+  			// Update per_display layout params when transitioning to a new list
+			// Only for layout callbacks (not plugins)
+			if ( t == ToNewList && (*itr)->m_sid < 0 )
+				m_feSettings->load_layout_params();
+
 			bool keep=false;
 			try
 			{
