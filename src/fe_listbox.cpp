@@ -38,7 +38,7 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_selOutlineThickness( 0 ),
 	m_selStyle( sf::Text::Regular ),
 	m_rows( 11 ),
-	m_row_align( FeTextPrimitive::Top ),
+	m_list_align( FeTextPrimitive::Top ),
 	m_userCharSize( 0 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
@@ -75,7 +75,7 @@ FeListBox::FeListBox(
 	m_selOutlineThickness( 0 ),
 	m_selStyle( sf::Text::Regular ),
 	m_rows( rows ),
-	m_row_align( FeTextPrimitive::Top ),
+	m_list_align( FeTextPrimitive::Top ),
 	m_userCharSize( charactersize ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
@@ -534,7 +534,7 @@ void FeListBox::refresh_list()
 			int empty_rows = rows - size;
 			if ( empty_rows > 0 )
 			{
-				switch ( m_row_align )
+				switch ( m_list_align )
 				{
 					case FeTextPrimitive::Top:
 						goal_sel_row = sel;
@@ -670,9 +670,9 @@ int FeListBox::get_rows()
 	return m_rows;
 }
 
-int FeListBox::get_row_align()
+int FeListBox::get_list_align()
 {
-	return m_row_align;
+	return m_list_align;
 }
 
 int FeListBox::get_list_sel()
@@ -818,19 +818,19 @@ void FeListBox::set_rows(int r)
 	m_rows = r;
 
 	// To maintain legacy behavior, trigger m_selected_row re-calc on static row changes
-	if ( m_row_align == Static )
+	if ( m_list_align == Static )
 		m_selected_row = -1;
 
 	if ( m_scripted )
 		FePresent::script_do_update( this );
 }
 
-void FeListBox::set_row_align(int a)
+void FeListBox::set_list_align(int a)
 {
-	if ( a == m_row_align )
+	if ( a == m_list_align )
 		return;
 
-	m_row_align = a;
+	m_list_align = a;
 
 	// Trigger m_selected_row re-calc, which aligns the list
 	if ( a )

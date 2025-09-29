@@ -128,7 +128,7 @@ public:
 	int get_glyph_size();
 	float get_spacing();
 	int get_rows();
-	int get_row_align();
+	int get_list_align();
 	int get_list_sel();
 	int get_list_size();
 	int get_style();
@@ -145,7 +145,7 @@ public:
 	void set_charsize(int s);
 	void set_spacing(float s);
 	void set_rows(int r);
-	void set_row_align(int a);
+	void set_list_align(int a);
 	void set_style(int s);
 	void set_justify(int j);
 	void set_align(int a);
@@ -201,7 +201,7 @@ private:
 	float m_selOutlineThickness;
 	int m_selStyle;
 	int m_rows;
-	int m_row_align;
+	int m_list_align;
 	int m_userCharSize;
 	int m_filter_offset;
 	float m_rotation;

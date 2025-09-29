@@ -1638,11 +1638,11 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `selbg_blue` - Get/set blue colour level for selection background. Range is `[0...255]`. Default value is `255`.
 -  `selbg_alpha` - Get/set alpha level for selection background. Range is `[0...255]`. Default value is `255`.
 -  `rows` - Get/set the number of listbox rows. Default value is `11`.
--  `row_align` - Get/set the row alignment for the `Selection.Moving` mode. Only affects listbox's where `list_size` is less than the number of `rows`.
-   -  `RowAlign.Top` (default) - Aligns options to the top.
-   -  `RowAlign.Middle` - Aligns options to the middle.
-   -  `RowAlign.Bottom` - Aligns options to the bottom.
-   -  `RowAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
+-  `list_align` - Get/set the row alignment for the `Selection.Moving` mode. Only affects listbox's where `list_size` is less than the number of `rows`.
+   -  `ListAlign.Top` (default) - Aligns options to the top.
+   -  `ListAlign.Middle` - Aligns options to the middle.
+   -  `ListAlign.Bottom` - Aligns options to the bottom.
+   -  `ListAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
 -  `list_size` - Get the size of the list shown by the listbox. When the listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
 -  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on the value of `height`/`rows`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter.
@@ -1685,7 +1685,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Selection.Paged` - The selection moves freely, and the list scrolls _in pages_ when the `sel_margin` is reached.
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
 -  `sel_margin_restrict` 🔶 - Get/set whether to prevent the selection from entering `sel_margin` rows for `Selection.Moving` mode. Default value is `false`.
--  `sel_row` 🔶 - Get the index of the row that is currently selected. Can be set for `Selection.Moving` and `Selection.Static` modes, with respect to `sel_margin` and `list_size`. Defaults to the middle row.
+-  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
