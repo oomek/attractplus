@@ -43,7 +43,8 @@ public:
 	{
 		Static=0,
 		Moving=1,
-		Paged=2
+		Paged=2,
+		Restricted=3
 	};
 	// Constructor for use in scripts.  sets m_scripted to true
 	FeListBox( FePresentableParent &p, int x, int y, int w, int h );
@@ -136,7 +137,6 @@ public:
 	int get_align();
 	int get_selection_mode();
 	int get_selection_margin();
-	bool get_selection_margin_restrict();
 	void set_bgr(int r);
 	void set_bgg(int g);
 	void set_bgb(int b);
@@ -151,7 +151,6 @@ public:
 	void set_align(int a);
 	void set_selection_mode(int m);
 	void set_selection_margin(int m);
-	void set_selection_margin_restrict(bool c);
 	int get_selr();
 	int get_selg();
 	int get_selb();
@@ -211,7 +210,6 @@ private:
 	int m_selected_row;
 	int m_list_start_offset;
 	int m_selection_margin;
-	bool m_selection_margin_restrict;
 
 	int m_display_filter_index;
 	int m_display_filter_size;

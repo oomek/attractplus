@@ -48,7 +48,6 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_selected_row( -1 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
-	m_selection_margin_restrict( false ),
 	m_custom_sel( -1 ),
 	m_has_custom_list( false )
 {
@@ -85,7 +84,6 @@ FeListBox::FeListBox(
 	m_selected_row( -1 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
-	m_selection_margin_restrict( false ),
 	m_custom_sel( -1 )
 {
 }
@@ -405,18 +403,20 @@ void FeListBox::refresh_selection()
 	switch ( m_mode )
 	{
 		case Moving:
+		case Restricted:
 		{
 			int margin = get_selection_margin();
 			int window_start = m_list_start_offset;
 			int window_end = window_start + display_rows - 1;
+			bool is_restricted = m_mode == Restricted;
 
-			if ( list_size > display_rows || m_selection_margin_restrict )
+			if ( list_size > display_rows || is_restricted )
 			{
 				if ( sel < window_start + margin )
 				{
 					// Scroll the list up
 					m_list_start_offset = sel - margin;
-					if ( !m_selection_margin_restrict ) m_list_start_offset = std::max( 0, m_list_start_offset );
+					if ( !is_restricted ) m_list_start_offset = std::max( 0, m_list_start_offset );
 				}
 				else if ( sel > window_end - margin )
 				{
@@ -427,7 +427,7 @@ void FeListBox::refresh_selection()
 
 					// Scroll the list down
 					m_list_start_offset = sel - down_margin;
-					if ( !m_selection_margin_restrict ) m_list_start_offset = std::min( list_size - display_rows, m_list_start_offset );
+					if ( !is_restricted ) m_list_start_offset = std::min( list_size - display_rows, m_list_start_offset );
 				}
 			}
 
@@ -526,9 +526,11 @@ void FeListBox::refresh_list()
 	switch ( m_mode )
 	{
 		case Moving:
+		case Restricted:
 		{
 			// Maintain m_selected_row on list change (if possible)
 			int goal_sel_row = m_selected_row;
+			bool is_restricted = m_mode == Restricted;
 
 			// When using row alignment, m_selected_row will be changed to align the list
 			int empty_rows = rows - size;
@@ -548,7 +550,7 @@ void FeListBox::refresh_list()
 				}
 			}
 
-			int margin = m_selection_margin_restrict ? get_selection_margin() : 0;
+			int margin = is_restricted ? get_selection_margin() : 0;
 			int ma = -margin;
 			int mb = size - rows + margin;
 
@@ -1065,22 +1067,6 @@ void FeListBox::set_selection_margin(int m)
 		return;
 
 	m_selection_margin = m;
-
-	if ( m_scripted )
-		FePresent::script_do_update( this );
-}
-
-bool FeListBox::get_selection_margin_restrict()
-{
-	return m_selection_margin_restrict;
-}
-
-void FeListBox::set_selection_margin_restrict(bool c)
-{
-	if ( c == m_selection_margin_restrict )
-		return;
-
-	m_selection_margin_restrict = c;
 
 	if ( m_scripted )
 		FePresent::script_do_update( this );
