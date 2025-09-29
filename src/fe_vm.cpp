@@ -670,6 +670,7 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Static"), FeListBox::Static )
 			.Const( _SC("Moving"), FeListBox::Moving )
 			.Const( _SC("Paged"), FeListBox::Paged )
+			.Const( _SC("Restricted"), FeListBox::Restricted )
 			)
 		;
 
@@ -878,7 +879,6 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("sel_style"), &FeListBox::getSelStyle, &FeListBox::setSelStyle )
 		.Prop(_SC("sel_mode"), &FeListBox::get_selection_mode, &FeListBox::set_selection_mode )
 		.Prop(_SC("sel_margin"), &FeListBox::get_selection_margin, &FeListBox::set_selection_margin )
-		.Prop(_SC("sel_margin_restrict"), &FeListBox::get_selection_margin_restrict, &FeListBox::set_selection_margin_restrict )
 		.Prop(_SC("sel_row"), &FeListBox::get_selected_row, &FeListBox::set_selected_row )
 		.Prop(_SC("font"), &FeListBox::get_font, &FeListBox::set_font )
 		// "nomargin" deprecated, use the margin property instead

@@ -1682,9 +1682,9 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `sel_mode` 🔶 - Get/set the selection mode. Controls how the listbox behaves when navigating. Can be one of the following values:
    -  `Selection.Static` (default) - The selection remains at the `sel_row` (middle by default) while the list scrolls.
    -  `Selection.Moving` - The selection moves freely, and the list scrolls when the `sel_margin` is reached.
+   -  `Selection.Restricted` - Identical to `Selection.Moving`, except `sel_row` is prevented from entering the `sel_margin` when the list edges are reached.
    -  `Selection.Paged` - The selection moves freely, and the list scrolls _in pages_ when the `sel_margin` is reached.
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
--  `sel_margin_restrict` 🔶 - Get/set whether to prevent the selection from entering `sel_margin` rows for `Selection.Moving` mode. Default value is `false`.
 -  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
