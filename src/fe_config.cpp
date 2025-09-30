@@ -1181,7 +1181,7 @@ bool FeDisplayMenuEditMenu::save( FeConfigContext &ctx )
 {
 	ctx.fe_settings.set_info( FeSettings::MenuPrompt, ctx.opt_list[0].get_value() );
 	ctx.fe_settings.set_info( FeSettings::MenuLayout, ( ctx.opt_list[1].get_vindex() == 0 ) ? "" : ctx.opt_list[1].get_value() );
-	ctx.fe_settings.set_info( FeSettings::DisplaysMenuExit, ctx.opt_list[2].get_bool() );
+	ctx.fe_settings.set_info( FeSettings::DisplaysMenuExit, ctx.opt_list[3].get_bool() );
 	return true;
 }
 
