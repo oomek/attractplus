@@ -1112,6 +1112,13 @@ bool FeDisplayEditMenu::on_option_select(
 		if ( ctx.confirm_dialog( _( "Delete display '$1'?", { display->get_info( FeDisplayInfo::Name ) }) ) == false )
 			return false;
 
+		// If we're deleting the active display, switch to another one
+		if ( m_index == ctx.fe_settings.get_current_display_index() && ctx.fe_settings.displays_count() > 1 )
+		{
+			int new_display = ( m_index > 0 ) ? m_index - 1 : 0;
+			ctx.fe_settings.set_display( new_display );
+		}
+
 		ctx.fe_settings.delete_display( m_index );
 		ctx.save_req=true;
 	}
