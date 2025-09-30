@@ -19,7 +19,7 @@ OR;或
 Yes;是
 
 # -- misc --
-'Displays Menu' Options;主選單選項
+Displays Menu Options;主選單選項
 Action;操作
 Add Artwork;新增插圖資源
 Add Emulator;新增模擬器
@@ -28,7 +28,7 @@ Add Filter;新增遊戲過濾
 Add Input;新增輸入按鍵
 Add New Display;新增顯示介面
 Add Rule;新增規則
-Allow Exit from 'Displays Menu';允許在主選單顯示結束項目
+Allow Exit;允許退出
 #Anisotropic Filtering;
 #Anti-Aliasing;
 Artwork Label;插圖類型
@@ -376,7 +376,7 @@ _help_control_exit;設定「結束 Attract-Mode」的控制鍵
 _help_control_filters_menu;設定「顯示遊戲過濾選單」的控制鍵
 #_help_control_insert_game;
 _help_control_intro;設定「顯示啟動視訊」的控制鍵
-_help_control_joystick_map;指定電腦的搖桿裝置在 Attract-Mode 裡的搖桿順序 (例: 你可以強制這個前導永遠使用 'Microsoft X-Box 360 pad' 作為搖桿 0)
+_help_control_joystick_map;指定電腦的搖桿裝置在 Attract-Mode 裡的搖桿順序 (例: 你可以強制這個前導永遠使用 "Microsoft X-Box 360 pad" 作為搖桿 0)
 _help_control_joystick_threshold;這個設定用來定位搖桿移動的靈敏度，數值從 1 到 100 (100 為最大值)。
 #_help_control_layout_options;
 _help_control_left;設定「左移選項」的控制鍵

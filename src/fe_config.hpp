@@ -363,11 +363,21 @@ private:
 public:
 	FeDisplayEditMenu();
 
-	void get_options( FeConfigContext &ctx );
-	bool on_option_select( FeConfigContext &ctx,
-		FeBaseConfigMenu *& submenu );
-	bool save( FeConfigContext &ctx );
+	virtual FeDisplayInfo* get_display( FeConfigContext &ctx );
+	virtual void get_options( FeConfigContext &ctx );
+	virtual bool save( FeConfigContext &ctx );
+
+	void add_options( FeConfigContext &ctx, bool isDefault = false );
+	bool on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *& submenu );
 	void set_display_index( int index );
+};
+
+class FeDisplayDefaultMenu : public FeDisplayEditMenu
+{
+public:
+	FeDisplayInfo* get_display( FeConfigContext &ctx ) override;
+	void get_options( FeConfigContext &ctx ) override;
+	bool save( FeConfigContext &ctx ) override;
 };
 
 class FeDisplayMenuEditMenu : public FeBaseConfigMenu
@@ -385,6 +395,7 @@ class FeDisplaySelMenu : public FeBaseConfigMenu
 {
 private:
 	FeDisplayEditMenu m_edit_menu;
+	FeDisplayDefaultMenu m_default_menu;
 	FeDisplayMenuEditMenu m_menu_menu;
 
 public:

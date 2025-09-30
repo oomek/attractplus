@@ -1023,11 +1023,21 @@ FeDisplayEditMenu::FeDisplayEditMenu()
 {
 }
 
+FeDisplayInfo* FeDisplayEditMenu::get_display( FeConfigContext &ctx )
+{
+	return ctx.fe_settings.get_display( m_index );
+}
+
 void FeDisplayEditMenu::get_options( FeConfigContext &ctx )
 {
 	ctx.set_style( FeConfigContext::EditList, _( "Display Edit" ) );
+	add_options( ctx );
+	FeBaseConfigMenu::get_options( ctx );
+}
 
-	FeDisplayInfo *display = ctx.fe_settings.get_display( m_index );
+void FeDisplayEditMenu::add_options( FeConfigContext &ctx, bool isDefault )
+{
+	FeDisplayInfo *display = get_display( ctx );
 	if ( display )
 	{
 		std::vector<std::string> layouts;
@@ -1035,7 +1045,7 @@ void FeDisplayEditMenu::get_options( FeConfigContext &ctx )
 		ctx.fe_settings.get_layouts_list( layouts );
 		ctx.fe_settings.get_romlists_list( romlists );
 
-		ctx.add_opt( Opt::EDIT, _( "Name" ), display->get_info( FeDisplayInfo::Name ), _( "_help_display_name" ) );
+		ctx.add_opt( isDefault ? Opt::INFO : Opt::EDIT, _( "Name" ), display->get_info( FeDisplayInfo::Name ), _( "_help_display_name" ) );
 		ctx.add_opt( Opt::LIST, _( "Layout" ), display->get_info( FeDisplayInfo::Layout ), _( "_help_display_layout" ) )->append_vlist( layouts );
 		ctx.add_opt( Opt::LIST, _( "Collection/Rom List" ), display->get_info( FeDisplayInfo::Romlist ), _( "_help_display_romlist" ) )->append_vlist( romlists );
 		ctx.add_opt( Opt::TOGGLE, _( "Show in Cycle" ), display->show_in_cycle(), _( "_help_display_in_cycle" ) );
@@ -1058,11 +1068,13 @@ void FeDisplayEditMenu::get_options( FeConfigContext &ctx )
 		}
 
 		ctx.add_opt( Opt::MENU, _( "Add Filter" ), "", _( "_help_display_add_filter" ), 1 );
-		ctx.add_opt( Opt::MENU, _( "Layout Options" ), "", _( "_help_display_layout_options" ), 2 );
-		ctx.add_opt( Opt::EXIT, _( "Delete this Display" ), "", _( "_help_display_delete" ), 3 );
-	}
 
-	FeBaseConfigMenu::get_options( ctx );
+		if ( !isDefault )
+		{
+			ctx.add_opt( Opt::MENU, _( "Layout Options" ), "", _( "_help_display_layout_options" ), 2 );
+			ctx.add_opt( Opt::EXIT, _( "Delete this Display" ), "", _( "_help_display_delete" ), 3 );
+		}
+	}
 }
 
 bool FeDisplayEditMenu::on_option_select(
@@ -1070,7 +1082,7 @@ bool FeDisplayEditMenu::on_option_select(
 {
 	FeMenuOpt &o = ctx.curr_opt();
 
-	FeDisplayInfo *display = ctx.fe_settings.get_display( m_index );
+	FeDisplayInfo *display = get_display( ctx );
 	if ( !display )
 		return true;
 
@@ -1121,7 +1133,7 @@ bool FeDisplayEditMenu::on_option_select(
 
 bool FeDisplayEditMenu::save( FeConfigContext &ctx )
 {
-	FeDisplayInfo *display = ctx.fe_settings.get_display( m_index );
+	FeDisplayInfo *display = get_display( ctx );
 	if ( display )
 	{
 		for ( int i=0; i< FeDisplayInfo::LAST_INDEX; i++ )
@@ -1141,6 +1153,25 @@ void FeDisplayEditMenu::set_display_index( int index )
 	m_index=index;
 }
 
+FeDisplayInfo* FeDisplayDefaultMenu::get_display( FeConfigContext &ctx )
+{
+	return ctx.fe_settings.get_default_display();
+}
+
+void FeDisplayDefaultMenu::get_options( FeConfigContext &ctx )
+{
+	ctx.set_style( FeConfigContext::EditList, _( "Default Display Edit" ) );
+	add_options( ctx, true );
+	FeBaseConfigMenu::get_options( ctx );
+}
+
+bool FeDisplayDefaultMenu::save( FeConfigContext &ctx )
+{
+	FeDisplayEditMenu::save( ctx );
+	ctx.fe_settings.save_default_display();
+	return true;
+}
+
 void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 {
 	std::string prompt_str = ctx.fe_settings.get_info( FeSettings::MenuPrompt );
@@ -1158,7 +1189,7 @@ void FeDisplayMenuEditMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::EDIT, _( "Menu Prompt" ), prompt_str, _( "_help_displaysmenu_prompt" ) );
 	ctx.add_opt( Opt::LIST, _( "Layout" ), layout, _( "_help_displaysmenu_layout" ) )->append_vlist( layouts );
 	ctx.add_opt( Opt::MENU, _( "Layout Options" ), "", _( "_help_display_layout_options" ), 1 );
-	ctx.add_opt( Opt::TOGGLE, _( "Allow Exit from 'Displays Menu'" ), ctx.fe_settings.get_info_bool( FeSettings::DisplaysMenuExit ), _( "_help_displaysmenu_exit" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Allow Exit" ), ctx.fe_settings.get_info_bool( FeSettings::DisplaysMenuExit ), _( "_help_displaysmenu_exit" ) );
 	FeBaseConfigMenu::get_options( ctx );
 }
 
@@ -1196,44 +1227,49 @@ void FeDisplaySelMenu::get_options( FeConfigContext &ctx )
 	for ( int i=0; i< display_count; i++ )
 		ctx.add_opt( Opt::MENU, ctx.fe_settings.get_display( i )->get_info( FeDisplayInfo::Name ), "", _( "_help_display_sel" ), i );
 
-	ctx.add_opt( Opt::MENU, _( "'Displays Menu' Options" ), "", _( "_help_displaysmenu" ), 99999 );
-	ctx.add_opt( Opt::MENU, _( "Add New Display" ), "", _( "_help_display_add" ), 100000 );
+	ctx.add_opt( Opt::MENU, _( "Add New Display" ), "", _( "_help_display_add" ), 99998 );
+	ctx.add_opt( Opt::MENU, _( "Default Display Settings" ), "", _( "_help_display_edit_default" ), 99999 );
+	ctx.add_opt( Opt::MENU, _( "Displays Menu Options" ), "", _( "_help_displaysmenu" ), 100000 );
 	FeBaseConfigMenu::get_options( ctx );
 }
 
 bool FeDisplaySelMenu::on_option_select(
-		FeConfigContext &ctx, FeBaseConfigMenu *& submenu )
+	FeConfigContext &ctx,
+	FeBaseConfigMenu *&submenu
+)
 {
 	FeMenuOpt &o = ctx.curr_opt();
 
 	if ( o.opaque < 0 )
 		return true;
 
-	if ( o.opaque == 99999 )
-	{
-		submenu = &m_menu_menu;
-		return true;
-	}
-
-	if ( o.opaque == 100000 )
+	if ( o.opaque == 99998 )
 	{
 		std::string res;
 		if ( !ctx.edit_dialog( _( "Enter Display Name" ), res ) || res.empty() )
 			return false;		// if they don't enter a name then cancel
 
 		ctx.save_req=true;
-
 		ctx.fe_settings.create_display( res );
-		m_edit_menu.set_display_index(
-			ctx.fe_settings.displays_count() - 1 );
+		m_edit_menu.set_display_index( ctx.fe_settings.displays_count() - 1 );
 		submenu = &m_edit_menu;
-	}
-	else
-	{
-		m_edit_menu.set_display_index( o.opaque );
-		submenu = &m_edit_menu;
+		return true;
 	}
 
+	if ( o.opaque == 99999 )
+	{
+		submenu = &m_default_menu;
+		return true;
+	}
+
+	if ( o.opaque == 100000 )
+	{
+		submenu = &m_menu_menu;
+		return true;
+	}
+
+	m_edit_menu.set_display_index( o.opaque );
+	submenu = &m_edit_menu;
 	return true;
 }
 

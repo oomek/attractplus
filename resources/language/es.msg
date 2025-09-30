@@ -19,7 +19,7 @@ OR;O
 Yes;Si
 
 # -- misc --
-#'Displays Menu' Options;
+#Displays Menu Options;
 Action;Acción
 Add Artwork;Agregar tema
 Add Emulator;Agregar emulador
@@ -28,7 +28,7 @@ Add Filter;Agregar filtro
 Add Input;Agregar control
 Add New Display;Agregar nueva pantalla
 Add Rule;Agregar regla
-Allow Exit from 'Displays Menu';Permitir salir desde el 'menú de pantallas'
+Allow Exit;Permitir salida
 #Anisotropic Filtering;
 #Anti-Aliasing;
 Artwork Label;Nombre del tema
