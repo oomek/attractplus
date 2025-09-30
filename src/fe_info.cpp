@@ -1462,7 +1462,7 @@ void FePlugInfo::save( nowide::ofstream &f ) const
 {
 	write_section( f, "plugin", m_name );
 	write_pair( f, indexStrings[0], m_enabled ? "yes" : "no", 1 );
-	FeScriptConfigurable::save( f );
+	FeScriptConfigurable::save( f, 1 );
 	f << std::endl;
 }
 
@@ -1490,7 +1490,7 @@ void FeLayoutInfo::save( nowide::ofstream &f ) const
 	if ( !m_params.empty() )
 	{
 		write_section( f, indexStrings[ m_type ], ( m_type == Layout ) ? m_name : "" );
-		FeScriptConfigurable::save( f );
+		FeScriptConfigurable::save( f, 1 );
 		f << std::endl;
 	}
 }
