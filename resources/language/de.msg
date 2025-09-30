@@ -19,7 +19,7 @@ OR;ODER
 Yes;Ja
 
 # -- misc --
-#'Displays Menu' Options;
+#Displays Menu Options;
 Action;Aktion
 Add Artwork;Bilddatei hinzufügen
 Add Emulator;Emulator hinzufügen
@@ -28,7 +28,7 @@ Add Filter;Filter hinzufügen
 Add Input;Steuerung hinzufügen
 Add New Display;Neuen Bildschirm hinzufügen
 Add Rule;Regel hinzufügen
-Allow Exit from 'Displays Menu';Verlassen des "Listen Menüs" zulassen
+Allow Exit;Beenden zulassen
 #Anisotropic Filtering;
 #Anti-Aliasing;
 Artwork Label;Bezeichnung der Bilddatei
@@ -376,7 +376,7 @@ _help_control_exit;Definiere die Taste(n), um das Frontend zu verlassen
 _help_control_filters_menu;Definiere die Taste(n), um das "Filter Menü" anzuzeigen
 #_help_control_insert_game;
 _help_control_intro;Definiere die Taste(n) um das Intro-Video abzuspielen
-_help_control_joystick_map;Hier kannst du das Frontend zwingen bestimmte Joystick ports immer denselben Joysticks/Gamepads zuzuweisen (So kannst du zum Beispiel 'Microsoft X-Box 360 pad' immer als Joystick 0 verwenden.)
+_help_control_joystick_map;Hier kannst du das Frontend zwingen bestimmte Joystick ports immer denselben Joysticks/Gamepads zuzuweisen (So kannst du zum Beispiel "Microsoft X-Box 360 pad" immer als Joystick 0 verwenden.)
 _help_control_joystick_threshold;Der Schwellwert um Joystick-Bewegungen noch zu erkennen, von 1 bis 100 (100=am wenigsten empfindlich)
 #_help_control_layout_options;
 _help_control_left;Definiere die Taste(n) um die Auswahl nach links zu bewegen
@@ -419,10 +419,10 @@ _help_display_layout;Welches Thema soll dieser Bildschirm nutzen
 _help_display_name;Der Titel des aktuellen Bildschirms
 _help_display_romlist;Die Sammlung/Romliste, die für diesen Bildschirm verwendet wird
 _help_display_sel;Konfiguriere Bildschirm
-_help_displaysmenu_exit;Lege fest, ob eine Beenden-Option im "Bildschirm Menü" verfügbar sein soll
-_help_displaysmenu_layout;Wähle das Thema für das 'Bildschirmmenü'. Wähle 'Standard', um das voreingestellte Menü des Frontends zu verwenden
-_help_displaysmenu_prompt;Die 'Bildschirmmenü' Aufforderung (z.B. "Select System")
-_help_displaysmenu;Konfiguriere die Optionen für das "Bildschirmmenü"
+_help_displaysmenu_exit;Lege fest, ob eine Beenden-Option im Bildschirm Menü verfügbar sein soll
+_help_displaysmenu_layout;Wähle das Thema für das Bildschirmmenü. Wähle "Standard", um das voreingestellte Menü des Frontends zu verwenden
+_help_displaysmenu_prompt;Die Bildschirmmenü Aufforderung (z.B. "Select System")
+_help_displaysmenu;Konfiguriere die Optionen für das Bildschirmmenü
 _help_emu_add;Neuen Emulator hinzufügen
 _help_emu_args;Die Kommandozeilenargumente für diesen Emulator. Folgende Einträge werden entsprechend ersetzt: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
 _help_emu_delete;Lösche den Eintrag für diesen Emulator
@@ -488,7 +488,7 @@ _help_misc_hide_console;Verstecke das Kommandozeilenfenster beim Starten. Bitte 
 #_help_misc_image_cache_mbytes;
 _help_misc_language;Wähle die Sprache in der Attract-Mode angezeigt wird
 _help_misc_layout_preview;Zeigen Sie Änderungen an der Layoutkonfiguration sofort an
-_help_misc_multiple_monitors;Wähle ob Attract-Mode mehrere Monitore verwendet. Ist 'No' gewählt, kann das Flackern beim Start einiger Spiele reduzieren
+_help_misc_multiple_monitors;Wähle ob Attract-Mode mehrere Monitore verwendet. Ist "No" gewählt, kann das Flackern beim Start einiger Spiele reduzieren
 #_help_misc_power_saving;
 _help_misc_quick_menu;Legt fest, ob Menüs mit derselben Taste geöffnet und geschlossen werden können. Ermöglicht außerdem das Wechseln zwischen Menüs, ohne diese vorher schließen zu müssen
 #_help_misc_screen_rotation;

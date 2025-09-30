@@ -19,7 +19,7 @@ OR;又は
 Yes;はい
 
 # -- misc --
-#'Displays Menu' Options;
+#Displays Menu Options;
 Action;アクション
 Add Artwork;アートワークを追加
 Add Emulator;エミュレータを追加
@@ -28,7 +28,7 @@ Add Filter;フィルターを追加
 Add Input;キー追加
 Add New Display;ディスプレイを追加
 Add Rule;ルールを追加
-Allow Exit from 'Displays Menu';ディスプレイメニューからのプログラム終了可能
+Allow Exit;終了を許可する
 #Anisotropic Filtering;
 #Anti-Aliasing;
 Artwork Label;アートワークのレーベル

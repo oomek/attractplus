@@ -19,7 +19,7 @@ OR;或
 Yes;是
 
 # -- misc --
-'Displays Menu' Options;界面选择器设置
+Displays Menu Options;界面选择器设置
 Action;项目
 Add Artwork;添加插图（Artwork)
 Add Emulator;添加模拟器
@@ -28,7 +28,7 @@ Add Filter;添加分类
 Add Input;添加输入
 Add New Display;添加新的界面
 Add Rule;添加规则
-Allow Exit from 'Displays Menu';在界面菜单中加入退出选项
+Allow Exit;允许退出
 #Anisotropic Filtering;
 #Anti-Aliasing;
 Artwork Label;插图标签

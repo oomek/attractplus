@@ -378,6 +378,9 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_anisotropic( 0 ),
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
+	m_default_layout( "Basic" ),
+	m_default_romlist( "Mame" ),
+	m_default_display( "Default Display" ),
 	m_ui_font_size( 0 ),
 	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] )
 {
@@ -396,6 +399,7 @@ FeSettings::FeSettings( const std::string &config_path )
 
 	FeCache::set_config_path( m_config_path );
 	FeCache::set_displays( &m_displays );
+	load_default_display();
 }
 
 void FeSettings::clear()
@@ -3383,50 +3387,75 @@ void FeSettings::create_filter( FeDisplayInfo &d, const std::string &name ) cons
 	d.append_filter( new_filter );
 }
 
+bool FeSettings::load_default_display()
+{
+	return apply_default_display( m_default_display );
+}
+
+bool FeSettings::apply_default_display( FeDisplayInfo &display )
+{
+	std::string filename;
+	if ( !internal_resolve_config_file( m_config_path, filename, NULL, FE_LIST_DEFAULT ) )
+		return false;
+
+	display.load_from_file( filename );
+	return true;
+}
+
+bool FeSettings::save_default_display()
+{
+	std::string defaults_file;
+	internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_LIST_DEFAULT );
+	nowide::ofstream outfile( defaults_file.c_str() );
+	if ( !outfile.is_open() )
+		return false;
+
+	write_header( outfile );
+	m_default_display.save( outfile );
+	outfile.close();
+	return true;
+}
+
+FeDisplayInfo *FeSettings::get_default_display()
+{
+	return &m_default_display;
+}
+
 FeDisplayInfo *FeSettings::create_display( const std::string &n )
 {
 	if ( m_current_display == -1 )
-		m_current_display=0;
+		m_current_display = 0;
 
-	FeDisplayInfo new_display( n );
+	FeDisplayInfo display( n );
+	apply_default_display( display );
 
-	std::string defaults_file;
-	if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_LIST_DEFAULT ) )
-		new_display.load_from_file( defaults_file );
+	std::vector<std::string> layouts;
+	std::vector<std::string> romlists;
+	get_layouts_list( layouts );
+	get_romlists_list( romlists );
 
-	// If there is no layout set, set a good default one now
-	//
-	if ( new_display.get_info( FeDisplayInfo::Layout ).empty() )
-	{
-		if ( !m_displays.empty() )
-		{
-			// If other lists are configured, give the new list the same layout as
-			// the last configured list
-			//
-			new_display.set_info( FeDisplayInfo::Layout,
-				m_displays.back().get_info( FeDisplayInfo::Layout ) );
-		}
-		else
-		{
-			// Pick an available layout, use the first one alphabetically
-			//
-			std::vector<std::string> layouts;
-			get_layouts_list( layouts ); // the returned list is sorted alphabetically
-			if ( !layouts.empty() )
-				new_display.set_info( FeDisplayInfo::Layout, layouts.front() );
-		}
-	}
+	// Find default values using the priority:
+	// - FE_LIST_DEFAULT > Hard-coded(if avail) > Last-Display > First-Available
 
-	// If there is no romlist set, use the one from the last list created
-	//
-	if (( new_display.get_info( FeDisplayInfo::Romlist ).empty() )
-		&& ( !m_displays.empty() ))
-	{
-		new_display.set_info( FeDisplayInfo::Romlist,
-			m_displays.back().get_info( FeDisplayInfo::Romlist ) );
-	}
+	std::string layout = display.get_info( FeDisplayInfo::Layout );
+	if (layout.empty() && ( std::find( layouts.begin(), layouts.end(), m_default_layout ) != layouts.end() ))
+		layout = m_default_layout;
+	if (layout.empty() && !m_displays.empty())
+		layout = m_displays.back().get_info( FeDisplayInfo::Layout );
+	if (layout.empty() && !layouts.empty())
+		layout = layouts.front();
 
-	m_displays.push_back( new_display );
+	std::string romlist = display.get_info( FeDisplayInfo::Romlist );
+	if (romlist.empty() && ( std::find( romlists.begin(), romlists.end(), m_default_romlist ) != romlists.end() ))
+		romlist = m_default_romlist;
+	if (romlist.empty() && !m_displays.empty())
+		romlist = m_displays.back().get_info( FeDisplayInfo::Romlist );
+	if (romlist.empty() && !romlists.empty())
+		romlist = romlists.front();
+
+	display.set_info( FeDisplayInfo::Layout, layout );
+	display.set_info( FeDisplayInfo::Romlist, romlist );
+	m_displays.push_back( display );
 	return &(m_displays.back());
 }
 
@@ -3522,7 +3551,10 @@ void FeSettings::save() const
 
 		// displays
 		for ( std::vector<FeDisplayInfo>::const_iterator it=m_displays.begin(); it != m_displays.end(); ++it )
-			(*it).save( outfile );
+		{
+			write_section( outfile, "display", (*it).get_info( FeDisplayInfo::Name ) );
+			(*it).save( outfile, 1 );
+		}
 
 		// sound
 		outfile << otherSettingStrings[1] << std::endl;

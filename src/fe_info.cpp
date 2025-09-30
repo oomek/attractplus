@@ -490,7 +490,7 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 	}
 }
 
-void FeRule::save( nowide::ofstream &f ) const
+void FeRule::save( nowide::ofstream &f, const int indent ) const
 {
 	if (( m_filter_target == FeRomInfo::LAST_INDEX ) || ( m_filter_comp == LAST_COMPARISON ))
 		return;
@@ -501,7 +501,7 @@ void FeRule::save( nowide::ofstream &f ) const
 		as_str( FeRomInfo::indexStrings[ m_filter_target ] )
 			+ " " + filterCompStrings[ m_filter_comp ]
 			+ " " + m_filter_what,
-		2
+		indent
 	);
 }
 
@@ -656,21 +656,21 @@ int FeFilter::process_setting( const std::string &setting,
 	return 0;
 }
 
-void FeFilter::save( nowide::ofstream &f, const char *filter_tag ) const
+void FeFilter::save( nowide::ofstream &f, const char *filter_tag, const int indent ) const
 {
-	write_pair( f, filter_tag, quote_config( m_name ), 1 );
+	write_pair( f, filter_tag, quote_config( m_name ), indent );
 
 	if ( m_sort_by != FeRomInfo::LAST_INDEX )
-		write_pair( f, indexStrings[SortBy], FeRomInfo::indexStrings[ m_sort_by ], 2 );
+		write_pair( f, indexStrings[SortBy], FeRomInfo::indexStrings[ m_sort_by ], indent + 1 );
 
 	if ( m_reverse_order != false )
-		write_pair( f, indexStrings[ReverseOrder], "yes", 2 );
+		write_pair( f, indexStrings[ReverseOrder], "yes", indent + 1 );
 
 	if ( m_list_limit != 0 )
-		write_pair( f, indexStrings[ListLimit], as_str( m_list_limit ), 2 );
+		write_pair( f, indexStrings[ListLimit], as_str( m_list_limit ), indent + 1 );
 
 	for ( std::vector<FeRule>::const_iterator itr=m_rules.begin(); itr != m_rules.end(); ++itr )
-		(*itr).save( f );
+		(*itr).save( f, indent + 1 );
 }
 
 bool FeFilter::test_for_targets( std::set<FeRomInfo::Index> targets ) const
@@ -929,25 +929,22 @@ void FeDisplayInfo::get_filters_list( std::vector<std::string> &l ) const
 	}
 }
 
-void FeDisplayInfo::save( nowide::ofstream &f ) const
+void FeDisplayInfo::save( nowide::ofstream &f, const int indent ) const
 {
-	write_section( f, "display", get_info( Name ) );
-
 	if ( !get_info( Layout ).empty() )
-		write_pair( f, indexStrings[Layout], get_info( Layout ), 1 );
+		write_pair( f, indexStrings[Layout], get_info( Layout ), indent );
 	if ( !get_info( Romlist ).empty() )
-		write_pair( f, indexStrings[Romlist], get_info( Romlist ), 1 );
-	write_pair( f, indexStrings[InCycle], get_info( InCycle ), 1 );
-	write_pair( f, indexStrings[InMenu], get_info( InMenu ), 1 );
+		write_pair( f, indexStrings[Romlist], get_info( Romlist ), indent );
+	write_pair( f, indexStrings[InCycle], get_info( InCycle ), indent );
+	write_pair( f, indexStrings[InMenu], get_info( InMenu ), indent );
 
 	if ( m_global_filter.get_rule_count() > 0 )
-		m_global_filter.save( f, otherStrings[1] );
+		m_global_filter.save( f, otherStrings[1], indent );
 
-	for ( std::vector<FeFilter>::const_iterator itr=m_filters.begin();
-			itr != m_filters.end(); ++itr )
-		(*itr).save( f, otherStrings[0] );
+	for ( std::vector<FeFilter>::const_iterator itr=m_filters.begin(); itr != m_filters.end(); ++itr )
+		(*itr).save( f, otherStrings[0], indent );
 
-	m_layout_per_display_params.save( f );
+	m_layout_per_display_params.save( f, indent );
 	f << std::endl;
 }
 
@@ -1417,7 +1414,7 @@ int FeScriptConfigurable::process_setting( const std::string &setting,
 		return 1;
 }
 
-void FeScriptConfigurable::save( nowide::ofstream &f ) const
+void FeScriptConfigurable::save( nowide::ofstream &f, const int indent ) const
 {
 	for ( std::map<std::string,std::string>::const_iterator itr=m_params.begin(); itr!=m_params.end(); ++itr )
 	{
@@ -1428,7 +1425,7 @@ void FeScriptConfigurable::save( nowide::ofstream &f ) const
 				f,
 				indexString,
 				(*itr).first + ((*itr).second.empty() ? "" : " " + (*itr).second),
-				1
+				indent
 			);
 	}
 }

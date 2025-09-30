@@ -199,6 +199,9 @@ private:
 	// configured API key to use for for thegamesdb.net scraping.  If blank, AM's standard public key is used
 	std::string m_tgdb_key;
 
+	std::string m_default_layout;
+	std::string m_default_romlist;
+	FeDisplayInfo m_default_display;
 	std::vector<FeDisplayInfo> m_displays;
 	std::vector<FePlugInfo> m_plugins;
 	std::vector<FeLayoutInfo> m_layout_params;
@@ -643,6 +646,11 @@ public:
 		std::vector<std::string> &names,
 		std::vector<int> &indices,
 		int &current_idx ) const;
+
+	bool load_default_display();
+	bool save_default_display();
+	bool apply_default_display( FeDisplayInfo &display );
+	FeDisplayInfo *get_default_display();
 
 	FeDisplayInfo *get_display( int index );
 	FeDisplayInfo *create_display( const std::string &n );

@@ -194,7 +194,7 @@ public:
 
 	void init();
 	bool apply_rule( const FeRomInfo &rom ) const;
-	void save( nowide::ofstream & ) const;
+	void save( nowide::ofstream &, const int indent = 0 ) const;
 
 	FeRomInfo::Index get_target() const { return m_filter_target; };
 	FilterComp get_comp() const { return m_filter_comp; };
@@ -234,7 +234,7 @@ public:
 		const std::string &value,
 		const std::string &fn );
 
-	void save( nowide::ofstream &, const char *filter_tag ) const;
+	void save( nowide::ofstream &, const char *filter_tag, const int indent = 0 ) const;
 	const std::string &get_name() const { return m_name; };
 	void set_name( const std::string &n ) { m_name = n; };
 
@@ -285,7 +285,7 @@ public:
 		const std::string &value,
 		const std::string &filename );
 
-	void save( nowide::ofstream & ) const;
+	void save( nowide::ofstream &, const int indent = 0 ) const;
 
 	void merge_params( const FeScriptConfigurable &o );
 
@@ -340,7 +340,7 @@ public:
 	int get_rom_index( int filter_index ) const;
 	void set_rom_index( int filter_index, int rom_index );
 
-	void save( nowide::ofstream & ) const;
+	void save( nowide::ofstream &, const int indent = 0 ) const;
 
 	const std::string &get_name() const { return m_info[Name]; };
 	const std::string &get_layout() const { return m_info[Layout]; };

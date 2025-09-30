@@ -19,7 +19,7 @@ True;True
 Yes;Yes
 
 # -- misc --
-'Displays Menu' Options;'Displays Menu' Options
+Displays Menu Options;Displays Menu Options
 Action;Action
 Add Artwork;Add Artwork
 Add Emulator;Add Emulator
@@ -28,7 +28,7 @@ Add Filter;Add Filter
 Add Input;Add Input
 Add New Display;Add New Display
 Add Rule;Add Rule
-Allow Exit from 'Displays Menu';Allow Exit from 'Displays Menu'
+Allow Exit;Allow Exit
 Anisotropic Filtering;Anisotropic Filtering
 Anti-Aliasing;Anti-Aliasing
 Artwork Label;Artwork Label
@@ -45,6 +45,7 @@ Create new tag;Create new tag
 Custom Arguments;Custom Arguments
 Custom Executable;Custom Executable
 Default Action;Default Action
+Default Display Settings;Default Display Settings
 Delete this Display;Delete this Display
 Delete this Emulator;Delete this Emulator
 Delete this Filter;Delete this Filter
@@ -376,7 +377,7 @@ _help_control_exit;Set the control(s) that exit the frontend
 _help_control_filters_menu;Set the control(s) that show the "Filters Menu"
 _help_control_insert_game;Set the control(s) that insert a new game entry
 _help_control_intro;Set the control(s) that show the intro video
-_help_control_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use 'Microsoft X-Box 360 pad' as Joystick 0, for example.)
+_help_control_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use "Microsoft X-Box 360 pad" as Joystick 0, for example.)
 _help_control_joystick_threshold;The threshold for registering joystick moves, from 1 to 100 (100=least sensitive)
 _help_control_layout_options;Set the control(s) that show the "Configure Layout" menu
 _help_control_left;Set the control(s) that move the selection left
@@ -419,12 +420,13 @@ _help_display_layout;The layout to use for this display
 _help_display_name;The title for this display
 _help_display_romlist;The collection/rom list to use for this display
 _help_display_sel;Configure display
-_help_displaysmenu_exit;Configure whether an Exit option should be provided in the"Displays Menu"
-_help_displaysmenu_layout;The layout to use for the 'Displays Menu'. Set to 'Default' to use the frontend's built-in menu
-_help_displaysmenu_prompt;The 'Displays Menu' prompt (i.e. "Select System")
-_help_displaysmenu;Configure options for the "Displays Menu"
+_help_display_edit_default;Configure the default settings to use for new Displays
+_help_displaysmenu_exit;Configure whether an Exit option should be provided in the Displays Menu
+_help_displaysmenu_layout;The layout to use for the Displays Menu. Set to "Default" to use the frontend's built-in menu
+_help_displaysmenu_prompt;The Displays Menu prompt (i.e. "Select System")
+_help_displaysmenu;Configure options for the Displays Menu
 _help_emu_add;Add a new emulator
-_help_emu_args;The command line arguments for this emulator.  The following get substituted appropriately: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn], [workdir], [nothing], as well as any valid 'magic tokens' (see layout documentation)
+_help_emu_args;The command line arguments for this emulator.  The following get substituted appropriately: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn], [workdir], [nothing], as well as any valid magic tokens (see layout documentation)
 _help_emu_delete;Delete the entry for this emulator
 _help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode program dir. Windows OS additionally have %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
 _help_emu_exit_hotkey;Set a global hotkey to exit the emulator.  Attract-Mode will terminate the emulator process if this hotkey gets pressed
@@ -432,7 +434,7 @@ _help_emu_gen_romlist;Generate a romlist by searching the configured rom path fo
 _help_emu_import_extras;Path to any additional files that need to be read when generating a romlist for this emulator.  Supported files are: catver.ini (categories), nplayers.ini (number of players), series.ini (series), language.ini (language) and mame.xml.  Multiple file paths can be entered if separated by a semicolon
 _help_emu_info_source;Use "listxml" for mame -listxml output, "listsoftware" for mame/mess -listsoftware output, "thegamesdb.net" to scrape data from thegamesdb.net, "steam" to read from a steam installation, or "scummvm" if the emulator is scummvm.  "listsoftware" and "thegamesdb.net" also require that a System Identifier recognized by those sources be configured
 _help_emu_name;Edit Emulator
-_help_emu_nb_mode_wait;If this is non-zero, the emulator will be run in 'non-blocking mode'.  The frontend will wait up to this number of seconds to lose focus to the emulator's window, and will wake up again when focus returns to the frontend's window.  This is necessary for launching programs like Steam correctly.  Should be 0 unless you know you need it
+_help_emu_nb_mode_wait;If this is non-zero, the emulator will be run in non-blocking mode.  The frontend will wait up to this number of seconds to lose focus to the emulator's window, and will wake up again when focus returns to the frontend's window.  This is necessary for launching programs like Steam correctly.  Should be 0 unless you know you need it
 _help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
 _help_emu_romext;The rom extension(s) for this emulator (i.e. .zip).  Multiple extensions can be entered if separated by a semicolon.  Specify "<DIR>" as an entry if games are stored in separate subdirectories
 _help_emu_rompath;The path to the roms for this emulator.  Multiple paths can be entered if separated by a semicolon.
@@ -488,7 +490,7 @@ _help_misc_hide_console;Hide console on startup. Note that this only works if st
 _help_misc_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_misc_language;Select the language to use in Attract-Mode's user interface
 _help_misc_layout_preview;Show layout configuration changes immediately
-_help_misc_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to 'No' may reduce screen flicker when launching games
+_help_misc_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to "No" may reduce screen flicker when launching games
 _help_misc_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_misc_quick_menu;Set whether menus can be opened and closed using the same button.  Also enables switching between menus without having to close them first
 _help_misc_screen_rotation;Set the base rotation of the screen
