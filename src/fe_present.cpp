@@ -1047,7 +1047,11 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		{
 			int ls = m_feSettings->get_filter_size( m_feSettings->get_current_filter_index() );
 			if ( ls > 1 )
-				change_selection( 1 + ( rand() % ( ls - 1 ) ) );
+			{
+				int step = 1 + ( rand() % ( ls / 2 ) );
+				int dir = rand() % 2 ? 1 : -1;
+				change_selection( step * dir );
+			}
 		}
 		break;
 
