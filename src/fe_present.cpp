@@ -1046,12 +1046,8 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	case FeInputMap::RandomGame:
 		{
 			int ls = m_feSettings->get_filter_size( m_feSettings->get_current_filter_index() );
-			if ( ls > 0 )
-			{
-				int step = rand() % ls;
-				if ( step != 0 )
-					change_selection( step );
-			}
+			if ( ls > 1 )
+				change_selection( 1 + ( rand() % ( ls - 1 ) ) );
 		}
 		break;
 
