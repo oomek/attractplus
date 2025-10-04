@@ -165,32 +165,50 @@ class FeEventLoopCtx
 {
 public:
 	FeEventLoopCtx(
-		const std::vector<sf::Drawable *> &in_draw_list,
-		int &in_sel, int in_default_sel, int in_max_sel );
+		const std::vector<sf::Drawable *> &draw_list,
+		int &sel,
+		int default_sel,
+		int list_size
+	);
 
-	const std::vector<sf::Drawable *> &draw_list; // [in] draw list
-	int &sel;				// [in,out] selection counter
-	int default_sel;	// [in] default selection
-	int max_sel;		// [in] maximum selection
-
+	const std::vector<sf::Drawable *> &draw_list; // draw list
+	int &sel;			// selection counter
+	int default_sel;	// default selection
+	int list_size;		// total number of options
+	int page_size;		// pagination size
 	int move_count;
 	std::optional<sf::Event> move_event;
 	sf::Clock move_timer;
 	FeInputMap::Command move_command;
 	FeInputMap::Command extra_exit;
+
+	void move_start( std::optional<sf::Event> ev, FeInputMap::Command c );
 };
 
 FeEventLoopCtx::FeEventLoopCtx(
-			const std::vector<sf::Drawable *> &in_draw_list,
-			int &in_sel, int in_default_sel, int in_max_sel )
-	: draw_list( in_draw_list ),
-	sel( in_sel ),
-	default_sel( in_default_sel ),
-	max_sel( in_max_sel ),
+	const std::vector<sf::Drawable *> &draw_list,
+	int &sel,
+	int default_sel,
+	int list_size
+):
+	draw_list( draw_list ),
+	sel( sel ),
+	default_sel( default_sel ),
+	list_size( list_size ),
+	page_size( 1 ),
 	move_count( 0 ),
 	move_command( FeInputMap::LAST_COMMAND ),
 	extra_exit( FeInputMap::LAST_COMMAND )
 {
+}
+
+// Begin a repeatable command
+void FeEventLoopCtx::move_start( std::optional<sf::Event> ev, FeInputMap::Command c )
+{
+	move_event = ev;
+	move_command = c;
+	move_count = 0;
+	move_timer.restart();
 }
 
 class FeFlagMinder
@@ -355,7 +373,7 @@ int FeOverlay::common_list_dialog(
 {
 	int sel = default_sel;
 	std::vector<sf::Drawable *> draw_list;
-	FeEventLoopCtx c( draw_list, sel, cancel_sel, options.size() - 1 );
+	FeEventLoopCtx c( draw_list, sel, cancel_sel, options.size() );
 	c.extra_exit = extra_exit;
 
 	FeFlagMinder fm( m_overlay_is_on );
@@ -387,6 +405,7 @@ int FeOverlay::common_list_dialog(
 
 		m_overlay_list_index = sel;
 		m_overlay_list_size = options.size();
+		c.page_size = m_fePresent.get_page_size();
 
 		m_fePresent.on_transition( ShowOverlay, var );
 
@@ -436,6 +455,7 @@ int FeOverlay::common_list_dialog(
 
 		m_overlay_list_index = sel;
 		m_overlay_list_size = options.size();
+		c.page_size = dialog.get_rows() / 2;
 
 		if ( fm.flag_set() )
 			m_fePresent.on_transition( ShowOverlay, var );
@@ -520,8 +540,9 @@ int FeOverlay::languages_dialog()
 
 	dialog.setCustomText( sel, labels );
 
-	FeEventLoopCtx c( draw_list, sel, -1, ll.size() - 1 );
+	FeEventLoopCtx c( draw_list, sel, -1, ll.size() );
 	FeFlagMinder fm( m_overlay_is_on );
+	c.page_size = dialog.get_rows() / 2;
 
 	init_event_loop( c );
 	while ( event_loop( c ) == false )
@@ -613,7 +634,7 @@ int FeOverlay::common_basic_dialog(
 	std::vector<sf::Drawable *> draw_list;
 	int sel=default_sel;
 
-	FeEventLoopCtx c( draw_list, sel, cancel_sel, list.size() - 1 );
+	FeEventLoopCtx c( draw_list, sel, cancel_sel, list.size() );
 	c.extra_exit = extra_exit;
 
 	FeFlagMinder fm( m_overlay_is_on );
@@ -642,6 +663,7 @@ int FeOverlay::common_basic_dialog(
 
 		m_overlay_list_index = sel;
 		m_overlay_list_size = list.size();
+		c.page_size = m_fePresent.get_page_size();
 
 		if ( custom_lb )
 			custom_lb->setCustomText( sel, list );
@@ -690,6 +712,7 @@ int FeOverlay::common_basic_dialog(
 
 		m_overlay_list_index = sel;
 		m_overlay_list_size = list.size();
+		c.page_size = dialog.get_rows() / 2;
 
 		if ( fm.flag_set() )
 			m_fePresent.on_transition( ShowOverlay, var );
@@ -1408,8 +1431,9 @@ int FeOverlay::display_config_dialog(
 	//
 	while ( true )
 	{
-		FeEventLoopCtx c( draw_list, ctx.curr_sel, ctx.exit_sel, ctx.left_list.size() - 1 );
+		FeEventLoopCtx c( draw_list, ctx.curr_sel, ctx.exit_sel, ctx.left_list.size() );
 		c.extra_exit = extra_exit;
+		c.page_size = sdialog.get_rows() / 2;
 
 		init_event_loop( c );
 		text_index( vdialog, vindex, ctx.right_list, -1 );
@@ -1532,8 +1556,9 @@ int FeOverlay::display_config_dialog(
 					int new_value = original_value;
 					bool refresh_colour = ctx.opt_list[ctx.curr_sel].trigger_colour;
 
-					FeEventLoopCtx c( draw_list, new_value, -1, ctx.curr_opt().values_list.size() - 1 );
+					FeEventLoopCtx c( draw_list, new_value, -1, ctx.curr_opt().values_list.size() );
 					c.extra_exit = extra_exit;
+					c.page_size = sdialog.get_rows() / 2;
 
 					vdialog.setCustomText( new_value, ctx.curr_opt().values_list );
 
@@ -1766,36 +1791,52 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 					return true;
 				case FeInputMap::Select:
 					return true;
-				case FeInputMap::Up:
-					if (( ev->is<sf::Event::JoystickMoved>() )
-							&& ( ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() ))
+				case FeInputMap::PrevPage:
+					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
 						return false;
 
-					if ( ctx.sel > 0 )
-						ctx.sel--;
-					else if ( !ev->is<sf::Event::MouseMoved>() )
-						ctx.sel=ctx.max_sel;
+					ctx.sel -= ctx.page_size;
+					ctx.sel = ev->is<sf::Event::MouseMoved>()
+						? std::max( ctx.sel, 0 )
+						: (ctx.sel + ctx.list_size) % ctx.list_size;
 
-					ctx.move_event = ev;
-					ctx.move_command = FeInputMap::Up;
-					ctx.move_count = 0;
-					ctx.move_timer.restart();
+					ctx.move_start( ev, c );
+					return false;
+
+				case FeInputMap::NextPage:
+					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
+						return false;
+
+					ctx.sel += ctx.page_size;
+					ctx.sel = ev->is<sf::Event::MouseMoved>()
+						? std::min( ctx.sel, ctx.list_size - 1 )
+						: (ctx.sel + ctx.list_size) % ctx.list_size;
+
+					ctx.move_start( ev, c );
+					return false;
+
+				case FeInputMap::Up:
+					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
+						return false;
+
+					ctx.sel -= 1;
+					ctx.sel = ev->is<sf::Event::MouseMoved>()
+						? std::max( ctx.sel, 0 )
+						: (ctx.sel + ctx.list_size) % ctx.list_size;
+
+					ctx.move_start( ev, c );
 					return false;
 
 				case FeInputMap::Down:
-					if (( ev->is<sf::Event::JoystickMoved>() )
-							&& ( ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() ))
+					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
 						return false;
 
-					if ( ctx.sel < ctx.max_sel )
-						ctx.sel++;
-					else if ( !ev->is<sf::Event::MouseMoved>() )
-						ctx.sel = 0;
+					ctx.sel += 1;
+					ctx.sel = ev->is<sf::Event::MouseMoved>()
+						? std::min( ctx.sel, ctx.list_size - 1 )
+						: (ctx.sel + ctx.list_size) % ctx.list_size;
 
-					ctx.move_event = ev;
-					ctx.move_command = FeInputMap::Down;
-					ctx.move_count = 0;
-					ctx.move_timer.restart();
+					ctx.move_start( ev, c );
 					return false;
 
 				default:
@@ -1859,17 +1900,29 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 				int t = ctx.move_timer.getElapsedTime().asMilliseconds();
 				if ( t > 500 + ctx.move_count * m_feSettings.selection_speed() )
 				{
-					if (( ctx.move_command == FeInputMap::Up )
-								&& ( ctx.sel > 0 ))
+					int last_sel = ctx.sel;
+					switch ( ctx.move_command )
 					{
-						ctx.sel--;
-						ctx.move_count++;
-						return false;
+						case FeInputMap::PrevPage:
+							if ( ctx.sel > 0 )
+								ctx.sel = std::max( ctx.sel - ctx.page_size, 0 );
+							break;
+						case FeInputMap::NextPage:
+							if ( ctx.sel < ctx.list_size - 1 )
+								ctx.sel = std::min( ctx.sel + ctx.page_size, ctx.list_size - 1 );
+							break;
+						case FeInputMap::Up:
+							if ( ctx.sel > 0 )
+								ctx.sel--;
+							break;
+						case FeInputMap::Down:
+							if ( ctx.sel < ctx.list_size - 1 )
+								ctx.sel++;
+							break;
 					}
-					else if (( ctx.move_command == FeInputMap::Down )
-								&& ( ctx.sel < ctx.max_sel ))
+
+					if ( ctx.sel != last_sel )
 					{
-						ctx.sel++;
 						ctx.move_count++;
 						return false;
 					}
