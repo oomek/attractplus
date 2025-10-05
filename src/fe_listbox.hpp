@@ -44,7 +44,7 @@ public:
 		Static=0,
 		Moving=1,
 		Paged=2,
-		Restricted=3
+		Bounded=3
 	};
 	// Constructor for use in scripts.  sets m_scripted to true
 	FeListBox( FePresentableParent &p, int x, int y, int w, int h );

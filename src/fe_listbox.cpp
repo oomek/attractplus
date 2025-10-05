@@ -403,20 +403,20 @@ void FeListBox::refresh_selection()
 	switch ( m_mode )
 	{
 		case Moving:
-		case Restricted:
+		case Bounded:
 		{
 			int margin = get_selection_margin();
 			int window_start = m_list_start_offset;
 			int window_end = window_start + display_rows - 1;
-			bool is_restricted = m_mode == Restricted;
+			bool is_bounded = m_mode == Bounded;
 
-			if ( list_size > display_rows || is_restricted )
+			if ( list_size > display_rows || is_bounded )
 			{
 				if ( sel < window_start + margin )
 				{
 					// Scroll the list up
 					m_list_start_offset = sel - margin;
-					if ( !is_restricted ) m_list_start_offset = std::max( 0, m_list_start_offset );
+					if ( !is_bounded ) m_list_start_offset = std::max( 0, m_list_start_offset );
 				}
 				else if ( sel > window_end - margin )
 				{
@@ -427,7 +427,7 @@ void FeListBox::refresh_selection()
 
 					// Scroll the list down
 					m_list_start_offset = sel - down_margin;
-					if ( !is_restricted ) m_list_start_offset = std::min( list_size - display_rows, m_list_start_offset );
+					if ( !is_bounded ) m_list_start_offset = std::min( list_size - display_rows, m_list_start_offset );
 				}
 			}
 
@@ -526,11 +526,11 @@ void FeListBox::refresh_list()
 	switch ( m_mode )
 	{
 		case Moving:
-		case Restricted:
+		case Bounded:
 		{
 			// Maintain m_selected_row on list change (if possible)
 			int goal_sel_row = m_selected_row;
-			bool is_restricted = m_mode == Restricted;
+			bool is_bounded = m_mode == Bounded;
 
 			// When using row alignment, m_selected_row will be changed to align the list
 			int empty_rows = rows - size;
@@ -550,7 +550,7 @@ void FeListBox::refresh_list()
 				}
 			}
 
-			int margin = is_restricted ? get_selection_margin() : 0;
+			int margin = is_bounded ? get_selection_margin() : 0;
 			int ma = -margin;
 			int mb = size - rows + margin;
 

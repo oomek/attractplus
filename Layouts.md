@@ -1680,10 +1680,10 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `Align.MiddleRight`
    -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
 -  `sel_mode` 🔶 - Get/set the selection mode. Controls how the listbox behaves when navigating. Can be one of the following values:
-   -  `Selection.Static` (default) - The selection remains at the `sel_row` (middle by default) while the list scrolls.
-   -  `Selection.Moving` - The selection moves freely, and the list scrolls when the `sel_margin` is reached.
-   -  `Selection.Restricted` - Identical to `Selection.Moving`, except `sel_row` is prevented from entering the `sel_margin` when the list edges are reached.
-   -  `Selection.Paged` - The selection moves freely, and the list scrolls _in pages_ when the `sel_margin` is reached.
+   -  `Selection.Static` (default) - The selection remains fixed at the `sel_row` (middle by default) while the list scrolls.
+   -  `Selection.Moving` - The selection moves freely, and the list scrolls when the `sel_margin` is reached. When the list edge is reached the selection enters the margin.
+   -  `Selection.Bounded` - Identical to `Selection.Moving` except the selection is always bounded by the margin.
+   -  `Selection.Paged` - The selection moves freely until it reaches the `sel_margin`, at which point the list scrolls _one page_ and the selection resets to the opposite margin.
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
 -  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
