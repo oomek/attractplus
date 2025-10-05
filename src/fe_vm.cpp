@@ -670,7 +670,7 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Static"), FeListBox::Static )
 			.Const( _SC("Moving"), FeListBox::Moving )
 			.Const( _SC("Paged"), FeListBox::Paged )
-			.Const( _SC("Restricted"), FeListBox::Restricted )
+			.Const( _SC("Bounded"), FeListBox::Bounded )
 			)
 		;
 
