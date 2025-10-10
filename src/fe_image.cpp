@@ -737,6 +737,9 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 			if ( fep )
 				m_movie->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
 		}
+
+		if ( m_movie_status > 0 && m_video_flags & VF_NoAutoStart )
+			m_movie_status = 0;
 	}
 #endif
 }
