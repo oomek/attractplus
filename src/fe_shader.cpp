@@ -31,34 +31,55 @@ FeShader::FeShader()
 {
 }
 
-bool FeShader::load( sf::InputStream &vert_shader,
-		sf::InputStream &frag_shader )
+bool FeShader::load( sf::InputStream &vert, sf::InputStream &frag )
 {
 	m_type = VertexAndFragment;
-	return m_shader.loadFromStream( vert_shader, frag_shader );
+	return m_shader.loadFromStream( vert, frag );
 }
 
-bool FeShader::load( sf::InputStream &sh,
-		Type t )
+bool FeShader::load( sf::InputStream &sh, Type t )
 {
 	m_type = t;
-	return m_shader.loadFromStream( sh,
-		(t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex );
+	sf::Shader::Type type = (t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex;
+	return m_shader.loadFromStream( sh, type );
 }
 
-bool FeShader::load( const std::string &vert_shader,
-		const std::string &frag_shader )
+bool FeShader::load( const std::string &vert, const std::string &frag )
+{
+	if ( !file_exists( vert ) ) {
+		FeLog() << " ! Cannot find shader file: " << vert << std::endl;
+		return false;
+	}
+	if ( !file_exists( frag ) ) {
+		FeLog() << " ! Cannot find shader file: " << frag << std::endl;
+		return false;
+	}
+	m_type = VertexAndFragment;
+	return m_shader.loadFromFile( vert, frag );
+}
+
+bool FeShader::load( const std::string &sh, Type t )
+{
+	if ( !file_exists( sh ) ) {
+		FeLog() << " ! Cannot find shader file: " << sh << std::endl;
+		return false;
+	}
+	m_type = t;
+	sf::Shader::Type type = (t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex;
+	return m_shader.loadFromFile( sh, type );
+}
+
+bool FeShader::loadFromMemory( const std::string &vert, const std::string &frag )
 {
 	m_type = VertexAndFragment;
-	return m_shader.loadFromFile( vert_shader, frag_shader );
+	return m_shader.loadFromMemory( vert, frag );
 }
 
-bool FeShader::load( const std::string &sh,
-		Type t )
+bool FeShader::loadFromMemory( const std::string &sh, Type t )
 {
 	m_type = t;
-	return m_shader.loadFromFile( sh,
-		(t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex );
+	sf::Shader::Type type = (t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex;
+	return m_shader.loadFromMemory( sh, type );
 }
 
 void FeShader::set_param( const char *name, float x )

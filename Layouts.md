@@ -19,6 +19,7 @@
    -  [`fe.add_listbox()`](#feadd_listbox)
    -  [`fe.add_rectangle()`](#feadd_rectangle-) 🔶
    -  [`fe.add_shader()`](#feadd_shader)
+   -  [`fe.compile_shader()`](#fecompile_shader-) 🔶
    -  [`fe.add_sound()`](#feadd_sound)
    -  [`fe.add_music()`](#feadd_music-) 🔶
    -  [`fe.add_ticks_callback()`](#feadd_ticks_callback)
@@ -434,7 +435,7 @@ fe.add_shader( type, file1 )
 fe.add_shader( type )
 ```
 
-Add a GLSL shader (vertex and/or fragment) for use in the layout.
+Compile a GLSL shader from the given file(s) for use in the layout. Also see [`fe.compile_shader()`](#fecompile_shader-).
 
 **Parameters**
 
@@ -642,6 +643,32 @@ The `transition_time` parameter passed to the transition function is the amount 
 The transition function must return a boolean value. It should return `true` if a redraw is required, in which case Attract-Mode will redraw the screen and immediately call the transition function again with an updated `transition_time`.
 
 **_The transition function must eventually return `false` to notify Attract-Mode that the transition effect is done, allowing the normal operation of the frontend to proceed._**
+
+---
+
+### `fe.compile_shader()` 🔶
+
+```squirrel
+fe.compile_shader( type, shader1, shader2 )
+fe.compile_shader( type, shader1 )
+fe.compile_shader( type )
+```
+
+Compile a GLSL shader from the given shader code for use in the layout. Also see [`fe.add_shader()`](#feadd_shader).
+
+**Parameters**
+
+-  `type` - The type of shader to add. Can be one of the following values:
+   -  `Shader.VertexAndFragment` - Add a combined vertex and fragment shader
+   -  `Shader.Vertex` - Add a vertex shader
+   -  `Shader.Fragment` - Add a fragment shader
+   -  `Shader.Empty` - Add an empty shader. An object's shader property can be set to an empty shader to stop using a shader on that object where one was set previously.
+-  `shader1` - A string containing shader code. For the VertexAndFragment type, this should be the vertex shader.
+-  `shader2` - This parameter is only used with the VertexAndFragment type, and should be a string containing the fragment shader code.
+
+**Return Value**
+
+-  An instance of the class [`fe.Shader`](#feshader) which can be used to interact with the added shader.
 
 ---
 
@@ -1456,7 +1483,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `video_time` - Get the time that the video is current at (in milliseconds).
 -  `preserve_aspect_ratio` - Get/set whether the aspect ratio from the source image is to be preserved. Default value is `false`.
 -  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>".
--  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
+-  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `trigger` - Get/set the transition that triggers updates of this artwork/ dynamic image. Can be set to `Transition.ToNewSelection` or `Transition.EndNavigation`. Default value is `Transition.ToNewSelection`.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.
 -  `zorder` - Get/set the Image's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
@@ -1593,7 +1620,7 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `first_line_hint` 🔶 - Get/set the line in the formatted text that is shown as first line in the text object
 -  `font` - Get/set the filename of the font used for this text. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the `char_size`.
--  `shader` - Get/set the GLSL shader for this text. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
+-  `shader` - Get/set the GLSL shader for this text. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the Text's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
 **Member Functions**
@@ -1689,7 +1716,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
--  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
+-  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
 **Member Functions**
@@ -1759,7 +1786,7 @@ The class representing a rectangle in Attract-Mode. Instances of this class are 
 -  `corner_ratio_x` - Get/set the corner x radius as a fraction of the width. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_y` - Get/set the corner y radius as a fraction of the height. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_points` - Get/set the number of points used to draw the corner radius. More points produce smooth curves, while fewer points result in flat bevels. Range is `[1...32]`. Default value is `12`.
--  `shader` - Get/set the GLSL shader for this rectangle. This can only be set to an instance of the class [`fe.Shader`](#feshader), see [`fe.add_shader()`](#feadd_shader).
+-  `shader` - Get/set the GLSL shader for this rectangle. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the rectangles's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 -  `blend_mode` - Get/set the blend mode for this rectangle. Can have one of the following values:
    -  `BlendMode.Alpha`
@@ -1834,7 +1861,7 @@ The class representing an audio track. Instances of this class are returned by t
 
 ### `fe.Shader`
 
-The class representing a GLSL shader. Instances of this class are returned by the [`fe.add_shader()`](#feadd_shader) function. This class cannot be otherwise instantiated in a script.
+The class representing a GLSL shader. Instances of this class are returned by the [`fe.add_shader()`](#feadd_shader) and [`fe.compile_shader()`](#fecompile_shader-) functions. This class cannot be otherwise instantiated in a script.
 
 **Properties**
 

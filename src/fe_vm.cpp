@@ -1099,6 +1099,9 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeShader* (*)(int, const char *, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
 	fe.Overload<FeShader* (*)(int, const char *)>(_SC("add_shader"), &FeVM::cb_add_shader);
 	fe.Overload<FeShader* (*)(int)>(_SC("add_shader"), &FeVM::cb_add_shader);
+	fe.Overload<FeShader* (*)(int, const char *, const char *)>(_SC("compile_shader"), &FeVM::cb_compile_shader);
+	fe.Overload<FeShader* (*)(int, const char *)>(_SC("compile_shader"), &FeVM::cb_compile_shader);
+	fe.Overload<FeShader* (*)(int)>(_SC("compile_shader"), &FeVM::cb_compile_shader);
 	fe.Overload<void (*)(const char *)>(_SC("add_ticks_callback"), &FeVM::cb_add_ticks_callback);
 	fe.Overload<void (*)(Object, const char *)>(_SC("add_ticks_callback"), &FeVM::cb_add_ticks_callback);
 	fe.Overload<void (*)(const char *)>(_SC("add_transition_callback"), &FeVM::cb_add_transition_callback);
@@ -2366,6 +2369,27 @@ FeShader* FeVM::cb_add_shader( int type, const char *shader1 )
 FeShader* FeVM::cb_add_shader( int type )
 {
 	return cb_add_shader( type, NULL, NULL );
+}
+
+FeShader* FeVM::cb_compile_shader( int type, const char *shader1, const char *shader2 )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	return fev->compile_shader( (FeShader::Type)type, shader1, shader2 );
+	//
+	// We assume the script will keep a reference to the shader
+	//
+}
+
+FeShader* FeVM::cb_compile_shader( int type, const char *shader1 )
+{
+	return cb_compile_shader( type, shader1, NULL );
+}
+
+FeShader* FeVM::cb_compile_shader( int type )
+{
+	return cb_compile_shader( type, NULL, NULL );
 }
 
 void FeVM::cb_add_ticks_callback( Sqrat::Object obj, const char *slot )

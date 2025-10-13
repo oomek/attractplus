@@ -732,44 +732,65 @@ FeMusic *FePresent::add_music( const char *n )
 	return new_music;
 }
 
+namespace
+{
+	// Return shader path
+	std::string get_shader_path( FeSettings *fes, const char *shader )
+	{
+		if ( !shader ) return "";
+		std::string path = "";
+		std::string filename = clean_path( shader );
+		if ( is_relative_path( filename ) ) fes->get_path( FeSettings::Current, path );
+		return path + filename;
+	}
+}
+
 FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const char *shader2 )
 {
-	std::string path1;
-	std::string path2;
-	m_feSettings->get_path( FeSettings::Current, path1 );
-
-	std::string s1;
-	std::string s2;
-
-	if ( shader1 )
-		s1 = clean_path( shader1 );
-
 	m_scriptShaders.push_back( new FeShader() );
 	FeShader *sh = m_scriptShaders.back();
-
-	if ( !is_relative_path( s1 ) )
-		path1.clear();
 
 	switch ( type )
 	{
 		case FeShader::VertexAndFragment:
-			path2 = path1;
-			if ( shader2 )
-				s2 = clean_path( shader2 );
-
-			if ( !is_relative_path( s2 ) )
-				path2.clear();
-
-			sh->load( path1 + s1, path2 + s2 );
+			sh->load( get_shader_path( m_feSettings, shader1 ), get_shader_path( m_feSettings, shader2 ) );
 			break;
 
 		case FeShader::Vertex:
 		case FeShader::Fragment:
-			sh->load( path1 + s1, type );
+		{
+			sh->load( get_shader_path( m_feSettings, shader1 ), type );
+			break;
+		}
+
+		case FeShader::Empty:
+		default:
+			// do nothing, sh shader remains empty
+			break;
+	}
+
+	return sh;
+}
+
+FeShader *FePresent::compile_shader( FeShader::Type type, const char *shader1, const char *shader2 )
+{
+	m_scriptShaders.push_back( new FeShader() );
+	FeShader *sh = m_scriptShaders.back();
+
+	switch ( type )
+	{
+		case FeShader::VertexAndFragment:
+			sh->loadFromMemory( shader1, shader2 );
+			break;
+
+		case FeShader::Vertex:
+		case FeShader::Fragment:
+			sh->loadFromMemory( shader1, type );
 			break;
 
 		case FeShader::Empty:
 		default:
+			// do nothing, sh shader remains empty
 			break;
 	}
 
