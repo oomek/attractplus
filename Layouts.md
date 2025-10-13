@@ -146,7 +146,9 @@ The following _Magic Tokens_ are supported:
    -  `[Search]` - The search rule applied to the list
 -  Game
    -  `[Name]` - The short name of the game
-   -  `[Title]` - The full name of the game
+   -  `[Title]` - The formatted name of the game
+   -  `[TitleLetter]` - The first letter of the formatted name of the game
+   -  `[TitleFull]` - The full pre-formatted name of the game
    -  `[Emulator]` - The emulator to use for the game
    -  `[CloneOf]` - The short name of the game's parent
    -  `[Year]` - The year for the game

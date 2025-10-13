@@ -443,4 +443,4 @@ void color_to_hex( const sf::Color &col, std::string &str );
 //
 // Return index of token in tokens, or -1 if not found
 //
-int get_token_index( const char *tokens[], std::string &token );
+int get_token_index( const char *tokens[], const std::string &token );

@@ -50,16 +50,20 @@ private:
 	FeRomInfo::Index m_comp;
 	bool m_reverse;
 	static SQRex *m_rex;
+	static std::string get_formatted_title( const std::string &title );
 
 public:
 	FeRomListSorter( FeRomInfo::Index c = FeRomInfo::Title, bool rev=false );
+	static bool display_format;
+	static bool sort_format;
 
 	bool operator()( const FeRomInfo &obj1, const FeRomInfo &obj2 ) const;
 
-	std::string get_trimmed_title( const std::string &title ) const;
-	const char get_first_letter( const FeRomInfo *one );
+	static std::string get_display_title( const std::string &title );
+	static std::string get_sort_title( const std::string &title );
+	static const char get_first_letter( const FeRomInfo *rom );
 
-	static void init_title_rex( const std::string & );
+	static void init_title_rex();
 	static void clear_title_rex();
 };
 
@@ -268,7 +272,6 @@ public:
 
 	const std::string get_romlist_path() const { return m_romlist_path; }
 	const std::string get_romlist_name() const { return m_romlist_name; }
-	const bool get_group_clones() const { return m_group_clones; }
 	FeEmulatorInfo *get_emulator( const std::string & );
 	FeEmulatorInfo *create_emulator( const std::string &, const std::string & );
 	void delete_emulator( const std::string & );

@@ -42,6 +42,8 @@ const char *FE_ROMLIST_SUBDIR			= "romlists/";
 const char *FE_STATS_SUBDIR				= "stats/";
 
 SQRex *FeRomListSorter::m_rex = NULL;
+bool FeRomListSorter::display_format = false;
+bool FeRomListSorter::sort_format = false;
 
 namespace
 {
@@ -51,19 +53,16 @@ namespace
 	}
 };
 
-void FeRomListSorter::init_title_rex( const std::string &re_mask )
+void FeRomListSorter::init_title_rex()
 {
 	ASSERT( m_rex == NULL );
 
-	if ( re_mask.empty() )
-		return;
-
+	const std::string re_mask = "^((?:Vs\\.\\s+)?(?:The\\s+)?)(.*)$";
 	const SQChar *err( NULL );
 	m_rex = sqstd_rex_compile( scsqchar( re_mask ), &err );
 
 	if ( !m_rex )
-		FeLog() << "Error compiling regular expression \""
-			<< re_mask << "\": " << err << std::endl;
+		FeLog() << "Error compiling regular expression \"" << re_mask << "\": " << err << std::endl;
 }
 
 void FeRomListSorter::clear_title_rex()
@@ -80,18 +79,35 @@ FeRomListSorter::FeRomListSorter( FeRomInfo::Index c, bool rev )
 {
 }
 
-// Returns a new string without prefixes such as "The" and "Vs."
-std::string FeRomListSorter::get_trimmed_title( const std::string &title ) const
+// Returns a new string with prefixes such as "The" and "Vs." moved to the end
+std::string FeRomListSorter::get_formatted_title( const std::string &title )
 {
-	SQRexMatch subexp;
-	return (
-		!title.empty()
-		&& m_rex
-		&& sqstd_rex_match( m_rex, scsqchar( title ) )
-		&& sqstd_rex_getsubexp( m_rex, 1, &subexp )
-	)
-		? scstdstr( subexp.begin )
-		: title;
+	if ( title.empty() || !m_rex || !sqstd_rex_match( m_rex, scsqchar( title ) ) )
+		return title;
+
+	SQRexMatch prefix;
+	SQRexMatch main;
+	sqstd_rex_getsubexp( m_rex, 1, &prefix );
+	sqstd_rex_getsubexp( m_rex, 2, &main );
+
+	std::string suffix = "";
+	if ( prefix.len ) {
+		suffix = scstdstr( prefix.begin ).substr( 0, prefix.len );
+		size_t pos = suffix.find_last_not_of( FE_WHITESPACE );
+		suffix = ", " + suffix.substr( 0, pos + 1 );
+	}
+
+	return scstdstr( main.begin ) + suffix;
+}
+
+std::string FeRomListSorter::get_display_title( const std::string &title )
+{
+	return display_format ? get_formatted_title( title ) : title;
+}
+
+std::string FeRomListSorter::get_sort_title( const std::string &title )
+{
+	return sort_format ? get_formatted_title( title ) : title;
 }
 
 bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two_obj ) const
@@ -102,7 +118,7 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 
 	if ( m_comp == FeRomInfo::Title )
 		// Title sort
-		asc = icompare( get_trimmed_title( one ), get_trimmed_title( two ) ) < 0;
+		asc = icompare( get_sort_title( one ), get_sort_title( two ) ) < 0;
 	else if ( FeRomInfo::isNumeric( m_comp ) )
 		// Numeric sort
 		asc = as_int( one ) < as_int( two );
@@ -115,10 +131,10 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 }
 
 // Returns first character of the trimmed lowercase rom title, or '0' if none
-const char FeRomListSorter::get_first_letter( const FeRomInfo *one_info )
+const char FeRomListSorter::get_first_letter( const FeRomInfo *rom )
 {
-	if ( !one_info ) return '0';
-	const std::string &title = get_trimmed_title( one_info->get_info( FeRomInfo::Title ) );
+	if ( !rom ) return '0';
+	const std::string &title = get_sort_title( rom->get_info( FeRomInfo::Title ) );
 	return title.empty() ? '0' : std::tolower( title.at( 0 ) );
 }
 

@@ -2,6 +2,7 @@
 #define FE_CACHE_HPP
 
 #include "fe_romlist.hpp"
+#include "fe_settings.hpp"
 #include "fe_util.hpp"
 
 #include <algorithm>
@@ -14,9 +15,8 @@
 class FeCache
 {
 private:
-
-	static std::vector<FeDisplayInfo>* m_displays;
-	static std::string m_config_path;
+	static FeSettings* m_feSettings;
+	static std::string m_cache_path;
 	static std::map<std::string, std::map<std::string, std::vector<std::string>>> m_stats_cache;
 	static int m_indent;
 
@@ -162,12 +162,8 @@ private:
 
 public:
 
-	static void set_config_path(
-		const std::string path
-	);
-
-	static void set_displays(
-		std::vector<FeDisplayInfo>* displays
+	static void set_settings(
+		FeSettings *fes
 	);
 
 	// ----------------------------------------------------------------------------------

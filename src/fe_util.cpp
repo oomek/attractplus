@@ -2046,7 +2046,7 @@ void color_to_hex( const sf::Color &col, std::string &str )
 	str = hex.str();
 }
 
-int get_token_index( const char *tokens[], std::string &token )
+int get_token_index( const char *tokens[], const std::string &token )
 {
 	int i = 0;
 	while ( tokens[i] != NULL )

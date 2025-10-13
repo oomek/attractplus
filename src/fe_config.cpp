@@ -1781,6 +1781,9 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::TOGGLE, _( "Enable Multiple Monitors" ), ctx.fe_settings.get_info_bool( FeSettings::MultiMon ), _( "_help_misc_multiple_monitors" ) );
 #endif
 	ctx.add_opt( Opt::TOGGLE, _( "Hide Brackets in Game Title" ), ctx.fe_settings.get_info_bool( FeSettings::HideBrackets ), _( "_help_misc_hide_brackets" ) );
+	std::vector<std::string> prefix_modes = _( FeSettings::prefixDispTokens );
+	std::string prefix_mode = value_at( prefix_modes, ctx.fe_settings.get_prefix_mode() );
+	ctx.add_opt( Opt::LIST, _( "Format Game Title" ), prefix_mode, _( "_help_misc_prefix_modes" ) )->append_vlist( prefix_modes );
 	ctx.add_opt( Opt::TOGGLE, _( "Group Clones" ), ctx.fe_settings.get_info_bool( FeSettings::GroupClones ), _( "_help_misc_group_clones" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Confirm Favourites" ), ctx.fe_settings.get_info_bool( FeSettings::ConfirmFavourites ), _( "_help_misc_confirm_favs" ) );
 
@@ -1837,6 +1840,7 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	ctx.fe_settings.set_info( FeSettings::MultiMon, ctx.opt_list[i++].get_bool() );
 #endif
 	ctx.fe_settings.set_info( FeSettings::HideBrackets, ctx.opt_list[i++].get_bool() );
+	ctx.fe_settings.set_info( FeSettings::PrefixMode, FeSettings::prefixTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::GroupClones, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ConfirmFavourites, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::FilterWrapMode, FeSettings::filterWrapTokens[ ctx.opt_list[i++].get_vindex() ] );

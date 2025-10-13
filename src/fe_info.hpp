@@ -74,6 +74,7 @@ public:
 		LAST_INDEX
 	};
 
+	// Matches fe_info.hpp "FeRomInfo::specialStrings"
 	enum Special
 	{
 		DisplayName = 0,
@@ -83,6 +84,7 @@ public:
 		ListSize,
 		ListEntry,
 		Search,
+		TitleLetter,
 		TitleFull,
 		SortName,
 		SortValue,

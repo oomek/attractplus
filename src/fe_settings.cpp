@@ -271,6 +271,22 @@ const char *FeSettings::startupDispTokens[] =
 	NULL
 };
 
+const char *FeSettings::prefixTokens[] =
+{
+	"none",
+	"sort",
+	"sort_show",
+	NULL
+};
+
+const char *FeSettings::prefixDispTokens[] =
+{
+	"None",
+	"Sort Only",
+	"Sort and Show",
+	NULL
+};
+
 std::vector<std::string> FeSettings::uiColorTokens =
 {
 	"68,0,187",
@@ -340,6 +356,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_hide_brackets( false ),
 	m_group_clones( false ),
 	m_startup_mode( ShowLastSelection ),
+	m_prefix_mode( SortAndShowPrefix ),
 	m_confirm_favs( true ),
 	m_confirm_exit( true ),
 	m_layout_preview( false ),
@@ -397,8 +414,7 @@ FeSettings::FeSettings( const std::string &config_path )
 			(m_config_path[m_config_path.size()-1] != '/') )
 		m_config_path += '/';
 
-	FeCache::set_config_path( m_config_path );
-	FeCache::set_displays( &m_displays );
+	FeCache::set_settings( this );
 	load_default_display();
 }
 
@@ -450,13 +466,7 @@ void FeSettings::load()
 	//
 	internal_load_language( load_language );
 
-	//
-	// Initialize the regular expression used when sorting by title
-	// - Previously this regex string resided in an external language file
-	// - Users tend to forget external files when updating, which would break the caller
-	// - So this regex is now HARD-CODED
-	//
-	FeRomListSorter::init_title_rex( "^(?:Vs\\.\\s+)?(?:The\\s+)?(.*)$" );
+	FeRomListSorter::init_title_rex();
 
 	load_state();
 
@@ -488,6 +498,7 @@ const char *FeSettings::configSettingStrings[] =
 	"hide_brackets",
 	"group_clones",
 	"startup_mode",
+	"prefix_mode",
 	"quick_menu",
 	"confirm_favourites",
 	"confirm_exit",
@@ -2129,8 +2140,7 @@ int FeSettings::get_next_letter_offset( int step )
 	int filter_index = get_current_filter_index();
 	int idx = get_rom_index( filter_index, 0 );
 
-	FeRomListSorter s;
-	const char curr_l = s.get_first_letter( get_rom_absolute( filter_index, idx ) );
+	const char curr_l = FeRomListSorter::get_first_letter( get_rom_absolute( filter_index, idx ) );
 	bool is_alpha = std::isalpha( curr_l );
 	int retval = 0;
 
@@ -2142,7 +2152,7 @@ int FeSettings::get_next_letter_offset( int step )
 		else
 			t_idx = ( i <= idx ) ? ( idx - i ) : ( get_filter_size( filter_index ) - ( i - idx ) );
 
-		const char test_l = s.get_first_letter( get_rom_absolute( filter_index, t_idx ) );
+		const char test_l = FeRomListSorter::get_first_letter( get_rom_absolute( filter_index, t_idx ) );
 
 		if ((( is_alpha ) && ( test_l != curr_l ))
 				|| ((!is_alpha) && ( std::isalpha( test_l ) )))
@@ -2588,6 +2598,7 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 			// Don't strip brackets when showing a clones group
 			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
 			if ( m_hide_brackets && m_clone_index < 0 ) value = name_with_brackets_stripped( value );
+			value = FeRomListSorter::get_display_title( value );
 			return true;
 		case FeRomInfo::PlayedTime:
 			value = get_played_time_display_string( filter_index, rom_index );
@@ -2630,6 +2641,11 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			return true;
 		case FeRomInfo::TitleFull:
 			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
+			return true;
+		case FeRomInfo::TitleLetter:
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
+			value = FeRomListSorter::get_display_title( value );
+			if (!value.empty()) value = value.substr( 0, 1 );
 			return true;
 		case FeRomInfo::SortName:
 		{
@@ -2896,6 +2912,11 @@ FeSettings::StartupModeType FeSettings::get_startup_mode() const
 	return m_startup_mode;
 }
 
+FeSettings::PrefixModeType FeSettings::get_prefix_mode() const
+{
+	return m_prefix_mode;
+}
+
 std::string FeSettings::get_ui_color() const
 {
 	return m_ui_color;
@@ -2969,6 +2990,8 @@ const std::string FeSettings::get_info( int index ) const
 		return as_str( m_image_cache_mbytes );
 	case StartupMode:
 		return startupTokens[ m_startup_mode ];
+	case PrefixMode:
+		return prefixTokens[ m_prefix_mode ];
 	case ThegamesdbKey:
 		return m_tgdb_key;
 
@@ -3118,19 +3141,19 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case StartupMode:
 		{
-			int i=0;
-			while ( startupTokens[i] != NULL )
-			{
-				if ( value.compare( startupTokens[i] ) == 0 )
-				{
-					m_startup_mode = (StartupModeType)i;
-					break;
-				}
-				i++;
-			}
+			int i = get_token_index( startupTokens, value );
+			if (i == -1) return false;
+			m_startup_mode = (StartupModeType)i;
+		}
+		break;
 
-			if ( startupTokens[i] == NULL )
-				return false;
+	case PrefixMode:
+		{
+			int i = get_token_index( prefixTokens, value );
+			if (i == -1) return false;
+			m_prefix_mode = (PrefixModeType)i;
+			FeRomListSorter::display_format = m_prefix_mode == SortAndShowPrefix;
+			FeRomListSorter::sort_format = m_prefix_mode == SortAndShowPrefix || m_prefix_mode == SortPrefix;
 		}
 		break;
 
@@ -3169,38 +3192,18 @@ bool FeSettings::set_info( int index, const std::string &value )
 	case WindowMode:
 #if !defined(FORCE_FULLSCREEN)
 		{
-			int i=0;
-			while ( windowModeTokens[i] != NULL )
-			{
-				if ( value.compare( windowModeTokens[i] ) == 0 )
-				{
-					m_window_mode = (WindowType)i;
-					break;
-				}
-				i++;
-			}
-
-			if ( windowModeTokens[i] == NULL )
-				return false;
+			int i = get_token_index( windowModeTokens, value );
+			if (i == -1) return false;
+			m_window_mode = (WindowType)i;
 		}
 #endif
 		break;
 
 	case ScreenRotation:
 		{
-			int i=0;
-			while ( screenRotationTokens[i] != NULL )
-			{
-				if ( value.compare( screenRotationTokens[i] ) == 0 )
-				{
-					m_screen_rotation = (RotationState)i;
-					break;
-				}
-				i++;
-			}
-
-			if ( screenRotationTokens[i] == NULL )
-				return false;
+			int i = get_token_index( screenRotationTokens, value );
+			if (i == -1) return false;
+			m_screen_rotation = (RotationState)i;
 		}
 		break;
 
@@ -3228,19 +3231,9 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case FilterWrapMode:
 		{
-			int i=0;
-			while ( filterWrapTokens[i] != NULL )
-			{
-				if ( value.compare( filterWrapTokens[i] ) == 0 )
-				{
-					m_filter_wrap_mode = (FilterWrapModeType)i;
-					break;
-				}
-				i++;
-			}
-
-			if ( filterWrapTokens[i] == NULL )
-				return false;
+			int i = get_token_index( filterWrapTokens, value );
+			if (i == -1) return false;
+			m_filter_wrap_mode = (FilterWrapModeType)i;
 		}
 		break;
 
@@ -3366,6 +3359,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 	return true;
 }
 
+std::vector<FeDisplayInfo> *FeSettings::get_displays()
+{
+	return &m_displays;
+}
 
 FeDisplayInfo *FeSettings::get_display( int index )
 {
