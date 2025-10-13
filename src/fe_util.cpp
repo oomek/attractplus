@@ -32,6 +32,7 @@
 #include "nowide/convert.hpp"
 #include "nowide/stat.hpp"
 #include <sstream>
+#include <fstream>
 #include <algorithm>
 #include <cctype>
 #include <cstring>
@@ -281,6 +282,19 @@ bool file_exists( const std::string &file )
 bool directory_exists( const std::string &file )
 {
 	return check_path( file ) & FeVM::IsDirectory;
+}
+
+bool get_file_content( const std::string &file, std::string &output )
+{
+	std::ifstream f( file, std::ios::binary );
+	if ( !f.is_open() )
+		return false;
+
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+	f.close();
+	output = buffer.str();
+	return true;
 }
 
 int check_path( const std::string &path )

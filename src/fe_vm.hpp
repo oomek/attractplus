@@ -204,6 +204,9 @@ public:
 	static FeShader *cb_add_shader(int, const char *, const char *);
 	static FeShader *cb_add_shader(int, const char *);
 	static FeShader *cb_add_shader(int);
+	static FeShader *cb_compile_shader(int, const char *, const char *);
+	static FeShader *cb_compile_shader(int, const char *);
+	static FeShader *cb_compile_shader(int);
 	static void cb_add_ticks_callback( Sqrat::Object, const char *);
 	static void cb_add_ticks_callback(const char *);
 	static void cb_add_transition_callback( Sqrat::Object, const char *);

@@ -202,6 +202,9 @@ bool file_exists( const std::string &file );
 // return true if specified path is an existing directory
 bool directory_exists( const std::string &file );
 
+// get the contents of the given file, return true on success
+bool get_file_content( const std::string &file, std::string &output );
+
 // Check if provided path exists and whether it's a file or a directory
 // Returns one of the following: IsFile, IsDirectory, IsNotFound
 int check_path( const std::string &file );

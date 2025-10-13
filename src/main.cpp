@@ -120,6 +120,9 @@ int main(int argc, char *argv[])
 	fe_print_version();
 	FeLog() << std::endl;
 
+	// Redirect SFML error buffer to FeLog
+	sf::err().rdbuf(FeLog().rdbuf());
+
 	if ( !sf::Shader::isAvailable() )
 	{
 		FeLog() << "Error, Attract-Mode Plus requires shader support."  << std::endl;
