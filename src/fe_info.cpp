@@ -75,6 +75,7 @@ const char *FeRomInfo::indexStrings[] =
 	NULL
 };
 
+// Matches fe_info.cpp "enum Special"
 const char *FeRomInfo::specialStrings[] =
 {
 	"DisplayName",
@@ -84,6 +85,7 @@ const char *FeRomInfo::specialStrings[] =
 	"ListSize",
 	"ListEntry",
 	"Search",
+	"TitleLetter",
 	"TitleFull",
 	"SortName",
 	"SortValue",

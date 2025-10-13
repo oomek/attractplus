@@ -117,6 +117,10 @@ public:
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
+	enum PrefixModeType { NoPrefix=0, SortPrefix, SortAndShowPrefix };
+	static const char *prefixTokens[];
+	static const char *prefixDispTokens[];
+
 	static std::vector<std::string> uiColorTokens;
 	static std::vector<std::string> uiColorDispTokens;
 	void load_layout_params();
@@ -135,6 +139,7 @@ public:
 		HideBrackets,
 		GroupClones,
 		StartupMode,
+		PrefixMode,
 		QuickMenu,
 		ConfirmFavourites,
 		ConfirmExit,
@@ -242,6 +247,7 @@ private:
 	bool m_hide_brackets;
 	bool m_group_clones;
 	StartupModeType m_startup_mode;
+	PrefixModeType m_prefix_mode;
 	bool m_confirm_favs;
 	bool m_confirm_exit;
 	bool m_layout_preview;
@@ -542,6 +548,7 @@ public:
 	int get_anisotropic() const;
 	FilterWrapModeType get_filter_wrap_mode() const;
 	StartupModeType get_startup_mode() const;
+	PrefixModeType get_prefix_mode() const;
 	std::string get_ui_color() const;
 	int get_screen_saver_timeout() const;
 
@@ -652,6 +659,7 @@ public:
 	bool apply_default_display( FeDisplayInfo &display );
 	FeDisplayInfo *get_default_display();
 
+	std::vector<FeDisplayInfo> *get_displays();
 	FeDisplayInfo *get_display( int index );
 	FeDisplayInfo *create_display( const std::string &n );
 	void delete_display( int index );

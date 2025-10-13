@@ -70,6 +70,7 @@ General;General
 Global Filter;Global Filter
 Group Clones;Group Clones
 Hide Brackets in Game Title;Hide Brackets in Game Title
+Format Game Title;Format Game Title
 Hide Console;Hide Console
 Image Cache Size;Image Cache Size
 Insert Command Shortcut;Insert Command Shortcut
@@ -486,6 +487,7 @@ _help_misc_exit_message;Alternate message to exit the frontend [i.e. "Shut Down 
 _help_misc_filter_wrap_mode;Set what happens when the "Next Filter" or "Previous Filter" actions reach the end of the filter set
 _help_misc_group_clones;Group all clones of a game under one single list entry
 _help_misc_hide_brackets;Hide text in brackets when showing game titles
+_help_misc_prefix_modes;Move "The" and "Vs." prefixes to the end of the game title
 _help_misc_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
 _help_misc_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
 _help_misc_language;Select the language to use in Attract-Mode's user interface

@@ -78,8 +78,8 @@ const char *FE_CACHE_CONFIG = "config";
 const char *FE_CACHE_GLOBALFILTER = "globalfilter";
 const std::string FE_EMPTY_STRING;
 
-std::vector<FeDisplayInfo>* FeCache::m_displays = {};
-std::string FeCache::m_config_path = "";
+FeSettings* FeCache::m_feSettings = nullptr;
+std::string FeCache::m_cache_path = "";
 std::map<std::string, std::map<std::string, std::vector<std::string>>> FeCache::m_stats_cache = {};
 int FeCache::m_indent = 0;
 
@@ -122,8 +122,7 @@ void FeCache::_debug() {}
 #ifndef FE_CACHE_ENABLE
 
 // Dummy methods if cache is disabled
-void FeCache::set_config_path( const std::string path ) {}
-void FeCache::set_displays( std::vector<FeDisplayInfo>* displays ) {}
+void FeCache::set_settings( FeSettings *fes ) {}
 bool FeCache::validate_romlistmeta( FeRomList &romlist ) { return false; }
 bool FeCache::save_display( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
 bool FeCache::validate_display( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
@@ -146,24 +145,15 @@ bool FeCache::get_stats_info( const std::string &path, std::vector<std::string> 
 // -------------------------------------------------------------------------------------
 
 //
-// Create path for config files
+// Store the settings, used to retrieve config path and displays
 //
-void FeCache::set_config_path(
-	const std::string path
+void FeCache::set_settings(
+	FeSettings *fes
 )
 {
-	m_config_path = path;
-	confirm_directory( m_config_path, FE_CACHE_SUBDIR );
-}
-
-//
-// Store the displays lists, since cache sometimes need to invalidate multiple of them
-//
-void FeCache::set_displays(
-	std::vector<FeDisplayInfo>* displays
-)
-{
-	m_displays = displays;
+	m_feSettings = fes;
+	m_cache_path = m_feSettings->get_config_dir() + FE_CACHE_SUBDIR;
+	confirm_directory( m_feSettings->get_config_dir(), FE_CACHE_SUBDIR );
 };
 
 // -------------------------------------------------------------------------------------
@@ -175,7 +165,7 @@ std::string FeCache::get_romlistmeta_filename(
 	std::string name = romlist.get_romlist_name();
 	return name.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_ROMLIST + "." + sanitize_filename( name ) + "." + FE_CACHE_CONFIG + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_ROMLIST + "." + sanitize_filename( name ) + "." + FE_CACHE_CONFIG + FE_CACHE_EXT;
 }
 
 std::string FeCache::get_display_filename(
@@ -185,7 +175,7 @@ std::string FeCache::get_display_filename(
 	std::string name = display.get_name();
 	return name.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_DISPLAY + "." + sanitize_filename( name ) + "." + FE_CACHE_CONFIG + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_DISPLAY + "." + sanitize_filename( name ) + "." + FE_CACHE_CONFIG + FE_CACHE_EXT;
 }
 
 std::string FeCache::get_available_filename(
@@ -195,7 +185,7 @@ std::string FeCache::get_available_filename(
 	std::string name = romlist.get_romlist_name();
 	return name.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_ROMLIST + "." + sanitize_filename( name ) + "." + FE_CACHE_AVAILABLE + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_ROMLIST + "." + sanitize_filename( name ) + "." + FE_CACHE_AVAILABLE + FE_CACHE_EXT;
 }
 
 std::string FeCache::get_romlist_filename(
@@ -205,7 +195,7 @@ std::string FeCache::get_romlist_filename(
 	std::string name = romlist.get_romlist_name();
 	return name.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_ROMLIST + "." + sanitize_filename( name ) + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_ROMLIST + "." + sanitize_filename( name ) + FE_CACHE_EXT;
 }
 
 std::string FeCache::get_globalfilter_filename(
@@ -215,7 +205,7 @@ std::string FeCache::get_globalfilter_filename(
 	std::string name = display.get_name();
 	return name.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_DISPLAY + "." + sanitize_filename( name ) + "." + FE_CACHE_GLOBALFILTER + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_DISPLAY + "." + sanitize_filename( name ) + "." + FE_CACHE_GLOBALFILTER + FE_CACHE_EXT;
 }
 
 std::string FeCache::get_filter_filename(
@@ -226,7 +216,7 @@ std::string FeCache::get_filter_filename(
 	std::string name = display.get_name();
 	return name.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_DISPLAY + "." + sanitize_filename( name ) + "." + FE_CACHE_FILTER + "." + as_str( filter_index ) + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_DISPLAY + "." + sanitize_filename( name ) + "." + FE_CACHE_FILTER + "." + as_str( filter_index ) + FE_CACHE_EXT;
 }
 
 std::string FeCache::get_stats_filename(
@@ -235,7 +225,7 @@ std::string FeCache::get_stats_filename(
 {
 	return emulator.empty()
 		? FE_EMPTY_STRING
-		: m_config_path + FE_CACHE_SUBDIR + FE_CACHE_EMULATOR + "." + sanitize_filename( emulator ) + "." + FE_CACHE_STATS + FE_CACHE_EXT;
+		: m_cache_path + FE_CACHE_EMULATOR + "." + sanitize_filename( emulator ) + "." + FE_CACHE_STATS + FE_CACHE_EXT;
 }
 
 // -------------------------------------------------------------------------------------
@@ -468,8 +458,9 @@ void FeCache::get_display_metadata(
 	std::map<std::string, std::string> &data
 )
 {
-	// romlist
-	data["group_clones"] = as_str( romlist.get_group_clones() );
+	// config
+	data["group_clones"] = as_str( m_feSettings->get_info_bool(FeSettings::GroupClones) );
+	data["prefix_mode"] = m_feSettings->get_info(FeSettings::PrefixMode);
 
 	// favs/tags
 	data["fav_mtime"] = as_str( file_mtime( romlist.get_fav_path() ) );
@@ -605,7 +596,8 @@ void FeCache::invalidate_romlist(
 	std::string romlist_name = romlist.get_romlist_name();
 
 	// Invalidate ALL displays using this romlist
-	for (std::vector<FeDisplayInfo>::const_iterator itd=(*m_displays).begin(); itd!=(*m_displays).end(); ++itd)
+	auto displays = *m_feSettings->get_displays();
+	for (std::vector<FeDisplayInfo>::const_iterator itd=displays.begin(); itd!=displays.end(); ++itd)
 	{
 		FeDisplayInfo display = (*itd);
 		if ( display.get_romlist_name() == romlist_name ) invalidate_display( display );
@@ -766,7 +758,8 @@ void FeCache::invalidate_rominfo(
 	debug( "Invalidate Rominfo", t );
 
 	std::string romlist_name = romlist.get_romlist_name();
-	for (std::vector<FeDisplayInfo>::const_iterator itd=(*m_displays).begin(); itd!=(*m_displays).end(); ++itd)
+	auto displays = *m_feSettings->get_displays();
+	for (std::vector<FeDisplayInfo>::const_iterator itd=displays.begin(); itd!=displays.end(); ++itd)
 	{
 		FeDisplayInfo display = (*itd);
 		if ( display.get_romlist_name() != romlist_name ) continue;
