@@ -85,19 +85,22 @@ std::string FeRomListSorter::get_formatted_title( const std::string &title )
 	if ( title.empty() || !m_rex || !sqstd_rex_match( m_rex, scsqchar( title ) ) )
 		return title;
 
+	SQRexMatch match;
 	SQRexMatch prefix;
 	SQRexMatch main;
+	sqstd_rex_getsubexp( m_rex, 0, &match );
 	sqstd_rex_getsubexp( m_rex, 1, &prefix );
 	sqstd_rex_getsubexp( m_rex, 2, &main );
 
+	std::string body = title.substr( main.begin - match.begin, main.len );
 	std::string suffix = "";
 	if ( prefix.len ) {
-		suffix = scstdstr( prefix.begin ).substr( 0, prefix.len );
+		suffix = title.substr( prefix.begin - match.begin, prefix.len );
 		size_t pos = suffix.find_last_not_of( FE_WHITESPACE );
 		suffix = ", " + suffix.substr( 0, pos + 1 );
 	}
 
-	return scstdstr( main.begin ) + suffix;
+	return body + suffix;
 }
 
 std::string FeRomListSorter::get_display_title( const std::string &title )
