@@ -692,7 +692,7 @@ void FeTextureContainer::set_vol( float vol )
 
 void FeTextureContainer::set_index_offset( int io, bool do_update )
 {
-	if ( m_index_offset != io )
+	if ( m_index_offset != io || m_file_name.empty() )
 	{
 		m_index_offset = io;
 
@@ -708,7 +708,7 @@ int FeTextureContainer::get_index_offset() const
 
 void FeTextureContainer::set_filter_offset( int fo, bool do_update )
 {
-	if ( m_filter_offset != fo )
+	if ( m_filter_offset != fo || m_file_name.empty() )
 	{
 		m_filter_offset = fo;
 
