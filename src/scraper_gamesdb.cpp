@@ -261,7 +261,7 @@ const char *GENRES_E = "genres";
 const char *PUBLISHERS_E = "publishers";
 const char *GAMES_E = "games";
 const char *GAME_TITLE_E = "game_title";
-const char *RELEASE_E = "release";
+const char *RELEASE_E = "release_date";
 const char *RATING_E = "rating";
 const char *PLAYERS_E = "players";
 const char *OVERVIEW_E = "overview";
@@ -1089,16 +1089,11 @@ fail_emu_scrape:
 
 					if ( e.HasMember( RELEASE_E ) && e[RELEASE_E].IsString() )
 					{
-						std::string work = e[RELEASE_E].GetString();
-						size_t cut = work.find_last_of( "/" );
+						std::string release_date = e[RELEASE_E].GetString();
+						size_t cut = release_date.find_first_of( "-" ); // YYYY-MM-DD
 
-						std::string year;
 						if ( cut != std::string::npos )
-							year = work.substr( cut+1 );
-						else
-							year = work;
-
-						ptr->set_info( FeRomInfo::Year, year );
+							ptr->set_info( FeRomInfo::Year, release_date.substr( 0, cut ) );
 					}
 
 					if ( e.HasMember( PLAYERS_E ) && e[PLAYERS_E].IsInt() )
