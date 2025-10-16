@@ -1448,6 +1448,10 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `subimg_y` - Get/set the y position of top left corner of the image texture sub-rectangle to display. Default value is `0`.
 -  `subimg_width` - Get/set the width of the image texture sub-rectangle to display. Default value is `texture_width`.
 -  `subimg_height` - Get/set the height of the image texture sub-rectangle to display. Default value is `texture_height`.
+-  `subimg_cover` 🔶 - Get/set whether the image texture is enlarged to cover the entire image area. Note this does _not_ affect the `width` or `height` values, and requires `preserve_aspect_ratio` to be `true`. Default value is `false`.
+-  `subimg_anchor` 🔶 - Set the anchor for image textures resized by `preserve_aspect_ratio`. See the available modes for `anchor` below. Default is `Anchor.Centre`.
+-  `subimg_anchor_x` 🔶 - Get/set the x position of the image texture anchor. Range is `[0.0...1.0]`. Default value is `0.5`.
+-  `subimg_anchor_y` 🔶 - Get/set the y position of the image texture anchor. Range is `[0.0...1.0]`. Default value is `0.5`.
 -  `sample_aspect_ratio` - Get the "sample aspect ratio", which is the width of a pixel divided by the height of the pixel.
 -  `origin_x` - (deprecated) Get/set the x position of the local origin for the image. The origin defines the centre point for any positioning or rotation of the image. Default origin is `( 0, 0 )` (top-left corner).
 -  `origin_y` - (deprecated) Get/set the y position of the local origin for the image. The origin defines the centre point for any positioning or rotation of the image. Default origin is `( 0, 0 )` (top-left corner).
@@ -1518,7 +1522,8 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the image. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the image position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the image position and size (in layout coordinates).
--  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
+-  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
+-  `set_subimg_anchor( x, y )` 🔶 - Set the image texture anchor, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well.
 -  `set_border( left, top, right, bottom )` :🔶 - Define border dimensions for 9-slice image. All parameters are in pixels. The borders define constrained regions at the edges of the image, while the centre region scales normally. Follow this link for more information [9-slice](https://en.wikipedia.org/wiki/9-slice_scaling)
