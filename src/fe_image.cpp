@@ -1081,8 +1081,11 @@ FeImage::FeImage( FePresentableParent &p,
 	m_origin( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
+	m_subimg_anchor( 0.5f, 0.5f ),
+	m_subimg_cover( false ),
 	m_rotation ( 0.0 ),
 	m_anchor_type( TopLeft ),
+	m_subimg_anchor_type( Centre ),
 	m_rotation_origin_type( TopLeft ),
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false )
@@ -1105,8 +1108,11 @@ FeImage::FeImage( FeImage *o )
 	m_origin( o->m_origin ),
 	m_rotation_origin( o->m_rotation_origin ),
 	m_anchor( o->m_anchor ),
+	m_subimg_anchor( o->m_subimg_anchor ),
+	m_subimg_cover( o->m_subimg_cover ),
 	m_rotation( o->m_rotation ),
 	m_anchor_type( o->m_anchor_type ),
+	m_subimg_anchor_type( o->m_subimg_anchor_type ),
 	m_rotation_origin_type( o->m_rotation_origin_type ),
 	m_blend_mode( o->m_blend_mode ),
 	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio )
@@ -1240,6 +1246,7 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 void FeImage::scale()
 {
+	bool no_auto = !m_auto_size.x && !m_auto_size.y;
 	sf::FloatRect texture_rect = m_sprite.getTextureRect();
 	sf::Vector2f tex_size = sf::Vector2f(
 		abs( texture_rect.size.x ),
@@ -1286,10 +1293,13 @@ void FeImage::scale()
 		// - Width Only = always adjust y
 		// - Height Only = always adjust x
 		// - None = adjust y if smaller, this will enlarge to fit ratio
-		bool adjust_y = ( !m_auto_size.x && !m_auto_size.y ) ? abs( scale.y * ratio ) > abs( scale.x )
+		bool adjust_y = no_auto ? abs( scale.y * ratio ) > abs( scale.x )
 			: !m_auto_size.x ? true
 			: !m_auto_size.y ? false
 			: abs( scale.y * ratio ) < abs( scale.x );
+
+		// If fitting to area then reverse the adjustment dimension
+		if ( m_subimg_cover && no_auto ) adjust_y = !adjust_y;
 
 		// Adjust the scale to maintain the target ratio
 		if ( adjust_y )
@@ -1305,16 +1315,16 @@ void FeImage::scale()
 		);
 	}
 
-	if ( !m_auto_size.x && !m_auto_size.y )
+	if ( no_auto )
 	{
 		if ( m_preserve_aspect_ratio )
 		{
-			// Center only if both dimensions set, and preserving ratio
+			// Center to the subimg_anchor only if both dimensions set, and preserving ratio
 			sf::Transform t;
 			t.rotate( rotation );
 			pos += t.transformPoint( sf::Vector2f(
-				( size.x - scale_size.x ) / 2.0,
-				( size.y - scale_size.y ) / 2.0
+				( size.x - scale_size.x ) * m_subimg_anchor.x,
+				( size.y - scale_size.y ) * m_subimg_anchor.y
 			) );
 		}
 	}
@@ -1563,6 +1573,11 @@ int FeImage::get_anchor_type() const
 	return (FeImage::Alignment)m_anchor_type;
 }
 
+int FeImage::get_subimg_anchor_type() const
+{
+	return (FeImage::Alignment)m_subimg_anchor_type;
+}
+
 int FeImage::get_rotation_origin_type() const
 {
 	return (FeImage::Alignment)m_rotation_origin_type;
@@ -1576,6 +1591,21 @@ float FeImage::get_anchor_x() const
 float FeImage::get_anchor_y() const
 {
 	return m_anchor.y;
+}
+
+bool FeImage::get_subimg_cover() const
+{
+	return m_subimg_cover;
+}
+
+float FeImage::get_subimg_anchor_x() const
+{
+	return m_subimg_anchor.x;
+}
+
+float FeImage::get_subimg_anchor_y() const
+{
+	return m_subimg_anchor.y;
 }
 
 float FeImage::get_rotation_origin_x() const
@@ -1645,6 +1675,23 @@ void FeImage::set_anchor_type( int t )
 	set_anchor( a.x, a.y );
 }
 
+void FeImage::set_subimg_anchor( float x, float y )
+{
+	if ( x != m_subimg_anchor.x || y != m_subimg_anchor.y )
+	{
+		m_subimg_anchor = sf::Vector2f( x, y );
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_subimg_anchor_type( int t )
+{
+	m_subimg_anchor_type = (FeImage::Alignment)t;
+	sf::Vector2f a = alignTypeToVector( t );
+	set_subimg_anchor( a.x, a.y );
+}
+
 void FeImage::set_rotation_origin( float x, float y )
 {
 	if ( x != m_rotation_origin.x || y != m_rotation_origin.y )
@@ -1677,6 +1724,36 @@ void FeImage::set_anchor_y( float y )
 	if ( y != m_anchor.y )
 	{
 		m_anchor.y = y;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_subimg_cover( bool c )
+{
+	if ( c != m_subimg_cover )
+	{
+		m_subimg_cover = c;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_subimg_anchor_x( float x )
+{
+	if ( x != m_subimg_anchor.x )
+	{
+		m_subimg_anchor.x = x;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_subimg_anchor_y( float y )
+{
+	if ( y != m_subimg_anchor.y )
+	{
+		m_subimg_anchor.y = y;
 		scale();
 		FePresent::script_flag_redraw();
 	}
