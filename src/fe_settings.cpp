@@ -437,7 +437,7 @@ void FeSettings::load()
 
 	if (( FE_DATA_PATH != NULL ) && ( !directory_exists( FE_DATA_PATH ) ))
 	{
-		FeLog() << "Warning: Attract-Mode was compiled to look for its default configuration files in: "
+		FeLog() << "Warning: Attract-Mode Plus was compiled to look for its default configuration files in: "
 			<< FE_DATA_PATH << ", which is not available." << std::endl;
 	}
 
@@ -1781,7 +1781,7 @@ bool FeSettings::load_game_extras(
 	if ( !in_file.is_open() )
 		return false;
 
-	// Before Attract-Mode v 2.4, Overviews were stored with game extras.
+	// Before v2.4, Overviews were stored with game extras.
 	//
 	// There is specific code here to clean up pre 2.4 game extras data (commented)
 	// this code is intended to be removed at some point in a future version
@@ -2539,14 +2539,14 @@ int FeSettings::exit_command() const
 void FeSettings::get_exit_message( std::string &exit_message ) const
 {
 	exit_message = m_exit_message.empty()
-		? _( "Exit Attract-Mode" )
+		? _( "Exit Attract-Mode Plus" )
 		: m_exit_message;
 }
 
 void FeSettings::get_exit_question( std::string &exit_question ) const
 {
 	exit_question = m_exit_message.empty()
-		? _( "Exit Attract-Mode?" )
+		? _( "Exit Attract-Mode Plus?" )
 		: m_exit_question;
 }
 

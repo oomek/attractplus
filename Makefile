@@ -34,16 +34,16 @@
 #
 # By default, if FontConfig gets enabled we link against the system's expat
 # library (because FontConfig uses expat too).  If FontConfig is not used
-# then Attract-Mode is statically linked to its own version of expat.
-# Uncomment next line to always link to Attract-Mode's version of expat.
+# then AM is statically linked to its own version of expat.
+# Uncomment next line to always link to AM's version of expat.
 #BUILD_EXPAT=1
 #
 # Uncomment next line for Windows static cross-compile build (mxe)
 #WINDOWS_STATIC=1
 #
-# By default, Attract-Mode on Windows is built as a GUI application, which
+# By default, AM on Windows is built as a GUI application, which
 # does not allow for command line interactions at the Windows console.
-# Uncomment the next line to build a console version of Attract-Mode
+# Uncomment the next line to build a console version of AM
 # instead (Windows only)
 #WINDOWS_CONSOLE=1
 #

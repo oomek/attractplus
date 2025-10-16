@@ -4,7 +4,7 @@ To build:
 
       https://github.com/SFML/SFML/wiki/Tutorial%3A-Building-SFML-for-Android
 
-2. from Attract-Mode's util/android directory, run the following commands:
+2. from the Attract-Mode Plus util/android directory, run the following commands:
 
       android update project --target "android-25" --path .
 

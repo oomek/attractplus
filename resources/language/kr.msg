@@ -57,8 +57,8 @@ Emulators;에뮬레이터
 Enable Multiple Monitors;다중 모니터 사용
 Enabled;활성화 여부
 Exception;예외 규칙
-Exit Attract-Mode;프로그램 종료
-Exit Attract-Mode?;종료하시겠습니까?
+Exit Attract-Mode Plus;프로그램 종료
+Exit Attract-Mode Plus?;종료하시겠습니까?
 Exit Command;종료 명령어
 #Exit Message;
 Filter Name;필터 이름
@@ -270,7 +270,7 @@ Scraping Artwork: $1%;온라인에서 $1% 을 다운로드하는 중입니다
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;'$1' 게임을 즐겨하는 목록에 추가하겠습니까?
-#Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;
+#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
 #Auto-detect emulators?;
 #Clear Hotkey?;
 Delete display '$1'?;'$1' 목록을 제거하시겠습니까?
@@ -484,7 +484,7 @@ _help_misc_exit_command;확인 후 종료 명령으로 프로그램을 끌 때 �
 _help_misc_filter_wrap_mode;목록의 마지막 필터에서 '다음 필터' 키가 입력되었을 때 처리 방식을 결정합니다.
 #_help_misc_group_clones;
 _help_misc_hide_brackets;게임 제목을 표시할 때에, 괄호로 둘러싸인 부분은 표시하지 않을 지 여부를 설정합니다
-_help_misc_hide_console;콘솔 창을 숨깁니다. 이 옵션은 프로그램을 윈도우 GUI상에서 실행할 때에만 적용됩니다. 이미 띄워진 콘솔 창에서 실행하는 경우 (예: 배치 파일에서 실행하는 경우) Attract-Mode 프로세스는 해당 창에 달라붙을 것입니다.
+_help_misc_hide_console;콘솔 창을 숨깁니다. 이 옵션은 프로그램을 윈도우 GUI상에서 실행할 때에만 적용됩니다. 이미 띄워진 콘솔 창에서 실행하는 경우 (예: 배치 파일에서 실행하는 경우) Attract-Mode Plus 프로세스는 해당 창에 달라붙을 것입니다.
 #_help_misc_image_cache_mbytes;
 _help_misc_language;언어를 설정합니다
 #_help_misc_layout_preview;
@@ -494,7 +494,7 @@ _help_misc_quick_menu;같은 버튼을 사용하여 메뉴를 열고 닫을 수 
 #_help_misc_screen_rotation;
 _help_misc_startup_mode;프로그램이 처음 실행될 때 무엇을 해야하는 지를 설정합니다
 _help_misc_track_usage;플레이 내역 (플레이 횟수, 시간) 을 기록할지 설정합니다.
-_help_misc_ui_color;Attract-Mode의 사용자 인터페이스에 사용할 색상을 선택하세요.
+_help_misc_ui_color;Attract-Mode Plus의 사용자 인터페이스에 사용할 색상을 선택하세요.
 _help_misc_video_decoder;영상을 재생하는 데 사용할 디코더를 선택합니다
 _help_misc_window_mode;창 모드로 동작할지 전체 화면으로 동작할지를 설정합니다.
 _help_plugin_command;플러그 인의 실행 파일을 지정합니다

@@ -58,8 +58,8 @@ Emulators;Emulators
 Enable Multiple Monitors;Enable Multiple Monitors
 Enabled;Enabled
 Exception;Exception
-Exit Attract-Mode;Exit Attract-Mode
-Exit Attract-Mode?;Exit Attract-Mode?
+Exit Attract-Mode Plus;Exit Attract-Mode Plus
+Exit Attract-Mode Plus?;Exit Attract-Mode Plus?
 Exit Command;Exit Command
 Exit Message;Exit Message
 Filter Name;Filter Name
@@ -272,7 +272,7 @@ Scraping Artwork: $1%;Scraping Artwork: $1%
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Add '$1' to Favourites?
-Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?
+Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?
 Auto-detect emulators?;Auto-detect emulators?
 Clear Hotkey?;Clear Hotkey?
 Delete display '$1'?;Delete display '$1'?
@@ -429,14 +429,14 @@ _help_displaysmenu;Configure options for the Displays Menu
 _help_emu_add;Add a new emulator
 _help_emu_args;The command line arguments for this emulator.  The following get substituted appropriately: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn], [workdir], [nothing], as well as any valid magic tokens (see layout documentation)
 _help_emu_delete;Delete the entry for this emulator
-_help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode program dir. Windows OS additionally have %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
-_help_emu_exit_hotkey;Set a global hotkey to exit the emulator.  Attract-Mode will terminate the emulator process if this hotkey gets pressed
+_help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode Plus program dir. Windows OS additionally have %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
+_help_emu_exit_hotkey;Set a global hotkey to exit the emulator.  Attract-Mode Plus will terminate the emulator process if this hotkey gets pressed
 _help_emu_gen_romlist;Generate a romlist by searching the configured rom path for roms with the configured extension, incorporating XML and additional import file information into the generated list (if available)
 _help_emu_import_extras;Path to any additional files that need to be read when generating a romlist for this emulator.  Supported files are: catver.ini (categories), nplayers.ini (number of players), series.ini (series), language.ini (language) and mame.xml.  Multiple file paths can be entered if separated by a semicolon
 _help_emu_info_source;Use "listxml" for mame -listxml output, "listsoftware" for mame/mess -listsoftware output, "thegamesdb.net" to scrape data from thegamesdb.net, "steam" to read from a steam installation, or "scummvm" if the emulator is scummvm.  "listsoftware" and "thegamesdb.net" also require that a System Identifier recognized by those sources be configured
 _help_emu_name;Edit Emulator
 _help_emu_nb_mode_wait;If this is non-zero, the emulator will be run in non-blocking mode.  The frontend will wait up to this number of seconds to lose focus to the emulator's window, and will wake up again when focus returns to the frontend's window.  This is necessary for launching programs like Steam correctly.  Should be 0 unless you know you need it
-_help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
+_help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode Plus will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
 _help_emu_romext;The rom extension(s) for this emulator (i.e. .zip).  Multiple extensions can be entered if separated by a semicolon.  Specify "<DIR>" as an entry if games are stored in separate subdirectories
 _help_emu_rompath;The path to the roms for this emulator.  Multiple paths can be entered if separated by a semicolon.
 _help_emu_scrape_artwork;Scrape missing artwork images for this emulator from the net
@@ -467,8 +467,8 @@ _help_input_default_action;Set the default behaviour for this control
 _help_input_delete;Remove this input mapping
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
 _help_layout_name;Configure Layout
-_help_main_control;Configure the joystick, keyboard and mouse inputs that control Attract-Mode
-_help_main_display;Configure the romlist/layout groupings (a.k.a. "Displays") that are available to be cycled through in Attract-Mode
+_help_main_control;Configure the joystick, keyboard and mouse inputs that control Attract-Mode Plus
+_help_main_display;Configure the romlist/layout groupings (a.k.a. "Displays") that are available to be cycled through in Attract-Mode Plus
 _help_main_emu;Configure emulator settings
 _help_main_intro;Configure intro
 _help_main_misc;Configure general settings
@@ -480,7 +480,7 @@ _help_main_sound;Configure sound volumes, sound event mappings and the ambient s
 _help_misc_anisotropic_filtering;Set the anisotropic filtering level for textures. This will improve the quality of scaled textures
 _help_misc_antialiasing;Set the anti-aliasing level
 _help_misc_check_for_updates;Configure whether Attract-Mode Plus should check for available updates on startup and display an update notification dialog when a new version is found.
-_help_misc_confirm_exit;Confirm the exiting of Attract-Mode
+_help_misc_confirm_exit;Confirm the exiting of Attract-Mode Plus
 _help_misc_confirm_favs;Confirm the addition/removal of Favourites
 _help_misc_exit_command;Command to execute when exiting the frontend [i.e. "sudo shutdown"]
 _help_misc_exit_message;Alternate message to exit the frontend [i.e. "Shut Down System"]
@@ -488,19 +488,19 @@ _help_misc_filter_wrap_mode;Set what happens when the "Next Filter" or "Previous
 _help_misc_group_clones;Group all clones of a game under one single list entry
 _help_misc_hide_brackets;Hide text in brackets when showing game titles
 _help_misc_prefix_modes;Move "The" and "Vs." prefixes to the end of the game title
-_help_misc_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
-_help_misc_image_cache_mbytes;Configure the maximum size of Attract-Mode's internal image cache (in megabytes)
-_help_misc_language;Select the language to use in Attract-Mode's user interface
+_help_misc_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode Plus from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
+_help_misc_image_cache_mbytes;Configure the maximum size of Attract-Mode Plus's internal image cache (in megabytes)
+_help_misc_language;Select the language to use in Attract-Mode Plus's user interface
 _help_misc_layout_preview;Show layout configuration changes immediately
-_help_misc_multiple_monitors;Enable the use of multiple monitors by Attract-Mode.  Setting this to "No" may reduce screen flicker when launching games
+_help_misc_multiple_monitors;Enable the use of multiple monitors by Attract-Mode Plus.  Setting this to "No" may reduce screen flicker when launching games
 _help_misc_power_saving;Helps to save power by only redrawing the screen when it's necessary. May cause animation stuttering on some layouts, or freezing on Linux
 _help_misc_quick_menu;Set whether menus can be opened and closed using the same button.  Also enables switching between menus without having to close them first
 _help_misc_screen_rotation;Set the base rotation of the screen
-_help_misc_startup_mode;Set what should happen when Attract-Mode first starts up
-_help_misc_track_usage;Configure whether Attract-Mode should track usage (played time and play count for each game)
-_help_misc_ui_color;Select the colour to use in Attract-Mode's user interface
+_help_misc_startup_mode;Set what should happen when Attract-Mode Plus first starts up
+_help_misc_track_usage;Configure whether Attract-Mode Plus should track usage (played time and play count for each game)
+_help_misc_ui_color;Select the colour to use in Attract-Mode Plus's user interface
 _help_misc_video_decoder;Configure the decoder to use for video playback (if multiple decoders are available)
-_help_misc_window_mode;Set whether Attract-Mode fills the screen or runs in a window
+_help_misc_window_mode;Set whether Attract-Mode Plus fills the screen or runs in a window
 _help_plugin_command;The executable associated with this plug-in
 _help_plugin_enabled;Set whether this plug-in is enabled
 _help_plugin_name;Configure Plugin

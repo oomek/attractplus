@@ -10,12 +10,12 @@ targets=(
 pkgname="attractplus"
 pkgver="3.2.0"
 pkgrel="1"
-pkgdesc="Attract-Mode emulator frontend"
+pkgdesc="Attract-Mode Plus emulator frontend"
 pkgdesclong=(
  "Attract-Mode Plus is a graphical frontend for command line emulators such as MAME,"
  "MESS and Nestopia. It hides the underlying operating system and is intended"
  "to be controlled with a joystick, gamepad or spin dial, making it ideal for"
- "use in arcade cabinets. Attract-Mode is open source and runs on Linux, OS X"
+ "use in arcade cabinets. Attract-Mode Plus is open source and runs on Linux, OS X"
  "and Windows."
 )
 maintainer="Andrew Mickelson <andrew@attractmode.org>"

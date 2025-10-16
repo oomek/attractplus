@@ -3,12 +3,12 @@
   <id>attract-mode-plus.desktop</id>
   <metadata_license>CC0</metadata_license>
   <project_license>GPL-3.0+</project_license>
-  <name>Attract-Mode-Plus</name>
+  <name>Attract-Mode Plus</name>
   <summary>A graphical frontend for emulators</summary>
 
   <description>
     <p>
-      Attract-Mode is a graphical frontend for command line emulators such as MAME,
+      Attract-Mode Plus is a graphical frontend for command line emulators such as MAME,
       MESS and Nestopia. It hides the underlying operating system and is intended to
       be controlled with a joystick, gamepad or spinner, making it ideal for use
       in arcade cabinets.

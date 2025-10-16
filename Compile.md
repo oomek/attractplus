@@ -37,7 +37,7 @@ These instructions assume that you have the GNU C/C++ compilers and basic build 
       -  libarchive (for .7z, .rar, .tar.gz and .tar.bz2 archive support).
       -  Libcurl (for network info/artwork scraping).
 
-2. Extract the Attract-Mode source to your system.
+2. Extract the Attract-Mode Plus source to your system.
 
 3. From the directory you extracted the source into, run:
 
@@ -53,7 +53,7 @@ These instructions assume that you have the GNU C/C++ compilers and basic build 
 
    This step will create the "attract" executable file.
 
-4. The final step is to actually copy the Attract-Mode executable and data to a location where they can be used. To install on a system-wide basis you should run:
+4. The final step is to actually copy the Attract-Mode Plus executable and data to a location where they can be used. To install on a system-wide basis you should run:
 
    ```sh
    sudo make install
@@ -61,9 +61,9 @@ These instructions assume that you have the GNU C/C++ compilers and basic build 
 
    This will copy the "attract" executable to `/usr/local/bin/` and default data to `/usr/local/share/attract/`.
 
-   For a single user install on Linux or FreeBSD, you can complete this step by copying the contents of the "config" directory from the Attract-Mode source directory to the location that you will use as your Attract-Mode config directory. By default, this config directory is located in `$HOME/.attract` on Linux/FreeBSD systems.
+   For a single user install on Linux or FreeBSD, you can complete this step by copying the contents of the "config" directory from the Attract-Mode Plus source directory to the location that you will use as your Attract-Mode Plus config directory. By default, this config directory is located in `$HOME/.attract` on Linux/FreeBSD systems.
 
-   NOTE: The Attract-Mode makefile tries to follow the GNU standards for specifying installation directories: https://www.gnu.org/prep/standards/html_node/Directory-Variables.html. If you want to change the location where Attract-Mode looks for its default data from `/usr/local/share/attract` you should change these values appropriately before running the `make` and `make install` commands.
+   NOTE: The Attract-Mode Plus makefile tries to follow the GNU standards for specifying installation directories: https://www.gnu.org/prep/standards/html_node/Directory-Variables.html. If you want to change the location where Attract-Mode Plus looks for its default data from `/usr/local/share/attract` you should change these values appropriately before running the `make` and `make install` commands.
 
 ---
 
@@ -84,9 +84,9 @@ These instructions assume that you have X Code installed.
    brew install pkg-config ffmpeg sfml libarchive
    ```
 
-3. Extract the Attract-Mode source to your system.
+3. Extract the Attract-Mode Plus source to your system.
 
-4. From the directory you extracted the Attract-Mode source into, run:
+4. From the directory you extracted the Attract-Mode Plus source into, run:
 
    ```sh
    make
@@ -94,7 +94,7 @@ These instructions assume that you have X Code installed.
 
    This step will create the "attract" executable file.
 
-5. The final step is to actually copy the Attract-Mode executable and data to the location where they will be used. You can run:
+5. The final step is to actually copy the Attract-Mode Plus executable and data to the location where they will be used. You can run:
 
    ```sh
    sudo make install
@@ -102,13 +102,13 @@ These instructions assume that you have X Code installed.
 
    to install on a system-wide basis. This will copy the 'attract' executable to `/usr/local/bin/` and data to `/usr/local/share/attract/`
 
-   If you prefer to do a single user install, you can complete this step by copying the contents of the "config" directory from the Attract-Mode source directory to the location that you will use as your Attract-Mode config directory. By default, this config directory is `$HOME/.attract` on OS X.
+   If you prefer to do a single user install, you can complete this step by copying the contents of the "config" directory from the Attract-Mode Plus source directory to the location that you will use as your Attract-Mode Plus config directory. By default, this config directory is `$HOME/.attract` on OS X.
 
 ---
 
 ## Windows (cross-compile)
 
-The recommended way to build Windows binaries for Attract-Mode is to cross compile on an OS that supports MXE http://mxe.cc such as Linux, FreeBSD or OS X.
+The recommended way to build Windows binaries for Attract-Mode Plus is to cross compile on an OS that supports MXE http://mxe.cc such as Linux, FreeBSD or OS X.
 
 1. Follow the steps in the mxe tutorial to set up mxe on your system: http://mxe.cc/#tutorial
 
@@ -124,7 +124,7 @@ The recommended way to build Windows binaries for Attract-Mode is to cross compi
    make MXE_TARGETS='x86_64-w64-mingw32.static' ffmpeg sfml libarchive curl
    ```
 
-3. Extract the Attract-Mode source to your system.
+3. Extract the Attract-Mode Plus source to your system.
 
 4. From the directory you extracted the source into, run the following:
 
@@ -132,7 +132,7 @@ The recommended way to build Windows binaries for Attract-Mode is to cross compi
    make CROSS=1 TOOLCHAIN=i686-w64-mingw32.static WINDOWS_STATIC=1
    ```
 
-   to build the 32-bit version of Attract-Mode. To build 64-bit, run:
+   to build the 32-bit version of Attract-Mode Plus. To build 64-bit, run:
 
    ```sh
    make CROSS=1 TOOLCHAIN=x86_64-w64-mingw32.static WINDOWS_STATIC=1
@@ -140,7 +140,7 @@ The recommended way to build Windows binaries for Attract-Mode is to cross compi
 
    This step will create the "attract.exe" executable file.
 
-5. Copy the contents of the config directory from the Attract-Mode source directory and the executable you just built into the same directory on your Windows-based system, and you should be ready to go!
+5. Copy the contents of the config directory from the Attract-Mode Plus source directory and the executable you just built into the same directory on your Windows-based system, and you should be ready to go!
 
 ---
 
@@ -166,12 +166,12 @@ The recommended way to build Windows binaries for Attract-Mode is to cross compi
    pacman -S git mingw-w64-x86_64-toolchain msys/make mingw64/mingw-w64-x86_64-sfml mingw64/mingw-w64-x86_64-ffmpeg mingw64/mingw-w64-x86_64-libarchive
    ```
 
-5. Clone and make Attract-Mode
+5. Clone and make Attract-Mode Plus
 
    ```sh
-   git clone https://github.com/mickelson/attract attract
+   git clone https://github.com/oomek/attractplus attract
    cd attract
    make
    ```
 
-   This builds a version of Attract-Mode with various .dll dependencies. To run the program, you will need to add `c:\msys64\mingw64\bin` to your path (for 64-bit systems) or copy the dependent .dlls from that directory into the same directory you will run Attract-Mode from.
+   This builds a version of Attract-Mode Plus with various .dll dependencies. To run the program, you will need to add `c:\msys64\mingw64\bin` to your path (for 64-bit systems) or copy the dependent .dlls from that directory into the same directory you will run Attract-Mode Plus from.

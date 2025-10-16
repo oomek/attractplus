@@ -2132,7 +2132,7 @@ bool FeVM::setup_wizard()
 
 	// return 0 if user confirms import
 	if ( m_overlay->confirm_dialog(
-		_( "Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?" ),
+		_( "Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?" ),
 		true ) != 0 ) // default to "yes"
 	{
 		return false;
@@ -2766,7 +2766,7 @@ const char *FeVM::cb_get_art( const char *art, int index_offset, int filter_offs
 			retval = image_list.front();
 
 		// We force our return value to an absolute path, to work
-		// around Attract-Mode's tendency to assume that relative
+		// around the frontends tendency to assume that relative
 		// paths are relative to the layout directory.
 		//
 		// We are almost certain that is not the case here...

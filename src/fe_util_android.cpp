@@ -58,7 +58,7 @@ namespace {
 
 					m_line += buf;
 
-					__android_log_write( ANDROID_LOG_DEBUG, "Attract-Mode", m_line.c_str() );
+					__android_log_write( ANDROID_LOG_DEBUG, "Attract-Mode-Plus", m_line.c_str() );
 					m_line.clear();
 				}
 				else
@@ -70,7 +70,7 @@ namespace {
 			}
 
 			if ( !m_line.empty() )
-				__android_log_write( ANDROID_LOG_DEBUG, "Attract-Mode2", m_line.c_str() );
+				__android_log_write( ANDROID_LOG_DEBUG, "Attract-Mode-Plus2", m_line.c_str() );
 		}
 
 	public:

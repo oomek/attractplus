@@ -2,7 +2,7 @@
 <project>
     <target name="-pre-compile">
 
-        <!-- copy Attract-Mode config files to assets -->
+        <!-- copy config files to assets -->
         <property name="config.dir" location="../../config" />
         <echo message="Copying '${config.dir}' to assets" />
 

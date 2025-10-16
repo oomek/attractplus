@@ -79,26 +79,26 @@
 
 ## Overview
 
-The Attract-mode layout sets out what gets displayed to the user. Layouts consist of a `layout.nut` script file and a collection of related resources (images, other scripts, etc.) used by the script.
+The Attract-Mode Plus layout sets out what gets displayed to the user. Layouts consist of a `layout.nut` script file and a collection of related resources (images, other scripts, etc.) used by the script.
 
-Layouts are stored under the "layouts" subdirectory of the Attract-Mode config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode can read layouts and plugins directly from `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar` files).
+Layouts are stored under the "layouts" subdirectory of the Attract-Mode Plus config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode Plus can read layouts and plugins directly from `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar` files).
 
-Each layout can have one or more `layout*.nut` script files. The "Toggle Layout" command in Attract-Mode allows users to cycle between each of the `layout*.nut` script files located in the layout's directory. Attract-Mode remembers the last layout file toggled to for each layout and will go back to that same file the next time the layout is loaded. This allows for variations of a particular layout to be implemented and easily selected by the user (for example, a layout could provide a `layout.nut` for horizontal monitor orientations and a `layout-vert.nut` for vertical).
+Each layout can have one or more `layout*.nut` script files. The "Toggle Layout" command in Attract-Mode Plus allows users to cycle between each of the `layout*.nut` script files located in the layout's directory. Attract-Mode Plus remembers the last layout file toggled to for each layout and will go back to that same file the next time the layout is loaded. This allows for variations of a particular layout to be implemented and easily selected by the user (for example, a layout could provide a `layout.nut` for horizontal monitor orientations and a `layout-vert.nut` for vertical).
 
-The Attract-Mode screen saver and intro modes are really just special case layouts. The screensaver gets loaded after a user-configured period of inactivity, while the intro mode gets run when the frontend first starts and exits as soon as any action is triggered (for example if the user hits the select button). The screen saver script is located in the `screensaver.nut` file stored in the "screensaver" subdirectory. The intro script is located in the `intro.nut` file stored in the "intro" subdirectory.
+The Attract-Mode Plus screen saver and intro modes are really just special case layouts. The screensaver gets loaded after a user-configured period of inactivity, while the intro mode gets run when the frontend first starts and exits as soon as any action is triggered (for example if the user hits the select button). The screen saver script is located in the `screensaver.nut` file stored in the "screensaver" subdirectory. The intro script is located in the `intro.nut` file stored in the "intro" subdirectory.
 
-Plug-ins are similar to layouts in that they consist of at least one squirrel script file and a collection of related resources. Plug-ins are stored in the "plugins" subdirectory of the Attract-Mode config directory. Plug-ins can be a single ".nut" file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
+Plug-ins are similar to layouts in that they consist of at least one squirrel script file and a collection of related resources. Plug-ins are stored in the "plugins" subdirectory of the Attract-Mode Plus config directory. Plug-ins can be a single ".nut" file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
 
 ---
 
 ### Squirrel Language
 
-Attract-Mode's layouts are scripts written in the Squirrel programming language. Squirrel's standard `Blob`, `IO`, `Math`, `String` and `System` library functions are available for use in a script. For more information on programming in Squirrel and using its standard libraries, consult the Squirrel manuals:
+Attract-Mode Plus layouts are scripts written in the Squirrel programming language. Squirrel's standard `Blob`, `IO`, `Math`, `String` and `System` library functions are available for use in a script. For more information on programming in Squirrel and using its standard libraries, consult the Squirrel manuals:
 
 -  [Squirrel 3.0 Reference Manual](http://www.squirrel-lang.org/doc/squirrel3.html)
 -  [Squirrel 3.0 Standard Library Manual](http://www.squirrel-lang.org/doc/sqstdlib3.html)
 
-Also check out the Introduction to Squirrel on the Attract-Mode wiki:
+Also check out the Introduction to Squirrel on the wiki:
 
 -  https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming
 
@@ -106,7 +106,7 @@ Also check out the Introduction to Squirrel on the Attract-Mode wiki:
 
 ### Language Extensions
 
-Attract-Mode includes the following home-brewed extensions to the squirrel language and standard libraries:
+Attract-Mode Plus includes the following home-brewed extensions to the squirrel language and standard libraries:
 
 -  A `zip_extract_archive( zipfile, filename )` function that will open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob.
 -  A `zip_get_dir( zipfile )` function that will return an array of the filenames contained in the `zipfile` archive file.
@@ -117,7 +117,7 @@ Supported archive formats are: `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and 
 
 ### Frontend Binding
 
-All of the functions, objects and classes that Attract-Mode exposes to Squirrel are arranged under the `fe` table, which is bound to Squirrel's root table.
+All of the functions, objects and classes that Attract-Mode Plus exposes to Squirrel are arranged under the `fe` table, which is bound to Squirrel's root table.
 
 ```squirrel
 fe.add_image( "bg.png", 0, 0 )
@@ -183,7 +183,7 @@ The following _Magic Tokens_ are supported:
 
 #### Custom Magic Token Functions
 
-_Magic Tokens_ can also run user-defined functions in the form `[!token_function]`. When used, Attract-Mode will run the corresponding `token_function()` defined in the Squirrel "root table". The function may contain up to two parameters, and must return a string value to replace the _Magic Token_.
+_Magic Tokens_ can also run user-defined functions in the form `[!token_function]`. When used, Attract-Mode Plus will run the corresponding `token_function()` defined in the Squirrel "root table". The function may contain up to two parameters, and must return a string value to replace the _Magic Token_.
 
 -  `index_offset` - The offset (from the current selection) of the game.
 -  `filter_offset` - The offset (from the current filter) of the filter.
@@ -278,13 +278,13 @@ fe.add_image( name, x, y )
 fe.add_image( name, x, y, w, h )
 ```
 
-Adds an image or video to the end of Attract-Mode's draw list.
+Adds an image or video to the end of the draw list.
 
 The default blend mode for images is `BlendMode.Alpha`
 
 **Parameters**
 
--  `name` - The name of an image/video file to show. If a relative path is provided (i.e. `"bg.png"`) it is assumed to be relative to the current layout directory (or the plugin directory, if called from a plugin script). If a relative path is provided and the layout/plugin is contained in an archive, Attract-Mode will open the corresponding file stored inside of the archive. Supported image formats are: `PNG`, `JPEG`, `GIF`, `BMP` and `TGA`. Videos can be in any format supported by FFmpeg. One or more [_Magic Tokens_](#magic-tokens) can be used in the name, in which case Attract-Mode will automatically update the image/video file appropriately in response to user navigation. For example `"man/[Manufacturer]"` will load the file corresponding to the manufacturer's name from the man subdirectory of the layout/plugin (example: `"man/Konami.png"`). When Magic Tokens are used, the file extension specified in `name` is ignored (if present) and Attract-Mode will load any supported media file that matches the Magic Token.
+-  `name` - The name of an image/video file to show. If a relative path is provided (i.e. `"bg.png"`) it is assumed to be relative to the current layout directory (or the plugin directory, if called from a plugin script). If a relative path is provided and the layout/plugin is contained in an archive, Attract-Mode Plus will open the corresponding file stored inside of the archive. Supported image formats are: `PNG`, `JPEG`, `GIF`, `BMP` and `TGA`. Videos can be in any format supported by FFmpeg. One or more [_Magic Tokens_](#magic-tokens) can be used in the name, in which case Attract-Mode Plus will automatically update the image/video file appropriately in response to user navigation. For example `"man/[Manufacturer]"` will load the file corresponding to the manufacturer's name from the man subdirectory of the layout/plugin (example: `"man/Konami.png"`). When Magic Tokens are used, the file extension specified in `name` is ignored (if present) and Attract-Mode Plus will load any supported media file that matches the Magic Token.
 -  `x` - The x position of the image (in layout coordinates).
 -  `y` - The y position of the image (in layout coordinates).
 -  `w` - The width of the image (in layout coordinates). Default value is `0`, which enables `auto_width`.
@@ -304,13 +304,13 @@ fe.add_artwork( label, x, y )
 fe.add_artwork( label, x, y, w, h )
 ```
 
-Add an artwork to the end of Attract-Mode's draw list. The image/video displayed in an artwork is updated automatically whenever the user changes the game selection.
+Add an artwork to the end of the draw list. The image/video displayed in an artwork is updated automatically whenever the user changes the game selection.
 
 The default blend mode for artwork is `BlendMode.Alpha`
 
 **Parameters**
 
--  `label` - The label of the artwork to display. This should correspond to an artwork configured in Attract-Mode (artworks are configured per emulator in the config menu) or scraped using the scraper. Attract-Mode's standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
+-  `label` - The label of the artwork to display. This should correspond to an artwork configured in Attract-Mode Plus (artworks are configured per emulator in the config menu) or scraped using the scraper. Standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
 -  `x` - The x position of the artwork (in layout coordinates).
 -  `y` - The y position of the artwork (in layout coordinates).
 -  `w` - The width of the artwork (in layout coordinates). Default value is `0`, which enables `auto_width`.
@@ -329,7 +329,7 @@ fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
 ```
 
-Add a surface to the end of Attract-Mode's draw list. A surface is an off-screen texture upon which you can draw other [`fe.Image`](#feadd_image), [`fe.Artwork`](#feadd_artwork), [`fe.Text`](#feadd_text), [`fe.Listbox`](#feadd_listbox) and [`fe.Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
+Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`fe.Image`](#feadd_image), [`fe.Artwork`](#feadd_artwork), [`fe.Text`](#feadd_text), [`fe.Listbox`](#feadd_listbox) and [`fe.Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
 The default blend mode for surfaces is `BlendMode.Premultiplied`
 
@@ -352,7 +352,7 @@ The default blend mode for surfaces is `BlendMode.Premultiplied`
 fe.add_clone( img )
 ```
 
-Clone an image, artwork or surface object and add the clone to the back of Attract-Mode's draw list. The texture pixel data of the original and clone is shared as a result.
+Clone an image, artwork or surface object and add the clone to the back of the draw list. The texture pixel data of the original and clone is shared as a result.
 
 **Parameters**
 
@@ -370,11 +370,11 @@ Clone an image, artwork or surface object and add the clone to the back of Attra
 fe.add_text( msg, x, y, w, h )
 ```
 
-Add a text label to the end of Attract-Mode's draw list.
+Add a text label to the end of the draw list.
 
 **Parameters**
 
--  `msg` - The text to display. [_Magic Tokens_](#magic-tokens) can be used here, in which case Attract-Mode will dynamically update the msg in response to navigation.
+-  `msg` - The text to display. [_Magic Tokens_](#magic-tokens) can be used here, in which case Attract-Mode Plus will dynamically update the msg in response to navigation.
 -  `x` - The x coordinate of the top left corner of the text (in layout coordinates).
 -  `y` - The y coordinate of the top left corner of the text (in layout coordinates).
 -  `w` - The width of the text (in layout coordinates).
@@ -392,7 +392,7 @@ Add a text label to the end of Attract-Mode's draw list.
 fe.add_listbox( x, y, w, h )
 ```
 
-Add a listbox to the end of Attract-Mode's draw list.
+Add a listbox to the end of the draw list.
 
 **Parameters**
 
@@ -414,7 +414,7 @@ Add a listbox to the end of Attract-Mode's draw list.
 fe.add_rectangle( x, y, w, h )
 ```
 
-Add a rectangle to the end of Attract-Mode's draw list.
+Add a rectangle to the end of the draw list.
 
 **Parameters**
 
@@ -495,7 +495,7 @@ Compile a GLSL shader from the given file(s) for use in the layout. Also see [`f
 fe.add_sound( name )
 ```
 
-Add a sound file that can then be played by Attract-Mode. For short sounds, stored in RAM. For playing long audio tracks use [`fe.add_music()`](#feadd_music-).
+Add a sound file that can then be played by Attract-Mode Plus. For short sounds, stored in RAM. For playing long audio tracks use [`fe.add_music()`](#feadd_music-).
 
 **Parameters**
 
@@ -513,7 +513,7 @@ Add a sound file that can then be played by Attract-Mode. For short sounds, stor
 fe.add_music( name )
 ```
 
-Add an audio track that can then be played by Attract-Mode. For long audio tracks, streamed from disk. For playing short sounds use [`fe.add_sound()`](#feadd_sound).
+Add an audio track that can then be played by Attract-Mode Plus. For long audio tracks, streamed from disk. For playing short sounds use [`fe.add_sound()`](#feadd_sound).
 
 **Parameters**
 
@@ -642,9 +642,9 @@ The value of the `var` parameter passed to the transition function depends upon 
 
 The `transition_time` parameter passed to the transition function is the amount of time (in milliseconds) since the transition began.
 
-The transition function must return a boolean value. It should return `true` if a redraw is required, in which case Attract-Mode will redraw the screen and immediately call the transition function again with an updated `transition_time`.
+The transition function must return a boolean value. It should return `true` if a redraw is required, in which case Attract-Mode Plus will redraw the screen and immediately call the transition function again with an updated `transition_time`.
 
-**_The transition function must eventually return `false` to notify Attract-Mode that the transition effect is done, allowing the normal operation of the frontend to proceed._**
+**_The transition function must eventually return `false` to notify Attract-Mode Plus that the transition effect is done, allowing the normal operation of the frontend to proceed._**
 
 ---
 
@@ -739,7 +739,7 @@ Get the filename of an artwork for the selected game.
 
 **Parameters**
 
--  `label` - The label of the artwork to retrieve. This should correspond to an artwork configured in Attract-Mode (artworks are configured per emulator in the config menu) or scraped using the scraper. Attract-Mode's standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
+-  `label` - The label of the artwork to retrieve. This should correspond to an artwork configured in Attract-Mode Plus (artworks are configured per emulator in the config menu) or scraped using the scraper. Standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
 -  `index_offset` - The offset (from the current selection) of the game to retrieve the filename for. i.e. `-1` = previous game, `0` = current game, `1` = next game, and so on. Default value is `0`.
 -  `filter_offset` - The offset (from the current filter) of the filter containing the selection to retrieve the filename for. i.e. `-1` = previous filter, `0` = current filter. Default value is `0`.
 -  `flags` - Flags to control the filename that gets returned. Can be set
@@ -970,7 +970,7 @@ Loads a module (a "library" Squirrel script).
 
 **Parameters**
 
--  `name` - The name of the library module to load. This should correspond to a script file in the "modules" subdirectory of your Attract-Mode configuration (without the file extension).
+-  `name` - The name of the library module to load. This should correspond to a script file in the "modules" subdirectory of your Attract-Mode Plus configuration (without the file extension).
 
 **Return Value**
 
@@ -1104,7 +1104,7 @@ Returns the modified time of the given file.
 fe.get_general_config()
 ```
 
-Get the Attract-Mode general configuration settings.
+Get the Attract-Mode Plus general configuration settings.
 
 **Parameters**
 
@@ -1112,7 +1112,7 @@ Get the Attract-Mode general configuration settings.
 
 **Return Value**
 
--  A table containing AM's `general` configuration settings.
+-  A table containing the Attract-Mode Plus `general` configuration settings.
 
 ---
 
@@ -1201,7 +1201,7 @@ An instance of the [`fe.CurrentList`](#fecurrentlist) class and is where current
 
 ### `fe.image_cache`
 
-An instance of the [`fe.ImageCache`](#feimagecache) class and provides script access to Attract-Mode's internal image cache.
+An instance of the [`fe.ImageCache`](#feimagecache) class and provides script access to the internal image cache.
 
 ### `fe.overlay`
 
@@ -1209,7 +1209,7 @@ An instance of the [`fe.Overlay`](#feoverlay-1) class and is where overlay funct
 
 ### `fe.obj`
 
-Contains the Attract-Mode draw list. It is an array of [`fe.Image`](#feimage), [`fe.Text`](#fetext), [`fe.ListBox`](#felistbox), and [`fe.Rectangle`](#ferectangle-) instances.
+Contains the Attract-Mode Plus draw list. It is an array of [`fe.Image`](#feimage), [`fe.Text`](#fetext), [`fe.ListBox`](#felistbox), and [`fe.Rectangle`](#ferectangle-) instances.
 
 ### `fe.displays`
 
@@ -1225,19 +1225,19 @@ An array of [`fe.Monitor`](#femonitor) instances, and provides the mechanism for
 
 ### `fe.script_dir`
 
-When Attract-Mode runs a layout or plug-in script, `fe.script_dir` is set to the layout or plug-in's directory.
+When Attract-Mode Plus runs a layout or plug-in script, `fe.script_dir` is set to the layout or plug-in's directory.
 
 ### `fe.script_file`
 
-When Attract-Mode runs a layout or plug-in script, `fe.script_file` is set to the name of the layout or plug-in script file.
+When Attract-Mode Plus runs a layout or plug-in script, `fe.script_file` is set to the name of the layout or plug-in script file.
 
 ### `fe.module_dir`
 
-When Attract-Mode runs a module script, `fe.module_dir` is set to the module's directory.
+When Attract-Mode Plus runs a module script, `fe.module_dir` is set to the module's directory.
 
 ### `fe.nv`
 
-The `fe.nv` table can be used by layouts and plugins to store persistent values. The values in this table get saved by Attract-Mode whenever the layout changes and are saved to disk when Attract-Mode is shut down. `boolean`, `integer`, `float`, `string`, `array` and `table` values can be stored in this table.
+The `fe.nv` table can be used by layouts and plugins to store persistent values. The values in this table get saved by Attract-Mode Plus whenever the layout changes and are saved to disk when Attract-Mode Plus is shut down. `boolean`, `integer`, `float`, `string`, `array` and `table` values can be stored in this table.
 
 ---
 
@@ -1252,7 +1252,7 @@ This class is a container for global layout settings. The instance of this class
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
--  `base_rotation` - Get the base orientation of Attract Mode which is set in General Settings. This property cannot be set from the script. This can be one of the following values:
+-  `base_rotation` - Get the base orientation of Attract-Mode Plus which is set in General Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
    -  `RotateScreen.Right`
    -  `RotateScreen.Flip`
@@ -1295,14 +1295,14 @@ This class is a container for status information regarding the current display. 
 
 ### `fe.ImageCache`
 
-This class is a container for Attract-Mode's internal image cache. The instance of this class is the [`fe.image_cache`](#feimage_cache) object. This class cannot be otherwise instantiated in a script.
+This class is a container for the internal image cache. The instance of this class is the [`fe.image_cache`](#feimage_cache) object. This class cannot be otherwise instantiated in a script.
 
 **Properties**
 
 -  `count` - Get the number of images currently in the cache.
 -  `size` - Get the current size of the image cache (in bytes).
 -  `max_size` - Get the (user configured) maximum size of the image cache (in bytes).
--  `bg_load` - Get/set whether images are to be loaded on a background thread. Setting to `true` might make Attract-Mode animations smoother, but can cause a slight flicker as images get loaded. Default value is `false`.
+-  `bg_load` - Get/set whether images are to be loaded on a background thread. Setting to `true` might make Attract-Mode Plus animations smoother, but can cause a slight flicker as images get loaded. Default value is `false`.
 
 **Member Functions**
 
@@ -1326,7 +1326,7 @@ This class is a container for overlay functionality. The instance of this class 
 
 -  `set_custom_controls( caption_text, options_listbox )`
 -  `set_custom_controls( caption_text )`
--  `set_custom_controls()` - Tells the frontend that the layout will provide custom controls for displaying overlay menus such as the exit dialog, displays menu, etc. The `caption_text` parameter is the FeText object that the frontend end should use to display the overlay caption (i.e. `"Exit Attract-Mode?"`). The `options_listbox` parameter is the FeListBox object that the frontend should use to display the overlay options.
+-  `set_custom_controls()` - Tells the frontend that the layout will provide custom controls for displaying overlay menus such as the exit dialog, displays menu, etc. The `caption_text` parameter is the FeText object that the frontend end should use to display the overlay caption (i.e. `"Exit Attract-Mode Plus?"`). The `options_listbox` parameter is the FeListBox object that the frontend should use to display the overlay options.
 -  `clear_custom_controls()` - Tell the frontend that the layout will NOT do any custom control handling for overlay menus. This will result in the frontend using its built-in default menus instead for overlays.
 -  `list_dialog( options, title, default_sel, cancel_sel )`
 -  `list_dialog( options, title, default_sel )`
@@ -1392,7 +1392,7 @@ This class is a container for information about the available filters. Instances
 
 ### `fe.Monitor`
 
-This class represents a monitor in Attract-Mode, and provides the interface to the extra monitors in a multi-monitor setup. Instances of this class are contained in the [`fe.monitors`](#femonitors) array. This class cannot otherwise be instantiated in a script.
+This class represents a monitor in Attract-Mode Plus, and provides the interface to the extra monitors in a multi-monitor setup. Instances of this class are contained in the [`fe.monitors`](#femonitors) array. This class cannot otherwise be instantiated in a script.
 
 **Properties**
 
@@ -1412,14 +1412,14 @@ This class represents a monitor in Attract-Mode, and provides the interface to t
 
 **Notes**
 
--  As of this writing, multiple monitor support has not been implemented for the `OS X` version of Attract-Mode.
+-  As of this writing, multiple monitor support has not been implemented for the `OS X` version of Attract-Mode Plus.
 -  The first entry in the [`fe.monitors`](#femonitors) array is always the _primary_ display for the system.
 
 ---
 
 ### `fe.Image`
 
-The class representing an image in Attract-Mode. Instances of this class are returned by the [`fe.add_image()`](#feadd_image), [`fe.add_artwork()`](#feadd_artwork), [`fe.add_surface()`](#feadd_surface) and [`fe.add_clone()`](#feadd_clone) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode draw list). This class cannot be otherwise instantiated in a script.
+The class representing an image in Attract-Mode Plus. Instances of this class are returned by the [`fe.add_image()`](#feadd_image), [`fe.add_artwork()`](#feadd_artwork), [`fe.add_surface()`](#feadd_surface) and [`fe.add_clone()`](#feadd_clone) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode Plus draw list). This class cannot be otherwise instantiated in a script.
 
 **Properties**
 
@@ -1474,7 +1474,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 -  `anchor_y` 🔶 - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` 🔶 - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_y` 🔶 - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `video_flags` - _[image & artwork only]_ Get/set video flags for this object. These flags allow you to override Attract-Mode's default video playback behaviour. Can be set to any combination of none or more of the following (i.e. `Vid.NoAudio | Vid.NoLoop`):
+-  `video_flags` - _[image & artwork only]_ Get/set video flags for this object. These flags allow you to override the default video playback behaviour. Can be set to any combination of none or more of the following (i.e. `Vid.NoAudio | Vid.NoLoop`):
    -  `Vid.Default`
    -  `Vid.ImagesOnly` (disable video playback, display images instead)
    -  `Vid.NoAudio` (silence the audio track)
@@ -1539,7 +1539,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
    img.subimg_height = img.texture_height * -1
    img.subimg_y = img.texture_height
    ```
--  Attract-Mode defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
+-  Attract-Mode Plus defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
 
    ```squirrel
    local art = fe.add_artwork( "snap" )
@@ -1561,7 +1561,7 @@ The class representing an image in Attract-Mode. Instances of this class are ret
 
 ### `fe.Text`
 
-The class representing a text label in Attract-Mode. Instances of this class are returned by the [`fe.add_text()`](#feadd_text) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode draw list). This class cannot be otherwise instantiated in a script.
+The class representing a text label in Attract-Mode Plus. Instances of this class are returned by the [`fe.add_text()`](#feadd_text) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode Plus draw list). This class cannot be otherwise instantiated in a script.
 
 **Properties**
 
@@ -1583,7 +1583,7 @@ The class representing a text label in Attract-Mode. Instances of this class are
 -  `bg_green` - Get/set green colour level for text background. Range is `[0...255]`. Default value is `0`.
 -  `bg_blue` - Get/set blue colour level for text background. Range is `[0...255]`. Default value is `0`.
 -  `bg_alpha` - Get/set alpha level for text background. Range is `[0...255]`. Default value is `0` (transparent).
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on `height`. Default value is `-1`.
+-  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
@@ -1638,7 +1638,7 @@ The class representing a text label in Attract-Mode. Instances of this class are
 
 ### `fe.ListBox`
 
-The class representing the listbox in Attract-Mode. Instances of this class are returned by the [`fe.add_listbox()`](#feadd_listbox) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode draw list). This class cannot be otherwise instantiated in a script.
+The class representing the listbox in Attract-Mode Plus. Instances of this class are returned by the [`fe.add_listbox()`](#feadd_listbox) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode Plus draw list). This class cannot be otherwise instantiated in a script.
 
 **Properties**
 
@@ -1673,7 +1673,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
    -  `ListAlign.Bottom` - Aligns options to the bottom.
    -  `ListAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
 -  `list_size` - Get the size of the list shown by the listbox. When the listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode will auto-size based on the value of `height`/`rows`. Default value is `-1`.
+-  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
@@ -1736,7 +1736,7 @@ The class representing the listbox in Attract-Mode. Instances of this class are 
 
 ### `fe.Rectangle` 🔶
 
-The class representing a rectangle in Attract-Mode. Instances of this class are returned by the [`fe.add_rectangle()`](#feadd_rectangle-) function and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode draw list). This class cannot be otherwise instantiated in a script.
+The class representing a rectangle in Attract-Mode Plus. Instances of this class are returned by the [`fe.add_rectangle()`](#feadd_rectangle-) function and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode Plus draw list). This class cannot be otherwise instantiated in a script.
 
 **Properties**
 
@@ -1886,12 +1886,12 @@ The class representing a GLSL shader. Instances of this class are returned by th
 
 ## Constants
 
--  `FeVersion` - [string] The current Attract-Mode version.
--  `FeVersionNum` - [int] The current Attract-Mode version.
--  `FeConfigDirectory` - [string] The path to Attract-Mode's config directory.
+-  `FeVersion` - [string] The current Attract-Mode Plus version.
+-  `FeVersionNum` - [int] The current Attract-Mode Plus version.
+-  `FeConfigDirectory` - [string] The path to the config directory.
 -  `IntroActive` - [boolean] `true` if the intro is active, `false` otherwise.
 -  `Language` - [string] The configured language.
--  `OS` - [string] The Operating System that Attract-Mode is running under, will be one of: `"Windows"`, `"OSX"`, `"FreeBSD"`, `"Linux"`, or `"Unknown"`.
+-  `OS` - [string] The Operating System that Attract-Mode Plus is running under, will be one of: `"Windows"`, `"OSX"`, `"FreeBSD"`, `"Linux"`, or `"Unknown"`.
 -  `ScreenWidth` - [int] The screen width in pixels.
 -  `ScreenHeight` - [int] The screen height in pixels.
 -  `ScreenRefreshRate` - [int] The refresh rate of the main screen in Hz.

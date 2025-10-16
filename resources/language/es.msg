@@ -57,8 +57,8 @@ Emulators;Emuladores
 #Enable Multiple Monitors;
 Enabled;activado
 #Exception;
-Exit Attract-Mode;Salir de Attract-Mode
-Exit Attract-Mode?;Salir de Attract-Mode?
+Exit Attract-Mode Plus;Salir de Attract-Mode Plus
+Exit Attract-Mode Plus?;Salir de Attract-Mode Plus?
 Exit Command;Comando de salida
 #Exit Message;
 Filter Name;Nombre del filtro
@@ -270,7 +270,7 @@ Generating Rom List: $1%;Generación de lista de roms: $1%
 
 # -- confirm_dialog --
 #Add '$1' to Favourites?;
-#Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;
+#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
 #Auto-detect emulators?;
 #Clear Hotkey?;
 Delete display '$1'?;¿Desea borrar la pantalla '$1'?
@@ -427,12 +427,12 @@ _help_emu_add;Agrega un nuevo emulador
 _help_emu_args;Argumento de linea de comandos usado por este emulador.  Los siguientes pueden ser propiamente sustituidos: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
 _help_emu_delete;Borra la entrada para este emulador
 _help_emu_executable;Ruta completa y nombre del ejecutable del emulador. $HOME es reemplazado por con el directorio home del usuario
-_help_emu_exit_hotkey;Configura una tecla global para salir del emulador. Attract-Mode terminará el proceso del emulador si esta tecla es presionada
+_help_emu_exit_hotkey;Configura una tecla global para salir del emulador. Attract-Mode Plus terminará el proceso del emulador si esta tecla es presionada
 _help_emu_gen_romlist;Genera una lista de roms buscando en las rutas de roms configuradas con las extensiones configuradas, incorporando XML e importando información adicional a la lista generada (si está disponible)
 _help_emu_import_extras;Ruta de cualquier archivo adicional que neceiste ser leido cuando se genera la lista de roms para este emulador.  Los archivos soportados son: catver.ini (para categorias de juegos) y nplayers.ini (para el número de jugadores). Es posible ingresar multiples rutas separadas por punto y coma.
 _help_emu_info_source;Use "listxml" si el emulador prove la salida de mame -listxml, "listsoftware" para la salida de mame/mess -listsoftware, "thegamesdb.net" para extraer información desde thegamesdb.net, o "steam" para leer desde una instalación de steam.  "listsoftware" y "thegamesdb.net" también requieren que sea configurado un identificador de sistema reconocible por esas fuentes
 #_help_emu_name;
-_help_emu_nb_mode_wait;Configura un tiempo mínimo de ejecución (en segundos).  Attract-Mode esperará después de ejecutar este emulador hasta que haya transcurrido el tiempo mínimo de ejecución y pasará a ejecución de fondo. Esto necesita ser configurado por Steam para funcionar correctamente en Windows. Configure esto en 0 a menos que sepa que lo necesita
+_help_emu_nb_mode_wait;Configura un tiempo mínimo de ejecución (en segundos).  Attract-Mode Plus esperará después de ejecutar este emulador hasta que haya transcurrido el tiempo mínimo de ejecución y pasará a ejecución de fondo. Esto necesita ser configurado por Steam para funcionar correctamente en Windows. Configure esto en 0 a menos que sepa que lo necesita
 #_help_emu_pause_hotkey;
 _help_emu_romext;Extensión(es) para este emulador (por ej. .zip). Es posible ingresar multiples extensiones separadas por punto y coma. Especificar "<DIR>" como entrada si los juegos se encuientran en subdirectorios separados
 _help_emu_rompath;Ruta a las roms para este emulador.  Es posible ingresar multiples rutas separadas por punto y coma.
@@ -464,8 +464,8 @@ _help_input_add;Agrega una nueva asignación de controles para esta acción
 _help_input_delete;Remover esta asignación de controles
 #_help_layout_file;
 #_help_layout_name;
-_help_main_control;Configura las entradas de palanca, teclado y ratón que controlan Attract-Mode
-_help_main_display;Configura los grupos de lista de roms/temas ("Pantallas") que están disponibles para hacer circular enAttract-Mode
+_help_main_control;Configura las entradas de palanca, teclado y ratón que controlan Attract-Mode Plus
+_help_main_display;Configura los grupos de lista de roms/temas ("Pantallas") que están disponibles para hacer circular enAttract-Mode Plus
 _help_main_emu;Configurar configuraciones del emulador
 #_help_main_intro;
 _help_main_misc;Configuraciones varias
@@ -477,7 +477,7 @@ _help_main_sound;Configura volumenes de sonidos, asignaciones de eventos de soni
 #_help_misc_anisotropic_filtering;
 #_help_misc_antialiasing;
 #_help_misc_check_for_updates;
-_help_misc_confirm_exit;Confirm before exiting Attract-Mode?
+_help_misc_confirm_exit;Confirm before exiting Attract-Mode Plus?
 _help_misc_confirm_favs;Confirma la adición/remoción a favoritos
 _help_misc_exit_command;Comando seleccionado cuando Salir (con confirmación) es seleccionado [por ej. "sudo shutdown"]
 #_help_misc_exit_message;
@@ -493,10 +493,10 @@ _help_misc_hide_brackets;Esconde Hide el texto en paréntesis cuando se muestran
 _help_misc_quick_menu;Establece si los menús se pueden abrir y cerrar con el mismo botón. También permite cambiar entre menús sin tener que cerrarlos primero
 #_help_misc_screen_rotation;
 #_help_misc_startup_mode;
-_help_misc_track_usage;Configura si Attract-Mode debería registrar el uso (tiempo jugado y cuenta de partidas para cada juego)
+_help_misc_track_usage;Configura si Attract-Mode Plus debería registrar el uso (tiempo jugado y cuenta de partidas para cada juego)
 #_help_misc_ui_color;
 #_help_misc_video_decoder;
-_help_misc_window_mode;configura si Attract-Mode llena lapantalla o se ejecuta en una ventana
+_help_misc_window_mode;configura si Attract-Mode Plus llena lapantalla o se ejecuta en una ventana
 _help_plugin_command;Ejecutable asociado a este plugin
 _help_plugin_enabled;Configura si este plugin está o no habilitado
 #_help_plugin_name;

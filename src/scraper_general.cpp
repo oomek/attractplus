@@ -625,7 +625,7 @@ bool FeSettings::build_romlist( const std::vector< FeImportTask > &task_list,
 
 			if ( tail_compare( (*itr).file_name, ".txt" ) )
 			{
-				// Attract-Mode format list
+				// Native format list
 				//
 				FeRomList temp_list( m_config_path );
 				temp_list.load_from_file( (*itr).file_name, ";" );
