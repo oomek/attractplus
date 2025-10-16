@@ -208,6 +208,9 @@ int main(int argc, char *argv[])
 
 	if ( !config_mode )
 	{
+		// Load the display early so the intro can use the romlist and artwork
+		feSettings.set_display( feSettings.get_selected_display_index() );
+
 		// Attempt to start the intro now
 		if ( !feVM.load_intro() )
 		{
@@ -582,7 +585,6 @@ int main(int argc, char *argv[])
 
 				if ( !has_layout )
 				{
-					feSettings.set_display( feSettings.get_selected_display_index() );
 					feVM.load_layout( initial_load );
 					initial_load = false;
 				}
