@@ -116,7 +116,7 @@ class FeInputMap : public FeBaseConfigurable
 public:
 
 	//
-	// Input actions supported by Attract-Mode:
+	// Supported Input actions:
 	//
 	// This enum needs to be kept in sync with commandStrings[] and
 	// commandDispStrings[] below.

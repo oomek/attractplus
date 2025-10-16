@@ -37,7 +37,7 @@ void osx_hide_menu_bar();
 std::basic_string<std::uint32_t> osx_clipboard_get_content();
 
 //
-// Put the focus on Attract-Mode.
+// Put the focus on the frontend.
 //
 void osx_take_focus();
 

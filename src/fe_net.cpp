@@ -85,7 +85,7 @@ const FeNetTask &FeNetTask::operator=( const FeNetTask &o )
 
 bool FeNetTask::do_task( long *code )
 {
-	const char *UA_VALUE = "Attract-Mode/2.x";
+	const char *UA_VALUE = "Attract-Mode-Plus/3.x";
 
 	std::vector<char> rbuff;
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Attract-Mode language utility script
+# Attract-Mode Plus language utility script
 # - Updates *.msg files to match the master_msg file (en.msg)
 # - Additional translations will be placed at the end of their respective file
 # - All comments in the translation files will be lost

@@ -17,9 +17,9 @@ Homepage: http://attractmode.org
 Package: attractplus
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Attract-Mode emulator frontend
- Attract-Mode is a graphical frontend for command line emulators such as MAME,
+Description: Attract-Mode Plus emulator frontend
+ Attract-Mode Plus is a graphical frontend for command line emulators such as MAME,
  MESS and Nestopia. It hides the underlying operating system and is intended
  to be controlled with a joystick, gamepad or spin dial, making it ideal for
- use in arcade cabinets. Attract-Mode is open source and runs on Linux, OS X
+ use in arcade cabinets. Attract-Mode Plus is open source and runs on Linux, OS X
  and Windows.

@@ -57,8 +57,8 @@ Emulators;模擬器
 Enable Multiple Monitors;啟用多螢幕支援
 Enabled;啟用
 Exception;例外條件
-Exit Attract-Mode;結束 Attract-Mode
-Exit Attract-Mode?;要結束 Attract-Mode 嗎？
+Exit Attract-Mode Plus;結束 Attract-Mode Plus
+Exit Attract-Mode Plus?;要結束 Attract-Mode Plus 嗎？
 Exit Command;結束時指令
 Exit Message;結束時訊息
 Filter Name;過濾名稱
@@ -270,7 +270,7 @@ Scraping Artwork: $1%;正在搜刮插圖: $1%
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;要將「$1」加入我的最愛嗎？
-Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode 已偵測到能夠自動匯入的模擬器，要立即匯入嗎？
+Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode Plus 已偵測到能夠自動匯入的模擬器，要立即匯入嗎？
 #Auto-detect emulators?;
 Clear Hotkey?;要清除熱鍵嗎？
 Delete display '$1'?;要刪除「$1」顯示介面嗎？
@@ -372,11 +372,11 @@ _help_control_displays_menu;設定「顯示主選單」的控制鍵
 _help_control_down;設定「下移選項」的控制鍵
 _help_control_edit_game;設定「編輯當前選項」的控制鍵
 _help_control_exit_to_desktop;設定「結束並立即返回桌面」的控制鍵
-_help_control_exit;設定「結束 Attract-Mode」的控制鍵
+_help_control_exit;設定「結束 Attract-Mode Plus」的控制鍵
 _help_control_filters_menu;設定「顯示遊戲過濾選單」的控制鍵
 #_help_control_insert_game;
 _help_control_intro;設定「顯示啟動視訊」的控制鍵
-_help_control_joystick_map;指定電腦的搖桿裝置在 Attract-Mode 裡的搖桿順序 (例: 你可以強制這個前導永遠使用 "Microsoft X-Box 360 pad" 作為搖桿 0)
+_help_control_joystick_map;指定電腦的搖桿裝置在 Attract-Mode Plus 裡的搖桿順序 (例: 你可以強制這個前導永遠使用 "Microsoft X-Box 360 pad" 作為搖桿 0)
 _help_control_joystick_threshold;這個設定用來定位搖桿移動的靈敏度，數值從 1 到 100 (100 為最大值)。
 #_help_control_layout_options;
 _help_control_left;設定「左移選項」的控制鍵
@@ -426,14 +426,14 @@ _help_displaysmenu;設定主選單的設定選項
 _help_emu_add;新增一個新的模擬器
 _help_emu_args;這個模擬器的命令行參數 (可用的變數: [name]、[romext]、[rompath]、[emulator]、[romfilename]、[system]、[systemn]、[workdir]、[nothing]，以及任何有效的其它標記，詳情請參考 layout 文件)
 _help_emu_delete;刪除這個模擬器項目
-_help_emu_executable;這個模擬器的完整路徑及檔名 (可用的變數: $HOME = 用戶主目錄、$PROGDIR = Attract-Mode 程式目錄，Windows 系統額外還有符合系統環境變數的 %SYSTEMROOT% 及 %PROGRAMFILES% 可以使用)
-_help_emu_exit_hotkey;設定一個全域熱鍵來結束模擬器 (當這個熱鍵按下時，Attract-Mode 將會終結這個模擬器處理程序)
+_help_emu_executable;這個模擬器的完整路徑及檔名 (可用的變數: $HOME = 用戶主目錄、$PROGDIR = Attract-Mode Plus 程式目錄，Windows 系統額外還有符合系統環境變數的 %SYSTEMROOT% 及 %PROGRAMFILES% 可以使用)
+_help_emu_exit_hotkey;設定一個全域熱鍵來結束模擬器 (當這個熱鍵按下時，Attract-Mode Plus 將會終結這個模擬器處理程序)
 _help_emu_gen_romlist;使用設定裡的遊戲檔路徑、副檔名、XML 及附加匯入檔案裡的資料來產生遊戲清單
 _help_emu_import_extras;設定產生遊戲清單時所要使用的附加檔案路徑。 支援的檔案: catver.ini (遊戲分類)、nplayers.ini (玩家人數)、series.ini (系列遊戲)、language.ini (遊戲語言) 及 mame.xml (多個檔案路徑可用分號間隔)
 _help_emu_info_source;使用 "listxml" 為 mame -listxml 輸出、"listsoftware" 為 mame/mess -listsoftware 輸出、"thegamesdb.net" 為從 thegamesdb.net 搜刮資料、"steam" 為從 steam 安裝中讀取、"scummvm" 為當模擬器為 scummvm 時使用 (使用 "listsoftware" 及 "thegamesdb.net" 必須正確設定系統識別名稱)
 #_help_emu_name;
-_help_emu_nb_mode_wait;若此值非 0，這個模擬器將會執行在非阻塞模式 (Attract-Mode 將會等待至所設定的秒數後才將視窗焦點從模擬器轉回並喚醒 Attract-Mode，這對於正確啟動 Steam 之類的程序是必要的，在你了解它的作用前請保持為 0)
-_help_emu_pause_hotkey;設定一個全域熱鍵來暫停模擬器 (當這個熱鍵按下時，Attract-Mode 將會暫停這個模擬器處理程序並返回前導，這個模擬器處理程序可在再次選擇同樣遊戲後繼續)
+_help_emu_nb_mode_wait;若此值非 0，這個模擬器將會執行在非阻塞模式 (Attract-Mode Plus 將會等待至所設定的秒數後才將視窗焦點從模擬器轉回並喚醒 Attract-Mode Plus，這對於正確啟動 Steam 之類的程序是必要的，在你了解它的作用前請保持為 0)
+_help_emu_pause_hotkey;設定一個全域熱鍵來暫停模擬器 (當這個熱鍵按下時，Attract-Mode Plus 將會暫停這個模擬器處理程序並返回前導，這個模擬器處理程序可在再次選擇同樣遊戲後繼續)
 _help_emu_romext;這個模擬器的遊戲副檔名 (例: .zip)，若遊戲在個別的子目錄時請設為 "<DIR>" (多個副檔名可用分號間隔)
 _help_emu_rompath;這個模擬器的遊戲檔存放路徑 (多個路徑可用分號間隔)
 _help_emu_scrape_artwork;從網路搜刮這個模擬器所沒有的遊戲插圖
@@ -441,7 +441,7 @@ _help_emu_scrape_artwork;從網路搜刮這個模擬器所沒有的遊戲插圖
 _help_emu_sel_gen_romlist;為多個模擬器產生收藏集/遊戲清單
 _help_emu_sel;設定模擬器
 _help_emu_system;這個模擬器的系統識別名稱 (多個識別名稱可用分號間隔)
-_help_emu_workdir;這個模擬器的工作目錄 (Attract-Mode 會將工作目錄作為執行模擬器的開始位置，一些在這個前導裡以相對路徑所設定的資源路徑也都會以此工作目錄為開始位置)
+_help_emu_workdir;這個模擬器的工作目錄 (Attract-Mode Plus 會將工作目錄作為執行模擬器的開始位置，一些在這個前導裡以相對路徑所設定的資源路徑也都會以此工作目錄為開始位置)
 _help_filter_add_exception;新增例外條件至這個遊戲過濾 (若遊戲符合這個例外條件且未被先前的規則過濾到，它將會列在這個遊戲過濾裡)
 _help_filter_add_rule;新增一個規則至這個遊戲過濾 (遊戲必須符合所有過濾規則或例外條件才會列在這個遊戲過濾)
 _help_filter_delete;刪除這個遊戲過濾
@@ -458,14 +458,14 @@ _help_game_edit;編輯這個遊戲的資訊
 _help_game_overview;編輯遊戲簡介
 _help_generator_build;開始為已選擇的模擬器建立遊戲清單
 _help_generator_opt;設定要為哪些模擬器建立遊戲清單
-_help_input_action;目前所設定的 Attract-Mode 操作控制
+_help_input_action;目前所設定的 Attract-Mode Plus 操作控制
 _help_input_add;新增一個輸入映射給這個操作控制使用
 _help_input_default_action;設定這個操作控制的預設操作功能
 _help_input_delete;移除這個輸入映射
 _help_layout_file;一些畫面佈局主題提供多個 layout*.nut 檔案，須選擇要使用的畫面佈局檔案。
 #_help_layout_name;
-_help_main_control;設定搖桿、鍵盤及滑鼠按鍵用來操作 Attract-Mode 功能
-_help_main_display;設定遊戲清單/畫面佈局群組 (又稱顯示介面)，用於在 Attract-Mode 裡循環顯示。
+_help_main_control;設定搖桿、鍵盤及滑鼠按鍵用來操作 Attract-Mode Plus 功能
+_help_main_display;設定遊戲清單/畫面佈局群組 (又稱顯示介面)，用於在 Attract-Mode Plus 裡循環顯示。
 _help_main_emu;設定模擬器設定選項
 _help_main_intro;設定啟動視訊
 _help_main_misc;設定一般設定
@@ -477,26 +477,26 @@ _help_main_sound;設定聲音音量、操作事件聲音對映及環境音效
 #_help_misc_anisotropic_filtering;
 #_help_misc_antialiasing;
 #_help_misc_check_for_updates;
-_help_misc_confirm_exit;結束 Attract-Mode 前先確認？
+_help_misc_confirm_exit;結束 Attract-Mode Plus 前先確認？
 _help_misc_confirm_favs;加入/移除我的最愛前先確認？
-_help_misc_exit_command;設定當結束 Attract-Mode 時所要執行的命令 [例: "sudo shutdown"]
-_help_misc_exit_message;設定當結束 Attract-Mode 時所要顯示的訊息 [例: "關機"]
+_help_misc_exit_command;設定當結束 Attract-Mode Plus 時所要執行的命令 [例: "sudo shutdown"]
+_help_misc_exit_message;設定當結束 Attract-Mode Plus 時所要顯示的訊息 [例: "關機"]
 _help_misc_filter_wrap_mode;設定當使用「下一個遊戲過濾」或「上一個遊戲過濾」切換至底時所要執行的動作
 #_help_misc_group_clones;
 _help_misc_hide_brackets;顯示遊戲標題時隱藏括號內容
-_help_misc_hide_console;啟動時隱藏主控台視窗 (註: 這僅在從 Windows 介面啟動 Attract-Mode 時能正常運作，若從命令提示字元視窗啟動 (例: 批次檔)，這個處理程式將始終附加並輸出到這個命令提示字元視窗)
-_help_misc_image_cache_mbytes;設定 Attract-Mode 內部影像快取最大值大小 (以 MB 為單位)
-_help_misc_language;選擇 Attract-Mode 使用者介面所要使用的語言
+_help_misc_hide_console;啟動時隱藏主控台視窗 (註: 這僅在從 Windows 介面啟動 Attract-Mode Plus 時能正常運作，若從命令提示字元視窗啟動 (例: 批次檔)，這個處理程式將始終附加並輸出到這個命令提示字元視窗)
+_help_misc_image_cache_mbytes;設定 Attract-Mode Plus 內部影像快取最大值大小 (以 MB 為單位)
+_help_misc_language;選擇 Attract-Mode Plus 使用者介面所要使用的語言
 _help_misc_layout_preview;立即顯示佈局配置變更
-_help_misc_multiple_monitors;為 Attract-Mode 啟用多螢幕支援 (設定為「否」可能減少執行遊戲時的螢幕閃爍問題)
+_help_misc_multiple_monitors;為 Attract-Mode Plus 啟用多螢幕支援 (設定為「否」可能減少執行遊戲時的螢幕閃爍問題)
 _help_misc_power_saving;僅在需要時才重新繪製螢幕進而達成省電 (可能造成一些畫面佈局動畫卡頓或在 Linux 系統畫面凍結)
 _help_misc_quick_menu;設定是否可以使用相同按鈕開啟和關閉選單。還可以在選單之間切換，而無需先關閉它們
 #_help_misc_screen_rotation;
-_help_misc_startup_mode;設定 Attract-Mode 啟動時所要顯示的選單項目
-_help_misc_track_usage;設定 Attract-Mode 是否要記錄使用狀況 (每個遊戲的遊戲時間及遊戲次數)
-_help_misc_ui_color;選擇在 Attract-Mode 的使用者介面中使用的顏色
+_help_misc_startup_mode;設定 Attract-Mode Plus 啟動時所要顯示的選單項目
+_help_misc_track_usage;設定 Attract-Mode Plus 是否要記錄使用狀況 (每個遊戲的遊戲時間及遊戲次數)
+_help_misc_ui_color;選擇在 Attract-Mode Plus 的使用者介面中使用的顏色
 _help_misc_video_decoder;設定視訊播放時所要使用的解碼器 (若存在多個解碼器)
-_help_misc_window_mode;設定 Attract-Mode 所要使用的顯示模式
+_help_misc_window_mode;設定 Attract-Mode Plus 所要使用的顯示模式
 _help_plugin_command;這個外掛所關聯的外部執行檔
 _help_plugin_enabled;設定這個外掛是否要啟用
 #_help_plugin_name;
@@ -511,7 +511,7 @@ _help_scraper_marquees;設定是否要搜刮遊戲招牌插圖
 _help_scraper_snaps;設定是否要搜刮遊戲捉圖
 _help_scraper_vids;設定是否要搜刮遊戲視訊
 _help_scraper_wheels;設定是否要搜刮遊戲圖標 (輪播插圖)
-_help_shortcut_artwork_name;提供要與此捷徑關聯的插圖名稱 (Attract-Mode 將會在顯示這個捷徑時嘗試使用這個名稱載入插圖資源)
+_help_shortcut_artwork_name;提供要與此捷徑關聯的插圖名稱 (Attract-Mode Plus 將會在顯示這個捷徑時嘗試使用這個名稱載入插圖資源)
 _help_shortcut_delete;從遊戲清單刪除這個捷徑
 _help_shortcut_label;編輯這個捷徑的標題名稱
 _help_shortcut_target;編輯這個捷徑的目標顯示介面

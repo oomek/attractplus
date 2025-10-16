@@ -57,8 +57,8 @@ Emulators;エミュレータ
 #Enable Multiple Monitors;
 Enabled;使用する
 #Exception;
-Exit Attract-Mode;プログラムを終了
-Exit Attract-Mode?;終了しますか?
+Exit Attract-Mode Plus;プログラムを終了
+Exit Attract-Mode Plus?;終了しますか?
 Exit Command;終了コマンド
 #Exit Message;
 Filter Name;フィルターの名前
@@ -270,7 +270,7 @@ Scraping Artwork: $1%;オンラインから $1% をダウンロード中です
 
 # -- confirm_dialog --
 #Add '$1' to Favourites?;
-#Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;
+#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
 #Auto-detect emulators?;
 #Clear Hotkey?;
 Delete display '$1'?;ディスプレイ '$1' を削除してもよろしいですか？
@@ -477,7 +477,7 @@ _help_main_sound;効果音, 背景音楽, ボリューム等を設定します
 #_help_misc_anisotropic_filtering;
 #_help_misc_antialiasing;
 #_help_misc_check_for_updates;
-_help_misc_confirm_exit;Confirm before exiting Attract-Mode?
+_help_misc_confirm_exit;Confirm before exiting Attract-Mode Plus?
 _help_misc_confirm_favs;お気に入りのゲームを追加,削除する時, Yes/Noで確認するかを設定します
 _help_misc_exit_command;終了 (Yes/No 確認) でプログラムを終了する時に実行する外部コマンドを設定します (例. "sudo shutdown")
 #_help_misc_exit_message;
@@ -496,7 +496,7 @@ _help_misc_quick_menu;同じボタンでメニューを開いたり閉じたり�
 _help_misc_track_usage;ゲームのプレイ内容(プレイ数,プレイ時間)を記録するかを設定します.
 #_help_misc_ui_color;
 #_help_misc_video_decoder;
-_help_misc_window_mode;.Attract-Mode がウィンドウモードで起動するかフルスクリーンモードで起動するかを設定します
+_help_misc_window_mode;.Attract-Mode Plus がウィンドウモードで起動するかフルスクリーンモードで起動するかを設定します
 _help_plugin_command;プラグインのコマンドを設定します
 _help_plugin_enabled;プラグインを使うかを設定します
 #_help_plugin_name;

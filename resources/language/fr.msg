@@ -57,8 +57,8 @@ Emulators;Emulateurs
 #Enable Multiple Monitors;
 Enabled;Activé
 #Exception;
-Exit Attract-Mode;Quitter Attract-Mode
-Exit Attract-Mode?;Quitter Attract-Mode?
+Exit Attract-Mode Plus;Quitter Attract-Mode Plus
+Exit Attract-Mode Plus?;Quitter Attract-Mode Plus?
 Exit Command;Commande de sortie
 #Exit Message;
 Filter Name;Nom du filtre
@@ -270,7 +270,7 @@ Scraping Artwork: $1%;Aspire l'Artwork: $1%
 
 # -- confirm_dialog --
 #Add '$1' to Favourites?;
-#Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;
+#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
 #Auto-detect emulators?;
 #Clear Hotkey?;
 Delete display '$1'?;Supprimer la liste '$1'?
@@ -371,8 +371,8 @@ _help_control_custom6;Définit le(s) contrôle(s) utilisateur(s) "Custom6"
 _help_control_displays_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des listes
 _help_control_down;Définit le(s) contrôle(s) qui décrémente(nt) la séléction d'une valeur
 #_help_control_edit_game;
-_help_control_exit_to_desktop;Définit le(s) contrôle(s) qui quitte(nt) immédiatement Attract Mode pour revenir au bureau
-_help_control_exit;Définit le(s) contrôle(s) qui quitte(nt) Attract Mode
+_help_control_exit_to_desktop;Définit le(s) contrôle(s) qui quitte(nt) immédiatement Attract-Mode Plus pour revenir au bureau
+_help_control_exit;Définit le(s) contrôle(s) qui quitte(nt) Attract-Mode Plus
 _help_control_filters_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des filtres
 #_help_control_insert_game;
 #_help_control_intro;
@@ -398,7 +398,7 @@ _help_control_reload;Définit le(s) contrôle(s) qui rechargent la mise en page 
 _help_control_replay_last_game;Définit le(s) contrôle(s) qui relance(nt) le dernier jeu joué
 #_help_control_right;
 _help_control_screen_saver;Définit le(s) contrôle(s) qui lance(nt) le mode "économiseur d'écran"
-_help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract Mode
+_help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract-Mode Plus
 _help_control_select;Définit le(s) contrôle(s) qui valide(nt) la valeur sélectionnée
 _help_control_toggle_flip;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 180 degrés
 _help_control_toggle_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
@@ -427,12 +427,12 @@ _help_emu_add;Ajouter un nouvel émulateur
 _help_emu_args;Arguments de la ligne de commande de cet émulateur. Options de substitution: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
 _help_emu_delete;Supprime l'entrée pour cet émulateur
 _help_emu_executable;Chemin et nom de l'exécutable de l'émulateur. $HOME sera remplacé par le répertoire de l'utilisateur
-_help_emu_exit_hotkey;Définit un raccourci clavier pour sortir de l'émulateur. Attract-Mode arrêtera le process de l'émulateur lorsque ce raccourci clavier sera pressé.
+_help_emu_exit_hotkey;Définit un raccourci clavier pour sortir de l'émulateur. Attract-Mode Plus arrêtera le process de l'émulateur lorsque ce raccourci clavier sera pressé.
 _help_emu_gen_romlist;Génére une liste de ROM en cherchant dans le chemin des ROM avec l'extension choisie, incorporant l'XML et les fichiers additionnels d'information dans la liste générée (si disponible)
 _help_emu_import_extras;Fichiers additionels nécessitant d'être lus lors de la génération de la liste de ROM pour cet émulateur. Fichiers supportés: catver.ini (catégories) et nplayers.ini (nombre de joueur). Plusieurs fichiers peuvent être saisis si séparés par un point-virgule
 _help_emu_info_source;Saisir "listxml" si cet émulateur propose un fichier de type mame -listxml, "listsoftware" pour les fichiers du type mame/mess -listsoftware, "thegamesdb.net" pour extraire les informations du site thegamesdb.net, ou "steam" pour les lires depuis une installation de steam. Les sources "listsoftware" et "thegamesdb.net" nécessitent que des identifiants systèmes spécifiques soient configurés pour fonctionner correctement
 #_help_emu_name;
-_help_emu_nb_mode_wait;Définit un temps minimum de fonctionnement (en secondes). Attract-Mode va attendre, après avoir lancé l'émulateur, que ce temps minimum se soit écoulé avant de re-basculer au premier plan. Ceci est nécessaire pour que Steam fonctionne correctement sous Windows. Saisir 0 si vous n'en avez pas besoin
+_help_emu_nb_mode_wait;Définit un temps minimum de fonctionnement (en secondes). Attract-Mode Plus va attendre, après avoir lancé l'émulateur, que ce temps minimum se soit écoulé avant de re-basculer au premier plan. Ceci est nécessaire pour que Steam fonctionne correctement sous Windows. Saisir 0 si vous n'en avez pas besoin
 #_help_emu_pause_hotkey;
 _help_emu_romext;Extension des ROM pour cet émulateur (ex .zip).  Possibilité d'utiliser des extensions multiples séparées par un point-virgule
 _help_emu_rompath;Chemin des ROM pour cet émulateur
@@ -477,7 +477,7 @@ _help_main_sound;Configurer le volume et les affectations sonores
 #_help_misc_anisotropic_filtering;
 #_help_misc_antialiasing;
 #_help_misc_check_for_updates;
-_help_misc_confirm_exit;Confirm before exiting Attract-Mode?
+_help_misc_confirm_exit;Confirm before exiting Attract-Mode Plus?
 _help_misc_confirm_favs;Confirmer l'addition/suppression des favoris
 _help_misc_exit_command;Commande à exécuter en quittant (Confirmer) [exemple "sudo shutdown"]
 #_help_misc_exit_message;
@@ -493,10 +493,10 @@ _help_misc_language;Sélectionner la langue
 _help_misc_quick_menu;Permet d'ouvrir et de fermer les menus avec le même bouton. Permet également de passer d'un menu à l'autre sans avoir à les fermer au préalable
 #_help_misc_screen_rotation;
 #_help_misc_startup_mode;
-_help_misc_track_usage;Active les compteurs d'Attract-Mode (Compteur de jeu et Temps de jeu)
+_help_misc_track_usage;Active les compteurs d'Attract-Mode Plus (Compteur de jeu et Temps de jeu)
 #_help_misc_ui_color;
 #_help_misc_video_decoder;
-_help_misc_window_mode;Définit si Attract Mode rempli l'écran, fonctionne en mode plein écran ou si il s'exécute dans une fenêtre.
+_help_misc_window_mode;Définit si Attract-Mode Plus rempli l'écran, fonctionne en mode plein écran ou si il s'exécute dans une fenêtre.
 _help_plugin_command;Exécutable associé à ce plug-in
 _help_plugin_enabled;Indiquer si ce plug-in est activé
 #_help_plugin_name;

@@ -688,7 +688,7 @@ bool FeSettings::thegamesdb_scraper( FeImporterContext &c )
 	path += "thegamesdb.net/";
 	confirm_directory( path, "" );
 
-	// Use public API key assigned to the Attract-Mode project if no specific key configured
+	// Use public API key assigned to this project if no specific key configured
 	//
 	std::string api_key = get_info( FeSettings::ThegamesdbKey );
 	if ( !api_key.empty() )

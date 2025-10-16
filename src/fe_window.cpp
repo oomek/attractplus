@@ -310,14 +310,14 @@ void FeWindow::initial_create()
 
 	// Some Windows users are reporting emulators hanging/failing to get focus when launched
 	// from 'fullscreen' (fullscreen mode, fillscreen where window dimensions = screen dimensions)
-	// They also report that the same emulator does work when Attract-Mode is in one of its windowed
+	// They also report that the same emulator does work when the frontend is in one of its windowed
 	// modes.
 	//
 	// We work around this issue for these users by having the default "fillscreen" mode actually
 	// extend 1 pixel offscreen in each direction (-1, -1, scr_width+2, scr_height+2).  The expectation
 	// is that this will prevent Windows from giving the frontend window the "fullscreen mode" treatment
 	// which seems to be the cause of this issue.  This is actually the same behaviour that earlier
-	// versions of Attract-Mode had (first by design, then by accident).
+	// versions had (first by design, then by accident).
 	//
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
@@ -431,7 +431,7 @@ void FeWindow::initial_create()
     	m_window->setIcon({ icon.getSize().y, icon.getSize().y }, icon.getPixelsPtr() );
 #endif
 	// We need to clear and display here before calling setSize and setPosition
-	// to avoid a white window flash on launching Attract Mode.
+	// to avoid a white window flash on launch.
 	clear();
 	display();
 
@@ -489,7 +489,7 @@ void launch_callback( void *o )
 #if defined(USE_XLIB)
 		sf::sleep( sf::milliseconds( 1000 ) );
 #endif
-		FeDebug() << "Closing Attract-Mode window" << std::endl;
+		FeDebug() << "Closing Attract-Mode Plus window" << std::endl;
 		win->close(); // this fixes raspi version (w/sfml-pi) obscuring daphne (and others?)
 	}
 #endif
@@ -635,9 +635,8 @@ bool FeWindow::run()
 
 	//
 	// If nbm_wait > 0, then m_fes.run() above is non-blocking and we need
-	// to wait at most nbm_wait seconds for Attract-Mode to lose focus to
-	// the launched program.  If it loses focus, we continue waiting until
-	// focus returns to Attract-Mode
+	// to wait at most nbm_wait seconds to lose focus to the launched program.
+	// If it loses focus, we continue waiting until it returns
 	//
 	if ( nbm_wait > 0 )
 	{
@@ -661,7 +660,7 @@ bool FeWindow::run()
 			if (( timer.getElapsedTime() >= sf::seconds( nbm_wait ) )
 				&& ( has_focus ))
 			{
-				FeDebug() << "Attract-Mode has focus, stopped non-blocking wait after "
+				FeDebug() << "Attract-Mode Plus has focus, stopped non-blocking wait after "
 					<< timer.getElapsedTime().asSeconds() << "s" << std::endl;
 
 				done_wait = true;

@@ -1154,7 +1154,7 @@ void unix_wait_process( unsigned int pid, run_program_options_class *opt )
 			//
 			if ( process_check_for_hotkey( opt, exit_is ) )
 			{
-				// Where the user has configured the "exit hotkey" in Attract-Mode to the same key as the emulator
+				// Where the user has configured the "exit hotkey" to the same key as the emulator
 				// uses to exit, we often have a problem of losing focus.  Delaying a bit and testing to make sure
 				// the emulator process is still running before sending the kill signal seems to help...
 				//

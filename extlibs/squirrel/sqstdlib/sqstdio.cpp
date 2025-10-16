@@ -5,11 +5,11 @@
 #include <sqstdio.h>
 #include "sqstdstream.h"
 
-// Begin Attract-Mode specific change
+// Begin AM specific change
 #ifdef _WIN32
 #include <SFML/System/Utf.hpp>
 #endif
-// End Attract-Mode specific change
+// End AM specific change
 
 #define SQSTD_FILE_TYPE_TAG (SQSTD_STREAM_TYPE_TAG | 0x00000001)
 //basic API
@@ -17,7 +17,7 @@ SQFILE sqstd_fopen(const SQChar *filename ,const SQChar *mode)
 {
 #ifndef SQUNICODE
 
-// Begin Attract-Mode specific change
+// Begin AM specific change
 #ifdef _WIN32
 	std::string fn = filename;
 	std::string m = mode;
@@ -31,7 +31,7 @@ SQFILE sqstd_fopen(const SQChar *filename ,const SQChar *mode)
 #else
 	return (SQFILE)fopen(filename,mode);
 #endif
-// End Attract-Mode specific change
+// End AM specific change
 
 #else
 	return (SQFILE)_wfopen(filename,mode);

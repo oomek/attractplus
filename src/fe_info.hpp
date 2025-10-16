@@ -297,7 +297,7 @@ protected:
 };
 
 //
-// Class for storing information regarding a specific Attract-Mode display
+// Class for storing information regarding a specific display
 //
 class FeDisplayInfo : public FeBaseConfigurable
 {

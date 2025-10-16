@@ -2,8 +2,7 @@
  *  Portions of this file are from the SFML Project and are subject to the
  *  SFML copyright notice and license terms set out below.
  *
- *  All modifications to this file for the Attract-Mode frontend are subject
- *  to the Attract-Mode copyright notice and license terms set out below.
+ *  All modifications to this file are subject to the copyright notice and license terms set out below.
  *
  */
 

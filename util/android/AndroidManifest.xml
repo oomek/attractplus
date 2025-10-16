@@ -13,12 +13,12 @@
     <uses-sdk android:minSdkVersion="9"
               android:targetSdkVersion="19" />
 
-    <application android:label="Attract-Mode"
+    <application android:label="Attract-Mode Plus"
                  android:hasCode="false"
                  android:allowBackup="true">
 
     <activity android:name="android.app.NativeActivity"
-              android:label="Attract-Mode"
+              android:label="Attract-Mode Plus"
               android:configChanges="keyboardHidden|orientation|screenSize">
 
         <meta-data android:name="android.app.lib_name" android:value="sfml-activity" />

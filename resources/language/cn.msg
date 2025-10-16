@@ -57,8 +57,8 @@ Emulators;模拟器
 Enable Multiple Monitors;使多个显示器
 Enabled;显示
 Exception;其他 Exception
-Exit Attract-Mode;退出ATTRACT-MODE
-Exit Attract-Mode?;退出ATTRACT-MODE吗?
+Exit Attract-Mode Plus;退出Attract-Mode Plus
+Exit Attract-Mode Plus?;退出Attract-Mode Plus吗?
 Exit Command;退出指令
 #Exit Message;
 Filter Name;分类名称
@@ -270,7 +270,7 @@ Scraping Artwork: $1%;正在搜刮 $1% 插图
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;添加 '$1' 到收藏？
-#Attract-Mode detected emulator(s) that can be imported automatically.  Import them now?;
+#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
 #Auto-detect emulators?;
 #Clear Hotkey?;
 Delete display '$1'?;删除 '$1' 界面?
@@ -426,7 +426,7 @@ Exit Hotkey;退出热键
 #_help_emu_add;
 #_help_emu_args;
 #_help_emu_delete;
-_help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode program dir. Windows OS additionally has %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
+_help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode Plus program dir. Windows OS additionally has %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
 #_help_emu_exit_hotkey;
 #_help_emu_gen_romlist;
 #_help_emu_import_extras;
@@ -477,7 +477,7 @@ _help_input_action;
 #_help_misc_anisotropic_filtering;
 #_help_misc_antialiasing;
 #_help_misc_check_for_updates;
-_help_misc_confirm_exit;Confirm before exiting Attract-Mode?
+_help_misc_confirm_exit;Confirm before exiting Attract-Mode Plus?
 _help_misc_confirm_favs;Confirm the addition/removal of Favourites?
 #_help_misc_exit_command;
 #_help_misc_exit_message;
