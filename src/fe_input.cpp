@@ -1183,7 +1183,19 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	{
 		if ( !index.get_current_state( joy_thresh ) )
 		{
-			std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( index );
+			const auto* event = e.getIf<sf::Event::JoystickMoved>();
+
+			// Special - released joystick needs to check for tracked pos/neg keys, since index will be empty
+			sf::Event pos = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
+			FeInputSingle tt( pos, mc_rect, joy_thresh, has_focus );
+			std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
+
+			if ( itr == m_tracked_keys.end() ) {
+				sf::Event neg = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
+				FeInputSingle tt( neg, mc_rect, joy_thresh, has_focus );
+				itr = m_tracked_keys.find( tt );
+			}
+
 			if ( itr != m_tracked_keys.end() )
 			{
 				FeInputMap::Command c = get_command_from_tracked_keys();
