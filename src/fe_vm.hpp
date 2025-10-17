@@ -124,6 +124,7 @@ public:
 	void clear_handlers();
 	void clear_layout(); // override of base class clear_layout()
 
+	void update_filters_binding( Sqrat::Table &fe );
 	void update_to_new_list( int var=0, bool reset_display=false );
 
 	// runs .attract/emulators/template/setup.nut to generate default emulator
