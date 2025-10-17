@@ -470,29 +470,27 @@ void FeVM::vm_init()
 	Sqrat::DefaultVM::Set( vm );
 }
 
+void FeVM::update_filters_binding( Sqrat::Table &fe )
+{
+	Sqrat::Table ftab;
+	fe.Bind( _SC("filters"), ftab );
+	Sqrat::Array farray( ftab.GetObject() ); // Table->Array hack
+	farray.Resize( 0 );
+
+	FeDisplayInfo *di = m_feSettings->get_display( m_feSettings->get_current_display_index() );
+	if ( !di ) return;
+
+	for ( int i=0; i < di->get_filter_count(); i++ )
+		farray.SetInstance( farray.GetSize(), di->get_filter( i ) );
+}
+
 void FeVM::update_to_new_list( int var, bool reset_display )
 {
 	if ( reset_display )
 	{
-		//
-		// Populate script arrays that may change from display to display (currently just fe.filters)
-		//
 		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
-
-		Sqrat::Table ftab;  // hack Table to Array because creating the Array straight up doesn't work
-		fe.Bind( _SC("filters"), ftab );
-		Sqrat::Array farray( ftab.GetObject() );
-
-		farray.Resize( 0 );
-
-		FeDisplayInfo *di = m_feSettings->get_display( m_feSettings->get_current_display_index() );
-		if ( di )
-		{
-			for ( int i=0; i < di->get_filter_count(); i++ )
-				farray.SetInstance( farray.GetSize(), di->get_filter( i ) );
-		}
+		update_filters_binding( fe );
 	}
-
 	FePresent::update_to( ToNewList, reset_display );
 	on_transition( ToNewList, var );
 }
@@ -1161,17 +1159,7 @@ bool FeVM::on_new_layout()
 	// gets reset even when the layout itself isn't necessarily reloaded (i.e. when navigating between
 	// displays that use the same layout)
 	//
-	Table ftab;  // hack Table to Array because creating the Array straight up doesn't work
-	fe.Bind( _SC("filters"), ftab );
-
-	FeDisplayInfo *di = m_feSettings->get_display( m_feSettings->get_current_display_index() );
-	if ( di )
-	{
-		Array farray( ftab.GetObject() );
-
-		for ( i=0; i < di->get_filter_count(); i++ )
-			farray.SetInstance( farray.GetSize(), di->get_filter( i ) );
-	}
+	update_filters_binding( fe );
 
 	//
 	// fe.monitors
@@ -1270,7 +1258,7 @@ bool FeVM::on_new_layout()
 
 	if ( skip_layout )
 	{
-		di = m_feSettings->get_display(
+		FeDisplayInfo *di = m_feSettings->get_display(
 			m_feSettings->get_current_display_index() );
 
 		if ( di )
@@ -1846,18 +1834,7 @@ public:
 			//
 			// fe.filters
 			//
-			FeDisplayInfo *di = fe_vm->m_feSettings->get_display(
-				fe_vm->m_feSettings->get_current_display_index() );
-
-			Sqrat::Table ftab;  // hack Table to Array because creating the Array straight up doesn't work
-			fe.Bind( _SC("filters"), ftab );
-			Sqrat::Array farray( ftab.GetObject() );
-
-			if ( di )
-			{
-				for ( int i=0; i < di->get_filter_count(); i++ )
-					farray.SetInstance( farray.GetSize(), di->get_filter( i ) );
-			}
+			fe_vm->update_filters_binding( fe );
 
 			// hack Table to Array because creating the Array straight up doesn't work
 			Sqrat::Table mtab;
@@ -2898,7 +2875,12 @@ void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
 		idx = 0;
 
 	if ( fes->set_display( idx, stack_previous ) || reload )
+	{
+		// Updating filters here allows `set_display` to be run in a tight-loop for romlist parsing
+		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+		fev->update_filters_binding( fe );
 		fev->post_command( FeInputMap::Reload );
+	}
 	else
 		fev->update_to_new_list( 0, true );
 }
