@@ -41,11 +41,11 @@ class FeImageLoaderEntry;
 
 enum FeVideoFlags
 {
-	VF_Normal	= 0,
-	VF_DisableVideo	= 0x01,
-	VF_NoLoop	= 0x02,
-	VF_NoAutoStart	= 0x04,
-	VF_NoAudio	= 0x08
+	VF_Normal			= 0,
+	VF_DisableVideo	= 1 << 0,
+	VF_NoLoop			= 1 << 1,
+	VF_NoAutoStart		= 1 << 2,
+	VF_NoAudio			= 1 << 3
 };
 
 class FeBaseTextureContainer
@@ -292,89 +292,91 @@ public:
 		BottomRight
 	};
 
-	FeImage( FePresentableParent &p, FeBaseTextureContainer *,
-		float x, float y, float w, float h );
+	enum Fit
+	{
+		Fill,
+		Contain,
+		Cover,
+		None
+	};
+
+	FeImage(
+		FePresentableParent &p,
+		FeBaseTextureContainer *,
+		float x,
+		float y,
+		float w,
+		float h
+	);
 
 	FeImage( FeImage * ); // clone the given image (texture is not copied)
 	~FeImage();
 
 	const sf::Texture *get_texture();
-
-	sf::Vector2f getSize() const;
-	void setSize( const sf::Vector2f &s );
-	void setSize( int w, int h ) { setSize( sf::Vector2f( w, h ) ); };
-	sf::Vector2f getPosition() const;
-	void setPosition( const sf::Vector2f & );
-	void setPosition( int x, int y ) { setPosition( sf::Vector2f( x, y ));};
-	float getRotation() const;
-	void setRotation( float );
-	sf::Color getColor() const;
-	void setColor( sf::Color );
-	int getIndexOffset() const;
-	void setIndexOffset(int);
-	int getFilterOffset() const;
-	void setFilterOffset(int);
-	sf::Vector2u getTextureSize() const;
-	sf::FloatRect getTextureRect() const;
-	void setTextureRect( const sf::FloatRect &);
-	int getVideoFlags() const;
-	void setVideoFlags( int f );
-	bool getVideoPlaying() const;
-	void setVideoPlaying( bool );
-	int getVideoDuration() const;
-	int getVideoTime() const;
-	const char *getFileName() const;
-	void setFileName( const char * );
-	int getTrigger() const;
-	void setTrigger( int );
-
-	// deprecated as of 1.3, use video_flags instead:
-	bool getMovieEnabled() const;
-	void setMovieEnabled( bool );
-
-	// Overrides from base class:
-	//
-	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
-
-	bool get_visible() const;
-
-	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
-
-	bool get_auto_width() const;
-	bool get_auto_height() const;
-	float get_origin_x() const;
-	float get_origin_y() const;
-	int get_anchor_type() const;
-	int get_subimg_anchor_type() const;
-	int get_rotation_origin_type() const;
-	float get_anchor_x() const;
-	float get_anchor_y() const;
-	bool get_subimg_cover() const;
-	float get_subimg_anchor_x() const;
-	float get_subimg_anchor_y() const;
-	float get_rotation_origin_x() const;
-	float get_rotation_origin_y() const;
-	float get_skew_x() const;
-	float get_skew_y() const;
-	float get_pinch_x() const;
-	float get_pinch_y() const;
 	int get_texture_width() const;
 	int get_texture_height() const;
-	float get_subimg_x() const;
-	float get_subimg_y() const;
-	float get_subimg_width() const;
-	float get_subimg_height() const;
-	float get_sample_aspect_ratio() const;
-	bool get_preserve_aspect_ratio() const;
-	bool get_mipmap() const;
-	bool get_smooth() const;
-	int get_blend_mode() const;
-	bool get_clear() const;
-	bool get_repeat() const;
-	bool get_redraw() const;
-	float get_volume() const;
+	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
+
+	void transition_swap( FeImage * );
+	bool fix_masked_image();
+	FePresentableParent *get_presentable_parent();
+	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
+
+	template <typename T>
+	void setSize( T w, T h ) { setSize( sf::Vector2f( w, h ) ); };
+	void setSize( const sf::Vector2f &s );
+	sf::Vector2f getSize() const;
+
+	template <typename T>
+	void setPosition( T x, T y ) { setPosition( sf::Vector2f( x, y ) );};
+	void setPosition( const sf::Vector2f & );
+	sf::Vector2f getPosition() const;
+
+	void setRotation( float );
+	float getRotation() const;
+
+	void setColor( sf::Color );
+	sf::Color getColor() const;
+
+	void setIndexOffset( int );
+	void rawset_index_offset( int io );
+	int getIndexOffset() const;
+
+	void setFilterOffset( int );
+	void rawset_filter_offset( int fo );
+	int getFilterOffset() const;
+
+	void setTextureRect( const sf::FloatRect &);
+	sf::FloatRect getTextureRect() const;
+	sf::Vector2u getTextureSize() const;
+
+	// deprecated as of 1.3, use video_flags instead:
+	void setMovieEnabled( bool );
+	bool getMovieEnabled() const;
+
+	void setVideoFlags( int f );
+	int getVideoFlags() const;
+
+	void setVideoPlaying( bool );
+	bool getVideoPlaying() const;
+
+	int getVideoDuration() const;
+	int getVideoTime() const;
+
+	void setFileName( const char * );
+	const char *getFileName() const;
+
+	void setTrigger( int );
+	int getTrigger() const;
+
+	void set_pos( float x, float y, float w, float h );
+	void set_width( float w );
+	float get_width() const;
+	void set_height( float h );
+	float get_height() const;
+
+	void set_pan( float );
 	float get_pan() const;
-	float get_border_scale() const;
 
 	float get_vu_mono() const;
 	float get_vu_left() const;
@@ -385,98 +387,173 @@ public:
 	void set_fft_bands( int count );
 	int get_fft_bands() const;
 
+	void set_volume( float );
+	float get_volume() const;
+
 	void set_auto_width( bool w );
+	bool get_auto_width() const;
 	void set_auto_height( bool h );
+	bool get_auto_height() const;
+
 	void set_origin_x( float x );
+	float get_origin_x() const;
 	void set_origin_y( float y );
+	float get_origin_y() const;
+
+	void set_transform_origin( float x, float y );
+	void set_transform_origin_type( int t );
+	int get_transform_origin_type() const;
+	void set_transform_origin_x( float x );
+	float get_transform_origin_x() const;
+	void set_transform_origin_y( float y );
+	float get_transform_origin_y() const;
+
 	void set_anchor( float x, float y );
 	void set_anchor_type( int t );
-	void set_subimg_anchor( float x, float y );
-	void set_subimg_anchor_type( int t );
+	int get_anchor_type() const;
+	void set_anchor_x( float x );
+	float get_anchor_x() const;
+	void set_anchor_y( float y );
+	float get_anchor_y() const;
+
+	void set_crop( bool c );
+	bool get_crop() const;
+	void set_fit( int f );
+	int get_fit() const;
+	void set_fit_anchor( float x, float y );
+	void set_fit_anchor_type( int t );
+	int get_fit_anchor_type() const;
+	void set_fit_anchor_x( float x );
+	float get_fit_anchor_x() const;
+	void set_fit_anchor_y( float y );
+	float get_fit_anchor_y() const;
+	float get_fit_x() const;
+	float get_fit_y() const;
+	float get_fit_width() const;
+	float get_fit_height() const;
+
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
-	void set_anchor_x( float x );
-	void set_anchor_y( float y );
-	void set_subimg_cover( bool x );
-	void set_subimg_anchor_x( float x );
-	void set_subimg_anchor_y( float y );
+	int get_rotation_origin_type() const;
 	void set_rotation_origin_x( float x );
+	float get_rotation_origin_x() const;
 	void set_rotation_origin_y( float y );
+	float get_rotation_origin_y() const;
+
 	void set_skew_x( float x );
+	float get_skew_x() const;
 	void set_skew_y( float y );
+	float get_skew_y() const;
 	void set_pinch_x( float x );
+	float get_pinch_x() const;
 	void set_pinch_y( float y );
+	float get_pinch_y() const;
+
 	void set_border( int l, int t, int r, int b );
-	void set_padding( int l, int t, int r, int b );
-	void set_subimg_x( float x );
-	void set_subimg_y( float y );
-	void set_subimg_width( float w );
-	void set_subimg_height( float h );
-	void set_preserve_aspect_ratio( bool p );
-	void set_mipmap( bool m );
-	void set_smooth( bool );
-	void set_clear( bool );
-	void set_repeat( bool );
-	void set_redraw( bool );
-	void set_volume( float );
-	void set_pan( float );
-	void set_blend_mode( int b );
+	void set_border_left( int l );
+	int get_border_left() const;
+	void set_border_top( int t );
+	int get_border_top() const;
+	void set_border_right( int r );
+	int get_border_right() const;
+	void set_border_bottom( int b );
+	int get_border_bottom() const;
 	void set_border_scale( float s );
+	float get_border_scale() const;
 
-	void transition_swap( FeImage * );
+	void set_padding( int l, int t, int r, int b );
+	void set_padding_left( int l );
+	int get_padding_left() const;
+	void set_padding_top( int t );
+	int get_padding_top() const;
+	void set_padding_right( int r );
+	int get_padding_right() const;
+	void set_padding_bottom( int b );
+	int get_padding_bottom() const;
 
-	void rawset_index_offset( int io );
-	void rawset_filter_offset( int fo );
-	bool fix_masked_image();
-	FePresentableParent *get_presentable_parent();
+	float get_sample_aspect_ratio() const;
+	void set_force_aspect_ratio( float r );
+	float get_force_aspect_ratio() const;
+	void set_preserve_aspect_ratio( bool p );
+	bool get_preserve_aspect_ratio() const;
 
-	// Override from base class:
-	float get_width() const;
-	float get_height() const;
-	void set_width( float w );
-	void set_height( float h );
-	void set_pos(float x, float y, float w, float h);
+	void set_subimg_x( float x );
+	float get_subimg_x() const;
+	void set_subimg_y( float y );
+	float get_subimg_y() const;
+	void set_subimg_width( float w );
+	float get_subimg_width() const;
+	void set_subimg_height( float h );
+	float get_subimg_height() const;
+
+	void set_mipmap( bool m );
+	bool get_mipmap() const;
+	void set_smooth( bool );
+	bool get_smooth() const;
+
+	void set_clear( bool );
+	bool get_clear() const;
+	void set_repeat( bool );
+	bool get_repeat() const;
+	void set_redraw( bool );
+	bool get_redraw() const;
+	void set_blend_mode( int b );
+	int get_blend_mode() const;
+
+	bool get_visible() const;
 
 	//
 	// Callback functions for use with surface objects
 	//
-	FeImage *add_image(const char *,float, float, float, float);
-	FeImage *add_image(const char *, float, float);
-	FeImage *add_image(const char *);
-	FeImage *add_artwork(const char *,float, float, float, float);
-	FeImage *add_artwork(const char *, float, float);
-	FeImage *add_artwork(const char *);
-	FeImage *add_clone(FeImage *);
-	FeText *add_text(const char *,int, int, int, int);
-	FeListBox *add_listbox(int, int, int, int);
-	FeRectangle *add_rectangle(float, float, float, float);
-	FeImage *add_surface(float, float, int, int);
-	FeImage *add_surface(int, int);
+	FeImage *add_image( const char *,float, float, float, float );
+	FeImage *add_image( const char *, float, float );
+	FeImage *add_image( const char * );
+	FeImage *add_artwork( const char *, float, float, float, float );
+	FeImage *add_artwork( const char *, float, float );
+	FeImage *add_artwork( const char * );
+	FeImage *add_surface( float, float, int, int );
+	FeImage *add_surface( int, int );
+	FeImage *add_clone( FeImage * );
+	FeText *add_text( const char *, int, int, int, int );
+	FeListBox *add_listbox( int, int, int, int );
+	FeRectangle *add_rectangle( float, float, float, float );
 
 protected:
 	FeBaseTextureContainer *m_tex;
-	FeSprite m_sprite;
 	sf::Vector2f m_pos;
 	sf::Vector2f m_size;
 	sf::Vector2u m_auto_size;
-	sf::Vector2f m_scale;
+
 	sf::Vector2f m_origin;
-	sf::Vector2f m_rotation_origin;
+	sf::Vector2f m_transform_origin;
+	FeImage::Alignment m_transform_origin_type;
+
 	sf::Vector2f m_anchor;
-	sf::Vector2f m_subimg_anchor;
-	bool m_subimg_cover;
-	float m_rotation;
 	FeImage::Alignment m_anchor_type;
-	FeImage::Alignment m_subimg_anchor_type;
+
+	float m_rotation;
+	sf::Vector2f m_rotation_origin;
 	FeImage::Alignment m_rotation_origin_type;
+
+	bool m_crop;
+	FeImage::Fit m_fit;
+	sf::Vector2f m_fit_anchor;
+	FeImage::Alignment m_fit_anchor_type;
+
 	FeBlend::Mode m_blend_mode;
 	bool m_preserve_aspect_ratio;
+	float m_force_aspect_ratio;
+
+	sf::Vector2f m_scale;
+	FeSprite m_sprite;
+	sf::FloatRect m_fit_rect;
 
 	void scale();
+	int resolveFit() const;
+	float resolveAspectRatio() const;
 	sf::Vector2f alignTypeToVector( int a );
 
-	// Override from base class:
-	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+	void draw( sf::RenderTarget& target, sf::RenderStates states ) const;
 
 private:
 	std::vector<float> m_fft_data_zero;

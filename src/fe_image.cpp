@@ -590,21 +590,16 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 #ifndef NO_MOVIE
 	if ( m_movie )
 	{
-		float vol = m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
+		// VF_NoAudio flag overrides volume setting
+		float vol = m_video_flags & VF_NoAudio
+			? 0.f
+			: m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
 
-		if ( m_video_flags & VF_NoAudio )
-		{
-			if ( vol != m_movie->getVolume() )
-				m_movie->setVolume( 0.f );
-		}
-		else
-		{
-			if ( vol != m_movie->getVolume() )
-				m_movie->setVolume( vol );
+		if ( vol != m_movie->getVolume() )
+			m_movie->setVolume( vol );
 
-			if ( m_pan != m_movie->getPan() )
-				m_movie->setPan( m_pan );
-		}
+		if ( m_pan != m_movie->getPan() )
+			m_movie->setPan( m_pan );
 
 		if ( m_movie_status > 0 )
 		{
@@ -1068,62 +1063,74 @@ FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 	return this;
 }
 
-FeImage::FeImage( FePresentableParent &p,
-	FeBaseTextureContainer *tc, float x, float y, float w, float h )
-	: FeBasePresentable( p ),
-	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
-	m_fft_zero_wrapper( &m_fft_data_zero ),
-	m_fft_array_wrapper( &m_fft_data_zero ),
+FeImage::FeImage(
+	FePresentableParent &p,
+	FeBaseTextureContainer *tc,
+	float x,
+	float y,
+	float w,
+	float h
+):
+	FeBasePresentable( p ),
 	m_tex( tc ),
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_auto_size( w == 0, h == 0 ),
 	m_origin( 0.f, 0.f ),
-	m_rotation_origin( 0.f, 0.f ),
+	m_transform_origin( 0.f, 0.f ),
+	m_transform_origin_type( TopLeft ),
 	m_anchor( 0.f, 0.f ),
-	m_subimg_anchor( 0.5f, 0.5f ),
-	m_subimg_cover( false ),
-	m_rotation ( 0.0 ),
 	m_anchor_type( TopLeft ),
-	m_subimg_anchor_type( Centre ),
+	m_rotation( 0.0 ),
+	m_rotation_origin( 0.f, 0.f ),
 	m_rotation_origin_type( TopLeft ),
+	m_crop( true ),
+	m_fit( Fill ),
+	m_fit_anchor( 0.5f, 0.5f ),
+	m_fit_anchor_type( Centre ),
 	m_blend_mode( FeBlend::Alpha ),
-	m_preserve_aspect_ratio( false )
+	m_preserve_aspect_ratio( false ),
+	m_force_aspect_ratio( 0.0 ),
+	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
+	m_fft_zero_wrapper( &m_fft_data_zero ),
+	m_fft_array_wrapper( &m_fft_data_zero )
 {
 	ASSERT( m_tex );
 	m_tex->register_image( this );
 	scale();
 }
 
-FeImage::FeImage( FeImage *o )
-	: FeBasePresentable( *o ),
-	m_fft_data_zero( 128, 0.0f ),
-	m_fft_zero_wrapper( &m_fft_data_zero ),
-	m_fft_array_wrapper( &m_fft_data_zero ),
+FeImage::FeImage( FeImage *o ):
+	FeBasePresentable( *o ),
 	m_tex( o->m_tex ),
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_auto_size( o->m_auto_size ),
 	m_origin( o->m_origin ),
-	m_rotation_origin( o->m_rotation_origin ),
+	m_transform_origin( o->m_anchor ),
+	m_transform_origin_type( o->m_transform_origin_type ),
 	m_anchor( o->m_anchor ),
-	m_subimg_anchor( o->m_subimg_anchor ),
-	m_subimg_cover( o->m_subimg_cover ),
-	m_rotation( o->m_rotation ),
 	m_anchor_type( o->m_anchor_type ),
-	m_subimg_anchor_type( o->m_subimg_anchor_type ),
+	m_rotation( o->m_rotation ),
+	m_rotation_origin( o->m_rotation_origin ),
 	m_rotation_origin_type( o->m_rotation_origin_type ),
+	m_crop( o->m_crop ),
+	m_fit( o->m_fit ),
+	m_fit_anchor( o->m_fit_anchor ),
+	m_fit_anchor_type( o->m_fit_anchor_type ),
 	m_blend_mode( o->m_blend_mode ),
-	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio )
+	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio ),
+	m_force_aspect_ratio( o->m_force_aspect_ratio ),
+	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
+	m_fft_zero_wrapper( &m_fft_data_zero ),
+	m_fft_array_wrapper( &m_fft_data_zero )
 {
 	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
 }
 
-FeImage::~FeImage()
-{
-}
+FeImage::~FeImage() {}
 
 const sf::Texture *FeImage::get_texture()
 {
@@ -1246,109 +1253,134 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 void FeImage::scale()
 {
-	bool no_auto = !m_auto_size.x && !m_auto_size.y;
+	// The texture size is the actual pixel dimensions of the image
 	sf::FloatRect texture_rect = m_sprite.getTextureRect();
 	sf::Vector2f tex_size = sf::Vector2f(
 		abs( texture_rect.size.x ),
 		abs( texture_rect.size.y )
 	);
 
-	// Exit early if texture has an invalid size
-	if (( tex_size.x == 0 ) || ( tex_size.y == 0 )) return;
+	// Exit early if the texture size is invalid
+	if (( tex_size.x == 0 ) || ( tex_size.y == 0 ))
+		return;
 
-	sf::Vector2f pos = m_pos;
-	sf::Angle rotation = sf::degrees( m_rotation );
+	// Prepare some ratios and sizes
+	sf::Vector2f size = sf::Vector2f( abs( m_size.x ), abs( m_size.y ) );
+	float img_ratio = size.x / size.y;
+	float tex_ratio = tex_size.x / tex_size.y;
+	float par_ratio = resolveAspectRatio();
 
-	// Find the target size, use the texture size if auto_sizing
-	sf::Vector2f size = sf::Vector2f(
-		m_auto_size.x ? tex_size.x : m_size.x,
-		m_auto_size.y ? tex_size.y : m_size.y
-	);
+	sf::Vector2f par_size = par_ratio > 1.0
+		? sf::Vector2f( tex_size.y * par_ratio, tex_size.y )
+		: sf::Vector2f( tex_size.x, tex_size.x / par_ratio );
 
-	// This scale will stretch the texture to fit the target size
+	sf::Vector2f goal_size = m_preserve_aspect_ratio ? par_size : tex_size;
+	float goal_ratio = m_preserve_aspect_ratio ? par_ratio : tex_ratio;
+
+	// Select the size according to the `fit` required
+	switch ( resolveFit() )
+	{
+		default:
+		case Fill:
+			if ( m_auto_size.x && m_auto_size.y ) {
+				size = goal_size;
+			} else if ( m_auto_size.x ) {
+				size.x = tex_size.x * size.y / tex_size.x * goal_ratio;
+			} else if ( m_auto_size.y ) {
+				size.y = tex_size.y * size.x / tex_size.y / goal_ratio;
+			}
+			break;
+		case None:
+			size = goal_size;
+			break;
+		case Contain:
+			if ( goal_ratio > img_ratio ) {
+				size.y = size.x / goal_ratio;
+			} else {
+				size.x = size.y * goal_ratio;
+			}
+			break;
+		case Cover:
+			if ( goal_ratio > img_ratio ) {
+				size.x = size.y * goal_ratio;
+			} else {
+				size.y = size.x / goal_ratio;
+			}
+			break;
+	}
+
+	// Determine which way the image is flipped
+	sf::Vector2f flip = sf::Vector2f( m_size.x < 0 ? -1 : 1, m_size.y < 0 ? -1 : 1 );
+	if ( m_auto_size.x && flip.y == -1 ) flip.x = -1;
+	if ( m_auto_size.y && flip.x == -1 ) flip.y = -1;
+
+	// Flip the resulting size to match the image flip
+	size.x *= flip.x;
+	size.y *= flip.y;
+
 	sf::Vector2f scale = sf::Vector2f(
 		size.x / tex_size.x,
 		size.y / tex_size.y
 	);
 
-	sf::Vector2f scale_size;
-
-	if ( !scale.x || !scale.y )
-	{
-		// special handling for zero-size sides to prevent inf/nan
-		scale_size = m_preserve_aspect_ratio
-			? sf::Vector2f( 0.0, 0.0 )
-			: size;
-	}
-	else
-	{
-		// Use the texture SAR if preserving ratio, otherwise use the scale ratio
-		float scale_ratio = scale.x / scale.y;
-		float ratio = m_preserve_aspect_ratio
-			? m_tex->get_sample_aspect_ratio() * ( scale_ratio < 0.0 ? -1.0 : 1.0 )
-			: scale_ratio;
-
-		// Decide which dimension to adjust to maintain ratio, depending on the given sizes
-		// - Width + Height = adjust y if larger, this will reduce to fit ratio
-		// - Width Only = always adjust y
-		// - Height Only = always adjust x
-		// - None = adjust y if smaller, this will enlarge to fit ratio
-		bool adjust_y = no_auto ? abs( scale.y * ratio ) > abs( scale.x )
-			: !m_auto_size.x ? true
-			: !m_auto_size.y ? false
-			: abs( scale.y * ratio ) < abs( scale.x );
-
-		// If fitting to area then reverse the adjustment dimension
-		if ( m_subimg_cover && no_auto ) adjust_y = !adjust_y;
-
-		// Adjust the scale to maintain the target ratio
-		if ( adjust_y )
-			scale.y = scale.x / ratio;
-		else
-			scale.x = scale.y * ratio;
-
-		// Apply the scale get the final texture size
-		// - Could be simplified (tex_size * scale) but checks adjust_y to prevent precision loss
-		scale_size = sf::Vector2f(
-			adjust_y ? size.x : tex_size.x * scale.x,
-			adjust_y ? tex_size.y * scale.y : size.y
-		);
-	}
-
-	if ( no_auto )
-	{
-		if ( m_preserve_aspect_ratio )
-		{
-			// Center to the subimg_anchor only if both dimensions set, and preserving ratio
-			sf::Transform t;
-			t.rotate( rotation );
-			pos += t.transformPoint( sf::Vector2f(
-				( size.x - scale_size.x ) * m_subimg_anchor.x,
-				( size.y - scale_size.y ) * m_subimg_anchor.y
-			) );
-		}
-	}
-	else
-	{
-		// If either size is unscaled use the scaled size as-is (enlarges)
-		size = scale_size;
-	}
-
 	// If auto-sizing set the calculated values back into m_size
 	if ( m_auto_size.x ) m_size.x = size.x;
 	if ( m_auto_size.y ) m_size.y = size.y;
 
-	// Apply all the transformations
+	// Anchor the texture, most common for Fit.Contain where the texture is smaller than the image
+	sf::Vector2f offset = sf::Vector2f(
+		( m_size.x - size.x ) * m_fit_anchor.x,
+		( m_size.y - size.y ) * m_fit_anchor.y
+	);
+
+	// The crop property instructs the sprite to reduce size to hide the texture overlap
+	FloatEdges crop = !m_crop
+		? FloatEdges( 0, 0, 0, 0)
+		: FloatEdges(
+			std::max( 0.f, (-offset.x) * flip.x ),
+			std::max( 0.f, (-offset.y) * flip.y ),
+			std::max( 0.f, (( offset.x + size.x - m_size.x )) * flip.x ),
+			std::max( 0.f, (( offset.y + size.y - m_size.y )) * flip.y )
+		);
+
+	// Translate the texture to match the desired position
+	sf::Transform t;
+	sf::Angle rotation = sf::degrees( m_rotation );
+	sf::Vector2f pos_rotation = offset.length()
+		? t.rotate( rotation ).transformPoint( offset )
+		: sf::Vector2f( 0, 0 );
+
+	sf::Vector2f pos = m_pos;
+	pos += pos_rotation;
+	pos += sf::Vector2f(
+		( m_rotation_origin.x - m_anchor.x ) * m_size.x,
+		( m_rotation_origin.y - m_anchor.y ) * m_size.y
+	);
+
+	sf::Vector2f origin = sf::Vector2f(
+		( m_origin.x + m_rotation_origin.x * m_size.x ) / scale.x,
+		( m_origin.y + m_rotation_origin.y * m_size.y ) / scale.y
+	);
+
+	// Populate the fit_rect so users can get the resulting image dimensions
+	IntEdges padding = m_sprite.getPadding();
+	m_fit_rect = sf::FloatRect(
+		sf::Vector2f(
+			pos.x - pos_rotation.x + offset.x - ( origin.x * scale.x ) + (( crop.left - padding.left ) * flip.x ) - m_pos.x,
+			pos.y - pos_rotation.y + offset.y - ( origin.y * scale.y ) + (( crop.top - padding.top ) * flip.y ) - m_pos.y
+		),
+		sf::Vector2f(
+			( tex_size.x * scale.x ) + (( padding.left + padding.right - crop.left - crop.right ) * flip.x ),
+			( tex_size.y * scale.y ) + (( padding.top + padding.bottom - crop.top - crop.bottom ) * flip.y )
+		)
+	);
+
+	// Apply the transformations
+	m_sprite.setCrop( crop );
 	m_sprite.setScale( scale );
-	m_sprite.setPosition( pos + sf::Vector2f(
-		( m_rotation_origin.x - m_anchor.x ) * size.x,
-		( m_rotation_origin.y - m_anchor.y ) * size.y
-	));
+	m_sprite.setPosition( pos );
 	m_sprite.setRotation( rotation );
-	m_sprite.setOrigin({
-		( m_origin.x + m_rotation_origin.x * size.x ) / scale.x,
-		( m_origin.y + m_rotation_origin.y * size.y ) / scale.y
-	});
+	m_sprite.setOrigin( origin );
 }
 
 sf::Vector2f FeImage::getPosition() const
@@ -1496,7 +1528,14 @@ int FeImage::getVideoFlags() const
 
 void FeImage::setVideoFlags( int f )
 {
+	if ( f == getVideoFlags() )
+		return;
+
 	m_tex->set_video_flags( (FeVideoFlags)f );
+
+	// Force an update to set the resource properties immediately
+	// - ie: makes texture filename/size available when setting ImagesOnly after init
+	FePresent::script_do_update( m_tex, true );
 }
 
 bool FeImage::getVideoPlaying() const
@@ -1568,19 +1607,34 @@ float FeImage::get_origin_y() const
 	return m_origin.y;
 }
 
+int FeImage::get_transform_origin_type() const
+{
+	return (FeImage::Alignment)m_transform_origin_type;
+}
+
 int FeImage::get_anchor_type() const
 {
 	return (FeImage::Alignment)m_anchor_type;
 }
 
-int FeImage::get_subimg_anchor_type() const
+int FeImage::get_fit_anchor_type() const
 {
-	return (FeImage::Alignment)m_subimg_anchor_type;
+	return (FeImage::Alignment)m_fit_anchor_type;
 }
 
 int FeImage::get_rotation_origin_type() const
 {
 	return (FeImage::Alignment)m_rotation_origin_type;
+}
+
+float FeImage::get_transform_origin_x() const
+{
+	return m_transform_origin.x;
+}
+
+float FeImage::get_transform_origin_y() const
+{
+	return m_transform_origin.y;
 }
 
 float FeImage::get_anchor_x() const
@@ -1593,19 +1647,63 @@ float FeImage::get_anchor_y() const
 	return m_anchor.y;
 }
 
-bool FeImage::get_subimg_cover() const
+bool FeImage::get_crop() const
 {
-	return m_subimg_cover;
+	return m_crop;
 }
 
-float FeImage::get_subimg_anchor_x() const
+int FeImage::get_fit() const
 {
-	return m_subimg_anchor.x;
+	return m_fit;
 }
 
-float FeImage::get_subimg_anchor_y() const
+// Special cases where the fit-type should be forced depending on other properties
+int FeImage::resolveFit() const
 {
-	return m_subimg_anchor.y;
+	// Auto-size makes the image match the texture size
+	if ( m_auto_size.x || m_auto_size.y )
+		return Fill;
+
+	// When using border Fill must be used to correctly position the texture
+	IntEdges b = m_sprite.getBorder();
+	if ( b.left || b.top || b.right || b.bottom )
+		return Fill;
+
+	// Replace legacy combination Fill + PAR with Contain
+	if ((m_fit == Fill) && m_preserve_aspect_ratio && !m_auto_size.x && !m_auto_size.y)
+		return Contain;
+
+	return m_fit;
+}
+
+float FeImage::get_fit_anchor_x() const
+{
+	return m_fit_anchor.x;
+}
+
+float FeImage::get_fit_anchor_y() const
+{
+	return m_fit_anchor.y;
+}
+
+float FeImage::get_fit_x() const
+{
+	return m_fit_rect.position.x;
+}
+
+float FeImage::get_fit_y() const
+{
+	return m_fit_rect.position.y;
+}
+
+float FeImage::get_fit_width() const
+{
+	return m_fit_rect.size.x;
+}
+
+float FeImage::get_fit_height() const
+{
+	return m_fit_rect.size.y;
 }
 
 float FeImage::get_rotation_origin_x() const
@@ -1658,6 +1756,28 @@ void FeImage::set_origin_y( float y )
 	}
 }
 
+void FeImage::set_transform_origin( float x, float y )
+{
+	if (
+		x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x ||
+		y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y
+	)
+	{
+		m_transform_origin = sf::Vector2f( x, y );
+		m_anchor = sf::Vector2f( x, y );
+		m_rotation_origin = sf::Vector2f( x, y );
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeImage::set_transform_origin_type( int t )
+{
+	m_transform_origin_type = (FeImage::Alignment)t;
+	sf::Vector2f a = alignTypeToVector( t );
+	set_transform_origin( a.x, a.y );
+}
+
 void FeImage::set_anchor( float x, float y )
 {
 	if ( x != m_anchor.x || y != m_anchor.y )
@@ -1675,21 +1795,21 @@ void FeImage::set_anchor_type( int t )
 	set_anchor( a.x, a.y );
 }
 
-void FeImage::set_subimg_anchor( float x, float y )
+void FeImage::set_fit_anchor( float x, float y )
 {
-	if ( x != m_subimg_anchor.x || y != m_subimg_anchor.y )
+	if ( x != m_fit_anchor.x || y != m_fit_anchor.y )
 	{
-		m_subimg_anchor = sf::Vector2f( x, y );
+		m_fit_anchor = sf::Vector2f( x, y );
 		scale();
 		FePresent::script_flag_redraw();
 	}
 }
 
-void FeImage::set_subimg_anchor_type( int t )
+void FeImage::set_fit_anchor_type( int t )
 {
-	m_subimg_anchor_type = (FeImage::Alignment)t;
+	m_fit_anchor_type = (FeImage::Alignment)t;
 	sf::Vector2f a = alignTypeToVector( t );
-	set_subimg_anchor( a.x, a.y );
+	set_fit_anchor( a.x, a.y );
 }
 
 void FeImage::set_rotation_origin( float x, float y )
@@ -1709,74 +1829,74 @@ void FeImage::set_rotation_origin_type( int t )
 	set_rotation_origin( o.x, o.y );
 }
 
-void FeImage::set_anchor_x( float x )
+void FeImage::set_transform_origin_x( float x )
 {
-	if ( x != m_anchor.x )
+	if ( x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x )
 	{
+		m_transform_origin.x = x;
 		m_anchor.x = x;
-		scale();
-		FePresent::script_flag_redraw();
-	}
-}
-
-void FeImage::set_anchor_y( float y )
-{
-	if ( y != m_anchor.y )
-	{
-		m_anchor.y = y;
-		scale();
-		FePresent::script_flag_redraw();
-	}
-}
-
-void FeImage::set_subimg_cover( bool c )
-{
-	if ( c != m_subimg_cover )
-	{
-		m_subimg_cover = c;
-		scale();
-		FePresent::script_flag_redraw();
-	}
-}
-
-void FeImage::set_subimg_anchor_x( float x )
-{
-	if ( x != m_subimg_anchor.x )
-	{
-		m_subimg_anchor.x = x;
-		scale();
-		FePresent::script_flag_redraw();
-	}
-}
-
-void FeImage::set_subimg_anchor_y( float y )
-{
-	if ( y != m_subimg_anchor.y )
-	{
-		m_subimg_anchor.y = y;
-		scale();
-		FePresent::script_flag_redraw();
-	}
-}
-
-void FeImage::set_rotation_origin_x( float x )
-{
-	if ( x != m_rotation_origin.x )
-	{
 		m_rotation_origin.x = x;
 		scale();
 		FePresent::script_flag_redraw();
 	}
 }
 
-void FeImage::set_rotation_origin_y( float y )
+void FeImage::set_transform_origin_y( float y )
 {
-	if ( y != m_rotation_origin.y )
+	if ( y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y )
 	{
+		m_transform_origin.y = y;
+		m_anchor.y = y;
 		m_rotation_origin.y = y;
 		scale();
 		FePresent::script_flag_redraw();
 	}
+}
+
+void FeImage::set_anchor_x( float x )
+{
+	set_anchor( x, get_anchor_y() );
+}
+
+void FeImage::set_anchor_y( float y )
+{
+	set_anchor( get_anchor_x(), y );
+}
+
+void FeImage::set_crop( bool c )
+{
+	if ( c == m_crop ) return;
+	m_crop = c;
+	scale();
+	FePresent::script_flag_redraw();
+}
+
+void FeImage::set_fit( int f )
+{
+	if ( f == m_fit ) return;
+	m_fit = (FeImage::Fit)f;
+	scale();
+	FePresent::script_flag_redraw();
+}
+
+void FeImage::set_fit_anchor_x( float x )
+{
+	set_fit_anchor( x, get_fit_anchor_y() );
+}
+
+void FeImage::set_fit_anchor_y( float y )
+{
+	set_fit_anchor( get_fit_anchor_x(), y );
+}
+
+void FeImage::set_rotation_origin_x( float x )
+{
+	set_rotation_origin( x, get_rotation_origin_y() );
+}
+
+void FeImage::set_rotation_origin_y( float y )
+{
+	set_rotation_origin( get_rotation_origin_x(), y );
 }
 
 void FeImage::set_skew_x( float x )
@@ -1845,6 +1965,28 @@ float FeImage::get_subimg_height() const
 	return getTextureRect().size.y;
 }
 
+float FeImage::resolveAspectRatio() const
+{
+	if ( resolveFit() == Fill && !m_auto_size.x && !m_auto_size.y )
+		return abs( m_size.x / m_size.y );
+
+	if ( m_force_aspect_ratio )
+		return m_force_aspect_ratio;
+
+	sf::FloatRect r = getTextureRect();
+	float tex_ratio = r.size.x / r.size.y;
+
+	if ( get_preserve_aspect_ratio() )
+		return tex_ratio * get_sample_aspect_ratio();
+
+	return tex_ratio;
+}
+
+float FeImage::get_force_aspect_ratio() const
+{
+	return m_force_aspect_ratio;
+}
+
 float FeImage::get_sample_aspect_ratio() const
 {
 	return m_tex->get_sample_aspect_ratio();
@@ -1881,6 +2023,17 @@ void FeImage::set_subimg_height( float h )
 	sf::FloatRect r = getTextureRect();
 	r.size.y=h;
 	setTextureRect( r );
+}
+
+void FeImage::set_force_aspect_ratio( float r )
+{
+	r = abs( r );
+	if ( r != m_force_aspect_ratio )
+	{
+		m_force_aspect_ratio = r;
+		scale();
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeImage::set_preserve_aspect_ratio( bool p )
@@ -2173,10 +2326,11 @@ FePresentableParent *FeImage::get_presentable_parent()
 
 void FeImage::set_border( int l, int t, int r, int b )
 {
-	IntEdges border( l, t, r, b );
+	IntEdges border( std::max(0, l), std::max(0, t), std::max(0, r), std::max(0, b) );
 	if ( border != m_sprite.getBorder() )
 	{
 		m_sprite.setBorder( border );
+		scale();
 		FePresent::script_flag_redraw();
 	}
 }
@@ -2187,6 +2341,7 @@ void FeImage::set_padding( int l, int t, int r, int b )
 	if ( padding != m_sprite.getPadding() )
 	{
 		m_sprite.setPadding( padding );
+		scale();
 		FePresent::script_flag_redraw();
 	}
 }
@@ -2196,8 +2351,97 @@ void FeImage::set_border_scale( float s )
 	if ( s != m_sprite.getBorderScale() )
 	{
 		m_sprite.setBorderScale( s );
+		scale();
 		FePresent::script_flag_redraw();
 	}
+}
+
+int FeImage::get_padding_left() const
+{
+	return m_sprite.getPadding().left;
+}
+
+int FeImage::get_padding_top() const
+{
+	return m_sprite.getPadding().top;
+}
+
+int FeImage::get_padding_right() const
+{
+	return m_sprite.getPadding().right;
+}
+
+int FeImage::get_padding_bottom() const
+{
+	return m_sprite.getPadding().bottom;
+}
+
+void FeImage::set_padding_left( int l )
+{
+	IntEdges padding = m_sprite.getPadding();
+	set_padding( l, padding.top, padding.right, padding.bottom );
+}
+
+void FeImage::set_padding_top( int t )
+{
+	IntEdges padding = m_sprite.getPadding();
+	set_padding( padding.left, t, padding.right, padding.bottom );
+}
+
+void FeImage::set_padding_right( int r )
+{
+	IntEdges padding = m_sprite.getPadding();
+	set_padding( padding.left, padding.top, r, padding.bottom );
+}
+
+void FeImage::set_padding_bottom( int b )
+{
+	IntEdges padding = m_sprite.getPadding();
+	set_padding( padding.left, padding.top, padding.right, b );
+}
+
+int FeImage::get_border_left() const
+{
+	return m_sprite.getBorder().left;
+}
+
+int FeImage::get_border_top() const
+{
+	return m_sprite.getBorder().top;
+}
+
+int FeImage::get_border_right() const
+{
+	return m_sprite.getBorder().right;
+}
+
+int FeImage::get_border_bottom() const
+{
+	return m_sprite.getBorder().bottom;
+}
+
+void FeImage::set_border_left( int l )
+{
+	IntEdges border = m_sprite.getBorder();
+	set_border( l, border.top, border.right, border.bottom );
+}
+
+void FeImage::set_border_top( int t )
+{
+	IntEdges border = m_sprite.getBorder();
+	set_border( border.left, t, border.right, border.bottom );
+}
+
+void FeImage::set_border_right( int r )
+{
+	IntEdges border = m_sprite.getBorder();
+	set_border( border.left, border.top, r, border.bottom );
+}
+
+void FeImage::set_border_bottom( int b )
+{
+	IntEdges border = m_sprite.getBorder();
+	set_border( border.left, border.top, border.right, b );
 }
 
 float FeImage::get_border_scale() const
