@@ -82,6 +82,7 @@ m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
 m_border( 0, 0, 0, 0 ),
 m_padding( 0, 0, 0, 0 ),
+m_crop( 0.f, 0.f, 0.f, 0.f ),
 m_border_scale( 1.f )
 {
 }
@@ -96,6 +97,7 @@ m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
 m_border( 0, 0, 0, 0 ),
 m_padding( 0, 0, 0, 0 ),
+m_crop( 0.f, 0.f, 0.f, 0.f ),
 m_border_scale( 1.f )
 {
     setTexture(texture);
@@ -111,6 +113,7 @@ m_pinch( 0.f, 0.f ),
 m_skew( 0.f, 0.f ),
 m_border( 0, 0, 0, 0 ),
 m_padding( 0, 0, 0, 0 ),
+m_crop( 0.f, 0.f, 0.f, 0.f ),
 m_border_scale( 1.f )
 {
     setTexture(texture);
@@ -178,6 +181,20 @@ sf::IntRect FeSprite::getLocalBounds() const
     int height = std::abs( m_textureRect.size.y );
 
     return sf::IntRect({ 0, 0 }, { width, height });
+}
+
+void FeSprite::setCrop( FloatEdges crop )
+{
+    if ( m_crop != crop )
+    {
+        m_crop = crop;
+        updateGeometry();
+    }
+}
+
+FloatEdges FeSprite::getCrop()
+{
+	return m_crop;
 }
 
 ////////////////////////////////////////////////////////////
@@ -313,215 +330,134 @@ void FeSprite::setBorderScale( float s )
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
 {
-	sf::IntRect bounds = getLocalBounds();
+	FloatEdges pos = FloatEdges( getLocalBounds() );
+	FloatEdges tex = FloatEdges( m_textureRect.position, m_textureRect.position + m_textureRect.size );
 
-	//
-	// Compute some values that we will use for applying the
-	// texture coordinates.
-	//
-	float left   = m_textureRect.position.x;
-	float right  = left + m_textureRect.size.x;
-	float top    = m_textureRect.position.y;
-	float bottom = top + m_textureRect.size.y;
-	sf::Color vert_colour = m_vertices[0].color;
+	sf::Vector2f s = getScale();
+	sf::Vector2f scale = sf::Vector2f( std::abs( s.x ), std::abs( s.y ) );
+	sf::Vector2f sskew = sf::Vector2f( m_skew.x / scale.x, m_skew.y / scale.y );
+	bool has_border = m_border.left || m_border.top || m_border.right || m_border.bottom;
 
-	sf::Vector2f scale = getScale();
-	sf::Vector2f sskew = m_skew;
-	sskew.x /= scale.x;
-	sskew.y /= scale.y;
-	if (( m_border.left > 0 ) ||
-	    ( m_border.top > 0 ) ||
-	    ( m_border.right > 0 ) ||
-	    ( m_border.bottom > 0 ))
+	// Cropping is disallowed when a border is set
+	if ( !has_border )
 	{
-		float x[4], y[4];
+		FloatEdges scrop = FloatEdges( m_crop.left / scale.x, m_crop.top / scale.y, m_crop.right / scale.x, m_crop.bottom / scale.y );
+		pos.left += scrop.left;
+		pos.top += scrop.top;
+		pos.right -= scrop.right;
+		pos.bottom -= scrop.bottom;
+		tex.left += scrop.left;
+		tex.top += scrop.top;
+		tex.right -= scrop.right;
+		tex.bottom -= scrop.bottom;
+	}
 
-		float total_width = m_textureRect.size.x + ( m_padding.left + m_padding.right ) / scale.x;
-		float total_height = m_textureRect.size.y + ( m_padding.top + m_padding.bottom ) / scale.y;
+	// Padding enlarges the position to overlap the image bounds
+	FloatEdges spadding = FloatEdges( m_padding.left / scale.x, m_padding.top / scale.y, m_padding.right / scale.x, m_padding.bottom / scale.y );
+	pos.left -= spadding.left;
+	pos.top -= spadding.top;
+	pos.right = std::max( pos.left, pos.right + spadding.right );
+	pos.bottom = std::max( pos.top, pos.bottom + spadding.bottom );
 
-		float min_scale = 1.0f;
-		float border_width = ( m_border.left + m_border.right ) / scale.x;
-		float border_height = ( m_border.top + m_border.bottom ) / scale.y;
-		if ( border_width * m_border_scale > total_width || border_height * m_border_scale > total_height )
-			if ( border_width > 0.0f && border_height > 0.0f )
-				min_scale = std::min( total_width / ( border_width * m_border_scale ), total_height / ( border_height * m_border_scale ));
+	if ( has_border )
+	{
+		// ----------------------------------------
+		// 9-slice mode
+		// ----------------------------------------
 
-		float border_left = ( m_border.left / scale.x ) * min_scale * m_border_scale;
-		float border_right = ( m_border.right / scale.x ) * min_scale * m_border_scale;
-		float border_top = ( m_border.top / scale.y ) * min_scale * m_border_scale;
-		float border_bottom = ( m_border.bottom / scale.y ) * min_scale * m_border_scale;
+		sf::Vector2f tex_size = m_textureRect.size;
+		sf::Vector2f total_size = sf::Vector2f( pos.right - pos.left, pos.bottom - pos.top );
+		FloatEdges sborder = FloatEdges( m_border.left / scale.x, m_border.top / scale.y, m_border.right / scale.x, m_border.bottom / scale.y );
 
-		if ( border_left + border_right > total_width || border_top + border_bottom > total_height )
-		{
-			float clamp_ratio = std::min(
-				border_left + border_right > 0.0f ? total_width / ( border_left + border_right ) : 1.0f,
-				border_top + border_bottom > 0.0f ? total_height / ( border_top + border_bottom ) : 1.0f );
+		// Run twice, once to scale x, once to scale y (or vice-versa)
+		float s = m_border_scale;
+		for ( int i=0; i<2; i++)
+			s *= std::min(
+				total_size.x / std::max( ( sborder.left + sborder.right ) * s, total_size.x ),
+				total_size.y / std::max( ( sborder.top + sborder.bottom ) * s, total_size.y )
+			);
 
-			border_left *= clamp_ratio;
-			border_right *= clamp_ratio;
-			border_top *= clamp_ratio;
-			border_bottom *= clamp_ratio;
-		}
+		FloatEdges border = FloatEdges( sborder.left * s, sborder.top * s, sborder.right * s, sborder.bottom * s );
 
-		x[0] = -m_padding.left / scale.x;
-		x[1] = x[0] + border_left;
-		x[2] = x[0] + total_width - border_right;
-		x[3] = x[0] + total_width;
+		// Prepare pos/tex points for the slices
+		float px[4] = { pos.left, pos.left + border.left, pos.right - border.right, pos.right };
+		float py[4] = { pos.top, pos.top + border.top, pos.bottom - border.bottom, pos.bottom };
+		float tx[4] = { tex.left, tex.left + ( m_border.left / tex_size.x ) * ( tex.right - tex.left ), tex.right - ( m_border.right / tex_size.x ) * ( tex.right - tex.left ), tex.right };
+		float ty[4] = { tex.top, tex.top + ( m_border.top / tex_size.y ) * ( tex.bottom - tex.top ), tex.bottom - ( m_border.bottom / tex_size.y ) * ( tex.bottom - tex.top ), tex.bottom };
+		float sx[4] = { 0, border.top / total_size.y * sskew.x, (total_size.y - border.bottom) / total_size.y * sskew.x, sskew.x };
+		float sy[4] = { 0, border.left / total_size.y * sskew.y, (total_size.x - border.right) / total_size.x * sskew.y, sskew.y };
+		px[2] = std::max( px[2], px[1] );
+		py[2] = std::max( py[2], py[1] );
 
-		y[0] = -m_padding.top / scale.y;
-		y[1] = y[0] + border_top;
-		y[2] = y[0] + total_height - border_bottom;
-		y[3] = y[0] + total_height;
-
-		x[2] = std::max( x[2], x[1] );
-		y[2] = std::max( y[2], y[1] );
-
-		float tx[4] = { left, left + ( m_border.left / m_textureRect.size.x ) * ( right - left) , right - ( m_border.right / m_textureRect.size.x ) * ( right - left ), right };
-		float ty[4] = { top, top + ( m_border.top / m_textureRect.size.y ) * ( bottom - top ), bottom - ( m_border.bottom / m_textureRect.size.y ) * ( bottom - top ), bottom };
-
-		const int rows = 4;
-		const int cols = 4;
-		const int vertex_count = ( rows - 1 ) * ( 2 * cols + 2 ) - 2;
-		m_vertices.resize( vertex_count );
+		// Create the grid of slice points
+		m_vertices.resize( 28 );
 		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
+		std::pair<int, int> slice[28] = {
+			{ 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 }, { 2, 0 }, { 2, 1 }, { 3, 0 }, { 3, 1 }, { 3, 1 }, { 3, 1 },
+			{ 3, 1 }, { 3, 2 }, { 2, 1 }, { 2, 2 }, { 1, 1 }, { 1, 2 }, { 0, 1 }, { 0, 2 }, { 0, 2 }, { 0, 2 },
+			{ 0, 2 }, { 0, 3 }, { 1, 2 }, { 1, 3 }, { 2, 2 }, { 2, 3 }, { 3, 2 }, { 3, 3 }
+		};
+
+		// Fill all vertices
 		int idx = 0;
-		for ( int row = 0; row < rows - 1; row++ )
+		for ( auto coord : slice )
 		{
-			if ( row % 2 == 0 )
-			{
-				for ( int col = 0; col < cols; col++ )
-				{
-					m_vertices[idx].position = sf::Vector2f( x[col], y[row] );
-					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row] );
-					idx++;
-					m_vertices[idx].position = sf::Vector2f( x[col], y[row+1] );
-					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row+1] );
-					idx++;
-				}
-				if ( row < rows - 2 )
-				{
-					// degenerate: repeat last vertex
-					m_vertices[idx] = m_vertices[idx-1];
-					idx++;
-					// degenerate: next row starts from right, so connect to rightmost vertex
-					m_vertices[idx].position = sf::Vector2f( x[cols-1], y[row+1] );
-					m_vertices[idx].texCoords = sf::Vector2f( tx[cols-1], ty[row+1] );
-					idx++;
-				}
-			}
-			else
-			{
-				for ( int col = cols - 1; col >= 0; col-- )
-				{
-					m_vertices[idx].position = sf::Vector2f( x[col], y[row] );
-					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row] );
-					idx++;
-					m_vertices[idx].position = sf::Vector2f( x[col], y[row+1] );
-					m_vertices[idx].texCoords = sf::Vector2f( tx[col], ty[row+1] );
-					idx++;
-				}
-				if ( row < rows - 2 )
-				{
-					// degenerate: repeat last vertex
-					m_vertices[idx] = m_vertices[idx-1];
-					idx++;
-					// degenerate: next row starts from left, so connect to leftmost vertex
-					m_vertices[idx].position = sf::Vector2f( x[0], y[row+1] );
-					m_vertices[idx].texCoords = sf::Vector2f( tx[0], ty[row+1] );
-					idx++;
-				}
-			}
+			m_vertices[idx].position = sf::Vector2f( px[coord.first] + sx[coord.second], py[coord.second] + sy[coord.first] );
+			m_vertices[idx].texCoords = sf::Vector2f( tx[coord.first], ty[coord.second] );
+			idx++;
 		}
 	}
 	else if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
 	{
-		sf::Vector2f spinch = m_pinch;
-		spinch.x /= scale.x;
-		spinch.y /= scale.y;
+		// ----------------------------------------
+		// Pinch mode, uses a left-to-right triangle-strip
+		// ----------------------------------------
 
-		//
-		// If we are pinching the image, then we slice it up into
-		// a triangle strip going from left to right across the image.
-		// This gives a smooth transition for the image texture
-		// across the whole surface.  There is probably a better way
-		// to do this...
-		//
-
-		// SLICES needs to be an odd number... We draw our surface using
-		// SLICES+3 vertices
-		//
-		const int SLICES = 253;
-
-		float bws = (float)bounds.size.x / SLICES;
-		float pys = (float)spinch.y / SLICES;
-		float sys = (float)sskew.y / SLICES;
-		float bpxs = bws - (float)spinch.x * 2 / SLICES;
-
-		m_vertices.resize( SLICES + 3 );
+		const int edges = 3;
+		const int slices = 256 - edges; // slices must be odd
+		m_vertices.resize( slices + edges );
 		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
 
-		//
-		// First do the vertex coordinates
-		//
-		m_vertices[0].position = sf::Vector2f(0, 0 );
-		m_vertices[1].position = sf::Vector2f(sskew.x + spinch.x, bounds.size.y );
+		sf::Vector2f spinch = sf::Vector2f( m_pinch.x / scale.x, m_pinch.y / scale.y );
+		float bws = (pos.right - pos.left) / slices;
+		float pys = spinch.y / slices;
+		float sys = sskew.y / slices;
+		float bps = bws - spinch.x * 2 / slices;
+		float tws = (tex.right - tex.left) / slices;
 
-		for ( int i=1; i<SLICES; i++ )
+		for ( int i=0; i<slices + edges; i++ )
 		{
-			if ( i%2 )
-			{
-				m_vertices[1 + i].position = sf::Vector2f(
-						bws * i, (pys + sys) * i );
-			}
-			else
-			{
-				m_vertices[1 + i].position = sf::Vector2f(
-						sskew.x + spinch.x + bpxs * i, bounds.size.y - ( pys - sys ) * i );
-			}
+			int j = std::min( std::max( 0, i - 1 ), slices );
+			m_vertices[i].position = i % 2
+				? sf::Vector2f( pos.left + bps * j + sskew.x + spinch.x, pos.bottom - ( pys - sys ) * j )
+				: sf::Vector2f( pos.left + bws * j, pos.top + ( pys + sys ) * j );
+			m_vertices[i].texCoords = i % 2
+				? sf::Vector2f( tex.left + tws * j, tex.bottom )
+				: sf::Vector2f( tex.left + tws * j, tex.top );
 		}
-		m_vertices[SLICES + 1].position = sf::Vector2f( bounds.size.x, spinch.y + sskew.y );
-		m_vertices[SLICES + 2].position = sf::Vector2f(
-						sskew.x + bounds.size.x - spinch.x, bounds.size.y - spinch.y + sskew.y );
-
-		//
-		// Now do the texture coordinates
-		//
-		float tws = m_textureRect.size.x / (float)SLICES;
-
-		m_vertices[0].texCoords = sf::Vector2f(left, top );
-		m_vertices[1].texCoords = sf::Vector2f(left, bottom );
-
-		for ( int i=1; i<SLICES; i++ )
-			m_vertices[1 + i].texCoords = sf::Vector2f(
-						left + tws * i,
-						( i % 2 ) ? top : bottom );
-
-		m_vertices[SLICES + 1].texCoords = sf::Vector2f(right, top );
-		m_vertices[SLICES + 2].texCoords = sf::Vector2f(right, bottom );
 	}
 	else
 	{
-		//
-		// If we aren't pinching the image, then we draw it on two triangles.
-		//
+		// ----------------------------------------
+		// Flat mode - draw using two triangles
+		// ----------------------------------------
+
 		m_vertices.resize( 4 );
 		m_vertices.setPrimitiveType( sf::PrimitiveType::TriangleStrip );
 
-		m_vertices[0].position = sf::Vector2f(0, 0);
-		m_vertices[1].position = sf::Vector2f(sskew.x, bounds.size.y);
-		m_vertices[2].position = sf::Vector2f(bounds.size.x, sskew.y );
-		m_vertices[3].position = sf::Vector2f(bounds.size.x + sskew.x, bounds.size.y + sskew.y);
+		m_vertices[0].position = sf::Vector2f( pos.left, pos.top );
+		m_vertices[1].position = sf::Vector2f( pos.left + sskew.x, pos.bottom );
+		m_vertices[2].position = sf::Vector2f( pos.right, pos.top + sskew.y );
+		m_vertices[3].position = sf::Vector2f( pos.right + sskew.x, pos.bottom + sskew.y );
 
-		m_vertices[0].texCoords = sf::Vector2f(left, top);
-		m_vertices[1].texCoords = sf::Vector2f(left, bottom);
-		m_vertices[2].texCoords = sf::Vector2f(right, top);
-		m_vertices[3].texCoords = sf::Vector2f(right, bottom);
+		m_vertices[0].texCoords = sf::Vector2f( tex.left, tex.top );
+		m_vertices[1].texCoords = sf::Vector2f( tex.left, tex.bottom );
+		m_vertices[2].texCoords = sf::Vector2f( tex.right, tex.top );
+		m_vertices[3].texCoords = sf::Vector2f( tex.right, tex.bottom );
 	}
 
-	//
-	// Finally, update the vertex colour
-	//
-	for ( unsigned int i=0; i< m_vertices.getVertexCount(); i++ )
+	// Update the vertex colour
+	sf::Color vert_colour = m_vertices[0].color;
+	for ( size_t i=0; i<m_vertices.getVertexCount(); i++ )
 		m_vertices[i].color = vert_colour;
-
 }
