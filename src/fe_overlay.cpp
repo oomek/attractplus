@@ -1898,7 +1898,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			if ( cont )
 			{
 				int t = ctx.move_timer.getElapsedTime().asMilliseconds();
-				if ( t > 500 + ctx.move_count * m_feSettings.selection_speed() )
+				if ( t > m_feSettings.selection_delay() + ctx.move_count * m_feSettings.selection_speed() )
 				{
 					int last_sel = ctx.sel;
 					switch ( ctx.move_command )

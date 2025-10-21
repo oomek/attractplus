@@ -1009,9 +1009,8 @@ int main(int argc, char *argv[])
 
 			if ( cont )
 			{
-				const int TRIG_CHANGE_MS = 400;
 				int t = move_timer.getElapsedTime().asMilliseconds();
-				if (( t > TRIG_CHANGE_MS ) && ( t - move_last_triggered > feSettings.selection_speed() ))
+				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() ))
 				{
 					if (( move_triggered == FeInputMap::LAST_COMMAND )
 						|| feVM.script_handle_event( move_triggered ))
@@ -1043,8 +1042,14 @@ int main(int argc, char *argv[])
 						int max_step = feSettings.selection_max_step();
 						if ( max_step > 1 )
 						{
-							int s = t / TRIG_CHANGE_MS;
+							int s = t / feSettings.selection_accel();
 
+							// Ramp up the step depending how long the key has been held
+							// - Smaller selection_accel values ramp the step faster
+							//
+							// s:    1                    8                    15             20    22 23  24  25  26   27   28   29    30
+							// step: 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 8, 16, 32, 64, 128, 256, 512, 1024, 2048
+							//
 							if ( s < 8 )
 								step = 1;
 							else if ( s < 15 )
@@ -1054,15 +1059,9 @@ int main(int argc, char *argv[])
 							else if ( s < 22 )
 								step = 6;
 							else
-							{
-								int shift = s - 19;
-								if ( shift > 11 ) // sanity check - don't go above 2^11 (2048)
-									shift = 11;
-								step = 1 << ( shift );
-							}
+								step = std::min( 1 << std::min( s - 19, 11 ), max_step ); // sanity check - don't go above 2^11 (2048)
 
-							if ( step > max_step )      // make sure we don't go over user specified max
-								step = max_step;
+							// make sure we don't go over user specified max
 						}
 
 						switch ( move_triggered )

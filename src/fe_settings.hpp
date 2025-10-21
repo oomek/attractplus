@@ -156,6 +156,8 @@ public:
 		MultiMon,
 		SmoothImages,
 		SelectionMaxStep,
+		SelectionDelay,
+		SelectionAccel,
 		SelectionSpeed,
 		MoveMouseOnLaunch,
 		ScrapeSnaps,
@@ -260,7 +262,9 @@ private:
 	bool m_smooth_images;
 	FilterWrapModeType m_filter_wrap_mode;
 	int m_selection_max_step; // max selection acceleration step.  0 to disable accel
-	int m_selection_speed;
+	int m_selection_delay; // delay before key-repeat
+	int m_selection_accel; // time before increasing step size
+	int m_selection_speed; // key-repeat interval
 	int m_image_cache_mbytes; // image cache size (in Megabytes)
 	bool m_move_mouse_on_launch; // configure whether mouse gets moved to bottom right corner on launch
 	bool m_scrape_snaps;
@@ -459,6 +463,8 @@ public:
 	const std::string &get_rom_info_absolute( int filter_index, int rom_index, FeRomInfo::Index index );
 	FeRomInfo *get_rom_absolute( int filter_index, int rom_index );
 
+	int selection_delay() const { return m_selection_delay; }
+	int selection_accel() const { return m_selection_accel; }
 	int selection_speed() const { return m_selection_speed; }
 	int selection_max_step() const { return m_selection_max_step; }
 
