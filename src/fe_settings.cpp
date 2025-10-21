@@ -372,6 +372,8 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_smooth_images( true ),
 	m_filter_wrap_mode( WrapWithinDisplay ),
 	m_selection_max_step( 128 ),
+	m_selection_delay( 400 ),
+	m_selection_accel( 400 ),
 	m_selection_speed( 40 ),
 	m_image_cache_mbytes( 100 ),
 #ifdef SFML_SYSTEM_MACOS
@@ -516,6 +518,8 @@ const char *FeSettings::configSettingStrings[] =
 	"multiple_monitors",
 	"smooth_images",
 	"selection_max_step",
+	"selection_delay_ms",
+	"selection_accel_ms",
 	"selection_speed_ms",
 	"move_mouse_on_launch",
 	"scrape_snaps",
@@ -2986,6 +2990,10 @@ const std::string FeSettings::get_info( int index ) const
 		return filterWrapTokens[ m_filter_wrap_mode ];
 	case SelectionMaxStep:
 		return as_str( m_selection_max_step );
+	case SelectionDelay:
+		return as_str( m_selection_delay );
+	case SelectionAccel:
+		return as_str( m_selection_accel );
 	case SelectionSpeed:
 		return as_str( m_selection_speed );
 	case ImageCacheMBytes:
@@ -3179,19 +3187,11 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case MouseThreshold:
-		m_mouse_thresh = as_int( value );
-		if ( m_mouse_thresh > 100 )
-			m_mouse_thresh=100;
-		else if ( m_mouse_thresh < 1 )
-			m_mouse_thresh=1;
+		m_mouse_thresh = std::clamp( as_int( value ), 1, 100 );
 		break;
 
 	case JoystickThreshold:
-		m_joy_thresh = as_int( value );
-		if ( m_joy_thresh > 100 )
-			m_joy_thresh=100;
-		else if ( m_joy_thresh < 1 )
-			m_joy_thresh=1;
+		m_joy_thresh = std::clamp( as_int( value ), 1, 100 );
 		break;
 
 	case WindowMode:
@@ -3265,25 +3265,27 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case SelectionMaxStep:
-		m_selection_max_step = as_int( value );
+		m_selection_max_step = std::max( 0, as_int( value ) );
 
 		// check for non-integer input and set to default if encountered
 		if (( m_selection_max_step == 0 ) && ( value.compare( "0" ) != 0 ))
 			m_selection_max_step = 128;
-		if ( m_selection_max_step < 0 )
-			m_selection_max_step = 0;
+		break;
+
+	case SelectionDelay:
+		m_selection_delay = std::max( 0, as_int( value ) );
+		break;
+
+	case SelectionAccel:
+		m_selection_accel = std::max( 0, as_int( value ) );
 		break;
 
 	case SelectionSpeed:
-		m_selection_speed = as_int( value );
-		if ( m_selection_speed < 0 )
-			m_selection_speed = 0;
+		m_selection_speed = std::max( 0, as_int( value ) );
 		break;
 
 	case ImageCacheMBytes:
-		m_image_cache_mbytes = as_int( value );
-		if ( m_image_cache_mbytes < 0 )
-			m_image_cache_mbytes = 0;
+		m_image_cache_mbytes = std::max( 0, as_int( value ) );
 
 		FeDebug() << "Setting image cache size to " << m_image_cache_mbytes << " MBytes." << std::endl;
 		FeImageLoader::set_cache_size( m_image_cache_mbytes * 1024 * 1024 );
