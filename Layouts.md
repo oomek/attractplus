@@ -280,7 +280,7 @@ fe.add_image( name, x, y, w, h )
 
 Adds an image or video to the end of the draw list.
 
-The default blend mode for images is `BlendMode.Alpha`
+The default `blend_mode` for images is `BlendMode.Alpha`
 
 **Parameters**
 
@@ -306,7 +306,7 @@ fe.add_artwork( label, x, y, w, h )
 
 Add an artwork to the end of the draw list. The image/video displayed in an artwork is updated automatically whenever the user changes the game selection.
 
-The default blend mode for artwork is `BlendMode.Alpha`
+The default `blend_mode` for artwork is `BlendMode.Alpha`
 
 **Parameters**
 
@@ -329,9 +329,11 @@ fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
 ```
 
-Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`fe.Image`](#feadd_image), [`fe.Artwork`](#feadd_artwork), [`fe.Text`](#feadd_text), [`fe.Listbox`](#feadd_listbox) and [`fe.Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
+Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`Image`](#feadd_image), [`Artwork`](#feadd_artwork), [`Text`](#feadd_text), [`Listbox`](#feadd_listbox) and [`Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
-The default blend mode for surfaces is `BlendMode.Premultiplied`
+A surface's texture size is fixed upon creation. Later changes to `width` or `height` will not change the texture's dimensions.
+
+The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
 **Parameters**
 
@@ -1448,24 +1450,25 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `subimg_y` - Get/set the y position of top left corner of the image texture sub-rectangle to display. Default value is `0`.
 -  `subimg_width` - Get/set the width of the image texture sub-rectangle to display. Default value is `texture_width`.
 -  `subimg_height` - Get/set the height of the image texture sub-rectangle to display. Default value is `texture_height`.
--  `subimg_cover` 🔶 - Get/set whether the image texture is enlarged to cover the entire image area. Note this does _not_ affect the `width` or `height` values, and requires `preserve_aspect_ratio` to be `true`. Default value is `false`.
--  `subimg_anchor` 🔶 - Set the anchor for image textures resized by `preserve_aspect_ratio`. See the available modes for `anchor` below. Default is `Anchor.Centre`.
--  `subimg_anchor_x` 🔶 - Get/set the x position of the image texture anchor. Range is `[0.0...1.0]`. Default value is `0.5`.
--  `subimg_anchor_y` 🔶 - Get/set the y position of the image texture anchor. Range is `[0.0...1.0]`. Default value is `0.5`.
--  `sample_aspect_ratio` - Get the "sample aspect ratio", which is the width of a pixel divided by the height of the pixel.
--  `origin_x` - (deprecated) Get/set the x position of the local origin for the image. The origin defines the centre point for any positioning or rotation of the image. Default origin is `( 0, 0 )` (top-left corner).
--  `origin_y` - (deprecated) Get/set the y position of the local origin for the image. The origin defines the centre point for any positioning or rotation of the image. Default origin is `( 0, 0 )` (top-left corner).
--  `anchor` 🔶 - Set the midpoint for position and scale. Can be set to one of the following modes:
-   -  `Anchor.Left`
-   -  `Anchor.Centre`
-   -  `Anchor.Right`
-   -  `Anchor.Top`
-   -  `Anchor.Bottom`
-   -  `Anchor.TopLeft` (default)
-   -  `Anchor.TopRight`
-   -  `Anchor.BottomLeft`
-   -  `Anchor.BottomRight`
--  `rotation_origin` 🔶 - Set the midpoint for rotation Can be set to one of the following modes:
+-  `fit` 🔶 - Get/set the texture fitting method. Can be set to one of the following modes:
+   -  `Fit.None` - The texture remains unscaled.
+   -  `Fit.Fill` (default) - The texture is stretched to fill the entire image.
+   -  `Fit.Contain` - The texture is resized to fit within the image while maintaining its aspect-ratio. Letter-boxing may occur.
+   -  `Fit.Cover` - The texture is resized to completely cover the image while maintaining its aspect-ratio. Cropping may occur where the texture overlaps.
+-  `fit_anchor` 🔶 - Set the anchor for textures that don't fill the image, usually `Fit.Contain` and `Fit.Cover`. See the available modes for `anchor` below. Default is `Anchor.Centre`.
+-  `fit_anchor_x` 🔶 - Get/set the x position of the texture anchor. Range is `[0.0...1.0]`. Default value is `0.5`.
+-  `fit_anchor_y` 🔶 - Get/set the y position of the texture anchor. Range is `[0.0...1.0]`. Default value is `0.5`.
+-  `fit_x` 🔶 - Get the rendered texture x position in pixels, relative to the image.
+-  `fit_y` 🔶 - Get the rendered texture y position in pixels, relative to the image.
+-  `fit_width` 🔶 - Get the rendered texture width in pixels.
+-  `fit_height` 🔶 - Get the rendered texture height in pixels.
+-  `crop` 🔶 - [boolean] Get/set whether textures using `Fit.Cover` have their overlap clipped. Default value is `true`.
+-  `sample_aspect_ratio` - Get the [pixel aspect ratio](https://en.wikipedia.org/wiki/Pixel_aspect_ratio) of the texture, which is the width of a pixel divided by its height. Commonly found in CRT video sources, as they usually contain non-square pixels.
+-  `force_aspect_ratio` 🔶 - Get/set the aspect ratio to use for the texture. Forces a texture to display at the given aspect ratio. Default is `0`, which disables it.
+-  `preserve_aspect_ratio` - Get/set whether the `sample_aspect_ratio` or `forced_aspect_ratio` is to be preserved. Default value is `false`.
+-  `origin_x` - (deprecated) Get/set the x origin in pixels for position, scale, and rotation. Other anchor and origin properties will be offset by this value. Default is `( 0, 0 )` (top-left corner).
+-  `origin_y` - (deprecated) Get/set the y origin in pixels for position, scale, and rotation. Other anchor and origin properties will be offset by this value. Default is `( 0, 0 )` (top-left corner).
+-  `transform_origin` 🔶 - Get/set the origin for position, scale and rotation. Can be set to one of the following modes:
    -  `Origin.Left`
    -  `Origin.Centre`
    -  `Origin.Right`
@@ -1475,6 +1478,28 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+-  `anchor` 🔶 - Get/set the midpoint for position and scale. Can be set to one of the following modes:
+   -  `Anchor.Left`
+   -  `Anchor.Centre`
+   -  `Anchor.Right`
+   -  `Anchor.Top`
+   -  `Anchor.Bottom`
+   -  `Anchor.TopLeft` (default)
+   -  `Anchor.TopRight`
+   -  `Anchor.BottomLeft`
+   -  `Anchor.BottomRight`
+-  `rotation_origin` 🔶 - Set the midpoint for rotation. Can be set to one of the following modes:
+   -  `Origin.Left`
+   -  `Origin.Centre`
+   -  `Origin.Right`
+   -  `Origin.Top`
+   -  `Origin.Bottom`
+   -  `Origin.TopLeft` (default)
+   -  `Origin.TopRight`
+   -  `Origin.BottomLeft`
+   -  `Origin.BottomRight`
+-  `transform_origin_x` 🔶 - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
+-  `transform_origin_y` 🔶 - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_y` 🔶 - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` 🔶 - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -1488,7 +1513,6 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `video_playing` - _[image & artwork only]_ [boolean] Get/set whether video is currently playing in this artwork.
 -  `video_duration` - Get the video duration (in milliseconds).
 -  `video_time` - Get the time that the video is current at (in milliseconds).
--  `preserve_aspect_ratio` - Get/set whether the aspect ratio from the source image is to be preserved. Default value is `false`.
 -  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>".
 -  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `trigger` - Get/set the transition that triggers updates of this artwork/ dynamic image. Can be set to `Transition.ToNewSelection` or `Transition.EndNavigation`. Default value is `Transition.ToNewSelection`.
@@ -1508,7 +1532,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `vu` 🔶 - _[video only]_ Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` 🔶 - _[video only]_ Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` 🔶 - _[video only]_ Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
--  `fft` 🔶 - _[video only]_ Get the Fast Fourier Transform data for mono audio as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
+-  `fft` 🔶 - _[video only]_ Get the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) data for mono audio as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_left` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the left audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_right` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the right audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_bands` 🔶 - _[video only]_ Get/set the Fast Fourier Transform band count. Range is `[2...128]` Default value is `32`.
@@ -1516,18 +1540,27 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `border_scale` 🔶 - Get/set the scaling factor of the border defined by `set_border()`. Default value is `1.0`.
 -  `clear` 🔶 - _[surface only]_ When set to `false` surface is not cleared before the next frame. This can be used for various accumulative effects.
 -  `redraw` 🔶 - _[surface only]_ When set to `false` surface's content is not redrawn which gives optimization opportunity for hidden surfaces. This in conjunction with `clear = false` can be used to freeze surface's content.
+-  `border_left` 🔶 - Get/set the left 9-slice region size in pixels. Default is `0`.
+-  `border_top` 🔶 - Get/set the top 9-slice region size in pixels. Default is `0`.
+-  `border_right` 🔶 - Get/set the right 9-slice region size in pixels. Default is `0`.
+-  `border_bottom` 🔶 - Get/set the bottom 9-slice region size in pixels. Default is `0`.
+-  `padding_left` 🔶 - Get/set the left padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
+-  `padding_top` 🔶 - Get/set the top padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
+-  `padding_right` 🔶 - Get/set the right padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
+-  `padding_bottom` 🔶 - Get/set the bottom padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 
 **Member Functions**
 
 -  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the image. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the image position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the image position and size (in layout coordinates).
+-  `set_fit_anchor( x, y )` 🔶 - Set the texture anchor, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
+-  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
--  `set_subimg_anchor( x, y )` 🔶 - Set the image texture anchor, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
--  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
+-  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well.
--  `set_border( left, top, right, bottom )` :🔶 - Define border dimensions for 9-slice image. All parameters are in pixels. The borders define constrained regions at the edges of the image, while the centre region scales normally. Follow this link for more information [9-slice](https://en.wikipedia.org/wiki/9-slice_scaling)
--  `set_padding( left, top, right, bottom )` 🔶 - Define padding offsets that extend the sprite beyond its original dimensions. Padding creates additional space around the 9-slice borders. Positive values extend the sprite outward, while negative values bring the edges inward, effectively cropping the border regions. Used only with `set_padding()`
+-  `set_border( left, top, right, bottom )` 🔶 - Set the border size in pixels for [9-slice scaling](https://en.wikipedia.org/wiki/9-slice_scaling). The borders define constrained regions at the edges of the image, while the centre region scales normally. Note that pinch has no effect when borders are set.
+-  `set_padding( left, top, right, bottom )` 🔶 - Set the padding offsets in pixels that extend the texture beyond its original dimensions.
 -  `fix_masked_image()` - Takes the colour of the top left pixel in the image and makes all the pixels in the image with that colour transparent.
 -  `add_image()` - _[surface only]_ Add an image to the end of this surface's draw list, see [`fe.add_image()`](#feadd_image).
 -  `add_artwork()` - _[surface only]_ Add an artwork to the end of this surface's draw list, see [`fe.add_artwork()`](#feadd_artwork).

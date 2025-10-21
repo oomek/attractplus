@@ -1742,12 +1742,13 @@ void FePresent::script_do_update( FeBasePresentable *bp )
 	}
 }
 
-void FePresent::script_do_update( FeBaseTextureContainer *tc )
+// Note: do_update forces artwork to reload
+void FePresent::script_do_update( FeBaseTextureContainer *tc, bool do_update )
 {
 	FePresent *fep = script_get_fep();
 	if ( fep )
 	{
-		tc->on_new_list( fep->m_feSettings, false );
+		tc->on_new_list( fep->m_feSettings, do_update );
 		tc->on_new_selection( fep->m_feSettings );
 		fep->flag_redraw();
 	}

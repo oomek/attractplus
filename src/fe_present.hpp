@@ -304,7 +304,7 @@ public:
 	// Script static functions
 	//
 	static FePresent *script_get_fep();
-	static void script_do_update( FeBaseTextureContainer * );
+	static void script_do_update( FeBaseTextureContainer *, bool do_update = false );
 	static void script_do_update( FeBasePresentable * );
 	static void script_flag_redraw();
 	static void script_flag_sort_zorder();

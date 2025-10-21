@@ -464,6 +464,7 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 		disptex_height( 0 ),
 		display_frame( NULL )
 {
+	video_timer.reset();
 	FePresent *fep = FePresent::script_get_fep();
 	half_frame_offset = sf::milliseconds( 500 / fep->get_refresh_rate() );
 }
@@ -544,7 +545,10 @@ void FeVideoImp::play()
 void FeVideoImp::stop()
 {
 	if ( run_video_thread )
+	{
 		run_video_thread = false;
+		video_timer.stop();
+	}
 
 	if ( m_video_thread.joinable() )
 	{
@@ -560,6 +564,7 @@ void FeVideoImp::signal_stop()
 	if ( run_video_thread )
 	{
 		run_video_thread = false;
+		video_timer.stop();
 		frame_displayed.notify_one();
 	}
 }
@@ -642,6 +647,7 @@ void FeVideoImp::video_thread()
 			wait_time = sf::seconds( 0 );
 			far_behind = true;
 			run_video_thread = false;
+			video_timer.stop();
 		}
 
 		//
@@ -884,6 +890,7 @@ the_end:
 	// shutdown the thread
 	//
 	at_end=true;
+	video_timer.stop();
 
 	{
 		std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
@@ -974,10 +981,12 @@ sf::Time FeMedia::get_video_time()
 	// TODO: would like to sync movie time to audio, however using
 	// getPlayingOffset() here noticably slows things down on my system.
 	//
-	if ( m_video && m_video->run_video_thread )
-		return m_video->video_timer.getElapsedTime();
-	else
-		return sf::Time::Zero;
+	if ( m_video )
+		return m_video->at_end
+			? get_duration()
+			: m_video->video_timer.getElapsedTime();
+
+	return sf::Time::Zero;
 }
 
 void FeMedia::play()
