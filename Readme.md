@@ -1,4 +1,12 @@
-# <img src="https://github.com/oomek/attractplus/blob/master/resources/images/Logo.png?raw=true" width="40" align="left"> Attract-Mode Plus Frontend
+<p align="center" width="100%">
+   <picture>
+      <source srcset="https://github.com/oomek/attractplus/blob/master/resources/images/Logo-Full-White.png?raw=true" media="(prefers-color-scheme: dark)">
+      <source srcset="https://github.com/oomek/attractplus/blob/master/resources/images/Logo-Full-Black.png?raw=true" media="(prefers-color-scheme: light)">
+      <img width="50%" src="https://github.com/oomek/attractplus/blob/master/resources/images/Logo.png?raw=true" alt="Logo">
+   </picture>
+</p>
+
+# Attract-Mode Plus Frontend
 
 > -  Attract-Mode Plus is a fork of [Attract-Mode](https://github.com/mickelson/attract) with various community improvements and fixes.
 > -  New releases can be found on the [Releases](https://github.com/oomek/attractplus/releases) page.
