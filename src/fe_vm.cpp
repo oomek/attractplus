@@ -1110,7 +1110,7 @@ bool FeVM::on_new_layout()
 	fe.Overload<void (*)(Object, const char *)>(_SC("remove_signal_handler"), &FeVM::cb_remove_signal_handler);
 	fe.Func<bool (*)(const char *)>(_SC("get_input_state"), &FeVM::cb_get_input_state);
 	fe.Func<int (*)(const char *)>(_SC("get_input_pos"), &FeVM::cb_get_input_pos);
-	fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
+	fe.Func<bool (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 	fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
 #ifdef USE_LIBCURL
@@ -1848,7 +1848,7 @@ public:
 			fe.Overload<bool (*)(const char *, const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 			fe.Overload<bool (*)(const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 			fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
-			fe.Func<void (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
+			fe.Func<bool (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 			fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
 			fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 			fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
@@ -2472,7 +2472,7 @@ bool FeVM::internal_do_nut( const std::string &work_dir,
 	return run_script( path, script_file );
 }
 
-void FeVM::do_nut( const char *script_file )
+bool FeVM::do_nut( const char *script_file )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -2485,10 +2485,12 @@ void FeVM::do_nut( const char *script_file )
 	else
 		fev->m_feSettings->get_plugin_full_path( script_id, path );
 
-	if ( !internal_do_nut( path, script_file ) )
-	{
+	bool found = internal_do_nut( path, script_file );
+
+	if ( !found )
 		FeLog() << "Error, file not found: " << path << script_file << std::endl;
-	}
+
+	return found;
 }
 
 bool FeVM::load_module( const char *module )
@@ -2504,7 +2506,12 @@ bool FeVM::load_module( const char *module )
 	fe.SetValue( _SC("module_dir"), module_dir );
 	fe.SetValue( _SC("module_file"), module_file );
 
-	return internal_do_nut( module_dir, module_file );
+	bool found = internal_do_nut( module_dir, module_file );
+
+	if ( !found )
+		FeLog() << "Error, module not found: '" << module << "'" << std::endl;
+
+	return found;
 }
 
 #ifdef USE_LIBCURL

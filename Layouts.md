@@ -956,7 +956,7 @@ Execute another Squirrel script.
 
 **Return Value**
 
--  None.
+-  `true` if the file was loaded, `false` if it was not found.
 
 ---
 
