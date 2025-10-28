@@ -1604,6 +1604,9 @@ int FeVM::overlay_get_list_size()
 
 void FeVM::overlay_set_custom_controls( FeText *caption, FeListBox *opts )
 {
+	if ( !m_feSettings->get_info_bool( m_feSettings->CustomOverlay ) )
+		return overlay_clear_custom_controls();
+
 	m_overlay_caption = caption;
 	m_overlay_lb = opts;
 	m_custom_overlay = true;

@@ -151,6 +151,7 @@ public:
 		Anisotropic,
 		FilterWrapMode,
 		LayoutPreview,
+		CustomOverlay,
 		TrackUsage,
 		MultiMon,
 		SmoothImages,
@@ -251,6 +252,7 @@ private:
 	bool m_confirm_favs;
 	bool m_confirm_exit;
 	bool m_layout_preview;
+	bool m_custom_overlay;
 	bool m_quick_menu;
 	bool m_track_usage;
 	bool m_multimon;

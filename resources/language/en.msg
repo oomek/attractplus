@@ -44,6 +44,7 @@ Controls;Controls
 Create new tag;Create new tag
 Custom Arguments;Custom Arguments
 Custom Executable;Custom Executable
+Custom Overlay;Custom Overlay
 Default Action;Default Action
 Default Display Settings;Default Display Settings
 Delete this Display;Delete this Display
@@ -482,6 +483,7 @@ _help_misc_antialiasing;Set the anti-aliasing level
 _help_misc_check_for_updates;Configure whether Attract-Mode Plus should check for available updates on startup and display an update notification dialog when a new version is found.
 _help_misc_confirm_exit;Confirm the exiting of Attract-Mode Plus
 _help_misc_confirm_favs;Confirm the addition/removal of Favourites
+_help_misc_custom_overlay;Allow layouts to customise the overlay used for Display, Filter, Tag, and Exit menus
 _help_misc_exit_command;Command to execute when exiting the frontend [i.e. "sudo shutdown"]
 _help_misc_exit_message;Alternate message to exit the frontend [i.e. "Shut Down System"]
 _help_misc_filter_wrap_mode;Set what happens when the "Next Filter" or "Previous Filter" actions reach the end of the filter set

@@ -1784,14 +1784,16 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::vector<std::string> prefix_modes = _( FeSettings::prefixDispTokens );
 	std::string prefix_mode = value_at( prefix_modes, ctx.fe_settings.get_prefix_mode() );
 	ctx.add_opt( Opt::LIST, _( "Format Game Title" ), prefix_mode, _( "_help_misc_prefix_modes" ) )->append_vlist( prefix_modes );
-	ctx.add_opt( Opt::TOGGLE, _( "Group Clones" ), ctx.fe_settings.get_info_bool( FeSettings::GroupClones ), _( "_help_misc_group_clones" ) );
-	ctx.add_opt( Opt::TOGGLE, _( "Confirm Favourites" ), ctx.fe_settings.get_info_bool( FeSettings::ConfirmFavourites ), _( "_help_misc_confirm_favs" ) );
 
 	std::vector<std::string> wrap_modes = _( FeSettings::filterWrapDispTokens );
 	std::string wrap_mode = value_at( wrap_modes, ctx.fe_settings.get_filter_wrap_mode() );
 	ctx.add_opt( Opt::LIST, _( "Filter Wrap Mode" ), wrap_mode, _( "_help_misc_filter_wrap_mode" ) )->append_vlist( wrap_modes );
 
+	ctx.add_opt( Opt::TOGGLE, _( "Custom Overlay" ), ctx.fe_settings.get_info_bool( FeSettings::CustomOverlay ), _( "_help_misc_custom_overlay" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Group Clones" ), ctx.fe_settings.get_info_bool( FeSettings::GroupClones ), _( "_help_misc_group_clones" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Confirm Favourites" ), ctx.fe_settings.get_info_bool( FeSettings::ConfirmFavourites ), _( "_help_misc_confirm_favs" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Confirm Exit" ), ctx.fe_settings.get_info_bool( FeSettings::ConfirmExit ), _( "_help_misc_confirm_exit" ) );
+
 	ctx.add_opt( Opt::EDIT, _( "Exit Command" ), ctx.fe_settings.get_info( FeSettings::ExitCommand ), _( "_help_misc_exit_command" ) );
 	ctx.add_opt( Opt::EDIT, _( "Exit Message" ), ctx.fe_settings.get_info( FeSettings::ExitMessage ), _( "_help_misc_exit_message" ) );
 
@@ -1841,9 +1843,10 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 #endif
 	ctx.fe_settings.set_info( FeSettings::HideBrackets, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::PrefixMode, FeSettings::prefixTokens[ ctx.opt_list[i++].get_vindex() ] );
+	ctx.fe_settings.set_info( FeSettings::FilterWrapMode, FeSettings::filterWrapTokens[ ctx.opt_list[i++].get_vindex() ] );
+	ctx.fe_settings.set_info( FeSettings::CustomOverlay, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::GroupClones, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ConfirmFavourites, ctx.opt_list[i++].get_bool() );
-	ctx.fe_settings.set_info( FeSettings::FilterWrapMode, FeSettings::filterWrapTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::ConfirmExit, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ExitCommand, ctx.opt_list[i++].get_value() );
 	ctx.fe_settings.set_info( FeSettings::ExitMessage, ctx.opt_list[i++].get_value() );
