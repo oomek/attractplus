@@ -360,6 +360,7 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_confirm_favs( true ),
 	m_confirm_exit( true ),
 	m_layout_preview( false ),
+	m_custom_overlay( true ),
 	m_quick_menu( false ),
 	m_track_usage( true ),
 	m_multimon( false ),
@@ -510,6 +511,7 @@ const char *FeSettings::configSettingStrings[] =
 	"anisotropic",
 	"filter_wrap_mode",
 	"layout_preview",
+	"custom_overlay",
 	"track_usage",
 	"multiple_monitors",
 	"smooth_images",
@@ -3002,6 +3004,7 @@ const std::string FeSettings::get_info( int index ) const
 	case ConfirmFavourites:
 	case ConfirmExit:
 	case LayoutPreview:
+	case CustomOverlay:
 	case QuickMenu:
 	case TrackUsage:
 	case MultiMon:
@@ -3060,6 +3063,8 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_confirm_exit;
 	case LayoutPreview:
 		return m_layout_preview;
+	case CustomOverlay:
+		return m_custom_overlay;
 	case QuickMenu:
 		return m_quick_menu;
 	case TrackUsage:
@@ -3239,6 +3244,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case LayoutPreview:
 		m_layout_preview = config_str_to_bool( value );
+		break;
+
+	case CustomOverlay:
+		m_custom_overlay = config_str_to_bool( value );
 		break;
 
 	case TrackUsage:

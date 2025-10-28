@@ -1326,7 +1326,7 @@ This class is a container for overlay functionality. The instance of this class 
 
 -  `set_custom_controls( caption_text, options_listbox )`
 -  `set_custom_controls( caption_text )`
--  `set_custom_controls()` - Tells the frontend that the layout will provide custom controls for displaying overlay menus such as the exit dialog, displays menu, etc. The `caption_text` parameter is the FeText object that the frontend end should use to display the overlay caption (i.e. `"Exit Attract-Mode Plus?"`). The `options_listbox` parameter is the FeListBox object that the frontend should use to display the overlay options.
+-  `set_custom_controls()` - Customise the overlay used for Display, Filter, Tag and Exit menus. The `caption_text` parameter is the [`fe.Text`](#fetext) object used to display the caption (i.e. `"Exit Attract-Mode Plus?"`). The `options_listbox` parameter is the [`fe.Listbox`](#felistbox) object used to display the overlay options. The `Configure > General > Custom Overlay` setting must be enabled to allow custom controls.
 -  `clear_custom_controls()` - Tell the frontend that the layout will NOT do any custom control handling for overlay menus. This will result in the frontend using its built-in default menus instead for overlays.
 -  `list_dialog( options, title, default_sel, cancel_sel )`
 -  `list_dialog( options, title, default_sel )`
