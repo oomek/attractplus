@@ -1499,6 +1499,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `BlendMode.None`
 -  `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video. Setting this to `true` greatly improves the quality of scaled down images. The default value is `false`. It's advised to force anisotropic filtering in the display driver settings if the Image with auto generated mipmap is scaled by the ratio that is not isotropic.
 -  `volume` 🔶 - Get/set the volume of played video. Range is `[0...100]`
+-  `pan` 🔶 - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
 -  `vu` 🔶 - _[video only]_ Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` 🔶 - _[video only]_ Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` 🔶 - _[video only]_ Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
@@ -1820,6 +1821,7 @@ The class representing a sound object. Instances of this class are returned by t
 
 -  `file_name` - Get/set the sound filename.
 -  `volume` 🔶 - Get/set the volume of played sound. Range is `[0...100]`.
+-  `pan` 🔶 - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
 -  `playing` - Get/set whether the sound is currently playing (boolean).
 -  `loop` - Get/set whether the sound should be looped (boolean).
 -  `pitch` - Get/set the sound pitch (float). Default value is `1`.
@@ -1839,6 +1841,7 @@ The class representing an audio track. Instances of this class are returned by t
 
 -  `file_name` - Get/set the audio track filename.
 -  `volume` - Get/set the volume of played audio track. Range is `[0...100]`
+-  `pan` - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
 -  `playing` - Get/set whether the audio track is currently playing (boolean).
 -  `loop` - Get/set whether the audio track should be looped (boolean).
 -  `pitch` - Get/set the audio track pitch (float). Default value is `1`.

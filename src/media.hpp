@@ -59,14 +59,6 @@ public:
 			const std::string &name,
 			sf::Texture *out_texture=NULL );
 
-	using sf::SoundStream::setPosition;
-	using sf::SoundStream::getPosition;
-	using sf::SoundStream::setPitch;
-	using sf::SoundStream::getPitch;
-	using sf::SoundStream::getStatus;
-	using sf::SoundStream::setLooping;
-	using sf::SoundStream::isLooping;
-
 	void play();
 	void stop();
 	void signal_stop();
@@ -77,7 +69,11 @@ public:
 	//
 	bool tick();
 
+	float getVolume() const;
 	void setVolume( float volume );
+
+	float getPan() const;
+	void setPan( float pan );
 
 	bool is_playing();
 	bool is_multiframe() const;
