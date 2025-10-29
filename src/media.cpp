@@ -1251,9 +1251,13 @@ bool FeMedia::open( const std::string &archive,
 #endif
 
 				std::vector<sf::SoundChannel> channelMap;
-				channelMap.push_back( sf::SoundChannel::FrontLeft );
-				if ( nb_channels > 1 )
+				if ( nb_channels == 1 )
+					channelMap.push_back( sf::SoundChannel::Mono );
+				else
+				{
+					channelMap.push_back( sf::SoundChannel::FrontLeft );
 					channelMap.push_back( sf::SoundChannel::FrontRight );
+				}
 
 				sf::SoundStream::initialize(
 					nb_channels,
