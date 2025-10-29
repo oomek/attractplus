@@ -108,6 +108,7 @@ Scraper;Scraper
 Screen Rotation;Screen Rotation
 Screen Saver Timeout;Screen Saver Timeout
 Select template to use for emulator settings;Select template to use for emulator settings
+Selection Delay;Selection Delay
 Show in Cycle;Show in Cycle
 Show in Menu;Show in Menu
 Sort By;Sort By
@@ -403,6 +404,7 @@ _help_control_right;Set the control(s) that move the selection right
 _help_control_screen_saver;Set the control(s) that launch screen saver mode
 _help_control_screenshot;Set the control(s) that take a screenshot of the frontend
 _help_control_select;Set the control(s) that launch the current selection
+_help_control_selection_delay;Set the delay in milliseconds before key repeat begins, default is 400
 _help_control_toggle_flip;Set the control(s) that toggle whether the display should be rotated 180 degrees
 _help_control_toggle_layout;Set the control(s) that toggle the layout script to use (It depends on the layout you are using whether this does anything)
 _help_control_toggle_movie;Set the control(s) that toggle whether or not videos should be played

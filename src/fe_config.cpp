@@ -1532,17 +1532,17 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 	}
 
 	// Create a list of evenly spaced thresholds from 100...0 (clamped at 99...1)
-	int n = 20;
-	std::vector<std::string> thresh( n + 1 );
-	for ( int i=0; i<(n+1); i++)
-		thresh[i] = as_str( std::clamp( 100 - ( i * 100 / n ), 1, 99 ) );
+	std::vector<std::string> thresh = create_range( 100, 0, 21, 1, 100 );
+	std::vector<std::string> delay = { "1000", "650", "400", "250" };
 
 	// Add the joystick and mouse threshold settings to this menu as well
-	std::string joy_str = ctx.fe_settings.get_info( FeSettings::JoystickThreshold );
-	std::string mouse_str = ctx.fe_settings.get_info( FeSettings::MouseThreshold );
+	std::string selection_delay = ctx.fe_settings.get_info( FeSettings::SelectionDelay );
+	std::string joy_thresh = ctx.fe_settings.get_info( FeSettings::JoystickThreshold );
+	std::string mouse_thresh = ctx.fe_settings.get_info( FeSettings::MouseThreshold );
 
-	ctx.add_opt( Opt::LIST, _( "Joystick Threshold" ), joy_str, _( "_help_control_joystick_threshold" ), 1 )->append_vlist( thresh );
-	ctx.add_opt( Opt::LIST, _( "Mouse Threshold" ), mouse_str, _( "_help_control_mouse_threshold" ), 1 )->append_vlist( thresh );
+	ctx.add_opt( Opt::LIST, _( "Selection Delay" ), selection_delay, _( "_help_control_selection_delay" ), 1 )->append_vlist( delay );
+	ctx.add_opt( Opt::LIST, _( "Joystick Threshold" ), joy_thresh, _( "_help_control_joystick_threshold" ), 1 )->append_vlist( thresh );
+	ctx.add_opt( Opt::LIST, _( "Mouse Threshold" ), mouse_thresh, _( "_help_control_mouse_threshold" ), 1 )->append_vlist( thresh );
 	ctx.add_opt( Opt::MENU, _( "Joystick Mappings" ), "", _( "_help_control_joystick_map" ), 2 );
 
 	FeBaseConfigMenu::get_options( ctx );
@@ -1550,6 +1550,7 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 
 bool FeInputSelMenu::save( FeConfigContext &ctx )
 {
+	ctx.fe_settings.set_info( FeSettings::SelectionDelay, ctx.opt_list[ ctx.opt_list.size() - 5 ].get_value() );
 	ctx.fe_settings.set_info( FeSettings::JoystickThreshold, ctx.opt_list[ ctx.opt_list.size() - 4 ].get_value() );
 	ctx.fe_settings.set_info( FeSettings::MouseThreshold, ctx.opt_list[ ctx.opt_list.size() - 3 ].get_value() );
 	return true;
@@ -1593,10 +1594,7 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 {
 	ctx.set_style( FeConfigContext::EditList, _( "_submenu", { _( "Configure" ), _( "Sound" ) }) );
 
-	int n = 10;
-	std::vector<std::string> volumes(n+1);
-	for ( int i=0; i<(n+1); i++ )
-		volumes[i] = as_str( 100 - ( i * 100 / n ) );
+	std::vector<std::string> volumes = create_range( 100, 0, 11 );
 
 	//
 	// Sound, Ambient and Movie Volumes

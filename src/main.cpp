@@ -1042,10 +1042,9 @@ int main(int argc, char *argv[])
 						int max_step = feSettings.selection_max_step();
 						if ( max_step > 1 )
 						{
-							int s = t / feSettings.selection_accel();
+							int s = t / 400;
 
 							// Ramp up the step depending how long the key has been held
-							// - Smaller selection_accel values ramp the step faster
 							//
 							// s:    1                    8                    15             20    22 23  24  25  26   27   28   29    30
 							// step: 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 8, 16, 32, 64, 128, 256, 512, 1024, 2048
@@ -1059,9 +1058,10 @@ int main(int argc, char *argv[])
 							else if ( s < 22 )
 								step = 6;
 							else
-								step = std::min( 1 << std::min( s - 19, 11 ), max_step ); // sanity check - don't go above 2^11 (2048)
+								step = 1 << std::min( s - 19, 11 ); // sanity check - don't go above 2^11 (2048)
 
 							// make sure we don't go over user specified max
+							step = std::min( step, max_step );
 						}
 
 						switch ( move_triggered )
