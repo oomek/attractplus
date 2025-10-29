@@ -47,6 +47,8 @@ FeMusic::FeMusic( bool loop )
 	m_fft_array_wrapper( &m_fft_data_zero )
 {
 	m_music.setLooping( loop );
+	m_music.setSpatializationEnabled( false );
+
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );

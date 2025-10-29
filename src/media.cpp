@@ -914,6 +914,8 @@ FeMedia::FeMedia( Type t )
 	m_aspect_ratio( 1.0 )
 {
 	m_imp = new FeMediaImp( t );
+	sf::SoundStream::setSpatializationEnabled( false );
+
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
