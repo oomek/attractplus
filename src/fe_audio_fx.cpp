@@ -271,10 +271,9 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 		}
 
 		// Hold the maximum peak until fall processing
-		// Multiply by 2.0 to scale from SFML's -0.5 to 0.5 range
-		float new_mono = convert_to_log_scale( peak_mono * 2.0f, VU_AMPLITUDE_LINEARITY );
-		float new_left = convert_to_log_scale( peak_left * 2.0f, VU_AMPLITUDE_LINEARITY );
-		float new_right = convert_to_log_scale( peak_right * 2.0f, VU_AMPLITUDE_LINEARITY );
+		float new_mono = convert_to_log_scale( peak_mono, VU_AMPLITUDE_LINEARITY );
+		float new_left = convert_to_log_scale( peak_left, VU_AMPLITUDE_LINEARITY );
+		float new_right = convert_to_log_scale( peak_right, VU_AMPLITUDE_LINEARITY );
 
 		if ( new_mono > m_vu_mono_in ) m_vu_mono_in = new_mono;
 		if ( new_left > m_vu_left_in ) m_vu_left_in = new_left;
@@ -732,7 +731,7 @@ bool FeAudioNormaliser::process( const float *input_frames, float *output_frames
 		return true;
 	}
 
-	const float target_level = 0.5f * media_volume;
+	const float target_level = media_volume;
 
 	if ( current_peak > max_peak )
 		max_peak = current_peak;

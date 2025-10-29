@@ -43,6 +43,7 @@ private:
 	std::string m_file_name;
 	bool m_play_state;
 	float m_volume;
+	float m_pan;
 	float m_pitch;
 	bool m_loop;
 	sf::Vector3f m_position;
@@ -59,6 +60,9 @@ public:
 
 	float get_volume();
 	void set_volume( float );
+
+	float get_pan();
+	void set_pan( float );
 
 	bool get_playing();
 	void set_playing( bool );
@@ -103,7 +107,6 @@ public:
 	bool is_sound_event_playing( FeInputMap::Command );
 
 	void play_ambient();
-	void update_volumes();
 	void stop();
 	void tick();
 

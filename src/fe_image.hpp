@@ -65,7 +65,6 @@ public:
 
 	virtual void set_play_state( bool play );
 	virtual bool get_play_state() const;
-	virtual void set_vol( float vol );
 
 	virtual void set_index_offset( int io, bool do_update=true );
 	virtual int get_index_offset() const;
@@ -102,6 +101,9 @@ public:
 
 	virtual void set_volume( float );
 	virtual float get_volume() const;
+
+	virtual void set_pan( float );
+	virtual float get_pan() const;
 
 	virtual float get_sample_aspect_ratio() const;
 
@@ -150,7 +152,6 @@ public:
 	bool tick( FeSettings *feSettings, bool play_movies ); // returns true if redraw required
 	void set_play_state( bool play );
 	bool get_play_state() const;
-	void set_vol( float vol );
 
 	void set_index_offset( int io, bool do_update );
 	int get_index_offset() const;
@@ -184,6 +185,9 @@ public:
 
 	void set_volume( float );
 	float get_volume() const;
+
+	void set_pan( float );
+	float get_pan() const;
 
 	void set_fft_bands( int );
 	int get_fft_bands() const;
@@ -228,6 +232,7 @@ private:
 	bool m_mipmap;
 	bool m_smooth;
 	float m_volume;
+	float m_pan;
 	int m_fft_bands;
 	FeImageLoaderEntry *m_entry;
 };
@@ -364,6 +369,7 @@ public:
 	bool get_repeat() const;
 	bool get_redraw() const;
 	float get_volume() const;
+	float get_pan() const;
 	float get_border_scale() const;
 
 	float get_vu_mono() const;
@@ -404,6 +410,7 @@ public:
 	void set_repeat( bool );
 	void set_redraw( bool );
 	void set_volume( float );
+	void set_pan( float );
 	void set_blend_mode( int b );
 	void set_border_scale( float s );
 
