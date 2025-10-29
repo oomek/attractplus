@@ -2004,6 +2004,22 @@ std::string get_focus_process()
 	return retval;
 }
 
+std::vector<std::string> create_range( int from, int to, int size, int min, int max )
+{
+	int a = std::min( min, max );
+	int b = std::max( min, max );
+	std::vector<std::string> range;
+	for ( int i=0; i<size; i++ )
+		range.push_back( as_str( std::clamp( from + ((to - from) / (size - 1)) * i, a, b ) ) );
+	return range;
+}
+
+std::vector<std::string> create_range( int from, int to, int size )
+{
+	return create_range( from, to, size, from, to );
+}
+
+
 bool str_to_color( const std::string &str, sf::Color &col )
 {
 	if ( rgb_to_color( str, col ) ) return true;

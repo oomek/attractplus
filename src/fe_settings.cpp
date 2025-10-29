@@ -373,7 +373,6 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_filter_wrap_mode( WrapWithinDisplay ),
 	m_selection_max_step( 128 ),
 	m_selection_delay( 400 ),
-	m_selection_accel( 400 ),
 	m_selection_speed( 40 ),
 	m_image_cache_mbytes( 100 ),
 #ifdef SFML_SYSTEM_MACOS
@@ -519,7 +518,6 @@ const char *FeSettings::configSettingStrings[] =
 	"smooth_images",
 	"selection_max_step",
 	"selection_delay_ms",
-	"selection_accel_ms",
 	"selection_speed_ms",
 	"move_mouse_on_launch",
 	"scrape_snaps",
@@ -2992,8 +2990,6 @@ const std::string FeSettings::get_info( int index ) const
 		return as_str( m_selection_max_step );
 	case SelectionDelay:
 		return as_str( m_selection_delay );
-	case SelectionAccel:
-		return as_str( m_selection_accel );
 	case SelectionSpeed:
 		return as_str( m_selection_speed );
 	case ImageCacheMBytes:
@@ -3274,10 +3270,6 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case SelectionDelay:
 		m_selection_delay = std::max( 0, as_int( value ) );
-		break;
-
-	case SelectionAccel:
-		m_selection_accel = std::max( 0, as_int( value ) );
 		break;
 
 	case SelectionSpeed:

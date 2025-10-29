@@ -425,6 +425,12 @@ void hide_console();
 
 #endif
 
+// Create a vector container #size values from..to
+std::vector<std::string> create_range( int from, int to, int size );
+
+// Create a vector container #size values from..to, clamped at min/max
+std::vector<std::string> create_range( int from, int to, int size, int min, int max );
+
 // Auto string to sf::Color
 bool str_to_color( const std::string &str, sf::Color &col );
 
