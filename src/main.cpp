@@ -71,6 +71,8 @@ int main(int argc, char *argv[])
 	bool launch_game = false;
 	bool initial_load = true;
 	bool process_console = false;
+	int last_fullscreen_mode = FeSettings::WindowType::Fullscreen;
+	int last_window_mode = FeSettings::WindowType::Window;
 	int last_display_index = -1;
 	FeLogLevel log_level = FeLog_Info;
 	bool window_topmost = false;
@@ -895,6 +897,25 @@ int main(int argc, char *argv[])
 						}
 
 						redraw=true;
+					}
+					break;
+
+				case FeInputMap::ToggleFullscreen:
+					{
+						int old_mode = feSettings.get_window_mode();
+						int is_window = ( old_mode == FeSettings::WindowType::Window || old_mode == FeSettings::WindowType::WindowNoBorder );
+						if ( is_window ) last_window_mode = old_mode; else last_fullscreen_mode = old_mode;
+						int new_mode = is_window ? last_fullscreen_mode : last_window_mode;
+
+						feSettings.set_info( FeSettings::WindowMode, FeSettings::windowModeTokens[new_mode] );
+
+						if ( feSettings.get_window_mode() != old_mode )
+						{
+							window.on_exit();
+							window.initial_create();
+							feVM.init_monitors();
+							feVM.load_layout();
+						}
 					}
 					break;
 

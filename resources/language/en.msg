@@ -185,6 +185,7 @@ Reload;Reload
 Screenshot;Screenshot
 Random Game;Random Game
 Replay Last Game;Replay Last Game
+Toggle Fullscreen;Toggle Fullscreen
 Add/Remove Favourite;Add/Remove Favourite
 Previous Favourite;Previous Favourite
 Next Favourite;Next Favourite
@@ -404,6 +405,7 @@ _help_control_screen_saver;Set the control(s) that launch screen saver mode
 _help_control_screenshot;Set the control(s) that take a screenshot of the frontend
 _help_control_select;Set the control(s) that launch the current selection
 _help_control_toggle_flip;Set the control(s) that toggle whether the display should be rotated 180 degrees
+_help_control_toggle_fullscreen;Toggle the Window Mode between Fullscreen and Window
 _help_control_toggle_layout;Set the control(s) that toggle the layout script to use (It depends on the layout you are using whether this does anything)
 _help_control_toggle_movie;Set the control(s) that toggle whether or not videos should be played
 _help_control_toggle_mute;Set the control(s) that mute/unmute frontend sound

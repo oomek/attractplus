@@ -146,6 +146,7 @@ public:
 		ToggleRotateLeft,
 		Exit,
 		ExitToDesktop,
+		ToggleFullscreen,
 		Reload,
 		ScreenShot,
 		Configure,

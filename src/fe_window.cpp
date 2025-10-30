@@ -346,9 +346,16 @@ void FeWindow::initial_create()
 		else
 		{
 			// Load the parameters from the window.am file
-			FeWindowPosition win_pos(
-				sf::Vector2i( 0, 0 ),
-				sf::Vector2u( 480, 320 ) );
+			// - Default to a centered 4:3 window (3:4 on vertical monitors) at 3/4 screen height
+			int monitor_width = (int)vm.size.x;
+			int monitor_height = (int)vm.size.y;
+			bool vert = monitor_height > monitor_width;
+			int h = std::max( monitor_height * 3 / 4, 240 );
+			int w = std::max( vert ? h * 3 / 4 : h * 4 / 3, 320 );
+			int x = (monitor_width - w) / 2;
+			int y = (monitor_height - h) / 2;
+
+			FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( w, h ) );
 
 			win_pos.load_from_file( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
 
