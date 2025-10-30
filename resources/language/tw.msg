@@ -19,6 +19,8 @@ OR;或
 Yes;是
 
 # -- misc --
+Welcome to Attract-Mode Plus;歡迎使用 Attract-Mode Plus
+Press TAB to Configure;按 TAB 鍵進行配置
 Displays Menu Options;主選單選項
 Action;操作
 Add Artwork;新增插圖資源

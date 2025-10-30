@@ -19,6 +19,8 @@ OR;或
 Yes;是
 
 # -- misc --
+Welcome to Attract-Mode Plus;欢迎来到Attract-Mode Plus
+Press TAB to Configure;按 TAB 键进行配置
 Displays Menu Options;界面选择器设置
 Action;项目
 Add Artwork;添加插图（Artwork)
