@@ -35,6 +35,7 @@
 
 #include "BarlowCJK.ttf.h"
 #include "Logo.png.h"
+#include "Logo_Full_White.png.h"
 
 #include <iostream>
 #include <cmath>
@@ -175,6 +176,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_layoutFont( NULL ),
 	m_defaultFont( NULL ),
 	m_logo_image( NULL ),
+	m_logo_full_image( NULL ),
 	m_layout_time_old( sf::Time::Zero ),
 	m_frame_time( 0.0f ),
 	m_baseRotation( FeSettings::RotateNone ),
@@ -438,6 +440,8 @@ void FePresent::clear_resources()
 	m_defaultFont = NULL;
 	delete m_logo_image;
 	m_logo_image = NULL;
+	delete m_logo_full_image;
+	m_logo_full_image = NULL;
 }
 
 //
@@ -1539,6 +1543,16 @@ const sf::Image *FePresent::get_logo_image()
 		m_logo_image = new sf::Image( logo_data.data(), logo_data.size() );
 	}
 	return m_logo_image;
+}
+
+const sf::Image *FePresent::get_logo_full_image()
+{
+	if ( !m_logo_full_image )
+	{
+		std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_Full_White_png );
+		m_logo_full_image = new sf::Image( logo_data.data(), logo_data.size() );
+	}
+	return m_logo_full_image;
 }
 
 void FePresent::toggle_rotate( FeSettings::RotationState r )

@@ -19,7 +19,6 @@ OR;又は
 Yes;はい
 
 # -- misc --
-Welcome to Attract-Mode Plus;Attract-Mode Plusへようこそ
 Press TAB to Configure;TABキーを押して設定してください
 #Displays Menu Options;
 Action;アクション

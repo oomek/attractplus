@@ -97,7 +97,7 @@ private:
 	FeTextPrimitive layout_footer();
 	FeTextPrimitive layout_message( int style = LayoutStyle::None );
 	FeTextPrimitive layout_index( int style = LayoutStyle::None );
-	sf::Sprite layout_logo( sf::Texture &texture );
+	sf::Sprite layout_logo( sf::Texture &texture, int style = LayoutStyle::None );
 	FeListBox layout_list( int style = LayoutStyle::None );
 
 	void theme_letterbox( sf::RectangleShape &rect );
@@ -162,8 +162,8 @@ public:
 		FeSettings &fes,
 		FePresent &fep );
 
-	void splash_message( const std::string &,
-		const std::string &aux="" );
+	void splash_message( const std::string &, const std::string &aux="" );
+	void splash_logo( const std::string &aux="" );
 
 	int confirm_dialog( const std::string &msg,
 		bool default_yes = false,

@@ -1,7 +1,7 @@
 <p align="center" width="100%">
    <picture>
-      <source srcset="https://github.com/oomek/attractplus/blob/master/resources/images/Logo-Full-White.png?raw=true" media="(prefers-color-scheme: dark)">
-      <source srcset="https://github.com/oomek/attractplus/blob/master/resources/images/Logo-Full-Black.png?raw=true" media="(prefers-color-scheme: light)">
+      <source srcset="https://github.com/oomek/attractplus/blob/master/resources/images/Logo_Full_White.png?raw=true" media="(prefers-color-scheme: dark)">
+      <source srcset="https://github.com/oomek/attractplus/blob/master/resources/images/Logo_Full_Black.png?raw=true" media="(prefers-color-scheme: light)">
       <img width="50%" src="https://github.com/oomek/attractplus/blob/master/resources/images/Logo.png?raw=true" alt="Logo">
    </picture>
 </p>

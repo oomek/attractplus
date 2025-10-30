@@ -19,7 +19,6 @@ OR;o
 Yes;Si
 
 # -- misc --
-Welcome to Attract-Mode Plus;Benvenuti in Attract-Mode Plus
 Press TAB to Configure;Premi TAB per configurare
 Displays Menu Options;Opzioni del Menù dei display
 Action;Azione
