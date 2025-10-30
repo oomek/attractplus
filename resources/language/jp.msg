@@ -19,6 +19,8 @@ OR;又は
 Yes;はい
 
 # -- misc --
+Welcome to Attract-Mode Plus;Attract-Mode Plusへようこそ
+Press TAB to Configure;TABキーを押して設定してください
 #Displays Menu Options;
 Action;アクション
 Add Artwork;アートワークを追加
@@ -361,10 +363,10 @@ _help_control_configure;この '設定画面' を表示するキーを設定し�
 _help_control_custom1;カスタムキー1を設定します
 _help_control_custom10;カスタムキー10を設定します
 _help_control_custom2;カスタムキー2を設定します
-#_help_control_custom3;
-#_help_control_custom4;
-#_help_control_custom5;
-#_help_control_custom6;
+_help_control_custom3;カスタムキー3を設定します
+_help_control_custom4;カスタムキー4を設定します
+_help_control_custom5;カスタムキー5を設定します
+_help_control_custom6;カスタムキー6を設定します
 _help_control_custom7;カスタムキー7を設定します
 _help_control_custom8;カスタムキー8を設定します
 _help_control_custom9;カスタムキー9を設定します
@@ -477,7 +479,7 @@ _help_main_sound;効果音, 背景音楽, ボリューム等を設定します
 #_help_misc_anisotropic_filtering;
 #_help_misc_antialiasing;
 #_help_misc_check_for_updates;
-_help_misc_confirm_exit;Confirm before exiting Attract-Mode Plus?
+#_help_misc_confirm_exit;
 _help_misc_confirm_favs;お気に入りのゲームを追加,削除する時, Yes/Noで確認するかを設定します
 _help_misc_exit_command;終了 (Yes/No 確認) でプログラムを終了する時に実行する外部コマンドを設定します (例. "sudo shutdown")
 #_help_misc_exit_message;

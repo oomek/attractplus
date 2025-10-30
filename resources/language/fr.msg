@@ -19,6 +19,8 @@ OR;OU
 Yes;Oui
 
 # -- misc --
+Welcome to Attract-Mode Plus;Bienvenue sur Attract-Mode Plus
+Press TAB to Configure;Appuyez sur TAB pour configurer
 #Displays Menu Options;
 #Action;
 Add Artwork;Ajouter Artwork
@@ -359,15 +361,15 @@ _help_control_add_tags;Définit le(s) contrôle(s) qui ajoute(nt)/supprime(nt) d
 #_help_control_back;
 _help_control_configure;Définit le(s) contrôle(s) qui affiche(nt) le menu de configuration
 _help_control_custom1;Définit le(s) contrôle(s) utilisateur(s) "Custom1"
-#_help_control_custom10;
+_help_control_custom10;Définit le(s) contrôle(s) utilisateur(s) "Custom10"
 _help_control_custom2;Définit le(s) contrôle(s) utilisateur(s) "Custom2"
 _help_control_custom3;Définit le(s) contrôle(s) utilisateur(s) "Custom3"
 _help_control_custom4;Définit le(s) contrôle(s) utilisateur(s) "Custom4"
 _help_control_custom5;Définit le(s) contrôle(s) utilisateur(s) "Custom5"
 _help_control_custom6;Définit le(s) contrôle(s) utilisateur(s) "Custom6"
-#_help_control_custom7;
-#_help_control_custom8;
-#_help_control_custom9;
+_help_control_custom7;Définit le(s) contrôle(s) utilisateur(s) "Custom7"
+_help_control_custom8;Définit le(s) contrôle(s) utilisateur(s) "Custom8"
+_help_control_custom9;Définit le(s) contrôle(s) utilisateur(s) "Custom9"
 _help_control_displays_menu;Définit le(s) contrôle(s) qui affiche(nt) la liste des listes
 _help_control_down;Définit le(s) contrôle(s) qui décrémente(nt) la séléction d'une valeur
 #_help_control_edit_game;

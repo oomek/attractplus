@@ -19,6 +19,8 @@ OR;O
 Yes;Si
 
 # -- misc --
+Welcome to Attract-Mode Plus;Bienvenido a Attract-Mode Plus
+Press TAB to Configure;Pulse TAB para configurar
 #Displays Menu Options;
 Action;Acción
 Add Artwork;Agregar tema
@@ -361,10 +363,10 @@ _help_control_configure;Configura el(los) control(es) que muestra el "Menú de c
 _help_control_custom1;Configura el(los) control(es) "Personalizado1"
 _help_control_custom10;Configura el(los) control(es) "Personalizado10"
 _help_control_custom2;Configura el(los) control(es) "Personalizado2"
-#_help_control_custom3;
-#_help_control_custom4;
-#_help_control_custom5;
-#_help_control_custom6;
+_help_control_custom3;Configura el(los) control(es) "Personalizado3"
+_help_control_custom4;Configura el(los) control(es) "Personalizado4"
+_help_control_custom5;Configura el(los) control(es) "Personalizado5"
+_help_control_custom6;Configura el(los) control(es) "Personalizado6"
 _help_control_custom7;Configura el(los) control(es) "Personalizado7"
 _help_control_custom8;Configura el(los) control(es) "Personalizado8"
 _help_control_custom9;Configura el(los) control(es) "Personalizado9"

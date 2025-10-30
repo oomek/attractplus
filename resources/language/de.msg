@@ -19,6 +19,8 @@ OR;ODER
 Yes;Ja
 
 # -- misc --
+Welcome to Attract-Mode Plus;Willkommen bei Attract-Mode Plus
+Press TAB to Configure;Drücken Sie TAB, um zu konfigurieren
 #Displays Menu Options;
 Action;Aktion
 Add Artwork;Bilddatei hinzufügen

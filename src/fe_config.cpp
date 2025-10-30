@@ -2207,7 +2207,12 @@ bool FeSaverEditMenu::save( FeConfigContext &ctx )
 
 void FeConfigMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.default_sel = 1;
+	std::vector<std::string> emu_list;
+	ctx.fe_settings.get_list_of_emulators( emu_list );
+
+	// Select Emulators if none exist, otherwise select Displays
+	ctx.default_sel = emu_list.size() == 0 ? 0 : 1;
+
 	ctx.set_style( FeConfigContext::SelectionList, _( "Configure" ));
 	ctx.help_msg = FE_COPYRIGHT;
 
