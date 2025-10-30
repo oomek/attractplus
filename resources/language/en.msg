@@ -19,7 +19,6 @@ True;True
 Yes;Yes
 
 # -- misc --
-Welcome to Attract-Mode Plus;Welcome to Attract-Mode Plus
 Press TAB to Configure;Press TAB to Configure
 Displays Menu Options;Displays Menu Options
 Action;Action

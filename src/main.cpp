@@ -1164,7 +1164,7 @@ int main(int argc, char *argv[])
 
 		if ( feSettings.get_present_state() == FeSettings::Layout_Showing && !feVM.is_layout_loaded() )
 		{
-			feOverlay.splash_message( _( "Welcome to Attract-Mode Plus" ), _( "Press TAB to Configure" ) );
+			feOverlay.splash_logo( _( "Press TAB to Configure" ) );
 			continue;
 		}
 

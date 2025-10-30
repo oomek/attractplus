@@ -19,7 +19,6 @@ OR;또는
 Yes;예
 
 # -- misc --
-Welcome to Attract-Mode Plus;Attract-Mode Plus에 오신 것을 환영합니다
 Press TAB to Configure;TAB을 눌러 구성하세요
 #Displays Menu Options;
 Action;기능

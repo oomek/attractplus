@@ -217,7 +217,8 @@ _OBJ =\
 _RES =\
 	resources/fonts/BarlowCJK.ttf \
 	resources/fonts/Attract.ttf \
-	resources/images/Logo.png
+	resources/images/Logo.png \
+	resources/images/Logo_Full_White.png
 
 _LANGUAGE =\
 	resources/language/cn.msg \

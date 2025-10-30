@@ -142,6 +142,7 @@ protected:
 	FeFontContainer *m_defaultFont;
 	std::string m_layoutFontName;
 	sf::Image *m_logo_image;
+	sf::Image *m_logo_full_image;
 
 	FeStableClock m_layout_time;
 	sf::Time m_layout_time_old;
@@ -272,6 +273,7 @@ public:
 	const sf::Font *get_default_font();
 	const FeFontContainer *get_default_font_container();
 	const sf::Image *get_logo_image();
+	const sf::Image *get_logo_full_image();
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;

@@ -324,8 +324,7 @@ void FeOverlay::style_init( sf::Color theme_color )
 // - Drawn once - displayed for a single frame
 // - `fe.overlay.splash_menu`
 //
-void FeOverlay::splash_message( const std::string &msg,
-				const std::string &aux )
+void FeOverlay::splash_message( const std::string &msg, const std::string &aux )
 {
 	sf::RectangleShape bg = layout_background();
 	FeTextPrimitive message = layout_message( LayoutStyle::Middle );
@@ -344,6 +343,30 @@ void FeOverlay::splash_message( const std::string &msg,
 	m_wnd.draw( m_fePresent, t );
 	m_wnd.draw( bg, t );
 	m_wnd.draw( message, t );
+	m_wnd.draw( extra, t );
+	m_wnd.display();
+}
+
+void FeOverlay::splash_logo( const std::string &aux )
+{
+	sf::RectangleShape bg = layout_background();
+	FeTextPrimitive extra = layout_footer();
+
+	sf::Texture logo_texture = sf::Texture( *(FePresent::script_get_fep()->get_logo_full_image()) );
+	sf::Sprite logo = layout_logo( logo_texture, LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre );
+
+	extra.setString( aux );
+
+	const sf::Transform &t = m_fePresent.get_ui_transform();
+
+	// Process tick only when Layout is fully loaded
+	if ( m_fePresent.is_layout_loaded() )
+		m_fePresent.tick();
+
+	m_wnd.clear();
+	m_wnd.draw( m_fePresent, t );
+	m_wnd.draw( bg, t );
+	m_wnd.draw( logo, t );
 	m_wnd.draw( extra, t );
 	m_wnd.display();
 }
@@ -1151,17 +1174,29 @@ FeTextPrimitive FeOverlay::layout_message( int style )
 
 // Create the AM Logo sprite, sized to fit the header
 // - The texture must be created by the caller to control its lifetime
-sf::Sprite FeOverlay::layout_logo( sf::Texture &texture )
+sf::Sprite FeOverlay::layout_logo( sf::Texture &texture, int style )
 {
 	texture.setSmooth( true );
 	std::ignore = texture.generateMipmap();
 	sf::Vector2u logo_size = texture.getSize();
 	int margin = ( m_letterbox_top_height - m_header_char_size ) / 2.0;
-	float size = m_header_char_size;
+
+	float height = m_header_char_size;
+	float width = height / logo_size.y * logo_size.x;
+
+	if ( style & LayoutStyle::Large ) {
+		width = std::min( m_screen_size.x, m_screen_size.y ) * 0.55;
+		height = width / logo_size.x * logo_size.y;
+	}
+
+	float x = m_letterbox_margin;
+	float y = margin;
+	if ( style & LayoutStyle::Centre ) x = ( m_screen_size.x - width ) / 2.0;
+	if ( style & LayoutStyle::Middle ) y = ( m_screen_size.y - height ) / 2.0;
 
 	sf::Sprite sprite( texture );
-	sprite.setScale( sf::Vector2f( size / logo_size.x, size / logo_size.y ) );
-	sprite.setPosition( m_screen_pos + sf::Vector2f( m_letterbox_margin, margin ) );
+	sprite.setScale( sf::Vector2f( width / logo_size.x, height / logo_size.y ) );
+	sprite.setPosition( m_screen_pos + sf::Vector2f( x, y ) );
 	return sprite;
 }
 
