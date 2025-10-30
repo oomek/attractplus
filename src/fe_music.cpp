@@ -42,6 +42,7 @@
 FeMusic::FeMusic( bool loop )
 	: m_file_name( "" ),
 	m_volume( 100.0 ),
+	m_pan( 0.0 ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -55,17 +56,6 @@ FeMusic::FeMusic( bool loop )
 
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
-
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep )
-	{
-		float volume = fep->get_fes()->get_play_volume( FeSoundInfo::Sound );
-		m_music.setVolume( volume );
-
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-		if ( normaliser )
-			normaliser->set_media_volume( volume / 100.0f );
-	}
 	m_music.setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
 	                                    float *output_frames, unsigned int &output_frame_count,
 	                                    unsigned int frame_channel_count )
@@ -151,16 +141,22 @@ void FeMusic::set_volume( float v )
 		else if ( v < 0.0 ) v = 0.0;
 
 		m_volume = v;
+	}
+}
 
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
-			v = v * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+float FeMusic::get_pan()
+{
+	return m_pan;
+}
 
-		m_music.setVolume( v );
+void FeMusic::set_pan( float p )
+{
+	if ( p != m_pan )
+	{
+		if ( p < -1.0 ) p = -1.0;
+		else if ( p > 1.0 ) p = 1.0;
 
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-		if ( normaliser )
-			normaliser->set_media_volume( v / 100.0f );
+		m_pan = p;
 	}
 }
 
@@ -274,6 +270,24 @@ const char *FeMusic::get_metadata( const char* tag )
 
 void FeMusic::tick()
 {
+	float vol = m_volume;
+
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+
+	if ( vol != m_music.getVolume() )
+	{
+		m_music.setVolume( vol );
+
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_media_volume( vol / 100.0f );
+	}
+
+	if ( m_pan != m_music.getPan() )
+		m_music.setPan( m_pan );
+
 	m_audio_effects.update_all();
 }
 

@@ -146,7 +146,6 @@ int main(int argc, char *argv[])
 	//
 	FeSoundSystem soundsys( &feSettings );
 
-	soundsys.update_volumes();
 	soundsys.play_ambient();
 
 	FeWindow window( feSettings );
@@ -236,7 +235,6 @@ int main(int argc, char *argv[])
 				feSettings.on_joystick_connect(); // update joystick mappings
 
 				soundsys.stop();
-				soundsys.update_volumes();
 				soundsys.play_ambient();
 
 				// Recreate window if the window mode changed
@@ -325,7 +323,6 @@ int main(int argc, char *argv[])
 
 				feVM.post_run();
 				soundsys.release_audio( false );
-				soundsys.update_volumes();
 
 				soundsys.sound_event( FeInputMap::EventGameReturn );
 				soundsys.play_ambient();
@@ -666,8 +663,6 @@ int main(int argc, char *argv[])
 
 				case FeInputMap::ToggleMute:
 					feSettings.set_mute( !feSettings.get_mute() );
-					soundsys.update_volumes();
-					feVM.toggle_mute();
 					break;
 
 				case FeInputMap::ScreenShot:

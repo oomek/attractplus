@@ -91,12 +91,6 @@ void FeSoundSystem::tick()
 {
 }
 
-void FeSoundSystem::update_volumes()
-{
-	m_ambient_sound.set_volume( m_fes->get_play_volume( FeSoundInfo::Ambient ) );
-	m_event_sound.set_volume( m_fes->get_play_volume( FeSoundInfo::Sound ) );
-}
-
 void FeSoundSystem::release_audio( bool state )
 {
 	m_event_sound.release_audio( state );
@@ -108,6 +102,7 @@ FeSound::FeSound( bool loop )
 	m_file_name( "" ),
 	m_play_state( false ),
 	m_volume( 100.0 ),
+	m_pan( 0.0 ),
 	m_pitch( 1.0 ),
 	m_loop( loop ),
 	m_position( 0.0, 0.0, 0.0 )
@@ -127,6 +122,17 @@ void FeSound::release_audio( bool state )
 
 void FeSound::tick()
 {
+	float vol = m_volume;
+
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+
+	if ( vol != m_sound.getVolume() )
+		m_sound.setVolume( vol );
+
+	if ( m_pan != m_sound.getPan() )
+		m_sound.setPan( m_pan );
 }
 
 void FeSound::load( const std::string &fn )
@@ -163,12 +169,21 @@ void FeSound::set_volume( float v )
 		else if ( v < 0.0 ) v = 0.0;
 
 		m_volume = v;
+	}
+}
 
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
-			v = v * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+float FeSound::get_pan()
+{
+	return m_pan;
+}
 
-		m_sound.setVolume( v );
+void FeSound::set_pan( float p )
+{
+	if ( p != m_pan )
+	{
+		if ( p < -1.0 ) p = -1.0;
+		else if ( p > 1.0 ) p = 1.0;
+		m_pan = p;
 	}
 }
 
@@ -179,11 +194,6 @@ void FeSound::set_playing( bool flag )
 	if ( m_play_state == true && m_file_name != "" )
 	{
 		m_sound.stop();
-		FePresent *fep = FePresent::script_get_fep();
-		float vol = m_volume;
-		if ( fep )
-			vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
-		m_sound.setVolume( vol );
 		m_sound.setLooping( m_loop );
 		m_sound.setPosition( m_position );
 		m_sound.setPitch( m_pitch );

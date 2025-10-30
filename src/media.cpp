@@ -1087,6 +1087,11 @@ bool FeMedia::is_playing()
 	return (( m_audio ) && (sf::SoundStream::getStatus() == sf::SoundStream::Status::Playing ));
 }
 
+float FeMedia::getVolume() const
+{
+	return sf::SoundStream::getVolume();
+}
+
 void FeMedia::setVolume( float volume )
 {
 	if ( m_audio )
@@ -1103,6 +1108,16 @@ void FeMedia::setVolume( float volume )
 	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
 	if ( normaliser )
 		normaliser->set_media_volume( volume / 100.0f );
+}
+
+float FeMedia::getPan() const
+{
+	return sf::SoundStream::getPan();
+}
+
+void FeMedia::setPan( float pan )
+{
+	sf::SoundStream::setPan( pan );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )

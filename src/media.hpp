@@ -69,7 +69,11 @@ public:
 	//
 	bool tick();
 
+	float getVolume() const;
 	void setVolume( float volume );
+
+	float getPan() const;
+	void setPan( float pan );
 
 	bool is_playing();
 	bool is_multiframe() const;
