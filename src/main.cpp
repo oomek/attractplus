@@ -911,6 +911,7 @@ int main(int argc, char *argv[])
 
 						if ( feSettings.get_window_mode() != old_mode )
 						{
+							feSettings.save();
 							window.on_exit();
 							window.initial_create();
 							feVM.init_monitors();
