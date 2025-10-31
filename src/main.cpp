@@ -196,6 +196,8 @@ int main(int argc, char *argv[])
 	sf::Clock move_timer;
 	std::optional<sf::Event> move_event;
 	int move_last_triggered( 0 );
+	sf::Clock command_timer;
+	command_timer.stop();
 
 	// go straight into config mode if there are no lists configured for
 	// display
@@ -462,6 +464,7 @@ int main(int argc, char *argv[])
 				move_timer.restart();
 				move_event = ev;
 				move_triggered = FeInputMap::LAST_COMMAND;
+				command_timer.restart();
 			}
 
 			//
@@ -1031,6 +1034,7 @@ int main(int argc, char *argv[])
 
 			if ( cont )
 			{
+				command_timer.restart();
 				int t = move_timer.getElapsedTime().asMilliseconds();
 				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() ))
 				{
@@ -1168,6 +1172,14 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
+		// Save nv a short time after the last ui command
+		if ( command_timer.isRunning() && command_timer.getElapsedTime().asMilliseconds() > 5000 )
+		{
+			command_timer.reset();
+			feVM.save_script_nv();
+			feVM.save_layout_nv();
+		}
+
 		//
 		// Log any unexpected loss of window focus
 		//
@@ -1186,7 +1198,10 @@ int main(int argc, char *argv[])
 			redraw=true;
 
 		if ( feVM.saver_activation_check() )
+		{
 			soundsys.sound_event( FeInputMap::ScreenSaver );
+			command_timer.restart();
+		}
 
 		if ( redraw || !feSettings.get_info_bool( FeSettings::PowerSaving ) )
 		{

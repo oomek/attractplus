@@ -185,14 +185,14 @@ std::string escape_char( char c )
 }
 
 // Escape all squirrel special chars in given value
-void escape_string( std::string &value )
+std::string sq_escape_string( const std::string value )
 {
 	std::string out = "";
 	for (char c: value) out += escape_char( c );
-	value = out;
+	return out;
 }
 
-std::string fe_to_json_string( HSQOBJECT obj, int indent )
+std::string sq_obj_to_json( HSQOBJECT obj, int indent )
 {
 	std::string retval;
 	Sqrat::Object sobj( obj );
@@ -206,19 +206,15 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 	case OT_BOOL:
 	case OT_INTEGER:
 	case OT_FLOAT:
-		fe_get_object_string( Sqrat::DefaultVM::Get(),
-			obj, retval );
+		fe_get_object_string( Sqrat::DefaultVM::Get(), obj, retval );
 		break;
 
 	case OT_STRING:
 		retval = "\"";
 		{
 			std::string obj_string;
-			fe_get_object_string( Sqrat::DefaultVM::Get(),
-				obj, obj_string );
-
-			escape_string( obj_string );
-			retval += obj_string;
+			fe_get_object_string( Sqrat::DefaultVM::Get(), obj, obj_string );
+			retval += sq_escape_string( obj_string );
 		}
 		retval += "\"";
 		break;
@@ -234,8 +230,7 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 			bool got_obj = sobj.Next( it );
 			while ( got_obj )
 			{
-				std::string val = fe_to_json_string( it.getValue(),
-						indent+1 );
+				std::string val = sq_obj_to_json( it.getValue(), indent + 1 );
 
 				//
 				// Ignore completely if val comes back empty
@@ -246,7 +241,7 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 					continue;
 				}
 
-				std::string key = fe_to_json_string( it.getKey(), 0 );
+				std::string key = sq_obj_to_json( it.getKey(), 0 );
 
 				retval += "\t";
 				retval += key;
@@ -272,8 +267,7 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 			bool first=true;
 			while ( sobj.Next( it ) )
 			{
-				std::string val = fe_to_json_string( it.getValue(),
-						indent );
+				std::string val = sq_obj_to_json( it.getValue(), indent );
 
 				if ( !val.empty() )
 				{
@@ -305,3 +299,34 @@ std::string fe_to_json_string( HSQOBJECT obj, int indent )
 	return retval;
 }
 
+// Convert squirrel table slot to json
+std::string sq_slot_to_json( std::string name )
+{
+	size_t pos=0;
+	std::string token;
+	Sqrat::Table table = Sqrat::RootTable();
+	name += ".";
+	while ( token_helper( name, pos, token, "." ) )
+	{
+		table = table.GetSlot( scsqchar( token ) );
+		if ( table.IsNull() )
+			return "";
+	}
+
+	return sq_obj_to_json( table );
+}
+
+// Run squirrel code
+void sq_run_code( std::string code )
+{
+	try
+	{
+		Sqrat::Script sc;
+		sc.CompileString( code );
+		sc.Run();
+	}
+	catch ( const Sqrat::Exception &e )
+	{
+		FeLog() << "Error compiling " << code << " - " << e.Message() << std::endl;
+	}
+}

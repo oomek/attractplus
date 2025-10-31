@@ -25,6 +25,7 @@
 
 #include <squirrel.h>
 #include <string>
+#include "fe_base.hpp"
 
 //
 // Squirrel utility functions.
@@ -75,6 +76,9 @@ void fe_register_global_func(
 	SQFUNCTION f,
 	const char *name );
 
-std::string fe_to_json_string( HSQOBJECT obj, int indent=0 );
+std::string sq_obj_to_json( HSQOBJECT obj, int indent=0 );
+std::string sq_escape_string( const std::string value );
+std::string sq_slot_to_json( std::string name );
+void sq_run_code( std::string code );
 
 #endif

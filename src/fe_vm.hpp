@@ -92,6 +92,7 @@ private:
 	const FeScriptConfigurable *m_script_cfg;
 	int m_script_id;
 	sf::Time m_last_ui_cmd;
+	std::string m_last_layout;
 
 	std::queue< FeInputMap::Command > m_posted_commands;
 	std::vector< FeCallback > m_ticks;
@@ -113,6 +114,11 @@ private:
 public:
 	FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console_input );
 	~FeVM();
+
+	void load_script_nv();
+	void save_script_nv();
+	void load_layout_nv();
+	void save_layout_nv();
 
 	void set_overlay( FeOverlay *feo );
 

@@ -61,6 +61,7 @@
 #include <algorithm>
 
 const char *FE_SCRIPT_NV_FILE = "script.nv";
+const char *FE_LAYOUT_NV_FILE = "layout.nv";
 
 namespace
 {
@@ -196,41 +197,6 @@ namespace
 
 		return 1;
 	}
-
-	std::string read_non_volatile_to_string( const SQChar *name )
-	{
-		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
-		Sqrat::Table snv( fe.GetSlot( name ) );
-
-		if ( snv.IsNull() )
-			return "";
-
-		return fe_to_json_string( snv );
-	}
-
-	void write_non_volatile_from_string( const char *name,
-		std::string &nv )
-	{
-		if ( !nv.empty() )
-		{
-			std::string temp = "fe.";
-			temp += name;
-			temp += " <- ";
-			temp += nv;
-			temp += ";";
-
-			try
-			{
-				Sqrat::Script sc;
-				sc.CompileString( temp );
-				sc.Run();
-			}
-			catch ( const Sqrat::Exception &e )
-			{
-				FeLog() << "Error compiling " << name << " string: [" << nv << "] - " << e.Message() << std::endl;
-			}
-		}
-	}
 };
 
 FeCallback::FeCallback( int pid,
@@ -296,47 +262,64 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console
 	srand( time( NULL ) );
 	vm_init();
 
-	//
-	// Read the "non-volatile" table (fe.nv) from the filesystem now
-	//
-	std::string filename = m_feSettings->get_config_dir();
-	filename += FE_SCRIPT_NV_FILE;
-
-	nowide::ifstream infile( filename.c_str() );
-	if ( !infile.is_open() )
-		return;
-
-	std::string nv;
-	while ( infile.good() )
-	{
-		std::string line;
-		getline( infile, line );
-		nv += line;
-	}
-
 	Sqrat::Table fe;
-	Sqrat::RootTable().Bind( _SC("fe"),  fe );
-	write_non_volatile_from_string( "nv", nv );
+	Sqrat::RootTable().Bind( _SC("fe"), fe );
+	load_script_nv();
 }
 
 FeVM::~FeVM()
 {
 	clear_handlers();
-
-	//
-	// Save the "non-volatile" squirrel table (fe.nv) to a file now
-	//
-	std::string filename = m_feSettings->get_config_dir();
-	filename += FE_SCRIPT_NV_FILE;
-
-	nowide::ofstream outfile( filename.c_str() );
-	if ( outfile.is_open() )
-	{
-		outfile << read_non_volatile_to_string( _SC( "nv" ) ) << std::endl;
-		outfile.close();
-	}
-
+	save_script_nv();
+	save_layout_nv();
 	vm_close();
+}
+
+// Load fe.nv from file
+void FeVM::load_script_nv() {
+	std::string nv;
+	read_file_content( m_feSettings->get_config_dir() + FE_SCRIPT_NV_FILE, nv );
+	sq_run_code( "fe.nv <- " + ( nv.empty() ? "{}" : nv ) );
+}
+
+// Save fe.nv to file
+void FeVM::save_script_nv() {
+	write_file_content( m_feSettings->get_config_dir() + FE_SCRIPT_NV_FILE, sq_slot_to_json( "fe.nv" ) );
+}
+
+// Load the fe.layout.nv for the current layout
+void FeVM::load_layout_nv() {
+	FeDisplayInfo *di = m_feSettings->get_display( m_feSettings->get_current_display_index() );
+	m_last_layout = di->get_layout();
+
+	std::string layout_nv;
+	read_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, layout_nv );
+	if ( layout_nv.empty() ) layout_nv = "{}";
+
+	std::string key = sq_escape_string( m_last_layout );
+	sq_run_code( "try { fe.layout.nv = " + layout_nv + "[\"" + key + "\"] } catch (err) { fe.layout.nv = {} }" );
+}
+
+// Save the fe.layout.nv for the *last loaded* layout
+void FeVM::save_layout_nv() {
+	if ( m_last_layout.empty() )
+		return;
+
+	std::string layout_nv;
+	read_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, layout_nv );
+	if ( layout_nv.empty() ) layout_nv = "{}";
+
+	// All layout nv's are stored in one table
+	// - Rebuild the full table in a temp variable, save it, then remove it
+	std::string temp = "_fe_layout_nv";
+	std::string key = sq_escape_string( m_last_layout );
+	sq_run_code( "try { " + temp + " <- " + layout_nv + "\n" + temp + "[\"" + key + "\"] <- fe.layout.nv } catch(err) {}" );
+	std::string json = sq_slot_to_json( temp );
+	if ( json.empty() )
+		return;
+
+	write_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, json );
+	sq_run_code( "try { delete " + temp + " } catch (err) {}" );
 }
 
 void FeVM::set_overlay( FeOverlay *feo )
@@ -523,10 +506,12 @@ bool FeVM::on_new_layout()
 		= m_feSettings->get_current_config( FeSettings::Current );
 
 
-	// Grab the contents of the existing "non-volatile" squirrel table
-	// before reinitializing
+	// Grab the contents of the existing "non-volatile" squirrel table before reinitializing
 	//
-	std::string nv = read_non_volatile_to_string( _SC( "nv" ) );
+	std::string nv = sq_slot_to_json( "fe.nv" );
+
+	save_script_nv();
+	save_layout_nv();
 
 	// Squirrel VM gets reinitialized on each layout
 	//
@@ -940,6 +925,10 @@ bool FeVM::on_new_layout()
 		.Func(_SC("redraw"), &FePresent::redraw )
 	);
 
+	// Create a slot for fe.layout.nv data
+	Sqrat::Table layoutGlobals( fe.GetSlot( _SC("LayoutGlobals") ) );
+	layoutGlobals.SetValue( _SC("nv"), Table() );
+
 	fe.Bind( _SC("CurrentList"), Class <FePresent, NoConstructor>()
 		.Prop( _SC("name"), &FePresent::get_display_name )
 		.Prop( _SC("display_index"), &FePresent::get_display_index )
@@ -1180,11 +1169,6 @@ bool FeVM::on_new_layout()
 	fe.SetInstance( _SC("image_cache"), &il );
 	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
 
-	// We keep a "non-volatile" table for use by layouts/plugins, the
-	// string content of which gets copied over from layout to layout
-	//
-	fe.SetValue( _SC("nv"), Table() );
-
 	// Each presentation object gets an instance in the
 	// "obj" array available in Squirrel
 	//
@@ -1192,7 +1176,13 @@ bool FeVM::on_new_layout()
 	fe.Bind( _SC("obj"), obj );
 	RootTable().Bind( _SC("fe"),  fe );
 
-	write_non_volatile_from_string( "nv", nv );
+	// We keep a "non-volatile" table for use by layouts/plugins, the
+	// string content of which gets copied over from layout to layout
+	//
+	fe.SetValue( _SC("nv"), Table() );
+	sq_run_code( "fe.nv <- " + (nv.empty() ? "{}" : nv) );
+
+	load_layout_nv();
 
 	//
 	// Run any plugin script(s), skip for intro
