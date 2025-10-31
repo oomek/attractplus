@@ -1637,7 +1637,7 @@ bool FeVM::splash_message( const char *msg, const char *aux )
 
 bool FeVM::splash_message( const char *msg )
 {
-	return splash_message( msg );
+	return splash_message( msg, "" );
 }
 
 //
