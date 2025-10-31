@@ -67,17 +67,25 @@ namespace sf
 	class Texture;
 };
 
-// sf::IntRect extended with edge-based fields
-struct IntEdges : public sf::IntRect
+// sf::Rect extended with edge-based fields
+template <typename T>
+struct RectEdges : public sf::Rect<T>
 {
-	int &left = position.x;
-	int &top = position.y;
-	int &right = size.x;
-	int &bottom = size.y;
+	T &left = sf::Rect<T>::position.x;
+	T &top = sf::Rect<T>::position.y;
+	T &right = sf::Rect<T>::size.x;
+	T &bottom = sf::Rect<T>::size.y;
 
-	IntEdges() : sf::IntRect() {}
+	RectEdges() : sf::Rect<T>() {}
 
-	IntEdges( int l, int t, int r, int b ) : sf::IntRect()
+	template <typename U>
+	RectEdges( const sf::Rect<U>& rect ) : sf::Rect<T>( rect ) {}
+
+	template <typename U>
+	RectEdges( const sf::Vector2<U>& pos, const sf::Vector2<U>& size ) : sf::Rect<T>( pos, size ) {}
+
+	template <typename U>
+	RectEdges( U l, U t, U r, U b ) : sf::Rect<T>()
 	{
 		left = l;
 		top = t;
@@ -85,25 +93,15 @@ struct IntEdges : public sf::IntRect
 		bottom = b;
 	}
 
-	IntEdges( const sf::IntRect& rect ) : sf::IntRect( rect ) {}
-
-	IntEdges& operator=( const IntEdges& other )
+	RectEdges& operator=( const RectEdges& other )
 	{
-		sf::IntRect::operator=( other );
+		sf::Rect<T>::operator=( other );
 		return *this;
 	}
-
-	bool operator==( const IntEdges& other ) const
-	{
-		return left == other.left && top == other.top &&
-			right == other.right && bottom == other.bottom;
-	}
-
-	bool operator!=( const IntEdges& other ) const
-	{
-		return !( *this == other );
-	}
 };
+
+using IntEdges 	= RectEdges<int>;
+using FloatEdges 	= RectEdges<float>;
 
 ////////////////////////////////////////////////////////////
 /// \brief Drawable representation of a texture, with its
@@ -241,6 +239,9 @@ public :
     ////////////////////////////////////////////////////////////
     sf::IntRect getLocalBounds() const;
 
+	void setCrop( FloatEdges );
+	FloatEdges getCrop();
+
 	float getSkewX() const;
 	float getSkewY() const;
 	float getPinchX() const;
@@ -290,6 +291,7 @@ private :
 	sf::Vector2f m_skew;
 	IntEdges m_border;
 	IntEdges m_padding;
+	FloatEdges m_crop;
 	float m_border_scale;
 };
 
