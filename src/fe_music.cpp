@@ -211,16 +211,19 @@ float FeMusic::get_z()
 void FeMusic::set_x( float v )
 {
 	m_music.setPosition( sf::Vector3f( v, get_y(), get_z() ) );
+	m_music.setSpatializationEnabled( true );
 }
 
 void FeMusic::set_y( float v )
 {
 	m_music.setPosition( sf::Vector3f( get_x(), v, get_z() ) );
+	m_music.setSpatializationEnabled( true );
 }
 
 void FeMusic::set_z( float v )
 {
 	m_music.setPosition( sf::Vector3f( get_x(), get_y(), v ) );
+	m_music.setSpatializationEnabled( true );
 }
 
 int FeMusic::get_duration()

@@ -107,6 +107,7 @@ FeSound::FeSound( bool loop )
 	m_loop( loop ),
 	m_position( 0.0, 0.0, 0.0 )
 {
+	m_sound.setSpatializationEnabled( false );
 }
 
 FeSound::~FeSound()
@@ -262,6 +263,7 @@ void FeSound::set_x( float p )
 		m_position.x = p;
 
 		m_sound.setPosition( m_position );
+		m_sound.setSpatializationEnabled( true );
 	}
 }
 
@@ -272,6 +274,7 @@ void FeSound::set_y( float p )
 		m_position.y = p;
 
 		m_sound.setPosition( m_position );
+		m_sound.setSpatializationEnabled( true );
 	}
 }
 
@@ -282,6 +285,7 @@ void FeSound::set_z( float p )
 		m_position.z = p;
 
 		m_sound.setPosition( m_position );
+		m_sound.setSpatializationEnabled( true );
 	}
 }
 
