@@ -1237,7 +1237,7 @@ When Attract-Mode Plus runs a module script, `fe.module_dir` is set to the modul
 
 ### `fe.nv`
 
-The `fe.nv` table can be used by layouts and plugins to store persistent values. The values in this table get saved by Attract-Mode Plus whenever the layout changes and are saved to disk when Attract-Mode Plus is shut down. `boolean`, `integer`, `float`, `string`, `array` and `table` values can be stored in this table.
+A table that can be used for persistent data storage, `fe.nv` is accessible to all Layouts, Modules and Plugins. The table is automatically loaded on startup, and saved to disk on shutdown, layout change, and after control inputs. All basic types can be stored: `boolean`, `integer`, `float`, `string`, `array` and `table`.
 
 ---
 
@@ -1266,6 +1266,7 @@ This class is a container for global layout settings. The instance of this class
 -  `preserve_aspect_ratio` - Get/set whether the overall layout aspect ratio should be preserved by the frontend. Default value is `false`.
 -  `time` - Get the number of milliseconds that the layout has been showing.
 -  `mouse_pointer` 🔶 - When set to `true` mouse pointer will be visible.
+-  `nv` 🔶 - A table that can be used for persistent data storage, much like [`fe.nv`](#fenv) - but only available to the current Layout.
 
 **Member Functions**
 

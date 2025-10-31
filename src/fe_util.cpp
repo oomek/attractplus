@@ -284,7 +284,7 @@ bool directory_exists( const std::string &file )
 	return check_path( file ) & FeVM::IsDirectory;
 }
 
-bool get_file_content( const std::string &file, std::string &output )
+bool read_file_content( const std::string &file, std::string &content )
 {
 	std::ifstream f( file, std::ios::binary );
 	if ( !f.is_open() )
@@ -293,7 +293,18 @@ bool get_file_content( const std::string &file, std::string &output )
 	std::stringstream buffer;
 	buffer << f.rdbuf();
 	f.close();
-	output = buffer.str();
+	content = buffer.str();
+	return true;
+}
+
+bool write_file_content( const std::string &file, const std::string content )
+{
+	nowide::ofstream f( file );
+	if ( !f.is_open() )
+		return false;
+
+	f << content;
+	f.close();
 	return true;
 }
 
