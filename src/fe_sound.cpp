@@ -26,6 +26,8 @@
 #include "fe_util.hpp"
 #include "fe_file.hpp"
 #include "zip.hpp"
+
+#include <algorithm>
 #include <iostream>
 #include <cstring>
 
@@ -180,12 +182,8 @@ float FeSound::get_pan()
 
 void FeSound::set_pan( float p )
 {
-	if ( p != m_pan )
-	{
-		if ( p < -1.0 ) p = -1.0;
-		else if ( p > 1.0 ) p = 1.0;
-		m_pan = p;
-	}
+	if ( p == m_pan ) return;
+	m_pan = std::clamp( p, -1.0f, 1.0f );
 }
 
 void FeSound::set_playing( bool flag )

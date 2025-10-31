@@ -30,6 +30,8 @@
 #include "fe_audio_fx.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
+
+#include <algorithm>
 #include <cmath>
 
 #ifndef NO_MOVIE
@@ -892,10 +894,7 @@ float FeTextureContainer::get_volume() const
 void FeTextureContainer::set_pan( float p )
 {
 	if ( p == m_pan ) return;
-
-	if ( p < -1.0 ) p = -1.0;
-	else if ( p > 1.0 ) p = 1.0;
-	m_pan = p;
+	m_pan = std::clamp( p, -1.0f, 1.0f );
 }
 
 float FeTextureContainer::get_pan() const
