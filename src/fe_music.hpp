@@ -39,6 +39,7 @@ private:
 	std::string m_file_name;
 	bool m_play_state;
 	float m_volume;
+	float m_pan;
 
 	FeAudioEffectsManager m_audio_effects;
 
@@ -53,6 +54,9 @@ public:
 
 	float get_volume();
 	void set_volume( float );
+
+	float get_pan();
+	void set_pan( float );
 
 	bool get_playing();
 	void set_playing( bool );

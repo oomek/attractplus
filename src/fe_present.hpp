@@ -255,7 +255,6 @@ public:
 	void on_stop_frontend();
 	void pre_run();
 	void post_run();
-	void toggle_mute();
 
 	bool reset_screen_saver();
 	bool handle_event( FeInputMap::Command );

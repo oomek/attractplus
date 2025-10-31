@@ -914,6 +914,8 @@ FeMedia::FeMedia( Type t )
 	m_aspect_ratio( 1.0 )
 {
 	m_imp = new FeMediaImp( t );
+	sf::SoundStream::setSpatializationEnabled( false );
+
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
@@ -1085,6 +1087,11 @@ bool FeMedia::is_playing()
 	return (( m_audio ) && (sf::SoundStream::getStatus() == sf::SoundStream::Status::Playing ));
 }
 
+float FeMedia::getVolume() const
+{
+	return sf::SoundStream::getVolume();
+}
+
 void FeMedia::setVolume( float volume )
 {
 	if ( m_audio )
@@ -1101,6 +1108,16 @@ void FeMedia::setVolume( float volume )
 	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
 	if ( normaliser )
 		normaliser->set_media_volume( volume / 100.0f );
+}
+
+float FeMedia::getPan() const
+{
+	return sf::SoundStream::getPan();
+}
+
+void FeMedia::setPan( float pan )
+{
+	sf::SoundStream::setPan( pan );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
@@ -1251,9 +1268,13 @@ bool FeMedia::open( const std::string &archive,
 #endif
 
 				std::vector<sf::SoundChannel> channelMap;
-				channelMap.push_back( sf::SoundChannel::FrontLeft );
-				if ( nb_channels > 1 )
+				if ( nb_channels == 1 )
+					channelMap.push_back( sf::SoundChannel::Mono );
+				else
+				{
+					channelMap.push_back( sf::SoundChannel::FrontLeft );
 					channelMap.push_back( sf::SoundChannel::FrontRight );
+				}
 
 				sf::SoundStream::initialize(
 					nb_channels,

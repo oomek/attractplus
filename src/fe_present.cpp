@@ -701,9 +701,6 @@ FeSound *FePresent::add_sound( const char *n )
 	if ( !name.empty() )
 		new_sound->load( path + name );
 
-	new_sound->set_volume(
-		m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
-
 	m_sounds.push_back( new_sound );
 	return new_sound;
 }
@@ -728,9 +725,6 @@ FeMusic *FePresent::add_music( const char *n )
 
 	if ( !name.empty() )
 		new_music->load( path + name );
-
-	new_music->set_volume(
-		m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
 
 	m_musics.push_back( new_music );
 	return new_music;
@@ -1450,13 +1444,6 @@ void FePresent::post_run()
 		(*its)->release_audio( false );
 #endif
 
-	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
-				itm != m_texturePool.end(); ++itm )
-		(*itm)->set_vol( m_feSettings->get_play_volume( FeSoundInfo::Movie ) );
-
-	for ( its=m_sounds.begin(); its != m_sounds.end(); ++its )
-		(*its)->set_volume( m_feSettings->get_play_volume( FeSoundInfo::Sound ) );
-
 	set_video_play_state( m_playMovies );
 
 	m_layout_time.tick();
@@ -1482,24 +1469,6 @@ void FePresent::set_video_play_state( bool state )
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )
 		(*itm)->set_play_state( state );
-}
-
-void FePresent::toggle_mute()
-{
-	int movie_vol = m_feSettings->get_play_volume( FeSoundInfo::Movie );
-	int sound_vol = m_feSettings->get_play_volume( FeSoundInfo::Sound );
-
-	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
-				itm != m_texturePool.end(); ++itm )
-		(*itm)->set_vol( movie_vol );
-
-	for ( std::vector<FeSound *>::iterator its=m_sounds.begin();
-				its != m_sounds.end(); ++its )
-		(*its)->set_volume( sound_vol );
-
-	for ( std::vector<FeMusic *>::iterator its=m_musics.begin();
-				its != m_musics.end(); ++its )
-		(*its)->set_volume( sound_vol );
 }
 
 const sf::Transform &FePresent::get_transform() const

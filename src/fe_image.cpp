@@ -30,6 +30,8 @@
 #include "fe_audio_fx.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
+
+#include <algorithm>
 #include <cmath>
 
 #ifndef NO_MOVIE
@@ -56,10 +58,6 @@ void FeBaseTextureContainer::set_play_state( bool play )
 bool FeBaseTextureContainer::get_play_state() const
 {
 	return false;
-}
-
-void FeBaseTextureContainer::set_vol( float vol )
-{
 }
 
 void FeBaseTextureContainer::set_index_offset( int io, bool do_update )
@@ -162,6 +160,15 @@ float FeBaseTextureContainer::get_volume() const
 	return 0.0;
 }
 
+void FeBaseTextureContainer::set_pan( float p )
+{
+}
+
+float FeBaseTextureContainer::get_pan() const
+{
+	return 0.0;
+}
+
 float FeBaseTextureContainer::get_sample_aspect_ratio() const
 {
 	return 1.0;
@@ -252,6 +259,7 @@ FeTextureContainer::FeTextureContainer(
 	m_mipmap( false ),
 	m_smooth( false ),
 	m_volume( 100.0 ),
+	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
 	m_entry( NULL )
 {
@@ -582,6 +590,22 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 #ifndef NO_MOVIE
 	if ( m_movie )
 	{
+		float vol = m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
+
+		if ( m_video_flags & VF_NoAudio )
+		{
+			if ( vol != m_movie->getVolume() )
+				m_movie->setVolume( 0.f );
+		}
+		else
+		{
+			if ( vol != m_movie->getVolume() )
+				m_movie->setVolume( vol );
+
+			if ( m_pan != m_movie->getPan() )
+				m_movie->setPan( m_pan );
+		}
+
 		if ( m_movie_status > 0 )
 		{
 			if ( m_movie_status < PLAY_COUNT )
@@ -598,15 +622,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			else if ( m_movie_status == PLAY_COUNT )
 			{
 				m_movie_status++;
-
-				//
-				// Start playing now if this is a video...
-				//
-				if ( m_video_flags & VF_NoAudio )
-					m_movie->setVolume( 0.f );
-				else
-					m_movie->setVolume( m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
-
 				m_movie->play();
 			}
 
@@ -682,14 +697,6 @@ bool FeTextureContainer::get_play_state() const
 	return false;
 }
 
-void FeTextureContainer::set_vol( float vol )
-{
-#ifndef NO_MOVIE
-	if ( (m_movie) && !(m_video_flags & VF_NoAudio) )
-		m_movie->setVolume( m_volume * vol / 100.0 );
-#endif
-}
-
 void FeTextureContainer::set_index_offset( int io, bool do_update )
 {
 	if ( m_index_offset != io || m_file_name.empty() )
@@ -729,15 +736,6 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 #ifndef NO_MOVIE
 	if ( m_movie )
 	{
-		if (m_video_flags & VF_NoAudio)
-			m_movie->setVolume( 0.f );
-		else
-		{
-			FePresent *fep = FePresent::script_get_fep();
-			if ( fep )
-				m_movie->setVolume( m_volume * fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0 );
-		}
-
 		if ( m_movie_status > 0 && m_video_flags & VF_NoAutoStart )
 			m_movie_status = 0;
 	}
@@ -886,12 +884,22 @@ void FeTextureContainer::set_volume( float v )
 	if ( v < 0.0 ) v = 0.0;
 	if ( v > 100.0 ) v = 100.0;
 	m_volume = v;
-	set_vol( v );
 }
 
 float FeTextureContainer::get_volume() const
 {
 	return m_volume;
+}
+
+void FeTextureContainer::set_pan( float p )
+{
+	if ( p == m_pan ) return;
+	m_pan = std::clamp( p, -1.0f, 1.0f );
+}
+
+float FeTextureContainer::get_pan() const
+{
+	return m_pan;
 }
 
 void FeTextureContainer::set_fft_bands( int count )
@@ -1856,6 +1864,16 @@ void FeImage::set_volume( float v )
 float FeImage::get_volume() const
 {
 	return m_tex->get_volume();
+}
+
+void FeImage::set_pan( float p )
+{
+	m_tex->set_pan( p );
+}
+
+float FeImage::get_pan() const
+{
+	return m_tex->get_pan();
 }
 
 float FeImage::get_vu_mono() const
