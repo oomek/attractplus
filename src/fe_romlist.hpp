@@ -61,7 +61,8 @@ public:
 
 	static std::string get_display_title( const std::string &title );
 	static std::string get_sort_title( const std::string &title );
-	static const char get_first_letter( const FeRomInfo *rom );
+	static std::string get_display_letter( const FeRomInfo *rom );
+	static std::string get_sort_letter( const FeRomInfo *rom );
 
 	static void init_title_rex();
 	static void clear_title_rex();

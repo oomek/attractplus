@@ -2142,31 +2142,25 @@ int FeSettings::get_next_fav_offset()
 int FeSettings::get_next_letter_offset( int step )
 {
 	int filter_index = get_current_filter_index();
+	int filter_size = get_filter_size( filter_index );
 	int idx = get_rom_index( filter_index, 0 );
+	int dir = step > 0 ? 1 : -1;
 
-	const char curr_l = FeRomListSorter::get_first_letter( get_rom_absolute( filter_index, idx ) );
+	std::string curr_title = FeRomListSorter::get_sort_letter( get_rom_absolute( filter_index, idx ) );
+	const char curr_l = curr_title.empty() ? ' ' : std::tolower( curr_title.at( 0 ) );
 	bool is_alpha = std::isalpha( curr_l );
-	int retval = 0;
 
-	for ( int i=1; i < get_filter_size( filter_index ); i++ )
+	for ( int i=1; i<filter_size; i++ )
 	{
-		int t_idx;
-		if ( step > 0 )
-			t_idx = ( idx + i ) % get_filter_size( filter_index );
-		else
-			t_idx = ( i <= idx ) ? ( idx - i ) : ( get_filter_size( filter_index ) - ( i - idx ) );
+		int t_idx = ( idx + filter_size + dir * i ) % filter_size;
+		std::string test_title = FeRomListSorter::get_sort_letter( get_rom_absolute( filter_index, t_idx ) );
+		const char test_l = test_title.empty() ? ' ' : std::tolower( test_title.at( 0 ) );
 
-		const char test_l = FeRomListSorter::get_first_letter( get_rom_absolute( filter_index, t_idx ) );
-
-		if ((( is_alpha ) && ( test_l != curr_l ))
-				|| ((!is_alpha) && ( std::isalpha( test_l ) )))
-		{
-			retval = t_idx - idx;
-			break;
-		}
+		if ( is_alpha ? ( test_l != curr_l ) : std::isalpha( test_l ) )
+			return t_idx - idx;
 	}
 
-	return retval;
+	return 0;
 }
 
 void FeSettings::get_current_tags_list(
@@ -2647,9 +2641,7 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
 			return true;
 		case FeRomInfo::TitleLetter:
-			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
-			value = FeRomListSorter::get_display_title( value );
-			if (!value.empty()) value = value.substr( 0, 1 );
+			value = FeRomListSorter::get_display_letter( get_rom_absolute( filter_index, rom_index ) );
 			return true;
 		case FeRomInfo::SortName:
 		{
