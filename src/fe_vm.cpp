@@ -1113,6 +1113,15 @@ bool FeVM::on_new_layout()
 	SqratWrapperClass.Func( _SC("len"), &SqratArrayWrapper::len );
 	fe.Bind( _SC("SqratArrayWrapper"), SqratWrapperClass );
 
+	Sqrat::Class<Regexp2> regexp2( vm, _SC("regexp2"));
+	regexp2.Ctor<std::string>();
+	regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string, int)>(_SC("capture"), &Regexp2::capture);
+	regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string)>(_SC("capture"), &Regexp2::capture);
+	regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string, int)>(_SC("search"), &Regexp2::search);
+	regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string)>(_SC("search"), &Regexp2::search);
+	regexp2.Func(_SC("match"), &Regexp2::match);
+	RootTable( vm ).Bind(_SC("regexp2"), regexp2);
+
 	//
 	// Define functions that get exposed to Squirrel
 	//

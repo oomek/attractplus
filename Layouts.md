@@ -81,7 +81,7 @@
 
 The Attract-Mode Plus layout sets out what gets displayed to the user. Layouts consist of a `layout.nut` script file and a collection of related resources (images, other scripts, etc.) used by the script.
 
-Layouts are stored under the "layouts" subdirectory of the Attract-Mode Plus config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode Plus can read layouts and plugins directly from `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar` files).
+Layouts are stored under the "layouts" subdirectory of the Attract-Mode Plus config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode Plus can read layouts and plugins directly from compressed archives, see [Language Extensions](#language-extensions) for supported formats).
 
 Each layout can have one or more `layout*.nut` script files. The "Toggle Layout" command in Attract-Mode Plus allows users to cycle between each of the `layout*.nut` script files located in the layout's directory. Attract-Mode Plus remembers the last layout file toggled to for each layout and will go back to that same file the next time the layout is loaded. This allows for variations of a particular layout to be implemented and easily selected by the user (for example, a layout could provide a `layout.nut` for horizontal monitor orientations and a `layout-vert.nut` for vertical).
 
@@ -96,7 +96,7 @@ Plug-ins are similar to layouts in that they consist of at least one squirrel sc
 Attract-Mode Plus layouts are scripts written in the Squirrel programming language. Squirrel's standard `Blob`, `IO`, `Math`, `String` and `System` library functions are available for use in a script. For more information on programming in Squirrel and using its standard libraries, consult the Squirrel manuals:
 
 -  [Squirrel 3.0 Reference Manual](http://www.squirrel-lang.org/doc/squirrel3.html)
--  [Squirrel 3.0 Standard Library Manual](http://www.squirrel-lang.org/doc/sqstdlib3.html)
+-  [Squirrel 3.0 Standard Library Manual](https://web.archive.org/web/20210730072847/http://www.squirrel-lang.org/doc/sqstdlib3.html)
 
 Also check out the Introduction to Squirrel on the wiki:
 
@@ -108,10 +108,9 @@ Also check out the Introduction to Squirrel on the wiki:
 
 Attract-Mode Plus includes the following home-brewed extensions to the squirrel language and standard libraries:
 
--  A `zip_extract_archive( zipfile, filename )` function that will open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob.
+-  A `zip_extract_archive( zipfile, filename )` function that will open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
 -  A `zip_get_dir( zipfile )` function that will return an array of the filenames contained in the `zipfile` archive file.
-
-Supported archive formats are: `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar`.
+-  A `regexp2` class, which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements.
 
 In addition to the standard `Math` library, the following methods are included:
 

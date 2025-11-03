@@ -28,6 +28,7 @@
 #include <map>
 #include <set>
 #include <list>
+#include <regex>
 
 #include "cereal/cereal.hpp"
 #include <cereal/types/list.hpp>
@@ -49,7 +50,8 @@ class FeRomListSorter
 private:
 	FeRomInfo::Index m_comp;
 	bool m_reverse;
-	static SQRex *m_rex;
+	static std::regex m_rex;
+	static bool m_regex_compiled;
 	static std::string get_formatted_title( const std::string &title );
 
 public:

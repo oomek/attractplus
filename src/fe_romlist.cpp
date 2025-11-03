@@ -41,7 +41,8 @@ const char *FE_TAG_FILE_EXTENSION		= ".tag";
 const char *FE_ROMLIST_SUBDIR			= "romlists/";
 const char *FE_STATS_SUBDIR				= "stats/";
 
-SQRex *FeRomListSorter::m_rex = NULL;
+std::regex FeRomListSorter::m_rex;
+bool FeRomListSorter::m_regex_compiled = false;
 bool FeRomListSorter::display_format = false;
 bool FeRomListSorter::sort_format = false;
 
@@ -55,22 +56,22 @@ namespace
 
 void FeRomListSorter::init_title_rex()
 {
-	ASSERT( m_rex == NULL );
+	m_regex_compiled = false;
+	const std::string re_mask = "^((?:Vs\\.\\s+)?(?:The\\s+)?)([^(/[]*)(.*)$";
 
-	const std::string re_mask = "^((?:Vs\\.\\s+)?(?:The\\s+)?)(.*)$";
-	const SQChar *err( NULL );
-	m_rex = sqstd_rex_compile( scsqchar( re_mask ), &err );
-
-	if ( !m_rex )
-		FeLog() << "Error compiling regular expression \"" << re_mask << "\": " << err << std::endl;
+	try {
+		m_rex = std::regex( re_mask, std::regex::ECMAScript );
+		m_regex_compiled = true;
+	}
+	catch ( const std::regex_error& e )
+	{
+		FeLog() << "Error compiling regular expression \"" << re_mask << "\": " << e.what() << std::endl;
+	}
 }
 
 void FeRomListSorter::clear_title_rex()
 {
-	if ( m_rex )
-		sqstd_rex_free( m_rex );
-
-	m_rex = NULL;
+	m_regex_compiled = false;
 }
 
 FeRomListSorter::FeRomListSorter( FeRomInfo::Index c, bool rev )
@@ -82,25 +83,22 @@ FeRomListSorter::FeRomListSorter( FeRomInfo::Index c, bool rev )
 // Returns a new string with prefixes such as "The" and "Vs." moved to the end
 std::string FeRomListSorter::get_formatted_title( const std::string &title )
 {
-	if ( title.empty() || !m_rex || !sqstd_rex_match( m_rex, scsqchar( title ) ) )
+	std::smatch match;
+	if ( title.empty() || !m_regex_compiled || !std::regex_search( title, match, m_rex ) )
 		return title;
 
-	SQRexMatch match;
-	SQRexMatch prefix;
-	SQRexMatch main;
-	sqstd_rex_getsubexp( m_rex, 0, &match );
-	sqstd_rex_getsubexp( m_rex, 1, &prefix );
-	sqstd_rex_getsubexp( m_rex, 2, &main );
-
-	std::string body = title.substr( main.begin - match.begin, main.len );
+	std::string prefix = match.str(1);
+	std::string body = match.str(2);
+	std::string brackets = match.str(3);
 	std::string suffix = "";
-	if ( prefix.len ) {
-		suffix = title.substr( prefix.begin - match.begin, prefix.len );
-		size_t pos = suffix.find_last_not_of( FE_WHITESPACE );
-		suffix = ", " + suffix.substr( 0, pos + 1 );
-	}
 
-	return body + suffix;
+	if ( !prefix.empty() )
+		body = rtrim(body) + ", " + rtrim(prefix);
+
+	if ( !brackets.empty() )
+		body = rtrim(body) + " " + brackets;
+
+	return body;
 }
 
 std::string FeRomListSorter::get_display_title( const std::string &title )
