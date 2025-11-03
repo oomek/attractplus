@@ -455,16 +455,16 @@ void FeVM::vm_init()
 
 void FeVM::update_filters_binding( Sqrat::Table &fe )
 {
-	Sqrat::Table ftab;
-	fe.Bind( _SC("filters"), ftab );
-	Sqrat::Array farray( ftab.GetObject() ); // Table->Array hack
-	farray.Resize( 0 );
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	Sqrat::Array filters( vm );
+	fe.Bind( _SC("filters"), filters );
+	filters.Resize( 0 );
 
 	FeDisplayInfo *di = m_feSettings->get_display( m_feSettings->get_current_display_index() );
 	if ( !di ) return;
 
-	for ( int i=0; i < di->get_filter_count(); i++ )
-		farray.SetInstance( farray.GetSize(), di->get_filter( i ) );
+	for ( int i=0,n=di->get_filter_count(); i<n; i++ )
+		filters.Append( di->get_filter( i ) );
 }
 
 void FeVM::update_to_new_list( int var, bool reset_display )
@@ -684,6 +684,7 @@ bool FeVM::on_new_layout()
 	// All frontend functionality is in the "fe" table in Squirrel
 	//
 	Table fe;
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 	//
 	// Define classes for fe objects that get exposed to Squirrel
@@ -1059,7 +1060,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("bg_load"), &FeImageLoader::get_background_loading, &FeImageLoader::set_background_loading )
 	);
 
-	Sqrat::Class<SqratArrayWrapper> SqratWrapperClass( fe.GetVM(), _SC("SqratWrapperClass") );
+	Sqrat::Class<SqratArrayWrapper> SqratWrapperClass( vm, _SC("SqratWrapperClass") );
 	SqratWrapperClass.Func( _SC("_get"), &SqratArrayWrapper::_get );
 	SqratWrapperClass.Func( _SC("_nexti"), &SqratArrayWrapper::_nexti );
 	SqratWrapperClass.Func( _SC("len"), &SqratArrayWrapper::len );
@@ -1137,14 +1138,10 @@ bool FeVM::on_new_layout()
 	//
 	// fe.displays
 	//
-	Table dtab;  // hack Table to Array because creating the Array straight up doesn't work
-	fe.Bind( _SC("displays"), dtab );
-	Array darray( dtab.GetObject() );
-
-	int display_count = m_feSettings->displays_count();
-	for ( i=0; i< display_count; i++ )
-		darray.SetInstance( darray.GetSize(),
-			m_feSettings->get_display( i ) );
+	Array displays( vm );
+	fe.Bind( _SC("displays"), displays );
+	for ( int i=0, n=m_feSettings->displays_count(); i<n; i++ )
+		displays.Append( m_feSettings->get_display( i ) );
 
 	//
 	// Note the fe.filters array also gets repopulated in call to FeVM::update_to_new_list(), since it
@@ -1156,12 +1153,10 @@ bool FeVM::on_new_layout()
 	//
 	// fe.monitors
 	//
-	Table mtab;  // hack Table to Array because creating the Array straight up doesn't work
-	fe.Bind( _SC("monitors"), mtab );
-	Array marray( mtab.GetObject() );
-
-	for ( i=0; i < (int)m_mon.size(); i++ )
-		marray.SetInstance( marray.GetSize(), &m_mon[i] );
+	Array monitors( vm );
+	fe.Bind( _SC("monitors"), monitors );
+	for ( int i=0, n=m_mon.size(); i<n; i++ )
+		monitors.Append( &m_mon[i] );
 
 	fe.SetInstance( _SC("layout"), (FePresent *)this );
 	fe.SetInstance( _SC("list"), (FePresent *)this );
@@ -1175,7 +1170,7 @@ bool FeVM::on_new_layout()
 	// Each presentation object gets an instance in the
 	// "obj" array available in Squirrel
 	//
-	Table obj; // this must created as a Table (even though it is used as an Array) bug in sqrat?
+	Array obj( vm );
 	fe.Bind( _SC("obj"), obj );
 	RootTable().Bind( _SC("fe"),  fe );
 
@@ -1775,6 +1770,7 @@ public:
 		Sqrat::ConstTable().Const( _SC("FeConfigDirectory"), fe_vm->m_feSettings->get_config_dir().c_str() );
 
 		Sqrat::Table fe;
+		HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 
 		if ( !limited )
 		{
@@ -1818,27 +1814,20 @@ public:
 			//
 			// fe.displays
 			//
-			Sqrat::Table dtab;  // hack Table to Array because creating the Array straight up doesn't work
-			fe.Bind( _SC("displays"), dtab );
-			Sqrat::Array darray( dtab.GetObject() );
-
-			int display_count = fe_vm->m_feSettings->displays_count();
-			for ( int i=0; i< display_count; i++ )
-				darray.SetInstance( darray.GetSize(),
-					fe_vm->m_feSettings->get_display( i ) );
+			Sqrat::Array displays( vm );
+			fe.Bind( _SC("displays"), displays );
+			for ( int i=0, n=fe_vm->m_feSettings->displays_count(); i<n; i++ )
+				displays.Append( fe_vm->m_feSettings->get_display( i ) );
 
 			//
 			// fe.filters
 			//
 			fe_vm->update_filters_binding( fe );
 
-			// hack Table to Array because creating the Array straight up doesn't work
-			Sqrat::Table mtab;
-			fe.Bind( _SC("monitors"), mtab );
-			Sqrat::Array marray( mtab.GetObject() );
-
-			for ( int i=0; i < (int)fe_vm->m_mon.size(); i++ )
-				marray.SetInstance( marray.GetSize(), &(fe_vm->m_mon[i]) );
+			Sqrat::Array monitors( vm );
+			fe.Bind( _SC("monitors"), monitors );
+			for ( int i=0, n=fe_vm->m_mon.size(); i<n; i++ )
+				monitors.Append( &(fe_vm->m_mon[i]) );
 
 			fe.Overload<bool (*)(const char *, const char *, Sqrat::Object, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 			fe.Overload<bool (*)(const char *, const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
@@ -2088,8 +2077,6 @@ bool FeVM::setup_wizard()
 		return false;
 	}
 
-	Sqrat::Array obj( etg );
-
 	std::vector < std::string > emus_to_import;
 
 	Sqrat::Object::iterator it;
@@ -2171,7 +2158,7 @@ FeImage* FeVM::cb_add_image(const char *n, float x, float y, float w, float h )
 	//
 	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
@@ -2197,7 +2184,7 @@ FeImage* FeVM::cb_add_artwork(const char *n, float x, float y, float w, float h 
 	//
 	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
@@ -2223,7 +2210,7 @@ FeImage* FeVM::cb_add_clone( FeImage *o )
 	//
 	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
@@ -2239,7 +2226,7 @@ FeText* FeVM::cb_add_text(const char *n, int x, int y, int w, int h )
 	//
 	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
@@ -2255,7 +2242,7 @@ FeListBox* FeVM::cb_add_listbox(int x, int y, int w, int h )
 	//
 	Sqrat::Object fe ( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
@@ -2271,7 +2258,7 @@ FeRectangle* FeVM::cb_add_rectangle( float x, float y, float w, float h )
 	//
 	Sqrat::Object fe ( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
@@ -2292,7 +2279,7 @@ FeImage* FeVM::cb_add_surface( float x, float y, int w, int h )
 	//
 	Sqrat::Object fe ( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.SetInstance( obj.GetSize(), ret );
+	obj.Append( ret );
 
 	return ret;
 }
