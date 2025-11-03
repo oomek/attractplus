@@ -841,6 +841,23 @@ std::string str_join(
 	return value.str();
 }
 
+std::string ltrim( const std::string str )
+{
+	return str.substr( str.find_first_not_of( FE_WHITESPACE ) );
+}
+
+std::string rtrim( const std::string str )
+{
+	return str.substr( 0, str.find_last_not_of( FE_WHITESPACE ) + 1 );
+}
+
+std::string trim( const std::string str )
+{
+	int begin = str.find_first_not_of( FE_WHITESPACE );
+	int end = str.find_last_not_of( FE_WHITESPACE ) + 1;
+	return str.substr( begin, end - begin );
+}
+
 std::string get_available_filename(
 			const std::string &path,
 			const std::string &base,

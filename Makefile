@@ -171,6 +171,7 @@ _DEP =\
 	base64.hpp \
 	sqrat_array_wrapper.hpp \
 	sqrat_math.hpp \
+	sqrat_regexp2.hpp \
 	zip.hpp
 
 _OBJ =\
@@ -214,6 +215,7 @@ _OBJ =\
 	base64.o \
 	sqrat_array_wrapper.o \
 	sqrat_math.o \
+	sqrat_regexp2.o \
 	main.o
 
 _RES =\

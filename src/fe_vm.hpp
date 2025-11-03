@@ -33,6 +33,7 @@
 
 #include <sqrat/sqratObject.h>
 #include <sqrat/sqratFunction.h>
+#include "sqrat_regexp2.hpp"
 
 class FeWindow;
 class FeOverlay;

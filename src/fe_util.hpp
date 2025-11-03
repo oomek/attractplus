@@ -76,6 +76,11 @@ std::string str_join(
 	const std::string &delim
 );
 
+// Trim whitespace
+std::string ltrim( const std::string str );
+std::string rtrim( const std::string str );
+std::string trim( const std::string str );
+
 //
 //
 std::string name_with_brackets_stripped( const std::string &name );
