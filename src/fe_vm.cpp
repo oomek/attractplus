@@ -289,8 +289,12 @@ void FeVM::save_script_nv() {
 
 // Load the fe.layout.nv for the current layout
 void FeVM::load_layout_nv() {
-	FeDisplayInfo *di = m_feSettings->get_display( m_feSettings->get_current_display_index() );
-	m_last_layout = di->get_layout();
+	int idx = m_feSettings->get_current_display_index();
+
+	if ( idx < 0 )
+		m_last_layout = m_feSettings->get_info( FeSettings::MenuLayout );
+	else
+		m_last_layout = m_feSettings->get_display( idx )->get_layout();
 
 	std::string layout_nv;
 	read_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, layout_nv );
