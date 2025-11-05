@@ -29,6 +29,7 @@
 
 #include "fe_input.hpp"
 #include "fe_present.hpp"
+#include "sq_ease.hpp"
 #include "sq_math.hpp"
 
 #include <sqrat/sqratObject.h>
