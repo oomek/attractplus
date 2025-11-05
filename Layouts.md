@@ -7,6 +7,7 @@
 -  [Overview](#overview)
    -  [Squirrel Language](#squirrel-language)
    -  [Language Extensions](#language-extensions)
+   -  [Easing Functions](#easing-functions-) 🔶
    -  [Frontend Binding](#frontend-binding)
    -  [Magic Tokens](#magic-tokens)
    -  [User Config](#user-config)
@@ -135,6 +136,64 @@ In addition to the standard `Math` library, the following methods are included:
 -  `round( x )` - Rounds `x` to the nearest integer
 -  `round2( x )` - Rounds `x` to the nearest even integer
 -  `sign( x )` - Returns `1` when `x > 0`, returns `-1` when `x < 0`, returns `0` when `x == 0`
+
+---
+
+### Easing Functions 🔶
+
+[Easing](https://easings.net/) functions specify the rate of change of a parameter over time. Easing in animation is a transition method that modifies motion to make it less pronounced and jarring. All [Penner Easings](http://robertpenner.com/easing/) are included.
+
+**Parameters**
+
+-  `t` - Current time, where `t` is in the range `[0...d]`
+-  `b` - Beginning value, when `t == 0` the method returns `b`
+-  `c` - Change in value, when `t == d` the method returns `b + c`
+-  `d` - Duration, the maximum value of `t`
+-  `a` - _(optional)_ Amplitude for `elastic` easing. Default is `0.0`
+-  `p` - _(optional)_ Period for `elastic` easing. Default is `d * 0.3`
+-  `s` - _(optional)_ Strength for `back` easing. Default is `1.70158`
+
+**Methods**
+
+The easing methods belong to a global object named `ease`, such as `ease.out_cubic( t, b, c, d )`
+
+| In           | Out           | InOut            | OutIn            | Params              |
+| ------------ | ------------- | ---------------- | ---------------- | ------------------- |
+| `in_quad`    | `out_quad`    | `in_out_quad`    | `out_in_quad`    | `t, b, c, d`        |
+| `in_cubic`   | `out_cubic`   | `in_out_cubic`   | `out_in_cubic`   | `t, b, c, d`        |
+| `in_quart`   | `out_quart`   | `in_out_quart`   | `out_in_quart`   | `t, b, c, d`        |
+| `in_quint`   | `out_quint`   | `in_out_quint`   | `out_in_quint`   | `t, b, c, d`        |
+| `in_sine`    | `out_sine`    | `in_out_sine`    | `out_in_sine`    | `t, b, c, d`        |
+| `in_expo`    | `out_expo`    | `in_out_expo`    | `out_in_expo`    | `t, b, c, d`        |
+| `in_circ`    | `out_circ`    | `in_out_circ`    | `out_in_circ`    | `t, b, c, d`        |
+| `in_elastic` | `out_elastic` | `in_out_elastic` | `out_in_elastic` | `t, b, c, d` `a, p` |
+| `in_back`    | `out_back`    | `in_out_back`    | `out_in_back`    | `t, b, c, d` `s`    |
+| `in_bounce`  | `out_bounce`  | `in_out_bounce`  | `out_in_bounce`  | `t, b, c, d`        |
+| `linear`     |               |                  |                  | `t, b, c, d`        |
+
+**Example**
+
+```squirrel
+local d = 10
+for (local t=0; t<=d; t++)
+{
+	fe.log(t + " = " + ease.out_cubic(t, 0, 1, d))
+}
+
+// 0 = 0
+// 1 = 0.271
+// 2 = 0.488
+// 3 = 0.657
+// 4 = 0.784
+// 5 = 0.875
+// 6 = 0.936
+// 7 = 0.973
+// 8 = 0.992
+// 9 = 0.999
+// 10 = 1
+```
+
+The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic` algorithm to decelerate the change as `t` approaches `d`.
 
 ---
 

@@ -490,6 +490,58 @@ void FeVM::vm_init()
 
 	rt.Func( _SC("join"), &sq_join );
 
+	Sqrat::Table ease( vm );
+	rt.Bind( _SC("ease"), ease );
+	ease.Func( _SC("linear"), &SqEase::linear );
+	ease.Func( _SC("in_quad"), &SqEase::in_quad );
+	ease.Func( _SC("in_cubic"), &SqEase::in_cubic );
+	ease.Func( _SC("in_quart"), &SqEase::in_quart );
+	ease.Func( _SC("in_quint"), &SqEase::in_quint );
+	ease.Func( _SC("in_sine"), &SqEase::in_sine );
+	ease.Func( _SC("in_expo"), &SqEase::in_expo );
+	ease.Func( _SC("in_circ"), &SqEase::in_circ );
+	ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("in_elastic"), &SqEase::in_elastic );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("in_elastic"), &SqEase::in_elastic );
+	ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_back"), &SqEase::in_back );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("in_back"), &SqEase::in_back );
+	ease.Func( _SC("in_bounce"), &SqEase::in_bounce );
+	ease.Func( _SC("out_quad"), &SqEase::out_quad );
+	ease.Func( _SC("out_cubic"), &SqEase::out_cubic );
+	ease.Func( _SC("out_quart"), &SqEase::out_quart );
+	ease.Func( _SC("out_quint"), &SqEase::out_quint );
+	ease.Func( _SC("out_sine"), &SqEase::out_sine );
+	ease.Func( _SC("out_expo"), &SqEase::out_expo );
+	ease.Func( _SC("out_circ"), &SqEase::out_circ );
+	ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("out_elastic"), &SqEase::out_elastic );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("out_elastic"), &SqEase::out_elastic );
+	ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_back"), &SqEase::out_back );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("out_back"), &SqEase::out_back );
+	ease.Func( _SC("out_bounce"), &SqEase::out_bounce );
+	ease.Func( _SC("in_out_quad"), &SqEase::in_out_quad );
+	ease.Func( _SC("in_out_cubic"), &SqEase::in_out_cubic );
+	ease.Func( _SC("in_out_quart"), &SqEase::in_out_quart );
+	ease.Func( _SC("in_out_quint"), &SqEase::in_out_quint );
+	ease.Func( _SC("in_out_sine"), &SqEase::in_out_sine );
+	ease.Func( _SC("in_out_expo"), &SqEase::in_out_expo );
+	ease.Func( _SC("in_out_circ"), &SqEase::in_out_circ );
+	ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("in_out_elastic"), &SqEase::in_out_elastic );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("in_out_elastic"), &SqEase::in_out_elastic );
+	ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_out_back"), &SqEase::in_out_back );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("in_out_back"), &SqEase::in_out_back );
+	ease.Func( _SC("in_out_bounce"), &SqEase::in_out_bounce );
+	ease.Func( _SC("out_in_quad"), &SqEase::out_in_quad );
+	ease.Func( _SC("out_in_cubic"), &SqEase::out_in_cubic );
+	ease.Func( _SC("out_in_quart"), &SqEase::out_in_quart );
+	ease.Func( _SC("out_in_quint"), &SqEase::out_in_quint );
+	ease.Func( _SC("out_in_sine"), &SqEase::out_in_sine );
+	ease.Func( _SC("out_in_expo"), &SqEase::out_in_expo );
+	ease.Func( _SC("out_in_circ"), &SqEase::out_in_circ );
+	ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("out_in_elastic"), &SqEase::out_in_elastic );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_elastic"), &SqEase::out_in_elastic );
+	ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_in_back"), &SqEase::out_in_back );
+	ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_back"), &SqEase::out_in_back );
+	ease.Func( _SC("out_in_bounce"), &SqEase::out_in_bounce );
+
 	Sqrat::DefaultVM::Set( vm );
 }
 
