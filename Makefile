@@ -170,6 +170,7 @@ _DEP =\
 	image_loader.hpp \
 	base64.hpp \
 	sqrat_array_wrapper.hpp \
+	sqrat_math.hpp \
 	zip.hpp
 
 _OBJ =\
@@ -212,6 +213,7 @@ _OBJ =\
 	image_loader.o \
 	base64.o \
 	sqrat_array_wrapper.o \
+	sqrat_math.o \
 	main.o
 
 _RES =\
