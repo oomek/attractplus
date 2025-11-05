@@ -454,6 +454,21 @@ void FeVM::vm_init()
 	fe_register_global_func( vm, zip_extract_file, "zip_extract_file" );
 	fe_register_global_func( vm, zip_get_dir, "zip_get_dir" );
 
+	Sqrat::RootTable rt = Sqrat::RootTable( vm );
+	rt.Func( _SC("sign"), &sq_math_sign );
+	rt.Func( _SC("round"), &sq_math_round );
+	rt.Func( _SC("round2"), &sq_math_round2 );
+	rt.Func( _SC("floor2"), &sq_math_floor2 );
+	rt.Func( _SC("ceil2"), &sq_math_ceil2 );
+	rt.Func( _SC("fract"), &sq_math_fract );
+	rt.Func( _SC("clamp"), &sq_math_clamp );
+	rt.Func( _SC("min"), &sq_math_min );
+	rt.Func( _SC("max"), &sq_math_max );
+	rt.Func( _SC("mix"), &sq_math_mix );
+	rt.Func( _SC("random"), &sq_math_random );
+	rt.Func( _SC("modulo"), &sq_math_modulo );
+	rt.Func( _SC("wrap"), &sq_math_modulo ); // alt
+
 	Sqrat::DefaultVM::Set( vm );
 }
 

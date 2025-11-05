@@ -113,6 +113,21 @@ Attract-Mode Plus includes the following home-brewed extensions to the squirrel 
 
 Supported archive formats are: `.zip`, `.7z`, `.rar`, `.tar.gz`, `.tar.bz2` and `.tar`.
 
+In addition to the standard `Math` library, the following methods are included:
+
+-  `sign( x )` - Returns 1 when x > 0, returns -1 when x < 0, returns 0 when x == 0
+-  `round( x )` - Rounds up to the nearest integer
+-  `round2( x )` - Rounds up to the nearest even integer
+-  `floor2( x )` - Floors to the nearest even integer
+-  `ceil2( x )` - Ceils to the nearest even integer
+-  `fract( x )` - Returns a fractional part of x
+-  `clamp( x, min, max )` - Clamps x between min and max
+-  `min( a, b )` - Returns the smallest a or b
+-  `max( a, b )` - Returns the largest a or b
+-  `mix( a, b, x )` - Returns a blend between a and b with using a mixing ratio x
+-  `random( min, max )` - Returns a random integer in a range defined by min and max
+-  `modulo( v, m )` - Modulo with correct handling of negative numbers
+
 ---
 
 ### Frontend Binding
