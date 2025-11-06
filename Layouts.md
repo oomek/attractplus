@@ -39,6 +39,7 @@
    -  [`fe.path_expand()`](#fepath_expand)
    -  [`fe.path_test()`](#fepath_test)
    -  [`fe.get_file_mtime()`](#feget_file_mtime-) 🔶
+   -  [`fe.get_input_mappings()`](#feget_input_mappings-) 🔶
    -  [`fe.get_general_config()`](#feget_general_config-) 🔶
    -  [`fe.get_config()`](#feget_config)
    -  [`fe.get_text()`](#feget_text)
@@ -1111,6 +1112,30 @@ Returns the modified time of the given file.
 **Return Value**
 
 -  An integer containing the GMT timestamp.
+
+---
+
+### `fe.get_input_mappings()` 🔶
+
+```squirrel
+fe.get_input_mappings()
+```
+
+Get the Attract-Mode Plus Control input mappings.
+
+**Parameters**
+
+-  None.
+
+**Return Value**
+
+-  A table containing the Attract-Mode Plus `control` settings, in the format:
+
+```squirrel
+{
+	signal = ["input1", "input2+input3"]
+}
+```
 
 ---
 
