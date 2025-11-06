@@ -1179,6 +1179,7 @@ bool FeVM::on_new_layout()
 	fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 	fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
+	fe.Func<Table (*)()>(_SC("get_input_mappings"), &FeVM::cb_get_input_mappings);
 	fe.Func<Table (*)()>(_SC("get_general_config"), &FeVM::cb_get_general_config);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
 	fe.Func<void (*)(const char *)>(_SC("signal"), &FeVM::cb_signal);
@@ -2813,6 +2814,26 @@ const char *FeVM::cb_get_art( const char *art, int index_offset )
 const char *FeVM::cb_get_art( const char *art )
 {
 	return cb_get_art( art, 0, 0, AF_Default );
+}
+
+Sqrat::Table FeVM::cb_get_input_mappings()
+{
+	Sqrat::Table retval;
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	FeSettings *fes = fev->m_feSettings;
+	std::vector<FeMapping> mappings;
+	fes->get_input_mappings( mappings );
+
+	for ( auto mapping : mappings ) {
+		std::string signal = FeInputMap::commandStrings[mapping.command];
+		Sqrat::Array keys( vm );
+		for ( auto input : mapping.input_list )
+			keys.Append( input );
+		retval.SetValue( scsqchar( signal ), keys );
+	}
+
+	return retval;
 }
 
 Sqrat::Table FeVM::cb_get_general_config()
