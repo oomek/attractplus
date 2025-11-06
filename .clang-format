@@ -1,4 +1,4 @@
----
+﻿---
 # Project
 Standard: c++17
 ColumnLimit: 120
@@ -18,14 +18,14 @@ TabWidth: 4
 UseTab: Never
 
 # Alignment
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: Consecutive
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveAssignments: None
 AlignConsecutiveBitFields: Consecutive
-AlignConsecutiveDeclarations: Consecutive
-AlignConsecutiveMacros: Consecutive
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
 AlignEscapedNewlines: Left
-AlignOperands: Align
-AlignTrailingComments: true
+AlignOperands: DontAlign
+AlignTrailingComments: false
 
 # Allow
 AllowAllArgumentsOnNextLine: false
@@ -127,8 +127,8 @@ PenaltyBreakComment: 200
 PenaltyBreakFirstLessLess: 100
 PenaltyBreakString: 1
 PenaltyBreakTemplateDeclaration: 0
-PenaltyExcessCharacter: 5
-PenaltyIndentedWhitespace: 1
+PenaltyExcessCharacter: 1000000
+PenaltyIndentedWhitespace: 100000
 PenaltyReturnTypeOnItsOwnLine: 500
 
 # Pointer alignment
