@@ -48,6 +48,8 @@ bool FeRomListSorter::sort_format = false;
 
 namespace
 {
+	std::mt19937 rnd{ std::random_device{}() };
+
 	bool fe_not_clone( const FeRomInfo &r )
 	{
 		return r.get_info( FeRomInfo::Cloneof ).empty();
@@ -389,7 +391,6 @@ void FeRomList::load_tag_data(
 //
 void FeRomList::load_shuffle_data()
 {
-	std::mt19937 rnd{ std::random_device{}() };
 	std::vector<int> shuffle( m_list.size() );
 	std::iota( shuffle.begin(), shuffle.end(), 0 );
 	std::shuffle( shuffle.begin(), shuffle.end(), rnd );

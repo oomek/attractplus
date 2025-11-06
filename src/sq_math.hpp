@@ -20,23 +20,35 @@
  *
  */
 
-#ifndef FE_SQRAT_MATH_HPP
-#define FE_SQRAT_MATH_HPP
+#ifndef SQ_MATH_HPP
+#define SQ_MATH_HPP
 
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <algorithm>
+#include <random>
 
-int sq_math_sign( float x );
-int sq_math_round( float x );
-int sq_math_round2( float x );
-int sq_math_floor2( float x );
-int sq_math_ceil2( float x );
-float sq_math_fract( float x );
-float sq_math_clamp( float x, float min, float max );
-float sq_math_min( float a, float b );
-float sq_math_max( float a, float b );
-float sq_math_mix( float a, float b, float x );
-int sq_math_random( float min, float max );
-float sq_math_modulo( float v, float m );
+class SqMath
+{
+public:
+	static int sign( float x );
+	static int round( float x );
+	static int round2( float x );
+	static int floor2( float x );
+	static int ceil2( float x );
+	static float fract( float x );
+	static float clamp( float x, float min, float max );
+	static float min( float a, float b );
+	static float max( float a, float b );
+	static float mix( float a, float b, float x );
+	static float randomf( float min, float max );
+	static int random( float min, float max );
+	static float modulo( float v, float m );
+	static float hypot( float x, float y );
+	static float degrees( float r );
+	static float radians( float d );
+	static float exp2( float x );
+	static float log2( float x );
+};
 
 #endif

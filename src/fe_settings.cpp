@@ -115,6 +115,10 @@ const int FE_DEFAULT_UI_COLOR_TOKEN = 1; // Blue
 
 const std::string FE_EMPTY_STRING;
 
+namespace {
+	std::mt19937 rnd{ std::random_device{}() };
+}
+
 //
 // Populates result with valid config path, returns false if no path exists
 // - config_path + subdir + name
@@ -4029,7 +4033,6 @@ bool gather_artwork_filenames(
 			}
 #endif
 
-			std::mt19937 rnd{ std::random_device{}() };
 			std::shuffle( vid_contents.begin(), vid_contents.end(), rnd );
 			std::shuffle( img_contents.begin(), img_contents.end(), rnd );
 

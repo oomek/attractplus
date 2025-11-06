@@ -109,24 +109,31 @@ Also check out the Introduction to Squirrel on the wiki:
 
 Attract-Mode Plus includes the following home-brewed extensions to the squirrel language and standard libraries:
 
--  A `zip_extract_archive( zipfile, filename )` function that will open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
--  A `zip_get_dir( zipfile )` function that will return an array of the filenames contained in the `zipfile` archive file.
--  A `regexp2` class, which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements.
+-  `zip_extract_archive( zipfile, filename )` - Open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
+-  `zip_get_dir( zipfile )` - Return an array of the filenames contained in the `zipfile` archive file.
+-  `regexp2` - A class which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements.
+-  `join( arr, delim )` - Returns a string containing concatenated array values separated with the given delimiter.
 
 In addition to the standard `Math` library, the following methods are included:
 
--  `sign( x )` - Returns 1 when x > 0, returns -1 when x < 0, returns 0 when x == 0
--  `round( x )` - Rounds up to the nearest integer
--  `round2( x )` - Rounds up to the nearest even integer
--  `floor2( x )` - Floors to the nearest even integer
--  `ceil2( x )` - Ceils to the nearest even integer
--  `fract( x )` - Returns a fractional part of x
--  `clamp( x, min, max )` - Clamps x between min and max
--  `min( a, b )` - Returns the smallest a or b
--  `max( a, b )` - Returns the largest a or b
--  `mix( a, b, x )` - Returns a blend between a and b with using a mixing ratio x
--  `random( min, max )` - Returns a random integer in a range defined by min and max
--  `modulo( v, m )` - Modulo with correct handling of negative numbers
+-  `ceil2( x )` - Ceils `x` to the nearest even integer
+-  `clamp( x, min, max )` - Clamps `x` between `min` and `max` (inclusive)
+-  `degrees( r )` - Converts `r` from radians to degrees
+-  `exp2( x )` - Return `2` raised to the power of `x` (more performant than `pow( 2, x )`)
+-  `floor2( x )` - Floors `x` to the nearest even integer
+-  `fract( x )` - Returns a fractional part of `x`
+-  `hypot( x, y )` - Returns the hypotenuse of `x, y`
+-  `log2( x )` - Returns the base `2` logarithm of a number
+-  `max( a, b )` - Returns the largest `a` or `b`
+-  `min( a, b )` - Returns the smallest `a` or `b`
+-  `mix( a, b, x )` - Returns a blend between `a` and `b` with using a mixing ratio `x`
+-  `modulo( v, m )` - Modulo of `v` with correct handling of negative numbers
+-  `radians( d )` - Converts `d` from degrees to radians
+-  `random( min, max )` - Returns a random integer in a range defined by `min` and `max` (inclusive)
+-  `randomf( min, max )` - Returns a random float in a range defined by `min` and `max` (inclusive)
+-  `round( x )` - Rounds `x` to the nearest integer
+-  `round2( x )` - Rounds `x` to the nearest even integer
+-  `sign( x )` - Returns `1` when `x > 0`, returns `-1` when `x < 0`, returns `0` when `x == 0`
 
 ---
 
