@@ -20,76 +20,117 @@
  *
  */
 
-#include "sqrat_math.hpp"
+#include "sq_math.hpp"
+
+namespace {
+	std::mt19937 rnd{ std::random_device{}() };
+	std::uniform_real_distribution<double> dis( 0.0, 1.0 + std::numeric_limits<double>::epsilon() );
+}
 
 // Returns 1 when x > 0, returns -1 when x < 0, returns 0 when x == 0
-int sq_math_sign( float x )
+int SqMath::sign( float x )
 {
 	return (x > 0.f) ? 1 : ((x < 0.f) ? -1 : 0);
 }
 
 // Rounds up to the nearest integer
-int sq_math_round( float x )
+int SqMath::round( float x )
 {
 	return std::floor( x + 0.5 );
 }
 
 // Rounds up to the nearest even integer
-int sq_math_round2( float x )
+int SqMath::round2( float x )
 {
 	return std::floor( x / 2.0 + 0.5 ) * 2;
 }
 
 // Floors to the nearest even integer
-int sq_math_floor2( float x )
+int SqMath::floor2( float x )
 {
 	return std::floor( x / 2.0 ) * 2;
 }
 
 // Ceils to the nearest even integer
-int sq_math_ceil2( float x )
+int SqMath::ceil2( float x )
 {
 	return std::ceil( x / 2.0 ) * 2;
 }
 
 // Returns a fractional part of x
-float sq_math_fract( float x )
+float SqMath::fract( float x )
 {
-	return sq_math_modulo( x, 1.0 );
+	return modulo( x, 1.0 );
 }
 
 // Clamps x between min and max
-float sq_math_clamp( float x, float min, float max )
+float SqMath::clamp( float x, float min, float max )
 {
 	return std::clamp( x, min, max );
 }
 
 // Returns the smallest a or b
-float sq_math_min( float a, float b )
+float SqMath::min( float a, float b )
 {
 	return std::min( a, b );
 }
 
 // Returns the largest a or b
-float sq_math_max( float a, float b )
+float SqMath::max( float a, float b )
 {
 	return std::max( a, b );
 }
 
 // Returns a blend between a and b with using a mixing ratio x
-float sq_math_mix( float a, float b, float x )
+float SqMath::mix( float a, float b, float x )
 {
-	return x * ( a - b ) + b;
+	return a * ( 1.0 - x ) + b * x;
 }
 
-// Returns a random integer in a range defined by min and max
-int sq_math_random( float min, float max )
+// Returns a random float in a range defined by min and max (inclusive)
+float SqMath::randomf( float min, float max )
 {
-	return std::floor( (float)rand() / (float)(RAND_MAX + 1) * ( max - ( min - 1.0 )) + min );
+	return min + dis( rnd ) * (max - min);
+}
+
+// Returns a random integer in a range defined by min and max (inclusive)
+int SqMath::random( float min, float max )
+{
+	return std::floor( randomf( min, max ) );
 }
 
 // Modulo with correct handling of negative numbers
-float sq_math_modulo( float v, float m )
+float SqMath::modulo( float v, float m )
 {
 	return m ? fmod( fmod(v, m) + m, m ) : 0.f;
+}
+
+// Return hypotenuse of x, y
+float SqMath::hypot( float x, float y )
+{
+	return std::hypot( x, y );
+}
+
+// Convert radians to degrees
+float SqMath::degrees( float r )
+{
+	return 180.f * r / M_PI;
+}
+
+// Convert degrees to radians
+float SqMath::radians( float d )
+{
+	return M_PI * d / 180.f;
+}
+
+// Return 2 raised to the power of x (more performant than `pow(2, x)`)
+float SqMath::exp2( float x )
+{
+	return std::exp2f( x );
+}
+
+// Returns the base 2 logarithm of a number
+float SqMath::log2( float x )
+{
+	return std::log2f( x );
 }

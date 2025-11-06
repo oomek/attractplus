@@ -197,6 +197,19 @@ namespace
 
 		return 1;
 	}
+
+	std::string sq_join( Sqrat::Array arr, std::string delim )
+	{
+		std::string ret = "";
+		for ( int i = 0, n = arr.Length(); i < n; i++ )
+		{
+			Sqrat::string e;
+			arr.GetElement( i, e );
+			if ( i > 0 ) ret += delim;
+			ret += scstdstr( e.c_str() );
+		}
+		return ret;
+	}
 };
 
 FeCallback::FeCallback( int pid,
@@ -455,19 +468,27 @@ void FeVM::vm_init()
 	fe_register_global_func( vm, zip_get_dir, "zip_get_dir" );
 
 	Sqrat::RootTable rt = Sqrat::RootTable( vm );
-	rt.Func( _SC("sign"), &sq_math_sign );
-	rt.Func( _SC("round"), &sq_math_round );
-	rt.Func( _SC("round2"), &sq_math_round2 );
-	rt.Func( _SC("floor2"), &sq_math_floor2 );
-	rt.Func( _SC("ceil2"), &sq_math_ceil2 );
-	rt.Func( _SC("fract"), &sq_math_fract );
-	rt.Func( _SC("clamp"), &sq_math_clamp );
-	rt.Func( _SC("min"), &sq_math_min );
-	rt.Func( _SC("max"), &sq_math_max );
-	rt.Func( _SC("mix"), &sq_math_mix );
-	rt.Func( _SC("random"), &sq_math_random );
-	rt.Func( _SC("modulo"), &sq_math_modulo );
-	rt.Func( _SC("wrap"), &sq_math_modulo ); // alt
+	rt.Func( _SC("sign"), &SqMath::sign );
+	rt.Func( _SC("round"), &SqMath::round );
+	rt.Func( _SC("round2"), &SqMath::round2 );
+	rt.Func( _SC("floor2"), &SqMath::floor2 );
+	rt.Func( _SC("ceil2"), &SqMath::ceil2 );
+	rt.Func( _SC("fract"), &SqMath::fract );
+	rt.Func( _SC("clamp"), &SqMath::clamp );
+	rt.Func( _SC("min"), &SqMath::min );
+	rt.Func( _SC("max"), &SqMath::max );
+	rt.Func( _SC("mix"), &SqMath::mix );
+	rt.Func( _SC("randomf"), &SqMath::randomf );
+	rt.Func( _SC("random"), &SqMath::random );
+	rt.Func( _SC("modulo"), &SqMath::modulo );
+	rt.Func( _SC("wrap"), &SqMath::modulo ); // alt
+	rt.Func( _SC("hypot"), &SqMath::hypot );
+	rt.Func( _SC("degrees"), &SqMath::degrees );
+	rt.Func( _SC("radians"), &SqMath::radians );
+	rt.Func( _SC("exp2"), &SqMath::exp2 );
+	rt.Func( _SC("log2"), &SqMath::log2 );
+
+	rt.Func( _SC("join"), &sq_join );
 
 	Sqrat::DefaultVM::Set( vm );
 }
