@@ -1954,6 +1954,8 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 							if ( ctx.sel < ctx.list_size - 1 )
 								ctx.sel++;
 							break;
+						default:
+							break;
 					}
 
 					if ( ctx.sel != last_sel )

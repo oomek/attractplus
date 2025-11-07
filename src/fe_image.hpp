@@ -520,6 +520,7 @@ public:
 
 protected:
 	FeBaseTextureContainer *m_tex;
+	FeSprite m_sprite;
 	sf::Vector2f m_pos;
 	sf::Vector2f m_size;
 	sf::Vector2u m_auto_size;
@@ -545,7 +546,6 @@ protected:
 	float m_force_aspect_ratio;
 
 	sf::Vector2f m_scale;
-	FeSprite m_sprite;
 	sf::FloatRect m_fit_rect;
 
 	void scale();
