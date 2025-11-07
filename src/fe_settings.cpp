@@ -331,8 +331,11 @@ std::vector<std::string> FeSettings::uiColorDispTokens =
 	"White"
 };
 
-FeSettings::FeSettings( const std::string &config_path )
-	:  m_rl( m_config_path ),
+FeSettings::FeSettings( const std::string &config_path ):
+	m_default_layout( "Basic" ),
+	m_default_romlist( "Mame" ),
+	m_default_display( "Default Display" ),
+	m_rl( m_config_path ),
 	m_inputmap(),
 	m_saver_params( FeLayoutInfo::ScreenSaver ),
 	m_intro_params( FeLayoutInfo::Intro ),
@@ -397,9 +400,6 @@ FeSettings::FeSettings( const std::string &config_path )
 	m_anisotropic( 0 ),
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
-	m_default_layout( "Basic" ),
-	m_default_romlist( "Mame" ),
-	m_default_display( "Default Display" ),
 	m_ui_font_size( 0 ),
 	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] )
 {

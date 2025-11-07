@@ -57,7 +57,7 @@ Sqrat::Array Regexp2::capture( const std::string str, const int start )
 
 	HSQUIRRELVM vm = Sqrat::RootTable().GetVM();
 	Sqrat::Array results( vm );
-	for (int i=0; i<matches.size(); i++)
+	for (size_t i=0; i<matches.size(); i++)
 	{
 		int pos = matches.position(i);
 		int len = matches.length(i);
