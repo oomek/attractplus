@@ -1203,6 +1203,7 @@ bool FeVM::on_new_layout()
 	fe.Func<Table (*)()>(_SC("get_input_mappings"), &FeVM::cb_get_input_mappings);
 	fe.Func<Table (*)()>(_SC("get_general_config"), &FeVM::cb_get_general_config);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
+	fe.Func<void (*)(Table)>(_SC("set_config"), &FeVM::cb_set_config);
 	fe.Func<void (*)(const char *)>(_SC("signal"), &FeVM::cb_signal);
 	fe.Overload<void (*)(int, bool, bool)>(_SC("set_display"), &FeVM::cb_set_display);
 	fe.Overload<void (*)(int, bool)>(_SC("set_display"), &FeVM::cb_set_display);
@@ -1919,7 +1920,15 @@ public:
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
 		}
 
-		Sqrat::RootTable().Bind( _SC("fe"),  fe );
+		Sqrat::RootTable().Bind( _SC("fe"), fe );
+
+		// Load nv data for the config to use
+		fe.SetValue( _SC("nv"), Sqrat::Table() );
+		Sqrat::Table layout;
+		fe.SetValue( _SC("layout"), layout ); // mock-layout for nv table
+		layout.SetValue( _SC("nv"), Sqrat::Table() );
+		fe_vm->load_script_nv();
+		fe_vm->load_layout_nv();
 
 		std::string path = script_path;
 		std::string file = script_file;
@@ -1942,23 +1951,33 @@ public:
 
 	~FeConfigVM()
 	{
+		// Save nv changes to disk
+		FeVM *fe_vm = (FeVM *)sq_getforeignptr( m_stored_vm );
+		fe_vm->save_script_nv();
+		fe_vm->save_layout_nv();
+
 		// reset to our usual VM and close the temp vm
 		Sqrat::DefaultVM::Set( m_stored_vm );
 		sq_close( m_vm );
+
+		// Reload the nv in the main vm in case it was changed
+		fe_vm->load_script_nv();
+		fe_vm->load_layout_nv();
 	};
 
 	HSQUIRRELVM &get_vm() { return m_vm; };
 };
 
 void FeVM::script_run_config_function(
-		const FeScriptConfigurable &configurable,
+		FeScriptConfigurable &configurable,
 		const std::string &script_path,
 		const std::string &script_file,
 		const std::string &func_name,
 		std::string &return_message )
 {
 	FeConfigVM config_vm( configurable, script_path, script_file );
-	sqstd_seterrorhandlers( config_vm.get_vm() );
+	HSQUIRRELVM vm = config_vm.get_vm();
+	sqstd_seterrorhandlers( vm );
 
 	Sqrat::Function func( Sqrat::RootTable(), func_name.c_str() );
 
@@ -1967,7 +1986,23 @@ void FeVM::script_run_config_function(
 		std::string help_msg;
 		try
 		{
-			help_msg = func.Evaluate<std::string>( cb_get_config() );
+			// Call function from config is_function attribute
+			Sqrat::Table config = cb_get_config();
+			help_msg = func.Evaluate<std::string>( config );
+
+			// Save config back into configurable
+			Sqrat::Object::iterator it;
+			while ( config.Next( it ) )
+			{
+				std::string key;
+				std::string value;
+				fe_get_object_string( vm, it.getKey(), key );
+				fe_get_object_string( vm, it.getValue(), value );
+
+				std::string prev;
+				if ( configurable.get_param( key, prev ) )
+					configurable.set_param( key, value );
+			}
 		}
 		catch( const Sqrat::Exception &e )
 		{
@@ -2018,7 +2053,7 @@ void FeVM::script_get_config_options(
 		FeConfigVM config_vm( configurable, script_path, script_file );
 		HSQUIRRELVM vm = config_vm.get_vm();
 
-		Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( "UserConfig" );
+		Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( _SC("UserConfig") );
 		if ( !uConfig.IsNull() )
 		{
 			fe_get_attribute_string( vm, uConfig.GetObject(), "", "help", gen_help );
@@ -2079,7 +2114,7 @@ void FeVM::script_get_config_options(
 				else if ( is_func )
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, "", help, 2, value ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, o_value, help, 2, value ) )
 					);
 				}
 				else if ( is_info )
@@ -2891,8 +2926,7 @@ Sqrat::Table FeVM::cb_get_config()
 		// use the default value from the script if a value has
 		// not already been configured
 		//
-		if (( !fev->m_script_cfg )
-			|| ( !fev->m_script_cfg->get_param( key, value ) ))
+		if ( !fev->m_script_cfg || !fev->m_script_cfg->get_param( key, value ) )
 		{
 			fe_get_object_string( vm, it.getValue(), value );
 		}
@@ -2901,6 +2935,42 @@ Sqrat::Table FeVM::cb_get_config()
 	}
 
 	return retval;
+}
+
+void FeVM::cb_set_config( Sqrat::Table config )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	FeSettings *fes = fev->m_feSettings;
+
+	int display_index = fes->get_current_display_index();
+	FeDisplayInfo *display = NULL;
+	FeLayoutInfo *layout = NULL;
+
+	if ( display_index < 0 )
+	{
+		// Displays Menu
+		display = NULL;
+		if ( !fes->has_custom_displays_menu() ) return;
+		layout = &fes->get_layout_config( fes->get_info( FeSettings::MenuLayout ) );
+	}
+	else
+	{
+		display = fes->get_display( display_index );
+		layout = &fes->get_layout_config( display->get_info( FeDisplayInfo::Layout ) );
+	}
+
+	Sqrat::Object::iterator it;
+	while ( config.Next( it ) )
+	{
+		std::string key;
+		std::string value;
+		fe_get_object_string( vm, it.getKey(), key );
+		fe_get_object_string( vm, it.getValue(), value );
+		layout->set_param( key, value );
+	}
+
+	fes->save();
 }
 
 void FeVM::cb_signal( const char *sig )

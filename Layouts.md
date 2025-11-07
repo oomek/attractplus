@@ -42,6 +42,7 @@
    -  [`fe.get_input_mappings()`](#feget_input_mappings-) 🔶
    -  [`fe.get_general_config()`](#feget_general_config-) 🔶
    -  [`fe.get_config()`](#feget_config)
+   -  [`fe.set_config()`](#feset_config) 🔶
    -  [`fe.get_text()`](#feget_text)
    -  [`fe.get_url()`](#feget_url-) 🔶
    -  [`fe.log()`](#felog-) 🔶
@@ -248,7 +249,7 @@ fe.add_text( "[!copyright]", 0, 0, 400, 20 )
 
 Configuration settings can be added to a layout/plugin/screensaver/intro to provide users with customization options.
 
-Configurations are defined by a `UserConfig` class at the top of your script, where each property is an individual setting. Properties should be prefixed with an `</ attribute />` that describes how they are displayed, and their values can be retrieved using [`fe.get_config()`](#feget_config).
+Configurations are defined by a `UserConfig` class at the top of your script, where each property is an individual setting. Properties should be prefixed with an `</ attribute />` that describes how they are displayed, and their values can be retrieved using [`fe.get_config()`](#feget_config) or updated using [`fe.set_config()`](#feset_config-).
 
 ```squirrel
 class UserConfig </ help="Description" /> {
@@ -271,22 +272,30 @@ The attribute may use **one** of the following properties to define its type:
 
 -  `options` - [string] Present the user with a choice, for example: `"Yes,No"`.
 -  `is_input` - [boolean] Prompt the user to press a key.
--  `is_function` - [boolean] Call the function named by the property, for example: `func = "callback"`.
+-  `is_function` - [boolean] Call the function named by the property, see example below.
 -  `is_info` - [boolean] A readonly setting used for headings or separators.
--  (None of the above) - A text input for keyboard entry.
+-  If none of the above are used a text input for keyboard entry will be displayed.
 
 **Callback**
 
--  The function should be in the following form:
+-  The `is_function` callback should be in the following form:
 
-   ```squirrel
-   // The config parameter contains the fe.get_config() table
-   function callback( config )
-   {
-     // The returned string is displayed in the footer
-     return "Success"
-   }
-   ```
+```squirrel
+class UserConfig </ help="Description" /> {
+	</ label="String", order=1 /> val = "Default"
+	</ label="Action", order=2, is_function=true /> func = "callback"
+}
+
+// The parameter contains the fe.get_config() table
+function callback( config )
+{
+	// The config may be updated
+	config.val = ( config.val == "Default" ) ? "Changed" : "Default"
+
+	// The returned string is displayed in the help section
+	return "Success"
+}
+```
 
 ---
 
@@ -1183,6 +1192,24 @@ Get the user configured settings for this layout/plugin/screensaver/intro.
 **Notes**
 
 -  This function will _not_ return valid settings when called from a callback function registered with [`fe.add_ticks_callback()`](#feadd_ticks_callback), [`fe.add_transition_callback()`](#feadd_transition_callback) or [`fe.add_signal_handler()`](#feadd_signal_handler).
+
+---
+
+### `fe.set_config()` 🔶
+
+```squirrel
+fe.set_config( config )
+```
+
+Set the user configured settings for this layout/plugin/screensaver/intro.
+
+**Parameters**
+
+-  A table containing the [User Config](#user-config) settings.
+
+**Return Value**
+
+-  None.
 
 ---
 
