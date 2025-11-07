@@ -211,10 +211,6 @@ public:
 	void style_init();
 	void style_init( sf::Color theme_color );
 
-	const int is_truthy( const std::string value );
-	const int is_falsy( const std::string value );
-	const bool is_bool_list( const std::vector<std::string> &values );
-	void swap_bool_to_pill_glyphs( std::vector<std::string> &right_list, const std::vector<FeMenuOpt> &opt_list, int idx );
 };
 
 #endif

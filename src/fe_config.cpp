@@ -135,7 +135,8 @@ FeConfigContext::FeConfigContext( FeSettings &f )
 	style( SelectionList ),
 	curr_sel( -1 ),
 	default_sel( 0 ),
-	save_req( false )
+	save_req( false ),
+	update_req( false )
 {
 }
 
@@ -1899,12 +1900,18 @@ bool FeScriptConfigMenu::on_option_select(
 		if ( fep )
 			fep->set_script_id( m_script_id );
 
+		// Call function in layout is_function attribute
 		FeVM::script_run_config_function(
 				*m_configurable,
 				m_file_path,
 				m_file_name,
 				o.opaque_str,
 				ctx.help_msg );
+
+		// Force the config menu to update regardless of changes
+		// - Config changes absolutely require update
+		// - `nv` changes are harder to detect (full-table-compare), simpler to just force update
+		ctx.update_req = true;
 	}
 	return true;
 }

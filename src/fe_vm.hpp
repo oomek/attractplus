@@ -186,7 +186,7 @@ public:
 			const std::string &script_file );
 
 	static void script_run_config_function(
-			const FeScriptConfigurable &configurable,
+			FeScriptConfigurable &configurable,
 			const std::string &script_path,
 			const std::string &script_file,
 			const std::string &func_name,
@@ -269,6 +269,7 @@ public:
 	static Sqrat::Table cb_get_input_mappings();
 	static Sqrat::Table cb_get_general_config();
 	static Sqrat::Table cb_get_config();
+	static void cb_set_config( const Sqrat::Table );
 	static void cb_signal( const char * );
 	static void cb_set_display( int, bool, bool );
 	static void cb_set_display( int, bool );

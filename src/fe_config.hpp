@@ -118,6 +118,7 @@ public:
 	int curr_sel;		// index of currently selected menu option in opt_list
 	int default_sel;
 	bool save_req; 	// flag whether save() should be called on this menu
+	bool update_req;	// flag whether update_to_menu should be called, triggered when is_function changes config
 
 	FeConfigContext( FeSettings & );
 
