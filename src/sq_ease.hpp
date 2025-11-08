@@ -25,6 +25,16 @@
 
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <algorithm>
+#include <vector>
+
+enum SqJumpFlags
+{
+	JumpStart 	= 0,
+	JumpEnd		= 1 << 0,
+	JumpNone		= 1 << 1,
+	JumpBoth		= 1 << 2
+};
 
 class SqEase
 {
@@ -82,6 +92,10 @@ public:
 	static float out_in_back( float t, float b, float c, float d );
 	static float out_in_back( float t, float b, float c, float d, float s );
 	static float out_in_bounce( float t, float b, float c, float d );
+
+	static float steps( float t, float b, float c, float d, float s );
+	static float steps( float t, float b, float c, float d, float s, int jump );
+	static float cubic_bezier( float t, float b, float c, float d, float x1, float y1, float x2, float y2 );
 };
 
 #endif

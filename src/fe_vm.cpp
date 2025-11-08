@@ -541,6 +541,9 @@ void FeVM::vm_init()
 	ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_in_back"), &SqEase::out_in_back );
 	ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_back"), &SqEase::out_in_back );
 	ease.Func( _SC("out_in_bounce"), &SqEase::out_in_bounce );
+	ease.Overload<float (*)(float, float, float, float, float)>( _SC("steps"), &SqEase::steps );
+	ease.Overload<float (*)(float, float, float, float, float, int)>( _SC("steps"), &SqEase::steps );
+	ease.Func( _SC("cubic_bezier"), &SqEase::cubic_bezier );
 
 	Sqrat::DefaultVM::Set( vm );
 }
@@ -752,6 +755,12 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Moving"), FeListBox::Moving )
 			.Const( _SC("Paged"), FeListBox::Paged )
 			.Const( _SC("Bounded"), FeListBox::Bounded )
+			)
+		.Enum( _SC("Jump"), Enumeration()
+			.Const( _SC("Start"), SqJumpFlags::JumpStart )
+			.Const( _SC("End"), SqJumpFlags::JumpEnd )
+			.Const( _SC("None"), SqJumpFlags::JumpNone )
+			.Const( _SC("Both"), SqJumpFlags::JumpBoth )
 			)
 		;
 

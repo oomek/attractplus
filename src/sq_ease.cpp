@@ -309,3 +309,123 @@ float SqEase::out_in_bounce( float t, float b, float c, float d )
 {
 	return (t < d/2) ? out_bounce(t, b, c/2, d/2) : out_bounce(d-t, b+c, -c/2, d/2);
 }
+
+float SqEase::steps( float t, float b, float c, float d, float s )
+{
+	return steps( t, b, c, d, s, JumpEnd );
+}
+
+float SqEase::steps( float t, float b, float c, float d, float s, int jump )
+{
+	bool f = ( jump == JumpStart || jump == JumpBoth );
+	bool e = ( jump == JumpEnd || jump == JumpBoth );
+	float r = c / (s + (f&&e));
+	return std::clamp(
+		(float)((c-(f+e)*r) * floor(t/d*s) / (s-1) + (b+f*r)),
+		std::min( b, b+c ),
+		std::max( b, b+c )
+	);
+}
+
+// https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+// https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function#cubic_b%C3%A9zier_easing_function
+// https://github.com/gre/bezier-easing/blob/master/src/index.js
+// https://cubic-bezier.com
+
+const int NEWTON_ITERATIONS = 4;
+const float NEWTON_MIN_SLOPE = 0.001;
+const float SUBDIVISION_PRECISION = 0.0000001;
+const int SUBDIVISION_MAX_ITERATIONS = 10;
+
+const int K_SPLINE_TABLE_SIZE = 11;
+const int K_SPLINE_TABLE_LAST = K_SPLINE_TABLE_SIZE - 1;
+const float K_SAMPLE_STEP_SIZE = 1.0 / (K_SPLINE_TABLE_SIZE - 1.0);
+
+namespace
+{
+	float bezA( float a, float b )
+	{
+		return 1.0 - 3.0 * b + 3.0 * a;
+	}
+
+	float bezB( float a, float b )
+	{
+		return 3.0 * b - 6.0 * a;
+	}
+
+	float bezC( float a)
+	{
+		return 3.0 * a;
+	}
+
+	float get_bezier( float t, float a, float b )
+	{
+		return ((bezA(a,b)*t + bezB(a,b))*t + bezC(a))*t;
+	}
+
+	float get_slope( float t, float a, float b)
+	{
+		return 3.0*bezA(a,b)*t*t + 2.0*bezB(a,b)*t + bezC(a);
+	}
+
+	float binary_subdivide( float x, float a, float b, float x1, float x2 )
+	{
+		float n = 0.f, t = 0.f;
+		int i = 0;
+		do
+		{
+			t = a + (b - a) / 2.0;
+			n = get_bezier(t, x1, x2) - x;
+			if (n > 0.0) { b = t; } else { a = t; }
+		} while ((fabs(n) > SUBDIVISION_PRECISION) && (++i < SUBDIVISION_MAX_ITERATIONS));
+		return t;
+	}
+
+	float newton_raphson_iterate( float x, float t, float x1, float x2 )
+	{
+		for ( int i = 0; i < NEWTON_ITERATIONS; i++ ) {
+			float n = get_slope(t, x1, x2);
+			if (n == 0.0) return t;
+			t -= (get_bezier(t, x1, x2) - x) / n;
+		}
+		return t;
+	}
+}
+
+float SqEase::cubic_bezier( float t, float b, float c, float d, float x1, float y1, float x2, float y2 )
+{
+	x1 = std::clamp( x1, 0.f, 1.f );
+	x2 = std::clamp( x2, 0.f, 1.f );
+
+	if (x1 == y1 && x2 == y2)
+		return linear( t, b, c, d);
+
+	std::vector<float> sample_values = {};
+	for ( int i = 0; i < K_SPLINE_TABLE_SIZE; i++ )
+		sample_values.push_back( get_bezier(i * K_SAMPLE_STEP_SIZE, x1, x2) );
+
+	float xt;
+	float x = t / d;
+	float interval_start = 0.0;
+	float current_sample = 1;
+
+	for ( ; current_sample != K_SPLINE_TABLE_LAST && sample_values[current_sample] <= x; current_sample++ )
+		interval_start += K_SAMPLE_STEP_SIZE;
+
+	current_sample--;
+
+	// Interpolate to provide an initial guess for t
+	float dist = ( x - sample_values[current_sample] ) / ( sample_values[current_sample + 1] - sample_values[current_sample] );
+	float t_guess = interval_start + dist * K_SAMPLE_STEP_SIZE;
+	float slope = get_slope(t_guess, x1, x2);
+
+	if ( slope >= NEWTON_MIN_SLOPE ) {
+		xt = newton_raphson_iterate( x, t_guess, x1, x2 );
+	} else if ( slope == 0.0 ) {
+		xt = t_guess;
+	} else {
+		xt = binary_subdivide( x, interval_start, interval_start + K_SAMPLE_STEP_SIZE, x1, x2 );
+	}
+
+	return c * get_bezier( xt, y1, y2 ) + b;
+}
