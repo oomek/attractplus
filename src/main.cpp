@@ -200,25 +200,23 @@ int main(int argc, char *argv[])
 
 	// the splash_logo will be displayed if there are no displays configured
 	bool config_mode = false;
-	bool has_intro = false;
 
 #ifdef USE_LIBCURL
 	if ( feSettings.get_info_bool( FeSettings::CheckForUpdates ) )
 		versionChecker.initiate();
 #endif
 
-	if ( !config_mode )
-	{
+	// Only show intro if there are displays configured
+	if ( !(feSettings.displays_count() < 1) ) {
+
 		// Load the display early so the intro can use the romlist and artwork
 		feSettings.set_display( feSettings.get_selected_display_index() );
 
-		// Attempt to start the intro now
-		has_intro = feVM.load_intro();
-		if ( !has_intro )
+		// Attempt to start the intro
+		if ( !feVM.load_intro() )
 		{
-			// If the intro fails, post a dummy command so the poll_command loop will fire
-			// This will catch Intro_Showing and load the appropriate startup layout
-			feVM.post_command( FeInputMap::EventStartup ); // EventStartup is not an input event
+			// Post a dummy command to trigger poll_command to end the Intro_Showing mode
+			feVM.post_command( FeInputMap::EventStartup );
 		}
 	}
 
@@ -561,12 +559,8 @@ int main(int argc, char *argv[])
 				bool has_layout = false;
 
 				// Clear any commands the intro may have queued up
-				// - Fixes intro "select" error
-				if ( has_intro )
-				{
-					c = FeInputMap::LAST_COMMAND;
-					feVM.clear_commands();
-				}
+				c = FeInputMap::LAST_COMMAND;
+				feVM.clear_commands();
 
 				if ( initial_load && mode == FeSettings::LaunchLastGame )
 				{
