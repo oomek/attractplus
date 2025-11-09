@@ -264,10 +264,9 @@ Movie Volume;影片音量
 #Loudness Normalisation;
 
 # -- splash_message --
-#Generating index ($1%);
-Generating Rom List: $1%;正在產生收藏集/遊戲清單: $1%
+Generating Rom List;正在產生收藏集/遊戲清單
 Please Wait;請稍待
-Scraping Artwork: $1%;正在搜刮插圖: $1%
+Scraping Artwork;正在搜刮插圖
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;要將「$1」加入我的最愛嗎？

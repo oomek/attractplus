@@ -264,10 +264,9 @@ Movie Volume;ムービーボリューム
 #Loudness Normalisation;
 
 # -- splash_message --
-#Generating index ($1%);
-Generating Rom List: $1%;Romファイルリストを作成しています: $1%
+Generating Rom List;Romファイルリストを作成しています
 #Please Wait;
-Scraping Artwork: $1%;オンラインから $1% をダウンロード中です
+Scraping Artwork;オンラインから をダウンロード中です
 
 # -- confirm_dialog --
 #Add '$1' to Favourites?;

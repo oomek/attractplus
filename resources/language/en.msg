@@ -269,10 +269,9 @@ Movie Volume;Movie Volume
 Loudness Normalisation;Loudness Normalisation
 
 # -- splash_message --
-Generating index ($1%);Generating index ($1%)
-Generating Rom List: $1%;Generating Rom List: $1%
+Generating Rom List;Generating Rom List
 Please Wait;Please Wait
-Scraping Artwork: $1%;Scraping Artwork: $1%
+Scraping Artwork;Scraping Artwork
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Add '$1' to Favourites?

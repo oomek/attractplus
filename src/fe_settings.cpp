@@ -361,7 +361,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_custom_languages( false ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( false ),
-	m_group_clones( false ),
+	m_group_clones( true ),
 	m_startup_mode( ShowLastSelection ),
 	m_prefix_mode( SortAndShowPrefix ),
 	m_confirm_favs( true ),

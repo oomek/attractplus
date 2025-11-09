@@ -2124,11 +2124,7 @@ namespace
 	{
 		generate_ui_info_struct *gi = (generate_ui_info_struct *)d;
 
-		std::string msg = gi->emu;
-		msg += " ";
-		msg += as_str( i );
-
-		gi->ov->splash_message( _( "Generating Rom List: $1%", { msg }), aux );
+		gi->ov->splash_message( _( "Generating Rom List" ) + "\n" + gi->emu + " " + as_str( i ) + "%", aux );
 		return !gi->ov->check_for_cancel();
 	}
 };
