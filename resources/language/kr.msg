@@ -264,10 +264,9 @@ Movie Volume;동영상 음량
 #Loudness Normalisation;
 
 # -- splash_message --
-#Generating index ($1%);
-Generating Rom List: $1%;롬 목록을 생성중입니다 ($1%)
+Generating Rom List;롬 목록을 생성중입니다
 #Please Wait;
-Scraping Artwork: $1%;온라인에서 $1% 을 다운로드하는 중입니다
+Scraping Artwork;온라인에서 을 다운로드하는 중입니다
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;'$1' 게임을 즐겨하는 목록에 추가하겠습니까?

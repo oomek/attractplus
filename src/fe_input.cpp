@@ -989,6 +989,8 @@ void FeInputMap::initialize_mappings()
 			{ "Escape+LControl",          ToggleFavourite },
 			{ "F11",                      ToggleFullscreen },
 			{ "RAlt+Return",              ToggleFullscreen },
+			{ "PageUp",              		PrevPage },
+			{ "PageDown",              	NextPage },
 
 			{ "Joy0 Up+Joy0 Button0",     PrevLetter },
 			{ "Joy0 Down+Joy0 Button0",   NextLetter },

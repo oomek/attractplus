@@ -198,10 +198,9 @@ int main(int argc, char *argv[])
 	sf::Clock command_timer;
 	command_timer.stop();
 
-	// go straight into config mode if there are no lists configured for
-	// display
-	//
-	bool config_mode = ( feSettings.displays_count() < 1 );
+	// the splash_logo will be displayed if there are no displays configured
+	bool config_mode = false;
+	bool has_intro = false;
 
 #ifdef USE_LIBCURL
 	if ( feSettings.get_info_bool( FeSettings::CheckForUpdates ) )
@@ -214,7 +213,8 @@ int main(int argc, char *argv[])
 		feSettings.set_display( feSettings.get_selected_display_index() );
 
 		// Attempt to start the intro now
-		if ( !feVM.load_intro() )
+		has_intro = feVM.load_intro();
+		if ( !has_intro )
 		{
 			// If the intro fails, post a dummy command so the poll_command loop will fire
 			// This will catch Intro_Showing and load the appropriate startup layout
@@ -558,12 +558,15 @@ int main(int argc, char *argv[])
 				move_triggered = FeInputMap::LAST_COMMAND;
 				move_last_triggered = 0;
 				redraw = true;
-				c = FeInputMap::LAST_COMMAND;
 				bool has_layout = false;
 
 				// Clear any commands the intro may have queued up
 				// - Fixes intro "select" error
-				feVM.clear_commands();
+				if ( has_intro )
+				{
+					c = FeInputMap::LAST_COMMAND;
+					feVM.clear_commands();
+				}
 
 				if ( initial_load && mode == FeSettings::LaunchLastGame )
 				{
@@ -1161,7 +1164,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if ( feSettings.get_present_state() == FeSettings::Layout_Showing && !feVM.is_layout_loaded() )
+		if ( feSettings.get_present_state() == FeSettings::Layout_Showing && ( feSettings.displays_count() < 1 ) )
 		{
 			feOverlay.splash_logo( _( "Press TAB to Configure" ) );
 			continue;

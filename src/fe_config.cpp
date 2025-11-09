@@ -322,7 +322,7 @@ namespace
 	{
 		FeConfigContext *od = (FeConfigContext *)d;
 
-		od->splash_message( _( "Generating Rom List: $1%", { as_str( i ) }), aux );
+		od->splash_message( _( "Generating Rom List" ) + "\n" + as_str( i ) + "%", aux );
 
 		if ( od->check_for_cancel() )
 		{
@@ -337,7 +337,7 @@ namespace
 	{
 		FeConfigContext *od = (FeConfigContext *)d;
 
-		od->splash_message( _( "Scraping Artwork: $1%", { as_str( i ) }), aux );
+		od->splash_message( _( "Scraping Artwork" ) + "\n" + as_str( i ) + "%", aux );
 
 		if ( od->check_for_cancel() )
 		{

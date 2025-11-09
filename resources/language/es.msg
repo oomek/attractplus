@@ -264,10 +264,9 @@ Movie Volume;Volumen de videos
 #Loudness Normalisation;
 
 # -- splash_message --
-#Generating index ($1%);
-Generating Rom List: $1%;Generación de lista de roms: $1%
+Generating Rom List;Generación de lista de roms
 #Please Wait;
-#Scraping Artwork: $1%;
+#Scraping Artwork;
 
 # -- confirm_dialog --
 #Add '$1' to Favourites?;

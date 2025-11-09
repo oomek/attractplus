@@ -264,10 +264,9 @@ Movie Volume;Film-Lautstärke
 #Loudness Normalisation;
 
 # -- splash_message --
-#Generating index ($1%);
-Generating Rom List: $1%;Erzeuge Romliste $1%
+Generating Rom List;Erzeuge Romliste
 Please Wait;bitte warten
-Scraping Artwork: $1%;Scrape Bilddatei: $1%
+Scraping Artwork;Scrape Bilddatei
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Soll '$1' zu Favoriten hinzugefügt werden?
