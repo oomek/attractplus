@@ -179,7 +179,8 @@ Toggle Flip;切換翻轉
 Toggle Rotate Left;切換向左旋轉
 Exit;結束
 Exit to Desktop;結束至桌面
-Reload;重新載入
+Reload Layout;重新載入佈局
+Reload Config;重新載入配置
 Screenshot;螢幕截圖
 Random Game;隨機選取遊戲
 Replay Last Game;重玩最後執行的遊戲

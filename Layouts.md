@@ -881,7 +881,8 @@ Signal that a particular frontend action should occur.
    -  `"custom9"`
    -  `"custom10"`
    -  `"reset_window"`
-   -  `"reload"`
+   -  `"reload_layout"`
+   -  `"reload_config"`
 
 **Return Value**
 

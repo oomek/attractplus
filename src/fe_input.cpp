@@ -859,7 +859,9 @@ const char *FeInputMap::commandStrings[] =
 	"exit",
 	"exit_to_desktop",
 	"toggle_fullscreen",
-	"reload",
+	"reload_layout",
+	"reload_config",
+	"reset_window",
 	"screenshot",
 	"configure",
 	"random_game",
@@ -919,7 +921,9 @@ const char *FeInputMap::commandDispStrings[] =
 	"Exit",
 	"Exit to Desktop",
 	"Toggle Fullscreen",
-	"Reload",
+	"Reload Layout",
+	"Reload Config",
+	"Reset Window",
 	"Screenshot",
 	"Configure",
 	"Random Game",
@@ -975,6 +979,7 @@ void FeInputMap::initialize_mappings()
 	if ( m_inputs.empty() )
 	{
 		//
+		// Default controls
 		// Set some convenient initial mappings (user can always choose to unmap)...
 		//
 		struct InitialMappings { const char *label; Command command; } imap[] =
@@ -991,6 +996,8 @@ void FeInputMap::initialize_mappings()
 			{ "RAlt+Return",              ToggleFullscreen },
 			{ "PageUp",              		PrevPage },
 			{ "PageDown",              	NextPage },
+			{ "F5",                       ReloadLayout },
+			{ "LShift+F5",                ReloadConfig },
 
 			{ "Joy0 Up+Joy0 Button0",     PrevLetter },
 			{ "Joy0 Down+Joy0 Button0",   NextLetter },
@@ -1543,18 +1550,20 @@ FeInputMap::Command FeInputMap::string_to_command( const std::string &s )
 	}
 
 	//
-	// For backward compatability... with 1.5 the "*_list" was switched to "*_display"
+	// Redirect signals for backward compatibility
 	//
-	if ( s.compare( "prev_list" ) == 0 )
+	if ( s.compare( "prev_list" ) == 0 ) // in 1.5: prev_list -> prev_display
 		return PrevDisplay;
-	else if ( s.compare( "next_list" ) == 0 )
+	else if ( s.compare( "next_list" ) == 0 ) // in 1.5: next_list -> next_display
 		return NextDisplay;
-	else if ( s.compare( "page_up" ) == 0 ) // after 2.0.0, page_up/down became prev/next_page
+	else if ( s.compare( "page_up" ) == 0 ) // after 2.0.0: page_up -> prev_page
 		return PrevPage;
-	else if ( s.compare( "page_down" ) == 0 )
+	else if ( s.compare( "page_down" ) == 0 ) // after 2.0.0: page_down -> next_page
 		return NextPage;
-	else if ( s.compare( "exit_no_menu" ) == 0 ) // after 2.2.1, exit_no_menu became exit_to_desktop
+	else if ( s.compare( "exit_no_menu" ) == 0 ) // after 2.2.1: exit_no_menu -> exit_to_desktop
 		return ExitToDesktop;
+	else if ( s.compare( "reload" ) == 0 ) // after 3.1.0: reload -> reload_layout
+		return ReloadLayout;
 
 	return LAST_COMMAND;
 }

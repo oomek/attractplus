@@ -179,7 +179,8 @@ Toggle Flip;Umdrehen (180°)
 Toggle Rotate Left;Linksdrehung
 Exit;Beenden (Bestätigen)
 Exit to Desktop;Beenden zum Desktop
-Reload;Neu laden
+Reload Layout;Layout neu laden
+Reload Config;Konfiguration neu laden
 Screenshot;Bildschirmphoto
 Random Game;Zufälliges Spiel
 Replay Last Game;Letztes Spiel wiederholen

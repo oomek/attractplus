@@ -179,7 +179,8 @@ Toggle Flip;画面 180°回転
 Toggle Rotate Left;画面 270°回転
 Exit;終了 (Yes/No 確認)
 Exit to Desktop;終了
-Reload;リロード
+Reload Layout;レイアウトの再読み込み
+Reload Config;設定を再読み込み
 Screenshot;スクリーンショット
 Random Game;任意のゲーム選択
 Replay Last Game;最後にプレイしたゲームを再プレイ

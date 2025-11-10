@@ -283,6 +283,7 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console
 FeVM::~FeVM()
 {
 	clear_handlers();
+	m_feSettings->save_state();
 	save_script_nv();
 	save_layout_nv();
 	vm_close();
@@ -550,6 +551,7 @@ bool FeVM::on_new_layout()
 	//
 	std::string nv = sq_slot_to_json( "fe.nv" );
 
+	m_feSettings->save_state();
 	save_script_nv();
 	save_layout_nv();
 
@@ -2988,29 +2990,9 @@ void FeVM::cb_signal( const char *sig )
 	if ( c != FeInputMap::LAST_COMMAND )
 	{
 		//
-		// Post the command so it can be handled the next time we are
-		// processing events...
+		// Post the command so it can be handled the next time we are processing events...
 		//
 		fev->post_command( c );
-		return;
-	}
-
-	//
-	// Next check for special case signals
-	//
-
-	if ( strcmp( "reset_window", sig ) == 0 )
-	{
-		fev->m_window.on_exit();
-		fev->m_window.initial_create();
-		fev->init_monitors();
-		fev->post_command( FeInputMap::Reload );
-		return;
-	}
-
-	if ( strcmp( "reload", sig ) == 0 )
-	{
-		fev->post_command( FeInputMap::Reload );
 		return;
 	}
 
@@ -3033,7 +3015,7 @@ void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
 		// Updating filters here allows `set_display` to be run in a tight-loop for romlist parsing
 		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 		fev->update_filters_binding( fe );
-		fev->post_command( FeInputMap::Reload );
+		fev->post_command( FeInputMap::ReloadLayout );
 	}
 	else
 		fev->update_to_new_list( 0, true );
