@@ -179,7 +179,8 @@ Toggle Flip;화면 180도 회전
 Toggle Rotate Left;화면 270도 회전
 Exit;확인 후 종료
 Exit to Desktop;바탕화면으로 나가기
-Reload;새로고침
+Reload Layout;레이아웃 새로고침
+Reload Config;구성 다시 로드
 Screenshot;스크린샷
 Random Game;랜덤 게임 선택
 Replay Last Game;마지막으로 한 게임 다시 실행

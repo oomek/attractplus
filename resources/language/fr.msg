@@ -180,7 +180,8 @@ Toggle Flip;Basculer mode retourné
 Toggle Rotate Left;Basculer Rotation gauche
 Exit;Sortie (Confirmer)
 Exit to Desktop;Sortie vers le bureau
-Reload;Recharger
+Reload Layout;Recharger la mise en page
+Reload Config;Recharger la configuration
 Screenshot;Photo écran
 Random Game;Jeu au hasard
 Replay Last Game;Rejouer au dernier jeu

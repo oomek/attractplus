@@ -179,7 +179,8 @@ Toggle Flip;Invertire
 Toggle Rotate Left;Rotazione a sinistra
 Exit;Uscita (Conferma)
 Exit to Desktop;Esci al desktop
-Reload;Ricaricare
+Reload Layout;Ricarica disposizione
+Reload Config;Configurazione di ricarica
 #Screenshot;
 Random Game;Gioco casuale
 Replay Last Game;Esegui l'ultimo gioco

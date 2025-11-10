@@ -179,7 +179,8 @@ Toggle Flip;反转 180度
 Toggle Rotate Left;转270度（向左)
 Exit;退出 (Yes/No)
 Exit to Desktop;退出到桌面
-Reload;重新加载
+Reload Layout;重新加载布局
+Reload Config;重新加载配置
 Screenshot;截图
 Random Game;随机游戏
 Replay Last Game;重新上一次的游戏

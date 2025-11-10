@@ -429,11 +429,53 @@ int main(int argc, char *argv[])
 				continue;
 
 			//
-			// Special case: handle the reload signal now
+			// Special case: handle the reload/restart/reset signals now
 			//
-			if ( c == FeInputMap::Reload )
+
+			// Force window re-init
+			if ( c == FeInputMap::ResetWindow )
+			{
+				window.on_exit();
+				window.initial_create();
+				feVM.init_monitors();
+				feVM.load_layout();
+				continue;
+			}
+
+			// Reload the layout
+			if ( c == FeInputMap::ReloadLayout )
 			{
 				feVM.load_layout();
+				continue;
+			}
+
+			// Reload the configuration/emulator/window/layout
+			if ( c == FeInputMap::ReloadConfig )
+			{
+				int old_mode = feSettings.get_window_mode();
+				int old_aa = feSettings.get_antialiasing();
+
+				feSettings.load();
+				feSettings.on_joystick_connect(); // update joystick mappings
+
+				soundsys.stop();
+				soundsys.play_ambient();
+
+				// Recreate window if the window mode changed
+				if (( feSettings.get_window_mode() != old_mode ) || ( feSettings.get_antialiasing() != old_aa ))
+				{
+					window.on_exit();
+					window.initial_create();
+					feVM.init_monitors();
+				}
+
+				// Settings have changed, reload the display
+				feSettings.set_display( feSettings.has_custom_displays_menu()
+					? feSettings.get_current_display_index()
+					: feSettings.get_selected_display_index() // in case config has removed custom display
+				);
+				feVM.load_layout();
+				feVM.reset_screen_saver();
 				continue;
 			}
 
@@ -1168,6 +1210,7 @@ int main(int argc, char *argv[])
 		if ( command_timer.isRunning() && command_timer.getElapsedTime().asMilliseconds() > 5000 )
 		{
 			command_timer.reset();
+			feSettings.save_state();
 			feVM.save_script_nv();
 			feVM.save_layout_nv();
 		}
@@ -1220,7 +1263,6 @@ int main(int argc, char *argv[])
 	FeRomListSorter::clear_title_rex();
 
 	soundsys.stop();
-	feSettings.save_state();
 
 #ifdef USE_LIBCURL
 	curl_global_cleanup();

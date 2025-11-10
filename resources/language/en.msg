@@ -183,7 +183,9 @@ Toggle Flip;Toggle Flip
 Toggle Rotate Left;Toggle Rotate Left
 Exit;Exit
 Exit to Desktop;Exit to Desktop
-Reload;Reload
+Reload Layout;Reload Layout
+Reload Config;Reload Config
+Reset Window;Reset Window
 Screenshot;Screenshot
 Random Game;Random Game
 Replay Last Game;Replay Last Game
@@ -399,7 +401,9 @@ _help_control_prev_game;Set the control(s) that move to the previous game
 _help_control_prev_letter;Set the control(s) that move to the previous letter
 _help_control_prev_page;Set the control(s) that move the selection down one page
 _help_control_random_game;Set the control(s) that select a random game from the current list
-_help_control_reload;Set the control(s) that reloads the current layout
+_help_control_reload_layout;Set the control(s) that reloads the current layout
+_help_control_reload_config;Set the control(s) that reloads the configuration files
+_help_control_reset_window;Set the control(s) that resets the window size and position
 _help_control_replay_last_game;Set the control(s) that relaunch the last game played
 _help_control_right;Set the control(s) that move the selection right
 _help_control_screen_saver;Set the control(s) that launch screen saver mode
