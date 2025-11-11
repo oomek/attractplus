@@ -310,12 +310,15 @@ void FeVM::load_layout_nv() {
 	else
 		m_last_layout = m_feSettings->get_display( idx )->get_layout();
 
+	if ( m_last_layout.empty() )
+		return;
+
 	std::string layout_nv;
 	read_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, layout_nv );
 	if ( layout_nv.empty() ) layout_nv = "{}";
 
 	std::string key = sq_escape_string( m_last_layout );
-	sq_run_code( "try { fe.layout.nv = " + layout_nv + "[\"" + key + "\"] } catch (err) { fe.layout.nv = {} }" );
+	sq_run_code( "if (\"layout\" in fe) try { fe.layout.nv = " + layout_nv + "[\"" + key + "\"] } catch (err) { fe.layout.nv = {} }" );
 }
 
 // Save the fe.layout.nv for the *last loaded* layout
@@ -2116,7 +2119,7 @@ void FeVM::script_get_config_options(
 				else if ( is_func )
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, o_value, help, 2, value ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, "", help, 2, o_value ) )
 					);
 				}
 				else if ( is_info )
@@ -2173,8 +2176,7 @@ bool FeVM::setup_wizard()
 	std::string path, fname;
 	if ( !m_feSettings->get_emulator_setup_script( path, fname ) )
 	{
-		FeLog() << "Unable to get emulator setup script. path=" << path
-			<< ", filaname=" << fname << std::endl;
+		FeLog() << "Cannot find emulator setup script." << std::endl;
 		return false;
 	}
 
@@ -2184,7 +2186,7 @@ bool FeVM::setup_wizard()
 	Sqrat::Object etg = Sqrat::RootTable().GetSlot( "emulators_to_generate" );
 	if ( etg.IsNull() )
 	{
-		FeDebug() << "Unable to get 'emulators_to_generate' from setup script: " << fname << std::endl;
+		FeDebug() << "Error running emulator setup script." << std::endl;
 		return false;
 	}
 
@@ -2199,12 +2201,22 @@ bool FeVM::setup_wizard()
 	}
 
 	if ( emus_to_import.empty() )
+	{
+		m_overlay->common_basic_dialog( _( "No emulators found" ), { _( "Ok" ) }, 0, 0 );
 		return false;
+	}
+
+	int n = (int)emus_to_import.size();
+	int m = 3; // max number of emulators to display in message
+
+	std::vector<std::string> emu_slice(emus_to_import.begin(), emus_to_import.begin() + std::min(n, m));
+
+	std::string msg = ( n == 1 ) ? _( "Found 1 emulator" ) : _( "Found $1 emulators", { as_str( n ) } );
+	msg += "\n" + str_join( emu_slice, ", ");
+	if (n > m) msg += ", " + _( "+$1 more", { as_str(n-m) });
 
 	// return 0 if user confirms import
-	if ( m_overlay->confirm_dialog(
-		_( "Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?" ),
-		true ) != 0 ) // default to "yes"
+	if ( m_overlay->common_basic_dialog( msg, { _( "Import" ), _( "Cancel" ) }, 0, 1, FeInputMap::Exit ) != 0 )
 	{
 		return false;
 	}

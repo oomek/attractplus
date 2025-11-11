@@ -120,11 +120,11 @@ public:
 	FeConfigContextImp( FeSettings &fes, FeOverlay &feo );
 	bool edit_dialog( const std::string &m, std::string &t );
 
-	bool confirm_dialog( const std::string &m  );
+	bool confirm_dialog( const std::string &m, bool default_yes = false );
 
-        int option_dialog( const std::string &title,
-                const std::vector < std::string > &options,
-                int default_sel=0 );
+	int option_dialog( const std::string &title,
+				const std::vector < std::string > &options,
+				int default_sel=0 );
 
 	void splash_message( const std::string &msg,
 		const std::string &aux = "" );
@@ -150,9 +150,9 @@ bool FeConfigContextImp::edit_dialog( const std::string &msg, std::string &t )
 	return m_feo.edit_dialog( msg, t );
 }
 
-bool FeConfigContextImp::confirm_dialog( const std::string &msg  )
+bool FeConfigContextImp::confirm_dialog( const std::string &msg, bool default_yes )
 {
-	return !m_feo.confirm_dialog( msg );
+	return !m_feo.confirm_dialog( msg, default_yes );
 }
 
 int FeConfigContextImp::option_dialog( const std::string &title,
@@ -194,7 +194,7 @@ void FeConfigContextImp::update_to_menu(
 	{
 		// `MENU` type options are forced to have an empty right_list value
 		left_list.push_back( opt_list[i].setting );
-		right_list.push_back( opt_list[i].type == Opt::MENU ? "" : opt_list[i].get_value() );
+		right_list.push_back( opt_list[i].get_value() );
 
 		if ( opt_list[i].type == Opt::DEFAULTEXIT )
 			exit_sel=i;
@@ -1557,10 +1557,13 @@ int FeOverlay::display_config_dialog(
 		if ( ctx.update_req )
 		{
 			// update the menu to match the current options
-			// - called when layout config is_function is called
+			// - called when layoutEdit is_function is selected
+			// - resets lists rather than calling display_config_dialog to preserve help msg
 			ctx.update_req = false;
 			ctx.update_to_menu( m );
+			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
+			footer.setString( ctx.curr_opt().help_msg );
 		}
 
 		if ( !ctx.help_msg.empty() )
@@ -1738,7 +1741,7 @@ int FeOverlay::display_config_dialog(
 			int original_value = ctx.curr_opt().get_vindex();
 			int new_value = ( original_value == 0 ) ? 1 : 0;
 			ctx.curr_opt().set_value( new_value );
-			ctx.right_list[ ctx.curr_sel ] = get_pill_glyph( new_value );
+			ctx.right_list[ ctx.curr_sel ] = get_pill_glyph( is_truthy( ctx.curr_opt().values_list[new_value] ) );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 			layout_focus( sdialog, vdialog, LayoutFocus::Edit );

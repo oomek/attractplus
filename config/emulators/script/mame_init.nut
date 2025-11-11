@@ -17,7 +17,7 @@ mame_emu <-
 	"name"   : "mame",
 	"exe"    : "mame",
 	"args"   : "[name]",
-	"rompath": "$HOME/mame/roms/",
+	"rompath": "$HOME/mame/roms",
 	"exts"   : ".zip;.7z",
 	"system" : "Arcade",
 	"source" : "listxml",
@@ -32,7 +32,7 @@ console_emu <-
 	"name"   : "mame-nes",
 	"exe"    : "mame",
 	"args"   : "[system] -cart \"[romfilename]\"",
-	"rompath": "$HOME/mame/roms/nes/",
+	"rompath": "$HOME/mame/roms/nes",
 	"exts"   : ".zip;.7z",
 	"system" : "nes;Nintendo Entertainment System (NES)",
 	"source" : "listsoftware"
@@ -126,6 +126,15 @@ class RompathParser
 		fe.plugin_command( p + e, "-showconfig", this, "parse_cb" );
 	}
 
+	// add trailing slash
+	function add_slash( path )
+	{
+		if ( path.len() == 0 ) return path;
+		if ( path[ path.len()-1 ] == '/' ) return path;
+		if ( path[ path.len()-1 ] == '\\' ) return path;
+		return path + "/";
+	}
+
 	function _tailing1( t )
 	{
 		local retval = "";
@@ -139,18 +148,23 @@ class RompathParser
 
 	function parse_cb( op )
 	{
-		local temp = split( op, " \t\n" );
+		local temp = split( op, " \t\r\n" );
 
 		if ( temp.len() < 2 )
 			return;
 
-		if (( temp[0] == "homepath" ) && ( temp[1].len() > 2 )) // skip if temp[1] is "." or ".."
+		temp[0] = strip( temp[0] );
+		temp[1] = strip( temp[1] );
+
+		if (( temp[0] == "homepath" ))
 		{
 			local t = split( temp[1], "/\\" );
 			if (( t[0] == "$HOME" ) || ( t[0] == "~" ))
 				homepath = fe.path_expand( t[0] ) + _tailing1( t );
 			else if ( t[0] == "." )
 				homepath = exepath + _tailing1( t );
+			else if ( t[0] == ".." )
+				homepath = "";
 			else
 				homepath = fe.path_expand( temp[1] );
 		}
@@ -160,10 +174,6 @@ class RompathParser
 			foreach ( p in t )
 			{
 				local p2 = strip( p );
-
-				// make sure there is a trailing slash
-				if (( p2.len() > 0 ) && ( p2[ p2.len()-1 ] != 47 ))
-					p2 += "/";
 
 				if ( fe.path_test( p2, PathTest.IsRelativePath ) )
 				{
@@ -337,8 +347,8 @@ if ( ver <= 0 )
 	local wm = write_config( mame_emu, FeConfigDirectory + "emulators/templates/" + mame_emu["name"] + ".cfg" );
 	local wc = write_config( console_emu, FeConfigDirectory + "emulators/templates/" + console_emu["name"] + ".cfg", true );
 
-	console_report( mame_emu["name"], "", false );
-	console_report( console_emu["name"], "", false );
+	console_report( mame_emu["name"], "" );
+	console_report( console_emu["name"], "" );
 	return;
 }
 
@@ -392,10 +402,14 @@ if ( ver >= 162 ) // mame and mess merged as of v 162
 ext_files <-
 [
 	"catver.ini",
+	"series.ini",
+	"languages.ini",
 	"nplayers.ini"
 ];
 
 ext_paths <- [ path ];
+
+ext_paths.push( RompathParser.add_slash( path ) + "folders/" )
 
 if ( rp.homepath.len() > 0 )
 	ext_paths.push( rp.homepath );
@@ -409,7 +423,8 @@ foreach ( ef in ext_files )
 	{
 		if ( fe.path_test( ep + ef, PathTest.IsFile ) )
 		{
-			mame_emu["import_extras"] += ep + ef + ";";
+			if (mame_emu["import_extras"].len()) mame_emu["import_extras"] += ";";
+			mame_emu["import_extras"] += ep + ef;
 			break;
 		}
 	}
@@ -425,12 +440,13 @@ if ( rp.homepath.len() > 0 )
 	mame_emu["workdir"] <- rp.homepath;
 
 mame_emu["rompath"] <- "";
-foreach ( r in rp.rompaths )
-	mame_emu["rompath"] += r + ";";
+foreach ( r in rp.rompaths ) {
+	if (mame_emu["rompath"].len()) mame_emu["rompath"] += ";";
+	mame_emu["rompath"] += r;
+}
 
-local wc = write_config( mame_emu, emu_dir + mame_emu["name"] + ".cfg" );
 write_config( mame_emu, emu_dir + "templates/" + mame_emu["name"] + ".cfg", true );
-console_report( mame_emu["name"], mame_emu["exe"], wc );
+console_report( mame_emu["name"], mame_emu["exe"] );
 
 if ( !path_is_empty( split(mame_emu["rompath"],";"), split(mame_emu["exts"],";") ) )
 	emulators_to_generate.push( mame_emu["name"] );
@@ -465,11 +481,9 @@ foreach ( s in systems )
 	local cfg_fn = emu_dir + console_emu["name"] + ".cfg";
 	local tmp_fn = emu_dir + "templates/" + console_emu["name"] + ".cfg";
 
-	local wc = write_config( console_emu, cfg_fn );
 	write_config( console_emu, tmp_fn, true );
 
-	print( "\t" );
-	console_report( console_emu["name"], s.triggerpath, wc );
+	console_report( console_emu["name"], s.triggerpath );
 
 	if ( !path_is_empty( split(console_emu["rompath"],";"), split(console_emu["exts"],";") ) )
 		emulators_to_generate.push( console_emu["name"] );

@@ -17,6 +17,8 @@ None;皆否
 OR;或
 #True;
 Yes;是
+Import;進口
+Cancel;取消
 
 # -- misc --
 Press TAB to Configure;按 TAB 鍵進行配置
@@ -271,8 +273,11 @@ Scraping Artwork;正在搜刮插圖
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;要將「$1」加入我的最愛嗎？
-Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode Plus 已偵測到能夠自動匯入的模擬器，要立即匯入嗎？
-#Auto-detect emulators?;
+Auto-detect emulators?;自動檢測模擬器？
+Found 1 emulator;找出 1 個模擬器
+Found $1 emulators;找到售價 $1 美元的模擬器
+No emulators found;未找到模擬器
++$1;還有$1個
 Clear Hotkey?;要清除熱鍵嗎？
 Delete display '$1'?;要刪除「$1」顯示介面嗎？
 Delete emulator '$1'?;要刪除「$1」模擬器嗎？
@@ -430,7 +435,7 @@ _help_emu_delete;刪除這個模擬器項目
 _help_emu_executable;這個模擬器的完整路徑及檔名 (可用的變數: $HOME = 用戶主目錄、$PROGDIR = Attract-Mode Plus 程式目錄，Windows 系統額外還有符合系統環境變數的 %SYSTEMROOT% 及 %PROGRAMFILES% 可以使用)
 _help_emu_exit_hotkey;設定一個全域熱鍵來結束模擬器 (當這個熱鍵按下時，Attract-Mode Plus 將會終結這個模擬器處理程序)
 _help_emu_gen_romlist;使用設定裡的遊戲檔路徑、副檔名、XML 及附加匯入檔案裡的資料來產生遊戲清單
-_help_emu_import_extras;設定產生遊戲清單時所要使用的附加檔案路徑。 支援的檔案: catver.ini (遊戲分類)、nplayers.ini (玩家人數)、series.ini (系列遊戲)、language.ini (遊戲語言) 及 mame.xml (多個檔案路徑可用分號間隔)
+_help_emu_import_extras;設定產生遊戲清單時所要使用的附加檔案路徑。 支援的檔案: catver.ini (遊戲分類)、nplayers.ini (玩家人數)、series.ini (系列遊戲)、languages.ini (遊戲語言) 及 mame.xml (多個檔案路徑可用分號間隔)
 _help_emu_info_source;使用 "listxml" 為 mame -listxml 輸出、"listsoftware" 為 mame/mess -listsoftware 輸出、"thegamesdb.net" 為從 thegamesdb.net 搜刮資料、"steam" 為從 steam 安裝中讀取、"scummvm" 為當模擬器為 scummvm 時使用 (使用 "listsoftware" 及 "thegamesdb.net" 必須正確設定系統識別名稱)
 #_help_emu_name;
 _help_emu_nb_mode_wait;若此值非 0，這個模擬器將會執行在非阻塞模式 (Attract-Mode Plus 將會等待至所設定的秒數後才將視窗焦點從模擬器轉回並喚醒 Attract-Mode Plus，這對於正確啟動 Steam 之類的程序是必要的，在你了解它的作用前請保持為 0)

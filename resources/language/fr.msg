@@ -17,6 +17,8 @@ None;Non
 OR;OU
 #True;
 Yes;Oui
+Import;Importer
+Cancel;Annuler
 
 # -- misc --
  Attract-Mode Plus;Bienvenue sur Attract-Mode Plus
@@ -271,9 +273,12 @@ Generating Rom List;Génération de la liste de ROM
 Scraping Artwork;Aspire l'Artwork
 
 # -- confirm_dialog --
-#Add '$1' to Favourites?;
-#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
-#Auto-detect emulators?;
+Add '$1' to Favourites?;Ajouter '$1' aux favoris ?
+Auto-detect emulators?;Détection automatique des émulateurs ?
+Found 1 emulator;1 émulateur trouvé
+Found $1 emulators;$1 émulateurs trouvés
+No emulators found;Aucun émulateur trouvé
++$1 more;+$1 de plus
 #Clear Hotkey?;
 Delete display '$1'?;Supprimer la liste '$1'?
 Delete emulator '$1'?;Supprimer l'émulateur '$1'?

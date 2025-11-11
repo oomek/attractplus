@@ -17,6 +17,8 @@ On;On
 OR;OR
 True;True
 Yes;Yes
+Import;Import
+Cancel;Cancel
 
 # -- misc --
 Press TAB to Configure;Press TAB to Configure
@@ -277,8 +279,11 @@ Scraping Artwork;Scraping Artwork
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Add '$1' to Favourites?
-Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?
 Auto-detect emulators?;Auto-detect emulators?
+Found 1 emulator;Found 1 emulator
+Found $1 emulators;Found $1 emulators
+No emulators found;No emulators found
++$1 more;+$1 more
 Clear Hotkey?;Clear Hotkey?
 Delete display '$1'?;Delete display '$1'?
 Delete emulator '$1'?;Delete emulator '$1'?
@@ -441,7 +446,7 @@ _help_emu_delete;Delete the entry for this emulator
 _help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode Plus program dir. Windows OS additionally have %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
 _help_emu_exit_hotkey;Set a global hotkey to exit the emulator.  Attract-Mode Plus will terminate the emulator process if this hotkey gets pressed
 _help_emu_gen_romlist;Generate a romlist by searching the configured rom path for roms with the configured extension, incorporating XML and additional import file information into the generated list (if available)
-_help_emu_import_extras;Path to any additional files that need to be read when generating a romlist for this emulator.  Supported files are: catver.ini (categories), nplayers.ini (number of players), series.ini (series), language.ini (language) and mame.xml.  Multiple file paths can be entered if separated by a semicolon
+_help_emu_import_extras;Path to any additional files that need to be read when generating a romlist for this emulator.  Supported files are: catver.ini (categories), nplayers.ini (number of players), series.ini (series), languages.ini (languages) and mame.xml.  Multiple file paths can be entered if separated by a semicolon
 _help_emu_info_source;Use "listxml" for mame -listxml output, "listsoftware" for mame/mess -listsoftware output, "thegamesdb.net" to scrape data from thegamesdb.net, "steam" to read from a steam installation, or "scummvm" if the emulator is scummvm.  "listsoftware" and "thegamesdb.net" also require that a System Identifier recognized by those sources be configured
 _help_emu_name;Edit Emulator
 _help_emu_nb_mode_wait;If this is non-zero, the emulator will be run in non-blocking mode.  The frontend will wait up to this number of seconds to lose focus to the emulator's window, and will wake up again when focus returns to the frontend's window.  This is necessary for launching programs like Steam correctly.  Should be 0 unless you know you need it

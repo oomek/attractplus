@@ -155,7 +155,7 @@ public:
 	//
 	virtual bool edit_dialog( const std::string &msg, std::string &text )=0;
 
-	virtual bool confirm_dialog( const std::string &msg )=0;
+	virtual bool confirm_dialog( const std::string &msg, bool default_yes = false )=0;
 
 	virtual int option_dialog( const std::string &title,
 		const std::vector < std::string > &options,

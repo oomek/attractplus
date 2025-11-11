@@ -17,6 +17,8 @@ None;Keine
 OR;ODER
 #True;
 Yes;Ja
+Import;Import
+Cancel;Stornieren
 
 # -- misc --
 Press TAB to Configure;Drücken Sie TAB, um zu konfigurieren
@@ -271,8 +273,11 @@ Scraping Artwork;Scrape Bilddatei
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Soll '$1' zu Favoriten hinzugefügt werden?
-Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode Plus hat Emulatoren gefunden, die automatisch hinzugefügt werden können, sollen diese jetzt integriert werden?
-#Auto-detect emulators?;
+Auto-detect emulators?;Emulatoren automatisch erkennen?
+Found 1 emulator;1 Emulator gefunden
+Found $1 emulators;Es wurden $1 Emulatoren gefunden.
+No emulators found;Keine Emulatoren gefunden
++$1 more;+$1 mehr
 Clear Hotkey?;Tastenkombination entfernen?
 Delete display '$1'?;Bildschirm '$1' löschen?
 Delete emulator '$1'?;Emulator '$1' löschen?

@@ -17,6 +17,8 @@ None;0°
 OR;又は
 #True;
 Yes;はい
+Import;輸入
+Cancel;キャンセル
 
 # -- misc --
 Press TAB to Configure;TABキーを押して設定してください
@@ -270,9 +272,12 @@ Generating Rom List;Romファイルリストを作成しています
 Scraping Artwork;オンラインから をダウンロード中です
 
 # -- confirm_dialog --
-#Add '$1' to Favourites?;
-#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
-#Auto-detect emulators?;
+Add '$1' to Favourites?;`$1`をお気に入りに追加しますか?
+Auto-detect emulators?;エミュレータを自動検出しますか？
+Found 1 emulator;エミュレータが1つ見つかりました
+Found $1 emulators;エミュレータが$1つ見つかりました
+No emulators found;エミュレータが見つかりません
++$1 more;+$1件以上
 #Clear Hotkey?;
 Delete display '$1'?;ディスプレイ '$1' を削除してもよろしいですか？
 Delete emulator '$1'?;'$1' エミュレータを削除しますか?
