@@ -34,6 +34,8 @@ class FeXMLParser
 public:
 	void set_continue_parse( bool f ) { m_continue_parse=f; };
 	bool get_continue_parse() { return m_continue_parse; };
+	void set_complete( bool c ) { m_complete=c; };
+	bool get_complete() { return m_complete; };
 
 protected:
 	friend void exp_handle_data( void *, const char *, int );
@@ -52,6 +54,7 @@ protected:
 	bool m_element_open;
 	bool m_keep_rom;
 	bool m_continue_parse;
+	bool m_complete;
 	std::string m_current_data;
 
 protected:

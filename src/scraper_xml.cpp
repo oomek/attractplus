@@ -55,8 +55,11 @@ void exp_end_element( void *data, const char *element )
 	((FeXMLParser *)data)->end_element( element );
 }
 
-FeXMLParser::FeXMLParser( UiUpdate u, void *d )
-	: m_ui_update( u ), m_ui_update_data( d ), m_continue_parse( true )
+FeXMLParser::FeXMLParser( UiUpdate u, void *d ):
+	m_ui_update( u ),
+	m_ui_update_data( d ),
+	m_continue_parse( true ),
+	m_complete( false )
 {
 }
 
@@ -85,6 +88,10 @@ bool my_parse_callback( const char *buff, void *opaque )
 		ds->parsed_xml = true;
 
 	FeXMLParser *p = (FeXMLParser *)XML_GetUserData( ds->parser );
+	if ( p->get_complete() ) {
+		ds->parsed_xml = true;
+		return false;
+	}
 	return p->get_continue_parse(); // return false to cancel callback
 }
 
@@ -390,11 +397,15 @@ void FeListXMLParser::end_element( const char *element )
 					+ m_count * m_ctx.progress_range
 					/ m_ctx.romlist.size();
 
+				// All the roms have been found, flag as complete to stop parsing
+				if ( m_count == m_ctx.romlist.size() )
+					set_complete( true );
+
 				if ( per != last_percent )
 				{
 					last_percent = per;
 
-					std::cout << "\b\b\b\b" << std::setw(3)
+					FeLog() << "\b\b\b\b" << std::setw(3)
 						<< last_percent << '%' << std::flush;
 
 					if ( m_ui_update )
@@ -439,12 +450,12 @@ void FeListXMLParser::pre_parse()
 			itr != m_ctx.romlist.end(); ++itr )
 		m_map[ (*itr).get_info( FeRomInfo::Romname ).c_str() ] = itr;
 
-	std::cout << "    ";
+	FeLog() << "    ";
 }
 
 void FeListXMLParser::post_parse()
 {
-	std::cout << std::endl;
+	FeLog() << std::endl;
 
 	if ( !m_discarded.empty() )
 	{
