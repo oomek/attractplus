@@ -47,12 +47,18 @@ public:
 	static float in_quint( float t, float b, float c, float d );
 	static float in_sine( float t, float b, float c, float d );
 	static float in_expo( float t, float b, float c, float d );
+	static float in_expo2( float t, float b, float c, float d );
 	static float in_circ( float t, float b, float c, float d );
 	static float in_elastic( float t, float b, float c, float d );
 	static float in_elastic( float t, float b, float c, float d, float a, float p );
+	static float in_elastic2( float t, float b, float c, float d );
+	static float in_elastic2( float t, float b, float c, float d, float p );
 	static float in_back( float t, float b, float c, float d );
 	static float in_back( float t, float b, float c, float d, float s );
+	static float in_back2( float t, float b, float c, float d );
 	static float in_bounce( float t, float b, float c, float d );
+	static float in_bounce2( float t, float b, float c, float d );
+	static float in_bounce2( float t, float b, float c, float d, float p );
 
 	static float out_quad( float t, float b, float c, float d );
 	static float out_cubic( float t, float b, float c, float d );
@@ -60,12 +66,18 @@ public:
 	static float out_quint( float t, float b, float c, float d );
 	static float out_sine( float t, float b, float c, float d );
 	static float out_expo( float t, float b, float c, float d );
+	static float out_expo2( float t, float b, float c, float d );
 	static float out_circ( float t, float b, float c, float d );
 	static float out_elastic( float t, float b, float c, float d );
 	static float out_elastic( float t, float b, float c, float d, float a, float p );
+	static float out_elastic2( float t, float b, float c, float d );
+	static float out_elastic2( float t, float b, float c, float d, float p );
 	static float out_back( float t, float b, float c, float d );
 	static float out_back( float t, float b, float c, float d, float s );
+	static float out_back2( float t, float b, float c, float d );
 	static float out_bounce( float t, float b, float c, float d );
+	static float out_bounce2( float t, float b, float c, float d );
+	static float out_bounce2( float t, float b, float c, float d, float p );
 
 	static float in_out_quad( float t, float b, float c, float d );
 	static float in_out_cubic( float t, float b, float c, float d );
@@ -73,12 +85,18 @@ public:
 	static float in_out_quint( float t, float b, float c, float d );
 	static float in_out_sine( float t, float b, float c, float d );
 	static float in_out_expo( float t, float b, float c, float d );
+	static float in_out_expo2( float t, float b, float c, float d );
 	static float in_out_circ( float t, float b, float c, float d );
 	static float in_out_elastic( float t, float b, float c, float d );
 	static float in_out_elastic( float t, float b, float c, float d, float a, float p );
+	static float in_out_elastic2( float t, float b, float c, float d );
+	static float in_out_elastic2( float t, float b, float c, float d, float p );
 	static float in_out_back( float t, float b, float c, float d );
 	static float in_out_back( float t, float b, float c, float d, float s );
+	static float in_out_back2( float t, float b, float c, float d );
 	static float in_out_bounce( float t, float b, float c, float d );
+	static float in_out_bounce2( float t, float b, float c, float d );
+	static float in_out_bounce2( float t, float b, float c, float d, float p );
 
 	static float out_in_quad( float t, float b, float c, float d );
 	static float out_in_cubic( float t, float b, float c, float d );
@@ -86,12 +104,18 @@ public:
 	static float out_in_quint( float t, float b, float c, float d );
 	static float out_in_sine( float t, float b, float c, float d );
 	static float out_in_expo( float t, float b, float c, float d );
+	static float out_in_expo2( float t, float b, float c, float d );
 	static float out_in_circ( float t, float b, float c, float d );
 	static float out_in_elastic( float t, float b, float c, float d );
 	static float out_in_elastic( float t, float b, float c, float d, float a, float p );
+	static float out_in_elastic2( float t, float b, float c, float d );
+	static float out_in_elastic2( float t, float b, float c, float d, float p );
 	static float out_in_back( float t, float b, float c, float d );
 	static float out_in_back( float t, float b, float c, float d, float s );
+	static float out_in_back2( float t, float b, float c, float d );
 	static float out_in_bounce( float t, float b, float c, float d );
+	static float out_in_bounce2( float t, float b, float c, float d );
+	static float out_in_bounce2( float t, float b, float c, float d, float p );
 
 	static float steps( float t, float b, float c, float d, float s );
 	static float steps( float t, float b, float c, float d, float s, int jump );

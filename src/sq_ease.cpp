@@ -81,6 +81,17 @@ float SqEase::in_expo( float t, float b, float c, float d )
 	return (t==0) ? b : c*pow(2, 10*(t/d - 1)) + b;
 }
 
+// SPECIAL: Inertia expo
+float SqEase::in_expo2( float t, float b, float c, float d )
+{
+	if (t==0) return b;
+	t/=d;
+	float x = t;
+	x *= x;
+	x *= x;
+	return c*x*(x + 0.3*(1.0 - t)) + b;
+}
+
 float SqEase::in_circ( float t, float b, float c, float d )
 {
 	t/=d;
@@ -103,6 +114,22 @@ float SqEase::in_elastic( float t, float b, float c, float d, float a, float p )
 	return -(a*pow(2, 10*t)*sin((t*d-s)*(2*M_PI)/p)) + b;
 }
 
+// SPECIAL: Inertia elastic
+float SqEase::in_elastic2( float t, float b, float c, float d, float p )
+{
+	t/=d;
+	float i = t*t;
+	float e = i*i;
+	e *= e;
+	e += 0.1 * ( i - e );
+	return c * e * std::cos((1.0-t) * (1.0/p+1.0) * (2.0-e) * M_PI) + b;
+}
+
+float SqEase::in_elastic2( float t, float b, float c, float d )
+{
+	return in_elastic2( t, b, c, d, 0.3 );
+}
+
 float SqEase::in_back( float t, float b, float c, float d )
 {
 	return in_back( t, b, c, d, 1.70158 );
@@ -114,9 +141,26 @@ float SqEase::in_back( float t, float b, float c, float d, float s )
 	return c*t*t*((s+1)*t - s) + b;
 }
 
+// SPECIAL: Inertia back
+float SqEase::in_back2( float t, float b, float c, float d )
+{
+	t/=d;
+	return c*t*t*t*(t*3.0-2.0)*(2.0-t) + b;
+}
+
 float SqEase::in_bounce( float t, float b, float c, float d )
 {
 	return out_bounce(d-t, b+c, -c, d);
+}
+
+float SqEase::in_bounce2( float t, float b, float c, float d, float p )
+{
+	return out_bounce2(d-t, b+c, -c, d, p);
+}
+
+float SqEase::in_bounce2( float t, float b, float c, float d )
+{
+	return out_bounce2(d-t, b+c, -c, d);
 }
 
 // -------------------------------------------------------------------------------------
@@ -151,6 +195,11 @@ float SqEase::out_expo( float t, float b, float c, float d )
 	return in_expo(d-t, b+c, -c, d);
 }
 
+float SqEase::out_expo2( float t, float b, float c, float d )
+{
+	return in_expo2(d-t, b+c, -c, d);
+}
+
 float SqEase::out_circ( float t, float b, float c, float d )
 {
 	return in_circ(d-t, b+c, -c, d);
@@ -166,6 +215,16 @@ float SqEase::out_elastic( float t, float b, float c, float d, float a, float p 
 	return in_elastic(d-t, b+c, -c, d, a, p);
 }
 
+float SqEase::out_elastic2( float t, float b, float c, float d, float p )
+{
+	return in_elastic2(d-t, b+c, -c, d, p);
+}
+
+float SqEase::out_elastic2( float t, float b, float c, float d )
+{
+	return in_elastic2(d-t, b+c, -c, d);
+}
+
 float SqEase::out_back( float t, float b, float c, float d )
 {
 	return in_back(d-t, b+c, -c, d);
@@ -176,6 +235,11 @@ float SqEase::out_back( float t, float b, float c, float d, float s )
 	return in_back(d-t, b+c, -c, d, s);
 }
 
+float SqEase::out_back2( float t, float b, float c, float d )
+{
+	return in_back2(d-t, b+c, -c, d);
+}
+
 float SqEase::out_bounce( float t, float b, float c, float d )
 {
 	t/=d;
@@ -184,6 +248,22 @@ float SqEase::out_bounce( float t, float b, float c, float d )
 	if (t < (2.5/2.75)) { t-=2.25/2.75; return c*(7.5625*t*t + 0.9375) + b; }
 	t-=2.625/2.75;
 	return c*(7.5625*t*t + 0.984375) + b;
+}
+
+float SqEase::out_bounce2( float t, float b, float c, float d, float p )
+{
+	p=1.0/p;
+	t=t/d*(1.0+p);
+	float n = 2.0/p + 1.0;
+	float w = t - p - 1.0;
+	float x = (n - (n * t) + t + 1.0) * 0.5;
+	float y = std::pow(n, std::floor(std::log(x)/std::log(n)));
+	return c * (1.0 + (y*p + w) * (y*(p+2.0) + w)) + b;
+}
+
+float SqEase::out_bounce2( float t, float b, float c, float d )
+{
+	return out_bounce2( t, b, c, d, 0.5 );
 }
 
 // -------------------------------------------------------------------------------------
@@ -218,6 +298,11 @@ float SqEase::in_out_expo( float t, float b, float c, float d )
 	return (t < d/2) ? in_expo(t, b, c/2, d/2) : in_expo(d-t, b+c, -c/2, d/2);
 }
 
+float SqEase::in_out_expo2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? in_expo2(t, b, c/2, d/2) : in_expo2(d-t, b+c, -c/2, d/2);
+}
+
 float SqEase::in_out_circ( float t, float b, float c, float d )
 {
 	return (t < d/2) ? in_circ(t, b, c/2, d/2) : in_circ(d-t, b+c, -c/2, d/2);
@@ -233,6 +318,16 @@ float SqEase::in_out_elastic( float t, float b, float c, float d, float a, float
 	return (t < d/2) ? in_elastic(t, b, c/2, d/2, a, p) : in_elastic(d-t, b+c, -c/2, d/2, a, p);
 }
 
+float SqEase::in_out_elastic2( float t, float b, float c, float d, float p )
+{
+	return (t < d/2) ? in_elastic2(t, b, c/2, d/2, p) : in_elastic2(d-t, b+c, -c/2, d/2, p);
+}
+
+float SqEase::in_out_elastic2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? in_elastic2(t, b, c/2, d/2) : in_elastic2(d-t, b+c, -c/2, d/2);
+}
+
 float SqEase::in_out_back( float t, float b, float c, float d )
 {
 	return (t < d/2) ? in_back(t, b, c/2, d/2) : in_back(d-t, b+c, -c/2, d/2);
@@ -243,9 +338,24 @@ float SqEase::in_out_back( float t, float b, float c, float d, float s )
 	return (t < d/2) ? in_back(t, b, c/2, d/2, s) : in_back(d-t, b+c, -c/2, d/2, s);
 }
 
+float SqEase::in_out_back2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? in_back2(t, b, c/2, d/2) : in_back2(d-t, b+c, -c/2, d/2);
+}
+
 float SqEase::in_out_bounce( float t, float b, float c, float d )
 {
 	return (t < d/2) ? in_bounce(t, b, c/2, d/2) : in_bounce(d-t, b+c, -c/2, d/2);
+}
+
+float SqEase::in_out_bounce2( float t, float b, float c, float d, float p )
+{
+	return (t < d/2) ? in_bounce2(t, b, c/2, d/2, p) : in_bounce2(d-t, b+c, -c/2, d/2, p);
+}
+
+float SqEase::in_out_bounce2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? in_bounce2(t, b, c/2, d/2 ) : in_bounce2(d-t, b+c, -c/2, d/2 );
 }
 
 // -------------------------------------------------------------------------------------
@@ -280,6 +390,11 @@ float SqEase::out_in_expo( float t, float b, float c, float d )
 	return (t < d/2) ? out_expo(t, b, c/2, d/2) : out_expo(d-t, b+c, -c/2, d/2);
 }
 
+float SqEase::out_in_expo2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? out_expo2(t, b, c/2, d/2) : out_expo2(d-t, b+c, -c/2, d/2);
+}
+
 float SqEase::out_in_circ( float t, float b, float c, float d )
 {
 	return (t < d/2) ? out_circ(t, b, c/2, d/2) : out_circ(d-t, b+c, -c/2, d/2);
@@ -295,6 +410,16 @@ float SqEase::out_in_elastic( float t, float b, float c, float d, float a, float
 	return (t < d/2) ? out_elastic(t, b, c/2, d/2, a, p) : out_elastic(d-t, b+c, -c/2, d/2, a, p);
 }
 
+float SqEase::out_in_elastic2( float t, float b, float c, float d, float p )
+{
+	return (t < d/2) ? out_elastic2(t, b, c/2, d/2, p) : out_elastic2(d-t, b+c, -c/2, d/2, p);
+}
+
+float SqEase::out_in_elastic2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? out_elastic2(t, b, c/2, d/2) : out_elastic2(d-t, b+c, -c/2, d/2);
+}
+
 float SqEase::out_in_back( float t, float b, float c, float d )
 {
 	return (t < d/2) ? out_back(t, b, c/2, d/2) : out_back(d-t, b+c, -c/2, d/2);
@@ -305,9 +430,24 @@ float SqEase::out_in_back( float t, float b, float c, float d, float s )
 	return (t < d/2) ? out_back(t, b, c/2, d/2, s) : out_back(d-t, b+c, -c/2, d/2, s);
 }
 
+float SqEase::out_in_back2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? out_back2(t, b, c/2, d/2) : out_back2(d-t, b+c, -c/2, d/2);
+}
+
 float SqEase::out_in_bounce( float t, float b, float c, float d )
 {
 	return (t < d/2) ? out_bounce(t, b, c/2, d/2) : out_bounce(d-t, b+c, -c/2, d/2);
+}
+
+float SqEase::out_in_bounce2( float t, float b, float c, float d, float p )
+{
+	return (t < d/2) ? out_bounce2(t, b, c/2, d/2, p) : out_bounce2(d-t, b+c, -c/2, d/2, p);
+}
+
+float SqEase::out_in_bounce2( float t, float b, float c, float d )
+{
+	return (t < d/2) ? out_bounce2(t, b, c/2, d/2) : out_bounce2(d-t, b+c, -c/2, d/2);
 }
 
 float SqEase::steps( float t, float b, float c, float d, float s )
@@ -317,14 +457,11 @@ float SqEase::steps( float t, float b, float c, float d, float s )
 
 float SqEase::steps( float t, float b, float c, float d, float s, int jump )
 {
+	if (t==d) return b+c;
 	bool f = ( jump == JumpStart || jump == JumpBoth );
 	bool e = ( jump == JumpEnd || jump == JumpBoth );
 	float r = c / (s + (f&&e));
-	return std::clamp(
-		(float)((c-(f+e)*r) * floor(t/d*s) / (s-1) + (b+f*r)),
-		std::min( b, b+c ),
-		std::max( b, b+c )
-	);
+	return (c-(f+e)*r) * floor(t/d*s) / std::max(1.0, s-1.0) + (b+f*r);
 }
 
 // https://en.wikipedia.org/wiki/B%C3%A9zier_curve

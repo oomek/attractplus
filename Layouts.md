@@ -147,21 +147,25 @@ In addition to the standard `Math` library, the following methods are included:
 
 The easing methods belong to a global object named `ease`, such as `ease.out_cubic( t, b, c, d )`
 
-| In           | Out           | InOut            | OutIn            | Params                       |
-| ------------ | ------------- | ---------------- | ---------------- | ---------------------------- |
-| `in_quad`    | `out_quad`    | `in_out_quad`    | `out_in_quad`    | `t, b, c, d`                 |
-| `in_cubic`   | `out_cubic`   | `in_out_cubic`   | `out_in_cubic`   | `t, b, c, d`                 |
-| `in_quart`   | `out_quart`   | `in_out_quart`   | `out_in_quart`   | `t, b, c, d`                 |
-| `in_quint`   | `out_quint`   | `in_out_quint`   | `out_in_quint`   | `t, b, c, d`                 |
-| `in_sine`    | `out_sine`    | `in_out_sine`    | `out_in_sine`    | `t, b, c, d`                 |
-| `in_expo`    | `out_expo`    | `in_out_expo`    | `out_in_expo`    | `t, b, c, d`                 |
-| `in_circ`    | `out_circ`    | `in_out_circ`    | `out_in_circ`    | `t, b, c, d`                 |
-| `in_bounce`  | `out_bounce`  | `in_out_bounce`  | `out_in_bounce`  | `t, b, c, d`                 |
-| `in_back`    | `out_back`    | `in_out_back`    | `out_in_back`    | `t, b, c, d, s`              |
-| `in_elastic` | `out_elastic` | `in_out_elastic` | `out_in_elastic` | `t, b, c, d, a, p`           |
-| `linear`     |               |                  |                  | `t, b, c, d`                 |
-| `bezier`     |               |                  |                  | `t, b, c, d, x1, y1, x2, y2` |
-| `steps`      |               |                  |                  | `t, b, c, d, s, j`           |
+| In            | Out            | InOut             | OutIn             | Params                       |
+| ------------- | -------------- | ----------------- | ----------------- | ---------------------------- |
+| `in_quad`     | `out_quad`     | `in_out_quad`     | `out_in_quad`     | `t, b, c, d`                 |
+| `in_cubic`    | `out_cubic`    | `in_out_cubic`    | `out_in_cubic`    | `t, b, c, d`                 |
+| `in_quart`    | `out_quart`    | `in_out_quart`    | `out_in_quart`    | `t, b, c, d`                 |
+| `in_quint`    | `out_quint`    | `in_out_quint`    | `out_in_quint`    | `t, b, c, d`                 |
+| `in_sine`     | `out_sine`     | `in_out_sine`     | `out_in_sine`     | `t, b, c, d`                 |
+| `in_expo`     | `out_expo`     | `in_out_expo`     | `out_in_expo`     | `t, b, c, d`                 |
+| `in_expo2`    | `out_expo2`    | `in_out_expo2`    | `out_in_expo2`    | `t, b, c, d`                 |
+| `in_circ`     | `out_circ`     | `in_out_circ`     | `out_in_circ`     | `t, b, c, d`                 |
+| `in_bounce`   | `out_bounce`   | `in_out_bounce`   | `out_in_bounce`   | `t, b, c, d`                 |
+| `in_bounce2`  | `out_bounce2`  | `in_out_bounce2`  | `out_in_bounce2`  | `t, b, c, d, p`              |
+| `in_back`     | `out_back`     | `in_out_back`     | `out_in_back`     | `t, b, c, d, s`              |
+| `in_back2`    | `out_back2`    | `in_out_back2`    | `out_in_back2`    | `t, b, c, d`                 |
+| `in_elastic`  | `out_elastic`  | `in_out_elastic`  | `out_in_elastic`  | `t, b, c, d, a, p`           |
+| `in_elastic2` | `out_elastic2` | `in_out_elastic2` | `out_in_elastic2` | `t, b, c, d, p`              |
+| `linear`      |                |                   |                   | `t, b, c, d`                 |
+| `bezier`      |                |                   |                   | `t, b, c, d, x1, y1, x2, y2` |
+| `steps`       |                |                   |                   | `t, b, c, d, s, j`           |
 
 **Parameters**
 
@@ -174,15 +178,19 @@ The following parameters are common to all easing functions:
 
 **Extra Parameters**
 
+-  `bounce2`
+   -  `p` - _(optional)_ Period of the bounce. Default is `0.5`
 -  `back`
    -  `s` - _(optional)_ Strength of the overshoot. Default is `1.70158`
 -  `elastic`
    -  `a` - _(optional)_ Amplitude of the wave. Default is `0.0`
    -  `p` - _(optional)_ Period of the wave. Default is `d * 0.3`
+-  `elastic2`
+   -  `p` - _(optional)_ Period of the wave. Default is `0.3`
 -  `bezier`
-	-  `x1, y1` - The first [control point](https://cubic-bezier.com), in the range `[0.0...1.0], [0.0...1.0]`
-	-  `x2, y2` - The second control point, in the range `[0.0...1.0], [0.0...1.0]`
-	-  Additional control points exist at `0.0, 0.0` and `1.0, 1.0` to complete the ease
+   -  `x1, y1` - The first [control point](https://cubic-bezier.com), in the range `[0.0...1.0], [0.0...1.0]`
+   -  `x2, y2` - The second control point, in the range `[0.0...1.0], [0.0...1.0]`
+   -  Additional control points exist at `0.0, 0.0` and `1.0, 1.0` to complete the ease
 -  `steps`
    -  `s` - [int] Number of steps
    -  `j` - _(optional)_ [Step position](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function/steps#description). Defaults to `Jump.End`. May be one of the following:
