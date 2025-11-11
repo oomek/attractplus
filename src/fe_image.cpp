@@ -699,7 +699,7 @@ void FeTextureContainer::set_index_offset( int io, bool do_update )
 		m_index_offset = io;
 
 		if ( do_update )
-			FePresent::script_do_update( this );
+			FePresent::script_do_update( this, true );
 	}
 }
 
@@ -715,7 +715,7 @@ void FeTextureContainer::set_filter_offset( int fo, bool do_update )
 		m_filter_offset = fo;
 
 		if ( do_update )
-			FePresent::script_do_update( this );
+			FePresent::script_do_update( this, true );
 	}
 }
 
@@ -1532,10 +1532,6 @@ void FeImage::setVideoFlags( int f )
 		return;
 
 	m_tex->set_video_flags( (FeVideoFlags)f );
-
-	// Force an update to set the resource properties immediately
-	// - ie: makes texture filename/size available when setting ImagesOnly after init
-	FePresent::script_do_update( m_tex, true );
 }
 
 bool FeImage::getVideoPlaying() const
