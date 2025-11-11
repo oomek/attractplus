@@ -174,15 +174,8 @@ int main(int argc, char *argv[])
 		if ( feOverlay.languages_dialog() < 0 )
 			exit_selected = true;
 
-		if ( !exit_selected )
-		{
-			if ( feOverlay.confirm_dialog( _( "Auto-detect emulators?" ) ) == 0 )
-			{
-				FeLog() << "Performing emulator auto-detection" << std::endl;
-				feVM.setup_wizard();
-				FeLog() << "Done auto-detecting emulators" << std::endl;
-			}
-		}
+		if ( !exit_selected && feOverlay.confirm_dialog( _( "Auto-detect emulators?" ), true ) == 0 )
+			feVM.setup_wizard();
 	}
 
 	soundsys.sound_event( FeInputMap::EventStartup );

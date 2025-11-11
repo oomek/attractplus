@@ -763,11 +763,14 @@ bool FeEmulatorSelMenu::on_option_select(
 	}
 	else if ( o.opaque == 3 )
 	{
-		if ( ctx.confirm_dialog( _( "Auto-detect emulators?" ) ))
+		FePresent *fep = FePresent::script_get_fep();
+		if ( fep )
 		{
-			FePresent *fep = FePresent::script_get_fep();
-			if ( fep )
-				fep->setup_wizard();
+			if ( fep->setup_wizard() )
+			{
+				ctx.curr_sel = 0;
+				ctx.update_req = true;
+			}
 		}
 	}
 	else

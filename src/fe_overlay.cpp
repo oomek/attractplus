@@ -120,11 +120,11 @@ public:
 	FeConfigContextImp( FeSettings &fes, FeOverlay &feo );
 	bool edit_dialog( const std::string &m, std::string &t );
 
-	bool confirm_dialog( const std::string &m  );
+	bool confirm_dialog( const std::string &m, bool default_yes = false );
 
-        int option_dialog( const std::string &title,
-                const std::vector < std::string > &options,
-                int default_sel=0 );
+	int option_dialog( const std::string &title,
+				const std::vector < std::string > &options,
+				int default_sel=0 );
 
 	void splash_message( const std::string &msg,
 		const std::string &aux = "" );
@@ -150,9 +150,9 @@ bool FeConfigContextImp::edit_dialog( const std::string &msg, std::string &t )
 	return m_feo.edit_dialog( msg, t );
 }
 
-bool FeConfigContextImp::confirm_dialog( const std::string &msg  )
+bool FeConfigContextImp::confirm_dialog( const std::string &msg, bool default_yes )
 {
-	return !m_feo.confirm_dialog( msg );
+	return !m_feo.confirm_dialog( msg, default_yes );
 }
 
 int FeConfigContextImp::option_dialog( const std::string &title,
