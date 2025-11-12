@@ -297,6 +297,8 @@ private:
 	void init_display();
 	void load_state();
 	void clear();
+	void load_displays_configs();
+	void save_displays_configs() const;
 
 	void construct_display_maps();
 
