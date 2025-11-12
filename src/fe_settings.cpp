@@ -854,8 +854,8 @@ void FeSettings::save_state()
 	nowide::ofstream outfile( filename.c_str() );
 	if ( outfile.is_open() )
 	{
-		outfile << display_idx << ";"
-			<< m_last_launch_display << "," << m_last_launch_filter
+		outfile << m_displays[display_idx].get_info( FeDisplayInfo::Name ) << ";"
+			<< m_displays[m_last_launch_display].get_info( FeDisplayInfo::Name ) << "," << m_last_launch_filter
 			<< "," << m_last_launch_rom;
 
 		if ( m_last_launch_clone >= 0 )
@@ -892,7 +892,13 @@ void FeSettings::load_state()
 		std::string tok;
 		token_helper( line, pos, tok, ";" );
 
-		m_current_display = as_int( tok );
+		// Try to parse as display name first
+		// Fall back to index for backward compatibility
+		int temp_display = get_display_index_from_name( tok );
+		if ( temp_display >= 0 )
+			m_current_display = temp_display;
+		else
+			m_current_display = as_int( tok );
 
 		token_helper( line, pos, tok, ";" );
 
@@ -902,14 +908,26 @@ void FeSettings::load_state()
 		{
 			std::string tok2;
 			token_helper( tok, pos2, tok2, "," );
-			int temp = as_int( tok2 );
 
-			switch (i)
+			if ( i == 0 )
 			{
-				case 0: m_last_launch_display = temp; break;
-				case 1: m_last_launch_filter = temp; break;
-				case 2: m_last_launch_rom = temp; break;
-				case 3: m_last_launch_clone = temp; break;
+				// Try to parse as display name first
+				// Fall back to index for backward compatibility
+				int temp_launch = get_display_index_from_name( tok2 );
+				if ( temp_launch >= 0 )
+					m_last_launch_display = temp_launch;
+				else
+					m_last_launch_display = as_int( tok2 );
+			}
+			else
+			{
+				int temp = as_int( tok2 );
+				switch (i)
+				{
+					case 1: m_last_launch_filter = temp; break;
+					case 2: m_last_launch_rom = temp; break;
+					case 3: m_last_launch_clone = temp; break;
+				}
 			}
 			i++;
 		}
@@ -917,13 +935,42 @@ void FeSettings::load_state()
 		token_helper( line, pos, tok, ";" );
 		m_menu_layout_file = tok;
 
+		// Build a map of display states by name
+		std::map<std::string, std::string> display_state_map;
+
+		while ( myfile.good() )
+		{
+			std::string state_line;
+			getline( myfile, state_line );
+
+			if ( !state_line.empty() )
+			{
+				// Get display name
+				size_t semicolon = state_line.find(';');
+				if ( semicolon != std::string::npos )
+				{
+					std::string display_name = state_line.substr(0, semicolon);
+					display_state_map[display_name] = state_line;
+				}
+				else
+				{
+					// Fallback to old format without display name
+					int line_number = display_state_map.size();
+					if ( line_number < (int)m_displays.size() )
+						m_displays[line_number].process_state( state_line );
+				}
+			}
+		}
+
+		// Apply states by matching display names
 		for ( std::vector<FeDisplayInfo>::iterator itl=m_displays.begin();
 					itl != m_displays.end(); ++itl )
 		{
-			if ( myfile.good() )
+			std::string display_name = (*itl).get_info( FeDisplayInfo::Name );
+			std::map<std::string, std::string>::iterator it = display_state_map.find( display_name );
+			if ( it != display_state_map.end() )
 			{
-				getline( myfile, line );
-				(*itl).process_state( line );
+				(*itl).process_state( it->second );
 			}
 		}
 	}
