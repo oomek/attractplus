@@ -17,7 +17,7 @@ mame_emu <-
 	"name"   : "mame",
 	"exe"    : "mame",
 	"args"   : "[name]",
-	"rompath": "$HOME/mame/roms",
+	"rompath": "$HOME/mame/roms/",
 	"exts"   : ".zip;.7z",
 	"system" : "Arcade",
 	"source" : "listxml",
@@ -32,7 +32,7 @@ console_emu <-
 	"name"   : "mame-nes",
 	"exe"    : "mame",
 	"args"   : "[system] -cart \"[romfilename]\"",
-	"rompath": "$HOME/mame/roms/nes",
+	"rompath": "$HOME/mame/roms/nes/",
 	"exts"   : ".zip;.7z",
 	"system" : "nes;Nintendo Entertainment System (NES)",
 	"source" : "listsoftware"
@@ -173,7 +173,8 @@ class RompathParser
 			local t = split( temp[1], ";" );
 			foreach ( p in t )
 			{
-				local p2 = strip( p );
+				// make sure there is a trailing slash
+				local p2 = add_slash(strip( p ));
 
 				if ( fe.path_test( p2, PathTest.IsRelativePath ) )
 				{
@@ -448,8 +449,7 @@ foreach ( r in rp.rompaths ) {
 write_config( mame_emu, emu_dir + "templates/" + mame_emu["name"] + ".cfg", true );
 console_report( mame_emu["name"], mame_emu["exe"] );
 
-if ( !path_is_empty( split(mame_emu["rompath"],";"), split(mame_emu["exts"],";") ) )
-	emulators_to_generate.push( mame_emu["name"] );
+emulators_to_generate.push( mame_emu["name"] );
 
 // Write emulator configs for each console system
 //
@@ -485,8 +485,7 @@ foreach ( s in systems )
 
 	console_report( console_emu["name"], s.triggerpath );
 
-	if ( !path_is_empty( split(console_emu["rompath"],";"), split(console_emu["exts"],";") ) )
-		emulators_to_generate.push( console_emu["name"] );
+	emulators_to_generate.push( console_emu["name"] );
 }
 
 if ( systems.len() == 0 )

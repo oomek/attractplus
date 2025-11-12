@@ -297,7 +297,7 @@ function generate_emulator_config( emu )
 	// Fill in emu rompath with sensible default value (if not provided)
 	//
 	if ( !emu.rawin( "rompath" ) )
-		emu["rompath"] <- "$HOME/" + emu["name"] + "/roms";
+		emu["rompath"] <- "$HOME/" + emu["name"] + "/roms/";
 
 	if ( res == null )
 	{
@@ -315,12 +315,9 @@ function generate_emulator_config( emu )
 		emu["workdir"] <- res[0];
 
 		//
-		// Add emulator to our list of emulators to prompt the user to generate a list for
-		// if we find any roms in any of the rompaths for the emulator
+		// Add emulator to our list of emulators
 		//
-		local pp = split( emu["rompath"], ";" );
-		if ( emu.rawin( "exts" ) && ( !path_is_empty( pp, split( emu["exts"], ";" ))))
-			emulators_to_generate.push( emu["name"] );
+		emulators_to_generate.push( emu["name"] );
 	}
 
 	// Write template to emulators/templates/
