@@ -101,6 +101,7 @@ const char *FE_OVERVIEW_SUBDIR		= "overview/";
 const char *FE_EMULATOR_SCRIPT_SUBDIR		= "emulators/script/";
 const char *FE_LIST_DEFAULT			= "default-display.cfg";
 const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
+const char *FE_DISPLAYS_FILE			= "displays.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
 
@@ -462,6 +463,8 @@ void FeSettings::load()
 		load_language = m_language;
 	}
 
+	load_displays_configs();
+
 	// Load language strings now.
 	//
 	// If we didn't find a config file, then we leave m_language empty but load the english language strings
@@ -796,6 +799,35 @@ void FeSettings::construct_display_maps()
 
 		if ( m_displays[i].show_in_menu() )
 			m_display_menu.push_back( i );
+	}
+}
+
+void FeSettings::load_displays_configs()
+{
+	std::string displays_file = m_config_path + FE_DISPLAYS_FILE;
+
+	if ( file_exists( displays_file ) )
+	{
+		load_from_file( displays_file );
+		m_current_config_object = NULL;
+	}
+}
+
+void FeSettings::save_displays_configs() const
+{
+	std::string displays_file = m_config_path + FE_DISPLAYS_FILE;
+	nowide::ofstream file( displays_file.c_str() );
+	if ( file.is_open() )
+	{
+		write_header( file );
+
+		for ( std::vector<FeDisplayInfo>::const_iterator it=m_displays.begin(); it != m_displays.end(); ++it )
+		{
+			write_section( file, "display", (*it).get_info( FeDisplayInfo::Name ) );
+			(*it).save( file, 1 );
+		}
+
+		file.close();
 	}
 }
 
@@ -3535,6 +3567,8 @@ void FeSettings::save() const
 	confirm_directory( menu_art, "snap/" );
 	confirm_directory( menu_art, "fanart/" );
 
+	save_displays_configs();
+
 	std::string filename( m_config_path );
 	filename += FE_CFG_FILE;
 
@@ -3545,13 +3579,6 @@ void FeSettings::save() const
 	{
 		// generated
 		write_header( outfile );
-
-		// displays
-		for ( std::vector<FeDisplayInfo>::const_iterator it=m_displays.begin(); it != m_displays.end(); ++it )
-		{
-			write_section( outfile, "display", (*it).get_info( FeDisplayInfo::Name ) );
-			(*it).save( outfile, 1 );
-		}
 
 		// sound
 		outfile << otherSettingStrings[1] << std::endl;
