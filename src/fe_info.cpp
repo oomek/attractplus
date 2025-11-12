@@ -811,13 +811,17 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 {
 	// state string is in format:
 	//
-	// "[curr_rom];[curr_layout_filename];[curr_filter];"
+	// "[display_name];[curr_rom];[curr_layout_filename];[curr_filter];"
 	//
 	// With [curr_rom] = "[rom_index filter0],[rom_index filter1],..."
 	//
 	size_t pos=0;
 	std::string val;
 
+	// Skip the display name field - we match by name before calling this function
+	token_helper( state_string, pos, val );
+
+	// Get the [curr_rom] string
 	token_helper( state_string, pos, val );
 
 	//
@@ -865,6 +869,8 @@ int FeDisplayInfo::process_state( const std::string &state_string )
 std::string FeDisplayInfo::state_as_output() const
 {
 	std::ostringstream state;
+
+	state << get_info( Name ) << ";";
 
 	if ( m_filters.empty() )
 	{
