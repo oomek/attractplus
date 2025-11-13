@@ -148,13 +148,16 @@ class RompathParser
 
 	function parse_cb( op )
 	{
-		local temp = split( op, " \t\r\n" );
+		local temp = split( op, " \t\n" );
 
 		if ( temp.len() < 2 )
 			return;
 
 		temp[0] = strip( temp[0] );
-		temp[1] = strip( temp[1] );
+
+		temp[1] = strip( op.slice( temp[0].len() ) ); // capture paths with spaces, and remove quotes
+		if (temp[1].len() && temp[1][0] == '"' && temp[1][temp[1].len()-1] == '"')
+			temp[1] = temp[1].slice( 1, temp[1].len() - 1 );
 
 		if (( temp[0] == "homepath" ))
 		{
@@ -410,6 +413,7 @@ ext_files <-
 
 ext_paths <- [ path ];
 
+// "folders" is the "official" path for ini files
 ext_paths.push( RompathParser.add_slash( path ) + "folders/" )
 
 if ( rp.homepath.len() > 0 )
@@ -424,8 +428,7 @@ foreach ( ef in ext_files )
 	{
 		if ( fe.path_test( ep + ef, PathTest.IsFile ) )
 		{
-			if (mame_emu["import_extras"].len()) mame_emu["import_extras"] += ";";
-			mame_emu["import_extras"] += ep + ef;
+			mame_emu["import_extras"] += ep + ef + ";";
 			break;
 		}
 	}
@@ -441,10 +444,8 @@ if ( rp.homepath.len() > 0 )
 	mame_emu["workdir"] <- rp.homepath;
 
 mame_emu["rompath"] <- "";
-foreach ( r in rp.rompaths ) {
-	if (mame_emu["rompath"].len()) mame_emu["rompath"] += ";";
-	mame_emu["rompath"] += r;
-}
+foreach ( r in rp.rompaths )
+	mame_emu["rompath"] += r + ";";
 
 write_config( mame_emu, emu_dir + "templates/" + mame_emu["name"] + ".cfg", true );
 console_report( mame_emu["name"], mame_emu["exe"] );

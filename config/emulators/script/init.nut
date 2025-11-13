@@ -21,6 +21,24 @@ fe.load_module( "file" );
 ////////////////////////////////////////////////////////////////////////
 emulators_to_generate <- [];
 
+// Replace path slashes with OS slashes
+function format_path( path ) {
+	local windows = ( OS == "Windows" );
+	local s = windows ? '/' : '\\';
+	local r = windows ? '\\' : '/';
+	local out = "";
+	foreach ( c in path ) out += (c == s ? r : c).tochar();
+	return out;
+}
+
+// Append value with separator
+function format_sep( value ) {
+	if ( !value.len() ) return value;
+	if ( value[0] == ';' ) value = value.slice( 1 );
+	if ( value[value.len()-1] == ';' ) value = value.slice( 0, value.len() - 1 );
+	return value;
+}
+
 ////////////////////////////////////////////////////////////////////////
 //
 // Write contents of "emu" to specified "filename".  Don't overwrite
@@ -47,18 +65,18 @@ function write_config( emu, filename, force=false )
 		new_cfg.write_line( format( fmt, "args" ) + emu["args"] + "\n" );
 
 	if ( emu.rawin( "workdir" ) )
-		new_cfg.write_line( format( fmt, "workdir" ) + emu["workdir"] + "\n" );
+		new_cfg.write_line( format( fmt, "workdir" ) + format_path( emu["workdir"] ) + "\n" );
 
 	if ( emu.rawin( "rompath" ) && ( emu["rompath"].len() > 0 ))
-		new_cfg.write_line( format( fmt, "rompath" ) + emu["rompath"] + "\n" );
+		new_cfg.write_line( format( fmt, "rompath" ) + format_sep( format_path( emu["rompath"] ) ) + "\n" );
 
 	if ( emu.rawin( "exts" ) )
-		new_cfg.write_line( format( fmt, "romext" ) + emu["exts"] + "\n" );
+		new_cfg.write_line( format( fmt, "romext" ) + format_sep( emu["exts"] ) + "\n" );
 
 	local is_arcade = false;
 	if ( emu.rawin( "system" ) )
 	{
-		new_cfg.write_line( format( fmt, "system" ) + emu["system"] + "\n" );
+		new_cfg.write_line( format( fmt, "system" ) + format_sep( emu["system"] ) + "\n" );
 		is_arcade = ( emu["system"] == "Arcade" )
 	}
 
@@ -66,7 +84,7 @@ function write_config( emu, filename, force=false )
 		new_cfg.write_line( format( fmt, "info_source" ) + emu["source"] + "\n" );
 
 	if ( emu.rawin( "import_extras" ) )
-		new_cfg.write_line( format( fmt, "import_extras" ) + emu["import_extras"] + "\n" );
+		new_cfg.write_line( format( fmt, "import_extras" ) + format_sep( format_path( emu["import_extras"] ) ) + "\n" );
 
 	if ( emu.rawin( "min_run" ) )
 		new_cfg.write_line( format( fmt, "minimum_run_time" ) + emu["min_run"] + "\n" );
@@ -75,7 +93,10 @@ function write_config( emu, filename, force=false )
 		new_cfg.write_line( format( fmt, "exit_hotkey" ) + emu["hotkey"] + "\n" );
 
 	// The resources to look for
-	local homedirs = [ "$HOME/" + emu["name"] + "/", emu["workdir"] ];
+	local homedirs = [ "$HOME/" + emu["name"] + "/" ];
+	if ( emu.rawin( "workdir" ) )
+		homedirs.push( emu["workdir"] );
+
 	local resources = {
 		snap = ["snap", "video"],
 		screenshot = ["screenshot"],
@@ -94,27 +115,26 @@ function write_config( emu, filename, force=false )
 		local respath = "";
 		foreach (path in paths) {
 			foreach (homedir in homedirs) {
-				local dir = fe.path_expand( homedir + path );
+				local dir = fe.path_expand( homedir + path + "/" );
 				if ( fe.path_test( dir, PathTest.IsDirectory )) {
-					if (respath.len()) respath += ";"
-					respath += dir;
+					respath += dir + ";";
 				}
 			}
 		}
 		if (respath.len()) {
 			found = true;
-			new_cfg.write_line( format( fmt, "artwork " + name ) + respath + "\n" );
+			new_cfg.write_line( format( fmt, "artwork " + name ) + format_sep( format_path( respath ) ) + "\n" );
 		}
 	}
 
 	// Write some defaults if no resources found
 	if ( !found ) {
 		if ( is_arcade )
-			new_cfg.write_line( format( fmt, "artwork marquee" ) + homedirs[0] + "marquee\n" );
+			new_cfg.write_line( format( fmt, "artwork marquee" ) + format_path( homedirs[0] + "marquee/" ) + "\n" );
 		else
-			new_cfg.write_line( format( fmt, "artwork flyer" ) + homedirs[0] + "boxart\n" );
+			new_cfg.write_line( format( fmt, "artwork flyer" ) + format_path( homedirs[0] + "boxart/" ) + "\n" );
 
-		new_cfg.write_line( format( fmt, "artwork snap") + homedirs[0] + "video;" + homedirs[0] + "snap\n" );
+		new_cfg.write_line( format( fmt, "artwork snap") + format_path( homedirs[0] + "video/" ) + ";" + format_path( homedirs[0] + "snap/" ) + "\n" );
 	}
 
 	return true;
