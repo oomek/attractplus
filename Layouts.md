@@ -170,7 +170,7 @@ The following _Magic Tokens_ are supported:
 -  Game
    -  `[Name]` - The short name of the game
    -  `[Title]` - The formatted name of the game
-   -  `[TitleLetter]` - The first letter of the formatted name of the game
+   -  `[TitleLetter]` - The capitalised first letter of the formatted name of the game
    -  `[TitleFull]` - The full pre-formatted name of the game
    -  `[Emulator]` - The emulator to use for the game
    -  `[CloneOf]` - The short name of the game's parent

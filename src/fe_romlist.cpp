@@ -143,14 +143,14 @@ std::string FeRomListSorter::get_sort_letter( const FeRomInfo *rom )
 	return FeUtil::narrow( std::wstring( 1, FeUtil::widen( title ).at( 0 ) ) );
 }
 
-// Returns first character of the display title, or an empty string if none
+// Returns capitalised first character of the display title, or an empty string if none
 // - May return a wide string, ie: pound character
 std::string FeRomListSorter::get_display_letter( const FeRomInfo *rom )
 {
 	if ( !rom ) return "";
 	const std::string &title = get_display_title( rom->get_info( FeRomInfo::Title ) );
 	if ( title.empty() ) return "";
-	return FeUtil::narrow( std::wstring( 1, FeUtil::widen( title ).at( 0 ) ) );
+	return FeUtil::narrow( std::wstring( 1, std::toupper( FeUtil::widen( title )[0] ) ) );
 }
 
 FeRomList::FeRomList( const std::string &config_path )
