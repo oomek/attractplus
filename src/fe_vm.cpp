@@ -1512,6 +1512,12 @@ void FeVM::on_transition(
 		//
 		if (( !worklist.empty() ) && ( m_window.isOpen() ))
 		{
+			if ( m_sort_zorder_triggered )
+			{
+				sort_zorder();
+				m_sort_zorder_triggered = false;
+			}
+
 			video_tick();
 			clk.tick();
 
