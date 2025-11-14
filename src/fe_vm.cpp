@@ -2122,7 +2122,7 @@ void FeVM::script_get_config_options(
 				else if ( is_func )
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, o_value, help, 2, value ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, "", help, 2, o_value ) )
 					);
 				}
 				else if ( is_info )
