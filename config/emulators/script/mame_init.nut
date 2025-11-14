@@ -120,19 +120,29 @@ class RompathParser
 	constructor( p, e )
 	{
 		exepath = p;
-		homepath = "";
+		homepath = p; // Default to the exepath, updated from mame config if different
 		rompaths = [];
 
+		console_message( "Running", p + e + " -showconfig" );
 		fe.plugin_command( p + e, "-showconfig", this, "parse_cb" );
 	}
 
-	// add trailing slash
+	// add trailing slash if path not empty
 	function add_slash( path )
 	{
-		if ( path.len() == 0 ) return path;
+		if ( !path.len() ) return path;
 		if ( path[ path.len()-1 ] == '/' ) return path;
 		if ( path[ path.len()-1 ] == '\\' ) return path;
 		return path + "/";
+	}
+
+	// remove quotes
+	function unquote( path )
+	{
+		if ( path.len() < 2 ) return path;
+		if ( path[0] != '"' ) return path;
+		if ( path[path.len() - 1] != '"' ) return path;
+		return path.slice( 1, path.len() - 1 );
 	}
 
 	function _tailing1( t )
@@ -154,42 +164,55 @@ class RompathParser
 			return;
 
 		temp[0] = strip( temp[0] );
-
-		temp[1] = strip( op.slice( temp[0].len() ) ); // capture paths with spaces, and remove quotes
-		if (temp[1].len() && temp[1][0] == '"' && temp[1][temp[1].len()-1] == '"')
-			temp[1] = temp[1].slice( 1, temp[1].len() - 1 );
+		temp[1] = unquote( strip( op.slice( temp[0].len() ) ) ); // capture paths with spaces, and remove quotes
 
 		if (( temp[0] == "homepath" ))
 		{
 			local t = split( temp[1], "/\\" );
-			if (( t[0] == "$HOME" ) || ( t[0] == "~" ))
-				homepath = fe.path_expand( t[0] ) + _tailing1( t );
-			else if ( t[0] == "." )
-				homepath = exepath + _tailing1( t );
-			else if ( t[0] == ".." )
-				homepath = "";
-			else
-				homepath = fe.path_expand( temp[1] );
+			if ( t.len() )
+			{
+				if (( t[0] == "$HOME" ) || ( t[0] == "~" ))
+					homepath = fe.path_expand( t[0] ) + _tailing1( t );
+				else if ( t[0] == "." )
+					homepath = exepath + _tailing1( t );
+				else if ( t[0] == ".." )
+					homepath = exepath; // (unsupported)
+				else
+					homepath = fe.path_expand( temp[1] );
+
+				console_message( "Found homepath", homepath );
+			}
 		}
 		else if ( temp[0] == "rompath" )
 		{
 			local t = split( temp[1], ";" );
-			foreach ( p in t )
+			if ( t.len() )
 			{
-				// make sure there is a trailing slash
-				local p2 = add_slash(strip( p ));
+				foreach ( p in t )
+				{
+					// make sure there is a trailing slash
+					local p2 = add_slash(strip( p ));
+					if ( p2.len() )
+					{
+						local rompath = "";
+						if ( fe.path_test( p2, PathTest.IsRelativePath ) )
+						{
+							if ( homepath.len() && fe.path_test( homepath + p2, PathTest.IsDirectory ) )
+								rompath = homepath + p2;
+							else if ( fe.path_test( exepath + p2, PathTest.IsDirectory ) )
+								rompath = exepath + p2;
+						}
+						else
+						{
+							rompath = fe.path_expand( p2 );
+						}
 
-				if ( fe.path_test( p2, PathTest.IsRelativePath ) )
-				{
-					if (( homepath.len() > 0 ) && ( fe.path_test( homepath + p2, PathTest.IsDirectory ) ))
-						rompaths.push( homepath + p2 );
-					else if ( fe.path_test( exepath + p2, PathTest.IsDirectory ) )
-						rompaths.push( exepath + p2 );
-				}
-				else
-				{
-					p2 = fe.path_expand( p2 );
-					rompaths.push( p2 );
+						if ( rompath.len() )
+						{
+							rompaths.push( rompath );
+							console_message( "Found rompath", rompath );
+						}
+					}
 				}
 			}
 		}
@@ -209,6 +232,7 @@ class VersionParser
 		// we use the timeout command where available in case the executable isn't
 		// what we expect (in which case it will be killed soon after running
 		//
+		console_message( "Running", p + e + " -help" );
 		if ( my_OS == "Windows" )
 			fe.plugin_command( p + e, "-help", this, "parse_cb" );
 		else
@@ -247,6 +271,7 @@ class FullNameParser
 	constructor( p, e, n )
 	{
 		name = n;
+		console_message( "Running", p + e + " -listfull" );
 		fe.plugin_command( p + e, "-listfull " + name, this, "parse_cb" );
 	}
 
@@ -283,6 +308,7 @@ class SystemParser
 		is_system = false;
 		extensions = [];
 
+		console_message( "Running", p + e + " -listmedia" );
 		fe.plugin_command( p + e, "-listmedia " + name, this, "parse_cb" );
 
 		local fnp = FullNameParser( p, e, n );
@@ -330,6 +356,7 @@ class SystemParser
 
 // search for file
 //
+console_message( "Searching for exe..." );
 local res = search_for_file( search_paths[ my_OS ], search_names[ my_OS ] );
 
 // run 'mame -help' to get the version of the MAME we found
@@ -337,6 +364,7 @@ local res = search_for_file( search_paths[ my_OS ], search_names[ my_OS ] );
 local ver=0;
 if ( res )
 {
+	console_message( "Found exe", res[0] + res[1] );
 	local vp = VersionParser( res[0], res[1] );
 	ver = vp.version;
 }
@@ -346,14 +374,18 @@ if ( res )
 //
 if ( ver <= 0 )
 {
+	console_message( "Cannot find exe" );
 	// No MAME found, write templates and get out of here...
 	//
-	local wm = write_config( mame_emu, FeConfigDirectory + "emulators/templates/" + mame_emu["name"] + ".cfg" );
-	local wc = write_config( console_emu, FeConfigDirectory + "emulators/templates/" + console_emu["name"] + ".cfg", true );
-
 	console_report( mame_emu["name"], "" );
 	console_report( console_emu["name"], "" );
+	local wm = write_config( mame_emu, FeConfigDirectory + "emulators/templates/" + mame_emu["name"] + ".cfg" );
+	local wc = write_config( console_emu, FeConfigDirectory + "emulators/templates/" + console_emu["name"] + ".cfg", true );
 	return;
+}
+else
+{
+	console_message( "Found version", ver );
 }
 
 local path = res[0];
@@ -376,6 +408,7 @@ function is_duplicate_system( name )
 	return false;
 }
 
+console_message( "Parsing config..." );
 local rp = RompathParser( path, executable );
 
 
@@ -401,7 +434,8 @@ if ( ver >= 162 ) // mame and mess merged as of v 162
 	}
 }
 
-// Check for extras files (catver.ini and nplayers.ini)
+console_message( "Searching for extras..." );
+// Check for extras files
 //
 ext_files <-
 [
@@ -413,11 +447,11 @@ ext_files <-
 
 ext_paths <- [ path ];
 
+if ( rp.homepath != path )
+	ext_paths.push( rp.homepath );
+
 // "folders" is the "official" path for ini files
 ext_paths.push( RompathParser.add_slash( path ) + "folders/" )
-
-if ( rp.homepath.len() > 0 )
-	ext_paths.push( rp.homepath );
 
 if ( my_OS == "Linux" )
 	ext_paths.push( fe.path_expand( "$HOME/.mame/" ) );
@@ -429,6 +463,7 @@ foreach ( ef in ext_files )
 		if ( fe.path_test( ep + ef, PathTest.IsFile ) )
 		{
 			mame_emu["import_extras"] += ep + ef + ";";
+			console_message( "Found extra", ep + ef );
 			break;
 		}
 	}
@@ -439,36 +474,33 @@ local emu_dir = FeConfigDirectory + "emulators/";
 // Write emulator config for arcade
 //
 mame_emu["exe"] = path + executable;
-
-if ( rp.homepath.len() > 0 )
-	mame_emu["workdir"] <- rp.homepath;
+mame_emu["workdir"] <- rp.homepath;
 
 mame_emu["rompath"] <- "";
 foreach ( r in rp.rompaths )
 	mame_emu["rompath"] += r + ";";
 
-write_config( mame_emu, emu_dir + "templates/" + mame_emu["name"] + ".cfg", true );
+console_message( "Writing templates..." );
 console_report( mame_emu["name"], mame_emu["exe"] );
+write_config( mame_emu, emu_dir + "templates/" + mame_emu["name"] + ".cfg", true );
 
 emulators_to_generate.push( mame_emu["name"] );
 
 // Write emulator configs for each console system
 //
 console_emu["exe"] <- path + executable;
-
-if ( rp.homepath.len() > 0 )
-	console_emu["workdir"] <- rp.homepath;
+console_emu["workdir"] <- rp.homepath;
 
 // Write configs for every console system found
 foreach ( s in systems )
 {
-	if ( s.media.len() > 0 )
+	if ( s.media.len() )
 		console_emu["args"] <- "[system] -" + s.media + " \"[romfilename]\"";
 
 	console_emu["name"] <- "mame-" + s.name;
 	console_emu["system"] = s.name;
 
-	if ( s.fullname.len() > 0 )
+	if ( s.fullname.len() )
 		console_emu["system"] += ";" + s.fullname;
 
 	console_emu["rompath"] <- "";
@@ -482,9 +514,8 @@ foreach ( s in systems )
 	local cfg_fn = emu_dir + console_emu["name"] + ".cfg";
 	local tmp_fn = emu_dir + "templates/" + console_emu["name"] + ".cfg";
 
-	write_config( console_emu, tmp_fn, true );
-
 	console_report( console_emu["name"], s.triggerpath );
+	write_config( console_emu, tmp_fn, true );
 
 	emulators_to_generate.push( console_emu["name"] );
 }

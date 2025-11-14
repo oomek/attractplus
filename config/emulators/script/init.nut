@@ -11,6 +11,20 @@
 
 fe.load_module( "file" );
 
+
+
+function console_report( name, found )
+{
+	console_message( "Executable", found.len() ? found : "-" )
+}
+
+function console_message( name = "", message = "" )
+{
+	if ( !name.len() && !message.len() ) return fe.log("");
+	fe.log( " - " + format( "%-15s", name + " " ) + message );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 //
 // This is the array of emulators we have generated that we think are
@@ -51,6 +65,8 @@ function format_sep( value ) {
 ////////////////////////////////////////////////////////////////////////
 function write_config( emu, filename, force=false )
 {
+	console_message( "Template", filename + (force ? " (Overwrite)" : "") );
+
 	if ( !force && fe.path_test( filename, PathTest.IsFile ) )
 		return false;
 
@@ -67,7 +83,7 @@ function write_config( emu, filename, force=false )
 	if ( emu.rawin( "workdir" ) )
 		new_cfg.write_line( format( fmt, "workdir" ) + format_path( emu["workdir"] ) + "\n" );
 
-	if ( emu.rawin( "rompath" ) && ( emu["rompath"].len() > 0 ))
+	if ( emu.rawin( "rompath" ) && emu["rompath"].len() )
 		new_cfg.write_line( format( fmt, "rompath" ) + format_sep( format_path( emu["rompath"] ) ) + "\n" );
 
 	if ( emu.rawin( "exts" ) )
@@ -195,21 +211,6 @@ function path_is_empty( paths, exts )
 
 ////////////////////////////////////////////////////////////////////////
 //
-// Write a line to the console reporting what we have done
-//
-////////////////////////////////////////////////////////////////////////
-function console_report( name, found )
-{
-	//
-	// Report status to the command line
-	//
-	local report = " * " + format( "%-15s", name ) + "[" + ( ( found.len() > 0 ) ? found : "Not found" ) + "]";
-
-	fe.log( report );
-}
-
-////////////////////////////////////////////////////////////////////////
-//
 // Routine for generating emulator config and template from
 // a db.nut entry
 //
@@ -223,6 +224,9 @@ function console_report( name, found )
 ////////////////////////////////////////////////////////////////////////
 function generate_emulator_config( emu )
 {
+	console_message();
+	console_message( "Generate", emu["name"] );
+
 	local my_OS = OS;
 	if ( OS != "Windows" )
 		my_OS = "Linux";
@@ -342,9 +346,8 @@ function generate_emulator_config( emu )
 
 	// Write template to emulators/templates/
 	//
-	write_config( emu, FeConfigDirectory + "emulators/templates/" + emu["name"] + ".cfg", true );
-
 	console_report( emu["name"], ( res ) ? emu["exe"] : "" );
+	write_config( emu, FeConfigDirectory + "emulators/templates/" + emu["name"] + ".cfg", true );
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -357,3 +360,5 @@ emus <- dofile( fe.script_dir + "db.nut", true );
 
 foreach ( e in emus )
 	generate_emulator_config( e );
+
+console_message()

@@ -2202,6 +2202,7 @@ bool FeVM::setup_wizard()
 
 	if ( emus_to_import.empty() )
 	{
+		FeLog() << "No emulators found" << std::endl;
 		m_overlay->common_basic_dialog( _( "No emulators found" ), { _( "Ok" ) }, 0, 0 );
 		return false;
 	}
@@ -2214,6 +2215,7 @@ bool FeVM::setup_wizard()
 	std::string msg = ( n == 1 ) ? _( "Found 1 emulator" ) : _( "Found $1 emulators", { as_str( n ) } );
 	msg += "\n" + str_join( emu_slice, ", ");
 	if (n > m) msg += ", " + _( "+$1 more", { as_str(n-m) });
+	FeLog() << "Found " << n << " emulator(s)" << std::endl;
 
 	// return 0 if user confirms import
 	if ( m_overlay->common_basic_dialog( msg, { _( "Import" ), _( "Cancel" ) }, 0, 1, FeInputMap::Exit ) != 0 )

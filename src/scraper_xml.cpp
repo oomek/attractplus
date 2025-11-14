@@ -390,11 +390,15 @@ void FeListXMLParser::end_element( const char *element )
 					+ m_count * m_ctx.progress_range
 					/ m_ctx.romlist.size();
 
+				// All the roms have been found, no need to continue
+				if ( m_count == m_ctx.romlist.size() )
+					set_continue_parse( false );
+
 				if ( per != last_percent )
 				{
 					last_percent = per;
 
-					std::cout << "\b\b\b\b" << std::setw(3)
+					FeLog() << "\b\b\b\b" << std::setw(3)
 						<< last_percent << '%' << std::flush;
 
 					if ( m_ui_update )
@@ -439,12 +443,12 @@ void FeListXMLParser::pre_parse()
 			itr != m_ctx.romlist.end(); ++itr )
 		m_map[ (*itr).get_info( FeRomInfo::Romname ).c_str() ] = itr;
 
-	std::cout << "    ";
+	FeLog() << "    ";
 }
 
 void FeListXMLParser::post_parse()
 {
-	std::cout << std::endl;
+	FeLog() << std::endl;
 
 	if ( !m_discarded.empty() )
 	{
