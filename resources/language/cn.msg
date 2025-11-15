@@ -81,7 +81,6 @@ Hide Brackets in Game Title;隐藏游戏标题中的括号
 Joystick Threshold;操纵杆的阈值
 Language;语言
 #Layout File;
-Layout Options;布局选项
 Layout Preview;布局预览
 Layout;布局
 List Limit;列表大小限制
@@ -90,7 +89,7 @@ Menu Prompt;标题
 Menu Toggle;菜单切换
 Mouse Threshold;鼠标的阈值
 #Overview;
-Plug-ins;插件
+Plugins;插件
 #Power Saving;
 Remove Input;移除-设置按键
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Filter Name;进入排序名称
 # -- Titles --
 #_submenu;
 #Configure Layout;
-Configure Plug-in;设置插件
+Configure Plugin;设置插件
 Configure;设置
 Display Edit;界面修改
 Edit Artwork;编辑ARTWORK

@@ -165,6 +165,7 @@ public:
 		InsertGame,
 		EditGame,
 		LayoutOptions,
+		PluginOptions,
 		Custom1,
 		Custom2,
 		Custom3,

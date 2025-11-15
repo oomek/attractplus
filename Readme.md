@@ -26,7 +26,7 @@
    -  [Sound](#sound)
    -  [Artwork](#artwork)
    -  [Layouts](#layouts)
-   -  [Plug-ins](#plug-ins)
+   -  [Plugins](#plugins)
    -  [Romlists](#romlists)
 -  [Romlist Generation](#romlist-generation)
 -  [Command Line Options](#command-line-options)
@@ -182,9 +182,9 @@ Attract-Mode Plus can also display layouts made for other frontends, including `
 -  `MaLa` - Copy the layout and related resources into a new subdirectory of the `layouts` directory, or place a `zip`, `7z` or `rar` file containing these things into the `layouts` directory. After doing this, you hould be able to select the layout when configuring a Display in Attract-Mode Plus, just as you would for a native layout.
 -  `Hyperspin` - Copy the Hyperspin `Media` directory into its own directory in the Attract-Mode Plus layouts directory. Create a Display in Attract-Mode Plus and configure the layout to be the directory you copied `Media` into. The Display's name needs to match the name of one of the system subdirectories in the Hyperspin `Media` directory. This will allow Attract-Mode Plus to find the Hyperspin themes and graphics to use. So for example, naming the Display `MAME` will cause it to match Hyperspin's `MAME/Themes/_` for themes, `MAME/Images/Artwork1/_` for artwork1, etc. Note that the wheel images are located using the built-in wheel artwork. Wheel images located in the Hyperspin directories are ignored.
 
-### Plug-ins
+### Plugins
 
-Plug-ins are squirrel scripts that need to be placed in the `plugins` subdirectory of your Attract-Mode Plus config directory. Available plugins can be enabled/disabled and configured from the `Plug-Ins` menu when in config mode. See [Layouts.md](./Layouts.md) for a description of Attract-Mode Plus Plug-in API.
+Plugins are squirrel scripts that need to be placed in the `plugins` subdirectory of your Attract-Mode Plus config directory. Available plugins can be enabled/disabled and configured from the `PlugIns` menu when in config mode. See [Layouts.md](./Layouts.md) for a description of Attract-Mode Plus Plugin API.
 
 ### Romlists
 

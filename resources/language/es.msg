@@ -81,7 +81,6 @@ Hide Brackets in Game Title;Esconder paréntesis en títutlos de juegos
 Joystick Threshold;Umbral de la palanca
 Language;Idioma
 #Layout File;
-Layout Options;Opciones de temas
 Layout Preview;Vista previa del diseño
 Layout;Tema
 List Limit;Límite de lista
@@ -90,7 +89,7 @@ Menu Colour;Color del menú
 Menu Toggle;Alternar menú
 Mouse Threshold;Umbral del ratón
 #Overview;
-Plug-ins;Plugins
+Plugins;Plugins
 #Power Saving;
 Remove Input;Eliminar control
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Filter Name;Ingrese el nombre para el filtro
 # -- Titles --
 #_submenu;
 #Configure Layout;
-Configure Plug-in;Configuración de Plugins
+Configure Plugin;Configuración de Plugins
 Configure;Configuración
 Display Edit;Editar pantalla
 Edit Artwork;Modificar tema

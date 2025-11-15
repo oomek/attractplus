@@ -81,7 +81,6 @@ Joystick Mappings;Joystick Belegung
 Joystick Threshold;Schwellwert Joystick
 Language;Sprache
 Layout File;Themendatei
-Layout Options;Themen Optionen
 Layout Preview;Layoutvorschau
 Layout;Thema
 List Limit;Limit für die Liste
@@ -90,7 +89,7 @@ Menu Prompt;Eingabeaufforderung
 Menu Toggle;Menü umschalten
 Mouse Threshold;Schwellwert Maus
 Overview;Übersicht
-#Plug-ins;
+#Plugins;
 #Power Saving;
 Remove Input;Steuerung löschen
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Romlist Name;benenne die Romliste
 # -- Titles --
 #_submenu;
 Configure Layout;Konfiguriere das Thema
-Configure Plug-in;Konfiguriere Plug-in
+Configure Plugin;Konfiguriere Plugin
 Configure;Konfiguration
 Display Edit;Bildschirm bearbeiten
 Edit Artwork;Bilddatei bearbeiten
@@ -470,7 +469,7 @@ _help_main_display;Konfiguriere die Romlisten/Themen-Gruppierungen (die "Bildsch
 _help_main_emu;Konfiguriere verfügbare Spielsysteme und Emulatoren
 _help_main_intro;Intro konfigurieren
 _help_main_misc;Konfiguriere sonstige Einstellungen
-_help_main_plugin;Konfiguriere verfügbare Plug-ins
+_help_main_plugin;Konfiguriere verfügbare Plugins
 _help_main_scraper;Konfiguriere die Bilddatei-Scraper Einstellungen
 _help_main_screensaver_timeout;Die Wartezeit in Sekunden, bevor der Bildschirmschoner aktiv wird. 0 zum Deaktivieren
 _help_main_screensaver;Konfiguriere Bildschirmschoner
@@ -498,10 +497,10 @@ _help_misc_track_usage;Konfiguriere, ob Attract-Mode Plus die Nutzung protokolli
 _help_misc_ui_color;Wählen Sie die Farbe aus, die in der Benutzeroberfläche von Attract-Mode Plus verwendet werden soll
 _help_misc_video_decoder;Konfiguriere den Decoder für die Video Wiedergabe (falls mehrere Decoder verfügbar sind)
 _help_misc_window_mode;Lege fest, ob Attract-Mode Plus in einem Fenster läuft oder den Bildschirm füllt
-_help_plugin_command;Die ausführbare Datei, welche mit diesem Plug-in verknüpft ist
-_help_plugin_enabled;Festlegen, ob dieses Plug-in aktiviert ist
+_help_plugin_command;Die ausführbare Datei, welche mit diesem Plugin verknüpft ist
+_help_plugin_enabled;Festlegen, ob dieses Plugin aktiviert ist
 #_help_plugin_name;
-_help_plugin_sel;Konfiguriere Plug-in
+_help_plugin_sel;Konfiguriere Plugin
 _help_rule_comp;Vergleichstyp für diesen Filter
 _help_rule_delete;Diese Filterregel löschen
 _help_rule_target;Das Spiel-Informationsattribut nach welchem du filtern möchtest

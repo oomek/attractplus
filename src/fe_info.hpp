@@ -491,7 +491,7 @@ private:
 };
 
 //
-// Class for storing plug-in configuration
+// Class for storing plugin configuration
 //
 class FePlugInfo : public FeScriptConfigurable
 {

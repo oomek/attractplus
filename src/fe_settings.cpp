@@ -350,6 +350,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_actual_display_index( 0 ),
 	m_current_config_object( NULL ),
 	m_ssaver_time( 600 ),
+	m_last_plugin_name( "" ),
 	m_last_launch_display( 0 ),
 	m_last_launch_filter( 0 ),
 	m_last_launch_rom( 0 ),
@@ -3670,6 +3671,43 @@ void FeSettings::get_plugin( const std::string &label,
 	m_plugins.push_back( FePlugInfo( label ) );
 	plug = &(m_plugins.back());
 	index = m_plugins.size() - 1;
+}
+
+void FeSettings::set_last_plugin( FePlugInfo *plug )
+{
+	m_last_plugin_name = plug->get_name();
+}
+
+// Populates the last edited plugin / the first active plugin / the first plugin, or return false
+bool FeSettings::get_last_plugin( FePlugInfo *&plug, int &index )
+{
+	auto plugins = get_plugins();
+	std::sort(plugins.begin(), plugins.end(), [](FePlugInfo &a, FePlugInfo &b) {
+		return a.get_name() < b.get_name();
+	});
+
+	// if no previous plugin, find first active one
+	if ( m_last_plugin_name.empty() )
+	{
+		for ( auto &plugin : plugins )
+		{
+			if ( !plugin.get_enabled() ) continue;
+			if ( m_last_plugin_name.compare( plugin.get_name() ) != 0 ) continue;
+			m_last_plugin_name = plugin.get_name();
+			break;
+		}
+	}
+
+	// if no active plugin, find first inactive
+	if ( m_last_plugin_name.empty() && plugins.size() )
+		m_last_plugin_name = plugins[0].get_name();
+
+	// if found plugin, populate args
+	if ( !m_last_plugin_name.empty() )
+		get_plugin( m_last_plugin_name, plug, index );
+
+	// return true if populated
+	return !m_last_plugin_name.empty();
 }
 
 bool FeSettings::get_plugin_enabled( const std::string &label ) const

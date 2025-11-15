@@ -236,6 +236,7 @@ private:
 	int m_actual_display_index; // The most recent actual display index that was selected (for saving)
 	FeBaseConfigurable *m_current_config_object;
 	int m_ssaver_time;
+	std::string m_last_plugin_name;
 	int m_last_launch_display;
 	int m_last_launch_filter;
 	int m_last_launch_rom;
@@ -468,14 +469,12 @@ public:
 	// get a list of available plugins
 	void get_available_plugins( std::vector < std::string > &list ) const;
 	std::vector<FePlugInfo> &get_plugins() { return m_plugins; }
-	void get_plugin( const std::string &label,
-			FePlugInfo *&plug, int &index );
+	void get_plugin( const std::string &label, FePlugInfo *&plug, int &index );
 	bool get_plugin_enabled( const std::string &label ) const;
-	void get_plugin_full_path( const std::string &label,
-			std::string &path,
-			std::string &filename ) const;
-	void get_plugin_full_path( int id,
-			std::string &path ) const;
+	void get_plugin_full_path( const std::string &label, std::string &path, std::string &filename ) const;
+	void get_plugin_full_path( int id, std::string &path ) const;
+	bool get_last_plugin( FePlugInfo *&plug, int &index );
+	void set_last_plugin( FePlugInfo *plug );
 
 	//
 	FePresentState get_present_state() const { return m_present_state; };

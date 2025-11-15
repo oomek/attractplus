@@ -1959,14 +1959,14 @@ void FePluginEditMenu::get_options( FeConfigContext &ctx )
 	if ( !m_plugin )
 		return;
 
-	ctx.set_style( FeConfigContext::EditList, _( "Configure Plug-in" ));
+	ctx.set_style( FeConfigContext::EditList, _( "Configure Plugin" ));
 	ctx.add_opt( Opt::INFO, _( "Name" ), m_plugin->get_name(), _( "_help_plugin_name" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Enabled" ), m_plugin->get_enabled(), _( "_help_plugin_enabled" ) );
 
 	//
-	// We run the plug-in script to check if a "UserConfig" class is defined.
+	// We run the plugin script to check if a "UserConfig" class is defined.
 	// If it is, then its members and member attributes set out what it is
-	// that the plug-in needs configured by the user.
+	// that the plugin needs configured by the user.
 	//
 	ctx.fe_settings.get_plugin_full_path( m_plugin->get_name(), m_file_path, m_file_name );
 	m_configurable = m_plugin;
@@ -1999,7 +1999,7 @@ void FePluginEditMenu::set_plugin( FePlugInfo *plugin, int index )
 
 void FePluginSelMenu::get_options( FeConfigContext &ctx )
 {
-	ctx.set_style( FeConfigContext::EditList, _( "_submenu", { _( "Configure" ), _( "Plug-ins" ) }) );
+	ctx.set_style( FeConfigContext::EditList, _( "_submenu", { _( "Configure" ), _( "Plugins" ) }) );
 
 	std::vector<std::string> plugins;
 	ctx.fe_settings.get_available_plugins( plugins );
@@ -2030,6 +2030,7 @@ bool FePluginSelMenu::on_option_select(
 		FePlugInfo *plug;
 		int plug_index;
 		ctx.fe_settings.get_plugin( o.setting, plug, plug_index );
+		ctx.fe_settings.set_last_plugin( plug );
 		m_edit_menu.set_plugin( plug, plug_index );
 		submenu = &m_edit_menu;
 	}
@@ -2227,7 +2228,7 @@ void FeConfigMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::MENU, _( "Sound" ), "", _( "_help_main_sound" ) );
 	ctx.add_opt( Opt::MENU, _( "Intro" ), "", _( "_help_main_intro" ) );
 	ctx.add_opt( Opt::MENU, _( "Screen Saver" ), "", _( "_help_main_screensaver" ) );
-	ctx.add_opt( Opt::MENU, _( "Plug-ins" ), "", _( "_help_main_plugin" ) );
+	ctx.add_opt( Opt::MENU, _( "Plugins" ), "", _( "_help_main_plugin" ) );
 	ctx.add_opt( Opt::MENU, _( "Scraper" ), "", _( "_help_main_scraper" ) );
 	ctx.add_opt( Opt::MENU, _( "General" ), "", _( "_help_main_misc" ) );
 

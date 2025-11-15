@@ -89,7 +89,7 @@ Each layout can have one or more `layout*.nut` script files. The "Toggle Layout"
 
 The Attract-Mode Plus screen saver and intro modes are really just special case layouts. The screensaver gets loaded after a user-configured period of inactivity, while the intro mode gets run when the frontend first starts and exits as soon as any action is triggered (for example if the user hits the select button). The screen saver script is located in the `screensaver.nut` file stored in the "screensaver" subdirectory. The intro script is located in the `intro.nut` file stored in the "intro" subdirectory.
 
-Plug-ins are similar to layouts in that they consist of at least one squirrel script file and a collection of related resources. Plug-ins are stored in the "plugins" subdirectory of the Attract-Mode Plus config directory. Plug-ins can be a single ".nut" file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
+Plugins are similar to layouts in that they consist of at least one squirrel script file and a collection of related resources. Plugins are stored in the "plugins" subdirectory of the Attract-Mode Plus config directory. Plugins can be a single ".nut" file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
 
 ---
 
@@ -1020,7 +1020,7 @@ fe.plugin_command( executable, arg_string, environment, callback_function )
 fe.plugin_command( executable, arg_string, callback_function )
 ```
 
-Execute a plug-in command and wait until the command is done.
+Execute a command and wait until the command is done.
 
 **Parameters**
 
@@ -1058,7 +1058,7 @@ Execute a plug-in command and wait until the command is done.
 fe.plugin_command_bg( executable, arg_string )
 ```
 
-Execute a plug-in command in the background and return immediately.
+Execute a command in the background and return immediately.
 
 **Parameters**
 
@@ -1301,11 +1301,11 @@ An array of [`fe.Monitor`](#femonitor) instances, and provides the mechanism for
 
 ### `fe.script_dir`
 
-When Attract-Mode Plus runs a layout or plug-in script, `fe.script_dir` is set to the layout or plug-in's directory.
+When Attract-Mode Plus runs a layout or plugin script, `fe.script_dir` is set to the layout or plugin's directory.
 
 ### `fe.script_file`
 
-When Attract-Mode Plus runs a layout or plug-in script, `fe.script_file` is set to the name of the layout or plug-in script file.
+When Attract-Mode Plus runs a layout or plugin script, `fe.script_file` is set to the name of the layout or plugin script file.
 
 ### `fe.module_dir`
 
@@ -1653,7 +1653,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    img.subimg_height = img.texture_height * -1
    img.subimg_y = img.texture_height
    ```
--  Attract-Mode Plus defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plug-in scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plug-in script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
+-  Attract-Mode Plus defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plugin scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plugin script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
 
    ```squirrel
    local art = fe.add_artwork( "snap" )

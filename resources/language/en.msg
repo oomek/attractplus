@@ -84,7 +84,6 @@ Joystick Mappings;Joystick Mappings
 Joystick Threshold;Joystick Threshold
 Language;Language
 Layout File;Layout File
-Layout Options;Layout Options
 Layout Preview;Layout Preview
 Layout;Layout
 List Limit;List Limit
@@ -93,7 +92,7 @@ Menu Prompt;Menu Prompt
 Menu Toggle;Menu Toggle
 Mouse Threshold;Mouse Threshold
 Overview;Overview
-Plug-ins;Plug-ins
+Plugins;Plugins
 Power Saving;Power Saving
 Remove Input;Remove Input
 Reverse Order;Reverse Order
@@ -200,6 +199,7 @@ Next Letter;Next Letter
 Intro;Intro
 Insert Game;Insert Game
 Layout Options;Layout Options
+Plugin Options;Plugin Options
 Custom1;Custom1
 Custom2;Custom2
 Custom3;Custom3
@@ -304,7 +304,7 @@ Enter Romlist Name;Enter Romlist Name
 # -- Titles --
 _submenu;$1 > $2
 Configure Layout;Configure Layout
-Configure Plug-in;Configure Plug-in
+Configure Plugin;Configure Plugin
 Configure;Configure
 Display Edit;Display Edit
 Edit Artwork;Edit Artwork
@@ -386,6 +386,7 @@ _help_control_intro;Set the control(s) that show the intro video
 _help_control_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use "Microsoft X-Box 360 pad" as Joystick 0, for example.)
 _help_control_joystick_threshold;The threshold for registering joystick moves, from 1 to 100 (100=least sensitive)
 _help_control_layout_options;Set the control(s) that show the "Configure Layout" menu
+_help_control_plugin_options;Set the control(s) that show the "Configure Plugin" menu for the last viewed Plugin
 _help_control_left;Set the control(s) that move the selection left
 _help_control_mouse_threshold;The threshold for registering mouse moves, from 1 to 100 (100=least sensitive)
 _help_control_next_display;Set the control(s) that move to the next display
@@ -481,7 +482,7 @@ _help_main_display;Configure the romlist/layout groupings (a.k.a. "Displays") th
 _help_main_emu;Configure emulator settings
 _help_main_intro;Configure intro
 _help_main_misc;Configure general settings
-_help_main_plugin;Configure available plug-ins
+_help_main_plugin;Configure available plugins
 _help_main_scraper;Configure artwork scraper settings
 _help_main_screensaver_timeout;The amount of time in seconds to wait before switching to the screen saver.  0 to disable
 _help_main_screensaver;Configure screen saver
@@ -511,10 +512,10 @@ _help_misc_track_usage;Configure whether Attract-Mode Plus should track usage (p
 _help_misc_ui_color;Select the colour to use in Attract-Mode Plus's user interface
 _help_misc_video_decoder;Configure the decoder to use for video playback (if multiple decoders are available)
 _help_misc_window_mode;Set whether Attract-Mode Plus fills the screen or runs in a window
-_help_plugin_command;The executable associated with this plug-in
-_help_plugin_enabled;Set whether this plug-in is enabled
+_help_plugin_command;The executable associated with this plugin
+_help_plugin_enabled;Set whether this plugin is enabled
 _help_plugin_name;Configure Plugin
-_help_plugin_sel;Configure plug-in
+_help_plugin_sel;Configure plugin
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on

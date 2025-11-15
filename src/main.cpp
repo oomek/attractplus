@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
 	bool window_topmost = false;
 	std::vector<int> window_args = std::vector<int>();
 	int layout_sel = 0;
+	int plugin_sel = 0;
 
 #ifdef USE_LIBCURL
 	curl_global_init( CURL_GLOBAL_ALL );
@@ -821,6 +822,14 @@ int main(int argc, char *argv[])
 						redraw = true;
 					}
 					break;
+
+				case FeInputMap::PluginOptions:
+					{
+						if ( feOverlay.plugin_options_dialog( plugin_sel, c ) )
+							feVM.load_layout();
+						redraw = true;
+						break;
+					}
 
 				case FeInputMap::DisplaysMenu:
 					{

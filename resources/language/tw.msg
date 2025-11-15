@@ -81,7 +81,6 @@ Joystick Mappings;搖桿映射
 Joystick Threshold;搖桿靈敏度
 Language;語言
 Layout File;畫面佈局檔案
-Layout Options;畫面佈局選項
 Layout Preview;佈局預覽
 Layout;畫面佈局
 List Limit;清單大小限制
@@ -90,7 +89,7 @@ Menu Prompt;選單提示
 Menu Toggle;選單切換
 Mouse Threshold;滑鼠靈敏度
 Overview;簡介
-Plug-ins;外掛
+Plugins;外掛
 Power Saving;省電模式
 Remove Input;移除輸入按鍵
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Romlist Name;輸入遊戲清單名稱
 # -- Titles --
 #_submenu;
 Configure Layout;設定畫面佈局
-Configure Plug-in;設定外掛
+Configure Plugin;設定外掛
 Configure;設定
 Display Edit;顯示介面設定
 Edit Artwork;編輯插圖

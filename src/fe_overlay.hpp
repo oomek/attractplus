@@ -172,6 +172,7 @@ public:
 	bool config_dialog( int default_sel, FeInputMap::Command extra_exit );
 	bool edit_game_dialog( int default_sel, FeInputMap::Command extra_exit );
 	bool layout_options_dialog( bool preview, int &default_sel, FeInputMap::Command extra_exit );
+	bool plugin_options_dialog( int &default_sel, FeInputMap::Command extra_exit );
 	int languages_dialog();
 	int tags_dialog( int default_sel, FeInputMap::Command extra_exit );
 
