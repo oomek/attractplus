@@ -3692,7 +3692,6 @@ bool FeSettings::get_last_plugin( FePlugInfo *&plug, int &index )
 		for ( auto &plugin : plugins )
 		{
 			if ( !plugin.get_enabled() ) continue;
-			if ( m_last_plugin_name.compare( plugin.get_name() ) != 0 ) continue;
 			m_last_plugin_name = plugin.get_name();
 			break;
 		}
