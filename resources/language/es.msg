@@ -17,6 +17,8 @@ None;Ninguno
 OR;O
 #True;
 Yes;Si
+Import;Importar
+Cancel;Cancelar
 
 # -- misc --
 Press TAB to Configure;Pulse TAB para configurar
@@ -269,9 +271,12 @@ Generating Rom List;Generación de lista de roms
 #Scraping Artwork;
 
 # -- confirm_dialog --
-#Add '$1' to Favourites?;
-#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
-#Auto-detect emulators?;
+Add '$1' to Favourites?;¿Añadir '$1' a favoritos?
+Auto-detect emulators?;¿Detección automática de emuladores?
+Found 1 emulator;Se encontró 1 emulador
+Found $1 emulators;Encontrados $1 emuladores
+No emulators found;No se encontraron emuladores
++$1 more;+$1 más
 #Clear Hotkey?;
 Delete display '$1'?;¿Desea borrar la pantalla '$1'?
 Delete emulator '$1'?;¿Desea borrar el emulador '$1'?

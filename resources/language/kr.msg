@@ -17,6 +17,8 @@ None;0도
 OR;또는
 #True;
 Yes;예
+Import;수입
+Cancel;취소
 
 # -- misc --
 Press TAB to Configure;TAB을 눌러 구성하세요
@@ -270,8 +272,11 @@ Scraping Artwork;온라인에서 을 다운로드하는 중입니다
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;'$1' 게임을 즐겨하는 목록에 추가하겠습니까?
-#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
-#Auto-detect emulators?;
+Auto-detect emulators?;에뮬레이터를 자동으로 감지하시겠습니까?
+Found 1 emulator;에뮬레이터 1개를 찾았습니다
+Found $1 emulators;에뮬레이터 $1개를 찾았습니다
+No emulators found;에뮬레이터를 찾을 수 없습니다
++$1 more;+$1개 더
 #Clear Hotkey?;
 Delete display '$1'?;'$1' 목록을 제거하시겠습니까?
 Delete emulator '$1'?;'$1' 에뮬레이터를 삭제하시겠습니까?

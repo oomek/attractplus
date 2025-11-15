@@ -17,6 +17,8 @@ None;Nessuno
 OR;o
 #True;
 Yes;Si
+Import;Importare
+Cancel;Cancellare
 
 # -- misc --
 Press TAB to Configure;Premi TAB per configurare
@@ -270,8 +272,11 @@ Scraping Artwork;Sto recuperando le immagini
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Aggiungo '$1' ai preferiti?
-#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
-#Auto-detect emulators?;
+Auto-detect emulators?;Rilevamento automatico degli emulatori?
+Found 1 emulator;Trovato 1 emulatore
+Found $1 emulators;Trovati $1 emulatore
+No emulators found;Nessun emulatore trovato
++$1 more;+$1 altro
 #Clear Hotkey?;
 Delete display '$1'?;Cancello il display '$1'?
 Delete emulator '$1'?;Cancello l'emulatore '$1'?

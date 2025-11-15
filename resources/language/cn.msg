@@ -17,6 +17,8 @@ None;没有
 OR;或
 #True;
 Yes;是
+Import;进口
+Cancel;取消
 
 # -- misc --
 Press TAB to Configure;按 TAB 键进行配置
@@ -270,8 +272,11 @@ Scraping Artwork;正在搜刮 插图
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;添加 '$1' 到收藏？
-#Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;
-#Auto-detect emulators?;
+Auto-detect emulators?;自动检测模拟器？
+Found 1 emulator;找到 1 个模拟器
+Found $1 emulators;找到 $1 个模拟器
+No emulators found;未找到模拟器
++$1 more;还有$1个
 #Clear Hotkey?;
 Delete display '$1'?;删除 '$1' 界面?
 Delete emulator '$1'?;删除 '$1' 模拟器?
