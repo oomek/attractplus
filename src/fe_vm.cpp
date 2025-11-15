@@ -2066,7 +2066,7 @@ void FeVM::script_get_config_options(
 		{
 			fe_get_attribute_string( vm, uConfig.GetObject(), "", "help", gen_help );
 
-			// Now Construct the UI elements for plug-in/layout specific configuration
+			// Now Construct the UI elements for plugin/layout specific configuration
 			//
 			std::multimap<int,FeMenuOpt> my_opts;
 

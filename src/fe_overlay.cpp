@@ -1092,6 +1092,31 @@ bool FeOverlay::layout_options_dialog(
 	return settings_changed;
 }
 
+bool FeOverlay::plugin_options_dialog(
+	int &default_sel,
+	FeInputMap::Command extra_exit
+)
+{
+	FePlugInfo *plug;
+	int plug_index;
+	if ( !m_feSettings.get_last_plugin( plug, plug_index ) )
+		return false;
+
+	FePluginEditMenu m;
+	m.set_plugin( plug, plug_index );
+	bool settings_changed = false;
+
+	if ( display_config_dialog( &m, settings_changed, default_sel, extra_exit ) < 0 )
+		m_wnd.close();
+
+	default_sel = m.last_sel;
+
+	if ( settings_changed )
+		m_feSettings.save();
+
+	return settings_changed;
+}
+
 int FeOverlay::display_config_dialog(
 	FeBaseConfigMenu *m,
 	bool &parent_setting_changed )

@@ -81,7 +81,6 @@ Hide Brackets in Game Title;Nascondere le parentesi nei titoli
 Joystick Threshold;Soglia del joystick
 Language;Lingua
 #Layout File;
-Layout Options;Opzioni del tema
 Layout Preview;Anteprima del layout
 Layout;Tema
 List Limit;Límite della lista
@@ -90,7 +89,7 @@ Menu Prompt;Titolo del menù
 Menu Toggle;Menu Alterna
 Mouse Threshold;Soglia del mouse
 Overview;Panoramica
-Plug-ins;Plugin
+Plugins;Plugin
 #Power Saving;
 Remove Input;Eliminare il controllo
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Romlist Name;Inserisci il nome della Romlist
 # -- Titles --
 #_submenu;
 Configure Layout;Configura il tema
-Configure Plug-in;Configura i plugin
+Configure Plugin;Configura i plugin
 Configure;Configurazione
 Display Edit;Modifica il display
 Edit Artwork;Modifica risorsa immagini

@@ -81,7 +81,6 @@ Hide Brackets in Game Title;ゲームタイトルのブラケットを隠す
 Joystick Threshold;ジョイスティックの感度
 Language;言語
 #Layout File;
-Layout Options;レイアウト別設定
 Layout Preview;レイアウトのプレビュー
 Layout;レイアウットの名前
 List Limit;リストのサイズ限度
@@ -90,7 +89,7 @@ Menu Colour;メニューの色
 #Menu Toggle;
 Mouse Threshold;マウスの感度
 #Overview;
-Plug-ins;プラグイン
+Plugins;プラグイン
 #Power Saving;
 Remove Input;キー削除
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Filter Name;フィルターの名前を入れて下さい
 # -- Titles --
 #_submenu;
 #Configure Layout;
-Configure Plug-in;プラグインを設定
+Configure Plugin;プラグインを設定
 Configure;設定
 Display Edit;ディスプレイを設定
 Edit Artwork;アートワークを編集

@@ -81,7 +81,6 @@ Joystick Mappings;조이스틱 매핑
 Joystick Threshold;조이스틱 민감도
 Language;언어 설정
 #Layout File;
-Layout Options;레이아웃 별 옵션
 Layout Preview;레이아웃 미리보기
 Layout;레이아웃 이름
 List Limit;목록 크기 제한
@@ -90,7 +89,7 @@ Menu Prompt;화면에 표시할 메뉴 이름
 Menu Toggle;메뉴 토글
 Mouse Threshold;마우스 민감도
 Overview;설명
-Plug-ins;외부 플러그 인
+Plugins;외부 플러그 인
 #Power Saving;
 Remove Input;입력 삭제
 #Reverse Order;
@@ -298,7 +297,7 @@ Enter Romlist Name;새 롬 목록 이름을 입력하십시오
 # -- Titles --
 #_submenu;
 Configure Layout;레이아웃 설정
-Configure Plug-in;플러그 인 설정
+Configure Plugin;플러그 인 설정
 Configure;설정
 Display Edit;목록 편집
 Edit Artwork;아트워크 정보 편집

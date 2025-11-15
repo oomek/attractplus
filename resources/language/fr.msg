@@ -82,7 +82,6 @@ Hide Brackets in Game Title;Cacher les crochets dans le titre du jeu
 Joystick Threshold;Seuil du joystick
 Language;Langue
 #Layout File;
-Layout Options;Options du Layout
 Layout Preview;Aperçu de la mise en page
 Layout;Thème
 List Limit;taille maximum de la liste
@@ -91,7 +90,7 @@ Menu Colour;Couleur des menus
 Menu Toggle;Basculement de menu
 Mouse Threshold;Seuil de la souris
 #Overview;
-Plug-ins;Plug-in
+Plugins;Plugin
 #Power Saving;
 Remove Input;Enlever le contrôle
 #Reverse Order;
@@ -299,7 +298,7 @@ Enter Filter Name;Entrer le nom du filtre
 # -- Titles --
 #_submenu;
 #Configure Layout;
-Configure Plug-in;Configurer Plug-in
+Configure Plugin;Configurer Plugin
 Configure;Configuration
 Display Edit;Edition de la liste
 Edit Artwork;Modifier l'Artwork
@@ -471,7 +470,7 @@ _help_main_display;Configurer les listes d'affichage
 _help_main_emu;Configurer les émulateurs
 _help_main_intro;Configurer l'intro
 _help_main_misc;Configurations diverses
-_help_main_plugin;Configurer les plug-ins
+_help_main_plugin;Configurer les plugins
 _help_main_scraper;Configurer les parametres d'aspiration des artworks
 _help_main_screensaver_timeout;Temps total en seconde à attendre pour activer l'économiseur d'écran.  0 pour désactiver
 _help_main_screensaver;Configurer l'économiseur d'écran
@@ -499,10 +498,10 @@ _help_misc_track_usage;Active les compteurs d'Attract-Mode Plus (Compteur de jeu
 #_help_misc_ui_color;
 #_help_misc_video_decoder;
 _help_misc_window_mode;Définit si Attract-Mode Plus rempli l'écran, fonctionne en mode plein écran ou si il s'exécute dans une fenêtre.
-_help_plugin_command;Exécutable associé à ce plug-in
-_help_plugin_enabled;Indiquer si ce plug-in est activé
+_help_plugin_command;Exécutable associé à ce plugin
+_help_plugin_enabled;Indiquer si ce plugin est activé
 #_help_plugin_name;
-_help_plugin_sel;Configurer le plug-in
+_help_plugin_sel;Configurer le plugin
 _help_rule_comp;Règle de comparaison pour le filtre
 _help_rule_delete;Supprimer cette règle de filtrage
 _help_rule_target;L'attribut du jeu que vous souhaitez filtrer sur la base de
