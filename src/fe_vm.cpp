@@ -2574,16 +2574,14 @@ bool FeVM::internal_do_nut( const std::string &work_dir,
 
 bool FeVM::do_nut( const char *script_file )
 {
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
-
 	std::string path;
-	int script_id = fev->get_script_id();
 
-	if ( script_id < 0 )
-		fev->m_feSettings->get_path( FeSettings::Current, path );
-	else
-		fev->m_feSettings->get_plugin_full_path( script_id, path );
+	if ( is_relative_path( script_file ))
+	{
+		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC( "fe" )));
+		Sqrat::Object script_dir = fe.GetSlot( _SC( "script_dir" ));
+		fe_get_object_string( Sqrat::DefaultVM::Get(), script_dir.GetObject(), path );
+	}
 
 	bool found = internal_do_nut( path, script_file );
 
