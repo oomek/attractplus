@@ -324,7 +324,7 @@ public:
 		const std::string &value,
 		const std::string &fn );
 
-	int process_state( const std::string &state_string );
+	int process_state( const std::string &state_string, bool new_format = true );
 	std::string state_as_output() const;
 
 	void set_current_filter_index( int i ) { m_filter_index=i; };

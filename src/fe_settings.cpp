@@ -808,6 +808,10 @@ void FeSettings::load_displays_configs()
 
 	if ( file_exists( displays_file ) )
 	{
+		// Clear any displays that were loaded from attract.cfg
+		// since we're loading from the new displays.cfg format
+		m_displays.clear();
+
 		load_from_file( displays_file );
 		m_current_config_object = NULL;
 	}
@@ -935,8 +939,9 @@ void FeSettings::load_state()
 		token_helper( line, pos, tok, ";" );
 		m_menu_layout_file = tok;
 
-		// Build a map of display states by name
+		// Build a map of display states by name, and a vector for old indexed format
 		std::map<std::string, std::string> display_state_map;
+		std::vector<std::string> display_state_vec;
 
 		while ( myfile.good() )
 		{
@@ -945,26 +950,33 @@ void FeSettings::load_state()
 
 			if ( !state_line.empty() )
 			{
-				// Get display name
 				size_t semicolon = state_line.find(';');
 				if ( semicolon != std::string::npos )
 				{
-					std::string display_name = state_line.substr(0, semicolon);
-					display_state_map[display_name] = state_line;
-				}
-				else
-				{
-					// Fallback to old format without display name
-					int line_number = display_state_map.size();
-					if ( line_number < (int)m_displays.size() )
-						m_displays[line_number].process_state( state_line );
+					std::string first_field = state_line.substr(0, semicolon);
+
+					// Check if first field is a valid display name
+					bool is_display_name = false;
+					for ( std::vector<FeDisplayInfo>::iterator itl=m_displays.begin(); itl != m_displays.end(); ++itl )
+					{
+						if ( first_field == (*itl).get_info( FeDisplayInfo::Name ))
+						{
+							is_display_name = true;
+							break;
+						}
+					}
+
+					if ( is_display_name )
+						display_state_map[first_field] = state_line;
+					else
+						display_state_vec.push_back( state_line );
 				}
 			}
 		}
 
-		// Apply states by matching display names
+		// Apply states by matching display names (new format)
 		for ( std::vector<FeDisplayInfo>::iterator itl=m_displays.begin();
-					itl != m_displays.end(); ++itl )
+			itl != m_displays.end(); ++itl )
 		{
 			std::string display_name = (*itl).get_info( FeDisplayInfo::Name );
 			std::map<std::string, std::string>::iterator it = display_state_map.find( display_name );
@@ -973,6 +985,11 @@ void FeSettings::load_state()
 				(*itl).process_state( it->second );
 			}
 		}
+
+		// Apply states by index (old format)
+		if ( !display_state_vec.empty() )
+			for ( size_t i = 0; i < display_state_vec.size() && i < m_displays.size(); i++ )
+				m_displays[i].process_state( display_state_vec[i], false );
 	}
 
 	// bound checking on the current list state
