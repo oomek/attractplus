@@ -431,6 +431,7 @@ void FeSettings::clear()
 	m_current_config_object=NULL;
 	m_current_display = -1;
 
+	m_inputmap.clear();
 	m_displays.clear();
 	m_rl.clear_emulators();
 	m_plugins.clear();
