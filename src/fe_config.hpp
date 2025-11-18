@@ -201,7 +201,7 @@ public:
 	virtual bool save( FeConfigContext &ctx );
 
 	// When true will cause display_config_dialog to save and exit on every change
-	// Used to create "live" menus, such as Configure Layout
+	// Used to create "live" menus, such as Layout Options
 	// main.cpp must then re-display the menu until user explicitly exits
 	//
 	bool exit_on_change = false;

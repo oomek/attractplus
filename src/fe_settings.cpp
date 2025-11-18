@@ -182,9 +182,9 @@ const char *FeSettings::windowModeTokens[] =
 const char *FeSettings::windowModeDispTokens[] =
 {
 	"Fill Screen", // Default
-	"Fullscreen Mode",
+	"Fullscreen",
 	"Window",
-	"Window (No Border)",
+	"Borderless Window",
 	NULL
 };
 
@@ -218,9 +218,9 @@ const char *FeSettings::antialiasingTokens[] =
 const char *FeSettings::antialiasingDispTokens[] =
 {
 	"None", // Default
-	"MSAA x2",
-	"MSAA x4",
-	"MSAA x8",
+	"x2",
+	"x4",
+	"x8",
 	NULL
 };
 
@@ -370,7 +370,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_confirm_exit( true ),
 	m_layout_preview( false ),
 	m_custom_overlay( true ),
-	m_quick_menu( false ),
+	m_quick_menu( true ),
 	m_track_usage( true ),
 	m_multimon( false ),
 #if defined(SFML_SYSTEM_LINUX) || defined(FORCE_FULLSCREEN)

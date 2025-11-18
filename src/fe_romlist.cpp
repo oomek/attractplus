@@ -159,7 +159,7 @@ FeRomList::FeRomList( const std::string &config_path )
 	m_tags_changed( false ),
 	m_availability_checked( false ),
 	m_played_stats_checked( false ),
-	m_group_clones( false )
+	m_group_clones( true )
 {
 }
 
@@ -180,7 +180,7 @@ void FeRomList::init_as_empty_list()
 
 	m_availability_checked = false;
 	m_played_stats_checked = false;
-	m_group_clones = false;
+	m_group_clones = true;
 	m_fav_changed = false;
 	m_tags_changed = false;
 }

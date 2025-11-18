@@ -17,6 +17,8 @@ On;On
 OR;OR
 True;True
 Yes;Yes
+Import;Import
+Cancel;Cancel
 
 # -- misc --
 Press TAB to Configure;Press TAB to Configure
@@ -27,27 +29,26 @@ Add Emulator;Add Emulator
 Add Exception;Add Exception
 Add Filter;Add Filter
 Add Input;Add Input
-Add New Display;Add New Display
+Add Display;Add Display
 Add Rule;Add Rule
 Allow Exit;Allow Exit
 Anisotropic Filtering;Anisotropic Filtering
-Anti-Aliasing;Anti-Aliasing
+Anti-Aliasing (MSAA);Anti-Aliasing (MSAA)
 Artwork Label;Artwork Label
 Artwork Name;Artwork Name
 Artwork Path;Artwork Path
 Auto-detect Emulators;Auto-detect Emulators
 Check for Updates;Check for Updates
-Collection/Rom List;Collection/Rom List
+Collection/Romlist;Collection/Romlist
 Comparison;Comparison
 Confirm Exit;Confirm Exit
 Confirm Favourites;Confirm Favourites
 Controls;Controls
-Create new tag;Create new tag
+Add Tag;Add Tag
 Custom Arguments;Custom Arguments
 Custom Executable;Custom Executable
 Custom Overlay;Custom Overlay
 Default Action;Default Action
-Default Display Settings;Default Display Settings
 Delete this Display;Delete this Display
 Delete this Emulator;Delete this Emulator
 Delete this Filter;Delete this Filter
@@ -57,7 +58,7 @@ Delete this Shortcut;Delete this Shortcut
 Displays;Displays
 Emulator Name;Emulator Name
 Emulators;Emulators
-Enable Multiple Monitors;Enable Multiple Monitors
+Multiple Monitors;Multiple Monitors
 Enabled;Enabled
 Exception;Exception
 Exit Attract-Mode Plus;Exit Attract-Mode Plus
@@ -68,10 +69,10 @@ Filter Name;Filter Name
 Filter Value;Filter Value
 Filter Wrap Mode;Filter Wrap Mode
 Filter;Filter
-General;General
+Settings;Settings
 Global Filter;Global Filter
 Group Clones;Group Clones
-Hide Brackets in Game Title;Hide Brackets in Game Title
+Hide Game Title Brackets;Hide Game Title Brackets
 Format Game Title;Format Game Title
 Hide Console;Hide Console
 Image Cache Size;Image Cache Size
@@ -107,19 +108,20 @@ Scrape Videos (MAME only);Scrape Videos (MAME only)
 Scraper;Scraper
 Screen Rotation;Screen Rotation
 Screen Saver Timeout;Screen Saver Timeout
-Select template to use for emulator settings;Select template to use for emulator settings
 Selection Delay;Selection Delay
 Show in Cycle;Show in Cycle
 Show in Menu;Show in Menu
 Sort By;Sort By
+Sort Only;Sort Only
+Sort and Show;Sort and Show
 Sound;Sound
 Startup Mode;Startup Mode
 Target;Target
 Title;Title
-Track Usage;Track Usage
+Game Stats;Game Stats
 Video Decoder;Video Decoder
 Window Mode;Window Mode
-Wrote $1 entries to Collection/Rom List;Wrote $1 entries to Collection/Rom List
+Wrote $1 entries to Collection/Romlist;Wrote $1 entries to Collection/Romlist
 
 # -- indexStrings --
 Name;Name
@@ -236,9 +238,9 @@ White;White
 
 # --windowModeDispTokens --
 Fill Screen;Fill Screen
-Fullscreen Mode;Fullscreen Mode
+Fullscreen;Fullscreen
 Window;Window
-Window (No Border);Window (No Border)
+Borderless Window;Borderless Window
 
 # --screenRotationDispTokens --
 Flip;Flip
@@ -253,17 +255,6 @@ Wrap within Display;Wrap within Display
 Jump to Next Display;Jump to Next Display
 No Wrap;No Wrap
 
-# -- antialiasingDispTokens --
-MSAA x2;MSAA x2
-MSAA x4;MSAA x4
-MSAA x8;MSAA x8
-
-# -- FeSettings::anisotropicDispTokens --
-x2;x2
-x4;x4
-x8;x8
-x16;x16
-
 # -- settingDispStrings --
 Sound Volume;Sound Volume
 Ambient Volume;Ambient Volume
@@ -271,14 +262,17 @@ Movie Volume;Movie Volume
 Loudness Normalisation;Loudness Normalisation
 
 # -- splash_message --
-Generating Rom List;Generating Rom List
+Generating Romlist;Generating Romlist
 Please Wait;Please Wait
 Scraping Artwork;Scraping Artwork
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;Add '$1' to Favourites?
-Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?;Attract-Mode Plus detected emulator(s) that can be imported automatically.  Import them now?
 Auto-detect emulators?;Auto-detect emulators?
+Found 1 emulator;Found 1 emulator
+Found $1 emulators;Found $1 emulators
+No emulators found;No emulators found
++$1 more;+$1 more
 Clear Hotkey?;Clear Hotkey?
 Delete display '$1'?;Delete display '$1'?
 Delete emulator '$1'?;Delete emulator '$1'?
@@ -298,24 +292,22 @@ Press Input;Press Input
 Enter Display Name;Enter Display Name
 Enter Emulator Name;Enter Emulator Name
 Enter Filter Name;Enter Filter Name
-Enter new tag name;Enter new tag name
+Enter Tag Name;Enter Tag Name
 Enter Romlist Name;Enter Romlist Name
 
 # -- Titles --
-_submenu;$1 > $2
-Configure Layout;Configure Layout
-Configure Plugin;Configure Plugin
 Configure;Configure
-Display Edit;Display Edit
-Edit Artwork;Edit Artwork
-Edit Control;Edit Control
-Edit Emulator;Edit Emulator
-Edit Game;Edit Game
-Edit Shortcut;Edit Shortcut
-Exception Edit;Exception Edit
-Filter Edit;Filter Edit
-Generate Collection/Rom List;Generate Collection/Rom List
-Rule Edit;Rule Edit
+Default Display Options;Default Display Options
+Display Options;Display Options
+Artwork Options;Artwork Options
+Control Options;Control Options
+Emulator Options;Emulator Options
+Game Options;Game Options
+Shortcut Options;Shortcut Options
+Exception Options;Exception Options
+Filter Options;Filter Options
+Rule Options;Rule Options
+Generate Collection/Romlist;Generate Collection/Romlist
 
 # --indexDispStrings --
 Executable;Executable
@@ -385,8 +377,8 @@ _help_control_insert_game;Set the control(s) that insert a new game entry
 _help_control_intro;Set the control(s) that show the intro video
 _help_control_joystick_map;Map the frontend's joystick slots to specifically named joystick/gamepad devices attached to your computer (You can use this to force the frontend to always use "Microsoft X-Box 360 pad" as Joystick 0, for example.)
 _help_control_joystick_threshold;The threshold for registering joystick moves, from 1 to 100 (100=least sensitive)
-_help_control_layout_options;Set the control(s) that show the "Configure Layout" menu
-_help_control_plugin_options;Set the control(s) that show the "Configure Plugin" menu for the last viewed Plugin
+_help_control_layout_options;Set the control(s) that show the "Layout Options" menu
+_help_control_plugin_options;Set the control(s) that show the "Plugin Options" menu for the last viewed Plugin
 _help_control_left;Set the control(s) that move the selection left
 _help_control_mouse_threshold;The threshold for registering mouse moves, from 1 to 100 (100=least sensitive)
 _help_control_next_display;Set the control(s) that move to the next display
@@ -423,15 +415,15 @@ _help_display_add_filter;Add a filter to this display's filter set
 _help_display_add;Add a new display
 _help_display_delete;Delete this display
 _help_display_filter;Configure this filter from the display's filter set
-_help_display_global_filter;Configure global filter rules that are applied to every entry in this display's collection/rom list
-_help_display_in_cycle;Include this display in the "Previous Display"/"Next Display" cycle?
-_help_display_in_menu;Include this display in the "Displays Menu"?
+_help_display_global_filter;Configure global filter rules that are applied to every entry in this display's collection/romlist
+_help_display_in_cycle;Include this display in the "Previous Display"/"Next Display" cycle
+_help_display_in_menu;Include this display in the "Displays Menu"
 _help_display_layout_options;Configure any layout-specific options
 _help_display_layout;The layout to use for this display
 _help_display_name;The title for this display
-_help_display_romlist;The collection/rom list to use for this display
+_help_display_romlist;The collection/romlist to use for this display
 _help_display_sel;Configure display
-_help_display_edit_default;Configure the default settings to use for new Displays
+_help_display_edit_default;Configure the default options to use for new Displays
 _help_displaysmenu_exit;Configure whether an Exit option should be provided in the Displays Menu
 _help_displaysmenu_layout;The layout to use for the Displays Menu. Set to "Default" to use the frontend's built-in menu
 _help_displaysmenu_prompt;The Displays Menu prompt (i.e. "Select System")
@@ -442,9 +434,9 @@ _help_emu_delete;Delete the entry for this emulator
 _help_emu_executable;The full path and name of the emulator executable. Possible variables: $HOME = User's home dir, $PROGDIR = Attract-Mode Plus program dir. Windows OS additionally have %SYSTEMROOT% and %PROGRAMFILES% matching system environment variables.
 _help_emu_exit_hotkey;Set a global hotkey to exit the emulator.  Attract-Mode Plus will terminate the emulator process if this hotkey gets pressed
 _help_emu_gen_romlist;Generate a romlist by searching the configured rom path for roms with the configured extension, incorporating XML and additional import file information into the generated list (if available)
-_help_emu_import_extras;Path to any additional files that need to be read when generating a romlist for this emulator.  Supported files are: catver.ini (categories), nplayers.ini (number of players), series.ini (series), language.ini (language) and mame.xml.  Multiple file paths can be entered if separated by a semicolon
+_help_emu_import_extras;Path to any additional files that need to be read when generating a romlist for this emulator.  Supported files are: catver.ini (categories), nplayers.ini (number of players), series.ini (series), languages.ini (languages) and mame.xml.  Multiple file paths can be entered if separated by a semicolon
 _help_emu_info_source;Use "listxml" for mame -listxml output, "listsoftware" for mame/mess -listsoftware output, "thegamesdb.net" to scrape data from thegamesdb.net, "steam" to read from a steam installation, or "scummvm" if the emulator is scummvm.  "listsoftware" and "thegamesdb.net" also require that a System Identifier recognized by those sources be configured
-_help_emu_name;Edit Emulator
+_help_emu_name;Emulator Options
 _help_emu_nb_mode_wait;If this is non-zero, the emulator will be run in non-blocking mode.  The frontend will wait up to this number of seconds to lose focus to the emulator's window, and will wake up again when focus returns to the frontend's window.  This is necessary for launching programs like Steam correctly.  Should be 0 unless you know you need it
 _help_emu_pause_hotkey;Set a global hotkey to pause the emulator.  When pressed, Attract-Mode Plus will pause the emulator process and return to the frontend. The emulator process can be resumed by selecting the same game again in the frontend.
 _help_emu_romext;The rom extension(s) for this emulator (i.e. .zip).  Multiple extensions can be entered if separated by a semicolon.  Specify "<DIR>" as an entry if games are stored in separate subdirectories
@@ -461,9 +453,9 @@ _help_filter_delete;Delete this filter
 _help_filter_exception;Configure this filter exception.  If a game matches an exception it will be listed in the filter.  Rules and exceptions get applied in the order that they are listed
 _help_filter_list_limit;Set this to a non-zero value if you wish to limit the size of a sorted list.  Use a positive value for the first X entries (i.e. "10" gives the first 10 entries), a negative value for the last X entries (i.e. "-25" gives the last 25 entries), or "0" for no limit
 _help_filter_name;The name for this filter
-_help_filter_reverse_order;Reverse the order of the sorted collection/rom list.  Default order is "A to Z" for info, "Largest to Smallest" for stats, or the source list order for "No Sort"
+_help_filter_reverse_order;Reverse the order of the sorted collection/romlist.  Default order is "A to Z" for info, "Largest to Smallest" for stats, or the source list order for "No Sort"
 _help_filter_rule;Configure this filter rule.  A game must match all filter rules (or a single exception) to be listed in a filter
-_help_filter_sort_by;The game information attribute that you wish to sort the collection/rom list by.  Set to "No Sort" to keep the ordering from the source collection/rom list
+_help_filter_sort_by;The game information attribute that you wish to sort the collection/romlist by.  Set to "No Sort" to keep the ordering from the source collection/romlist
 _help_game_custom_args;Set this to override the default command line arguments for this game.  Set this to [nothing] if you want to override with no parameters.  The following get substituted appropriately: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
 _help_game_custom_executable;Set this to override the default executable for this game
 _help_game_delete;Delete this game from the Romlist
@@ -476,14 +468,14 @@ _help_input_add;Add a new input mapping for this control
 _help_input_default_action;Set the default behaviour for this control
 _help_input_delete;Remove this input mapping
 _help_layout_file;Some layouts provide multiple layout*.nut files.  Select which layout file to use
-_help_layout_name;Configure Layout
+_help_layout_name;Layout Options
 _help_main_control;Configure the joystick, keyboard and mouse inputs that control Attract-Mode Plus
 _help_main_display;Configure the romlist/layout groupings (a.k.a. "Displays") that are available to be cycled through in Attract-Mode Plus
-_help_main_emu;Configure emulator settings
-_help_main_intro;Configure intro
-_help_main_misc;Configure general settings
-_help_main_plugin;Configure available plugins
-_help_main_scraper;Configure artwork scraper settings
+_help_main_emu;Configure emulator options
+_help_main_intro;Configure intro options
+_help_main_options;Configure general options
+_help_main_plugin;Configure plugin options
+_help_main_scraper;Configure scraper options
 _help_main_screensaver_timeout;The amount of time in seconds to wait before switching to the screen saver.  0 to disable
 _help_main_screensaver;Configure screen saver
 _help_main_sound;Configure sound volumes, sound event mappings and the ambient soundtrack
@@ -514,8 +506,8 @@ _help_misc_video_decoder;Configure the decoder to use for video playback (if mul
 _help_misc_window_mode;Set whether Attract-Mode Plus fills the screen or runs in a window
 _help_plugin_command;The executable associated with this plugin
 _help_plugin_enabled;Set whether this plugin is enabled
-_help_plugin_name;Configure Plugin
-_help_plugin_sel;Configure plugin
+_help_plugin_name;Plugin Options
+_help_plugin_sel;Plugin Options
 _help_rule_comp;Comparison type for the filter
 _help_rule_delete;Delete this filter rule
 _help_rule_target;The game information attribute that you wish to filter based on
@@ -532,6 +524,26 @@ _help_shortcut_label;Edit this shortcut's label
 _help_shortcut_target;Edit this shortcut's target
 _help_sound_loudness_normalisation;Enable an audio effect that automatically boosts quiet media to a consistent volume level
 _help_sound_sel;Assign a sound to this event/action
-_help_sound_volume;Valid volume settings are from 0 (mute) to 100
+_help_sound_volume;Set the volume for this audio source
+
+# -- screensaver --
+
+Basic Movie;Basic Movie
+Movie Collage;Movie Collage
+Image Collage;Image Collage
+RGB Movie;RGB Movie
+Overlay Artwork;Overlay Artwork
+Play Sound;Play Sound
+Preserve Aspect Ratio;Preserve Aspect Ratio
+Blank Screen Time;Blank Screen Time
+Blank Screen Start Command;Blank Screen Start Command
+Blank Screen Stop Command;Blank Screen Stop Command
+Play intro;Play intro
+Detect aspect ratio;Detect aspect ratio
+Default video;Default video
+16:9 video;16:9 video
+4:3 video;4:3 video
+9:16 video;9:16 video
+3:4 video;3:4 video
 
 # -- extra --

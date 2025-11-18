@@ -2104,11 +2104,11 @@ void FeVM::script_get_config_options(
 					{
 						std::string temp;
 						token_helper( options, pos, temp, "," );
-						options_list.push_back( temp );
+						options_list.push_back(_( temp ));
 					} while ( pos < options.size() );
 
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::LIST, label, value, help, 0, key ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::LIST, _( label ), value, help, 0, key ) )
 					);
 
 					(*itx).second.append_vlist( options_list );
@@ -2116,25 +2116,25 @@ void FeVM::script_get_config_options(
 				else if ( is_input )
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::RELOAD, label, value, help, 1, key ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::RELOAD, _( label ), value, help, 1, key ) )
 					);
 				}
 				else if ( is_func )
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, label, "", help, 2, o_value ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::MENU, _( label ), "", help, 2, o_value ) )
 					);
 				}
 				else if ( is_info )
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::INFO, o_label, o_value, help, 0, "" ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::INFO, _( o_label ), o_value, help, 0, "" ) )
 					);
 				}
 				else
 				{
 					itx = my_opts.insert(
-						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::EDIT, label, value, help, 0, key ) )
+						std::pair<int, FeMenuOpt>( order, FeMenuOpt(Opt::EDIT, _( label ), value, help, 0, key ) )
 					);
 				}
 
@@ -2167,7 +2167,7 @@ namespace
 	{
 		generate_ui_info_struct *gi = (generate_ui_info_struct *)d;
 
-		gi->ov->splash_message( _( "Generating Rom List" ) + "\n" + gi->emu + " " + as_str( i ) + "%", aux );
+		gi->ov->splash_message( _( "Generating Romlist" ) + "\n" + gi->emu + " " + as_str( i ) + "%", aux );
 		return !gi->ov->check_for_cancel();
 	}
 };
@@ -3042,23 +3042,16 @@ const char *FeVM::cb_get_text( const char *t )
 	return retval.c_str();
 }
 
+// Draw the default layout when the user layout is empty
 void FeVM::init_with_default_layout()
 {
-	//
-	// Default to a full screen list with the
-	// configured movie artwork as the background
-	//
-	FeImage *img = cb_add_artwork( "", 0, 0,
-		m_layoutSize.x, m_layoutSize.y );
+	float flw = m_layoutSize.x;
+	float flh = m_layoutSize.y;
 
-	img->setTrigger( EndNavigation );
-	img->setColor( sf::Color( 100, 100, 100, 180 ) );
+	// Background movie artwork
+	FeImage *img = cb_add_artwork( "snap", 0, 0, flw, flh );
+	img->setColor( sf::Color( 255, 255, 255, 70 ) );
 
-	FeListBox *lbs = cb_add_listbox( 2, 2, m_layoutSize.x, m_layoutSize.y );
-	lbs->setColor( sf::Color::Black );
-	lbs->setSelColor( sf::Color::Black );
-	lbs->setSelBgColor( sf::Color::Transparent );
-
-	FeListBox *lb = cb_add_listbox( 0, 0, m_layoutSize.x, m_layoutSize.y );
-	lb->setSelBgColor( sf::Color( 0, 0, 255, 100 ) );
+	// Game listbox
+	FeListBox *lb = cb_add_listbox( 0, 0, flw, flh );
 }

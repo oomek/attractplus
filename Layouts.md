@@ -1328,7 +1328,7 @@ This class is a container for global layout settings. The instance of this class
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
--  `base_rotation` - Get the base orientation of Attract-Mode Plus which is set in General Settings. This property cannot be set from the script. This can be one of the following values:
+-  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
    -  `RotateScreen.Right`
    -  `RotateScreen.Flip`
@@ -1403,7 +1403,7 @@ This class is a container for overlay functionality. The instance of this class 
 
 -  `set_custom_controls( caption_text, options_listbox )`
 -  `set_custom_controls( caption_text )`
--  `set_custom_controls()` - Customise the overlay used for Display, Filter, Tag and Exit menus. The `caption_text` parameter is the [`fe.Text`](#fetext) object used to display the caption (i.e. `"Exit Attract-Mode Plus?"`). The `options_listbox` parameter is the [`fe.Listbox`](#felistbox) object used to display the overlay options. The `Configure > General > Custom Overlay` setting must be enabled to allow custom controls.
+-  `set_custom_controls()` - Customise the overlay used for Display, Filter, Tag and Exit menus. The `caption_text` parameter is the [`fe.Text`](#fetext) object used to display the caption (i.e. `"Exit Attract-Mode Plus?"`). The `options_listbox` parameter is the [`fe.Listbox`](#felistbox) object used to display the overlay options. The `Configure > Settings > Custom Overlay` setting must be enabled to allow custom controls.
 -  `clear_custom_controls()` - Tell the frontend that the layout will NOT do any custom control handling for overlay menus. This will result in the frontend using its built-in default menus instead for overlays.
 -  `list_dialog( options, title, default_sel, cancel_sel )`
 -  `list_dialog( options, title, default_sel )`
