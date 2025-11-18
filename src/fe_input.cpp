@@ -1176,6 +1176,16 @@ void FeInputMap::clear_tracked_keys()
 	m_tracked_keys.clear();
 }
 
+void FeInputMap::clear()
+{
+	m_single_map.clear();
+	m_inputs.clear();
+	m_defaults.clear();
+	m_tracked_keys.clear();
+	m_joy_config.clear();
+	m_mmove_count = 0;
+}
+
 FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
 {
 	FeInputSingle index( e, mc_rect, joy_thresh, has_focus );

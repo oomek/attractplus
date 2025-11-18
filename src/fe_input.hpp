@@ -210,6 +210,8 @@ public:
 	void initialize_mappings();
 	// clear m_tracked_keys (call when focus is lost to prevent holding expired keys)
 	void clear_tracked_keys();
+	// clear all mappings and tracked keys
+	void clear();
 
 	// fix mappings when joystick connected/disconnected
 	void on_joystick_connect();
