@@ -645,7 +645,7 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 			list.push_back( (*itr).second ? as_str( FE_TAG_PREFIX ) + "$1" : "$1" );
 			perform_substitution( list.back(), { (*itr).first } );
 		}
-		list.push_back( _( "Create new tag" ) );
+		list.push_back( _( "Add Tag" ) );
 		list.push_back( _( "Back") );
 
 		// Get the selection
@@ -658,9 +658,9 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 		}
 		else if ( sel == (int)list.size() - 2 )
 		{
-			// Create new tag
+			// Add Tag
 			std::string tag_name;
-			edit_dialog( _( "Enter new tag name" ), tag_name );
+			edit_dialog( _( "Enter Tag Name" ), tag_name );
 
 			if ( !tag_name.empty() )
 			{

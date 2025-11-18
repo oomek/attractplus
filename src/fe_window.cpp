@@ -236,7 +236,7 @@ void FeWindow::initial_create()
 		// then use the primary screen size as our OpenGL surface size and 'fillscreen' window
 		// size.
 		//
-		// We don't do this on "Fullscreen Mode", which has to be set to a valid videomode
+		// We don't do this on "Fullscreen", which has to be set to a valid videomode
 		// returned by SFML.
 
 		// Known issue: Linux Mint 18.3 Cinnamon w/ SFML 2.5.1, w/ fullscreen and multimon disabled:
@@ -309,13 +309,13 @@ void FeWindow::initial_create()
 	sf::Vector2i screen_size( vm.size.x, vm.size.y );
 
 	// Some Windows users are reporting emulators hanging/failing to get focus when launched
-	// from 'fullscreen' (fullscreen mode, fillscreen where window dimensions = screen dimensions)
+	// from 'fullscreen' (fullscreen, fillscreen where window dimensions = screen dimensions)
 	// They also report that the same emulator does work when the frontend is in one of its windowed
 	// modes.
 	//
 	// We work around this issue for these users by having the default "fillscreen" mode actually
 	// extend 1 pixel offscreen in each direction (-1, -1, scr_width+2, scr_height+2).  The expectation
-	// is that this will prevent Windows from giving the frontend window the "fullscreen mode" treatment
+	// is that this will prevent Windows from giving the frontend window the "fullscreen" treatment
 	// which seems to be the cause of this issue.  This is actually the same behaviour that earlier
 	// versions had (first by design, then by accident).
 	//
@@ -369,7 +369,7 @@ void FeWindow::initial_create()
 
 #if defined(SFML_SYSTEM_WINDOWS)
 
-	// If the window mode is set to Window (No Border) and the values in window.am
+	// If the window mode is set to Borderless Window and the values in window.am
 	// match the display resolution we treat it as if it was Fullscreen
 	// to properly handle borderless fulscreen optimizations.
 	// Required on Vista and above.
@@ -383,7 +383,7 @@ void FeWindow::initial_create()
 		&& ( screen_size.x == (int)vm.size.x )
 		&& ( screen_size.y == (int)vm.size.y ))
 		{
-			FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen mode." << std::endl;
+			FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen." << std::endl;
 			m_win_mode = FeSettings::Fullscreen;
 			wpos.x = 0;
 			wpos.y = 0;
@@ -490,7 +490,7 @@ void launch_callback( void *o )
 	if ( win->m_fes.get_window_mode() == FeSettings::Fullscreen )
 	{
 		//
-		// On X11 Linux, fullscreen mode is confirmed to block the emulator
+		// On X11 Linux, fullscreen is confirmed to block the emulator
 		// from running on some systems...
 		//
 #if defined(USE_XLIB)
@@ -689,7 +689,7 @@ bool FeWindow::run()
 	{
  #if defined(USE_XLIB)
 		//
-		// On X11 Linux fullscreen mode we might have forcibly closed our window after launching the
+		// On X11 Linux fullscreen we might have forcibly closed our window after launching the
 		// emulator. Recreate it now if we did.
 		//
 		// Note that simply hiding and then showing the window again doesn't work right... focus

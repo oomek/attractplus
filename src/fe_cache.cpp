@@ -21,7 +21,7 @@
 	- Configure
 		- Display > Global Filter (invalidate_display)
 		- Display > Filter (invalidate_filter)
-		- General > Group Clones (invalidate_display)
+		- Settings > Group Clones (invalidate_display)
 	- GUI Edit
 		- Edit Rom Info (invalidate_romlistmeta)
 		- Add / Remove Tag (invalidate_rominfo)

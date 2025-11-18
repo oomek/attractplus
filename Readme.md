@@ -105,11 +105,11 @@ The inputs used to control Attract-Mode Plus can be configured from from the `Co
 | LControl+Right    | Button A+Right    | Next Filter             |
 | LControl+Escape   | Button A+Button B | Toggle Favourite        |
 | Tab or Escape+Up  | Button B+Up       | Configure               |
-| Escape+Down       | Button B+Down     | Edit Game               |
+| Escape+Down       | Button B+Down     | Game Options            |
 
 ### Filters
 
-Filters are used to control what games are shown, how they are sorted, and how many are displayed. They can be added to a Display in `Configure > Displays > Display Edit > Add Filter`. Filters use list of `rules` and `exceptions` that the frontend steps through, in order, to determine whether or not to list a game. If a game does not match a `rule`, then it is not shown. If a game matches to an `exception`, then it gets listed no matter what (ignoring the rest of the rules in the filter). In other words, in order to be listed, a game has to match _all_ the rules or _just one_ of the exceptions configured for the filter.
+Filters are used to control what games are shown, how they are sorted, and how many are displayed. They can be added to a Display in `Configure > Displays > Display Options > Add Filter`. Filters use list of `rules` and `exceptions` that the frontend steps through, in order, to determine whether or not to list a game. If a game does not match a `rule`, then it is not shown. If a game matches to an `exception`, then it gets listed no matter what (ignoring the rest of the rules in the filter). In other words, in order to be listed, a game has to match _all_ the rules or _just one_ of the exceptions configured for the filter.
 
 For example, you might want to have a filter that only shows 1980's multiplayer sports games. This would be achieved by creating a filter with three rules:
 

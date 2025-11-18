@@ -584,7 +584,7 @@ public:
 		bool full );
 
 	//
-	// Save an updated rom in the current romlist file (used with "Edit Game" command)
+	// Save an updated rom in the current romlist file (used with "Game Options" command)
 	// original is assumed to be the currently selected rom
 	//
 	enum UpdateType { UpdateEntry, EraseEntry, InsertEntry };

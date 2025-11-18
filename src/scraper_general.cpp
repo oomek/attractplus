@@ -568,7 +568,7 @@ bool FeSettings::build_romlist( const std::vector< FeImportTask > &task_list,
 		if ( (*itr).task_type == FeImportTask::BuildRomlist )
 		{
 			// Build romlist task
-			FeLog() << "*** Generating Collection/Rom List: "
+			FeLog() << "*** Generating Collection/Romlist: "
 				<< (*itr).emulator_name << std::endl;
 
 			FeEmulatorInfo *emu = m_rl.get_emulator( (*itr).emulator_name );
@@ -599,7 +599,7 @@ bool FeSettings::build_romlist( const std::vector< FeImportTask > &task_list,
 		else if ( (*itr).task_type == FeImportTask::ImportRomlist )
 		{
 			// import romlist from file task
-			FeLog() << "*** Importing Collection/Rom List: "
+			FeLog() << "*** Importing Collection/Romlist: "
 				<< (*itr).file_name << std::endl;
 
 			FeRomInfoListType romlist;
@@ -789,7 +789,7 @@ bool FeSettings::build_romlist( const std::vector<std::string> &emu_list, const 
 		if ( emu == NULL )
 			continue;
 
-		FeLog() << "*** Generating Collection/Rom List: "
+		FeLog() << "*** Generating Collection/Romlist: "
 			<< emu->get_info( FeEmulatorInfo::Name ) << std::endl;
 
 		FeRomInfoListType romlist;
@@ -835,7 +835,7 @@ bool FeSettings::build_romlist( const std::vector<std::string> &emu_list, const 
 	write_romlist( filename, total_romlist );
 
 	msg = user_message.empty()
-		? _( "Wrote $1 entries to Collection/Rom List", { as_str( total_romlist.size() ) })
+		? _( "Wrote $1 entries to Collection/Romlist", { as_str( total_romlist.size() ) })
 		: user_message;
 
 	return !cancelled;

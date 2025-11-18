@@ -43,9 +43,12 @@ do
     [[ "$f" == "$master_msg" ]] && continue
     echo "- $f"
 
+    declare -A language
+    declare -A missing_value
+    declare -A missing_help
+
     # Read translations from the target file
     language_key=""
-    declare -A language
     while IFS=";" read -r key value; do
         if [[ -z "$language_key" && "${key:0:2}" == "#@" ]]; then
             language_key=$key
@@ -55,10 +58,10 @@ do
     done <<< $(tr -d '\r' < "$f")
 
     # Write the master structure using the given translations
-    # - Comments left as-is
-    # - Identical values will be cleared (ie: untranslated)
+    # - Master comments left as-is
+    # - Identical values will be cleared (ie: no-translation, or same as English)
     # - Missing values will be commented out
-    # - Will result in a line-for-line match with master
+    # - Will result in a line-for-line match with master (until extras below)
     echo -n "" > "$f"
     while IFS=";" read -r key value; do
         if [[ "$key" == "$master_key" ]]; then
@@ -70,6 +73,11 @@ do
                 echo "$key;${language[$key]}" >> "$f"
             else
                 echo "#$key;" >> "$f"
+                if [[ "${key:0:1}" == "_" ]]; then
+                    missing_help["$key"]=""
+                else
+                    missing_value["$key"]=""
+                fi
             fi
         fi
     done <<< $(tr -d '\r' < "$master_msg")
@@ -81,5 +89,25 @@ do
         fi
     done
 
+    # Write missing help to the end (duplicating them)
+    if [ ${#missing_help[@]} -gt 0 ]; then
+        echo "" >> "$f"
+        echo "# -- missing_help --" >> "$f"
+        for key in "${!missing_help[@]}"; do
+            echo "#$key;${master[$key]}" >> "$f"
+        done
+    fi
+
+    # Write missing value to the end (duplicating them)
+    if [ ${#missing_value[@]} -gt 0 ]; then
+        echo "" >> "$f"
+        echo "# -- missing_value --" >> "$f"
+        for key in "${!missing_value[@]}"; do
+            echo "#$key;" >> "$f"
+        done
+    fi
+
     unset language
+    unset missing_value
+    unset missing_help
 done
