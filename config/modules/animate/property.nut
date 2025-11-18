@@ -208,8 +208,8 @@ class PropertyAnimation extends Animation
         object.x = newX + ( origin.mx - scaleMidX ) + ( x - origin.x );
         object.y = newY + ( origin.my - scaleMidY ) + ( y - origin.y );
 
-        if ( FeVersionNum < 320 || !object.auto_width ) object.width = newWidth;
-        if ( FeVersionNum < 320 || !object.auto_height ) object.height = newHeight;
+        if ( FeVersionNum < 320 || !( "auto_width" in object.__getTable )) object.width = newWidth;
+        if ( FeVersionNum < 320 || !( "auto_height" in object.__getTable )) object.height = newHeight;
 
         object.rotation = rotation;
     }
