@@ -1,15 +1,25 @@
 # <img src="https://github.com/oomek/attractplus/blob/master/resources/images/Logo.png?raw=true" width="40" align="left"> Attract-Mode Plus Coding Reference
 
-> -  Features unique to Attract-Mode Plus are marked with a 🔶 symbol.
+> Get the [_AM+ Squirrel_][extension] extension for VS Code
+> <br><sup><sub>A suite of support tools to enhance your AM+ development experience. Code completions, highlighting, linting, formatting, and more!</sub></sup>
+
+[extension]: https://marketplace.visualstudio.com/items?itemName=chadnaut.am-squirrel
 
 ## Contents
 
+> Features unique to Attract-Mode Plus are marked with a 🔶 symbol.
+
 -  [Overview](#overview)
-   -  [Squirrel Language](#squirrel-language)
-   -  [Language Extensions](#language-extensions)
-   -  [Frontend Binding](#frontend-binding)
-   -  [Magic Tokens](#magic-tokens)
+   -  [Layout](#layout)
+   -  [Intro](#intro)
+   -  [Screensaver](#screensaver)
+   -  [Plugin](#plugin)
+   -  [Module](#module)
+-  [Squirrel Language](#squirrel-language)
+   -  [Extensions](#extensions)
+-  [Common Structures](#common-structures)
    -  [User Config](#user-config)
+   -  [Magic Tokens](#magic-tokens)
 -  [Functions](#functions)
    -  [`fe.add_image()`](#feadd_image)
    -  [`fe.add_artwork()`](#feadd_artwork)
@@ -81,34 +91,56 @@
 
 ## Overview
 
-The Attract-Mode Plus layout sets out what gets displayed to the user. Layouts consist of a `layout.nut` script file and a collection of related resources (images, other scripts, etc.) used by the script.
+### Layout
 
-Layouts are stored under the "layouts" subdirectory of the Attract-Mode Plus config directory. Each layout is stored in its own separate subdirectory or archive file (Attract-Mode Plus can read layouts and plugins directly from compressed archives, see [Language Extensions](#language-extensions) for supported formats).
+Layouts define what gets displayed to the user. They consist of a `layout.nut` file and a collection of related resources (images, other scripts, etc.). Layouts are located in the `layouts/` directory, each in its own separate subdirectory or [archive](#language-extensions).
 
-Each layout can have one or more `layout*.nut` script files. The "Toggle Layout" command in Attract-Mode Plus allows users to cycle between each of the `layout*.nut` script files located in the layout's directory. Attract-Mode Plus remembers the last layout file toggled to for each layout and will go back to that same file the next time the layout is loaded. This allows for variations of a particular layout to be implemented and easily selected by the user (for example, a layout could provide a `layout.nut` for horizontal monitor orientations and a `layout-vert.nut` for vertical).
+Layouts can have one or more `layout*.nut` files, which may be cycled between using the "Toggle Layout" command.
 
-The Attract-Mode Plus screen saver and intro modes are really just special case layouts. The screensaver gets loaded after a user-configured period of inactivity, while the intro mode gets run when the frontend first starts and exits as soon as any action is triggered (for example if the user hits the select button). The screen saver script is located in the `screensaver.nut` file stored in the "screensaver" subdirectory. The intro script is located in the `intro.nut` file stored in the "intro" subdirectory.
+```squirrel
+local flw = fe.layout.width
+local flh = fe.layout.height
 
-Plugins are similar to layouts in that they consist of at least one squirrel script file and a collection of related resources. Plugins are stored in the "plugins" subdirectory of the Attract-Mode Plus config directory. Plugins can be a single ".nut" file stored in this subdirectory. They can also have their own separate subdirectory or archive file (in which case the script itself needs to be in a file called `plugin.nut`).
+// Background movie artwork
+local img = fe.add_artwork( "snap", 0, 0, flw, flh )
+img.alpha = 70
+
+// Game listbox
+local lb = fe.add_listbox( 0, 0, flw, flh )
+```
+
+> _The default Layout - it doesn't get much simpler than this!_
+
+### Intro
+
+The `Intro` is a Layout that gets run when the frontend first starts, and exits as soon as any action is triggered, such as pressing the select button. The Intro script is located at `intro/intro.nut`.
+
+### Screensaver
+
+The `Screensaver` is a Layout that gets loaded after a user-configured period of inactivity. The Screensaver script is located at `screensaver/screensaver.nut`.
+
+### Plugin
+
+Plugins are Layouts that provide additional features to _every_ Display. Plugins are located in the `plugins/` directory, in a single `.nut` file, or in their own subdirectory (or archive) with a file named `plugin.nut`.
+
+### Module
+
+Modules are shared libraries that provide functionality to any Layout that requires it using [`fe.load_module()`](#feload_module). Modules are located in the `modules/` directory, in a single `.nut` file, or in their own subdirectory.
 
 ---
 
-### Squirrel Language
+## Squirrel Language
 
-Attract-Mode Plus layouts are scripts written in the Squirrel programming language. Squirrel's standard `Blob`, `IO`, `Math`, `String` and `System` library functions are available for use in a script. For more information on programming in Squirrel and using its standard libraries, consult the Squirrel manuals:
+Attract-Mode Plus Layouts are written in [Squirrel](http://www.squirrel-lang.org/), a high level imperative, object-oriented programming language. Squirrel's syntax is similar to C/C++/Java, but the language has a very dynamic nature like Python/Lua. For more information on programming in Squirrel consult the following resources:
 
 -  [Squirrel 3.0 Reference Manual](http://www.squirrel-lang.org/doc/squirrel3.html)
--  [Squirrel 3.0 Standard Library Manual](https://web.archive.org/web/20210730072847/http://www.squirrel-lang.org/doc/sqstdlib3.html)
+-  [Squirrel 3.0 Standard Library Manual](http://www.squirrel-lang.org/doc/sqstdlib3.html)
+-  [Introduction to Squirrel Programming](https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming)
+-  [AM+ Squirrel][extension] extension for VS Code
 
-Also check out the Introduction to Squirrel on the wiki:
+### Extensions
 
--  https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming
-
----
-
-### Language Extensions
-
-Attract-Mode Plus includes the following home-brewed extensions to the squirrel language and standard libraries:
+In addition to Squirrel's standard libraries `Blob`, `IO`, `Math`, `String` and `System`, Attract-Mode Plus provides the following extensions:
 
 -  `zip_extract_archive( zipfile, filename )` - Open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
 -  `zip_get_dir( zipfile )` - Return an array of the filenames contained in the `zipfile` archive file.
@@ -120,7 +152,7 @@ In addition to the standard `Math` library, the following methods are included:
 -  `ceil2( x )` - Ceils `x` to the nearest even integer
 -  `clamp( x, min, max )` - Clamps `x` between `min` and `max` (inclusive)
 -  `degrees( r )` - Converts `r` from radians to degrees
--  `exp2( x )` - Return `2` raised to the power of `x` (more performant than `pow( 2, x )`)
+-  `exp2( x )` - Return `2` raised to the power of `x`, more performant than `pow( 2, x )`
 -  `floor2( x )` - Floors `x` to the nearest even integer
 -  `fract( x )` - Returns a fractional part of `x`
 -  `hypot( x, y )` - Returns the hypotenuse of `x, y`
@@ -138,21 +170,65 @@ In addition to the standard `Math` library, the following methods are included:
 
 ---
 
-### Frontend Binding
+## Common Structures
 
-All of the functions, objects and classes that Attract-Mode Plus exposes to Squirrel are arranged under the `fe` table, which is bound to Squirrel's root table.
+### User Config
+
+Configuration settings can be added to a Layout/Plugin/Screensaver/Intro to provide users with customization options.
+
+Configurations are defined by a `UserConfig` class at the top of your script, where each property is an individual setting. Properties should be prefixed with an `</ attribute />` that describes how they are displayed, and their values can be retrieved using [`fe.get_config()`](#feget_config) or updated using [`fe.set_config()`](#feset_config-).
 
 ```squirrel
-fe.add_image( "bg.png", 0, 0 )
-local marquee = fe.add_artwork( "marquee", 256, 20, 512, 256 )
-marquee.set_rgb( 100, 100, 100 )
+class UserConfig </ help="Description" /> {
+  </ label="Choice", order=1, options="Yes,No" /> opt = "Yes"
+  </ label="String", order=2 /> val = "Default"
+}
+
+local config = fe.get_config()
+// config = { opt = "Yes", val = "Default" }
+```
+
+**Properties**
+
+-  `label` - [string] Text for the setting list item, if omitted the property id is used.
+-  `help` - [string] The message to display in the footer when the setting is selected.
+-  `order` - [integer] The list order of the setting.
+-  `per_display` - [boolean] When `true` the setting value will be unique to each display.
+
+The attribute may use **one** of the following properties to define its type:
+
+-  `options` - [string] Present the user with a choice, for example: `"Yes,No"`.
+-  `is_input` - [boolean] Prompt the user to press a key.
+-  `is_function` - [boolean] Call the function named by the property, see example below.
+-  `is_info` - [boolean] A readonly setting used for headings or separators.
+-  If none of the above are used a text input for keyboard entry will be displayed.
+
+**Callback**
+
+-  The `is_function` callback should be in the following form:
+
+```squirrel
+class UserConfig </ help="Description" /> {
+	</ label="String", order=1 /> val = "Default"
+	</ label="Action", order=2, is_function=true /> func = "callback"
+}
+
+// The parameter contains the fe.get_config() table
+function callback( config )
+{
+	// The config may be updated
+	config.val = ( config.val == "Default" ) ? "Changed" : "Default"
+
+	// The returned string is displayed in the help section
+	return "Success"
+}
 ```
 
 ---
 
 ### Magic Tokens
 
-Image names, as well as the messages displayed by Text and Listbox objects, can contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them as the user navigates the layout. For example, a Text message set to `"[Title]"` will be automatically updated with the appropriate game's Title.
+[`fe.Image`](#feimage) names, as well as the messages displayed by [`fe.Text`](#fetext) and [`fe.Listbox`](#felistbox) objects, can contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them as the user navigates the layout. For example, a Text message set to `"[Title]"` will be automatically updated with the appropriate game's Title.
 
 ```squirrel
 // A Text element that displays the current game's Title as well as it's List position
@@ -233,7 +309,7 @@ function copyright( index_offset, filter_offset )
 
   if (( m.len() > 0 ) && ( y.len() > 0 ))
   {
-    return "Copyright " + y + ", " + m
+	 return "Copyright " + y + ", " + m
   }
 
   return m
@@ -241,60 +317,6 @@ function copyright( index_offset, filter_offset )
 
 // A Text element displaying the copyright
 fe.add_text( "[!copyright]", 0, 0, 400, 20 )
-```
-
----
-
-### User Config
-
-Configuration settings can be added to a layout/plugin/screensaver/intro to provide users with customization options.
-
-Configurations are defined by a `UserConfig` class at the top of your script, where each property is an individual setting. Properties should be prefixed with an `</ attribute />` that describes how they are displayed, and their values can be retrieved using [`fe.get_config()`](#feget_config) or updated using [`fe.set_config()`](#feset_config-).
-
-```squirrel
-class UserConfig </ help="Description" /> {
-  </ label="Choice", order=1, options="Yes,No" /> opt = "Yes"
-  </ label="String", order=2 /> val = "Default"
-}
-
-local config = fe.get_config()
-// config = { opt = "Yes", val = "Default" }
-```
-
-**Properties**
-
--  `label` - [string] Text for the setting list item, if omitted the property id is used.
--  `help` - [string] The message to display in the footer when the setting is selected.
--  `order` - [integer] The list order of the setting.
--  `per_display` - [boolean] When `true` the setting value will be unique to each display.
-
-The attribute may use **one** of the following properties to define its type:
-
--  `options` - [string] Present the user with a choice, for example: `"Yes,No"`.
--  `is_input` - [boolean] Prompt the user to press a key.
--  `is_function` - [boolean] Call the function named by the property, see example below.
--  `is_info` - [boolean] A readonly setting used for headings or separators.
--  If none of the above are used a text input for keyboard entry will be displayed.
-
-**Callback**
-
--  The `is_function` callback should be in the following form:
-
-```squirrel
-class UserConfig </ help="Description" /> {
-	</ label="String", order=1 /> val = "Default"
-	</ label="Action", order=2, is_function=true /> func = "callback"
-}
-
-// The parameter contains the fe.get_config() table
-function callback( config )
-{
-	// The config may be updated
-	config.val = ( config.val == "Default" ) ? "Changed" : "Default"
-
-	// The returned string is displayed in the help section
-	return "Success"
-}
 ```
 
 ---
@@ -620,7 +642,7 @@ Register a function in your script to get transition callbacks. Transition callb
 
      if ( redraw_needed )
      {
-       return true
+   	 return true
      }
 
      return false
@@ -943,7 +965,7 @@ Register a function in your script to handle signals. Signals are sent whenever 
 
      if ( no_more_processing )
      {
-       return true
+   	 return true
      }
 
      return false
@@ -1664,9 +1686,9 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    {
      if (( ttype == Transition.FromOldSelection ) || ( ttype == Transition.ToNewList ))
      {
-       // dynamic art texture_width and texture_height are now available
-       art.subimg_height = texture_height * -1
-       art.subimg_y = texture_height
+   	 // dynamic art texture_width and texture_height are now available
+   	 art.subimg_height = texture_height * -1
+   	 art.subimg_y = texture_height
      }
    }
    ```
