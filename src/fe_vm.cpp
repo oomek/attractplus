@@ -450,6 +450,51 @@ void FeVM::vm_close()
 	}
 }
 
+namespace {
+	void register_libs( HSQUIRRELVM vm )
+	{
+		sqstd_register_bloblib( vm );
+		sqstd_register_iolib( vm );
+		sqstd_register_mathlib( vm );
+		sqstd_register_stringlib( vm );
+		sqstd_register_systemlib( vm );
+
+		fe_register_global_func( vm, zip_extract_file, "zip_extract_file" );
+		fe_register_global_func( vm, zip_get_dir, "zip_get_dir" );
+
+		Sqrat::RootTable rt = Sqrat::RootTable( vm );
+		rt.Func( _SC("sign"), &SqMath::sign );
+		rt.Func( _SC("round"), &SqMath::round );
+		rt.Func( _SC("round2"), &SqMath::round2 );
+		rt.Func( _SC("floor2"), &SqMath::floor2 );
+		rt.Func( _SC("ceil2"), &SqMath::ceil2 );
+		rt.Func( _SC("fract"), &SqMath::fract );
+		rt.Func( _SC("clamp"), &SqMath::clamp );
+		rt.Func( _SC("min"), &SqMath::min );
+		rt.Func( _SC("max"), &SqMath::max );
+		rt.Func( _SC("mix"), &SqMath::mix );
+		rt.Func( _SC("randomf"), &SqMath::randomf );
+		rt.Func( _SC("random"), &SqMath::random );
+		rt.Func( _SC("modulo"), &SqMath::modulo );
+		rt.Func( _SC("wrap"), &SqMath::modulo ); // alt
+		rt.Func( _SC("hypot"), &SqMath::hypot );
+		rt.Func( _SC("degrees"), &SqMath::degrees );
+		rt.Func( _SC("radians"), &SqMath::radians );
+		rt.Func( _SC("exp2"), &SqMath::exp2 );
+		rt.Func( _SC("log2"), &SqMath::log2 );
+		rt.Func( _SC("join"), &sq_join );
+
+		Sqrat::Class<Regexp2> regexp2( vm, _SC("regexp2"));
+		regexp2.Ctor<std::string>();
+		regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string, int)>(_SC("capture"), &Regexp2::capture);
+		regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string)>(_SC("capture"), &Regexp2::capture);
+		regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string, int)>(_SC("search"), &Regexp2::search);
+		regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string)>(_SC("search"), &Regexp2::search);
+		regexp2.Func(_SC("match"), &Regexp2::match);
+		rt.Bind(_SC("regexp2"), regexp2);
+	}
+}
+
 void FeVM::vm_init()
 {
 	vm_close();
@@ -457,40 +502,8 @@ void FeVM::vm_init()
 	sq_setprintfunc( vm, printFunc, printFunc );
 	sq_pushroottable( vm );
 	sq_setforeignptr( vm, this );
-
-	sqstd_register_bloblib( vm );
-	sqstd_register_iolib( vm );
-	sqstd_register_mathlib( vm );
-	sqstd_register_stringlib( vm );
-	sqstd_register_systemlib( vm );
+	register_libs( vm );
 	sqstd_seterrorhandlers( vm );
-
-	fe_register_global_func( vm, zip_extract_file, "zip_extract_file" );
-	fe_register_global_func( vm, zip_get_dir, "zip_get_dir" );
-
-	Sqrat::RootTable rt = Sqrat::RootTable( vm );
-	rt.Func( _SC("sign"), &SqMath::sign );
-	rt.Func( _SC("round"), &SqMath::round );
-	rt.Func( _SC("round2"), &SqMath::round2 );
-	rt.Func( _SC("floor2"), &SqMath::floor2 );
-	rt.Func( _SC("ceil2"), &SqMath::ceil2 );
-	rt.Func( _SC("fract"), &SqMath::fract );
-	rt.Func( _SC("clamp"), &SqMath::clamp );
-	rt.Func( _SC("min"), &SqMath::min );
-	rt.Func( _SC("max"), &SqMath::max );
-	rt.Func( _SC("mix"), &SqMath::mix );
-	rt.Func( _SC("randomf"), &SqMath::randomf );
-	rt.Func( _SC("random"), &SqMath::random );
-	rt.Func( _SC("modulo"), &SqMath::modulo );
-	rt.Func( _SC("wrap"), &SqMath::modulo ); // alt
-	rt.Func( _SC("hypot"), &SqMath::hypot );
-	rt.Func( _SC("degrees"), &SqMath::degrees );
-	rt.Func( _SC("radians"), &SqMath::radians );
-	rt.Func( _SC("exp2"), &SqMath::exp2 );
-	rt.Func( _SC("log2"), &SqMath::log2 );
-
-	rt.Func( _SC("join"), &sq_join );
-
 	Sqrat::DefaultVM::Set( vm );
 }
 
@@ -1135,15 +1148,6 @@ bool FeVM::on_new_layout()
 	SqratWrapperClass.Func( _SC("_nexti"), &SqratArrayWrapper::_nexti );
 	SqratWrapperClass.Func( _SC("len"), &SqratArrayWrapper::len );
 	fe.Bind( _SC("SqratArrayWrapper"), SqratWrapperClass );
-
-	Sqrat::Class<Regexp2> regexp2( vm, _SC("regexp2"));
-	regexp2.Ctor<std::string>();
-	regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string, int)>(_SC("capture"), &Regexp2::capture);
-	regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string)>(_SC("capture"), &Regexp2::capture);
-	regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string, int)>(_SC("search"), &Regexp2::search);
-	regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string)>(_SC("search"), &Regexp2::search);
-	regexp2.Func(_SC("match"), &Regexp2::match);
-	RootTable( vm ).Bind(_SC("regexp2"), regexp2);
 
 	//
 	// Define functions that get exposed to Squirrel
@@ -1818,11 +1822,7 @@ public:
 
 		if ( !limited )
 		{
-			sqstd_register_bloblib( m_vm );
-			sqstd_register_iolib( m_vm );
-			sqstd_register_mathlib( m_vm );
-			sqstd_register_stringlib( m_vm );
-			sqstd_register_systemlib( m_vm );
+			register_libs( m_vm );
 
 #if defined(FE_DEBUG) && defined(FE_DEBUG_USERCONFIG)
 			// THIS ERROR HANDLER IS INTENTIONALLY DISABLED
@@ -1833,9 +1833,6 @@ public:
 			// "AN ERROR HAS OCCURED [the index 'plugin' does not exist]"
 			sqstd_seterrorhandlers( m_vm );
 #endif
-
-			fe_register_global_func( m_vm, zip_extract_file, "zip_extract_file" );
-			fe_register_global_func( m_vm, zip_get_dir, "zip_get_dir" );
 		}
 
 		Sqrat::DefaultVM::Set( m_vm );
