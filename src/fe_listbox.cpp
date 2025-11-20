@@ -820,7 +820,7 @@ void FeListBox::set_rows(int r)
 	m_rows = r;
 
 	// To maintain legacy behavior, trigger m_selected_row re-calc on static row changes
-	if ( m_list_align == Static )
+	if ( m_mode == Static )
 		m_selected_row = -1;
 
 	if ( m_scripted )
