@@ -489,6 +489,7 @@ namespace {
 
 		Sqrat::Class<Regexp2> regexp2( vm, _SC("regexp2"));
 		regexp2.Ctor<std::string>();
+		regexp2.Ctor<std::string, std::string>();
 		regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string, int)>(_SC("capture"), &Regexp2::capture);
 		regexp2.Overload<Sqrat::Array(Regexp2::*)(std::string)>(_SC("capture"), &Regexp2::capture);
 		regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string, int)>(_SC("search"), &Regexp2::search);

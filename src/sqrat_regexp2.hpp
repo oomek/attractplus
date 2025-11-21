@@ -36,6 +36,7 @@ private:
 
 public:
 	Regexp2( const std::string pattern );
+	Regexp2( const std::string pattern, const std::string flags );
 	Sqrat::Array capture( const std::string str );
 	Sqrat::Array capture( const std::string str, const int start );
 	Sqrat::Table search( const std::string str );

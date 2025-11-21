@@ -62,7 +62,7 @@ void FeRomListSorter::init_title_rex()
 	const std::string re_mask = "^((?:Vs\\.\\s+)?(?:The\\s+)?)([^(/[]*)(.*)$";
 
 	try {
-		m_rex = std::regex( re_mask, std::regex::ECMAScript );
+		m_rex = std::regex( re_mask, std::regex_constants::ECMAScript | std::regex_constants::icase );
 		m_regex_compiled = true;
 	}
 	catch ( const std::regex_error& e )
