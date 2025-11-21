@@ -8,9 +8,9 @@ Default;Predefinito
 Disabled;Disabilitato
 Empty;Vuoto
 False;Falso
-#Multi;
+Multi;Multi
 No Sort;Nessun ordinamento
-#No;
+No;No
 None;Nessuno
 Off;Disattivato
 On;Attivato
@@ -80,7 +80,7 @@ Insert Command Shortcut;Inserisci scorciatoia di comando
 Insert Display Shortcut;Inserisci scorciatoia di visualizzazione
 Insert Game Entry;Inserisci voce di gioco
 Insert Menu Entry;Inserisci voce di menu
-#Joystick $1;
+Joystick $1;Joystick $1
 Joystick Mappings;Mappature joystick
 Joystick Threshold;Soglia del joystick
 Language;Lingua
@@ -121,7 +121,7 @@ Title;Titolo
 Game Stats;Statistiche di gioco
 Video Decoder;Decoder video
 Window Mode;Modalità finestra
-Wrote $1 entries to Collection/Romlist;$1 titoli scritti nella lista di ROM
+Added $1 Collection/Romlist entries;Aggiunte voci $1 Collection/Romlist
 
 # -- indexStrings --
 Name;Nome
@@ -139,7 +139,7 @@ DisplayCount;Contatore di display
 DisplayType;Tipo di display
 AltRomname;Nome alternativo della ROM
 AltTitle;Titolo alternativo
-#Extra;
+Extra;Extra
 Buttons;Pulsanti
 Series;Serie
 Language;Lingua
@@ -187,7 +187,7 @@ Exit to Desktop;Esci al desktop
 Reload Layout;Ricarica disposizione
 Reload Config;Configurazione di ricarica
 Reset Window;Reimposta finestra
-#Screenshot;
+Screenshot;Screenshot
 Random Game;Gioco casuale
 Replay Last Game;Esegui l'ultimo gioco
 Toggle Fullscreen;Attiva/disattiva schermo intero
@@ -230,7 +230,7 @@ Brown;Marrone
 Rust;Ruggine
 Red;Rosso
 Pink;Rosa
-#Magenta;
+Magenta;Magenta
 Purple;Viola
 Grey;Grigio
 Neutral;Neutro
@@ -281,8 +281,8 @@ Delete game '$1'?;Cancello il gioco '$1'?
 Delete shortcut '$1'?;Elimina collegamento '$1'?
 Overwrite existing '$1' list?;Sovrascrivere la lista '$1'?
 Remove '$1' from Favourites?;Elimino '$1' dai preferiti?
-Rom path '$1' not found, proceed anyways?;Percorso delle rom '$1' non trovato, continuare?
-This will overwrite an existing mapping ($1).  Proceed?;Sovrascrivere l'associazione esistente ($1)?
+Rom path '$1' not found, proceed?;Percorso ROM '$1' non trovato, procedere?
+Overwrite existing '$1' mapping?;Sovrascrivere la mappatura '$1' esistente?
 
 # --input_map_dialog --
 Press Hotkey;Premi il tasto di scelta rapida
@@ -323,7 +323,7 @@ Exit Hotkey; Tasto per uscire
 Pause Hotkey;Tasto di scelta rapida per la pausa
 
 # -- datetime --
-#_datetime;
+_datetime;%Y-%m-%d %H:%M:%S
 A Moment Ago;Un attimo fa
 Never;Mai
 $1 Second;$1 secondo
@@ -473,7 +473,7 @@ _help_main_control;Configura gli input di joystick, tastiera e mouse per control
 _help_main_display;I display sono associazioni lista di ROM/tema che possono essere utilizzati in Attract-Mode Plus per visualizzare liste di giochi e selezionare quello che si vuole giocare
 _help_main_emu;Configura le opzioni dell'emulatore
 _help_main_intro;Configura le opzioni di introduzione
-_help_main_options;Configura le opzioni generali
+_help_main_settings;Configura le opzioni generali
 _help_main_plugin;Configura le opzioni del plugin
 _help_main_scraper;Configura le opzioni dello scraper
 _help_main_screensaver_timeout;Numero di secondi da attendere prima di attivare il salvaschermo. Inserire 0 per disabilitarlo
@@ -547,14 +547,3 @@ Default video;Video predefinito
 3:4 video;Video 3:4
 
 # -- extra --
-
-# -- missing_help --
-#_datetime;%Y-%m-%d %H:%M:%S
-
-# -- missing_value --
-#Magenta;
-#Extra;
-#Joystick $1;
-#No;
-#Multi;
-#Screenshot;

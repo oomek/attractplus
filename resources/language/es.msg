@@ -80,7 +80,7 @@ Insert Command Shortcut;Insertar acceso directo a comandos
 Insert Display Shortcut;Insertar acceso directo a la pantalla
 Insert Game Entry;Insertar entrada de juego
 Insert Menu Entry;Insertar entrada de menú
-#Joystick $1;
+Joystick $1;Joystick $1
 Joystick Mappings;Asignación de joystick
 Joystick Threshold;Umbral de la palanca
 Language;Idioma
@@ -121,7 +121,7 @@ Title;Título
 Game Stats;Estadísticas del juego
 Video Decoder;Decodificador de vídeo
 Window Mode;Modo ventana
-Wrote $1 entries to Collection/Romlist;Se agregaron $1 entradas a la lista de roms
+Added $1 Collection/Romlist entries;Se añadieron $1 entradas a la colección/lista de ROMs
 
 # -- indexStrings --
 Name;Nombre
@@ -139,7 +139,7 @@ DisplayCount;Contador de pantalla
 DisplayType;Tipo de pantalla
 AltRomname;Nombre de rom alternativo
 AltTitle;Título alternativo
-#Extra;
+Extra;Extra
 Buttons;Botones
 Series;Serie
 Language;Idioma
@@ -230,7 +230,7 @@ Brown;Marrón
 Rust;Óxido
 Red;Rojo
 Pink;Rosa
-#Magenta;
+Magenta;Magenta
 Purple;Morado
 Grey;Gris
 Neutral;Neutro
@@ -281,8 +281,8 @@ Delete game '$1'?;¿Eliminar juego '$1'?
 Delete shortcut '$1'?;¿Eliminar acceso directo '$1'?
 Overwrite existing '$1' list?;¿Desea sobreescribir la lista de roms '$1'?
 Remove '$1' from Favourites?;¿Eliminar '$1' de favoritos?
-Rom path '$1' not found, proceed anyways?;Ruta de roms '$1' no encontrada, ¿desea continuar?
-This will overwrite an existing mapping ($1).  Proceed?;Esto sobreescribirá un mapeo de controles existente ($1). ¿Desea continuar?
+Rom path '$1' not found, proceed?;No se encontró la ruta de la ROM '$1', ¿continuar?
+Overwrite existing '$1' mapping?;¿Sobrescribir la asignación existente de '$1'?
 
 # --input_map_dialog --
 Press Hotkey;Pulsar tecla de acceso rápido
@@ -323,7 +323,7 @@ Exit Hotkey;Tecla rápida de salida
 Pause Hotkey;Pausar tecla de acceso rápido
 
 # -- datetime --
-#_datetime;
+_datetime;%Y-%m-%d %H:%M:%S
 A Moment Ago;Hace un momento
 Never;Nunca
 $1 Second;$1 segundo
@@ -473,7 +473,7 @@ _help_main_control;Configura las entradas de palanca, teclado y ratón que contr
 _help_main_display;Configura los grupos de lista de roms/temas ("Pantallas") que están disponibles para hacer circular enAttract-Mode Plus
 _help_main_emu;Configura las opciones del emulador
 _help_main_intro;Configura las opciones de introducción
-_help_main_options;Configura las opciones generales
+_help_main_settings;Configura las opciones generales
 _help_main_plugin;Configura las opciones del plugin
 _help_main_scraper;Configura las opciones del scraper
 _help_main_screensaver_timeout;Cantidad de tiempo en segundos a esperar antes de lanzar el protector de pantalla. 0 para deshabilitar
@@ -547,11 +547,3 @@ Default video;Vídeo predeterminado
 3:4 video;Vídeo 3:4
 
 # -- extra --
-
-# -- missing_help --
-#_datetime;%Y-%m-%d %H:%M:%S
-
-# -- missing_value --
-#Magenta;
-#Extra;
-#Joystick $1;

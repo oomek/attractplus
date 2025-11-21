@@ -17,7 +17,7 @@ On;Ein
 OR;ODER
 True;Wahr
 Yes;Ja
-#Import;
+Import;Import
 Cancel;Stornieren
 
 # -- misc --
@@ -68,7 +68,7 @@ Exit Message;Abschiedsnachricht
 Filter Name;Bezeichnung des Filters
 Filter Value;Filterwert
 Filter Wrap Mode;Rolliermodus des Filters
-#Filter;
+Filter;Filter
 Settings;Einstellungen
 Global Filter;Globaler Filter
 Group Clones;Gruppenklone
@@ -80,7 +80,7 @@ Insert Command Shortcut;füge eine Kommandoverknüpfung ein
 Insert Display Shortcut;füge eine Bildschirmverknüpfung hinzu
 Insert Game Entry;Setze Spieleintrag
 Insert Menu Entry;Setze Menüeintrag
-#Joystick $1;
+Joystick $1;Joystick $1
 Joystick Mappings;Joystick Belegung
 Joystick Threshold;Schwellwert Joystick
 Language;Sprache
@@ -93,7 +93,7 @@ Menu Prompt;Eingabeaufforderung
 Menu Toggle;Menü umschalten
 Mouse Threshold;Schwellwert Maus
 Overview;Übersicht
-#Plugins;
+Plugins;Plugins
 Power Saving;Energiesparmodus
 Remove Input;Steuerung löschen
 Reverse Order;Reihenfolge umkehren
@@ -105,7 +105,7 @@ Scrape Game Logos (Wheel Art);Scrape Spiele Logos (Wheel Art)
 Scrape Marquees;Laufschrift extrahieren
 Scrape Snaps;Snapshots extrahieren
 Scrape Videos (MAME only);Scrape Videos (nur für MAME)
-#Scraper;
+Scraper;Scraper
 Screen Rotation;Bildschirmdrehung
 Screen Saver Timeout;Timeout des Bildschirmschoners
 Selection Delay;Auswahlverzögerung
@@ -121,12 +121,12 @@ Title;Titel
 Game Stats;Spielstatistiken
 Video Decoder;Videodecoder
 Window Mode;Fenstermodus
-Wrote $1 entries to Collection/Romlist;$1 Einträge zur Romliste hinzugefügt
+Added $1 Collection/Romlist entries;$1 Sammlungs-/ROM-Listeneinträge hinzugefügt
 
 # -- indexStrings --
-#Name;
+Name;Name
 Title;Titel
-#Emulator;
+Emulator;Emulator
 CloneOf;Clone von
 Year;Jahr
 Manufacturer;Hersteller
@@ -134,16 +134,16 @@ Category;Kategorie
 Players;Spieler
 Rotation;Ausrichtung
 Control;Steuerung
-#Status;
+Status;Status
 DisplayCount;Anzahl Bildschirme
 DisplayType;Bildschirm Typ
 AltRomname;Alternativer Rom-Name
 AltTitle;Alternativer Titel
-#Extra;
+Extra;Extra
 Buttons;Tasten
 Series;Serie
 Language;Sprache
-#Region;
+Region;Region
 Rating;Bewertung
 Favourite;Favorit
 Tags;Markierungen
@@ -198,7 +198,7 @@ Add/Remove Tags;Markierungen hinzufügen/löschen
 Screen Saver;Bildschirmschoner
 Previous Letter;Voriger Buchstabe
 Next Letter;Nächster Buchstabe
-#Intro;
+Intro;Intro
 Insert Game;Spiel einfügen
 Layout Options;Themen Optionen
 Plugin Options;Plugin-Optionen
@@ -217,23 +217,23 @@ Startup Sound;Start-Klang
 Game Return Sound;Klang bei Rückkehr zum Spiel
 
 # --uiColorDispTokens --
-#Indigo;
+Indigo;Indigo
 Blue;Blau
-#Cyan;
+Cyan;Cyan
 Turquoise;Türkis
 Green;Grün
 Acid;Säure
-#Gold;
+Gold;Gold
 Yellow;Gelb
-#Orange;
+Orange;Orange
 Brown;Braun
-#Rust;
+Rust;Rust
 Red;Rot
-#Pink;
-#Magenta;
+Pink;Pink
+Magenta;Magenta
 Purple;Lila
 Grey;Grau
-#Neutral;
+Neutral;Neutral
 White;Weiß
 
 # --windowModeDispTokens --
@@ -281,8 +281,8 @@ Delete game '$1'?;Lösche Spiel '$1'?
 Delete shortcut '$1'?;Lösche Verknüpfung '$1'?
 Overwrite existing '$1' list?;Existierende Romliste '$1' überschreiben?
 Remove '$1' from Favourites?;Entferne '$1' aus den Favoriten?
-Rom path '$1' not found, proceed anyways?;ROM-Pfad '$1' nicht gefunden. Trotzdem fortfahren?
-This will overwrite an existing mapping ($1).  Proceed?;Dies überschreibt die existierende Zuordnung ($1). Fortfahren?
+Rom path '$1' not found, proceed?;ROM-Pfad '$1' nicht gefunden, fortfahren?
+Overwrite existing '$1' mapping?;Vorhandene Zuordnung '$1' überschreiben?
 
 # --input_map_dialog --
 Press Hotkey;betätige die Tastenkombination
@@ -323,11 +323,11 @@ Exit Hotkey;Hotkey zum Beenden
 Pause Hotkey;Pause Tastenkombination
 
 # -- datetime --
-#_datetime;
+_datetime;%Y-%m-%d %H:%M:%S
 A Moment Ago;Vor einem Moment
 Never;Nie
 $1 Second;$1 Sekunde
-#$1 Minute;
+$1 Minute;$1 Minute
 $1 Hour;$1 Stunde
 $1 Day;$1 Tag
 $1 Minute Ago;Vor $1 Minute
@@ -473,7 +473,7 @@ _help_main_control;Konfiguriere die Joystick-, Tastatur- und Maus-Eingaben die A
 _help_main_display;Konfiguriere die Romlisten/Themen-Gruppierungen (die "Bildschirme") welche in Attract-Mode Plus zum Durchblättern verfügbar sind
 _help_main_emu;Emulator-Optionen konfigurieren
 _help_main_intro;Optionen für die Einleitung konfigurieren
-_help_main_options;Allgemeine Optionen konfigurieren
+_help_main_settings;Allgemeine Optionen konfigurieren
 _help_main_plugin;Plugin-Optionen konfigurieren
 _help_main_scraper;Scraper-Optionen konfigurieren
 _help_main_screensaver_timeout;Die Wartezeit in Sekunden, bevor der Bildschirmschoner aktiv wird. 0 zum Deaktivieren
@@ -547,28 +547,3 @@ Default video;Standardvideo
 3:4 video;3:4-Video
 
 # -- extra --
-
-# -- missing_help --
-#_datetime;%Y-%m-%d %H:%M:%S
-
-# -- missing_value --
-#Status;
-#Name;
-#Cyan;
-#$1 Minute;
-#Magenta;
-#Neutral;
-#Extra;
-#Indigo;
-#Joystick $1;
-#Gold;
-#Import;
-#Pink;
-#Orange;
-#Region;
-#Emulator;
-#Intro;
-#Filter;
-#Scraper;
-#Plugins;
-#Rust;

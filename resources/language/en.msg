@@ -121,7 +121,7 @@ Title;Title
 Game Stats;Game Stats
 Video Decoder;Video Decoder
 Window Mode;Window Mode
-Wrote $1 entries to Collection/Romlist;Wrote $1 entries to Collection/Romlist
+Added $1 Collection/Romlist entries;Added $1 Collection/Romlist entries
 
 # -- indexStrings --
 Name;Name
@@ -281,8 +281,8 @@ Delete game '$1'?;Delete game '$1'?
 Delete shortcut '$1'?;Delete shortcut '$1'?
 Overwrite existing '$1' list?;Overwrite existing '$1' list?
 Remove '$1' from Favourites?;Remove '$1' from Favourites?
-Rom path '$1' not found, proceed anyways?;Rom path '$1' not found, proceed anyways?
-This will overwrite an existing mapping ($1).  Proceed?;This will overwrite an existing mapping ($1).  Proceed?
+Rom path '$1' not found, proceed?;Rom path '$1' not found, proceed?
+Overwrite existing '$1' mapping?;Overwrite existing '$1' mapping?
 
 # --input_map_dialog --
 Press Hotkey;Press Hotkey
@@ -473,7 +473,7 @@ _help_main_control;Configure the joystick, keyboard and mouse inputs that contro
 _help_main_display;Configure the romlist/layout groupings (a.k.a. "Displays") that are available to be cycled through in Attract-Mode Plus
 _help_main_emu;Configure emulator options
 _help_main_intro;Configure intro options
-_help_main_options;Configure general options
+_help_main_settings;Configure general options
 _help_main_plugin;Configure plugin options
 _help_main_scraper;Configure scraper options
 _help_main_screensaver_timeout;The amount of time in seconds to wait before switching to the screen saver.  0 to disable

@@ -23,7 +23,7 @@ Cancel;Annuler
 # -- misc --
 Press TAB to Configure;Appuyez sur TAB pour configurer
 Displays Menu Options;Afficher les options du menu
-#Action;
+Action;Action
 Add Artwork;Ajouter Artwork
 Add Emulator;Ajouter un émulateur
 Add Exception;Ajouter une exception
@@ -60,7 +60,7 @@ Emulator Name;Nom de l'émulateur
 Emulators;Emulateurs
 Multiple Monitors;Plusieurs Moniteurs
 Enabled;Activé
-#Exception;
+Exception;Exception
 Exit Attract-Mode Plus;Quitter Attract-Mode Plus
 Exit Attract-Mode Plus?;Quitter Attract-Mode Plus?
 Exit Command;Commande de sortie
@@ -93,7 +93,7 @@ Menu Prompt;Invite de menu
 Menu Toggle;Basculement de menu
 Mouse Threshold;Seuil de la souris
 Overview;Aperçu
-#Plugins;
+Plugins;Plugins
 Power Saving;Économie d'énergie
 Remove Input;Enlever le contrôle
 Reverse Order;Ordre inverse
@@ -121,7 +121,7 @@ Title;Titre
 Game Stats;Statistiques du jeu
 Video Decoder;Décodeur vidéo
 Window Mode;Mode d'affichage
-Wrote $1 entries to Collection/Romlist;Création de $1 entrées dans la liste de ROM
+Added $1 Collection/Romlist entries;Ajout d'entrées à la collection/liste des ROMs $1
 
 # -- indexStrings --
 Name;Nom
@@ -132,7 +132,7 @@ Year;Année
 Manufacturer;Fabriquant
 Category;Catégorie
 Players;Joueurs
-#Rotation;
+Rotation;Rotation
 Control;Contrôle
 Status;État
 DisplayCount;Afficher compteur
@@ -217,20 +217,20 @@ Startup Sound;Son au démarrage
 Game Return Sound;Son au retour du jeu
 
 # --uiColorDispTokens --
-#Indigo;
+Indigo;Indigo
 Blue;Bleu
-#Cyan;
-#Turquoise;
+Cyan;Cyan
+Turquoise;Turquoise
 Green;Vert
 Acid;Acide
 Gold;Or
 Yellow;Jaune
-#Orange;
+Orange;Orange
 Brown;Marron
 Rust;Rouille
 Red;Rouge
 Pink;Rose
-#Magenta;
+Magenta;Magenta
 Purple;Violet
 Grey;Gris
 Neutral;Neutre
@@ -281,8 +281,8 @@ Delete game '$1'?;Supprimer le jeu «$1»?
 Delete shortcut '$1'?;Supprimer le raccourci «$1»?
 Overwrite existing '$1' list?;Ecraser la liste de ROM «$1» existante?
 Remove '$1' from Favourites?;Supprimer «$1» des favoris?
-Rom path '$1' not found, proceed anyways?;Chemin des ROM «$1» introuvable, continuer?
-This will overwrite an existing mapping ($1).  Proceed?;Ecraser le contrôle existant ($1). Confirmer?
+Rom path '$1' not found, proceed?;Chemin ROM «$1» introuvable, continuer?
+Overwrite existing '$1' mapping?;Écraser le mappage «$1» existant?
 
 # --input_map_dialog --
 Press Hotkey;Appuyer sur la touche de raccourci
@@ -323,7 +323,7 @@ Exit Hotkey;Raccourci clavier pour sortir
 Pause Hotkey;Touche de raccourci Pause
 
 # -- datetime --
-#_datetime;
+_datetime;%Y-%m-%d %H:%M:%S
 A Moment Ago;Il y a un instant
 Never;Jaune
 $1 Second;$1 seconde
@@ -473,7 +473,7 @@ _help_main_control;Configurer les contrôles
 _help_main_display;Configurer les listes d'affichage
 _help_main_emu;Configurer les options de l'émulateur
 _help_main_intro;Configurer les options d'introduction
-_help_main_options;Configurer les options générales
+_help_main_settings;Configurer les options générales
 _help_main_plugin;Configurer les options des plugins
 _help_main_scraper;Configurer les options du scraper
 _help_main_screensaver_timeout;Temps total en seconde à attendre pour activer l'économiseur d'écran.  0 pour désactiver
@@ -547,17 +547,3 @@ Default video;Vidéo par défaut
 3:4 video;Vidéo 3:4
 
 # -- extra --
-
-# -- missing_help --
-#_datetime;%Y-%m-%d %H:%M:%S
-
-# -- missing_value --
-#Rotation;
-#Cyan;
-#Magenta;
-#Indigo;
-#Orange;
-#Exception;
-#Action;
-#Turquoise;
-#Plugins;

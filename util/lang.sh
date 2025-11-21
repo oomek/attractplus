@@ -58,20 +58,25 @@ do
     done <<< $(tr -d '\r' < "$f")
 
     # Write the master structure using the given translations
-    # - Master comments left as-is
-    # - Identical values will be cleared (ie: no-translation, or same as English)
-    # - Missing values will be commented out
-    # - Will result in a line-for-line match with master (until extras below)
     echo -n "" > "$f"
     while IFS=";" read -r key value; do
         if [[ "$key" == "$master_key" ]]; then
+            # The #@Language header at the top of the file
             echo "$language_key" >> "$f"
         elif [[ -z "$key" || "${key:0:1}" == "#" ]]; then
+            # Master comments left as-is
             echo "$key" >> "$f"
         else
-            if [[ -v language['$key'] && "$value" != "${language[$key]}" ]]; then
-                echo "$key;${language[$key]}" >> "$f"
+            if [[ -v language['$key'] ]]; then
+                if [[ "$value" != "${language[$key]}" ]]; then
+                    # Transition is same as English
+                    echo "$key;${language[$key]}" >> "$f"
+                else
+                    # Translation found
+                    echo "$key;${language[$key]}" >> "$f"
+                fi
             else
+                # Missing translation commented out
                 echo "#$key;" >> "$f"
                 if [[ "${key:0:1}" == "_" ]]; then
                     missing_help["$key"]=""
