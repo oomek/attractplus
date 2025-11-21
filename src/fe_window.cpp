@@ -335,6 +335,8 @@ void FeWindow::initial_create()
 	if ( is_windowed_mode( m_win_mode ) )
 	{
 		std::vector<int> args = m_fes.get_window_args();
+		int monitor_width = (int)vm.size.x;
+		int monitor_height = (int)vm.size.y;
 
 		// Use position provided by commandline args
 		if (args.size() == 4)
@@ -347,8 +349,6 @@ void FeWindow::initial_create()
 		{
 			// Load the parameters from the window.am file
 			// - Default to a centered 4:3 window (3:4 on vertical monitors) at 3/4 screen height
-			int monitor_width = (int)vm.size.x;
-			int monitor_height = (int)vm.size.y;
 			bool vert = monitor_height > monitor_width;
 			int h = std::max( monitor_height * 3 / 4, 240 );
 			int w = std::max( vert ? h * 3 / 4 : h * 4 / 3, 320 );
@@ -363,6 +363,23 @@ void FeWindow::initial_create()
 			vm.size.x = win_pos.m_size.x;
 			vm.size.y = win_pos.m_size.y;
 		}
+
+#ifdef SFML_SYSTEM_WINDOWS
+		sf::Rect<int> vm_rect(
+			{ GetSystemMetrics( SM_XVIRTUALSCREEN ), GetSystemMetrics( SM_YVIRTUALSCREEN ) },
+			{ GetSystemMetrics( SM_CXVIRTUALSCREEN ), GetSystemMetrics( SM_CYVIRTUALSCREEN ) }
+		);
+#else
+		sf::Rect<int> vm_rect( { 0, 0 }, { monitor_width, monitor_height });
+#endif
+
+		// Reset the window position if it's completely outside the virtual screen
+		// - Usually occurs when the hardware has changed, ie: Un-docking a laptop
+		// - NOTE: Window may still hide in part of the virtual screen thats off-monitor
+		// - TODO: Enumerate and check all individual monitors
+		sf::Rect<int> window_rect( wpos, sf::Vector2i( vm.size ) );
+		if ( !window_rect.findIntersection( vm_rect ) )
+			wpos = { 0, 0 };
 	}
 
 	sf::Vector2i wsize( vm.size.x, vm.size.y );
