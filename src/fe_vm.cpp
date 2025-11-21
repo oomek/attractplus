@@ -487,6 +487,89 @@ namespace {
 		rt.Func( _SC("log2"), &SqMath::log2 );
 		rt.Func( _SC("join"), &sq_join );
 
+		Sqrat::Table ease( vm );
+		rt.Bind( _SC("ease"), ease );
+		ease.Func( _SC("linear"), &SqEase::linear );
+		ease.Func( _SC("in_quad"), &SqEase::in_quad );
+		ease.Func( _SC("in_cubic"), &SqEase::in_cubic );
+		ease.Func( _SC("in_quart"), &SqEase::in_quart );
+		ease.Func( _SC("in_quint"), &SqEase::in_quint );
+		ease.Func( _SC("in_sine"), &SqEase::in_sine );
+		ease.Func( _SC("in_expo"), &SqEase::in_expo );
+		ease.Func( _SC("in_expo2"), &SqEase::in_expo2 );
+		ease.Func( _SC("in_circ"), &SqEase::in_circ );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_elastic2"), &SqEase::in_elastic2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_elastic2"), &SqEase::in_elastic2 );
+		ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("in_elastic"), &SqEase::in_elastic );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_elastic"), &SqEase::in_elastic );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_back"), &SqEase::in_back );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_back"), &SqEase::in_back );
+		ease.Func( _SC("in_back2"), &SqEase::in_back2 );
+		ease.Func( _SC("in_bounce"), &SqEase::in_bounce );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_bounce2"), &SqEase::in_bounce2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_bounce2"), &SqEase::in_bounce2 );
+
+		ease.Func( _SC("out_quad"), &SqEase::out_quad );
+		ease.Func( _SC("out_cubic"), &SqEase::out_cubic );
+		ease.Func( _SC("out_quart"), &SqEase::out_quart );
+		ease.Func( _SC("out_quint"), &SqEase::out_quint );
+		ease.Func( _SC("out_sine"), &SqEase::out_sine );
+		ease.Func( _SC("out_expo"), &SqEase::out_expo );
+		ease.Func( _SC("out_expo2"), &SqEase::out_expo2 );
+		ease.Func( _SC("out_circ"), &SqEase::out_circ );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_elastic2"), &SqEase::out_elastic2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_elastic2"), &SqEase::out_elastic2 );
+		ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("out_elastic"), &SqEase::out_elastic );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_elastic"), &SqEase::out_elastic );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_back"), &SqEase::out_back );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_back"), &SqEase::out_back );
+		ease.Func( _SC("out_back2"), &SqEase::out_back2 );
+		ease.Func( _SC("out_bounce"), &SqEase::out_bounce );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_bounce2"), &SqEase::out_bounce2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_bounce2"), &SqEase::out_bounce2 );
+
+		ease.Func( _SC("in_out_quad"), &SqEase::in_out_quad );
+		ease.Func( _SC("in_out_cubic"), &SqEase::in_out_cubic );
+		ease.Func( _SC("in_out_quart"), &SqEase::in_out_quart );
+		ease.Func( _SC("in_out_quint"), &SqEase::in_out_quint );
+		ease.Func( _SC("in_out_sine"), &SqEase::in_out_sine );
+		ease.Func( _SC("in_out_expo"), &SqEase::in_out_expo );
+		ease.Func( _SC("in_out_expo2"), &SqEase::in_out_expo2 );
+		ease.Func( _SC("in_out_circ"), &SqEase::in_out_circ );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_out_elastic2"), &SqEase::in_out_elastic2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_out_elastic2"), &SqEase::in_out_elastic2 );
+		ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("in_out_elastic"), &SqEase::in_out_elastic );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_out_elastic"), &SqEase::in_out_elastic );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_out_back"), &SqEase::in_out_back );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_out_back"), &SqEase::in_out_back );
+		ease.Func( _SC("in_out_back2"), &SqEase::in_out_back2 );
+		ease.Func( _SC("in_out_bounce"), &SqEase::in_out_bounce );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("in_out_bounce2"), &SqEase::in_out_bounce2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("in_out_bounce2"), &SqEase::in_out_bounce2 );
+
+		ease.Func( _SC("out_in_quad"), &SqEase::out_in_quad );
+		ease.Func( _SC("out_in_cubic"), &SqEase::out_in_cubic );
+		ease.Func( _SC("out_in_quart"), &SqEase::out_in_quart );
+		ease.Func( _SC("out_in_quint"), &SqEase::out_in_quint );
+		ease.Func( _SC("out_in_sine"), &SqEase::out_in_sine );
+		ease.Func( _SC("out_in_expo"), &SqEase::out_in_expo );
+		ease.Func( _SC("out_in_expo2"), &SqEase::out_in_expo2 );
+		ease.Func( _SC("out_in_circ"), &SqEase::out_in_circ );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_in_elastic2"), &SqEase::out_in_elastic2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_elastic2"), &SqEase::out_in_elastic2 );
+		ease.Overload<float (*)(float, float, float, float, float, float)>( _SC("out_in_elastic"), &SqEase::out_in_elastic );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_elastic"), &SqEase::out_in_elastic );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_in_back"), &SqEase::out_in_back );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_back"), &SqEase::out_in_back );
+		ease.Func( _SC("out_in_back2"), &SqEase::out_in_back2 );
+		ease.Func( _SC("out_in_bounce"), &SqEase::out_in_bounce );
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("out_in_bounce2"), &SqEase::out_in_bounce2 );
+		ease.Overload<float (*)(float, float, float, float)>( _SC("out_in_bounce2"), &SqEase::out_in_bounce2 );
+
+		ease.Overload<float (*)(float, float, float, float, float)>( _SC("steps"), &SqEase::steps );
+		ease.Overload<float (*)(float, float, float, float, float, int)>( _SC("steps"), &SqEase::steps );
+		ease.Func( _SC("cubic_bezier"), &SqEase::cubic_bezier );
+
 		Sqrat::Class<Regexp2> regexp2( vm, _SC("regexp2"));
 		regexp2.Ctor<std::string>();
 		regexp2.Ctor<std::string, std::string>();
@@ -719,6 +802,12 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Moving"), FeListBox::Moving )
 			.Const( _SC("Paged"), FeListBox::Paged )
 			.Const( _SC("Bounded"), FeListBox::Bounded )
+			)
+		.Enum( _SC("Jump"), Enumeration()
+			.Const( _SC("Start"), SqJumpFlags::JumpStart )
+			.Const( _SC("End"), SqJumpFlags::JumpEnd )
+			.Const( _SC("None"), SqJumpFlags::JumpNone )
+			.Const( _SC("Both"), SqJumpFlags::JumpBoth )
 			)
 		;
 
