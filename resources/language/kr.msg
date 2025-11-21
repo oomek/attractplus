@@ -121,7 +121,7 @@ Title;제목(Title)
 Game Stats;게임 통계
 Video Decoder;비디오 디코더
 Window Mode;화면 모드
-Wrote $1 entries to Collection/Romlist;총 $1 개의 롬 파일을 목록에 기록하였습니다.
+Added $1 Collection/Romlist entries;$1 컬렉션/Romlist 항목을 추가했습니다.
 
 # -- indexStrings --
 Name;이름
@@ -281,8 +281,8 @@ Delete game '$1'?;'$1' 게임을 삭제하겠습니까?
 Delete shortcut '$1'?;'$1' 바로가기를 삭제하겠습니까?
 Overwrite existing '$1' list?;기존의 롬 목록 '$1' 에 덮어써도 좋습니까?
 Remove '$1' from Favourites?;'$1' 게임을 즐겨하는 목록에서 제거하겠습니까?
-Rom path '$1' not found, proceed anyways?;롬 파일 경로 '$1' 가 존재하지 않습니다. 계속 진행하시겠습니까?
-This will overwrite an existing mapping ($1).  Proceed?;기존 입력 ($1)을 덮어써도 되겠습니까?
+Rom path '$1' not found, proceed?;Rom 경로 '$1'을(를) 찾을 수 없습니다. 계속하시겠습니까?
+Overwrite existing '$1' mapping?;기존 '$1' 매핑을 덮어쓰시겠습니까?
 
 # --input_map_dialog --
 Press Hotkey;단축키 누르기
@@ -473,7 +473,7 @@ _help_main_control;각종 입력을 설정합니다
 _help_main_display;목록을 설정합니다
 _help_main_emu;에뮬레이터 옵션을 구성합니다.
 _help_main_intro;인트로 옵션을 구성합니다.
-_help_main_options;일반 옵션을 구성합니다.
+_help_main_settings;일반 옵션을 구성합니다.
 _help_main_plugin;플러그인 옵션을 구성합니다.
 _help_main_scraper;스크래퍼 옵션을 구성합니다.
 _help_main_screensaver_timeout;몇 초 동안 입력이 없을 시 화면 보호기를 작동시킬 지를 설정합니다. 0 이면 화면 보호기 기능을 정지합니다

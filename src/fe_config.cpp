@@ -399,7 +399,7 @@ bool FeEmulatorEditMenu::on_option_select(
 				std::string rom_path = m_emulator->clean_path_with_wd( *itr );
 				if ( !directory_exists( rom_path ) )
 				{
-					if ( ctx.confirm_dialog( _( "Rom path '$1' not found, proceed anyways?", { rom_path }) ) == false )
+					if ( ctx.confirm_dialog( _( "Rom path '$1' not found, proceed?", { rom_path }) ) == false )
 						return false;
 					else
 						break; // only bug the user once if there are multiple paths configured
@@ -1379,7 +1379,7 @@ bool FeInputEditMenu::on_option_select(
 			else if ( conflict != FeInputMap::LAST_COMMAND )
 			{
 				std::string command_str = _( FeInputMap::commandDispStrings[ conflict ] );
-				save = ctx.confirm_dialog( _( "This will overwrite an existing mapping ($1).  Proceed?", { command_str }) );
+				save = ctx.confirm_dialog( _( "Overwrite existing '$1' mapping?", { command_str }) );
 			}
 
 			if ( save )

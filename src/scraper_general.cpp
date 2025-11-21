@@ -835,7 +835,7 @@ bool FeSettings::build_romlist( const std::vector<std::string> &emu_list, const 
 	write_romlist( filename, total_romlist );
 
 	msg = user_message.empty()
-		? _( "Wrote $1 entries to Collection/Romlist", { as_str( total_romlist.size() ) })
+		? _( "Added $1 Collection/Romlist entries", { as_str( total_romlist.size() ) })
 		: user_message;
 
 	return !cancelled;

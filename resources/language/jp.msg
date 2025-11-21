@@ -121,7 +121,7 @@ Title;タイトル(Title)
 Game Stats;ゲーム統計
 Video Decoder;ビデオデコーダー
 Window Mode;スクリーンモードー
-Wrote $1 entries to Collection/Romlist;$1 個のRomファイルをリストに記録しました
+Added $1 Collection/Romlist entries;$1 個のコレクション/ROMリストエントリを追加しました。
 
 # -- indexStrings --
 Name;名前
@@ -281,8 +281,8 @@ Delete game '$1'?;ゲーム「$1」を削除しますか?
 Delete shortcut '$1'?;ショートカット「$1」を削除しますか?
 Overwrite existing '$1' list?;既存のRomファイルリスト「$1」に上書きしてもよろしいですか?
 Remove '$1' from Favourites?;お気に入りから「$1」を削除?
-Rom path '$1' not found, proceed anyways?;Romファイル経路「$1」が存在しません. 続きますか?
-This will overwrite an existing mapping ($1).  Proceed?;既存の入力 ($1) を上書きしてもよろしいですか?
+Rom path '$1' not found, proceed?;ROMパス '$1' が見つかりません。続行しますか?
+Overwrite existing '$1' mapping?;既存の '$1' マッピングを上書きしますか?
 
 # --input_map_dialog --
 Press Hotkey;ホットキーを押す
@@ -473,7 +473,7 @@ _help_main_control;様々な入力を設定します
 _help_main_display;ディスプレイ(ゲームリスト)を設定します
 _help_main_emu;エミュレータオプションを設定します
 _help_main_intro;導入オプションを設定します
-_help_main_options;一般オプションを設定します
+_help_main_settings;一般オプションを設定します
 _help_main_plugin;プラグインオプションを設定します
 _help_main_scraper;スクレーパーオプションを設定します
 _help_main_screensaver_timeout;何秒まで入力が無ければスクリーンセーバーを起動するかを設定します. 0 でスクリーンセーバーをオフにします

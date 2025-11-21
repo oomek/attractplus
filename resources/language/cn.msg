@@ -121,7 +121,7 @@ Title;标题
 Game Stats;游戏统计数据
 Video Decoder;视频解码
 Window Mode;窗口模式
-Wrote $1 entries to Collection/Romlist;所有 $1 ROM条目/ROM列表。
+Added $1 Collection/Romlist entries;已添加 $1 收藏/ROM 列表条目
 
 # -- indexStrings --
 Name;名称
@@ -281,8 +281,8 @@ Delete game '$1'?;删除游戏'$1'?
 Delete shortcut '$1'?;删除快捷方式'$1'?
 Overwrite existing '$1' list?;覆盖现有的 '$1' 列表?
 Remove '$1' from Favourites?;从收藏中先锋队 '$1'?
-Rom path '$1' not found, proceed anyways?;ROM路径 '$1' 没有找到。继续?
-This will overwrite an existing mapping ($1).  Proceed?;覆盖现有的映射 ($1), 继续?
+Rom path '$1' not found, proceed?;未找到 ROM 路径“$1”,是否继续?
+Overwrite existing '$1' mapping?;覆盖现有的“$1”映射?
 
 # --input_map_dialog --
 Press Hotkey;按下热键
@@ -473,7 +473,7 @@ _help_main_control;配置控制 Attract-Mode Plus 的摇杆、键盘和鼠标输
 _help_main_display;配置可在 Attract-Mode Plus 中循环切换的 ROM 列表/布局分组(也称为“显示”)。
 _help_main_emu;配置模拟器选项
 _help_main_intro;配置介绍选项
-_help_main_options;配置常规选项
+_help_main_settings;配置常规选项
 _help_main_plugin;配置插件选项
 _help_main_scraper;配置抓取器选项
 _help_main_screensaver_timeout;切换到屏幕保护程序前等待的秒数。0 表示禁用

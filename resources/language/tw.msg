@@ -121,7 +121,7 @@ Title;標題
 Game Stats;遊戲統計數據
 Video Decoder;視訊解碼器
 Window Mode;顯示模式
-Wrote $1 entries to Collection/Romlist;寫入 $1 項目至收藏集/遊戲清單
+Added $1 Collection/Romlist entries;已新增 $1 收藏/ROM 清單條目
 
 # -- indexStrings --
 Name;名稱
@@ -281,8 +281,8 @@ Delete game '$1'?;要刪除「$1」遊戲嗎?
 Delete shortcut '$1'?;要刪除「$1」捷徑嗎?
 Overwrite existing '$1' list?;要覆寫現有的「$1」清單嗎?
 Remove '$1' from Favourites?;要從我的最愛移除「$1」嗎?
-Rom path '$1' not found, proceed anyways?;遊戲檔路徑「$1」未找到,要繼續處理嗎?
-This will overwrite an existing mapping ($1).  Proceed?;這將會覆寫現有的映射 ($1),要繼續處理嗎?
+Rom path '$1' not found, proceed?;未找到 ROM 路徑“$1”,是否繼續?
+Overwrite existing '$1' mapping?;覆蓋現有的“$1”映射?
 
 # --input_map_dialog --
 Press Hotkey;請按下要使用的熱鍵
@@ -323,7 +323,7 @@ Exit Hotkey;結束熱鍵
 Pause Hotkey;暫停熱鍵
 
 # -- datetime --
-#_datetime;
+_datetime;%Y-%m-%d %H:%M:%S
 A Moment Ago;片刻前
 Never;從不
 $1 Second;$1 秒
@@ -473,7 +473,7 @@ _help_main_control;設定搖桿、鍵盤及滑鼠按鍵用來操作 Attract-Mode
 _help_main_display;設定遊戲清單/畫面佈局群組 (又稱顯示介面),用於在 Attract-Mode Plus 裡循環顯示。
 _help_main_emu;配置模擬器選項
 _help_main_intro;配置介紹選項
-_help_main_options;配置常規選項
+_help_main_settings;配置常規選項
 _help_main_plugin;設定插件選項
 _help_main_scraper;配置抓取器選項
 _help_main_screensaver_timeout;設定切換至螢幕保護模式前的等待秒數 (0 為停用)
@@ -547,6 +547,3 @@ Default video;預設影片
 3:4 video;3:4 影片
 
 # -- extra --
-
-# -- missing_help --
-#_datetime;%Y-%m-%d %H:%M:%S
