@@ -431,7 +431,7 @@ void FeRule::init()
 
 	try
 	{
-		m_rex = std::wregex( FeUtil::widen( m_filter_what ), std::regex::ECMAScript );
+		m_rex = std::wregex( FeUtil::widen( m_filter_what ), std::regex_constants::ECMAScript | std::regex_constants::icase );
 		m_regex_compiled = true;
 	}
 	catch ( const std::regex_error& e )

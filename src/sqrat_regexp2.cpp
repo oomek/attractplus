@@ -28,10 +28,14 @@
 // - results get narrowed since squirrel does not use wstrings
 // - ie: "naïve".len() == 6
 //
-Regexp2::Regexp2( const std::string pattern )
+Regexp2::Regexp2( const std::string pattern, const std::string flags )
 {
 	try {
-		m_regex = std::wregex( FeUtil::widen( pattern ), std::regex::ECMAScript );
+		std::regex_constants::syntax_option_type opts = std::regex_constants::ECMAScript;
+		if ( flags.find('i') != std::string::npos )
+			opts |= std::regex_constants::icase;
+
+		m_regex = std::wregex( FeUtil::widen( pattern ), opts );
 		m_compiled = true;
 	}
 	catch ( const std::regex_error& e )
@@ -39,6 +43,8 @@ Regexp2::Regexp2( const std::string pattern )
 		FeLog() << "Error compiling regular expression \"" << pattern << "\": " << e.what() << std::endl;
 	}
 }
+
+Regexp2::Regexp2( const std::string pattern ): Regexp2::Regexp2( pattern, "" ) {}
 
 Sqrat::Array Regexp2::capture( const std::string str )
 {
