@@ -328,6 +328,11 @@ FeVersionChecker::FeVersionChecker()
 
 FeVersionChecker::~FeVersionChecker()
 {
+	reset();
+}
+
+void FeVersionChecker::reset()
+{
 	m_worker.reset();
 	m_queue.reset();
 }

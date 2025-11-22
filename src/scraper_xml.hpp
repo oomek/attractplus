@@ -86,7 +86,7 @@ private:
 	FeRomInfoListType::iterator m_itr;
 	std::map<const char *, FeRomInfoListType::iterator, FeMapComp> m_map;
 	std::vector<FeRomInfoListType::iterator> m_discarded;
-	int m_count;
+	size_t m_count;
 	int m_displays;
 	bool m_collect_data;
 	bool m_chd;

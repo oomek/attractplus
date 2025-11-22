@@ -140,6 +140,7 @@ public:
 	const std::string& get_remote_version() const { return m_remote_version; }
 	const std::string& get_current_version() const { return m_current_version; }
 	bool is_initiated() const { return m_initiated; }
+	void reset();
 };
 
 #endif
