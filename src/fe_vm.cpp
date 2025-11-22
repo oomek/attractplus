@@ -3070,5 +3070,5 @@ void FeVM::init_with_default_layout()
 	img->setColor( sf::Color( 255, 255, 255, 70 ) );
 
 	// Game listbox
-	FeListBox *lb = cb_add_listbox( 0, 0, flw, flh );
+	cb_add_listbox( 0, 0, flw, flh );
 }

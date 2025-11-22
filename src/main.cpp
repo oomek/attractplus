@@ -1267,6 +1267,7 @@ int main(int argc, char *argv[])
 	soundsys.stop();
 
 #ifdef USE_LIBCURL
+	versionChecker.reset();
 	curl_global_cleanup();
 #endif
 
