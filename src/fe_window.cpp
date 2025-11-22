@@ -62,64 +62,70 @@ void set_win32_foreground_window( HWND hwnd, HWND order )
 }
 #endif
 
-class FeWindowPosition : public FeBaseConfigurable
+FeWindowPosition::FeWindowPosition():
+	m_pos({ 0, 0 }),
+	m_size({ 0, 0 }),
+	m_topmost( false )
+{}
+
+FeWindowPosition::FeWindowPosition(
+	const sf::Vector2i &pos,
+	const sf::Vector2u &size,
+	const bool &topmost
+):
+	m_pos( pos ),
+	m_size( size ),
+	m_topmost( topmost )
+{}
+
+int FeWindowPosition::process_setting(
+	const std::string &setting,
+	const std::string &value,
+	const std::string &filename )
 {
-public:
-	sf::Vector2i m_pos;
-	sf::Vector2u m_size;
-
-	static const char *FILENAME;
-
-	FeWindowPosition( const sf::Vector2i &pos, const sf::Vector2u &size )
-		: m_pos( pos ),
-		m_size( size )
+	size_t pos=0;
+	std::string token;
+	if ( setting.compare( "position" ) == 0 )
 	{
+		token_helper( value, pos, token, "," );
+		m_pos.x = as_int( token );
+
+		token_helper( value, pos, token );
+		m_pos.y = as_int( token );
 	}
-
-	int process_setting( const std::string &setting,
-		const std::string &value,
-		const std::string &filename )
+	else if ( setting.compare( "size" ) == 0 )
 	{
-		size_t pos=0;
-		std::string token;
-		if ( setting.compare( "position" ) == 0 )
-		{
-			token_helper( value, pos, token, "," );
-			m_pos.x = as_int( token );
+		token_helper( value, pos, token, "," );
+		m_size.x = as_int( token );
 
-			token_helper( value, pos, token );
-			m_pos.y = as_int( token );
-		}
-		else if ( setting.compare( "size" ) == 0 )
-		{
-			token_helper( value, pos, token, "," );
-			m_size.x = as_int( token );
-
-			token_helper( value, pos, token );
-			m_size.y = as_int( token );
-		}
-		return 1;
-	};
-
-	void save( const std::string &filename )
-	{
-		nowide::ofstream outfile( filename.c_str() );
-		if ( outfile.is_open() )
-		{
-			outfile << "position " << m_pos.x << "," << m_pos.y << std::endl;
-			outfile << "size " << m_size.x << "," << m_size.y << std::endl;
-		}
-		outfile.close();
+		token_helper( value, pos, token );
+		m_size.y = as_int( token );
 	}
+	else if ( setting.compare( "topmost") == 0 )
+	{
+		token_helper( value, pos, token );
+		m_topmost = as_int( token ) == 1;
+	}
+	return 1;
 };
+
+void FeWindowPosition::save( const std::string &filename )
+{
+	nowide::ofstream outfile( filename.c_str() );
+	if ( outfile.is_open() )
+	{
+		outfile << "position " << m_pos.x << "," << m_pos.y << std::endl;
+		outfile << "size " << m_size.x << "," << m_size.y << std::endl;
+		outfile << "topmost " << m_topmost << std::endl;
+	}
+	outfile.close();
+}
 
 bool is_multimon_config( FeSettings &fes )
 {
 	return (( fes.get_info_bool( FeSettings::MultiMon ) )
 		&& ( !is_windowed_mode( fes.get_window_mode() ) ));
 }
-
-const char *FeWindowPosition::FILENAME = "window.am";
 
 #ifdef SFML_SYSTEM_WINDOWS
 LRESULT CALLBACK FeWindow::CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
@@ -202,7 +208,10 @@ void FeWindow::check_for_sleep()
 
 void FeWindow::initial_create()
 {
-	if ( !m_window )
+	// If re-initialising save its position first
+	if ( m_window )
+		save();
+	else
 		m_window = new sf::RenderWindow();
 
 	int style_map[4] =
@@ -224,6 +233,7 @@ void FeWindow::initial_create()
 	sf::VideoMode vm = sf::VideoMode::getDesktopMode(); // width/height/bpp of OpenGL surface to create
 
 	sf::Vector2i wpos( 0, 0 );  // position to set window to
+	m_topmost = false;
 
 	bool do_multimon = is_multimon_config( m_fes );
 	m_win_mode = m_fes.get_window_mode();
@@ -334,52 +344,49 @@ void FeWindow::initial_create()
 	//
 	if ( is_windowed_mode( m_win_mode ) )
 	{
-		std::vector<int> args = m_fes.get_window_args();
+		// Default to a centered 4:3 window (3:4 on vertical monitors) at 3/4 screen height
 		int monitor_width = (int)vm.size.x;
 		int monitor_height = (int)vm.size.y;
+		bool vert = monitor_height > monitor_width;
+		int h = std::max( monitor_height * 3 / 4, 240 );
+		int w = std::max( vert ? h * 3 / 4 : h * 4 / 3, 320 );
+		int x = (monitor_width - w) / 2;
+		int y = (monitor_height - h) / 2;
 
-		// Use position provided by commandline args
-		if (args.size() == 4)
-		{
-			wpos = sf::Vector2i( args[0], args[1] );
-			vm.size.x = args[2];
-			vm.size.y = args[3];
-		}
-		else
-		{
-			// Load the parameters from the window.am file
-			// - Default to a centered 4:3 window (3:4 on vertical monitors) at 3/4 screen height
-			bool vert = monitor_height > monitor_width;
-			int h = std::max( monitor_height * 3 / 4, 240 );
-			int w = std::max( vert ? h * 3 / 4 : h * 4 / 3, 320 );
-			int x = (monitor_width - w) / 2;
-			int y = (monitor_height - h) / 2;
+		// Load the parameters from the window.am file (uses given args if none)
+		FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( w, h ), m_topmost );
+		win_pos.load_from_file( m_fes.get_config_dir() + FE_WINDOW_FILE );
 
-			FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( w, h ) );
-
-			win_pos.load_from_file( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
-
-			wpos = win_pos.m_pos;
-			vm.size.x = win_pos.m_size.x;
-			vm.size.y = win_pos.m_size.y;
-		}
-
-#ifdef SFML_SYSTEM_WINDOWS
+		sf::Rect<int> window_rect( win_pos.m_pos, sf::Vector2i( win_pos.m_size ) );
+#if !defined(NO_MULTIMON)
+		// The window can be positioned anywhere in the virtual screen
 		sf::Rect<int> vm_rect(
 			{ GetSystemMetrics( SM_XVIRTUALSCREEN ), GetSystemMetrics( SM_YVIRTUALSCREEN ) },
 			{ GetSystemMetrics( SM_CXVIRTUALSCREEN ), GetSystemMetrics( SM_CYVIRTUALSCREEN ) }
 		);
 #else
-		sf::Rect<int> vm_rect( { 0, 0 }, { monitor_width, monitor_height });
+		// No multi-monitor support
+		sf::Rect<int> vm_rect( wpos, sf::Vector2i( vm.size ) );
 #endif
 
 		// Reset the window position if it's completely outside the virtual screen
 		// - Usually occurs when the hardware has changed, ie: Un-docking a laptop
 		// - NOTE: Window may still hide in part of the virtual screen thats off-monitor
 		// - TODO: Enumerate and check all individual monitors
-		sf::Rect<int> window_rect( wpos, sf::Vector2i( vm.size ) );
 		if ( !window_rect.findIntersection( vm_rect ) )
-			wpos = { 0, 0 };
+		{
+			FeLog() << "Warning: Window " << window_rect.size.x << "x" << window_rect.size.y << " @ " << window_rect.position.x << "," << window_rect.position.y
+				<< " is outside desktop "
+				<< vm_rect.size.x << "x" << vm_rect.size.y << " @ " << vm_rect.position.x << "," << vm_rect.position.y
+				<< " reset to " << window_rect.size.x << "x" << window_rect.size.y << " @ 0,0" << std::endl;
+			win_pos.m_pos = { 0, 0 };
+		}
+
+		// Populate our local variables from win_pos
+		wpos = win_pos.m_pos;
+		vm.size.x = win_pos.m_size.x;
+		vm.size.y = win_pos.m_size.y;
+		m_topmost = win_pos.m_topmost;
 	}
 
 	sf::Vector2i wsize( vm.size.x, vm.size.y );
@@ -482,7 +489,7 @@ void FeWindow::initial_create()
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	set_win32_foreground_window( m_window->getNativeHandle(), m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
+	set_win32_foreground_window( m_window->getNativeHandle(), m_topmost ? HWND_TOPMOST : HWND_TOP );
 	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
 
 	// Enable dark mode titlebar on Windows
@@ -781,19 +788,23 @@ sf::RenderWindow &FeWindow::get_win()
 	return *m_window;
 }
 
+void FeWindow::save()
+{
+	if ( m_window && is_windowed_mode( m_win_mode ) )
+	{
+		m_window->display(); // Crashing on Linux workaround
+
+		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize(), m_topmost );
+		win_pos.save( m_fes.get_config_dir() + FE_WINDOW_FILE );
+	}
+}
+
 void FeWindow::close()
 {
 	if ( m_window )
 	{
 		m_window->display(); // Crashing on Linux workaround
-
-		// Window may already be closed on_exit, so save position here instead
-		if ( is_windowed_mode( m_win_mode ) && m_fes.get_window_args().size() != 4 )
-		{
-			FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
-			win_pos.save( m_fes.get_config_dir() + FeWindowPosition::FILENAME );
-		}
-
+		save();
 		m_window->close();
 	}
 }
