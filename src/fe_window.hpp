@@ -52,6 +52,7 @@ private:
 #endif
 	int m_win_mode;
 	bool m_mouse_outside = true;
+	bool m_topmost = false;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -66,6 +67,7 @@ public:
 
 	void display();
 	void close();
+	void save();
 	bool hasFocus();
 	bool isOpen();
 
@@ -74,6 +76,29 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
+};
+
+class FeWindowPosition : public FeBaseConfigurable
+{
+public:
+	sf::Vector2i m_pos;
+	sf::Vector2u m_size;
+	bool m_topmost;
+
+	FeWindowPosition();
+	FeWindowPosition(
+		const sf::Vector2i &pos,
+		const sf::Vector2u &size,
+		const bool &topmost
+	);
+	int process_setting(
+		const std::string &setting,
+		const std::string &value,
+		const std::string &filename
+	);
+	void save(
+		const std::string &filename
+	);
 };
 
 #endif
