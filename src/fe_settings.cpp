@@ -76,6 +76,7 @@ const char *FE_DATA_PATH = NULL;
 
 const char *FE_CFG_FILE					= "attract.cfg";
 const char *FE_STATE_FILE				= "attract.am";
+const char *FE_WINDOW_FILE 			= "window.am";
 const char *FE_SCREENSAVER_FILE		= "screensaver.nut";
 const char *FE_PLUGIN_FILE				= "plugin.nut";
 const char *FE_LOADER_FILE				= "loader.nut";

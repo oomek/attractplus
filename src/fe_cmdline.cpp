@@ -306,6 +306,10 @@ void process_args( int argc, char *argv[],
 					window_args.push_back( atoi(s.c_str()) );
 				}
 			}
+
+			// Must be 4 args, if not then clear them all
+			if ( window_args.size() != 4 )
+				window_args.clear();
 		}
 #ifndef SFML_SYSTEM_WINDOWS
 		else if (( strcmp( argv[next_arg], "-n" ) == 0 )

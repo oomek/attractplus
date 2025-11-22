@@ -88,8 +88,23 @@ int main(int argc, char *argv[])
 	process_args( argc, argv, config_path, process_console, log_file, log_level, window_topmost, window_args );
 
 	FeSettings feSettings( config_path );
-	feSettings.set_window_topmost( window_topmost );
-	feSettings.set_window_args( window_args );
+
+	// Update window file with commandline settings
+	if ( !window_args.empty() || window_topmost )
+	{
+		FeWindowPosition win_pos;
+		win_pos.load_from_file( config_path + FE_WINDOW_FILE );
+
+		if ( !window_args.empty() )
+		{
+			win_pos.m_pos = sf::Vector2i( window_args[0], window_args[1] );
+			win_pos.m_size = sf::Vector2u( window_args[2], window_args[3] );
+		}
+		if ( window_topmost )
+			win_pos.m_topmost = true;
+
+		win_pos.save( config_path + FE_WINDOW_FILE );
+	}
 
 #ifdef USE_LIBCURL
 	FeVersionChecker versionChecker;
