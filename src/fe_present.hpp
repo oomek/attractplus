@@ -184,7 +184,6 @@ protected:
 
 	void toggle_rotate( FeSettings::RotationState ); // toggle between none and provided state
 	FeSettings::RotationState get_actual_rotation();
-	void set_transforms();
 
 	// Overrides from base classes:
 	//
@@ -243,6 +242,7 @@ public:
 	void load_layout( bool initial_load=false );
 	void set_layout_loaded( bool loaded ) { m_layout_loaded = loaded; };
 	bool is_layout_loaded() { return m_layout_loaded; };
+	void set_transforms();
 
 	void update_to( FeTransitionType type, bool reset_display=false );
 	void redraw_surfaces();

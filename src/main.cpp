@@ -175,6 +175,9 @@ int main(int argc, char *argv[])
 	FeOverlay feOverlay( window, feSettings, feVM );
 	feVM.set_overlay( &feOverlay );
 
+	// Set transforms now in case load_layout never gets called (ie: first-run), required for multimon
+	feVM.set_transforms();
+
 	bool exit_selected=false;
 
 	if ( feSettings.get_info( FeSettings::Language ).empty() )
