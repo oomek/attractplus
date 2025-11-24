@@ -279,8 +279,7 @@ void FePresent::init_monitors()
 	if ( EnumDisplaySettings( NULL, ENUM_CURRENT_SETTINGS, &devMode ) != 0 )
 		m_refresh_rate = devMode.dmDisplayFrequency;
 
-	if ( m_feSettings->get_info_bool( FeSettings::MultiMon )
-		&& !is_windowed_mode( m_feSettings->get_window_mode() ) )
+	if ( m_feSettings->get_multimon() && !is_windowed_mode( m_feSettings->get_window_mode() ) )
 	{
 		EnumDisplayMonitors( NULL, NULL, my_mon_enum_proc, (LPARAM)&m_mon );
 
@@ -351,8 +350,7 @@ void FePresent::init_monitors()
 	XCloseDisplay( xdisp );
  #else
 	bool set_first=true;
-	if ( xdisp && ( m_feSettings->get_info_bool( FeSettings::MultiMon ) )
-		&& !is_windowed_mode( m_feSettings->get_window_mode() ) )
+	if ( xdisp && m_feSettings->get_multimon() && !is_windowed_mode( m_feSettings->get_window_mode() ) )
 	{
 		int num = 0;
 		XineramaScreenInfo *si = XineramaQueryScreens( xdisp, &num );

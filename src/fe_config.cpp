@@ -1790,7 +1790,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::LIST, _( "Anisotropic Filtering" ), af_mode, _( "_help_misc_anisotropic_filtering" ) )->append_vlist( af_modes );
 
 #if !defined(NO_MULTIMON)
-	ctx.add_opt( Opt::TOGGLE, _( "Multiple Monitors" ), ctx.fe_settings.get_info_bool( FeSettings::MultiMon ), _( "_help_misc_multiple_monitors" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Multiple Monitors" ), ctx.fe_settings.get_multimon(), _( "_help_misc_multiple_monitors" ) );
 #endif
 
 	std::vector<std::string> rot_modes = _( FeSettings::screenRotationDispTokens );

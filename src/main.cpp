@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
 	process_args( argc, argv, config_path, process_console, log_file, log_level, window_topmost, window_args );
 
 	FeSettings feSettings( config_path );
+	feSettings.set_window_topmost( window_topmost );
 
 	// Update window file with commandline settings
 	if ( !window_args.empty() || window_topmost )
@@ -100,8 +101,6 @@ int main(int argc, char *argv[])
 			win_pos.m_pos = sf::Vector2i( window_args[0], window_args[1] );
 			win_pos.m_size = sf::Vector2u( window_args[2], window_args[3] );
 		}
-		if ( window_topmost )
-			win_pos.m_topmost = true;
 
 		win_pos.save( config_path + FE_WINDOW_FILE );
 	}
@@ -238,6 +237,7 @@ int main(int argc, char *argv[])
 			//
 			int old_mode = feSettings.get_window_mode();
 			int old_aa = feSettings.get_antialiasing();
+			int old_multimon = feSettings.get_multimon();
 
 			if ( feOverlay.config_dialog( -1, FeInputMap::Configure ) )
 			{
@@ -247,7 +247,9 @@ int main(int argc, char *argv[])
 				soundsys.play_ambient();
 
 				// Recreate window if the window mode changed
-				if (( feSettings.get_window_mode() != old_mode ) || ( feSettings.get_antialiasing() != old_aa ))
+				if (( feSettings.get_window_mode() != old_mode )
+					|| ( feSettings.get_antialiasing() != old_aa )
+					|| ( feSettings.get_multimon() != old_multimon ))
 				{
 					window.on_exit();
 					window.initial_create();
@@ -463,6 +465,7 @@ int main(int argc, char *argv[])
 			{
 				int old_mode = feSettings.get_window_mode();
 				int old_aa = feSettings.get_antialiasing();
+				int old_multimon = feSettings.get_multimon();
 
 				feSettings.load();
 				feSettings.on_joystick_connect(); // update joystick mappings
@@ -471,7 +474,9 @@ int main(int argc, char *argv[])
 				soundsys.play_ambient();
 
 				// Recreate window if the window mode changed
-				if (( feSettings.get_window_mode() != old_mode ) || ( feSettings.get_antialiasing() != old_aa ))
+				if (( feSettings.get_window_mode() != old_mode )
+					|| ( feSettings.get_antialiasing() != old_aa )
+					|| ( feSettings.get_multimon() != old_multimon ))
 				{
 					window.on_exit();
 					window.initial_create();

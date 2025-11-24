@@ -2984,6 +2984,11 @@ bool FeSettings::get_font_file(
 	return false;
 }
 
+bool FeSettings::get_multimon() const
+{
+	return m_multimon;
+}
+
 FeSettings::WindowType FeSettings::get_window_mode() const
 {
 	return m_window_mode;
