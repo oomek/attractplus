@@ -51,8 +51,8 @@ private:
 	void check_for_sleep();
 #endif
 	int m_win_mode;
-	bool m_mouse_outside = true;
 	bool m_topmost = false;
+	bool m_mouse_outside = true;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -88,8 +88,7 @@ public:
 	FeWindowPosition();
 	FeWindowPosition(
 		const sf::Vector2i &pos,
-		const sf::Vector2u &size,
-		const bool &topmost
+		const sf::Vector2u &size
 	);
 	int process_setting(
 		const std::string &setting,

@@ -64,18 +64,15 @@ void set_win32_foreground_window( HWND hwnd, HWND order )
 
 FeWindowPosition::FeWindowPosition():
 	m_pos({ 0, 0 }),
-	m_size({ 0, 0 }),
-	m_topmost( false )
+	m_size({ 0, 0 })
 {}
 
 FeWindowPosition::FeWindowPosition(
 	const sf::Vector2i &pos,
-	const sf::Vector2u &size,
-	const bool &topmost
+	const sf::Vector2u &size
 ):
 	m_pos( pos ),
-	m_size( size ),
-	m_topmost( topmost )
+	m_size( size )
 {}
 
 int FeWindowPosition::process_setting(
@@ -101,11 +98,6 @@ int FeWindowPosition::process_setting(
 		token_helper( value, pos, token );
 		m_size.y = as_int( token );
 	}
-	else if ( setting.compare( "topmost") == 0 )
-	{
-		token_helper( value, pos, token );
-		m_topmost = as_int( token ) == 1;
-	}
 	return 1;
 };
 
@@ -116,15 +108,13 @@ void FeWindowPosition::save( const std::string &filename )
 	{
 		outfile << "position " << m_pos.x << "," << m_pos.y << std::endl;
 		outfile << "size " << m_size.x << "," << m_size.y << std::endl;
-		outfile << "topmost " << m_topmost << std::endl;
 	}
 	outfile.close();
 }
 
 bool is_multimon_config( FeSettings &fes )
 {
-	return (( fes.get_info_bool( FeSettings::MultiMon ) )
-		&& ( !is_windowed_mode( fes.get_window_mode() ) ));
+	return fes.get_multimon() && !is_windowed_mode( fes.get_window_mode() );
 }
 
 #ifdef SFML_SYSTEM_WINDOWS
@@ -233,7 +223,7 @@ void FeWindow::initial_create()
 	sf::VideoMode vm = sf::VideoMode::getDesktopMode(); // width/height/bpp of OpenGL surface to create
 
 	sf::Vector2i wpos( 0, 0 );  // position to set window to
-	m_topmost = false;
+	m_topmost = m_fes.get_window_topmost();
 
 	bool do_multimon = is_multimon_config( m_fes );
 	m_win_mode = m_fes.get_window_mode();
@@ -354,7 +344,7 @@ void FeWindow::initial_create()
 		int y = (monitor_height - h) / 2;
 
 		// Load the parameters from the window.am file (uses given args if none)
-		FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( w, h ), m_topmost );
+		FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( w, h ) );
 		win_pos.load_from_file( m_fes.get_config_dir() + FE_WINDOW_FILE );
 
 		sf::Rect<int> window_rect( win_pos.m_pos, sf::Vector2i( win_pos.m_size ) );
@@ -386,7 +376,6 @@ void FeWindow::initial_create()
 		wpos = win_pos.m_pos;
 		vm.size.x = win_pos.m_size.x;
 		vm.size.y = win_pos.m_size.y;
-		m_topmost = win_pos.m_topmost;
 	}
 
 	sf::Vector2i wsize( vm.size.x, vm.size.y );
@@ -794,7 +783,7 @@ void FeWindow::save()
 	{
 		m_window->display(); // Crashing on Linux workaround
 
-		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize(), m_topmost );
+		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
 		win_pos.save( m_fes.get_config_dir() + FE_WINDOW_FILE );
 	}
 }
