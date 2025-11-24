@@ -838,6 +838,9 @@ void FeSettings::save_displays_configs() const
 
 void FeSettings::save_state()
 {
+	if ( !m_displays.size() )
+		return;
+
 	int display_idx = m_actual_display_index;
 
 	// If we have a display stack we save the entry at the bottom of the stack as the
