@@ -69,6 +69,7 @@ Attract-Mode Plus is a blank canvas that requires external assets to operate eff
 • [Plugins](#-plugins)
 • [Modules](#-modules)
 • [Displays Menu](#️-displays-menu)
+• [Clones](#-clones)
 • [Files](#-files)
 • [Updates](#-updates)
 
@@ -126,9 +127,9 @@ Artwork is associated with Romlist entries that have matching names.
    -  marquee > `C:\mame\marquee`
    -  wheel > `C:\mame\wheel`
 
-> Layouts predominantly use the `snap` artwork resource.
+> `Configure > Emulators > mame > Scrape Artwork` can import some artwork, but with reduced control over the results.
 >
-> 🔍 `C:\attract-mode-plus\emulators\mame.cfg`
+> 🔍 `C:\attract-mode-plus\scraper\mame`
 
 ## 📽️ Displays
 
@@ -251,6 +252,15 @@ The `Displays Menu` can be configured to use a Layout. Setting it to show on sta
 > Artwork for the `Displays Menu` must match the `Display` or `Romlist` name, located in the `menu-art/<resource>` subfolder.
 >
 > 🔍 `C:\attract-mode-plus\menu-art\snap\mame.png`
+
+## 🐑 Clones
+
+Rom clones are grouped into sub-menus, which are opened by selecting the Rom.
+
+-  Configure > Settings >
+   -  General > Group Clones > `Yes`
+
+> Use the `Back` control to exit the clone sub-menu.
 
 ## 📁 Files
 

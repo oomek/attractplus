@@ -466,6 +466,15 @@ Compile a GLSL shader from the given file(s) for use in the layout. Also see [`f
    }
    ```
 
+**Notes**
+
+Windows caches compiled shaders for future recall, and since every change results in a new file this cache will continue to grow over time. When it reaches a limit (`2GB` by default - *thousands* of files) new shaders will not be cached, causing slowdowns in your Layout.
+
+Simply close the program and delete the contents of the cache folders.
+
+- AMD: `C:\Users\<name>\AppData\Local\AMD\GLCache\`
+- nVidia: `C:\Users\<name>\AppData\Local\NVIDIA\GLCache\`
+
 ---
 
 ### `fe.add_sound()`
@@ -650,6 +659,10 @@ Compile a GLSL shader from the given shader code for use in the layout. Also see
 **Return Value**
 
 -  An instance of the class [`fe.Shader`](#feshader) which can be used to interact with the added shader.
+
+**Notes**
+
+Avoid "baking" variables into compiled shaders, use `uniforms` instead. While compiling dynamic shaders can avoid costly code branches, using this method to spawn thousands of unique shaders should be avoided. See the notes in [`fe.add_shader()`](#feadd_shader).
 
 ---
 
@@ -1555,6 +1568,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
      }
    }
    ```
+- Pinch is achieved by subdividing the texture polygon into a triangle-strip, and scaling it towards one end. This results in a distorted image, and "ripple" artifacts on large pinches. For nicer results try the `perspective` module - see its Readme for more information.
 
 ---
 
