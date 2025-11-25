@@ -100,12 +100,17 @@ bool tail_compare(
 	const std::string &filename,
 	const char **ext_list );
 
+// Returns lowercase copy of string
+std::string lowercase( const std::string &value );
+
+// Returns uppercase copy of string
+std::string uppercase( const std::string &value );
+
 //
 // Case insensitive compare of one and two
 // - Returns -1 if one < two, 1 if one > two, 0 if equal
 //
-int icompare( const std::string &one,
-	const std::string &two );
+int icompare( const std::string &one, const std::string &two );
 
 //
 // Case insensitive check if the base filename in the given path is equal to base.

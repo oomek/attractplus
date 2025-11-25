@@ -1285,8 +1285,6 @@ int main(int argc, char *argv[])
 	if ( window.isOpen() )
 		window.close();
 
-	FeRomListSorter::clear_title_rex();
-
 	soundsys.stop();
 
 #ifdef USE_LIBCURL

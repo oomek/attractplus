@@ -240,6 +240,20 @@ int icompare(
 	return std::clamp( s1 - s2, -1, 1 );
 }
 
+std::string lowercase( const std::string &value )
+{
+	std::string lower = value;
+	std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c){ return std::tolower(c); });
+	return lower;
+}
+
+std::string uppercase( const std::string &value )
+{
+	std::string upper = value;
+	std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c){ return std::toupper(c); });
+	return upper;
+}
+
 bool base_compare( const std::string &path,
 		const std::string &base )
 {

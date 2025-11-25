@@ -24,6 +24,7 @@
 #define FE_INFO_HPP
 
 #include "fe_base.hpp"
+#include "fe_util.hpp"
 #include <map>
 #include <set>
 #include <vector>
@@ -33,6 +34,61 @@
 
 extern const char *FE_STAT_FILE_EXTENSION;
 extern const char FE_TAGS_SEP;
+
+class FeRomTitleFormatter {
+
+public:
+	static bool display_format;
+	static bool sort_format;
+
+	// Returns a new string with prefixes such as "The" and "Vs." moved to the end
+	static std::string get_formatted_title( const std::string &title )
+	{
+		if ( title.empty() )
+			return title;
+
+		std::string format_title = title;
+		std::string suffix = "";
+		std::string brackets = "";
+
+		if ( lowercase( format_title.substr( 0, 4 ) ) == "vs. " )
+		{
+			suffix += format_title.substr( 0, 4 );
+			format_title = format_title.substr( 4 );
+		}
+
+		if ( lowercase( format_title.substr( 0, 4 ) ) == "the " )
+		{
+			suffix += format_title.substr( 0, 4 );
+			format_title = format_title.substr( 4 );
+		}
+
+		size_t brackets_pos = format_title.find_first_of( "(/[" );
+		if ( brackets_pos != std::string::npos )
+		{
+			brackets = format_title.substr( brackets_pos );
+			format_title = format_title.substr( 0, brackets_pos );
+		}
+
+		if ( !suffix.empty() )
+			format_title = rtrim( format_title ) + ", " + rtrim( suffix );
+
+		if ( !brackets.empty() )
+			format_title = rtrim( format_title ) + " " + brackets;
+
+		return format_title;
+	}
+
+	static std::string get_display_title( const std::string &title )
+	{
+		return display_format ? get_formatted_title( title ) : title;
+	}
+
+	static std::string get_sort_title( const std::string &title )
+	{
+		return sort_format ? get_formatted_title( title ) : title;
+	}
+};
 
 //
 // Class for storing information regarding a specific rom
@@ -157,13 +213,20 @@ public:
 	{
 		if ( version != FE_CACHE_VERSION ) throw "Invalid FeRomInfo cache";
 		archive( m_info, index );
+		m_display_title = FeRomTitleFormatter::get_display_title( m_info[ Title ] );
+		m_sort_title = FeRomTitleFormatter::get_sort_title( m_info[ Title ] );
 	}
+
+	const std::string &get_display_title() const { return m_display_title; }
+	const std::string &get_sort_title() const { return m_sort_title; }
 
 private:
 	std::string get_info_escaped( int ) const;
 	size_t get_tag_pos( const std::string &tag );
 
 	std::vector<std::string> m_info;
+	std::string m_display_title;
+	std::string m_sort_title;
 };
 
 CEREAL_CLASS_VERSION( FeRomInfo, FE_CACHE_VERSION );
