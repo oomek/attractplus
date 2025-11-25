@@ -38,6 +38,9 @@ const char TAGS_SEP_ARG[] = { FE_TAGS_SEP, 0 };
 const FeRomInfo::Index FeRomInfo::BuildFullPath = FeRomInfo::Tags;
 const FeRomInfo::Index FeRomInfo::BuildScore = FeRomInfo::PlayedCount;
 
+bool FeRomTitleFormatter::display_format = false;
+bool FeRomTitleFormatter::sort_format = false;
+
 const char *FeRomInfo::indexStrings[] =
 {
 	"Name",
@@ -105,12 +108,16 @@ const std::vector<FeRomInfo::Index> FeRomInfo::Stats = {
 	FeRomInfo::PlayedLast
 };
 
-FeRomInfo::FeRomInfo()
+FeRomInfo::FeRomInfo():
+	m_display_title(""),
+	m_sort_title("")
 {
 	m_info = std::vector<std::string>(LAST_INDEX);
 }
 
-FeRomInfo::FeRomInfo( const std::string &rn )
+FeRomInfo::FeRomInfo( const std::string &rn ):
+	m_display_title(""),
+	m_sort_title("")
 {
 	m_info = std::vector<std::string>(LAST_INDEX);
 	m_info[Romname] = rn;
@@ -155,6 +162,11 @@ std::string FeRomInfo::get_info_escaped( int i ) const
 void FeRomInfo::set_info( Index i, const std::string &v )
 {
 	m_info[i] = v;
+
+	if ( i == Title ) {
+		m_display_title = FeRomTitleFormatter::get_display_title( v );
+		m_sort_title = FeRomTitleFormatter::get_sort_title( v );
+	}
 }
 
 //
@@ -318,7 +330,7 @@ int FeRomInfo::process_setting( const std::string &,
 	for ( int i=1; i < LAST_INFO; i++ )
 	{
 		token_helper( value, pos, token );
-		m_info[(Index)i] = token;
+		set_info( (Index)i, token );
 	}
 
 	return 0;
@@ -338,13 +350,15 @@ std::string FeRomInfo::as_output( void ) const
 
 void FeRomInfo::clear()
 {
+	m_display_title.clear();
+	m_sort_title.clear();
 	for ( int i=0; i < LAST_INDEX; i++ )
 		m_info[i].clear();
 }
 
 void FeRomInfo::copy_info( const FeRomInfo &src, Index idx )
 {
-	m_info[idx]=src.m_info[idx];
+	set_info( idx, src.m_info[idx] );
 }
 
 bool FeRomInfo::operator==( const FeRomInfo &o ) const
@@ -457,28 +471,28 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 			? m_filter_what.empty()
 			: m_use_rex
 				? std::regex_match( FeUtil::widen( target ), m_rex )
-				: ( target.compare( m_filter_what ) == 0 );
+				: ( icompare( target, m_filter_what ) == 0 );
 
 	case FilterNotEquals:
 		return target.empty()
 			? !m_filter_what.empty()
 			: m_use_rex
 				? !std::regex_match( FeUtil::widen( target ), m_rex )
-				: ( target.compare( m_filter_what ) != 0 );
+				: ( icompare( target, m_filter_what ) != 0 );
 
 	case FilterContains:
 		return target.empty()
 			? false
 			: m_use_rex
 				? std::regex_search( FeUtil::widen( target ), m_rex )
-				: ( target.find( m_filter_what ) != std::string::npos );
+				: ( lowercase( target ).find( lowercase( m_filter_what ) ) != std::string::npos );
 
 	case FilterNotContains:
 		return target.empty()
 			? true
 			: m_use_rex
 				? !std::regex_search( FeUtil::widen( target ), m_rex )
-				: ( target.find( m_filter_what ) == std::string::npos );
+				: ( lowercase( target ).find( lowercase( m_filter_what ) ) == std::string::npos );
 
 	default:
 		return true;

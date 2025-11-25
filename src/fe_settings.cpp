@@ -478,8 +478,6 @@ void FeSettings::load()
 	//
 	internal_load_language( load_language );
 
-	FeRomListSorter::init_title_rex();
-
 	load_state();
 
 	if ( get_startup_mode() == ShowDisplaysMenu )
@@ -2245,6 +2243,17 @@ int FeSettings::get_next_fav_offset()
 	return 0;
 }
 
+namespace
+{
+	std::string get_sort_letter( const FeRomInfo *rom )
+	{
+		if ( !rom ) return "";
+		const std::string &title = rom->get_sort_title();
+		if ( title.empty() ) return "";
+		return FeUtil::narrow( std::wstring( 1, FeUtil::widen( title ).at( 0 ) ) );
+	}
+}
+
 int FeSettings::get_next_letter_offset( int step )
 {
 	int filter_index = get_current_filter_index();
@@ -2252,14 +2261,14 @@ int FeSettings::get_next_letter_offset( int step )
 	int idx = get_rom_index( filter_index, 0 );
 	int dir = step > 0 ? 1 : -1;
 
-	std::string curr_title = FeRomListSorter::get_sort_letter( get_rom_absolute( filter_index, idx ) );
+	std::string curr_title = get_sort_letter( get_rom_absolute( filter_index, idx ) );
 	const char curr_l = curr_title.empty() ? ' ' : std::tolower( curr_title.at( 0 ) );
 	bool is_alpha = std::isalpha( curr_l );
 
 	for ( int i=1; i<filter_size; i++ )
 	{
 		int t_idx = ( idx + filter_size + dir * i ) % filter_size;
-		std::string test_title = FeRomListSorter::get_sort_letter( get_rom_absolute( filter_index, t_idx ) );
+		std::string test_title = get_sort_letter( get_rom_absolute( filter_index, t_idx ) );
 		const char test_l = test_title.empty() ? ' ' : std::tolower( test_title.at( 0 ) );
 
 		if ( is_alpha ? ( test_l != curr_l ) : std::isalpha( test_l ) )
@@ -2700,9 +2709,8 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 	{
 		case FeRomInfo::Title:
 			// Don't strip brackets when showing a clones group
-			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
+			value = get_rom_absolute( filter_index, rom_index )->get_display_title();
 			if ( m_hide_brackets && m_clone_index < 0 ) value = name_with_brackets_stripped( value );
-			value = FeRomListSorter::get_display_title( value );
 			return true;
 		case FeRomInfo::PlayedTime:
 			value = get_played_time_display_string( filter_index, rom_index );
@@ -2715,6 +2723,19 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 			return true;
 		case -1:
 			return get_special_token_value( token, filter_index, rom_index, value );
+	}
+}
+
+namespace
+{
+	// Returns capitalised first character of the display title, or an empty string if none
+	// - May return a wide string, ie: pound character
+	std::string get_display_letter( const FeRomInfo *rom )
+	{
+		if ( !rom ) return "";
+		const std::string &title = rom->get_display_title();
+		if ( title.empty() ) return "";
+		return FeUtil::narrow( std::wstring( 1, std::toupper( FeUtil::widen( title )[0] ) ) );
 	}
 }
 
@@ -2747,7 +2768,7 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Title );
 			return true;
 		case FeRomInfo::TitleLetter:
-			value = FeRomListSorter::get_display_letter( get_rom_absolute( filter_index, rom_index ) );
+			value = get_display_letter( get_rom_absolute( filter_index, rom_index ) );
 			return true;
 		case FeRomInfo::SortName:
 		{
@@ -3264,8 +3285,8 @@ bool FeSettings::set_info( int index, const std::string &value )
 			int i = get_token_index( prefixTokens, value );
 			if (i == -1) return false;
 			m_prefix_mode = (PrefixModeType)i;
-			FeRomListSorter::display_format = m_prefix_mode == SortAndShowPrefix;
-			FeRomListSorter::sort_format = m_prefix_mode == SortAndShowPrefix || m_prefix_mode == SortPrefix;
+			FeRomTitleFormatter::display_format = m_prefix_mode == SortAndShowPrefix;
+			FeRomTitleFormatter::sort_format = m_prefix_mode == SortAndShowPrefix || m_prefix_mode == SortPrefix;
 		}
 		break;
 

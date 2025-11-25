@@ -41,11 +41,6 @@ const char *FE_TAG_FILE_EXTENSION		= ".tag";
 const char *FE_ROMLIST_SUBDIR			= "romlists/";
 const char *FE_STATS_SUBDIR				= "stats/";
 
-std::regex FeRomListSorter::m_rex;
-bool FeRomListSorter::m_regex_compiled = false;
-bool FeRomListSorter::display_format = false;
-bool FeRomListSorter::sort_format = false;
-
 namespace
 {
 	std::mt19937 rnd{ std::random_device{}() };
@@ -56,101 +51,28 @@ namespace
 	}
 };
 
-void FeRomListSorter::init_title_rex()
-{
-	m_regex_compiled = false;
-	const std::string re_mask = "^((?:Vs\\.\\s+)?(?:The\\s+)?)([^(/[]*)(.*)$";
-
-	try {
-		m_rex = std::regex( re_mask, std::regex_constants::ECMAScript | std::regex_constants::icase );
-		m_regex_compiled = true;
-	}
-	catch ( const std::regex_error& e )
-	{
-		FeLog() << "Error compiling regular expression \"" << re_mask << "\": " << e.what() << std::endl;
-	}
-}
-
-void FeRomListSorter::clear_title_rex()
-{
-	m_regex_compiled = false;
-}
-
 FeRomListSorter::FeRomListSorter( FeRomInfo::Index c, bool rev )
 	: m_comp( c ),
 	m_reverse( rev )
 {
 }
 
-// Returns a new string with prefixes such as "The" and "Vs." moved to the end
-std::string FeRomListSorter::get_formatted_title( const std::string &title )
-{
-	std::smatch match;
-	if ( title.empty() || !m_regex_compiled || !std::regex_search( title, match, m_rex ) )
-		return title;
-
-	std::string prefix = match.str(1);
-	std::string body = match.str(2);
-	std::string brackets = match.str(3);
-	std::string suffix = "";
-
-	if ( !prefix.empty() )
-		body = rtrim(body) + ", " + rtrim(prefix);
-
-	if ( !brackets.empty() )
-		body = rtrim(body) + " " + brackets;
-
-	return body;
-}
-
-std::string FeRomListSorter::get_display_title( const std::string &title )
-{
-	return display_format ? get_formatted_title( title ) : title;
-}
-
-std::string FeRomListSorter::get_sort_title( const std::string &title )
-{
-	return sort_format ? get_formatted_title( title ) : title;
-}
-
 bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two_obj ) const
 {
-	const std::string &one = one_obj.get_info( m_comp );
-	const std::string &two = two_obj.get_info( m_comp );
 	bool asc;
 
 	if ( m_comp == FeRomInfo::Title )
 		// Title sort
-		asc = icompare( get_sort_title( one ), get_sort_title( two ) ) < 0;
+		asc = icompare( one_obj.get_sort_title(), two_obj.get_sort_title() ) < 0;
 	else if ( FeRomInfo::isNumeric( m_comp ) )
 		// Numeric sort
-		asc = as_int( one ) < as_int( two );
+		asc = as_int( one_obj.get_info( m_comp ) ) < as_int( two_obj.get_info( m_comp ) );
 	else
 		// String sort
-		asc = icompare( one, two ) < 0;
+		asc = icompare( one_obj.get_info( m_comp ), two_obj.get_info( m_comp ) ) < 0;
 
 	// If reverse_order then invert sorting
 	return m_reverse ? !asc : asc;
-}
-
-// Returns first character of the sort title, or an empty string if none
-// - May return a wide string, ie: pound character
-std::string FeRomListSorter::get_sort_letter( const FeRomInfo *rom )
-{
-	if ( !rom ) return "";
-	const std::string &title = get_sort_title( rom->get_info( FeRomInfo::Title ) );
-	if ( title.empty() ) return "";
-	return FeUtil::narrow( std::wstring( 1, FeUtil::widen( title ).at( 0 ) ) );
-}
-
-// Returns capitalised first character of the display title, or an empty string if none
-// - May return a wide string, ie: pound character
-std::string FeRomListSorter::get_display_letter( const FeRomInfo *rom )
-{
-	if ( !rom ) return "";
-	const std::string &title = get_display_title( rom->get_info( FeRomInfo::Title ) );
-	if ( title.empty() ) return "";
-	return FeUtil::narrow( std::wstring( 1, std::toupper( FeUtil::widen( title )[0] ) ) );
 }
 
 FeRomList::FeRomList( const std::string &config_path )

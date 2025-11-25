@@ -50,24 +50,11 @@ class FeRomListSorter
 private:
 	FeRomInfo::Index m_comp;
 	bool m_reverse;
-	static std::regex m_rex;
-	static bool m_regex_compiled;
 	static std::string get_formatted_title( const std::string &title );
 
 public:
 	FeRomListSorter( FeRomInfo::Index c = FeRomInfo::Title, bool rev=false );
-	static bool display_format;
-	static bool sort_format;
-
 	bool operator()( const FeRomInfo &obj1, const FeRomInfo &obj2 ) const;
-
-	static std::string get_display_title( const std::string &title );
-	static std::string get_sort_title( const std::string &title );
-	static std::string get_display_letter( const FeRomInfo *rom );
-	static std::string get_sort_letter( const FeRomInfo *rom );
-
-	static void init_title_rex();
-	static void clear_title_rex();
 };
 
 //
