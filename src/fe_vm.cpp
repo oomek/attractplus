@@ -60,6 +60,11 @@
 #include <stdarg.h>
 #include <algorithm>
 
+#ifndef SFML_SYSTEM_WINDOWS
+#include <sys/stat.h>
+#include <errno.h>
+#endif
+
 const char *FE_SCRIPT_NV_FILE = "script.nv";
 const char *FE_LAYOUT_NV_FILE = "layout.nv";
 
@@ -486,6 +491,17 @@ namespace {
 		rt.Func( _SC("exp2"), &SqMath::exp2 );
 		rt.Func( _SC("log2"), &SqMath::log2 );
 		rt.Func( _SC("join"), &sq_join );
+
+		// Filesystem namespace
+		Sqrat::Table fs( vm );
+		rt.Bind( _SC("fs"), fs );
+		fs.Func( _SC("path_expand"), &FeVM::cb_path_expand );
+		fs.Func( _SC("path_test"), &FeVM::cb_path_test );
+		fs.Func( _SC("get_file_mtime"), &FeVM::cb_get_file_mtime );
+		fs.Func( _SC("set_file_mtime"), &FeVM::cb_set_file_mtime );
+		fs.Func( _SC("copy_file"), &FeVM::cb_copy_file );
+		fs.Func( _SC("get_dir"), &FeVM::cb_get_dir );
+		fs.Func( _SC("make_dir"), &FeVM::cb_make_dir );
 
 		Sqrat::Table ease( vm );
 		rt.Bind( _SC("ease"), ease );
@@ -1296,11 +1312,14 @@ bool FeVM::on_new_layout()
 	fe.Overload<bool (*)(const char *, const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 	fe.Overload<bool (*)(const char *, const char *)>(_SC("plugin_command"), &FeVM::cb_plugin_command);
 	fe.Func<bool (*)(const char *, const char *)>(_SC("plugin_command_bg"), &FeVM::cb_plugin_command_bg);
+	// Deprecated: use fs.path_expand instead
 	fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
+	// Deprecated: use fs.path_test instead
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
+	// Deprecated: use fs.get_file_mtime instead
 	fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
+	// Deprecated: use fs.set_file_mtime instead
 	fe.Func<bool (*)(const char *, time_t)>(_SC("set_file_mtime"), &FeVM::cb_set_file_mtime);
-	fe.Func<bool (*)(const char *, const char *)>(_SC("copy_file"), &FeVM::cb_copy_file);
 	fe.Func<Table (*)()>(_SC("get_input_mappings"), &FeVM::cb_get_input_mappings);
 	fe.Func<Table (*)()>(_SC("get_general_config"), &FeVM::cb_get_general_config);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
@@ -2014,11 +2033,14 @@ public:
 			fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 			fe.Func<bool (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 			fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
+			// Deprecated: use fs.path_expand instead
 			fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
+			// Deprecated: use fs.path_test instead
 			fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
+			// Deprecated: use fs.get_file_mtime instead
 			fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
+			// Deprecated: use fs.set_file_mtime instead
 			fe.Func<bool (*)(const char *, time_t)>(_SC("set_file_mtime"), &FeVM::cb_set_file_mtime);
-			fe.Func<bool (*)(const char *, const char *)>(_SC("copy_file"), &FeVM::cb_copy_file);
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
 		}
 
@@ -2831,6 +2853,92 @@ bool FeVM::cb_set_file_mtime( const char *file, time_t mtime )
 bool FeVM::cb_copy_file( const char *src, const char *dst )
 {
 	return copy_file( src, dst );
+}
+
+Sqrat::Array FeVM::cb_get_dir( const char *path )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	std::string full_path;
+	if ( is_relative_path( path ) )
+	{
+		// Get the script directory for relative paths
+		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+		Sqrat::Object script_dir = fe.GetSlot( _SC("script_dir") );
+		fe_get_object_string( vm, script_dir.GetObject(), full_path );
+		full_path += path;
+	}
+	else
+	{
+		full_path = path;
+	}
+
+	std::vector<std::string> res;
+
+	// If we are given a directory, return the contents of the directory
+	if ( directory_exists( full_path ))
+		get_basename_from_extension( res, full_path, "", false );
+	else if ( is_supported_archive( full_path ))
+		fe_zip_get_dir( full_path.c_str(), res );
+
+	Sqrat::Array retval( vm );
+	for ( std::vector<std::string>::iterator itr = res.begin(); itr != res.end(); ++itr )
+		retval.Append( (*itr).c_str() );
+
+	return retval;
+}
+
+bool FeVM::cb_make_dir( const char *path )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	std::string full_path;
+	if ( is_relative_path( path ))
+	{
+		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ));
+		Sqrat::Object script_dir = fe.GetSlot( _SC("script_dir") );
+		fe_get_object_string( vm, script_dir.GetObject(), full_path );
+		full_path += path;
+	}
+	else
+		full_path = path;
+
+	full_path = clean_path( full_path );
+
+#ifdef SFML_SYSTEM_WINDOWS
+	std::wstring wide_path = nowide::widen( full_path );
+
+	if ( CreateDirectoryW( wide_path.c_str(), NULL ) != 0 )
+		return true;
+
+	DWORD error = GetLastError();
+	if ( error == ERROR_ALREADY_EXISTS )
+	{
+		DWORD attrs = GetFileAttributesW( wide_path.c_str() );
+		if ( attrs != INVALID_FILE_ATTRIBUTES && ( attrs & FILE_ATTRIBUTE_DIRECTORY ))
+			return true;
+	}
+
+	FeLog() << "Failed to create directory: " << full_path << " (error: " << error << ")" << std::endl;
+	return false;
+#else
+	mode_t mode = 0755; // rwxr-xr-x permissions
+
+	if ( mkdir( full_path.c_str(), mode ) == 0 )
+		return true;
+
+	if ( errno == EEXIST )
+	{
+		struct stat st;
+		if ( stat( full_path.c_str(), &st ) == 0 && S_ISDIR( st.st_mode ))
+			return true;
+	}
+
+	FeLog() << "Failed to create directory: " << full_path << " (error: " << errno << ")" << std::endl;
+	return false;
+#endif
 }
 
 const char *FeVM::cb_game_info( int index, int offset, int filter_offset )
