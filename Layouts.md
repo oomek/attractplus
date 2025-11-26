@@ -37,10 +37,6 @@
    -  [`fe.load_module()`](#feload_module)
    -  [`fe.plugin_command()`](#feplugin_command)
    -  [`fe.plugin_command_bg()`](#feplugin_command_bg)
-   -  [`fe.path_expand()`](#fepath_expand)
-   -  [`fe.path_test()`](#fepath_test)
-   -  [`fe.get_file_mtime()`](#feget_file_mtime-) 🔶
-   -  [`fe.set_file_mtime()`](#feset_file_mtime-) 🔶
    -  [`fe.get_input_mappings()`](#feget_input_mappings-) 🔶
    -  [`fe.get_general_config()`](#feget_general_config-) 🔶
    -  [`fe.get_config()`](#feget_config)
@@ -77,6 +73,14 @@
    -  [`fe.Sound`](#fesound)
    -  [`fe.Music`](#femusic-) 🔶
    -  [`fe.Shader`](#feshader)
+-  [File System Functions](#file-system-functions)
+   -  [`fs.path_expand()`](#fspath_expand)
+   -  [`fs.path_test()`](#fspath_test)
+   -  [`fs.get_file_mtime()`](#fsget_file_mtime-) 🔶
+   -  [`fs.set_file_mtime()`](#fsset_file_mtime-) 🔶
+   -  [`fs.get_dir()`](#fsget_dir-) 🔶
+   -  [`fs.make_dir()`](#fsmake_dir-) 🔶
+   -  [`fs.copy_file()`](#fscopy_file-) 🔶
 -  [Constants](#constants)
 
 ---
@@ -1159,104 +1163,6 @@ Execute a command in the background and return immediately.
 
 ---
 
-### `fe.path_expand()`
-
-```squirrel
-fe.path_expand( path )
-```
-
-Expand the given path name. A leading `~` or `$HOME` token will be become the user's home directory. On Windows systems, a leading `%SYSTEMROOT%` token will become the path to the Windows directory and a leading `%PROGRAMFILES%` or `%PROGRAMFILES(X86)%` will become the path to the applicable Windows `Program Files` directory. For full list of Windows environment variables follow this [link](https://learn.microsoft.com/en-us/windows/deployment/usmt/usmt-recognized-environment-variables)
-
-**Parameters**
-
--  `path` - The path string to expand.
-
-**Return Value**
-
--  The expansion of path.
-
----
-
-### `fe.path_test()`
-
-```squirrel
-fe.path_test( path, flag )
-```
-
-Check whether the specified path has the status indicated by `flag`.
-
-**Parameters**
-
--  `path` - The path to test.
--  `flag` - What to test for. Can be one of the following values:
-   -  `PathTest.IsFileOrDirectory`
-   -  `PathTest.IsFile`
-   -  `PathTest.IsDirectory`
-   -  `PathTest.IsRelativePath`
-   -  `PathTest.IsSupportedArchive`
-   -  `PathTest.IsSupportedMedia`
-
-**Return Value**
-
--  (boolean) result.
-
----
-
-### `fe.get_file_mtime()` 🔶
-
-```squirrel
-fe.get_file_mtime( filename )
-```
-
-Returns the modified time of the given file.
-
-**Parameters**
-
--  `filename` - The file to get the modified time of.
-
-**Return Value**
-
--  An integer containing the GMT timestamp.
-
----
-
-### `fe.set_file_mtime()` 🔶
-
-```squirrel
-fe.set_file_mtime( filename )
-```
-
-Sets the modified time of the given file.
-
-**Parameters**
-
--  `filename` - The file to set the modified time of.
-
-**Return Value**
-
--  `true` if succeeded, `false` otherwise.
-
----
-
-### `fe.copy_file()` 🔶
-
-```squirrel
-fe.copy_file( src_file, dst_file )
-```
-
-Copy file from source to destination.
-
-**Parameters**
-
--  `src_file` - Path of the source file to be copied.
--  `dst_file` - Path of the destination file including the filename.
-
-**Return Value**
-
--  `true` if succeeded, `false` otherwise.
-
----
-
 ### `fe.get_input_mappings()` 🔶
 
 ```squirrel
@@ -2122,6 +2028,142 @@ The class representing a GLSL shader. Instances of this class are returned by th
 -  `set_param( name, f1, f2, f3, f4 )` - Set the 4-component vector variable (vec4 GLSL type) with the specified name to `(f1, f2, f3, f4)`.
 -  `set_texture_param( name )` - Set the texture variable (sampler2D GLSL type) with the specified `name`. The texture used will be the texture for whatever object ([`fe.Image`](#feimage), [`fe.Text`](#fetext), [`fe.Listbox`](#felistbox)) the shader is drawing.
 -  `set_texture_param( name, image )` - Set the texture variable (sampler2D GLSL type) with the specified `name` to the texture contained in `image`. `image` must be an instance of the [`fe.Image`](#feimage) class.
+
+---
+
+## File System Functions
+
+### `fs.path_expand()`
+
+```squirrel
+fs.path_expand( path )
+```
+
+Expand the given path name. A leading `~` or `$HOME` token will be become the user's home directory. On Windows systems, a leading `%SYSTEMROOT%` token will become the path to the Windows directory and a leading `%PROGRAMFILES%` or `%PROGRAMFILES(X86)%` will become the path to the applicable Windows `Program Files` directory. For full list of Windows environment variables follow this [link](https://learn.microsoft.com/en-us/windows/deployment/usmt/usmt-recognized-environment-variables)
+
+**Parameters**
+
+-  `path` - The path string to expand.
+
+**Return Value**
+
+-  The expansion of path.
+
+---
+
+### `fs.path_test()`
+
+```squirrel
+fs.path_test( path, flag )
+```
+
+Check whether the specified path has the status indicated by `flag`.
+
+**Parameters**
+
+-  `path` - The path to test.
+-  `flag` - What to test for. Can be one of the following values:
+   -  `PathTest.IsFileOrDirectory`
+   -  `PathTest.IsFile`
+   -  `PathTest.IsDirectory`
+   -  `PathTest.IsRelativePath`
+   -  `PathTest.IsSupportedArchive`
+   -  `PathTest.IsSupportedMedia`
+
+**Return Value**
+
+-  (boolean) result.
+
+---
+
+### `fs.get_file_mtime()` 🔶
+
+```squirrel
+fs.get_file_mtime( filename )
+```
+
+Returns the modified time of the given file.
+
+**Parameters**
+
+-  `filename` - The file to get the modified time of.
+
+**Return Value**
+
+-  An integer containing the GMT timestamp.
+
+---
+
+### `fs.set_file_mtime()` 🔶
+
+```squirrel
+fs.set_file_mtime( filename )
+```
+
+Sets the modified time of the given file.
+
+**Parameters**
+
+-  `filename` - The file to set the modified time of.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
+
+---
+
+### `fs.get_dir()` 🔶
+
+```squirrel
+fs.get_dir( folder )
+```
+
+Return an array of the filenames contained in `folder`.
+
+**Parameters**
+
+-  `folder` - Path of the folder to be read.
+
+**Return Value**
+
+-  An array of the filenames contained in the folder.
+
+---
+
+### `fs.make_dir()` 🔶
+
+```squirrel
+fs.make_dir( folder )
+```
+
+Create a folder in the given location.
+
+**Parameters**
+
+-  `folder` - Path of the folder to be created.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
+
+---
+
+### `fs.copy_file()` 🔶
+
+```squirrel
+fs.copy_file( src_file, dst_file )
+```
+
+Copy file from source to destination.
+
+**Parameters**
+
+-  `src_file` - Path of the source file to be copied.
+-  `dst_file` - Path of the destination file including the filename.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
 
 ---
 

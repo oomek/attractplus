@@ -253,6 +253,8 @@ public:
 	static time_t cb_get_file_mtime( const char * );
 	static bool cb_set_file_mtime( const char *, time_t );
 	static bool cb_copy_file( const char *, const char * );
+	static Sqrat::Array cb_get_dir( const char * );
+	static bool cb_make_dir( const char * );
 
 	static const char *cb_game_info( int,int,int);
 	static const char *cb_game_info(int,int);
