@@ -31,24 +31,26 @@
 class SqMath
 {
 public:
-	static int sign( float x );
-	static int round( float x );
-	static int round2( float x );
-	static int floor2( float x );
-	static int ceil2( float x );
-	static float fract( float x );
-	static float clamp( float x, float min, float max );
-	static float min( float a, float b );
-	static float max( float a, float b );
-	static float mix( float a, float b, float x );
-	static float randomf( float min, float max );
-	static int random( float min, float max );
-	static float modulo( float v, float m );
-	static float hypot( float x, float y );
-	static float degrees( float r );
-	static float radians( float d );
-	static float exp2( float x );
-	static float log2( float x );
+	static const int sign( const float x );
+	static const int round( const float x );
+	static const int round2( const float x );
+	static const int floor2( const float x );
+	static const int ceil2( const float x );
+	static const float fract( const float x );
+	static const float clamp( const float x, const float min, const float max );
+	static const float min( const float a, const float b );
+	static const float max( const float a, const float b );
+	static const float mix( const float a, const float b, const float x );
+	static const float randomf( const float min, const float max );
+	static const int random( const float min, const float max );
+	static const float modulo( const float v, const float m );
+	static const float hypot( const float x, const float y );
+	static const float degrees( const float r );
+	static const float radians( const float d );
+	static const float exp2( const float x );
+	static const float log2( const float x );
+	static const float short_dist( const float a, const float b, const float m );
+	static const float short_mix( const float a, const float b, const float m, const float t );
 };
 
 #endif
