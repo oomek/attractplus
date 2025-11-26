@@ -337,7 +337,7 @@ void FeCache::get_romlistmeta_data(
 	std::map<std::string, std::string> &data
 )
 {
-	data["romlist_mtime"] = as_str( file_mtime( romlist.get_romlist_path() ) );
+	data["romlist_mtime"] = as_str( get_file_mtime( romlist.get_romlist_path() ) );
 }
 
 // Ensure RomlistMeta cache is valid, call this before load_globalfilter or load_filter
@@ -463,10 +463,10 @@ void FeCache::get_display_metadata(
 	data["prefix_mode"] = m_feSettings->get_info(FeSettings::PrefixMode);
 
 	// favs/tags
-	data["fav_mtime"] = as_str( file_mtime( romlist.get_fav_path() ) );
+	data["fav_mtime"] = as_str( get_file_mtime( romlist.get_fav_path() ) );
 	std::vector<std::string> tags = romlist.get_tag_names();
 	for ( std::vector<std::string>::iterator itt=tags.begin(); itt!=tags.end(); ++itt )
-		data["tag_" + (*itt) + "_mtime"] = as_str( file_mtime( romlist.get_tag_path(*itt) ) );
+		data["tag_" + (*itt) + "_mtime"] = as_str( get_file_mtime( romlist.get_tag_path(*itt) ) );
 
 	// global_filter
 	FeFilter *f = display.get_global_filter();

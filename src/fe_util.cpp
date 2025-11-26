@@ -65,6 +65,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <wordexp.h>
+#include <utime.h>
 #endif
 
 #ifdef SFML_SYSTEM_MACOS
@@ -262,11 +263,118 @@ std::string sanitize_filename( const std::string &file )
 }
 
 // Returns modified time of file
-time_t file_mtime( const std::string &file )
+time_t get_file_mtime( const std::string &file )
 {
+#ifdef SFML_SYSTEM_WINDOWS
+	// Use GetFileTime API to avoid timezone/DST issues with stat()
+	HANDLE hFile = CreateFileW(
+		nowide::widen( file ).c_str(),
+		GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS,
+		NULL
+	);
+
+	if ( hFile == INVALID_HANDLE_VALUE )
+		return 0;
+
+	FILETIME ftModify;
+	if ( !GetFileTime( hFile, NULL, NULL, &ftModify ))
+	{
+		CloseHandle( hFile );
+		return 0;
+	}
+
+	CloseHandle( hFile );
+
+	// Convert Windows FILETIME to Unix timestamp
+	ULONGLONG ll = ( (ULONGLONG)ftModify.dwHighDateTime << 32 ) | ftModify.dwLowDateTime;
+	ll = ( ll - 116444736000000000ULL ) / 10000000ULL;
+	return (time_t)ll;
+#else
 	nowide::stat_t buffer;
-	nowide::stat(file.c_str(), &buffer);
+	nowide::stat( file.c_str(), &buffer );
 	return ( buffer.st_mode == 0 ) ? 0 : buffer.st_mtime;
+#endif
+}
+
+bool set_file_mtime( const std::string &file, time_t mtime )
+{
+#ifdef SFML_SYSTEM_WINDOWS
+	HANDLE hFile = CreateFileW(
+		nowide::widen( file ).c_str(),
+		FILE_WRITE_ATTRIBUTES,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_NO_RECALL,
+		NULL
+	);
+
+	if ( hFile == INVALID_HANDLE_VALUE )
+		return false;
+
+	// Convert Unix timestamp to Windows FILETIME
+	ULONGLONG ll = ( (ULONGLONG)mtime * 10000000ULL ) + 116444736000000000ULL;
+	FILETIME ft;
+	ft.dwLowDateTime = (DWORD)ll;
+	ft.dwHighDateTime = (DWORD)( ll >> 32 );
+
+	BOOL result = SetFileTime( hFile, NULL, &ft, &ft );
+	CloseHandle( hFile );
+
+	return ( result != 0 );
+#else
+	struct utimbuf times;
+	times.actime = mtime;
+	times.modtime = mtime;
+	return ( utime( file.c_str(), &times ) == 0 );
+#endif
+}
+
+bool copy_file( const std::string &src, const std::string &dst )
+{
+	time_t src_mtime = get_file_mtime( src );
+	if ( src_mtime == 0 )
+		return false;
+
+	FILE *src_file = nowide::fopen( src.c_str(), "rb" );
+	if ( !src_file )
+		return false;
+
+	FILE *dst_file = nowide::fopen( dst.c_str(), "wb" );
+	if ( !dst_file )
+	{
+		fclose( src_file );
+		return false;
+	}
+
+	const size_t BUFFER_SIZE = 65536;
+	char buffer[BUFFER_SIZE];
+	size_t bytes_read;
+	bool success = true;
+
+	while ( (bytes_read = fread( buffer, 1, BUFFER_SIZE, src_file )) > 0 )
+	{
+		if ( fwrite( buffer, 1, bytes_read, dst_file ) != bytes_read )
+		{
+			success = false;
+			break;
+		}
+	}
+
+	if ( ferror( src_file ) )
+		success = false;
+
+	fclose( src_file );
+	fclose( dst_file );
+
+	if ( !success )
+		return false;
+
+	return set_file_mtime( dst, src_mtime );
 }
 
 bool path_exists( const std::string &file )

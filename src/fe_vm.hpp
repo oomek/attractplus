@@ -251,6 +251,8 @@ public:
 	};
 	static bool cb_path_test( const char *, int );
 	static time_t cb_get_file_mtime( const char * );
+	static bool cb_set_file_mtime( const char *, time_t );
+	static bool cb_copy_file( const char *, const char * );
 
 	static const char *cb_game_info( int,int,int);
 	static const char *cb_game_info(int,int);

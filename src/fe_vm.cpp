@@ -1299,6 +1299,8 @@ bool FeVM::on_new_layout()
 	fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 	fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 	fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
+	fe.Func<bool (*)(const char *, time_t)>(_SC("set_file_mtime"), &FeVM::cb_set_file_mtime);
+	fe.Func<bool (*)(const char *, const char *)>(_SC("copy_file"), &FeVM::cb_copy_file);
 	fe.Func<Table (*)()>(_SC("get_input_mappings"), &FeVM::cb_get_input_mappings);
 	fe.Func<Table (*)()>(_SC("get_general_config"), &FeVM::cb_get_general_config);
 	fe.Func<Table (*)()>(_SC("get_config"), &FeVM::cb_get_config);
@@ -2015,6 +2017,8 @@ public:
 			fe.Func<const char* (*)(const char *)>(_SC("path_expand"), &FeVM::cb_path_expand);
 			fe.Func<bool (*)(const char *, int)>(_SC("path_test"), &FeVM::cb_path_test);
 			fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
+			fe.Func<bool (*)(const char *, time_t)>(_SC("set_file_mtime"), &FeVM::cb_set_file_mtime);
+			fe.Func<bool (*)(const char *, const char *)>(_SC("copy_file"), &FeVM::cb_copy_file);
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
 		}
 
@@ -2816,7 +2820,17 @@ bool FeVM::cb_path_test( const char *path, int flag )
 
 time_t FeVM::cb_get_file_mtime( const char *file )
 {
-	return file_mtime( file );
+	return get_file_mtime( file );
+}
+
+bool FeVM::cb_set_file_mtime( const char *file, time_t mtime )
+{
+	return set_file_mtime( file, mtime );
+}
+
+bool FeVM::cb_copy_file( const char *src, const char *dst )
+{
+	return copy_file( src, dst );
 }
 
 const char *FeVM::cb_game_info( int index, int offset, int filter_offset )
