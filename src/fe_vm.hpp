@@ -31,6 +31,7 @@
 #include "fe_present.hpp"
 #include "sq_ease.hpp"
 #include "sq_math.hpp"
+#include "sq_vector.hpp"
 
 #include <sqrat/sqratObject.h>
 #include <sqrat/sqratFunction.h>
