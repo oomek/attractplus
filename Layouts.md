@@ -7,6 +7,7 @@
 -  [Overview](#overview)
    -  [Squirrel Language](#squirrel-language)
    -  [Language Extensions](#language-extensions)
+   -  [Vector Class](#vector-class-) 🔶
    -  [Easing Functions](#easing-functions-) 🔶
    -  [Frontend Binding](#frontend-binding)
    -  [Magic Tokens](#magic-tokens)
@@ -133,14 +134,57 @@ In addition to the standard `Math` library, the following methods are included:
 -  `log2( x )` - Returns the base `2` logarithm of a number
 -  `max( a, b )` - Returns the largest `a` or `b`
 -  `min( a, b )` - Returns the smallest `a` or `b`
--  `mix( a, b, x )` - Returns a blend between `a` and `b` with using a mixing ratio `x`
+-  `mix( a, b, x )` - Returns a blend between `a` and `b`, using a mixing ratio `x`
+-  `mix_short( a, b, m, x )` - Returns a blend of the shortest *wrapped* distance between `a` and `b`, using a mixing ratio `x` and wrapping modulo `m`
 -  `modulo( v, m )` - Modulo of `v` with correct handling of negative numbers
 -  `radians( d )` - Converts `d` from degrees to radians
 -  `random( min, max )` - Returns a random integer in a range defined by `min` and `max` (inclusive)
 -  `randomf( min, max )` - Returns a random float in a range defined by `min` and `max` (inclusive)
 -  `round( x )` - Rounds `x` to the nearest integer
 -  `round2( x )` - Rounds `x` to the nearest even integer
+-  `short( a, b, m )` - Returns the shortest *wrapped* distance between `a` and `b`, using wrapping modulo `m`
+-  `round2( x )` - Rounds `x` to the nearest even integer
 -  `sign( x )` - Returns `1` when `x > 0`, returns `-1` when `x < 0`, returns `0` when `x == 0`
+
+---
+
+### Vector Class 🔶
+
+```squirrel
+Vector()
+Vector( x, y )
+```
+
+All standard operators work with Vectors.
+
+```squirrel
+local a = Vector( 1, 2 )
+local b = Vector( 3, 4 )
+
+local c = a + b
+fe.log( c ) // 4.000, 6.000
+
+local d = c * 2.0
+fe.log( d ) // 8.000, 12.000
+```
+
+- `x` - Get/set the Vectors x coordinate (contains length for polar Vector)
+- `y` - Get/set the Vectors y coordinate (contains angle for polar Vector)
+- `len` - Get/set the length of the Vector
+- `angle` - Get/set the angle of the Vector in radians
+- `componentMul( v )` - Return the Vector by multiplied by the components of the given vector
+- `componentDiv( v )` - Return the Vector by divided by the components of the given vector
+- `polar()` - Return the Vector represented in polar coordinates
+- `cartesian()` - Return the Vector represented in cartesian coordinates
+- `normalize()` - Return the normalized Vector
+- `perpendicular()` - Return a perpendicular Vector
+- `projectedOnto( v )` - Return the Vector projected onto the given Vector
+- `mix( v, x )` - Return a mix of the Vector with the given Vector
+- `lengthSquared()` - Return the Vector length squared, more performant than `len` (used for comparisons)
+- `angleTo( v )` - Return the angle between the given Vector in radians
+- `distance( v )` - Return the distance to the given Vector
+- `dot( v )` - Return the dot product with the given Vector
+- `cross( v )` - Return the cross product with the given Vector
 
 ---
 

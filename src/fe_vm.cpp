@@ -490,6 +490,9 @@ namespace {
 		rt.Func( _SC("radians"), &SqMath::radians );
 		rt.Func( _SC("exp2"), &SqMath::exp2 );
 		rt.Func( _SC("log2"), &SqMath::log2 );
+		rt.Func( _SC("short"), &SqMath::short_dist );
+		rt.Func( _SC("mix_short"), &SqMath::short_mix );
+
 		rt.Func( _SC("join"), &sq_join );
 
 		// Filesystem namespace
@@ -595,6 +598,34 @@ namespace {
 		regexp2.Overload<Sqrat::Table(Regexp2::*)(std::string)>(_SC("search"), &Regexp2::search);
 		regexp2.Func(_SC("match"), &Regexp2::match);
 		rt.Bind(_SC("regexp2"), regexp2);
+
+		Sqrat::Class<SqVector> vector( vm, _SC("Vector"));
+		vector.Ctor();
+		vector.Ctor<float, float>();
+		vector.Prop(_SC("x"), &SqVector::get_x, &SqVector::set_x);
+		vector.Prop(_SC("y"), &SqVector::get_y, &SqVector::set_y);
+		vector.Prop(_SC("len"), &SqVector::get_len, &SqVector::set_len );
+		vector.Prop(_SC("angle"), &SqVector::get_angle, &SqVector::set_angle );
+		vector.Func(_SC("_add"), &SqVector::operator+);
+		vector.Func(_SC("_sub"), &SqVector::operator-);
+		vector.Func(_SC("_mul"), &SqVector::operator*);
+		vector.Func(_SC("_div"), &SqVector::operator/);
+		vector.Func(_SC("_cmp"), &SqVector::operator==);
+		vector.Func(_SC("_tostring"), &SqVector::_tostring);
+		vector.Func(_SC("componentMul"), &SqVector::componentMul);
+		vector.Func(_SC("componentDiv"), &SqVector::componentDiv);
+		vector.Func(_SC("polar"), &SqVector::polar);
+		vector.Func(_SC("cartesian"), &SqVector::cartesian);
+		vector.Func(_SC("normalize"), &SqVector::normalize);
+		vector.Func(_SC("perpendicular"), &SqVector::perpendicular);
+		vector.Func(_SC("projectedOnto"), &SqVector::projectedOnto);
+		vector.Func(_SC("mix"), &SqVector::mix);
+		vector.Func(_SC("lengthSquared"), &SqVector::lengthSquared);
+		vector.Func(_SC("angleTo"), &SqVector::angleTo);
+		vector.Func(_SC("distance"), &SqVector::distance);
+		vector.Func(_SC("dot"), &SqVector::dot);
+		vector.Func(_SC("cross"), &SqVector::cross);
+		rt.Bind(_SC("Vector"), vector);
 	}
 }
 
