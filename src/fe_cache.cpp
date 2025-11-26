@@ -126,7 +126,7 @@ void FeCache::set_settings( FeSettings *fes ) {}
 bool FeCache::validate_romlistmeta( FeRomList &romlist ) { return false; }
 bool FeCache::save_display( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
 bool FeCache::validate_display( FeDisplayInfo &display, FeRomList &romlist ) { return false; }
-bool FeCache::save_available( const FeRomList &romlist, const std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
+bool FeCache::save_available( const FeRomList &romlist, std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
 bool FeCache::load_available( const FeRomList &romlist, std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
 bool FeCache::validate_available( FeRomList &romlist, std::map<std::string, std::vector<std::string>> &emu_roms ) { return false; }
 bool FeCache::save_romlist( const FeRomList &romlist ) { return false; }

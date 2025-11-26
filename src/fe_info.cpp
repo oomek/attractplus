@@ -234,6 +234,13 @@ size_t FeRomInfo::get_tag_pos( const std::string &tag )
 	return m_info[Tags].find( FE_TAGS_SEP + tag + FE_TAGS_SEP );
 }
 
+void FeRomInfo::clear_stats()
+{
+	m_info[PlayedCount] = "0";
+	m_info[PlayedTime] = "0";
+	m_info[PlayedLast] = "0";
+}
+
 //
 // Ensure stats have been loaded into this rominfo, resets them to zero if none exist
 // - If force_update is true the stats are re-loaded even if they've already been set
@@ -250,31 +257,27 @@ void FeRomInfo::load_stats(
 	if ( FeCache::get_stats_info( path, m_info ) )
 		return;
 
-	m_info[PlayedCount] = "0";
-	m_info[PlayedTime] = "0";
-	m_info[PlayedLast] = "0";
-
-	if ( path.empty() )
-		return;
-
-	std::string filename = path + m_info[Emulator] + "/" + m_info[Romname] + FE_STAT_FILE_EXTENSION;
-	nowide::ifstream myfile( filename );
-	if ( !myfile.is_open() )
-		return;
-
 	std::string played_count;
 	std::string played_time;
 	std::string played_last;
 
-	if ( myfile.good() ) getline( myfile, played_count );
-	if ( myfile.good() ) getline( myfile, played_time );
-	if ( myfile.good() ) getline( myfile, played_last );
+	if ( !path.empty() )
+	{
+		std::string filename = path + m_info[Emulator] + "/" + m_info[Romname] + FE_STAT_FILE_EXTENSION;
+		nowide::ifstream myfile( filename );
+		if ( myfile.is_open() )
+		{
+			if ( myfile.good() ) getline( myfile, played_count );
+			if ( myfile.good() ) getline( myfile, played_time );
+			if ( myfile.good() ) getline( myfile, played_last );
+			myfile.close();
+		}
+	}
 
 	m_info[PlayedCount] = played_count.empty() ? "0" : played_count;
 	m_info[PlayedTime] = played_time.empty() ? "0" : played_time;
 	m_info[PlayedLast] = played_last.empty() ? "0" : played_last;
 
-	myfile.close();
 }
 
 void FeRomInfo::update_stats( const std::string &path, int count_incr, int played_incr )

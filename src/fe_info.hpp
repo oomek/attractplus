@@ -131,6 +131,7 @@ public:
 		const std::string &fn );
 	std::string as_output( void ) const;
 
+	void clear_stats();
 	void load_stats( const std::string &path );
 	void update_stats( const std::string &path, int count_incr, int played_incr );
 
