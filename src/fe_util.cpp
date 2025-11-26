@@ -731,78 +731,132 @@ bool get_filename_from_base(
 	return !(in_list.empty());
 }
 
-bool token_helper( const std::string &from,
-	size_t &pos, std::string &token, const char *sep )
+namespace
 {
-	bool retval( false ), in_quotes( false ), escaped( false );
-	size_t end;
-
-	//
-	// Skip leading whitespace
-	//
-	pos = from.find_first_not_of( FE_WHITESPACE, pos );
-	if ( pos == std::string::npos )
+	// Return true if given char is whitespace
+	inline bool is_whitespace( const char c )
 	{
-		token.clear();
-		pos = from.size();
-		return false;
+		return c == ' ' || c == '\t' || c == '\r';
 	}
 
-	if ( from[pos] == '"' )
+	// Increment pos until one of the given chars is found
+	// - Returns true if char found
+	inline bool next_char(
+		const std::string &from,
+		size_t &pos,
+		const char *chars
+	)
 	{
-		in_quotes = true;
-		pos++;
-
-		//
-		// Find the next quote character that is not preceded
-		// by a backslash
-		//
-		end = from.find_first_of( '"', pos );
-		while (( end != std::string::npos ) &&
-				( from[ end - 1 ] == '\\' ))
-		{
-			escaped = true;
-			end = from.find_first_of( '"', end + 1 );
-		}
-	}
-	else
-	{
-		end = from.find_first_of( sep, pos );
-	}
-
-	size_t old_pos = pos;
-	if ( end == std::string::npos )
-	{
-		pos = from.size();
-	}
-	else
-	{
-		if ( in_quotes )
-			pos = end + 2; // skip over quote and sep
+		size_t len = from.size();
+		if ( strlen( chars ) == 1 )
+			while (( pos < len ) && from[pos] != chars[0]) pos++;
 		else
-			pos = end + 1; // skip over sep
+			while (( pos < len ) && strchr(chars, from[pos]) == NULL) pos++;
 
-		retval = true;
+		return ( pos < len );
 	}
 
-	// clean out leading and trailing whitespace from token
+	// Place the pos at the next non-whitespace char
+	// - Returns false if none found
+	inline bool first_char(
+		const std::string &from,
+		size_t &pos,
+		const std::string &token
+	)
+	{
+		size_t len = from.size();
+		while (( pos < len ) && is_whitespace( from[pos] )) pos++;
+		if ( pos >= len )
+		{
+			pos = len;
+			return false;
+		}
+		return true;
+	}
+
 	//
-	size_t f = from.find_first_not_of( FE_WHITESPACE, old_pos );
-
-	if (( f == std::string::npos ) || ( f == end ))
+	// Populates token with trimmed quote contents, unescapes `/"`
+	// - Returns true if another separator is found
+	// - `pos` is placed after the next separator
+	//
+	inline bool token_quote_helper(
+		const std::string &from,
+		size_t &pos,
+		std::string &token,
+		const char *sep
+	)
 	{
-		token.clear();
+		// Find first non-whitespace char within quote
+		pos++;
+		size_t len = from.size();
+		while (( pos < len ) && is_whitespace( from[pos] )) pos++;
+
+		if ( pos == len )
+			return false;
+
+		// Build token (un-escaping quotes along the way)
+		while ( pos < len )
+		{
+			if ( from[pos] == '"' )
+				break;
+			else if ( from[pos] == '\\' && from[pos+1] == '"' )
+				token += from[++pos];
+			else
+				token += from[pos];
+			pos++;
+		}
+
+		// remove trailing whitespace
+		while ( is_whitespace( token.back() ) ) token.pop_back();
+
+		// Place pos after the next separator
+		bool more = next_char( from, pos, sep );
+		if ( more ) pos++;
+		return more;
 	}
-	else
+
+	//
+	// Populates token with parsed value (removes trailing whitespace)
+	// - Returns true if another separator is found
+	// - `pos` is placed after the next separator
+	// - 2x faster than std find* methods
+	//
+	inline bool token_value_helper(
+		const std::string &from,
+		size_t &pos,
+		std::string &token,
+		const char *sep
+	)
 	{
-		size_t l = from.find_last_not_of( FE_WHITESPACE, end-1 );
-		token = from.substr( f, l-f+1 );
+		size_t beg = pos;
+		bool more = next_char( from, pos, sep );
+
+		if ( pos > beg )
+		{
+			size_t end = pos - 1;
+			while (( end > beg ) && is_whitespace( from[end] )) end--;
+			for ( size_t i=beg; i<=end; i++ ) token += from[i];
+		}
+
+		if ( more ) pos++;
+		return more;
 	}
 
-	if ( escaped )
-		perform_substitution( token, "\\\"", "\"" );
+}
 
-	return retval;
+bool token_helper(
+	const std::string &from,
+	size_t &pos,
+	std::string &token,
+	const char *sep
+)
+{
+	token.clear();
+	return first_char( from, pos, token )
+		? ( from[pos] == '"' )
+			? token_quote_helper( from, pos, token, sep )
+			: token_value_helper( from, pos, token, sep )
+		: false;
 }
 
 int perform_substitution(

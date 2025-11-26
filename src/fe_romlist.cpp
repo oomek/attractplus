@@ -893,16 +893,49 @@ void FeRomList::get_file_availability(
 
 //
 // Load stats into all roms in m_list
+// - Force stat loading since globalfilter may have been loaded from cache with stale stats
 //
 void FeRomList::get_played_stats()
 {
 	if ( m_played_stats_checked )
 		return;
 
-	// Force stat loading since globalfilter may have been loaded from cache with stale stats
 	std::string path = m_config_path + FE_STATS_SUBDIR;
-	for ( FeRomInfoListType::iterator itr=m_list.begin(); itr != m_list.end(); ++itr )
-		(*itr).load_stats( path );
+
+	// Find all unique emulator names
+	std::unordered_set<std::string> emu_names;
+	for ( auto &rom : m_list )
+		emu_names.insert( rom.get_info( FeRomInfo::Emulator ) );
+
+	// Get dir listing of all emulator stats
+	std::unordered_map<std::string, std::unordered_set<std::string>> available_stats;
+	for ( auto &emu : emu_names )
+	{
+		std::string emu_dir = path + emu;
+		std::unordered_set<std::string> emu_stats;
+
+		if ( directory_exists( emu_dir ) )
+		{
+			std::vector<std::string> filenames;
+			get_basename_from_extension( filenames, emu_dir, FE_STAT_FILE_EXTENSION );
+			emu_stats = std::unordered_set<std::string>( filenames.begin(), filenames.end() );
+		}
+
+		available_stats.insert({ emu, emu_stats });
+	}
+
+	// Load stats for each rom
+	for ( auto &rom : m_list )
+	{
+		std::string emu = rom.get_info( FeRomInfo::Emulator );
+		std::string name = rom.get_info( FeRomInfo::Romname );
+
+		// Check file is available to avoid costly file-open attempt in load_stats
+		if ( available_stats[emu].count( name ) )
+			rom.load_stats( path );
+		else
+			rom.clear_stats();
+	}
 
 	m_played_stats_checked = true;
 }
