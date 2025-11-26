@@ -201,7 +201,13 @@ bool process_exists( unsigned int pid );
 std::string sanitize_filename( const std::string &file );
 
 // Returns the modified time of the file
-time_t file_mtime( const std::string &file );
+time_t get_file_mtime( const std::string &file );
+
+// Set the modified time of the file
+bool set_file_mtime( const std::string &file, time_t mtime );
+
+// Copy file from src to dst, preserving modified time
+bool copy_file( const std::string &src, const std::string &dst );
 
 // return true if path exists (file or directory)
 bool path_exists( const std::string &file );

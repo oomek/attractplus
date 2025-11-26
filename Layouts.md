@@ -40,6 +40,7 @@
    -  [`fe.path_expand()`](#fepath_expand)
    -  [`fe.path_test()`](#fepath_test)
    -  [`fe.get_file_mtime()`](#feget_file_mtime-) 🔶
+   -  [`fe.set_file_mtime()`](#feset_file_mtime-) 🔶
    -  [`fe.get_input_mappings()`](#feget_input_mappings-) 🔶
    -  [`fe.get_general_config()`](#feget_general_config-) 🔶
    -  [`fe.get_config()`](#feget_config)
@@ -1216,6 +1217,43 @@ Returns the modified time of the given file.
 **Return Value**
 
 -  An integer containing the GMT timestamp.
+
+---
+
+### `fe.set_file_mtime()` 🔶
+
+```squirrel
+fe.set_file_mtime( filename )
+```
+
+Sets the modified time of the given file.
+
+**Parameters**
+
+-  `filename` - The file to set the modified time of.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
+
+---
+
+### `fe.copy_file()` 🔶
+
+```squirrel
+fe.copy_file( src_file, dst_file )
+```
+
+Copy file from source to destination.
+
+**Parameters**
+
+-  `src_file` - Path of the source file to be copied.
+-  `dst_file` - Path of the destination file including the filename.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
 
 ---
 
