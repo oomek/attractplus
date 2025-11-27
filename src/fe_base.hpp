@@ -33,12 +33,14 @@ extern const char *FE_VERSION;
 
 extern const char *FE_WHITESPACE;
 extern const char *FE_DIR_TOKEN;
+extern const float FE_SCORE_MAX;
 
 extern const char *FE_TAG_ICON;
 extern const char *FE_HEART_ICON;
-extern const char *FE_HEART_ALT_ICON;
+extern const char *FE_HEART_OUTLINE_ICON;
 extern const char *FE_STAR_ICON;
-extern const char *FE_STAR_ALT_ICON;
+extern const char *FE_STAR_OUTLINE_ICON;
+extern const char *FE_STAR_HALF_ICON;
 extern const char *FE_YES_ICON;
 extern const char *FE_NO_ICON;
 

@@ -576,7 +576,7 @@ int FeSettings::process_setting( const std::string &setting,
 		{
 			if ( lowercase( display.get_info( FeDisplayInfo::Name ) ) == lowercase_value )
 			{
-				FeLog() << "Warning: Duplicate display name found: '" << value 
+				FeLog() << "Warning: Duplicate display name found: '" << value
 					<< "' - skipping duplicate entry" << std::endl;
 				return 0;
 			}
@@ -1366,10 +1366,8 @@ const std::string &FeSettings::get_current_display_title() const
 const std::string &FeSettings::get_rom_info( int filter_offset, int rom_offset, FeRomInfo::Index index )
 {
 	int filter_index = get_filter_index_from_offset( filter_offset );
-	return get_rom_info_absolute(
-		filter_index,
-		get_rom_index( filter_index, rom_offset ),
-		index );
+	int rom_index = get_rom_index( filter_index, rom_offset );
+	return get_rom_info_absolute( filter_index, rom_index, index );
 }
 
 const std::string &FeSettings::get_rom_info_absolute( int filter_index, int rom_index, FeRomInfo::Index index )
@@ -1386,6 +1384,13 @@ const std::string &FeSettings::get_rom_info_absolute( int filter_index, int rom_
 		return m_current_search[ rom_index ]->get_info( index );
 
 	return m_rl.lookup( filter_index, rom_index ).get_info( index );
+}
+
+FeRomInfo *FeSettings::get_rom_offset( int filter_offset, int rom_offset )
+{
+	int filter_index = get_filter_index_from_offset( filter_offset );
+	int rom_index = get_rom_index( filter_index, rom_offset );
+	return get_rom_absolute( filter_index, rom_index );
 }
 
 FeRomInfo *FeSettings::get_rom_absolute( int filter_index, int rom_index )
@@ -2207,20 +2212,31 @@ bool FeSettings::get_current_fav()
 		return true;
 }
 
-bool FeSettings::set_current_fav( bool status )
+bool FeSettings::set_fav_absolute( bool status, int filter_index, int rom_index )
 {
 	if ( m_current_display < 0 )
 		return false;
 
-	int filter_index = get_current_filter_index();
-
-	FeRomInfo *r = get_rom_absolute( filter_index,
-			get_rom_index( filter_index, 0 ) );
+	FeRomInfo *r = get_rom_absolute( filter_index, rom_index );
 
 	if ( !r )
 		return false;
 
 	return m_rl.set_fav( *r, m_displays[m_current_display], status );
+}
+
+bool FeSettings::set_fav_offset( bool status, int filter_offset, int rom_offset )
+{
+	int filter_index = get_filter_index_from_offset( filter_offset );
+	int rom_index = get_rom_index( filter_index, rom_offset );
+	return set_fav_absolute( status, filter_index, rom_index );
+}
+
+bool FeSettings::set_fav_current( bool status )
+{
+	int filter_index = get_current_filter_index();
+	int rom_index = get_rom_index( filter_index, 0 );
+	return set_fav_absolute( status, filter_index, rom_index );
 }
 
 int FeSettings::get_prev_fav_offset()
@@ -2294,6 +2310,11 @@ int FeSettings::get_next_letter_offset( int step )
 	return 0;
 }
 
+std::vector<std::string> FeSettings::get_tags_available()
+{
+	return m_rl.get_tags_available();
+}
+
 void FeSettings::get_current_tags_list(
 	std::vector< std::pair<std::string, bool> > &tags_list )
 {
@@ -2308,21 +2329,49 @@ void FeSettings::get_current_tags_list(
 	m_rl.get_tags_list( *r, tags_list );
 }
 
-bool FeSettings::set_current_tag(
-		const std::string &tag, bool flag )
+bool FeSettings::replace_tags_offset( const std::string &tags, int filter_offset, int rom_offset )
+{
+	int filter_index = get_filter_index_from_offset( filter_offset );
+	int rom_index = get_rom_index( filter_index, rom_offset );
+	return replace_tags_absolute( tags, filter_index, rom_index );
+}
+
+bool FeSettings::replace_tags_absolute( const std::string &tags, int filter_index, int rom_index )
 {
 	if ( m_current_display < 0 )
 		return false;
 
-	int filter_index = get_current_filter_index();
-
-	FeRomInfo *r = get_rom_absolute( filter_index,
-			get_rom_index( filter_index, 0 ) );
-
+	FeRomInfo *r = get_rom_absolute( filter_index, rom_index );
 	if ( !r )
 		return false;
 
-	return m_rl.set_tag( *r, m_displays[m_current_display], tag, flag );
+	return m_rl.replace_tags( *r, m_displays[m_current_display], tags );
+}
+
+bool FeSettings::set_tag_offset( const std::string &tag, bool add_tag, int filter_offset, int rom_offset )
+{
+	int filter_index = get_filter_index_from_offset( filter_offset );
+	int rom_index = get_rom_index( filter_index, rom_offset );
+	return set_tag_absolute( tag, add_tag, filter_index, rom_index );
+}
+
+bool FeSettings::set_tag_current( const std::string &tag, bool add_tag )
+{
+	int filter_index = get_current_filter_index();
+	int rom_index = get_rom_index( filter_index, 0 );
+	return set_tag_absolute( tag, add_tag, filter_index, rom_index );
+}
+
+bool FeSettings::set_tag_absolute( const std::string &tag, bool add_tag, int filter_index, int rom_index )
+{
+	if ( m_current_display < 0 )
+		return false;
+
+	FeRomInfo *r = get_rom_absolute( filter_index, rom_index );
+	if ( !r )
+		return false;
+
+	return m_rl.set_tag( *r, m_displays[m_current_display], tag, add_tag );
 }
 
 void FeSettings::toggle_layout()
@@ -2611,17 +2660,32 @@ void FeSettings::prep_for_launch( std::string &command,
 	save_state();
 }
 
-bool FeSettings::update_stats( int play_count, int play_time )
+bool FeSettings::update_stats_offset( int play_count, int play_time, int filter_offset, int rom_offset )
+{
+	int filter_index = get_filter_index_from_offset( filter_offset );
+	int rom_index = get_rom_index( filter_index, rom_offset );
+	return update_stats_absolute( play_count, play_time, filter_index, rom_index );
+}
+
+bool FeSettings::update_stats_current( int play_count, int play_time )
+{
+	int filter_index = get_current_filter_index();
+	int rom_index = get_rom_index( filter_index, 0 );
+	return update_stats_absolute( play_count, play_time, filter_index, rom_index );
+}
+
+bool FeSettings::update_stats_absolute( int play_count, int play_time, int filter_index, int rom_index )
 {
 	if (( m_current_display < 0 ) || ( !m_track_usage ))
 		return false;
 
-	int filter_index = get_current_filter_index();
-
 	if ( get_filter_size( filter_index ) < 1 )
 		return false;
 
-	int rom_index = get_rom_index( filter_index, 0 );
+	int selected_rom_index = get_rom_index( filter_index, 0 );
+	FeRomInfo *selected_rom = get_rom_absolute( filter_index, selected_rom_index );
+	if ( !selected_rom )
+		return false;
 
 	FeRomInfo *rom = get_rom_absolute( filter_index, rom_index );
 	if ( !rom )
@@ -2629,23 +2693,23 @@ bool FeSettings::update_stats( int play_count, int play_time )
 
 	std::string path = m_config_path + FE_STATS_SUBDIR;
 
-	FeDebug() << "Updating stats: increment play count by " << play_count
-		<< " and play time by " << play_time << " seconds." << std::endl;
+	FeDebug() << "Updating stats:"
+		<< " increment play count by " << play_count
+		<< " and play time by " << play_time << " seconds."
+		<< std::endl;
 
-	rom->update_stats( path, play_count, play_time );
+	if ( !rom->update_stats( path, play_count, play_time ) )
+		return false;
 
-	bool fixed = m_rl.fix_filters( m_displays[m_current_display], std::set<FeRomInfo::Index>( FeRomInfo::Stats.begin(), FeRomInfo::Stats.end() ) );
+	bool changed = m_rl.fix_filters( m_displays[m_current_display], std::set<FeRomInfo::Index>( FeRomInfo::Stats.begin(), FeRomInfo::Stats.end() ) );
 
-	if ( fixed && ( &m_rl.lookup( filter_index, rom_index ) != rom ))
+	// Stats update may have changed the list, and the current selection
+	if ( changed && ( &m_rl.lookup( filter_index, selected_rom_index ) != selected_rom ))
 	{
-		// Updating the stats actually moved the index of our current
-		// selection (which can happen when sorting by playtime or playcount)
-		//
-		// So go and correct to the new index now
-		//
+		// Select the previously selected rom
 		for ( int i=0; i<m_rl.filter_size( filter_index ); i++ )
 		{
-			if ( m_rl.lookup( filter_index, i ) == *rom )
+			if ( m_rl.lookup( filter_index, i ) == *selected_rom )
 			{
 				set_current_selection( filter_index, i );
 				break;
@@ -2653,7 +2717,7 @@ bool FeSettings::update_stats( int play_count, int play_time )
 		}
 	}
 
-	return fixed;
+	return changed;
 }
 
 int FeSettings::exit_command() const
@@ -2714,6 +2778,131 @@ void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 	}
 }
 
+namespace {
+	//
+	// Format PlayedTime to "# Unit(s)" where Units is Seconds, Minutes, Hours, or Days
+	// - A single decimal is shown for time over 1 hour
+	//
+	std::string get_played_time_display_string( std::string value )
+	{
+		int seconds = as_int( value );
+		float val;
+		std::string unit;
+
+		if ( seconds < SECONDS_IN_MINUTE )
+		{
+			val = seconds;
+			unit = "$1 Second";
+		}
+		else if ( seconds < SECONDS_IN_HOUR )
+		{
+			val = seconds / SECONDS_IN_MINUTE;
+			unit = "$1 Minute";
+		}
+		else if ( seconds < SECONDS_IN_DAY )
+		{
+			val = seconds / SECONDS_IN_HOUR;
+			unit = "$1 Hour";
+		}
+		else // seconds >= SECONDS_IN_DAY
+		{
+			val = seconds / SECONDS_IN_DAY;
+			unit = "$1 Day";
+		}
+
+		if ( seconds < SECONDS_IN_HOUR )
+		{
+			int v = floor( val );
+			if ( v != 1 ) unit += "s";
+			return _( unit, { as_str( v ) });
+		}
+
+		float v = floor( val * 10 ) / 10;
+		bool single = ( v == 1.0 );
+		if ( !single ) unit += "s";
+		return _( unit, { as_str( v, single ? 0 : 1 ) });
+	}
+
+	//
+	// Format PlayedLast to "YYYY-mm-dd HH:MM:SS"
+	//
+	std::string get_played_last_display_string( std::string value )
+	{
+		std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+
+		if ( timestamp == 0 )
+			return _( "Never" );
+
+		char label[128]; // buffer large enough to fit formatted timestamp
+		std::strftime( std::data(label), std::size(label), _( "_datetime" ).c_str(), std::localtime( &timestamp ) );
+		return label;
+	}
+
+	//
+	// Format PlayedLast to "# Unit(s) Ago"
+	//
+	std::string get_played_ago_display_string( std::string value )
+	{
+		std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+
+		if ( timestamp == 0 )
+			return _( "Never" );
+
+		int seconds = std::time(0) - timestamp;
+		if ( seconds < SECONDS_IN_MINUTE )
+			return _( "A Moment Ago" );
+
+		float val;
+		std::string unit;
+
+		if ( seconds < SECONDS_IN_HOUR )
+		{
+			val = seconds / SECONDS_IN_MINUTE;
+			unit = "$1 Minute";
+		}
+		else if ( seconds < SECONDS_IN_DAY )
+		{
+			val = seconds / SECONDS_IN_HOUR;
+			unit = "$1 Hour";
+		}
+		else if ( seconds < SECONDS_IN_WEEK )
+		{
+			val = seconds / SECONDS_IN_DAY;
+			unit = "$1 Day";
+		}
+		else if ( seconds < SECONDS_IN_MONTH )
+		{
+			val = seconds / SECONDS_IN_WEEK;
+			unit = "$1 Week";
+		}
+		else if ( seconds < SECONDS_IN_YEAR )
+		{
+			val = seconds / SECONDS_IN_MONTH;
+			unit = "$1 Month";
+		}
+		else // seconds >= SECONDS_IN_YEAR
+		{
+			val = seconds / SECONDS_IN_YEAR;
+			unit = "$1 Year";
+		}
+
+		int v = floor( val );
+		if ( v != 1 ) unit += "s";
+		return _( unit + " Ago", { as_str( v ) });
+	}
+
+	// Return score string value as float
+	// - Value between 0.0 and 5.0
+	// - Value decimals may be 0.0 or 0.5
+	float get_score( std::string value )
+	{
+		float score = as_float( value );
+		score = std::clamp( score, 0.f, FE_SCORE_MAX );
+		score = std::round( score * 2.0 ) / 2.0;
+		return score;
+	}
+}
+
 //
 // Populate value with the given magic token result
 // - Returns false if the given token is invalid
@@ -2731,10 +2920,13 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 			return true;
 		}
 		case FeRomInfo::PlayedTime:
-			value = get_played_time_display_string( filter_index, rom_index );
+			value = get_played_time_display_string( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedTime ) );
 			return true;
 		case FeRomInfo::PlayedLast:
-			value = get_played_last_display_string( filter_index, rom_index );
+			value = get_played_last_display_string( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast ) );
+			return true;
+		case FeRomInfo::Score:
+			value = as_str( as_float( get_rom_info_absolute( filter_index, rom_index, (FeRomInfo::Index)i ) ), 1 );
 			return true;
 		default:
 			value = get_rom_info_absolute( filter_index, rom_index, (FeRomInfo::Index)i );
@@ -2825,13 +3017,13 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_STAR_ICON : "";
 			return true;
 		case FeRomInfo::FavouriteStarAlt:
-			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_STAR_ALT_ICON : "";
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_STAR_OUTLINE_ICON : "";
 			return true;
 		case FeRomInfo::FavouriteHeart:
 			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_HEART_ICON : "";
 			return true;
 		case FeRomInfo::FavouriteHeartAlt:
-			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_HEART_ALT_ICON : "";
+			value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Favourite ) == "1" ? FE_HEART_OUTLINE_ICON : "";
 			return true;
 		case FeRomInfo::TagList:
 			{
@@ -2846,125 +3038,32 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 				return true;
 			}
 		case FeRomInfo::PlayedAgo:
-			value = get_played_ago_display_string( filter_index, rom_index );
+			value = get_played_ago_display_string( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast ) );
 			return true;
+		case FeRomInfo::ScoreStar:
+			{
+				value.clear();
+				float score = get_score( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Score ) );
+				int score_int = std::floor( score );
+				bool half = score - score_int > 0;
+				for ( int i=0; i<score_int; i++) value += FE_STAR_ICON;
+				if ( half ) value += FE_STAR_HALF_ICON;
+				return true;
+			}
+		case FeRomInfo::ScoreStarAlt:
+			{
+				value.clear();
+				float score = get_score( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::Score ) );
+				int score_int = std::floor( score );
+				bool half = score - score_int > 0;
+				for ( int i=0; i<score_int; i++) value += FE_STAR_ICON;
+				if ( half ) value += FE_STAR_HALF_ICON;
+				for ( int i=score_int+(half?1:0); i<(int)FE_SCORE_MAX; i++ ) value += FE_STAR_OUTLINE_ICON;
+				return true;
+			}
 		default:
 			return false;
 	}
-}
-
-//
-// Format PlayedTime to "# Unit(s)" where Units is Seconds, Minutes, Hours, or Days
-// - A single decimal is shown for time over 1 hour
-//
-std::string FeSettings::get_played_time_display_string( int filter_index, int rom_index )
-{
-	int seconds = as_int( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedTime ) );
-	float val;
-	std::string unit;
-
-	if ( seconds < SECONDS_IN_MINUTE )
-	{
-		val = seconds;
-		unit = "$1 Second";
-	}
-	else if ( seconds < SECONDS_IN_HOUR )
-	{
-		val = seconds / SECONDS_IN_MINUTE;
-		unit = "$1 Minute";
-	}
-	else if ( seconds < SECONDS_IN_DAY )
-	{
-		val = seconds / SECONDS_IN_HOUR;
-		unit = "$1 Hour";
-	}
-	else // seconds >= SECONDS_IN_DAY
-	{
-		val = seconds / SECONDS_IN_DAY;
-		unit = "$1 Day";
-	}
-
-	if ( seconds < SECONDS_IN_HOUR )
-	{
-		int v = floor( val );
-		if ( v != 1 ) unit += "s";
-		return _( unit, { as_str( v ) });
-	}
-
-	float v = floor( val * 10 ) / 10;
-	bool single = ( v == 1.0 );
-	if ( !single ) unit += "s";
-	return _( unit, { as_str( v, single ? 0 : 1 ) });
-}
-
-//
-// Format PlayedLast to "YYYY-mm-dd HH:MM:SS"
-//
-std::string FeSettings::get_played_last_display_string( int filter_index, int rom_index )
-{
-	std::string value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast );
-	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
-
-	if ( timestamp == 0 )
-		return _( "Never" );
-
-	char label[128]; // buffer large enough to fit formatted timestamp
-	std::strftime( std::data(label), std::size(label), _( "_datetime" ).c_str(), std::localtime( &timestamp ) );
-	return label;
-}
-
-//
-// Format PlayedLast to "# Unit(s) Ago"
-//
-std::string FeSettings::get_played_ago_display_string( int filter_index, int rom_index )
-{
-	std::string value = get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast );
-	std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
-
-	if ( timestamp == 0 )
-		return _( "Never" );
-
-	int seconds = std::time(0) - timestamp;
-	if ( seconds < SECONDS_IN_MINUTE )
-		return _( "A Moment Ago" );
-
-	float val;
-	std::string unit;
-
-	if ( seconds < SECONDS_IN_HOUR )
-	{
-		val = seconds / SECONDS_IN_MINUTE;
-		unit = "$1 Minute";
-	}
-	else if ( seconds < SECONDS_IN_DAY )
-	{
-		val = seconds / SECONDS_IN_HOUR;
-		unit = "$1 Hour";
-	}
-	else if ( seconds < SECONDS_IN_WEEK )
-	{
-		val = seconds / SECONDS_IN_DAY;
-		unit = "$1 Day";
-	}
-	else if ( seconds < SECONDS_IN_MONTH )
-	{
-		val = seconds / SECONDS_IN_WEEK;
-		unit = "$1 Week";
-	}
-	else if ( seconds < SECONDS_IN_YEAR )
-	{
-		val = seconds / SECONDS_IN_MONTH;
-		unit = "$1 Month";
-	}
-	else // seconds >= SECONDS_IN_YEAR
-	{
-		val = seconds / SECONDS_IN_YEAR;
-		unit = "$1 Year";
-	}
-
-	int v = floor( val );
-	if ( v != 1 ) unit += "s";
-	return _( unit + " Ago", { as_str( v ) });
 }
 
 FeEmulatorInfo *FeSettings::get_emulator( const std::string &n )
@@ -4501,9 +4600,6 @@ bool FeSettings::update_romlist_after_edit(
 	// Flag tags as changed so they get saved on exit
 	if (( u_type == EraseEntry ) || ( u_type == InsertEntry ) || ( original != replacement ))
 		m_rl.mark_favs_and_tags_changed();
-
-	// Re-create the filters to show the edited entry
-	m_rl.create_filters( m_displays[m_current_display] );
 
 	return true;
 }

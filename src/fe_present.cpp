@@ -964,6 +964,15 @@ bool FePresent::get_clones_list_showing() const
 		return false;
 }
 
+Sqrat::Array FePresent::get_tags_available() const
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	Sqrat::Array tags( vm );
+	for ( auto tag : m_feSettings->get_tags_available() )
+		tags.Append( tag );
+	return tags;
+}
+
 int FePresent::get_selection_index() const
 {
 	return m_feSettings->get_rom_index( m_feSettings->get_current_filter_index(), 0 );

@@ -173,6 +173,7 @@ public:
 	void overlay_clear_custom_controls();
 	bool splash_message( const char *, const char * );
 	bool splash_message( const char * );
+	Sqrat::Array get_tags_available() const;
 
 	static void script_get_config_options(
 			FeConfigContext &ctx,
@@ -260,9 +261,12 @@ public:
 	static const char *cb_get_clipboard();
 	static void cb_set_clipboard( const char * );
 
-	static const char *cb_game_info( int,int,int);
-	static const char *cb_game_info(int,int);
-	static const char *cb_game_info(int);
+	static const char *cb_get_game_info( int, int, int );
+	static const char *cb_get_game_info( int, int );
+	static const char *cb_get_game_info( int );
+	static bool cb_set_game_info( int, const char *, int, int );
+	static bool cb_set_game_info( int, const char *, int );
+	static bool cb_set_game_info( int, const char * );
 
 	enum ArtFlags
 	{
@@ -283,6 +287,8 @@ public:
 	static void cb_set_display( int, bool, bool );
 	static void cb_set_display( int, bool );
 	static void cb_set_display( int );
+	static const char *cb_get_text( const char *, int, int );
+	static const char *cb_get_text( const char *, int );
 	static const char *cb_get_text( const char * );
 };
 

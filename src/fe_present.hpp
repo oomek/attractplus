@@ -211,6 +211,7 @@ protected:
 	void set_filter_index( int );
 	int get_current_filter_size() const;
 	bool get_clones_list_showing() const;
+	Sqrat::Array get_tags_available() const;
 	int get_selection_index() const;
 	int get_sort_by() const;
 	bool get_reverse_order() const;

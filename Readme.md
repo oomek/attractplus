@@ -137,7 +137,7 @@ Filters are stored in `attract.cfg` and may be edited directly. Keep in mind tha
 
 - Any field from the romlist: `Name`, `Title`, `Emulator`, `CloneOf`, `Year`, `Manufacturer`, `Category`, `Players`, `Rotation`, `Control`, `Status`, `DisplayCount`, `DisplayType`, `AltRomname`, `AltTitle`, `Extra`, `Buttons`, `Series`, `Language`, `Region`, `Rating`
 - Tags: `Favourite`, `Tags`
-- Stats: `PlayedCount`, `PlayedTime`, `PlayedLast`
+- Stats: `PlayedCount`, `PlayedTime`, `PlayedLast`, `Score`, `Votes`
 - Other: `FileIsAvailable`, `Shuffle`
 
 ### Sound
