@@ -64,9 +64,12 @@ bool FeRomListSorter::operator()( const FeRomInfo &one_obj, const FeRomInfo &two
 	if ( m_comp == FeRomInfo::Title )
 		// Title sort
 		asc = icompare( one_obj.get_sort_title(), two_obj.get_sort_title() ) < 0;
+	else if ( m_comp == FeRomInfo::Year )
+		// Year sort
+		asc = year_as_int( one_obj.get_info( m_comp ) ) < year_as_int( two_obj.get_info( m_comp ) );
 	else if ( FeRomInfo::isNumeric( m_comp ) )
 		// Numeric sort
-		asc = as_int( one_obj.get_info( m_comp ) ) < as_int( two_obj.get_info( m_comp ) );
+		asc = as_float( one_obj.get_info( m_comp ) ) < as_float( two_obj.get_info( m_comp ) );
 	else
 		// String sort
 		asc = icompare( one_obj.get_info( m_comp ), two_obj.get_info( m_comp ) ) < 0;

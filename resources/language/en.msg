@@ -158,6 +158,10 @@ contains;contains
 does not contain;does not contain
 does not equal;does not equal
 equals;equals
+greater than;greater than
+less than;less than
+greater than or equal;greater than or equal
+less than or equal;less than or equal
 
 # -- commandDispStrings --
 Back;Back

@@ -158,6 +158,10 @@ contains;contiene
 does not contain;non contiene
 does not equal;non è uguale
 equals;è uguale
+greater than;maggiore di
+less than;minore di
+greater than or equal;maggiore o uguale
+less than or equal;minore o uguale
 
 # -- commandDispStrings --
 Back;Indietro

@@ -243,6 +243,10 @@ public:
 		FilterNotEquals,
 		FilterContains,
 		FilterNotContains,
+		FilterGreaterThan,
+		FilterLessThan,
+		FilterGreaterThanOrEqual,
+		FilterLessThanOrEqual,
 		LAST_COMPARISON
 	};
 
@@ -282,6 +286,8 @@ private:
 	bool m_regex_compiled;
 	bool m_is_exception;
 	bool m_use_rex;
+	bool m_use_year;
+	float m_filter_float;
 };
 
 //

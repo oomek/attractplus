@@ -1189,8 +1189,37 @@ std::string as_str( const float f, const int decimals )
 
 int as_int( const std::string &s )
 {
-	return atoi( s.c_str() );
+	try
+	{
+		return atoi( s.c_str() );
+	}
+	catch ( ... )
+	{
+		return 0;
+	}
 }
+
+float as_float( const std::string &s )
+{
+	try
+	{
+		return std::stof( s.c_str() );
+	}
+	catch ( ... )
+	{
+		return 0.0;
+	}
+}
+
+int year_as_int( const std::string &s )
+{
+	if ( s.length() < 4 ) return 0;
+	std::string y = s.substr(0, 4);
+	for ( int i=0; i<4; i++ )
+		if ( y[i] < '0' || y[i] > '9' ) y[i] = '0';
+	return as_int( y );
+}
+
 
 bool config_str_to_bool( const std::string &s, bool permissive )
 {

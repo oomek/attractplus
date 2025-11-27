@@ -158,6 +158,10 @@ contains;포함
 does not contain;미포함
 does not equal;불일치
 equals;일치
+greater than;보다 크다
+less than;보다 작다
+greater than or equal;크거나 같음
+less than or equal;작거나 같음
 
 # -- commandDispStrings --
 Back;뒤로 가기
