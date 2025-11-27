@@ -1772,6 +1772,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 
 **Member Functions**
 
+-  `get_cursor_pos( index )` - Return the cursor `x` position relative to to the object for the given index. Does not work when `word_wrap` is `true`. Range is `[0...msg.len()]`
 -  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the text. Range is `[0...255]`.
 -  `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for the text background. Range is `[0...255]`.
 -  `set_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the text outline. Range is `[0...255]`.

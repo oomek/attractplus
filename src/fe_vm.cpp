@@ -1021,9 +1021,10 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("margin"), &FeText::get_margin, &FeText::set_margin )
 		.Prop(_SC("outline"), &FeText::get_outline, &FeText::set_outline )
 		.Prop(_SC("bg_outline"), &FeText::get_bg_outline, &FeText::set_bg_outline )
-		.Func( _SC("set_bg_rgb"), &FeText::set_bg_rgb )
-		.Func( _SC("set_bg_outline_rgb"), &FeText::set_bg_outline_rgb )
-		.Func( _SC("set_outline_rgb"), &FeText::set_outline_rgb )
+		.Func(_SC("get_cursor_pos"), &FeText::get_cursor_pos )
+		.Func(_SC("set_bg_rgb"), &FeText::set_bg_rgb )
+		.Func(_SC("set_bg_outline_rgb"), &FeText::set_bg_outline_rgb )
+		.Func(_SC("set_outline_rgb"), &FeText::set_outline_rgb )
 	);
 
 	fe.Bind( _SC("ListBox"),
