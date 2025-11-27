@@ -70,6 +70,8 @@ const char *FeRomInfo::indexStrings[] =
 	"PlayedCount",
 	"PlayedTime",
 	"PlayedLast",
+	"Score",
+	"Votes",
 	"FileIsAvailable",
 	"Shuffle",
 	NULL
@@ -98,6 +100,8 @@ const char *FeRomInfo::specialStrings[] =
 	"FavouriteHeart",
 	"FavouriteHeartAlt",
 	"PlayedAgo",
+	"ScoreStar",
+	"ScoreStarAlt",
 	NULL
 };
 
@@ -105,7 +109,9 @@ const char *FeRomInfo::specialStrings[] =
 const std::vector<FeRomInfo::Index> FeRomInfo::Stats = {
 	FeRomInfo::PlayedCount,
 	FeRomInfo::PlayedTime,
-	FeRomInfo::PlayedLast
+	FeRomInfo::PlayedLast,
+	FeRomInfo::Score,
+	FeRomInfo::Votes
 };
 
 FeRomInfo::FeRomInfo():
@@ -133,6 +139,8 @@ const bool FeRomInfo::isNumeric( Index index )
 		|| ( index == FeRomInfo::PlayedCount )
 		|| ( index == FeRomInfo::PlayedTime )
 		|| ( index == FeRomInfo::PlayedLast )
+		|| ( index == FeRomInfo::Score )
+		|| ( index == FeRomInfo::Votes )
 		|| ( index == FeRomInfo::Shuffle );
 }
 
@@ -248,30 +256,32 @@ size_t FeRomInfo::get_tag_pos( const std::string &tag )
 
 void FeRomInfo::clear_stats()
 {
-	m_info[PlayedCount] = "0";
-	m_info[PlayedTime] = "0";
-	m_info[PlayedLast] = "0";
+	int size = (int)FeRomInfo::Stats.size();
+	for ( int i=0; i<size; i++ )
+		m_info[FeRomInfo::Stats[i]] = "0";
 }
 
 //
 // Ensure stats have been loaded into this rominfo, resets them to zero if none exist
 // - If force_update is true the stats are re-loaded even if they've already been set
 //
-void FeRomInfo::load_stats(
+bool FeRomInfo::load_stats(
 	const std::string &path
 )
 {
 	// Exit early if stats already loaded
 	if ( !m_info[PlayedCount].empty() )
-		return;
+		return true;
 
 	// Attempt to load stats from cache, and exit if successful
 	if ( FeCache::get_stats_info( path, m_info ) )
-		return;
+		return true;
 
 	std::string played_count;
 	std::string played_time;
 	std::string played_last;
+	std::string score;
+	std::string votes;
 
 	if ( !path.empty() )
 	{
@@ -282,6 +292,8 @@ void FeRomInfo::load_stats(
 			if ( myfile.good() ) getline( myfile, played_count );
 			if ( myfile.good() ) getline( myfile, played_time );
 			if ( myfile.good() ) getline( myfile, played_last );
+			if ( myfile.good() ) getline( myfile, score );
+			if ( myfile.good() ) getline( myfile, votes );
 			myfile.close();
 		}
 	}
@@ -289,39 +301,45 @@ void FeRomInfo::load_stats(
 	m_info[PlayedCount] = played_count.empty() ? "0" : played_count;
 	m_info[PlayedTime] = played_time.empty() ? "0" : played_time;
 	m_info[PlayedLast] = played_last.empty() ? "0" : played_last;
-
+	m_info[Score] = score.empty() ? "0" : score;
+	m_info[Votes] = votes.empty() ? "0" : votes;
+	return true;
 }
 
-void FeRomInfo::update_stats( const std::string &path, int count_incr, int played_incr )
+bool FeRomInfo::update_stats( const std::string &path, int count_incr, int played_incr )
 {
-	load_stats( path );
+	if ( !load_stats( path ) )
+		return false;
 
-	int new_count = as_int( m_info[PlayedCount] ) + count_incr;
-	int new_time = as_int( m_info[PlayedTime] ) + played_incr;
-	int new_last = std::time(0);
+	m_info[PlayedCount] = as_str( as_int( m_info[PlayedCount] ) + count_incr );
+	m_info[PlayedTime] = as_str( as_int( m_info[PlayedTime] ) + played_incr );
+	m_info[PlayedLast] = as_str( std::time(0) );
 
-	m_info[PlayedCount] = as_str( new_count );
-	m_info[PlayedTime] = as_str( new_time );
-	m_info[PlayedLast] = as_str( new_last );
+	return save_stats( path );
+}
 
+bool FeRomInfo::save_stats( const std::string &path )
+{
 	// Save stats to cache, and continue to save original stat file as well
 	FeCache::set_stats_info( path, m_info );
 
 	confirm_directory( path, m_info[Emulator] );
-	std::string filename = path + m_info[Emulator] + "/"
-		+ m_info[Romname] + FE_STAT_FILE_EXTENSION;
+	std::string filename = path + m_info[Emulator] + "/" + m_info[Romname] + FE_STAT_FILE_EXTENSION;
 	nowide::ofstream myfile( filename.c_str() );
 
 	if ( !myfile.is_open() )
 	{
 		FeLog() << "Error writing stat file: " << filename << std::endl;
-		return;
+		return false;
 	}
 
 	myfile << m_info[PlayedCount] << std::endl
 		<< m_info[PlayedTime] << std::endl
-		<< m_info[PlayedLast] << std::endl;
+		<< m_info[PlayedLast] << std::endl
+		<< m_info[Score] << std::endl
+		<< m_info[Votes] << std::endl;
 	myfile.close();
+	return true;
 }
 
 int FeRomInfo::process_setting( const std::string &,
