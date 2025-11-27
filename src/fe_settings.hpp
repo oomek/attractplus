@@ -295,7 +295,6 @@ private:
 		const std::string &,
 		const std::string & );
 
-	void init_display();
 	void load_state();
 	void clear();
 	void load_displays_configs();
@@ -309,10 +308,6 @@ private:
 		const char *subdir ) const;
 
 	void internal_load_language( const std::string &lang );
-
-	std::string get_played_time_display_string( int filter_index, int rom_index );
-	std::string get_played_last_display_string( int filter_index, int rom_index );
-	std::string get_played_ago_display_string( int filter_index, int rom_index );
 
 	bool internal_get_best_artwork_file(
 		const FeRomInfo &rom,
@@ -394,6 +389,7 @@ public:
 	// Returns true if the display change results in a new layout, false otherwise
 	//
 	bool set_display( int index, bool stack_previous=false );
+	void init_display();
 
 	// Return true if there are displays available to navigate back to on a "back" button press
 	//
@@ -462,6 +458,7 @@ public:
 	const std::string &get_current_display_title() const;
 	const std::string &get_rom_info( int filter_offset, int rom_offset, FeRomInfo::Index index );
 	const std::string &get_rom_info_absolute( int filter_index, int rom_index, FeRomInfo::Index index );
+	FeRomInfo *get_rom_offset( int filter_offset, int rom_offset );
 	FeRomInfo *get_rom_absolute( int filter_index, int rom_index );
 
 	int selection_delay() const { return m_selection_delay; }
@@ -559,19 +556,26 @@ public:
 
 	bool get_current_fav();
 
-	// returns true if the current list chnaged as a result of setting the tag
-	bool set_current_fav( bool );
+	// returns true if the current list changed as a result of setting the tag
+	bool set_fav_offset( bool state, int filter_offset, int rom_offset );
+	bool set_fav_absolute( bool state, int filter_index, int rom_index );
+	bool set_fav_current( bool state );
 	int get_prev_fav_offset();
 	int get_next_fav_offset();
 
 	int get_next_letter_offset( int step );
 
-	void get_current_tags_list(
-		std::vector< std::pair<std::string, bool> > &tags_list );
+	std::vector<std::string> get_tags_available();
+	void get_current_tags_list( std::vector< std::pair<std::string, bool> > &tags_list );
 
 	// returns true if the current list changed as a result of setting the tag
-	bool set_current_tag(
-			const std::string &tag, bool flag );
+	bool set_tag_offset( const std::string &tag, bool add_tag, int filter_offset, int rom_offset );
+	bool set_tag_absolute( const std::string &tag, bool add_tag, int filter_index, int rom_index );
+	bool set_tag_current( const std::string &tag, bool add_tag );
+
+	bool replace_tags_offset( const std::string &tags, int filter_offset, int rom_offset );
+	bool replace_tags_absolute( const std::string &tags, int filter_index, int rom_index );
+
 	//
 	// This function implements command-line romlist generation/imports
 	// If output_name is empty, then a non-existing filename is chosen for
@@ -613,7 +617,9 @@ public:
 	);
 
 	// Returns true if the stats update may have altered the current filters
-	bool update_stats( int count_incr, int time_incr );
+	bool update_stats_offset( int count_incr, int time_incr, int filter_offset, int rom_offset );
+	bool update_stats_absolute( int count_incr, int time_incr, int filter_index, int rom_index );
+	bool update_stats_current( int count_incr, int time_incr );
 
 	//
 	// The frontend maintains extra per game settings/extra info

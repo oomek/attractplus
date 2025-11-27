@@ -1189,7 +1189,24 @@ std::string as_str( const float f, const int decimals )
 
 int as_int( const std::string &s )
 {
-	return atoi( s.c_str() );
+	try {
+		return atoi( s.c_str() );
+	}
+	catch ( ... )
+	{
+		return 0;
+	}
+}
+
+float as_float( const std::string &s )
+{
+	try {
+		return std::stof( s.c_str() );
+	}
+	catch ( ... )
+	{
+		return 0.0;
+	}
 }
 
 bool config_str_to_bool( const std::string &s, bool permissive )

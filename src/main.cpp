@@ -805,12 +805,9 @@ int main(int argc, char *argv[])
 						if ( !r )
 							r = &dummy;
 
-						feSettings.update_romlist_after_edit( *r,
-							new_entry,
-							FeSettings::InsertEntry );
-
-						// initial update shows new entry behind config
-						// dialog
+						// initial update shows new entry behind config dialog
+						feSettings.update_romlist_after_edit( *r, new_entry, FeSettings::InsertEntry );
+						feSettings.init_display();
 						feVM.update_to_new_list();
 
 						if ( feOverlay.edit_game_dialog( 0, c ) )
@@ -1008,7 +1005,7 @@ int main(int argc, char *argv[])
 						{
 							// Update without reset if the list has not been changed
 							// - This will allow layout lists to display the changed favs
-							bool list_changed = feSettings.set_current_fav( new_state );
+							bool list_changed = feSettings.set_fav_current( new_state );
 							feVM.update_to_new_list( 0, list_changed );
 							feVM.on_transition( ChangedTag, FeRomInfo::Favourite );
 						}
