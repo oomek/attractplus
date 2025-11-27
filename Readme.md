@@ -127,6 +127,10 @@ Filters are stored in `attract.cfg` and may be edited directly. Keep in mind tha
    -  `not_equals` - The target must not equal the value.
    -  `contains` - The target must contain the value.
    -  `not_contains` - The target must not contain the value.
+   -  `greater_than` - The target must be greater than the value.
+   -  `less_than` - The target must be less than the value.
+   -  `greater_than_or_equal` - The target must be greater than or equal to the value (must be numeric).
+   -  `less_than_or_equal` - The target must be less than or equal to the value (must be numeric).
 -  `value` - A regular expression.
 
 **Rule Targets**

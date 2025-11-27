@@ -158,6 +158,10 @@ contains;包含
 does not contain;不包含
 does not equal;不等于
 equals;等于
+greater than;大于
+less than;小于
+greater than or equal;大于或等于
+less than or equal;小于或等于
 
 # -- commandDispStrings --
 Back;返回

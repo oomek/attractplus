@@ -158,6 +158,10 @@ contains;含む
 does not contain;含まない
 does not equal;一致しない
 equals;一致する
+greater than;より大きい
+less than;より小さい
+greater than or equal;より大きいか等しい
+less than or equal;より小さいか等しい
 
 # -- commandDispStrings --
 Back;戻る

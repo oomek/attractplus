@@ -392,6 +392,10 @@ const char *FeRule::filterCompStrings[] =
 	"not_equals",
 	"contains",
 	"not_contains",
+	"greater_than",
+	"less_than",
+	"greater_than_or_equal",
+	"less_than_or_equal",
 	NULL
 };
 
@@ -401,6 +405,10 @@ const char *FeRule::filterCompDisplayStrings[] =
 	"does not equal",
 	"contains",
 	"does not contain",
+	"greater than",
+	"less than",
+	"greater than or equal",
+	"less than or equal",
 	NULL
 };
 
@@ -409,7 +417,10 @@ FeRule::FeRule( FeRomInfo::Index t, FilterComp c, const std::string &w )
 	m_filter_comp( c ),
 	m_filter_what( w ),
 	m_regex_compiled( false ),
-	m_is_exception( false )
+	m_is_exception( false ),
+	m_use_rex( false ),
+	m_use_year( false ),
+	m_filter_float( 0.0 )
 {
 }
 
@@ -418,7 +429,10 @@ FeRule::FeRule( const FeRule &r )
 	m_filter_comp( r.m_filter_comp ),
 	m_filter_what( r.m_filter_what ),
 	m_regex_compiled( r.m_regex_compiled ),
-	m_is_exception( r.m_is_exception )
+	m_is_exception( r.m_is_exception ),
+	m_use_rex( r.m_use_rex ),
+	m_use_year( r.m_use_year ),
+	m_filter_float( r.m_filter_float )
 {
 	if ( r.m_regex_compiled )
 		m_rex = r.m_rex;
@@ -441,13 +455,28 @@ FeRule &FeRule::operator=( const FeRule &r )
 
 void FeRule::init()
 {
-	m_use_rex = m_filter_what.find_first_of( ".+*?^$()[]{}|\\" ) != std::string::npos;
+	// Check if comparing year, since the values might need some "massaging"
+	m_use_year = m_filter_target == FeRomInfo::Year;
 
+	// Greater/less comparisons will need the "what" as a float
+	if ( m_filter_comp == FilterGreaterThan
+		|| m_filter_comp == FilterLessThan
+		|| m_filter_comp == FilterGreaterThanOrEqual
+		|| m_filter_comp == FilterLessThanOrEqual )
+	{
+		m_use_rex = false;
+		m_filter_float = as_float( m_filter_what );
+		return;
+	}
+
+	// Check for traces of regular expressions, otherwise faster comparisons with be used
+	m_use_rex = m_filter_what.find_first_of( ".+*?^$()[]{}|\\" ) != std::string::npos;
 	if ( !m_use_rex || m_regex_compiled || m_filter_what.empty() )
 		return;
 
 	try
 	{
+		// Create wide case-insensitive regexp
 		m_rex = std::wregex( FeUtil::widen( m_filter_what ), std::regex_constants::ECMAScript | std::regex_constants::icase );
 		m_regex_compiled = true;
 	}
@@ -496,6 +525,34 @@ bool FeRule::apply_rule( const FeRomInfo &rom ) const
 			: m_use_rex
 				? !std::regex_search( FeUtil::widen( target ), m_rex )
 				: ( lowercase( target ).find( lowercase( m_filter_what ) ) == std::string::npos );
+
+	case FilterGreaterThan:
+		return target.empty()
+			? false
+			: m_use_year
+				? year_as_int( target ) > m_filter_float
+				: as_float( target ) > m_filter_float;
+
+	case FilterGreaterThanOrEqual:
+		return target.empty()
+			? false
+			: m_use_year
+				? year_as_int( target ) >= m_filter_float
+				: as_float( target ) >= m_filter_float;
+
+	case FilterLessThan:
+		return target.empty()
+			? true
+			: m_use_year
+				? year_as_int( target ) < m_filter_float
+				: as_float( target ) < m_filter_float;
+
+	case FilterLessThanOrEqual:
+		return target.empty()
+			? true
+			: m_use_year
+				? year_as_int( target ) <= m_filter_float
+				: as_float( target ) <= m_filter_float;
 
 	default:
 		return true;

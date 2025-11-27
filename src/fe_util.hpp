@@ -357,6 +357,21 @@ std::string as_str( const float f, const int decimals=3 );
 int as_int( const std::string &s );
 
 //
+// Return string as float
+//
+float as_float( const std::string &s );
+
+//
+// Return year string as int
+// - 19 = 0
+// - 19?? = 1900
+// - 198? = 1980
+// - 1980 = 1980
+// - 1980? = 1980
+//
+int year_as_int( const std::string &s );
+
+//
 // Return bool representing given string
 // - "yes" or "true" = true, anything else = false
 // - If permissive "no" or "false" = false, anything else = true
