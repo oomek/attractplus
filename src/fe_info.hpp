@@ -125,7 +125,10 @@ public:
 		PlayedCount,
 		PlayedTime,
 		PlayedLast,
-		FileIsAvailable,
+		Score,
+		Votes,
+
+		FileIsAvailable, // this point and beyond is dynamically added
 		Shuffle,
 		LAST_INDEX
 	};
@@ -153,6 +156,8 @@ public:
 		FavouriteHeart,
 		FavouriteHeartAlt,
 		PlayedAgo,
+		ScoreStar,
+		ScoreStarAlt,
 		LAST_SPECIAL
 	};
 
@@ -188,8 +193,9 @@ public:
 	std::string as_output( void ) const;
 
 	void clear_stats();
-	void load_stats( const std::string &path );
-	void update_stats( const std::string &path, int count_incr, int played_incr );
+	bool load_stats( const std::string &path );
+	bool save_stats( const std::string &path );
+	bool update_stats( const std::string &path, int count_incr, int played_incr );
 
 	void clear(); // Clear all m_info data
 

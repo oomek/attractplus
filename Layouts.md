@@ -22,7 +22,8 @@
    -  [`fe.add_music()`](#feadd_music-) 🔶
    -  [`fe.add_ticks_callback()`](#feadd_ticks_callback)
    -  [`fe.add_transition_callback()`](#feadd_transition_callback)
-   -  [`fe.game_info()`](#fegame_info)
+   -  [`fe.get_game_info()`](#feget_game_info)
+   -  [`fe.set_game_info()`](#feset_game_info) 🔶
    -  [`fe.get_art()`](#feget_art)
    -  [`fe.get_input_state()`](#feget_input_state)
    -  [`fe.get_input_pos()`](#feget_input_pos)
@@ -148,6 +149,12 @@ The following _Magic Tokens_ are supported:
    -  `[DisplayType]` - The display type for the game
    -  `[AltRomname]` - The alternative rom name for the game
    -  `[AltTitle]` - The alternative title for the game
+   -  `[Extra]` - The extra information for the game
+   -  `[Buttons]` - The number of buttons used by the game
+   -  `[Series]` - The series the game belongs to
+   -  `[Language]` - The language used by the game
+   -  `[Region]` - The region the game belongs to
+   -  `[Rating]` - The age rating for the game
    -  `[Overview]` - The overview description for the game
    -  `[System]` - The first System name for the game's emulator
    -  `[SystemN]` - The last System name for the game's emulator
@@ -166,6 +173,10 @@ The following _Magic Tokens_ are supported:
    -  `[PlayedTime]` - The number of seconds the game has been played
    -  `[PlayedLast]` - The timestamp the game was last played
    -  `[PlayedAgo]` - The last played date formatted relative to now, for example: `5 Minutes Ago`
+   -  `[Score]` - The user score for the game. Range is `[0.0...5.0]`
+   -  `[ScoreStar]` - The score displayed as a number of stars, for example: `★★★`
+   -  `[ScoreStarAlt]` - The score displayed as a number of stars plus empty slots, for example: `★★★☆☆`
+   -  `[Votes]` - The total number of user votes for the game
 
 #### Custom Magic Token Functions
 
@@ -178,7 +189,7 @@ _Magic Tokens_ can also run user-defined functions in the form `[!token_function
 // Return the first word in the Manufacturer name
 function manufacturer_name()
 {
-  local m = fe.game_info( Info.Manufacturer )
+  local m = fe.get_game_info( Info.Manufacturer )
   return split( m, " " )[0]
 }
 
@@ -191,8 +202,8 @@ fe.add_image( "[!manufacturer_name].png", 0, 0 )
 // Otherwise just return the Manufacturer's name
 function copyright( index_offset, filter_offset )
 {
-  local m = fe.game_info( Info.Manufacturer, index_offset, filter_offset )
-  local y = fe.game_info( Info.Year, index_offset, filter_offset )
+  local m = fe.get_game_info( Info.Manufacturer, index_offset, filter_offset )
+  local y = fe.get_game_info( Info.Year, index_offset, filter_offset )
 
   if (( m.len() > 0 ) && ( y.len() > 0 ))
   {
@@ -670,12 +681,12 @@ Compile a GLSL shader from the given shader code for use in the layout. Also see
 
 ---
 
-### `fe.game_info()`
+### `fe.get_game_info()`
 
 ```squirrel
-fe.game_info( id )
-fe.game_info( id, index_offset )
-fe.game_info( id, index_offset, filter_offset )
+fe.get_game_info( id )
+fe.get_game_info( id, index_offset )
+fe.get_game_info( id, index_offset, filter_offset )
 ```
 
 Get information about the selected game.
@@ -699,11 +710,18 @@ Get information about the selected game.
    -  `Info.AltRomname`
    -  `Info.AltTitle`
    -  `Info.Extra`
+   -  `Info.Buttons`
+   -  `Info.Series`
+   -  `Info.Language`
+   -  `Info.Region`
+   -  `Info.Rating`
    -  `Info.Favourite`
    -  `Info.Tags`
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
    -  `Info.PlayedLast`
+   -  `Info.Score`
+   -  `Info.Votes`
    -  `Info.FileIsAvailable`
    -  `Info.System`
    -  `Info.Overview`
@@ -719,6 +737,61 @@ Get information about the selected game.
 **Notes**
 
 -  The `Info.IsPaused` attribute is `1` if the game is currently paused by the frontend, and an empty string if it is not.
+
+---
+
+### `fe.set_game_info()`
+
+```squirrel
+fe.set_game_info( id, value )
+fe.set_game_info( id, value, index_offset )
+fe.set_game_info( id, value, index_offset, filter_offset )
+```
+
+Set information about the selected game.
+
+**Parameters**
+
+-  `id` - Id of the information attribute to set. Can be one of the following values:
+   -  `Info.Name`
+   -  `Info.Title`
+   -  `Info.Emulator`
+   -  `Info.CloneOf`
+   -  `Info.Year`
+   -  `Info.Manufacturer`
+   -  `Info.Category`
+   -  `Info.Players`
+   -  `Info.Rotation`
+   -  `Info.Control`
+   -  `Info.Status`
+   -  `Info.DisplayCount`
+   -  `Info.DisplayType`
+   -  `Info.AltRomname`
+   -  `Info.AltTitle`
+   -  `Info.Extra`
+   -  `Info.Buttons`
+   -  `Info.Series`
+   -  `Info.Language`
+   -  `Info.Region`
+   -  `Info.Rating`
+   -  `Info.Favourite`
+   -  `Info.Tags`
+   -  `Info.PlayedCount`
+   -  `Info.PlayedTime`
+   -  `Info.PlayedLast`
+   -  `Info.Score`
+   -  `Info.Votes`
+-  `value` - The value to set.
+-  `index_offset` - The offset (from the current selection) of the game to update info for. i.e. `-1` = previous game, `0` = current game, `1` = next game, and so on. Default value is `0`.
+-  `filter_offset` - The offset (from the current filter) of the filter containing the selection to update info for. i.e. `-1` = previous filter, `0` = current filter. Default value is `0`.
+
+**Return Value**
+
+-  True if the value was successfully set.
+
+**Notes**
+
+-  Modifying game information does not reload the current Filter, or fire any related Transitions. If the change is expected to modify the list then `fe.signal("reload_config")` should be called afterward.
 
 ---
 
@@ -1269,6 +1342,7 @@ This class is a container for status information regarding the current display. 
 -  `search_rule` - Get/set the search rule applied to the current game list. If you set this and the resulting search finds no results, then the current game list remains displayed in its entirety. If there are results, then those results are shown instead, until search_rule is cleared or the user navigates away from the display/filter.
 -  `size` - Get the size of the current game list. If a search rule has been applied, this will be the number of matches found (if any)
 -  `clones_list` 🔶 - Returns `true` if the current list contains game clones.
+-  `tags` 🔶 - Returns array containing the available tags for the current list.
 
 ---
 
@@ -1358,11 +1432,18 @@ This class is a container for information about the available filters. Instances
    -  `Info.AltRomname`
    -  `Info.AltTitle`
    -  `Info.Extra`
+   -  `Info.Buttons`
+   -  `Info.Series`
+   -  `Info.Language`
+   -  `Info.Region`
+   -  `Info.Rating`
    -  `Info.Favourite`
    -  `Info.Tags`
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
    -  `Info.PlayedLast`
+   -  `Info.Score`
+   -  `Info.Votes`
    -  `Info.FileIsAvailable`
 -  `reverse_order` - [boolean] Will be equal to `true` if the list order has been reversed.
 -  `list_limit` - Get the value of the list limit applied to the filter game list.

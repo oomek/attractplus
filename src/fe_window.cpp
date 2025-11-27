@@ -690,7 +690,7 @@ bool FeWindow::run()
 		}
 	}
 
-	if ( m_fes.update_stats( 1, timer.getElapsedTime().asSeconds() ) )
+	if ( m_fes.update_stats_current( 1, timer.getElapsedTime().asSeconds() ) )
 	{
 		FePresent *fep = FePresent::script_get_fep();
 		fep->update_to( ToNewList, false );
