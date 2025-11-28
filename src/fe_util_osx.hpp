@@ -24,6 +24,7 @@
 #define FE_UTIL_OSX_HPP
 
 #include <string>
+#include "fe_util.hpp"
 #include <SFML/Config.hpp>
 
 //
@@ -34,11 +35,21 @@ void osx_hide_menu_bar();
 //
 // Get a string from the OS X clipboard.
 //
-std::basic_string<std::uint32_t> osx_clipboard_get_content();
+std::string osx_clipboard_get_content();
+
+//
+// Set a string to the OS X clipboard.
+//
+void osx_clipboard_set_content( const std::string & );
 
 //
 // Put the focus on the frontend.
 //
 void osx_take_focus();
+
+//
+// Return true if capslock on
+//
+bool osx_get_capslock();
 
 #endif
