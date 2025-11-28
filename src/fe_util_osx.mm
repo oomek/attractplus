@@ -42,27 +42,6 @@ namespace
 	private:
 		NSAutoreleasePool* pool;
 	};
-
-	static std::basic_string<std::uint32_t> string_from_cocoa( NSString* s )
-	{
-		std::string t1 = std::string( [s UTF8String] );
-
-		std::basic_string<std::uint32_t> t2, retval;
-		sf::Utf8::toUtf32( t1.begin(),
-			t1.end(),
-			std::back_inserter( t2 ) );
-
-		// clean the string
-		for ( std::basic_string<std::uint32_t>::iterator itr=t2.begin();
-				itr != t2.end();
-				++itr )
-		{
-			if ( *itr >= 32 )
-				retval += *itr;
-		}
-
-		return retval;
-	}
 };
 
 void osx_hide_menu_bar()
@@ -70,16 +49,33 @@ void osx_hide_menu_bar()
 	[NSMenu setMenuBarVisible:NO];
 }
 
-std::basic_string<std::uint32_t> osx_clipboard_get_content()
+std::string osx_clipboard_get_content()
 {
 	cocoa_ar_pool_class pool;
 
 	NSPasteboard* pboard = [NSPasteboard generalPasteboard];
 	NSString* nstext = [pboard stringForType:NSPasteboardTypeString];
-	return string_from_cocoa( nstext );
+	return std::string( [nstext UTF8String] );
+}
+
+void osx_clipboard_set_content( const std::string &value )
+{
+	cocoa_ar_pool_class pool;
+
+	std::wstring val = FeUtil::widen( value );
+	NSString *nstext = [NSString stringWithCString:val.c_str() encoding:NSUTF16StringEncoding];
+	NSPasteboard* pboard = [NSPasteboard generalPasteboard];
+	[pboard clearContents];
+	[pboard setString:nstext forType:NSPasteboardTypeString];
 }
 
 void osx_take_focus()
 {
 	[NSApp activateIgnoringOtherApps:YES];
+}
+
+bool osx_get_capslock()
+{
+	CGEventFlags flags = CGEventSourceFlagsState(kCGEventSourceStatePrivate);
+	return ((flags & kCGEventFlagMaskAlphaShift) == kCGEventFlagMaskAlphaShift);
 }

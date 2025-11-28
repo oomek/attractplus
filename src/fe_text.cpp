@@ -283,8 +283,7 @@ float FeText::get_cursor_pos( int i )
 	if ( m_string.empty() || get_word_wrap() )
 		return 0;
 	int pos = std::clamp( i, 0, (int)m_string.size() );
-	std::basic_string<std::uint32_t> str;
-	sf::Utf8::toUtf32( m_string.begin(), m_string.end(), std::back_inserter( str ) );
+	std::basic_string<std::uint32_t> str = utf8_to_utf32( m_string );
 	return m_draw_text.setString( str, pos ).x - m_draw_text.getPosition().x;
 }
 

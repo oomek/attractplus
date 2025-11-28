@@ -1230,11 +1230,14 @@ void FeSettings::set_search_rule( const std::string &rule_str )
 	if ( rule_str.empty() )
 		return;
 
+	// The search rule is not stored if it fails to parse
 	FeRule rule;
 	if ( rule.process_setting( "", rule_str, "" ) )
 		return;
 
-	rule.init();
+	// The search rule is not stored if it fails to init (bad regex)
+	if ( !rule.init() )
+		return;
 
 	int filter_index = get_current_filter_index();
 	for ( int i=0; i<m_rl.filter_size( filter_index ); i++ )
@@ -1244,6 +1247,7 @@ void FeSettings::set_search_rule( const std::string &rule_str )
 			m_current_search.push_back( &r );
 	}
 
+	// The search rule is not stored if there are no results
 	if ( !m_current_search.empty() )
 		m_current_search_str = rule_str;
 }
@@ -2707,11 +2711,13 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 	int i = get_token_index( FeRomInfo::indexStrings, token );
 	switch ( i )
 	{
-		case FeRomInfo::Title:
+		case FeRomInfo::Title: {
 			// Don't strip brackets when showing a clones group
-			value = get_rom_absolute( filter_index, rom_index )->get_display_title();
+			FeRomInfo *rom = get_rom_absolute( filter_index, rom_index );
+			value = rom ? rom->get_display_title() : "";
 			if ( m_hide_brackets && m_clone_index < 0 ) value = name_with_brackets_stripped( value );
 			return true;
+		}
 		case FeRomInfo::PlayedTime:
 			value = get_played_time_display_string( filter_index, rom_index );
 			return true;
