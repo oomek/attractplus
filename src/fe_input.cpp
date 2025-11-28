@@ -183,11 +183,11 @@ const char *FeInputSingle::keyStrings[] =
 	"Quote",
 	"Slash",
 	"Backslash",
-	"Tilde",
+	"Tilde", // Grave
 	"Equal",
 	"Dash",
 	"Space",
-	"Return",
+	"Return", // Enter
 	"Backspace",
 	"Tab",
 	"PageUp",

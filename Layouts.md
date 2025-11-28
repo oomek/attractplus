@@ -2063,6 +2063,8 @@ Attract-Mode Plus includes all [Squirrel Standard Library](https://web.archive.o
 -  `zip_get_dir( zipfile )` - Return an array of the filenames contained in the `zipfile` archive file.
 -  `regexp2( pattern, flags )` - A class which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements. Flags are optional, accepts `"i"` for case-insensitive matches.
 -  `join( arr, delim )` - Returns a string containing concatenated array values separated with the given delimiter.
+-  `get_clipboard()` - Returns the contents of the OS clipboard.
+-  `set_clipboard( value )` - Sets the contents of the OS clipboard.
 
 ---
 

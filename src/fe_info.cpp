@@ -453,7 +453,7 @@ FeRule &FeRule::operator=( const FeRule &r )
 	return *this;
 }
 
-void FeRule::init()
+bool FeRule::init()
 {
 	// Check if comparing year, since the values might need some "massaging"
 	m_use_year = m_filter_target == FeRomInfo::Year;
@@ -466,13 +466,13 @@ void FeRule::init()
 	{
 		m_use_rex = false;
 		m_filter_float = as_float( m_filter_what );
-		return;
+		return true;
 	}
 
 	// Check for traces of regular expressions, otherwise faster comparisons with be used
 	m_use_rex = m_filter_what.find_first_of( ".+*?^$()[]{}|\\" ) != std::string::npos;
 	if ( !m_use_rex || m_regex_compiled || m_filter_what.empty() )
-		return;
+		return true;
 
 	try
 	{
@@ -484,7 +484,10 @@ void FeRule::init()
 	{
 		FeLog() << "Error compiling regular expression \"" << m_filter_what << "\": " << e.what() << std::endl;
 		m_regex_compiled = false;
+		return false;
 	}
+
+	return true;
 }
 
 bool FeRule::apply_rule( const FeRomInfo &rom ) const

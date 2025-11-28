@@ -836,8 +836,7 @@ bool FeOverlay::edit_dialog(
 
 	std::vector<sf::Drawable*> draw_list = { &bg, &message, &tp };
 
-	std::basic_string<std::uint32_t> str;
-	sf::Utf8::toUtf32( text.begin(), text.end(), std::back_inserter( str ) );
+	std::basic_string<std::uint32_t> str = utf8_to_utf32( text );
 
 	FeFlagMinder fm( m_overlay_is_on );
 
@@ -846,8 +845,7 @@ bool FeOverlay::edit_dialog(
 	//
 	if ( edit_loop( draw_list, str, &tp ) )
 	{
-		text.clear();
-		sf::Utf32::toUtf8( str.begin(), str.end(), std::back_inserter( text ) );
+		text = utf32_to_utf8( str );
 		return true;
 	}
 
@@ -1735,19 +1733,13 @@ int FeOverlay::display_config_dialog(
 			else
 			{
 				const std::string &e_str( ctx.curr_opt().get_value() );
-				std::basic_string<std::uint32_t> str;
-				sf::Utf8::toUtf32( e_str.begin(), e_str.end(),
-						std::back_inserter( str ) );
+				std::basic_string<std::uint32_t> str = utf8_to_utf32( e_str );
 
 				if ( edit_loop( draw_list, str, tp ) == true )
 				{
 					ctx.save_req = true;
 
-					std::string d_str;
-					sf::Utf32::toUtf8(
-						str.begin(),
-						str.end(),
-						std::back_inserter( d_str ) );
+					std::string d_str = utf32_to_utf8( str );
 					ctx.curr_opt().set_value( d_str );
 					ctx.right_list[ctx.curr_sel] = d_str;
 				}
@@ -2195,7 +2187,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 						if ( key->control )
 	#endif
 						{
-							std::basic_string<std::uint32_t> temp = clipboard_get_content();
+							std::basic_string<std::uint32_t> temp = utf8_to_utf32( clean_str( clipboard_get_content() ) );
 							str.insert( cursor_pos, temp.c_str() );
 							cursor_pos += temp.length();
 						}
@@ -2351,7 +2343,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 			m_wnd.draw( *(*itr), t );
 
 		int ms = cursor_timer.getElapsedTime().asMilliseconds();
-		int cursor_fade = std::clamp( sin( ms / 250.0 * M_PI ) + 1.0, 0.0, 1.0 ) * 255;
+		int cursor_fade = std::clamp( sin( ms / 500.0 * M_PI ) * 2.0 + 1.0, 0.0, 1.0 ) * 255;
 
 		cursor.setFillColor( m_text_color * sf::Color( 255, 255, 255, cursor_fade ));
 

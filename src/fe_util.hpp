@@ -372,6 +372,17 @@ float as_float( const std::string &s );
 int year_as_int( const std::string &s );
 
 //
+// Convert utf8 to utf32
+//
+std::basic_string<std::uint32_t> utf8_to_utf32( const std::string & );
+std::string utf32_to_utf8( const std::basic_string<std::uint32_t> & );
+
+//
+// Strip control characters such as line feeds, etc
+//
+std::string clean_str( const std::string & );
+
+//
 // Return bool representing given string
 // - "yes" or "true" = true, anything else = false
 // - If permissive "no" or "false" = false, anything else = true
@@ -386,7 +397,12 @@ const char *get_OS_string();
 //
 // return the contents of the clipboard (if implemented for OS)
 //
-std::basic_string<std::uint32_t> clipboard_get_content();
+std::string clipboard_get_content();
+
+//
+// set the contents of the clipboard
+//
+void clipboard_set_content( const std::string & );
 
 //
 // We use this in fe_window but implement it here because the XWindows
@@ -484,3 +500,6 @@ void color_to_hex( const sf::Color &col, std::string &str );
 // Return index of token in tokens, or -1 if not found
 //
 int get_token_index( const char *tokens[], const std::string &token );
+
+// Return true if capslock enabled
+bool get_capslock_state();

@@ -257,6 +257,9 @@ public:
 	static Sqrat::Array cb_get_dir( const char * );
 	static bool cb_make_dir( const char * );
 
+	static const char *cb_get_clipboard();
+	static void cb_set_clipboard( const char * );
+
 	static const char *cb_game_info( int,int,int);
 	static const char *cb_game_info(int,int);
 	static const char *cb_game_info(int);
