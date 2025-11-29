@@ -62,8 +62,7 @@ void osx_clipboard_set_content( const std::string &value )
 {
 	cocoa_ar_pool_class pool;
 
-	std::wstring val = FeUtil::widen( value );
-	NSString *nstext = [NSString stringWithCString:val.c_str() encoding:NSUTF16StringEncoding];
+	NSString *nstext = [NSString stringWithCString:value.c_str() encoding:NSUTF8StringEncoding];
 	NSPasteboard* pboard = [NSPasteboard generalPasteboard];
 	[pboard clearContents];
 	[pboard setString:nstext forType:NSPasteboardTypeString];
