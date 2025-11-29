@@ -2373,7 +2373,7 @@ bool get_capslock_state()
 	#endif
 
 	#ifdef SFML_SYSTEM_MACOS
-		return osx_get_capslock;
+		return osx_get_capslock();
 	#endif
 
 	#ifdef USE_XLIB
