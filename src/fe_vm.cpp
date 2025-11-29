@@ -491,6 +491,8 @@ namespace {
 		rt.Func( _SC("exp2"), &SqMath::exp2 );
 		rt.Func( _SC("log2"), &SqMath::log2 );
 		rt.Func( _SC("join"), &sq_join );
+		rt.Func( _SC("get_clipboard"), &FeVM::cb_get_clipboard );
+		rt.Func( _SC("set_clipboard"), &FeVM::cb_set_clipboard );
 
 		// Filesystem namespace
 		Sqrat::Table fs( vm );
@@ -2671,6 +2673,7 @@ bool FeVM::cb_get_input_state( const char *input )
 	//
 	if ( fev->m_overlay->overlay_is_on() )
 		return false;
+
 	//
 	// First test if a command has been provided
 	//
@@ -2678,6 +2681,35 @@ bool FeVM::cb_get_input_state( const char *input )
 	{
 		if ( strcmp( input, FeInputMap::commandStrings[i] ) == 0 )
 			return fev->m_feSettings->get_current_state( (FeInputMap::Command)i );
+	}
+
+	//
+	// Special inputs
+	//
+	if ( strcmp( input, "CapsLock" ) == 0 )
+	{
+		return get_capslock_state();
+	}
+	else if ( strcmp( input, "Shift" ) == 0 )
+	{
+		// Returns true if either shift active
+		if ( FeInputMapEntry( "LShift" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		if ( FeInputMapEntry( "RShift" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		return false;
+	}
+	else if ( strcmp( input, "Control" ) == 0 )
+	{
+		// Returns true if either control active
+		if ( FeInputMapEntry( "LControl" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		if ( FeInputMapEntry( "RControl" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		return false;
+	}
+	else if ( strcmp( input, "Alt" ) == 0 )
+	{
+		// Returns true if either alt active
+		if ( FeInputMapEntry( "LAlt" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		if ( FeInputMapEntry( "RAlt" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		return false;
 	}
 
 	//
@@ -2859,7 +2891,6 @@ bool FeVM::cb_copy_file( const char *src, const char *dst )
 Sqrat::Array FeVM::cb_get_dir( const char *path )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
 	std::string full_path;
 	if ( is_relative_path( path ) )
@@ -2893,7 +2924,6 @@ Sqrat::Array FeVM::cb_get_dir( const char *path )
 bool FeVM::cb_make_dir( const char *path )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
 	std::string full_path;
 	if ( is_relative_path( path ))
@@ -3269,6 +3299,16 @@ const char *FeVM::cb_get_text( const char *t )
 {
 	static std::string retval = _( t );
 	return retval.c_str();
+}
+
+const char *FeVM::cb_get_clipboard()
+{
+	return clipboard_get_content().c_str();
+}
+
+void FeVM::cb_set_clipboard( const char *value )
+{
+	clipboard_set_content( as_str( value ) );
 }
 
 // Draw the default layout when the user layout is empty

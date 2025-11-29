@@ -262,7 +262,7 @@ public:
 
 	FeRule &operator=( const FeRule & );
 
-	void init();
+	bool init();
 	bool apply_rule( const FeRomInfo &rom ) const;
 	void save( nowide::ofstream &, const int indent = 0 ) const;
 

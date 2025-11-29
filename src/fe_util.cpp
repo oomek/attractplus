@@ -1187,6 +1187,27 @@ std::string as_str( const float f, const int decimals )
 	return ss.str();
 }
 
+std::string clean_str( const std::string &value )
+{
+	std::string retval;
+	for ( auto c : value ) if ( c >= 32 ) retval += c;
+	return retval;
+}
+
+std::basic_string<std::uint32_t> utf8_to_utf32( const std::string &utf8 )
+{
+	std::basic_string<std::uint32_t> utf32;
+	sf::Utf8::toUtf32( utf8.begin(), utf8.end(), std::back_inserter( utf32 ) );
+	return utf32;
+}
+
+std::string utf32_to_utf8( const std::basic_string<std::uint32_t> &utf32 )
+{
+	std::string utf8;
+	sf::Utf32::toUtf8( utf32.begin(), utf32.end(), std::back_inserter( utf8 ) );
+	return utf8;
+}
+
 int as_int( const std::string &s )
 {
 	try
@@ -1815,43 +1836,82 @@ std::string name_with_brackets_stripped( const std::string &name )
 }
 
 
-std::basic_string<std::uint32_t> clipboard_get_content()
+std::string clipboard_get_content()
 {
-	std::basic_string<std::uint32_t> retval;
+	std::string retval;
 
 #ifdef SFML_SYSTEM_MACOS
 	retval = osx_clipboard_get_content();
 #endif
 
 #ifdef SFML_SYSTEM_WINDOWS
-	if (!IsClipboardFormatAvailable(CF_UNICODETEXT))
+	if (!IsClipboardFormatAvailable( CF_UNICODETEXT ))
 		return retval;
 
-	if (!OpenClipboard(NULL))
+	if (!OpenClipboard( NULL ))
 		return retval;
 
-	HGLOBAL hglob = GetClipboardData(CF_UNICODETEXT);
-	if (hglob != NULL)
+	HGLOBAL hglob = GetClipboardData( CF_UNICODETEXT );
+	if ( hglob != NULL )
 	{
-		LPWSTR lptstr = (LPWSTR)GlobalLock(hglob);
+		LPWSTR lptstr = ( LPWSTR )GlobalLock( hglob );
 		if (lptstr != NULL)
 		{
 			std::wstring str = lptstr;
-
-			for ( std::wstring::iterator itr=str.begin(); itr!=str.end(); ++itr )
-			{
-				if ( *itr >= 32 ) // strip control characters such as line feeds, etc
-					retval += *itr;
-			}
-
-			GlobalUnlock(hglob);
+			retval = FeUtil::narrow( str );
 		}
+
+		GlobalUnlock( hglob );
 	}
 
 	CloseClipboard();
 #endif // if WINDOWS
 
 	return retval;
+}
+
+//
+// NOTE: Issue with w_chars
+//
+void clipboard_set_content( const std::string &value )
+{
+
+#ifdef SFML_SYSTEM_MACOS
+	osx_clipboard_set_content( value );
+#endif
+
+#ifdef SFML_SYSTEM_WINDOWS
+	if (!IsClipboardFormatAvailable( CF_UNICODETEXT ))
+		return;
+
+	if (!OpenClipboard(NULL))
+		return;
+
+	EmptyClipboard();
+
+	std::wstring val = FeUtil::widen( value );
+	rsize_t size = (val.size() + 1) * sizeof( wchar_t );
+	HGLOBAL hMem = GlobalAlloc( GMEM_MOVEABLE, size );
+	if ( !hMem ) {
+		CloseClipboard();
+		return;
+	}
+
+	wchar_t* pMem = static_cast<wchar_t*>( GlobalLock( hMem ) );
+	if (!pMem) {
+		GlobalFree( hMem );
+		CloseClipboard();
+		return;
+	}
+
+	wcscpy_s( pMem, size, val.c_str() );
+	GlobalUnlock( hMem );
+
+	if ( !SetClipboardData( CF_UNICODETEXT, hMem ) )
+		FeLog() << "Error: Failed to set clipboard data." << std::endl;
+
+	CloseClipboard();
+#endif // if WINDOWS
 }
 
 #if defined(USE_XLIB)
@@ -2304,4 +2364,27 @@ int get_token_index( const char *tokens[], const std::string &token )
 		i++;
 	}
 	return -1;
+}
+
+bool get_capslock_state()
+{
+	#ifdef SFML_SYSTEM_WINDOWS
+		return (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+	#endif
+
+	#ifdef SFML_SYSTEM_MACOS
+		return osx_get_capslock;
+	#endif
+
+	#ifdef USE_XLIB
+		Display* display = XOpenDisplay(nullptr);
+		if (!display) return false;
+
+		XKeyboardState xks;
+		XGetKeyboardControl(display, &xks);
+		XCloseDisplay(display);
+		return (xks.led_mask & 1) != 0;
+	#endif
+
+	return false;
 }

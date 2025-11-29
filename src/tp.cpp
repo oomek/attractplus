@@ -257,8 +257,7 @@ void FeTextPrimitive::setString( const std::string &t )
 	// UTF-8 character encoding is assumed.
 	// Need to convert to UTF-32 before giving string to SFML
 	//
-	std::basic_string<std::uint32_t> tmp;
-	sf::Utf8::toUtf32( t.begin(), t.end(), std::back_inserter( tmp ));
+	std::basic_string<std::uint32_t> tmp = utf8_to_utf32( t );
 
 	// We need to add one trailing space to the string
 	// for the word wrap function to work properly
