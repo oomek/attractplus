@@ -1647,21 +1647,12 @@ void FeVM::on_transition(
 			ttime = clk.getElapsedTime().asMilliseconds();
 			m_layout_time.tick();
 
-#ifdef SFML_SYSTEM_LINUX
 			//
-			// On SFML 2.2-2.3 Linux, I am getting flicker on a
-			// multi monitor setup during animated transitions.
-			// Processing window events between each draw fixes
-			// it.
+			// Empty the event buffer during a blocked transition
+			// - Otherwise keypresses bank up and are dumped on the frontend when the worklist is complete
+			// - Also fixes Linux SFML 2.2-2.3 flicker on multi monitor setup during animated transitions.
 			//
-			// TODO: It is probably a good idea to do this for
-			// every platform... needs investigation.
-			//
-			while ( const std::optional ev = m_window.pollEvent() )
-			{
-				//sf::sleep( sf::milliseconds( 10 ) );
-			}
-#endif
+			while ( const std::optional ev = m_window.pollEvent() ) {}
 		}
 	}
 }
