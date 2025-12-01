@@ -2691,7 +2691,7 @@ void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 		if ( get_token_value( token, filter_index, rom_index, rep ) )
 		{
 			str.replace( pos, close-pos+1, rep );
-			pos += rep.size();
+			pos += rep.size() - 1;
 		}
 
 		pos = str.find( '[', pos+1 );
@@ -2707,11 +2707,13 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 	int i = get_token_index( FeRomInfo::indexStrings, token );
 	switch ( i )
 	{
-		case FeRomInfo::Title:
+		case FeRomInfo::Title: {
 			// Don't strip brackets when showing a clones group
-			value = get_rom_absolute( filter_index, rom_index )->get_display_title();
+			FeRomInfo *rom = get_rom_absolute( filter_index, rom_index );
+			value = rom ? rom->get_display_title() : "";
 			if ( m_hide_brackets && m_clone_index < 0 ) value = name_with_brackets_stripped( value );
 			return true;
+		}
 		case FeRomInfo::PlayedTime:
 			value = get_played_time_display_string( filter_index, rom_index );
 			return true;
