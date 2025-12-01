@@ -6,10 +6,6 @@
 
 -  [Overview](#overview)
    -  [Squirrel Language](#squirrel-language)
-   -  [Language Extensions](#language-extensions)
-   -  [Vector Class](#vector-class-) 🔶
-   -  [Easing Functions](#easing-functions-) 🔶
-   -  [Frontend Binding](#frontend-binding)
    -  [Magic Tokens](#magic-tokens)
    -  [User Config](#user-config)
 -  [Functions](#functions)
@@ -83,6 +79,10 @@
    -  [`fs.make_dir()`](#fsmake_dir-) 🔶
    -  [`fs.copy_file()`](#fscopy_file-) 🔶
 -  [Constants](#constants)
+-  [Language Extensions](#language-extensions)
+   -  [Math](#math-) 🔶
+   -  [Vector](#vector-) 🔶
+   -  [Easing](#easing-) 🔶
 
 ---
 
@@ -110,179 +110,6 @@ Attract-Mode Plus layouts are scripts written in the Squirrel programming langua
 Also check out the Introduction to Squirrel on the wiki:
 
 -  https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming
-
----
-
-### Language Extensions
-
-Attract-Mode Plus includes the following home-brewed extensions to the squirrel language and standard libraries:
-
--  `zip_extract_archive( zipfile, filename )` - Open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
--  `zip_get_dir( zipfile )` - Return an array of the filenames contained in the `zipfile` archive file.
--  `regexp2( pattern, flags )` - A class which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements. Flags are optional, accepts `"i"` for case-insensitive matches.
--  `join( arr, delim )` - Returns a string containing concatenated array values separated with the given delimiter.
-
-In addition to the standard `Math` library, the following methods are included:
-
--  `ceil2( x )` - Ceils `x` to the nearest even integer
--  `clamp( x, min, max )` - Clamps `x` between `min` and `max` (inclusive)
--  `degrees( r )` - Converts `r` from radians to degrees
--  `exp2( x )` - Return `2` raised to the power of `x` (more performant than `pow( 2, x )`)
--  `floor2( x )` - Floors `x` to the nearest even integer
--  `fract( x )` - Returns a fractional part of `x`
--  `hypot( x, y )` - Returns the hypotenuse of `x, y`
--  `log2( x )` - Returns the base `2` logarithm of a number
--  `max( a, b )` - Returns the largest `a` or `b`
--  `min( a, b )` - Returns the smallest `a` or `b`
--  `mix( a, b, x )` - Returns a blend between `a` and `b`, using a mixing ratio `x`
--  `mix_short( a, b, m, x )` - Returns a blend of the shortest *wrapped* distance between `a` and `b`, using a mixing ratio `x` and wrapping modulo `m`
--  `modulo( v, m )` - Modulo of `v` with correct handling of negative numbers
--  `radians( d )` - Converts `d` from degrees to radians
--  `random( min, max )` - Returns a random integer in a range defined by `min` and `max` (inclusive)
--  `randomf( min, max )` - Returns a random float in a range defined by `min` and `max` (inclusive)
--  `round( x )` - Rounds `x` to the nearest integer
--  `round2( x )` - Rounds `x` to the nearest even integer
--  `short( a, b, m )` - Returns the shortest *wrapped* distance between `a` and `b`, using wrapping modulo `m`
--  `round2( x )` - Rounds `x` to the nearest even integer
--  `sign( x )` - Returns `1` when `x > 0`, returns `-1` when `x < 0`, returns `0` when `x == 0`
-
----
-
-### Vector Class 🔶
-
-```squirrel
-Vector()
-Vector( x, y )
-```
-
-All standard operators work with Vectors.
-
-```squirrel
-local a = Vector( 1, 2 )
-local b = Vector( 3, 4 )
-
-local c = a + b
-fe.log( c ) // 4.000, 6.000
-
-local d = c * 2.0
-fe.log( d ) // 8.000, 12.000
-```
-
-- `x` - Get/set the Vectors x coordinate (contains length for polar Vector)
-- `y` - Get/set the Vectors y coordinate (contains angle for polar Vector)
-- `len` - Get/set the length of the Vector
-- `angle` - Get/set the angle of the Vector in radians
-- `componentMul( v )` - Return the Vector by multiplied by the components of the given vector
-- `componentDiv( v )` - Return the Vector by divided by the components of the given vector
-- `polar()` - Return the Vector represented in polar coordinates
-- `cartesian()` - Return the Vector represented in cartesian coordinates
-- `normalize()` - Return the normalized Vector
-- `perpendicular()` - Return a perpendicular Vector
-- `projectedOnto( v )` - Return the Vector projected onto the given Vector
-- `mix( v, x )` - Return a mix of the Vector with the given Vector
-- `lengthSquared()` - Return the Vector length squared, more performant than `len` (used for comparisons)
-- `angleTo( v )` - Return the angle between the given Vector in radians
-- `distance( v )` - Return the distance to the given Vector
-- `dot( v )` - Return the dot product with the given Vector
-- `cross( v )` - Return the cross product with the given Vector
-
----
-
-### Easing Functions 🔶
-
-[Easing functions](https://easings.net/) specify the rate of change of a parameter over time. Easing in animation is a transition method that modifies motion to make it less pronounced and jarring. All [Penner Easings](http://robertpenner.com/easing/) are included, plus a few common extras.
-
-**Methods**
-
-The easing methods belong to a global object named `ease`, such as `ease.out_cubic( t, b, c, d )`
-
-| In            | Out            | InOut             | OutIn             | Params                       |
-| ------------- | -------------- | ----------------- | ----------------- | ---------------------------- |
-| `in_quad`     | `out_quad`     | `in_out_quad`     | `out_in_quad`     | `t, b, c, d`                 |
-| `in_cubic`    | `out_cubic`    | `in_out_cubic`    | `out_in_cubic`    | `t, b, c, d`                 |
-| `in_quart`    | `out_quart`    | `in_out_quart`    | `out_in_quart`    | `t, b, c, d`                 |
-| `in_quint`    | `out_quint`    | `in_out_quint`    | `out_in_quint`    | `t, b, c, d`                 |
-| `in_sine`     | `out_sine`     | `in_out_sine`     | `out_in_sine`     | `t, b, c, d`                 |
-| `in_expo`     | `out_expo`     | `in_out_expo`     | `out_in_expo`     | `t, b, c, d`                 |
-| `in_expo2`    | `out_expo2`    | `in_out_expo2`    | `out_in_expo2`    | `t, b, c, d`                 |
-| `in_circ`     | `out_circ`     | `in_out_circ`     | `out_in_circ`     | `t, b, c, d`                 |
-| `in_bounce`   | `out_bounce`   | `in_out_bounce`   | `out_in_bounce`   | `t, b, c, d`                 |
-| `in_bounce2`  | `out_bounce2`  | `in_out_bounce2`  | `out_in_bounce2`  | `t, b, c, d, p`              |
-| `in_back`     | `out_back`     | `in_out_back`     | `out_in_back`     | `t, b, c, d, s`              |
-| `in_back2`    | `out_back2`    | `in_out_back2`    | `out_in_back2`    | `t, b, c, d`                 |
-| `in_elastic`  | `out_elastic`  | `in_out_elastic`  | `out_in_elastic`  | `t, b, c, d, a, p`           |
-| `in_elastic2` | `out_elastic2` | `in_out_elastic2` | `out_in_elastic2` | `t, b, c, d, p`              |
-| `linear`      |                |                   |                   | `t, b, c, d`                 |
-| `bezier`      |                |                   |                   | `t, b, c, d, x1, y1, x2, y2` |
-| `steps`       |                |                   |                   | `t, b, c, d, s, j`           |
-
-**Parameters**
-
-The following parameters are common to all easing functions:
-
--  `t` - Current time, where `t` is in the range `[0...d]`
--  `b` - Beginning value, when `t == 0` the method returns `b`
--  `c` - Change in value, when `t == d` the method returns `b + c`
--  `d` - Duration, the maximum value of `t`
-
-**Extra Parameters**
-
--  `bounce2`
-   -  `p` - _(optional)_ Period of the bounce. Default is `0.5`
--  `back`
-   -  `s` - _(optional)_ Strength of the overshoot. Default is `1.70158`
--  `elastic`
-   -  `a` - _(optional)_ Amplitude of the wave. Default is `0.0`
-   -  `p` - _(optional)_ Period of the wave. Default is `d * 0.3`
--  `elastic2`
-   -  `p` - _(optional)_ Period of the wave. Default is `0.3`
--  `bezier`
-   -  `x1, y1` - The first [control point](https://cubic-bezier.com), in the range `[0.0...1.0], [0.0...1.0]`
-   -  `x2, y2` - The second control point, in the range `[0.0...1.0], [0.0...1.0]`
-   -  Additional control points exist at `0.0, 0.0` and `1.0, 1.0` to complete the ease
--  `steps`
-   -  `s` - [int] Number of steps
-   -  `j` - _(optional)_ [Step position](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function/steps#description). Defaults to `Jump.End`. May be one of the following:
-      -  `Jump.Start` - The first step happens when the ease begins
-      -  `Jump.End` - The last step happens when the ease ends
-      -  `Jump.None` - Neither start nor end jumps occur
-      -  `Jump.Both` - Both start and end jumps occur
-
-**Example**
-
-```squirrel
-local d = 10
-for (local t=0; t<=d; t++)
-{
-	fe.log(t + " = " + ease.out_cubic(t, 0, 1, d))
-}
-
-// 0 = 0
-// 1 = 0.271
-// 2 = 0.488
-// 3 = 0.657
-// 4 = 0.784
-// 5 = 0.875
-// 6 = 0.936
-// 7 = 0.973
-// 8 = 0.992
-// 9 = 0.999
-// 10 = 1
-```
-
-The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic` algorithm to decelerate the change as `t` approaches `d`.
-
----
-
-### Frontend Binding
-
-All of the functions, objects and classes that Attract-Mode Plus exposes to Squirrel are arranged under the `fe` table, which is bound to Squirrel's root table.
-
-```squirrel
-fe.add_image( "bg.png", 0, 0 )
-local marquee = fe.add_artwork( "marquee", 256, 20, 512, 256 )
-marquee.set_rgb( 100, 100, 100 )
-```
 
 ---
 
@@ -2225,3 +2052,168 @@ Copy file from source to destination.
 -  `ScreenRefreshRate` - [int] The refresh rate of the main screen in Hz.
 -  `ScreenSaverActive` - [boolean] `true` if the screen saver is active, `false` otherwise.
 -  `ShadersAvailable` - [boolean] `true` if GLSL shaders are available on this system, `false` otherwise.
+
+---
+
+## Language Extensions
+
+Attract-Mode Plus includes all [Squirrel Standard Library](https://web.archive.org/web/20210730072847/http://www.squirrel-lang.org/doc/sqstdlib3.html) methods, as well as the following custom extensions:
+
+-  `zip_extract_archive( zipfile, filename )` - Open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
+-  `zip_get_dir( zipfile )` - Return an array of the filenames contained in the `zipfile` archive file.
+-  `regexp2( pattern, flags )` - A class which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements. Flags are optional, accepts `"i"` for case-insensitive matches.
+-  `join( arr, delim )` - Returns a string containing concatenated array values separated with the given delimiter.
+
+---
+
+### Math 🔶
+
+In addition to the standard `Math` library, the following methods are included:
+
+-  `ceil2( x )` - Ceils `x` to the nearest even integer
+-  `clamp( x, min, max )` - Clamps `x` between `min` and `max` (inclusive)
+-  `degrees( r )` - Converts `r` from radians to degrees
+-  `exp2( x )` - Return `2` raised to the power of `x` (more performant than `pow( 2, x )`)
+-  `floor2( x )` - Floors `x` to the nearest even integer
+-  `fract( x )` - Returns a fractional part of `x`
+-  `hypot( x, y )` - Returns the hypotenuse of `x, y`
+-  `log2( x )` - Returns the base `2` logarithm of a number
+-  `max( a, b )` - Returns the largest `a` or `b`
+-  `min( a, b )` - Returns the smallest `a` or `b`
+-  `mix( a, b, x )` - Returns a blend between `a` and `b`, using a mixing ratio `x`
+-  `mix_short( a, b, m, x )` - Returns a blend of the shortest _wrapped_ distance between `a` and `b`, using a mixing ratio `x` and wrapping modulo `m`
+-  `modulo( v, m )` - Modulo of `v` with correct handling of negative numbers
+-  `radians( d )` - Converts `d` from degrees to radians
+-  `random( min, max )` - Returns a random integer in a range defined by `min` and `max` (inclusive)
+-  `randomf( min, max )` - Returns a random float in a range defined by `min` and `max` (inclusive)
+-  `round( x )` - Rounds `x` to the nearest integer
+-  `round2( x )` - Rounds `x` to the nearest even integer
+-  `short( a, b, m )` - Returns the shortest _wrapped_ distance between `a` and `b`, using wrapping modulo `m`
+-  `round2( x )` - Rounds `x` to the nearest even integer
+-  `sign( x )` - Returns `1` when `x > 0`, returns `-1` when `x < 0`, returns `0` when `x == 0`
+
+---
+
+### Vector 🔶
+
+```squirrel
+Vector()
+Vector( x, y )
+```
+
+All standard operators work with Vectors.
+
+```squirrel
+local a = Vector( 1, 2 )
+local b = Vector( 3, 4 )
+
+local c = a + b
+fe.log( c ) // 4.000, 6.000
+
+local d = c * 2.0
+fe.log( d ) // 8.000, 12.000
+```
+
+-  `x` - Get/set the Vectors x coordinate (contains length for polar Vector)
+-  `y` - Get/set the Vectors y coordinate (contains angle for polar Vector)
+-  `len` - Get/set the length of the Vector
+-  `angle` - Get/set the angle of the Vector in radians
+-  `componentMul( v )` - Return the Vector by multiplied by the components of the given vector
+-  `componentDiv( v )` - Return the Vector by divided by the components of the given vector
+-  `polar()` - Return the Vector represented in polar coordinates
+-  `cartesian()` - Return the Vector represented in cartesian coordinates
+-  `normalize()` - Return the normalized Vector
+-  `perpendicular()` - Return a perpendicular Vector
+-  `projectedOnto( v )` - Return the Vector projected onto the given Vector
+-  `mix( v, x )` - Return a mix of the Vector with the given Vector
+-  `lengthSquared()` - Return the Vector length squared, more performant than `len` (used for comparisons)
+-  `angleTo( v )` - Return the angle between the given Vector in radians
+-  `distance( v )` - Return the distance to the given Vector
+-  `dot( v )` - Return the dot product with the given Vector
+-  `cross( v )` - Return the cross product with the given Vector
+
+---
+
+### Easing 🔶
+
+[Easing functions](https://easings.net/) specify the rate of change of a parameter over time. Easing in animation is a transition method that modifies motion to make it less pronounced and jarring. All [Penner Easings](http://robertpenner.com/easing/) are included, plus a few common extras.
+
+**Methods**
+
+The easing methods belong to a global object named `ease`, such as `ease.out_cubic( t, b, c, d )`
+
+| In            | Out            | InOut             | OutIn             | Params                       |
+| ------------- | -------------- | ----------------- | ----------------- | ---------------------------- |
+| `in_quad`     | `out_quad`     | `in_out_quad`     | `out_in_quad`     | `t, b, c, d`                 |
+| `in_cubic`    | `out_cubic`    | `in_out_cubic`    | `out_in_cubic`    | `t, b, c, d`                 |
+| `in_quart`    | `out_quart`    | `in_out_quart`    | `out_in_quart`    | `t, b, c, d`                 |
+| `in_quint`    | `out_quint`    | `in_out_quint`    | `out_in_quint`    | `t, b, c, d`                 |
+| `in_sine`     | `out_sine`     | `in_out_sine`     | `out_in_sine`     | `t, b, c, d`                 |
+| `in_expo`     | `out_expo`     | `in_out_expo`     | `out_in_expo`     | `t, b, c, d`                 |
+| `in_expo2`    | `out_expo2`    | `in_out_expo2`    | `out_in_expo2`    | `t, b, c, d`                 |
+| `in_circ`     | `out_circ`     | `in_out_circ`     | `out_in_circ`     | `t, b, c, d`                 |
+| `in_bounce`   | `out_bounce`   | `in_out_bounce`   | `out_in_bounce`   | `t, b, c, d`                 |
+| `in_bounce2`  | `out_bounce2`  | `in_out_bounce2`  | `out_in_bounce2`  | `t, b, c, d, p`              |
+| `in_back`     | `out_back`     | `in_out_back`     | `out_in_back`     | `t, b, c, d, s`              |
+| `in_back2`    | `out_back2`    | `in_out_back2`    | `out_in_back2`    | `t, b, c, d`                 |
+| `in_elastic`  | `out_elastic`  | `in_out_elastic`  | `out_in_elastic`  | `t, b, c, d, a, p`           |
+| `in_elastic2` | `out_elastic2` | `in_out_elastic2` | `out_in_elastic2` | `t, b, c, d, p`              |
+| `linear`      |                |                   |                   | `t, b, c, d`                 |
+| `bezier`      |                |                   |                   | `t, b, c, d, x1, y1, x2, y2` |
+| `steps`       |                |                   |                   | `t, b, c, d, s, j`           |
+
+**Parameters**
+
+The following parameters are common to all easing functions:
+
+-  `t` - Current time, where `t` is in the range `[0...d]`
+-  `b` - Beginning value, when `t == 0` the method returns `b`
+-  `c` - Change in value, when `t == d` the method returns `b + c`
+-  `d` - Duration, the maximum value of `t`
+
+**Extra Parameters**
+
+-  `bounce2`
+   -  `p` - _(optional)_ Period of the bounce. Default is `0.5`
+-  `back`
+   -  `s` - _(optional)_ Strength of the overshoot. Default is `1.70158`
+-  `elastic`
+   -  `a` - _(optional)_ Amplitude of the wave. Default is `0.0`
+   -  `p` - _(optional)_ Period of the wave. Default is `d * 0.3`
+-  `elastic2`
+   -  `p` - _(optional)_ Period of the wave. Default is `0.3`
+-  `bezier`
+   -  `x1, y1` - The first [control point](https://cubic-bezier.com), in the range `[0.0...1.0], [0.0...1.0]`
+   -  `x2, y2` - The second control point, in the range `[0.0...1.0], [0.0...1.0]`
+   -  Additional control points exist at `0.0, 0.0` and `1.0, 1.0` to complete the ease
+-  `steps`
+   -  `s` - [int] Number of steps
+   -  `j` - _(optional)_ [Step position](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/easing-function/steps#description). Defaults to `Jump.End`. May be one of the following:
+      -  `Jump.Start` - The first step happens when the ease begins
+      -  `Jump.End` - The last step happens when the ease ends
+      -  `Jump.None` - Neither start nor end jumps occur
+      -  `Jump.Both` - Both start and end jumps occur
+
+**Example**
+
+```squirrel
+local d = 10
+for (local t=0; t<=d; t++)
+{
+	fe.log(t + " = " + ease.out_cubic(t, 0, 1, d))
+}
+
+// 0 = 0
+// 1 = 0.271
+// 2 = 0.488
+// 3 = 0.657
+// 4 = 0.784
+// 5 = 0.875
+// 6 = 0.936
+// 7 = 0.973
+// 8 = 0.992
+// 9 = 0.999
+// 10 = 1
+```
+
+The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic` algorithm to decelerate the change as `t` approaches `d`.
