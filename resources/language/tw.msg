@@ -287,6 +287,7 @@ Overwrite existing '$1' list?;要覆寫現有的「$1」清單嗎?
 Remove '$1' from Favourites?;要從我的最愛移除「$1」嗎?
 Rom path '$1' not found, proceed?;未找到 ROM 路徑“$1”,是否繼續?
 Overwrite existing '$1' mapping?;覆蓋現有的“$1”映射?
+A display with this name already exists;此名稱的顯示已存在
 
 # --input_map_dialog --
 Press Hotkey;請按下要使用的熱鍵

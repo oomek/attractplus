@@ -138,6 +138,11 @@ public:
 	void update_to_menu( FeBaseConfigMenu *m );
 
 	bool check_for_cancel();
+
+	int basic_dialog( const std::string &msg,
+		const std::vector < std::string > &options,
+		int default_sel=0,
+		int cancel_sel=0 );
 };
 
 FeConfigContextImp::FeConfigContextImp( FeSettings &fes, FeOverlay &feo )
@@ -207,6 +212,14 @@ void FeConfigContextImp::update_to_menu(
 bool FeConfigContextImp::check_for_cancel()
 {
 	return m_feo.check_for_cancel();
+}
+
+int FeConfigContextImp::basic_dialog( const std::string &msg,
+	const std::vector < std::string > &options,
+	int default_sel,
+	int cancel_sel )
+{
+	return m_feo.common_basic_dialog( msg, options, default_sel, cancel_sel );
 }
 
 class FeEventLoopCtx

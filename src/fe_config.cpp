@@ -1149,6 +1149,18 @@ bool FeDisplayEditMenu::save( FeConfigContext &ctx )
 	FeDisplayInfo *display = get_display( ctx );
 	if ( display )
 	{
+		std::string new_name = ctx.opt_list[0].get_value();
+		std::string old_name = display->get_info( FeDisplayInfo::Name );
+
+		if ( lowercase( new_name ) != lowercase( old_name ) )
+		{
+			if ( ctx.fe_settings.check_duplicate_display_name( new_name, m_index ) )
+			{
+				ctx.basic_dialog( _( "A display with this name already exists" ), { _( "OK" ) }, 0, 0 );
+				ctx.opt_list[0].set_value( old_name );
+			}
+		}
+
 		for ( int i=0; i< FeDisplayInfo::LAST_INDEX; i++ )
 		{
 			if (( i == FeDisplayInfo::InCycle ) || ( i == FeDisplayInfo::InMenu ))
@@ -1261,6 +1273,12 @@ bool FeDisplaySelMenu::on_option_select(
 		std::string res;
 		if ( !ctx.edit_dialog( _( "Enter Display Name" ), res ) || res.empty() )
 			return false;		// if they don't enter a name then cancel
+
+		if ( ctx.fe_settings.check_duplicate_display_name( res ) )
+		{
+			ctx.basic_dialog( _( "A display with this name already exists" ), { _( "OK" ) }, 0, 0 );
+			return false;
+		}
 
 		ctx.save_req=true;
 		ctx.fe_settings.create_display( res );

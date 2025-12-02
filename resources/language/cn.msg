@@ -287,6 +287,7 @@ Overwrite existing '$1' list?;覆盖现有的 '$1' 列表?
 Remove '$1' from Favourites?;从收藏中先锋队 '$1'?
 Rom path '$1' not found, proceed?;未找到 ROM 路径“$1”,是否继续?
 Overwrite existing '$1' mapping?;覆盖现有的“$1”映射?
+A display with this name already exists;此名称的显示已存在
 
 # --input_map_dialog --
 Press Hotkey;按下热键

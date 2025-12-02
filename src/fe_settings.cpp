@@ -570,6 +570,18 @@ int FeSettings::process_setting( const std::string &setting,
 	if (( setting.compare( otherSettingStrings[0] ) == 0 ) // list
 		|| ( setting.compare( "list" ) == 0 )) // for backwards compatability.  As of 1.5, "list" became "display"
 	{
+		// Check for duplicate display names
+		std::string lowercase_value = lowercase( value );
+		for ( auto& display : m_displays )
+		{
+			if ( lowercase( display.get_info( FeDisplayInfo::Name ) ) == lowercase_value )
+			{
+				FeLog() << "Warning: Duplicate display name found: '" << value 
+					<< "' - skipping duplicate entry" << std::endl;
+				return 0;
+			}
+		}
+
 		m_displays.push_back( FeDisplayInfo( value ) );
 		m_current_config_object = &m_displays.back();
 	}
@@ -3620,6 +3632,20 @@ void FeSettings::delete_display( int index )
 
 	if ( m_current_display < 0 )
 		m_current_display=0;
+}
+
+bool FeSettings::check_duplicate_display_name( const std::string &name, int exclude_index ) const
+{
+	std::string lowercase_name = lowercase( name );
+	for ( int i = 0; i < (int)m_displays.size(); i++ )
+	{
+		if ( i == exclude_index )
+			continue;
+
+		if ( lowercase( m_displays[i].get_info( FeDisplayInfo::Name ) ) == lowercase_name )
+			return true;
+	}
+	return false;
 }
 
 void FeSettings::get_current_display_filter_names(

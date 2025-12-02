@@ -287,6 +287,7 @@ Overwrite existing '$1' list?;Existierende Romliste '$1' überschreiben?
 Remove '$1' from Favourites?;Entferne '$1' aus den Favoriten?
 Rom path '$1' not found, proceed?;ROM-Pfad '$1' nicht gefunden, fortfahren?
 Overwrite existing '$1' mapping?;Vorhandene Zuordnung '$1' überschreiben?
+A display with this name already exists;Ein Display mit diesem Namen existiert bereits
 
 # --input_map_dialog --
 Press Hotkey;betätige die Tastenkombination
