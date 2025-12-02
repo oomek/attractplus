@@ -103,15 +103,19 @@ SortIncludes: true
 SortUsingDeclarations: true
 
 # Penalties
-PenaltyBreakAssignment: 1000
-PenaltyBreakBeforeFirstCallParameter: 1000
+PenaltyBreakAssignment: 1000000
+PenaltyBreakBeforeFirstCallParameter: 1000000
 PenaltyBreakComment: 200
-PenaltyBreakFirstLessLess: 100
+PenaltyBreakFirstLessLess: 1000000
 PenaltyBreakString: 1
 PenaltyBreakTemplateDeclaration: 0
-PenaltyExcessCharacter: 1000000
+PenaltyExcessCharacter: 10000
 PenaltyIndentedWhitespace: 100000
 PenaltyReturnTypeOnItsOwnLine: 500
+PenaltyBreakScopeResolution: 1000000
+PenaltyBreakOpenParenthesis: 1000000
+PenaltyBreakBinaryOperator: 1000000
+PenaltyBreakTernaryOperator: 1000000
 
 # Pointer alignment
 PointerAlignment: Left
