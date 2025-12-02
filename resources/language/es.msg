@@ -287,6 +287,7 @@ Overwrite existing '$1' list?;¿Desea sobreescribir la lista de roms '$1'?
 Remove '$1' from Favourites?;¿Eliminar '$1' de favoritos?
 Rom path '$1' not found, proceed?;No se encontró la ruta de la ROM '$1', ¿continuar?
 Overwrite existing '$1' mapping?;¿Sobrescribir la asignación existente de '$1'?
+A display with this name already exists;Ya existe una pantalla con este nombre
 
 # --input_map_dialog --
 Press Hotkey;Pulsar tecla de acceso rápido

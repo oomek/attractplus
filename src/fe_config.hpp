@@ -171,6 +171,11 @@ public:
 	virtual void tags_dialog()=0;
 
 	virtual bool check_for_cancel()=0;
+
+	virtual int basic_dialog( const std::string &msg,
+		const std::vector < std::string > &options,
+		int default_sel=0,
+		int cancel_sel=0 )=0;
 };
 
 class FeBaseConfigMenu

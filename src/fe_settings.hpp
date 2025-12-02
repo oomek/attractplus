@@ -668,6 +668,7 @@ public:
 	FeDisplayInfo *get_display( int index );
 	FeDisplayInfo *create_display( const std::string &n );
 	void delete_display( int index );
+	bool check_duplicate_display_name( const std::string &name, int exclude_index = -1 ) const;
 
 	void create_filter( FeDisplayInfo &l, const std::string &name ) const;
 
