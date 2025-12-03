@@ -23,6 +23,7 @@
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
+#include "fe_overlay.hpp"
 #include "fe_cache.hpp"
 #include "fe_vm.hpp"
 #include "image_loader.hpp"
@@ -76,7 +77,12 @@ const char *FE_DATA_PATH = NULL;
 
 const char *FE_CFG_FILE					= "attract.cfg";
 const char *FE_STATE_FILE				= "attract.am";
-const char *FE_WINDOW_FILE 			= "window.am";
+const char *FE_WINDOW_FILE 				= "window.am";
+const char *FE_SCRIPT_NV_FILE 			= "script.nv";
+const char *FE_LAYOUT_NV_FILE 			= "layout.nv";
+const char *FE_DISPLAYS_FILE			= "displays.cfg";
+const char *FE_PLUGINS_FILE				= "plugins.cfg";
+const char *FE_LAYOUTS_FILE				= "layouts.cfg";
 const char *FE_SCREENSAVER_FILE		= "screensaver.nut";
 const char *FE_PLUGIN_FILE				= "plugin.nut";
 const char *FE_LOADER_FILE				= "loader.nut";
@@ -88,6 +94,7 @@ const char *FE_LANGUAGE_FILE_EXTENSION = ".msg";
 const char *FE_PLUGIN_FILE_EXTENSION	= FE_LAYOUT_FILE_EXTENSION;
 const char *FE_GAME_EXTRA_FILE_EXTENSION = ".cfg";
 const char *FE_GAME_OVERVIEW_FILE_EXTENSION = ".txt";
+const char *FE_CFG_SUBDIR				= "config/";
 const char *FE_LAYOUT_SUBDIR			= "layouts/";
 const char *FE_SOUND_SUBDIR			= "sounds/";
 const char *FE_SCREENSAVER_SUBDIR		= "screensaver/";
@@ -102,7 +109,6 @@ const char *FE_OVERVIEW_SUBDIR		= "overview/";
 const char *FE_EMULATOR_SCRIPT_SUBDIR		= "emulators/script/";
 const char *FE_LIST_DEFAULT			= "default-display.cfg";
 const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
-const char *FE_DISPLAYS_FILE			= "displays.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
 
@@ -410,7 +416,8 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
 	m_ui_font_size( 0 ),
-	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] )
+	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] ),
+	m_split_config_format( false )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
@@ -445,7 +452,9 @@ void FeSettings::load()
 	clear();
 
 	std::string load_language( FE_DEFAULT_LANGUAGE );
-	std::string filename = m_config_path + FE_CFG_FILE;
+
+	// Try to load from config/attract.cfg (new format)
+	std::string filename = m_config_path + FE_CFG_SUBDIR + FE_CFG_FILE;
 
 	if (( FE_DATA_PATH != NULL ) && ( !directory_exists( FE_DATA_PATH ) ))
 	{
@@ -453,21 +462,62 @@ void FeSettings::load()
 			<< FE_DATA_PATH << ", which is not available." << std::endl;
 	}
 
-	if ( load_from_file( filename ) == false )
+	if ( file_exists( filename ) )
 	{
-		FeLog() << "Config file not found: " << filename << std::endl;
+		if ( load_from_file( filename ) == false )
+		{
+			FeLog() << "Config file not found: " << filename << std::endl;
+		}
+		else
+		{
+			FeLog() << "Config: " << filename << std::endl;
+
+			if ( m_language.empty() )
+				m_language = FE_DEFAULT_LANGUAGE;
+
+			load_language = m_language;
+			m_split_config_format = true;
+
+			load_displays_configs();
+			load_plugins_configs();
+			load_layouts_configs();
+		}
 	}
 	else
 	{
-		FeLog() << "Config: " << filename << std::endl;
+		// Fall back to attract.cfg (backward compatibility)
+		filename = m_config_path + FE_CFG_FILE;
+		if ( load_from_file( filename ) == false )
+		{
+			FeLog() << "Config file not found: " << filename << std::endl;
+		}
+		else
+		{
+			FeLog() << "Config: " << filename << std::endl;
 
-		if ( m_language.empty() )
-			m_language = FE_DEFAULT_LANGUAGE;
+			if ( m_language.empty() )
+				m_language = FE_DEFAULT_LANGUAGE;
 
-		load_language = m_language;
+			load_language = m_language;
+
+			// Migrate configuration files to config subdirectory
+			FeLog() << "Migrating configuration files to 'config' subdirectory" << std::endl;
+			confirm_directory( m_config_path, FE_CFG_SUBDIR );
+
+			// Copy state files to new location
+			std::string config_dir = m_config_path + FE_CFG_SUBDIR;
+			copy_file( m_config_path + FE_STATE_FILE, config_dir + FE_STATE_FILE );
+			copy_file( m_config_path + FE_WINDOW_FILE, config_dir + FE_WINDOW_FILE );
+			copy_file( m_config_path + FE_SCRIPT_NV_FILE, config_dir + FE_SCRIPT_NV_FILE );
+			copy_file( m_config_path + FE_LAYOUT_NV_FILE, config_dir + FE_LAYOUT_NV_FILE );
+		}
 	}
 
-	load_displays_configs();
+	// If we just migrated, save the configuration files
+	if ( !m_split_config_format && file_exists( m_config_path + FE_CFG_FILE ) )
+	{
+		save();
+	}
 
 	// Load language strings now.
 	//
@@ -834,7 +884,7 @@ void FeSettings::construct_display_maps()
 
 void FeSettings::load_displays_configs()
 {
-	std::string displays_file = m_config_path + FE_DISPLAYS_FILE;
+	std::string displays_file = m_config_path + FE_CFG_SUBDIR + FE_DISPLAYS_FILE;
 
 	if ( file_exists( displays_file ) )
 	{
@@ -849,7 +899,7 @@ void FeSettings::load_displays_configs()
 
 void FeSettings::save_displays_configs() const
 {
-	std::string displays_file = m_config_path + FE_DISPLAYS_FILE;
+	std::string displays_file = m_config_path + FE_CFG_SUBDIR + FE_DISPLAYS_FILE;
 	nowide::ofstream file( displays_file.c_str() );
 	if ( file.is_open() )
 	{
@@ -863,6 +913,119 @@ void FeSettings::save_displays_configs() const
 
 		file.close();
 	}
+}
+
+void FeSettings::load_plugins_configs()
+{
+	std::string plugins_file = m_config_path + FE_CFG_SUBDIR + FE_PLUGINS_FILE;
+
+	if ( file_exists( plugins_file ) )
+	{
+		// Clear any plugins that were loaded from attract.cfg
+		// since we're loading from the new plugins.cfg format
+		m_plugins.clear();
+
+		load_from_file( plugins_file );
+		m_current_config_object = NULL;
+	}
+}
+
+void FeSettings::save_plugins_configs() const
+{
+	std::string plugins_file = m_config_path + FE_CFG_SUBDIR + FE_PLUGINS_FILE;
+	nowide::ofstream file( plugins_file.c_str() );
+	if ( file.is_open() )
+	{
+		write_header( file );
+
+		std::vector<std::string> plugin_files;
+		get_available_plugins( plugin_files );
+
+		for ( auto& plugin : m_plugins )
+		{
+			// Get rid of configs for old plugins by not saving it if the
+			// plugin itself is gone
+			for ( auto& plugin_file : plugin_files )
+			{
+				if ( plugin_file == plugin.get_name() )
+				{
+					plugin.save( file );
+					break;
+				}
+			}
+		}
+
+		file.close();
+	}
+}
+
+void FeSettings::load_layouts_configs()
+{
+	std::string layouts_file = m_config_path + FE_CFG_SUBDIR + FE_LAYOUTS_FILE;
+
+	if ( file_exists( layouts_file ) )
+	{
+		// Clear any layouts that were loaded from attract.cfg
+		// since we're loading from the new layouts.cfg format
+		m_layout_params.clear();
+
+		load_from_file( layouts_file );
+		m_current_config_object = NULL;
+	}
+}
+
+void FeSettings::save_layouts_configs() const
+{
+	std::string layouts_file = m_config_path + FE_CFG_SUBDIR + FE_LAYOUTS_FILE;
+	nowide::ofstream file( layouts_file.c_str() );
+	if ( file.is_open() )
+	{
+		write_header( file );
+
+		for ( auto& layout : m_layout_params )
+			layout.save( file );
+
+		file.close();
+	}
+}
+
+void FeSettings::migration_cleanup_dialog( FeOverlay *overlay )
+{
+	if ( m_split_config_format )
+		return;
+
+	std::string old_config = m_config_path + FE_CFG_FILE;
+	std::string new_config = m_config_path + FE_CFG_SUBDIR + FE_CFG_FILE;
+
+	if ( file_exists( old_config ) && file_exists( new_config ) )
+	{
+		std::string msg = _( "Configuration files have been migrated\n to the 'config' folder.\nDelete old files?" );
+
+		if ( overlay->confirm_dialog( msg, false ) == 0 )
+		{
+			FeLog() << "Deleting old configuration files..." << std::endl;
+
+			if ( file_exists( old_config ) )
+				delete_file( old_config );
+
+			std::string old_state = m_config_path + FE_STATE_FILE;
+			if ( file_exists( old_state ) )
+				delete_file( old_state );
+
+			std::string old_window = m_config_path + FE_WINDOW_FILE;
+			if ( file_exists( old_window ) )
+				delete_file( old_window );
+
+			std::string old_script_nv = m_config_path + FE_SCRIPT_NV_FILE;
+			if ( file_exists( old_script_nv ) )
+				delete_file( old_script_nv );
+
+			std::string old_layout_nv = m_config_path + FE_LAYOUT_NV_FILE;
+			if ( file_exists( old_layout_nv ) )
+				delete_file( old_layout_nv );
+		}
+	}
+	m_split_config_format = true;
 }
 
 void FeSettings::save_state()
@@ -884,8 +1047,9 @@ void FeSettings::save_state()
 	m_rl.save_state();
 
 	std::string filename( m_config_path );
-	confirm_directory( m_config_path, FE_EMPTY_STRING );
+	confirm_directory( m_config_path, FE_CFG_SUBDIR );
 
+	filename += FE_CFG_SUBDIR;
 	filename += FE_STATE_FILE;
 
 	nowide::ofstream outfile( filename.c_str() );
@@ -917,6 +1081,7 @@ void FeSettings::load_state()
 	}
 
 	std::string filename( m_config_path );
+	filename += FE_CFG_SUBDIR;
 	filename += FE_STATE_FILE;
 
 	nowide::ifstream myfile( filename.c_str() );
@@ -3813,6 +3978,7 @@ bool FeSettings::check_romlist_configured( const std::string &n ) const
 
 void FeSettings::save() const
 {
+	confirm_directory( m_config_path, FE_CFG_SUBDIR );
 	confirm_directory( m_config_path, FE_ROMLIST_SUBDIR );
 	confirm_directory( m_config_path, FE_EMULATOR_SUBDIR );
 	confirm_directory( m_config_path, FE_LAYOUT_SUBDIR );
@@ -3833,8 +3999,11 @@ void FeSettings::save() const
 	confirm_directory( menu_art, "fanart/" );
 
 	save_displays_configs();
+	save_plugins_configs();
+	save_layouts_configs();
 
 	std::string filename( m_config_path );
+	filename += FE_CFG_SUBDIR;
 	filename += FE_CFG_FILE;
 
 	FeLog() << "Writing config to: " << filename << std::endl;
@@ -3864,32 +4033,9 @@ void FeSettings::save() const
 		// saver_config
 		m_saver_params.save( outfile );
 
-		// layout_config
-		for ( std::vector<FeLayoutInfo>::const_iterator itr=m_layout_params.begin(); itr != m_layout_params.end(); ++itr )
-			(*itr).save( outfile );
-
 		// intro_config
 		m_intro_params.save( outfile );
 		m_display_menu_per_display_params.save( outfile );
-
-		// plugin
-		std::vector<std::string> plugin_files;
-		get_available_plugins( plugin_files );
-		for ( std::vector< FePlugInfo >::const_iterator itr = m_plugins.begin(); itr != m_plugins.end(); ++itr )
-		{
-			//
-			// Get rid of configs for old plugins by not saving it if the
-			// plugin itself is gone
-			//
-			for ( std::vector< std::string >::const_iterator its = plugin_files.begin(); its != plugin_files.end(); ++its )
-			{
-				if ( (*its).compare( (*itr).get_name() ) == 0 )
-				{
-					(*itr).save( outfile );
-					break;
-				}
-			}
-		}
 
 		outfile.close();
 	}

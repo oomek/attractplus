@@ -289,6 +289,7 @@ Remove '$1' from Favourites?;お気に入りから「$1」を削除?
 Rom path '$1' not found, proceed?;ROMパス '$1' が見つかりません。続行しますか?
 Overwrite existing '$1' mapping?;既存の '$1' マッピングを上書きしますか?
 A display with this name already exists;この名前のディスプレイは既に存在します
+Configuration files have been migrated\n to the 'config' folder.\nDelete old files?;設定ファイルが 'config' フォルダに移行されました。\n古いファイルを削除しますか？
 
 # --input_map_dialog --
 Press Hotkey;ホットキーを押す

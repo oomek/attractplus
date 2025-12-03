@@ -31,6 +31,28 @@
 
 class FeSettings;
 
+class FeWindowPosition : public FeBaseConfigurable
+{
+public:
+	sf::Vector2i m_pos;
+	sf::Vector2u m_size;
+	bool m_temporary;
+
+	FeWindowPosition();
+	FeWindowPosition(
+		const sf::Vector2i &pos,
+		const sf::Vector2u &size
+	);
+	int process_setting(
+		const std::string &setting,
+		const std::string &value,
+		const std::string &filename
+	);
+	void save(
+		const std::string &filename
+	);
+};
+
 class FeWindow
 {
 	friend void launch_callback( void *o );
@@ -51,13 +73,14 @@ private:
 	void check_for_sleep();
 #endif
 	int m_win_mode;
-	bool m_topmost = false;
 	bool m_mouse_outside = true;
+	FeWindowPosition m_win_pos;
 
 public:
 	FeWindow( FeSettings &fes );
 	~FeWindow();
 
+	void set_window_position( const FeWindowPosition &pos );
 	void initial_create();		// first time window creation
 	bool run();						// run the currently selected game (blocking). returns false if window closed in the interim
 	void on_exit();				// called before exiting frontend
@@ -76,28 +99,6 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
-};
-
-class FeWindowPosition : public FeBaseConfigurable
-{
-public:
-	sf::Vector2i m_pos;
-	sf::Vector2u m_size;
-	bool m_topmost;
-
-	FeWindowPosition();
-	FeWindowPosition(
-		const sf::Vector2i &pos,
-		const sf::Vector2u &size
-	);
-	int process_setting(
-		const std::string &setting,
-		const std::string &value,
-		const std::string &filename
-	);
-	void save(
-		const std::string &filename
-	);
 };
 
 #endif

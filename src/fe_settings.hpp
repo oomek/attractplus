@@ -43,6 +43,9 @@ extern const char *FE_ART_EXTENSIONS[];
 
 extern const char *FE_CFG_FILE;
 extern const char *FE_WINDOW_FILE;
+extern const char *FE_CFG_SUBDIR;
+extern const char *FE_SCRIPT_NV_FILE;
+extern const char *FE_LAYOUT_NV_FILE;
 
 extern const char *FE_SCRAPER_SUBDIR;
 extern const char *FE_LAYOUT_FILE_BASE;
@@ -53,6 +56,7 @@ extern const char *FE_CFG_NO_STR;
 
 extern const int FE_DEFAULT_UI_COLOR_TOKEN;
 
+class FeOverlay;
 
 // A container for each task when importing/building romlists from the command line
 class FeImportTask
@@ -287,6 +291,7 @@ private:
 	int m_ui_font_size;
 	std::string m_ui_color;
 	bool m_window_topmost;
+	bool m_split_config_format;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
@@ -299,6 +304,10 @@ private:
 	void clear();
 	void load_displays_configs();
 	void save_displays_configs() const;
+	void load_plugins_configs();
+	void save_plugins_configs() const;
+	void load_layouts_configs();
+	void save_layouts_configs() const;
 
 	void construct_display_maps();
 
@@ -340,6 +349,7 @@ public:
 
 	void load();
 	void save_state();
+	void migration_cleanup_dialog( FeOverlay *overlay );
 
 	FeInputMap::Command map_input( const std::optional<sf::Event> &e );
 	void reset_input();

@@ -289,6 +289,7 @@ Remove '$1' from Favourites?;¿Eliminar '$1' de favoritos?
 Rom path '$1' not found, proceed?;No se encontró la ruta de la ROM '$1', ¿continuar?
 Overwrite existing '$1' mapping?;¿Sobrescribir la asignación existente de '$1'?
 A display with this name already exists;Ya existe una pantalla con este nombre
+Configuration files have been migrated\n to the 'config' folder.\nDelete old files?;Los archivos de configuración se han migrado\n a la carpeta 'config'.\n¿Eliminar archivos antiguos?
 
 # --input_map_dialog --
 Press Hotkey;Pulsar tecla de acceso rápido

@@ -289,6 +289,7 @@ Remove '$1' from Favourites?;Remove '$1' from Favourites?
 Rom path '$1' not found, proceed?;Rom path '$1' not found, proceed?
 Overwrite existing '$1' mapping?;Overwrite existing '$1' mapping?
 A display with this name already exists;A display with this name already exists
+Configuration files have been migrated\n to the 'config' folder.\nDelete old files?;Configuration files have been migrated\n to the 'config' folder.\nDelete old files?
 
 # --input_map_dialog --
 Press Hotkey;Press Hotkey

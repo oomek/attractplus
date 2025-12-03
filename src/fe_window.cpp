@@ -196,6 +196,11 @@ void FeWindow::check_for_sleep()
 }
 #endif
 
+void FeWindow::set_window_position( const FeWindowPosition &pos )
+{
+	m_win_pos = pos;
+}
+
 void FeWindow::initial_create()
 {
 	// If re-initialising save its position first
@@ -223,7 +228,6 @@ void FeWindow::initial_create()
 	sf::VideoMode vm = sf::VideoMode::getDesktopMode(); // width/height/bpp of OpenGL surface to create
 
 	sf::Vector2i wpos( 0, 0 );  // position to set window to
-	m_topmost = m_fes.get_window_topmost();
 
 	bool do_multimon = is_multimon_config( m_fes );
 	m_win_mode = m_fes.get_window_mode();
@@ -344,10 +348,14 @@ void FeWindow::initial_create()
 		int y = (monitor_height - h) / 2;
 
 		// Load the parameters from the window.am file (uses given args if none)
-		FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( w, h ) );
-		win_pos.load_from_file( m_fes.get_config_dir() + FE_WINDOW_FILE );
+		if ( !m_win_pos.m_temporary )
+		{
+			m_win_pos.m_pos = sf::Vector2i( x, y );
+			m_win_pos.m_size = sf::Vector2u( w, h );
+			m_win_pos.load_from_file( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
+		}
 
-		sf::Rect<int> window_rect( win_pos.m_pos, sf::Vector2i( win_pos.m_size ) );
+		sf::Rect<int> window_rect( m_win_pos.m_pos, sf::Vector2i( m_win_pos.m_size ) );
 #if !defined(NO_MULTIMON)
 		// The window can be positioned anywhere in the virtual screen
 		sf::Rect<int> vm_rect(
@@ -369,13 +377,13 @@ void FeWindow::initial_create()
 				<< " is outside desktop "
 				<< vm_rect.size.x << "x" << vm_rect.size.y << " @ " << vm_rect.position.x << "," << vm_rect.position.y
 				<< " reset to " << window_rect.size.x << "x" << window_rect.size.y << " @ 0,0" << std::endl;
-			win_pos.m_pos = { 0, 0 };
+			m_win_pos.m_pos = { 0, 0 };
 		}
 
-		// Populate our local variables from win_pos
-		wpos = win_pos.m_pos;
-		vm.size.x = win_pos.m_size.x;
-		vm.size.y = win_pos.m_size.y;
+		// Populate our local variables from m_win_pos
+		wpos = m_win_pos.m_pos;
+		vm.size.x = m_win_pos.m_size.x;
+		vm.size.y = m_win_pos.m_size.y;
 	}
 
 	sf::Vector2i wsize( vm.size.x, vm.size.y );
@@ -478,7 +486,7 @@ void FeWindow::initial_create()
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	set_win32_foreground_window( m_window->getNativeHandle(), m_topmost ? HWND_TOPMOST : HWND_TOP );
+	set_win32_foreground_window( m_window->getNativeHandle(), m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
 
 	// Enable dark mode titlebar on Windows
@@ -779,12 +787,12 @@ sf::RenderWindow &FeWindow::get_win()
 
 void FeWindow::save()
 {
-	if ( m_window && is_windowed_mode( m_win_mode ) )
+	if ( m_window && is_windowed_mode( m_win_mode ) && !m_win_pos.m_temporary )
 	{
 		m_window->display(); // Crashing on Linux workaround
 
 		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
-		win_pos.save( m_fes.get_config_dir() + FE_WINDOW_FILE );
+		win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 	}
 }
 
