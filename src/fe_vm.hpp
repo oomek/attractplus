@@ -283,6 +283,8 @@ public:
 	static void cb_set_display( int, bool, bool );
 	static void cb_set_display( int, bool );
 	static void cb_set_display( int );
+	static const char *cb_get_text( const char *,int,int );
+	static const char *cb_get_text( const char *,int );
 	static const char *cb_get_text( const char * );
 };
 
