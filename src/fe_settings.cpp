@@ -103,6 +103,7 @@ const char *FE_EMULATOR_SCRIPT_SUBDIR		= "emulators/script/";
 const char *FE_LIST_DEFAULT			= "default-display.cfg";
 const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
 const char *FE_DISPLAYS_FILE			= "displays.cfg";
+const char *FE_PLUGINS_FILE				= "plugins.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
 
@@ -466,6 +467,7 @@ void FeSettings::load()
 	}
 
 	load_displays_configs();
+	load_plugins_configs();
 
 	// Load language strings now.
 	//
@@ -841,6 +843,50 @@ void FeSettings::save_displays_configs() const
 		{
 			write_section( file, "display", (*it).get_info( FeDisplayInfo::Name ) );
 			(*it).save( file, 1 );
+		}
+
+		file.close();
+	}
+}
+
+void FeSettings::load_plugins_configs()
+{
+	std::string plugins_file = m_config_path + FE_PLUGINS_FILE;
+
+	if ( file_exists( plugins_file ) )
+	{
+		// Clear any plugins that were loaded from attract.cfg
+		// since we're loading from the new plugins.cfg format
+		m_plugins.clear();
+
+		load_from_file( plugins_file );
+		m_current_config_object = NULL;
+	}
+}
+
+void FeSettings::save_plugins_configs() const
+{
+	std::string plugins_file = m_config_path + FE_PLUGINS_FILE;
+	nowide::ofstream file( plugins_file.c_str() );
+	if ( file.is_open() )
+	{
+		write_header( file );
+
+		std::vector<std::string> plugin_files;
+		get_available_plugins( plugin_files );
+
+		for ( auto& plugin : m_plugins )
+		{
+			// Get rid of configs for old plugins by not saving it if the
+			// plugin itself is gone
+			for ( auto& plugin_file : plugin_files )
+			{
+				if ( plugin_file == plugin.get_name() )
+				{
+					plugin.save( file );
+					break;
+				}
+			}
 		}
 
 		file.close();
@@ -3695,6 +3741,7 @@ void FeSettings::save() const
 	confirm_directory( menu_art, "fanart/" );
 
 	save_displays_configs();
+	save_plugins_configs();
 
 	std::string filename( m_config_path );
 	filename += FE_CFG_FILE;
@@ -3733,25 +3780,6 @@ void FeSettings::save() const
 		// intro_config
 		m_intro_params.save( outfile );
 		m_display_menu_per_display_params.save( outfile );
-
-		// plugin
-		std::vector<std::string> plugin_files;
-		get_available_plugins( plugin_files );
-		for ( std::vector< FePlugInfo >::const_iterator itr = m_plugins.begin(); itr != m_plugins.end(); ++itr )
-		{
-			//
-			// Get rid of configs for old plugins by not saving it if the
-			// plugin itself is gone
-			//
-			for ( std::vector< std::string >::const_iterator its = plugin_files.begin(); its != plugin_files.end(); ++its )
-			{
-				if ( (*its).compare( (*itr).get_name() ) == 0 )
-				{
-					(*itr).save( outfile );
-					break;
-				}
-			}
-		}
 
 		outfile.close();
 	}

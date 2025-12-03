@@ -300,6 +300,8 @@ private:
 	void clear();
 	void load_displays_configs();
 	void save_displays_configs() const;
+	void load_plugins_configs();
+	void save_plugins_configs() const;
 
 	void construct_display_maps();
 
