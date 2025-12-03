@@ -94,19 +94,13 @@ int main(int argc, char *argv[])
 	FeSettings feSettings( config_path );
 	feSettings.set_window_topmost( window_topmost );
 
-	// Update window file with commandline settings
-	if ( !window_args.empty() || window_topmost )
+	FeWindowPosition win_pos;
+
+	if ( !window_args.empty() )
 	{
-		FeWindowPosition win_pos;
-		win_pos.load_from_file( config_path + FE_WINDOW_FILE );
-
-		if ( !window_args.empty() )
-		{
-			win_pos.m_pos = sf::Vector2i( window_args[0], window_args[1] );
-			win_pos.m_size = sf::Vector2u( window_args[2], window_args[3] );
-		}
-
-		win_pos.save( config_path + FE_WINDOW_FILE );
+		win_pos.m_temporary = true;
+		win_pos.m_pos = sf::Vector2i( window_args[0], window_args[1] );
+		win_pos.m_size = sf::Vector2u( window_args[2], window_args[3] );
 	}
 
 #ifdef USE_LIBCURL
@@ -168,6 +162,7 @@ int main(int argc, char *argv[])
 	soundsys.play_ambient();
 
 	FeWindow window( feSettings );
+	window.set_window_position( win_pos );
 	window.initial_create();
 
 #ifdef WINDOWS_CONSOLE
@@ -183,6 +178,8 @@ int main(int argc, char *argv[])
 	feVM.set_transforms();
 
 	bool exit_selected=false;
+
+	feSettings.migration_cleanup_dialog( &feOverlay );
 
 	if ( feSettings.get_info( FeSettings::Language ).empty() )
 	{

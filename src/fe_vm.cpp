@@ -65,9 +65,6 @@
 #include <errno.h>
 #endif
 
-const char *FE_SCRIPT_NV_FILE = "script.nv";
-const char *FE_LAYOUT_NV_FILE = "layout.nv";
-
 namespace
 {
 	//
@@ -297,13 +294,13 @@ FeVM::~FeVM()
 // Load fe.nv from file
 void FeVM::load_script_nv() {
 	std::string nv;
-	read_file_content( m_feSettings->get_config_dir() + FE_SCRIPT_NV_FILE, nv );
+	read_file_content( m_feSettings->get_config_dir() + FE_CFG_SUBDIR + FE_SCRIPT_NV_FILE, nv );
 	sq_run_code( "fe.nv <- " + ( nv.empty() ? "{}" : nv ) );
 }
 
 // Save fe.nv to file
 void FeVM::save_script_nv() {
-	write_file_content( m_feSettings->get_config_dir() + FE_SCRIPT_NV_FILE, sq_slot_to_json( "fe.nv" ) );
+	write_file_content( m_feSettings->get_config_dir() + FE_CFG_SUBDIR + FE_SCRIPT_NV_FILE, sq_slot_to_json( "fe.nv" ) );
 }
 
 // Load the fe.layout.nv for the current layout
@@ -319,7 +316,7 @@ void FeVM::load_layout_nv() {
 		return;
 
 	std::string layout_nv;
-	read_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, layout_nv );
+	read_file_content( m_feSettings->get_config_dir() + FE_CFG_SUBDIR + FE_LAYOUT_NV_FILE, layout_nv );
 	if ( layout_nv.empty() ) layout_nv = "{}";
 
 	std::string key = sq_escape_string( m_last_layout );
@@ -332,7 +329,7 @@ void FeVM::save_layout_nv() {
 		return;
 
 	std::string layout_nv;
-	read_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, layout_nv );
+	read_file_content( m_feSettings->get_config_dir() + FE_CFG_SUBDIR + FE_LAYOUT_NV_FILE, layout_nv );
 	if ( layout_nv.empty() ) layout_nv = "{}";
 
 	// All layout nv's are stored in one table
@@ -344,7 +341,7 @@ void FeVM::save_layout_nv() {
 	if ( json.empty() )
 		return;
 
-	write_file_content( m_feSettings->get_config_dir() + FE_LAYOUT_NV_FILE, json );
+	write_file_content( m_feSettings->get_config_dir() + FE_CFG_SUBDIR + FE_LAYOUT_NV_FILE, json );
 	sq_run_code( "try { delete " + temp + " } catch (err) {}" );
 }
 

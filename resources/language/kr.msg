@@ -289,6 +289,7 @@ Remove '$1' from Favourites?;'$1' 게임을 즐겨하는 목록에서 제거하�
 Rom path '$1' not found, proceed?;Rom 경로 '$1'을(를) 찾을 수 없습니다. 계속하시겠습니까?
 Overwrite existing '$1' mapping?;기존 '$1' 매핑을 덮어쓰시겠습니까?
 A display with this name already exists;이 이름의 디스플레이가 이미 존재합니다
+Configuration files have been migrated\n to the 'config' folder.\nDelete old files?;구성 파일이 'config' 폴더로 마이그레이션되었습니다.\n이전 파일을 삭제하시겠습니까?
 
 # --input_map_dialog --
 Press Hotkey;단축키 누르기
