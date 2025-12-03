@@ -1241,13 +1241,17 @@ Set the user configured settings for this layout/plugin/screensaver/intro.
 
 ```squirrel
 fe.get_text( text )
+fe.get_text( text, index_offset )
+fe.get_text( text, index_offset, filter_offset )
 ```
 
-Translate the specified text into the user's language. If no translation is found, then return the contents of `text`.
+Translate the given `text` into the user's language, then perform [_Magic Tokens_](#magic-tokens) replacement. Available translations are limited to the content found within the GUI, and if no matches are found the given text will be used.
 
 **Parameters**
 
 -  `text` - The text string to translate.
+-  `index_offset` - The offset (from the current selection) of the game to use for _Magic Tokens_. i.e. `-1` = previous game, `0` = current game, `1` = next game, and so on. Default value is `0`.
+-  `filter_offset` - The offset (from the current filter) of the filter containing the selection to use for _Magic Tokens_. i.e. `-1` = previous filter, `0` = current filter. Default value is `0`.
 
 **Return Value**
 
