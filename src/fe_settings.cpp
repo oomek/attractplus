@@ -104,6 +104,7 @@ const char *FE_LIST_DEFAULT			= "default-display.cfg";
 const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
 const char *FE_DISPLAYS_FILE			= "displays.cfg";
 const char *FE_PLUGINS_FILE				= "plugins.cfg";
+const char *FE_LAYOUTS_FILE				= "layouts.cfg";
 const char *FE_CFG_YES_STR				= "yes";
 const char *FE_CFG_NO_STR				= "no";
 
@@ -468,6 +469,7 @@ void FeSettings::load()
 
 	load_displays_configs();
 	load_plugins_configs();
+	load_layouts_configs();
 
 	// Load language strings now.
 	//
@@ -888,6 +890,36 @@ void FeSettings::save_plugins_configs() const
 				}
 			}
 		}
+
+		file.close();
+	}
+}
+
+void FeSettings::load_layouts_configs()
+{
+	std::string layouts_file = m_config_path + FE_LAYOUTS_FILE;
+
+	if ( file_exists( layouts_file ) )
+	{
+		// Clear any layouts that were loaded from attract.cfg
+		// since we're loading from the new layouts.cfg format
+		m_layout_params.clear();
+
+		load_from_file( layouts_file );
+		m_current_config_object = NULL;
+	}
+}
+
+void FeSettings::save_layouts_configs() const
+{
+	std::string layouts_file = m_config_path + FE_LAYOUTS_FILE;
+	nowide::ofstream file( layouts_file.c_str() );
+	if ( file.is_open() )
+	{
+		write_header( file );
+
+		for ( auto& layout : m_layout_params )
+			layout.save( file );
 
 		file.close();
 	}
@@ -3742,6 +3774,7 @@ void FeSettings::save() const
 
 	save_displays_configs();
 	save_plugins_configs();
+	save_layouts_configs();
 
 	std::string filename( m_config_path );
 	filename += FE_CFG_FILE;
@@ -3772,10 +3805,6 @@ void FeSettings::save() const
 
 		// saver_config
 		m_saver_params.save( outfile );
-
-		// layout_config
-		for ( std::vector<FeLayoutInfo>::const_iterator itr=m_layout_params.begin(); itr != m_layout_params.end(); ++itr )
-			(*itr).save( outfile );
 
 		// intro_config
 		m_intro_params.save( outfile );

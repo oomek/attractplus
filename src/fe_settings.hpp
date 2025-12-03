@@ -302,6 +302,8 @@ private:
 	void save_displays_configs() const;
 	void load_plugins_configs();
 	void save_plugins_configs() const;
+	void load_layouts_configs();
+	void save_layouts_configs() const;
 
 	void construct_display_maps();
 
