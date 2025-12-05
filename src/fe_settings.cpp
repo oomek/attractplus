@@ -23,6 +23,7 @@
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
+#include "fe_overlay.hpp"
 #include "fe_cache.hpp"
 #include "fe_vm.hpp"
 #include "image_loader.hpp"
@@ -411,7 +412,8 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_loaded_game_extras( false ),
 	m_present_state( Layout_Showing ),
 	m_ui_font_size( 0 ),
-	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] )
+	m_ui_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] ),
+	m_config_migrated( false )
 {
 	if ( config_path.empty() )
 		m_config_path = absolute_path( clean_path(FE_DEFAULT_CFG_PATH) );
@@ -470,6 +472,7 @@ void FeSettings::load()
 				m_language = FE_DEFAULT_LANGUAGE;
 
 			load_language = m_language;
+			m_config_migrated = true;
 		}
 	}
 	else
@@ -946,6 +949,26 @@ void FeSettings::save_layouts_configs() const
 			layout.save( file );
 
 		file.close();
+	}
+}
+
+void FeSettings::config_migration( FeOverlay *overlay )
+{
+	// Check if old attract.cfg exists after potential migration and prompt user to delete it
+	std::string old_config = m_config_path + FE_CFG_FILE;
+	std::string new_config = m_config_path + FE_CFG_SUBDIR + FE_CFG_FILE;
+	if ( file_exists( old_config ) && !m_config_migrated )
+	{
+		std::string msg = _( "Configuration files have been migrated\n to the 'config' folder.\nDelete the old 'config.cfg'?" );
+
+		if ( overlay->confirm_dialog( msg, false ) == 0 )
+		{
+			FeLog() << "Deleting old configuration file: " << old_config << std::endl;
+			delete_file( old_config );
+		}
+
+		// Save all new config files after migration
+		save();
 	}
 }
 

@@ -53,6 +53,7 @@ extern const char *FE_CFG_NO_STR;
 
 extern const int FE_DEFAULT_UI_COLOR_TOKEN;
 
+class FeOverlay;
 
 // A container for each task when importing/building romlists from the command line
 class FeImportTask
@@ -287,6 +288,7 @@ private:
 	int m_ui_font_size;
 	std::string m_ui_color;
 	bool m_window_topmost;
+	bool m_config_migrated;
 
 	FeSettings( const FeSettings & );
 	FeSettings &operator=( const FeSettings & );
@@ -349,6 +351,7 @@ public:
 
 	void load();
 	void save_state();
+	void config_migration( FeOverlay *overlay );
 
 	FeInputMap::Command map_input( const std::optional<sf::Event> &e );
 	void reset_input();

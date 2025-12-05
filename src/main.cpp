@@ -180,6 +180,9 @@ int main(int argc, char *argv[])
 
 	bool exit_selected=false;
 
+	// // Check if old attract.cfg exists after potential migration and prompt user to delete it
+	feSettings.config_migration( &feOverlay );
+
 	if ( feSettings.get_info( FeSettings::Language ).empty() )
 	{
 #ifdef SFML_SYSTEM_ANDROID
