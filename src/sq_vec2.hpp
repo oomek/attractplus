@@ -20,18 +20,18 @@
  *
  */
 
-#ifndef SQ_VECTOR_HPP
-#define SQ_VECTOR_HPP
+#ifndef SQ_VEC2_HPP
+#define SQ_VEC2_HPP
 
 #include "fe_util.hpp"
 #include "sq_math.hpp"
 
-class SqVector
+class SqVec2
 {
 public:
-	SqVector();
-	SqVector( const float, const float );
-	SqVector( const SqVector & );
+	SqVec2();
+	SqVec2( const float, const float );
+	SqVec2( const SqVec2 & );
 
 	float get_x() const { return m_x; };
 	void set_x( const float x ) { m_x = x; };
@@ -45,26 +45,27 @@ public:
 	float get_angle() const;
 	void set_angle( const float );
 
-	SqVector operator+( const SqVector & ) const;
-	SqVector operator-( const SqVector & ) const;
-	SqVector operator*( const float & ) const;
-	SqVector operator/( const float & ) const;
-	const bool operator==( const SqVector & ) const;
+	SqVec2 operator+( const SqVec2 & ) const;
+	SqVec2 operator-( const SqVec2 & ) const;
+	SqVec2 operator*( const float & ) const;
+	SqVec2 operator/( const float & ) const;
+	const bool operator==( const SqVec2 & ) const;
 
 	const std::string _tostring() const;
-	const SqVector componentMul( SqVector & ) const;
-	const SqVector componentDiv( SqVector & ) const;
-	const SqVector polar() const;
-	const SqVector cartesian() const;
-	const SqVector normalize() const;
-	const SqVector perpendicular() const;
-	const SqVector projectedOnto( const SqVector & ) const;
-	const SqVector mix( const SqVector &, const float & ) const;
+	const SqVec2 componentMul( SqVec2 & ) const;
+	const SqVec2 componentDiv( SqVec2 & ) const;
+	const SqVec2 invert() const;
+	const SqVec2 polar() const;
+	const SqVec2 cartesian() const;
+	const SqVec2 normalize() const;
+	const SqVec2 perpendicular() const;
+	const SqVec2 projectedOnto( const SqVec2 & ) const;
+	const SqVec2 mix( const SqVec2 &, const float & ) const;
 	const float lengthSquared() const;
-	const float angleTo( const SqVector & ) const;
-	const float distance( const SqVector & ) const;
-	const float dot( const SqVector & ) const;
-	const float cross( const SqVector & ) const;
+	const float angleTo( const SqVec2 & ) const;
+	const float distance( const SqVec2 & ) const;
+	const float dot( const SqVec2 & ) const;
+	const float cross( const SqVec2 & ) const;
 
 private:
 	float m_x;

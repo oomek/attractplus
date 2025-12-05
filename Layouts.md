@@ -2099,15 +2099,15 @@ In addition to the standard `Math` library, the following methods are included:
 ### Vector 🔶
 
 ```squirrel
-Vector()
-Vector( x, y )
+Vec2()
+Vec2( x, y )
 ```
 
-All standard operators work with Vectors.
+All standard operators work with 2D Vectors.
 
 ```squirrel
-local a = Vector( 1, 2 )
-local b = Vector( 3, 4 )
+local a = Vec2( 1, 2 )
+local b = Vec2( 3, 4 )
 
 local c = a + b
 fe.log( c ) // 4.000, 6.000

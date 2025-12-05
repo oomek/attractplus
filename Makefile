@@ -172,7 +172,7 @@ _DEP =\
 	sqrat_array_wrapper.hpp \
 	sq_ease.hpp \
 	sq_math.hpp \
-	sq_vector.hpp \
+	sq_vec2.hpp \
 	sqrat_regexp2.hpp \
 	zip.hpp
 
@@ -218,7 +218,7 @@ _OBJ =\
 	sqrat_array_wrapper.o \
 	sq_ease.o \
 	sq_math.o \
-	sq_vector.o \
+	sq_vec2.o \
 	sqrat_regexp2.o \
 	main.o
 
