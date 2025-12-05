@@ -17,8 +17,8 @@
    -  [Module](#module)
    -  [Squirrel Language](#squirrel-language)
 -  [Common Structures](#common-structures)
-   -  [User Config](#user-config)
    -  [Magic Tokens](#magic-tokens)
+   -  [User Config](#user-config)
 -  [Functions](#functions)
    -  [`fe.add_image()`](#feadd_image)
    -  [`fe.add_artwork()`](#feadd_artwork)
@@ -143,10 +143,8 @@ Attract-Mode Plus Layouts are written in [Squirrel](http://www.squirrel-lang.org
 
 -  [Squirrel 3.0 Reference Manual](http://www.squirrel-lang.org/doc/squirrel3.html)
 -  [Squirrel 3.0 Standard Library Manual](https://web.archive.org/web/20210730072847/http://www.squirrel-lang.org/doc/sqstdlib3.html)
-
-Also check out the Introduction to Squirrel on the wiki:
-
--  https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming
+-  [Introduction to Squirrel Programming](https://github.com/mickelson/attract/wiki/Introduction-to-Squirrel-Programming)
+-  [AM+ Squirrel VSCode Extension][extension]
 
 ---
 
@@ -241,6 +239,60 @@ function copyright( index_offset, filter_offset )
 
 // A Text element displaying the copyright
 fe.add_text( "[!copyright]", 0, 0, 400, 20 )
+```
+
+---
+
+### User Config
+
+Configuration settings can be added to a layout/plugin/screensaver/intro to provide users with customization options.
+
+Configurations are defined by a `UserConfig` class at the top of your script, where each property is an individual setting. Properties should be prefixed with an `</ attribute />` that describes how they are displayed, and their values can be retrieved using [`fe.get_config()`](#feget_config) or updated using [`fe.set_config()`](#feset_config-).
+
+```squirrel
+class UserConfig </ help="Description" /> {
+  </ label="Choice", order=1, options="Yes,No" /> opt = "Yes"
+  </ label="String", order=2 /> val = "Default"
+}
+
+local config = fe.get_config()
+// config = { opt = "Yes", val = "Default" }
+```
+
+**Properties**
+
+-  `label` - [string] Text for the setting list item, if omitted the property id is used.
+-  `help` - [string] The message to display in the footer when the setting is selected.
+-  `order` - [integer] The list order of the setting.
+-  `per_display` - [boolean] When `true` the setting value will be unique to each display.
+
+The attribute may use **one** of the following properties to define its type:
+
+-  `options` - [string] Present the user with a choice, for example: `"Yes,No"`.
+-  `is_input` - [boolean] Prompt the user to press a key.
+-  `is_function` - [boolean] Call the function named by the property, see example below.
+-  `is_info` - [boolean] A readonly setting used for headings or separators.
+-  If none of the above are used a text input for keyboard entry will be displayed.
+
+**Callback**
+
+-  The `is_function` callback should be in the following form:
+
+```squirrel
+class UserConfig </ help="Description" /> {
+	</ label="String", order=1 /> val = "Default"
+	</ label="Action", order=2, is_function=true /> func = "callback"
+}
+
+// The parameter contains the fe.get_config() table
+function callback( config )
+{
+	// The config may be updated
+	config.val = ( config.val == "Default" ) ? "Changed" : "Default"
+
+	// The returned string is displayed in the help section
+	return "Success"
+}
 ```
 
 ---
@@ -468,9 +520,9 @@ Compile a GLSL shader from the given file(s) for use in the layout. Also see [`f
 
 **Notes**
 
-Windows caches compiled shaders for future recall, and since every change results in a new file this cache will continue to grow over time. When it reaches a limit (`2GB` by default - *thousands* of files) new shaders will not be cached, causing slowdowns in your Layout.
+Windows caches compiled shaders for future recall, and since every change results in a new file this cache will continue to grow over time. When it reaches a limit (`2GB` by default, ie: *thousands* of files) new shaders will not be cached, causing slowdowns in your Layout.
 
-Simply close the program and delete the contents of the cache folders.
+To clear this cache close the program and delete the contents of the cache folders.
 
 - AMD: `C:\Users\<name>\AppData\Local\AMD\GLCache\`
 - nVidia: `C:\Users\<name>\AppData\Local\NVIDIA\GLCache\`
@@ -662,7 +714,7 @@ Compile a GLSL shader from the given shader code for use in the layout. Also see
 
 **Notes**
 
-Avoid "baking" variables into compiled shaders, use `uniforms` instead. While compiling dynamic shaders can avoid costly code branches, using this method to spawn thousands of unique shaders should be avoided. See the notes in [`fe.add_shader()`](#feadd_shader).
+You should avoid "baking" variables into compiled shaders and use `uniforms` instead. While compiling dynamic shaders can avoid costly code branches, using this method to spawn *thousands* of unique shaders should be avoided. See the notes in [`fe.add_shader()`](#feadd_shader).
 
 ---
 
@@ -2058,10 +2110,10 @@ Attract-Mode Plus includes all [Squirrel Standard Library](https://web.archive.o
 
 -  `zip_extract_archive( zipfile, filename )` - Open a specified `zipfile` archive file and extract `filename` from it, returning the contents as a squirrel blob. Supported formats are: `.zip` `.7z` `.rar` `.tar.gz` `.tar.bz2` `.tar`
 -  `zip_get_dir( zipfile )` - Return an array of the filenames contained in the `zipfile` archive file.
--  `regexp2( pattern, flags )` - A class which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements. Flags are optional, accepts `"i"` for case-insensitive matches.
--  `join( arr, delim )` - Returns a string containing concatenated array values separated with the given delimiter.
--  `get_clipboard()` - Returns the contents of the OS clipboard.
--  `set_clipboard( value )` - Sets the contents of the OS clipboard.
+-  `regexp2( pattern, flags )` 🔶 - A class which evaluates regular expressions using the C++ regular expression engine. Recommended over the standard `regexp` class as it contains considerable improvements. Flags are optional, accepts `"i"` for case-insensitive matches.
+-  `join( arr, delim )` 🔶 - Returns a string containing concatenated array values separated with the given delimiter.
+-  `get_clipboard()` 🔶 - Returns the contents of the OS clipboard.
+-  `set_clipboard( value )` 🔶 - Sets the contents of the OS clipboard.
 
 ---
 
