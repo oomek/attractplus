@@ -1363,6 +1363,8 @@ bool FeVM::on_new_layout()
 	fe.Overload<void (*)(int, bool, bool)>(_SC("set_display"), &FeVM::cb_set_display);
 	fe.Overload<void (*)(int, bool)>(_SC("set_display"), &FeVM::cb_set_display);
 	fe.Overload<void (*)(int)>(_SC("set_display"), &FeVM::cb_set_display);
+	fe.Overload<const char *(*)(const char *, int, int)>(_SC("get_text"), &FeVM::cb_get_text);
+	fe.Overload<const char *(*)(const char *, int)>(_SC("get_text"), &FeVM::cb_get_text);
 	fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
 
 	//
@@ -2067,6 +2069,8 @@ public:
 			fe.Func<time_t (*)(const char *)>(_SC("get_file_mtime"), &FeVM::cb_get_file_mtime);
 			// Deprecated: use fs.set_file_mtime instead
 			fe.Func<bool (*)(const char *, time_t)>(_SC("set_file_mtime"), &FeVM::cb_set_file_mtime);
+			fe.Overload<const char *(*)(const char *, int, int)>(_SC("get_text"), &FeVM::cb_get_text);
+			fe.Overload<const char *(*)(const char *, int)>(_SC("get_text"), &FeVM::cb_get_text);
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
 		}
 
@@ -3318,10 +3322,27 @@ void FeVM::cb_set_display( int idx )
 	cb_set_display( idx, false, true );
 }
 
+const char *FeVM::cb_get_text( const char *t, int index_offset, int filter_offset )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	FeSettings *fes = fev->m_feSettings;
+
+	std::string translation = _( t );
+	fes->do_text_substitutions( translation, filter_offset, index_offset);
+	static std::string retval; // must be static to work with Squirrel
+	retval = translation; // static must be re-assigned to update
+	return retval.c_str();
+}
+
+const char *FeVM::cb_get_text( const char *t, int index_offset )
+{
+	return cb_get_text( t, index_offset, 0 );
+}
+
 const char *FeVM::cb_get_text( const char *t )
 {
-	static std::string retval = _( t );
-	return retval.c_str();
+	return cb_get_text( t, 0, 0 );
 }
 
 const char *FeVM::cb_get_clipboard()
