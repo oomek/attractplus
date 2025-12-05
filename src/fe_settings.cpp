@@ -88,6 +88,7 @@ const char *FE_LANGUAGE_FILE_EXTENSION = ".msg";
 const char *FE_PLUGIN_FILE_EXTENSION	= FE_LAYOUT_FILE_EXTENSION;
 const char *FE_GAME_EXTRA_FILE_EXTENSION = ".cfg";
 const char *FE_GAME_OVERVIEW_FILE_EXTENSION = ".txt";
+const char *FE_CFG_SUBDIR				= "config/";
 const char *FE_LAYOUT_SUBDIR			= "layouts/";
 const char *FE_SOUND_SUBDIR			= "sounds/";
 const char *FE_SCREENSAVER_SUBDIR		= "screensaver/";
@@ -445,7 +446,9 @@ void FeSettings::load()
 	clear();
 
 	std::string load_language( FE_DEFAULT_LANGUAGE );
-	std::string filename = m_config_path + FE_CFG_FILE;
+
+	// Try to load from config/attract.cfg (new format)
+	std::string filename = m_config_path + FE_CFG_SUBDIR + FE_CFG_FILE;
 
 	if (( FE_DATA_PATH != NULL ) && ( !directory_exists( FE_DATA_PATH ) ))
 	{
@@ -453,18 +456,39 @@ void FeSettings::load()
 			<< FE_DATA_PATH << ", which is not available." << std::endl;
 	}
 
-	if ( load_from_file( filename ) == false )
+	if ( file_exists( filename ) )
 	{
-		FeLog() << "Config file not found: " << filename << std::endl;
+		if ( load_from_file( filename ) == false )
+		{
+			FeLog() << "Config file not found: " << filename << std::endl;
+		}
+		else
+		{
+			FeLog() << "Config: " << filename << std::endl;
+
+			if ( m_language.empty() )
+				m_language = FE_DEFAULT_LANGUAGE;
+
+			load_language = m_language;
+		}
 	}
 	else
 	{
-		FeLog() << "Config: " << filename << std::endl;
+		// Fall back to attract.cfg (backward compatibility)
+		filename = m_config_path + FE_CFG_FILE;
+		if ( load_from_file( filename ) == false )
+		{
+			FeLog() << "Config file not found: " << filename << std::endl;
+		}
+		else
+		{
+			FeLog() << "Config: " << filename << std::endl;
 
-		if ( m_language.empty() )
-			m_language = FE_DEFAULT_LANGUAGE;
+			if ( m_language.empty() )
+				m_language = FE_DEFAULT_LANGUAGE;
 
-		load_language = m_language;
+			load_language = m_language;
+		}
 	}
 
 	load_displays_configs();
@@ -820,7 +844,7 @@ void FeSettings::construct_display_maps()
 
 void FeSettings::load_displays_configs()
 {
-	std::string displays_file = m_config_path + FE_DISPLAYS_FILE;
+	std::string displays_file = m_config_path + FE_CFG_SUBDIR + FE_DISPLAYS_FILE;
 
 	if ( file_exists( displays_file ) )
 	{
@@ -835,7 +859,7 @@ void FeSettings::load_displays_configs()
 
 void FeSettings::save_displays_configs() const
 {
-	std::string displays_file = m_config_path + FE_DISPLAYS_FILE;
+	std::string displays_file = m_config_path + FE_CFG_SUBDIR + FE_DISPLAYS_FILE;
 	nowide::ofstream file( displays_file.c_str() );
 	if ( file.is_open() )
 	{
@@ -853,7 +877,7 @@ void FeSettings::save_displays_configs() const
 
 void FeSettings::load_plugins_configs()
 {
-	std::string plugins_file = m_config_path + FE_PLUGINS_FILE;
+	std::string plugins_file = m_config_path + FE_CFG_SUBDIR + FE_PLUGINS_FILE;
 
 	if ( file_exists( plugins_file ) )
 	{
@@ -868,7 +892,7 @@ void FeSettings::load_plugins_configs()
 
 void FeSettings::save_plugins_configs() const
 {
-	std::string plugins_file = m_config_path + FE_PLUGINS_FILE;
+	std::string plugins_file = m_config_path + FE_CFG_SUBDIR + FE_PLUGINS_FILE;
 	nowide::ofstream file( plugins_file.c_str() );
 	if ( file.is_open() )
 	{
@@ -897,7 +921,7 @@ void FeSettings::save_plugins_configs() const
 
 void FeSettings::load_layouts_configs()
 {
-	std::string layouts_file = m_config_path + FE_LAYOUTS_FILE;
+	std::string layouts_file = m_config_path + FE_CFG_SUBDIR + FE_LAYOUTS_FILE;
 
 	if ( file_exists( layouts_file ) )
 	{
@@ -912,7 +936,7 @@ void FeSettings::load_layouts_configs()
 
 void FeSettings::save_layouts_configs() const
 {
-	std::string layouts_file = m_config_path + FE_LAYOUTS_FILE;
+	std::string layouts_file = m_config_path + FE_CFG_SUBDIR + FE_LAYOUTS_FILE;
 	nowide::ofstream file( layouts_file.c_str() );
 	if ( file.is_open() )
 	{
@@ -3753,6 +3777,7 @@ bool FeSettings::check_romlist_configured( const std::string &n ) const
 
 void FeSettings::save() const
 {
+	confirm_directory( m_config_path, FE_CFG_SUBDIR );
 	confirm_directory( m_config_path, FE_ROMLIST_SUBDIR );
 	confirm_directory( m_config_path, FE_EMULATOR_SUBDIR );
 	confirm_directory( m_config_path, FE_LAYOUT_SUBDIR );
@@ -3777,6 +3802,7 @@ void FeSettings::save() const
 	save_layouts_configs();
 
 	std::string filename( m_config_path );
+	filename += FE_CFG_SUBDIR;
 	filename += FE_CFG_FILE;
 
 	FeLog() << "Writing config to: " << filename << std::endl;
