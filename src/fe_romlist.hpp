@@ -235,8 +235,10 @@ public:
 	void save_state();
 	bool set_fav( FeRomInfo &rom, FeDisplayInfo &display, bool fav );
 
+	std::vector<std::string> get_tags_available();
 	void get_tags_list( FeRomInfo &rom, std::vector< std::pair<std::string, bool> > &tags_list ) const;
 	bool set_tag( FeRomInfo &rom, FeDisplayInfo &display, const std::string &tag, bool flag );
+	bool replace_tags( FeRomInfo &rom, FeDisplayInfo &display, const std::string &tags );
 
 	int filter_size( int filter_idx ) const { return ( filter_idx < (int)m_filtered_list.size() ) ? (int)m_filtered_list[filter_idx].filter_list.size() : 0; };
 

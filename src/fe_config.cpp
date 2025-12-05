@@ -2371,6 +2371,8 @@ void FeEditGameMenu::get_options( FeConfigContext &ctx )
 		case FeRomInfo::PlayedCount:
 		case FeRomInfo::PlayedTime:
 		case FeRomInfo::PlayedLast:
+		case FeRomInfo::Score:
+		case FeRomInfo::Votes:
 			type = Opt::EDIT;
 			opaque = 3;
 			break;
@@ -2425,12 +2427,16 @@ bool FeEditGameMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *&
 
 			if ( ctx.confirm_dialog( msg ) )
 			{
-				ctx.fe_settings.set_current_fav( new_state );
+				bool list_changed = ctx.fe_settings.set_fav_current( new_state );
 
 				// ugh
 				FePresent *fep = FePresent::script_get_fep();
 				if ( fep )
+				{
+					fep->update_to( ToNewList, list_changed );
+					fep->on_transition( ToNewList, 0 );
 					fep->on_transition( ChangedTag, FeRomInfo::Favourite );
+				}
 			}
 		}
 		break;
@@ -2439,7 +2445,7 @@ bool FeEditGameMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *&
 		ctx.tags_dialog();
 		break;
 
-	case 3: // PlayedCount, PlayedTime, PlayedLast
+	case 3: // PlayedCount, PlayedTime, PlayedLast, Score, Votes
 		m_update_stats = true;
 		break;
 
@@ -2454,9 +2460,8 @@ bool FeEditGameMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *&
 	case 100: // Delete Game
 		if ( ctx.confirm_dialog( _( "Delete game '$1'?", { ctx.opt_list[1].get_value() }) ) )
 		{
-			ctx.fe_settings.update_romlist_after_edit( m_rom_original,
-				m_rom_original,
-				FeSettings::EraseEntry );
+			ctx.fe_settings.update_romlist_after_edit( m_rom_original, m_rom_original, FeSettings::EraseEntry );
+			ctx.fe_settings.init_display();
 			return true;
 		}
 		return false;
@@ -2493,7 +2498,7 @@ bool FeEditGameMenu::save( FeConfigContext &ctx )
 	// Resave the usage stats (if they were changed)
 	//
 	if ( m_update_stats )
-		ctx.fe_settings.update_stats(0,0); // this will force a rewrite of the file
+		ctx.fe_settings.update_stats_current( 0, 0 ); // this will force a rewrite of the file
 
 	if ( m_update_overview )
 	{
@@ -2512,6 +2517,9 @@ bool FeEditGameMenu::save( FeConfigContext &ctx )
 		ctx.fe_settings.set_game_extra( FeSettings::Arguments, ctx.opt_list[border+2].get_value() );
 		ctx.fe_settings.save_game_extras();
 	}
+
+	// Re-init display to show the edited entry
+	ctx.fe_settings.init_display();
 
 	return true;
 }
@@ -2589,9 +2597,8 @@ bool FeEditShortcutMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMen
 	{
 		if ( ctx.confirm_dialog( _( "Delete shortcut '$1'?", { ctx.opt_list[0].get_value() }) ) )
 		{
-			ctx.fe_settings.update_romlist_after_edit( m_rom_original,
-				m_rom_original,
-				FeSettings::EraseEntry );
+			ctx.fe_settings.update_romlist_after_edit( m_rom_original, m_rom_original, FeSettings::EraseEntry );
+			ctx.fe_settings.init_display();
 
 			m_update_rl = false;
 			return true;
@@ -2642,6 +2649,7 @@ bool FeEditShortcutMenu::save( FeConfigContext &ctx )
 		// Resave the romlist file that our romlist was loaded from
 		//
 		ctx.fe_settings.update_romlist_after_edit( m_rom_original, replacement );
+		ctx.fe_settings.init_display();
 	}
 
 	return true;
