@@ -251,6 +251,7 @@ Flip;翻轉
 
 # --startupDispTokens --
 Show Last Selection;顯示最後選擇的項目
+Show Random Selection;顯示隨機選擇
 Launch Last Game;最後執行的遊戲
 Show Displays Menu;顯示主選單
 

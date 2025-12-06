@@ -251,6 +251,7 @@ Flip;Retourné
 
 # --startupDispTokens --
 Show Last Selection;Afficher la dernière sélection
+Show Random Selection;Afficher la sélection aléatoire
 Launch Last Game;Lancer le dernier jeu
 Show Displays Menu;Afficher le menu des écrans
 

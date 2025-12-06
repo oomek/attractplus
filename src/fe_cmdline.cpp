@@ -46,6 +46,8 @@ void write_option( std::string args, std::string help = "" )
 void process_args( int argc, char *argv[],
 			std::string &config_path,
 			bool &process_console,
+			std::string &startup_display,
+			std::string &startup_filter,
 			std::string &log_file,
 			FeLogLevel &log_level,
 			bool &window_topmost,
@@ -291,6 +293,18 @@ void process_args( int argc, char *argv[],
 			window_topmost = true;
 			next_arg++;
 		}
+		else if (( strcmp( argv[next_arg], "-d" ) == 0 )
+				|| ( strcmp( argv[next_arg], "--display" ) == 0 ))
+		{
+			next_arg++;
+			startup_display = argv[next_arg];
+			next_arg++;
+			if ( next_arg < argc && argv[next_arg][0] != '-' )
+			{
+				startup_filter = argv[next_arg];
+				next_arg++;
+			}
+		}
 		else if (( strcmp( argv[next_arg], "-w" ) == 0 )
 				|| ( strcmp( argv[next_arg], "--window" ) == 0 ))
 		{
@@ -352,6 +366,7 @@ void process_args( int argc, char *argv[],
 			write_option( "-n, --console", "Enable script console" );
 #endif
 			write_option( "-c, --config <dir>", "Set the directory containing attract.cfg" );
+			write_option( "-d, --display <display> [filter]", "Show the given Display and Filter on startup" );
 			write_option( "-w, --window <x> <y> <w> <h>", "Set the position and size for window modes" );
 			write_option( "-t, --topmost", "Keep the window always on top" );
 			write_option( "-v, --version", "Show version information" );
