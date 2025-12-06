@@ -251,6 +251,7 @@ Flip;180도
 
 # --startupDispTokens --
 Show Last Selection;마지막 메뉴 표시
+Show Random Selection;무작위 선택 표시
 Launch Last Game;마지막 게임 실행
 Show Displays Menu;목록 관리 메뉴 표시
 
