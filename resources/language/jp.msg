@@ -251,6 +251,7 @@ Flip;180°
 
 # --startupDispTokens --
 Show Last Selection;前回の選択を表示
+Show Random Selection;ランダム選択を表示
 Launch Last Game;最後のゲームを起動
 Show Displays Menu;ディスプレイメニューを表示
 
