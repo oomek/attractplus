@@ -114,7 +114,7 @@ public:
 	static const char *filterWrapTokens[];
 	static const char *filterWrapDispTokens[];
 
-	enum StartupModeType { ShowLastSelection=0, LaunchLastGame, ShowDisplaysMenu };
+	enum StartupModeType { ShowLastSelection=0, ShowRandomSelection, ShowDisplaysMenu, LaunchLastGame };
 	static const char *startupTokens[];
 	static const char *startupDispTokens[];
 
@@ -404,6 +404,7 @@ public:
 	bool navigate_display( int step, bool wrap_mode=false );
 	bool navigate_filter( int step );
 
+	int get_filter_index_from_name( const std::string &name ) const;
 	int get_current_filter_index() const;
 	const std::string &get_filter_name( int filter_index );
 	void get_current_display_filter_names( std::vector<std::string> &list ) const;

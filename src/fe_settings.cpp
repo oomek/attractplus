@@ -264,16 +264,18 @@ const char *FeSettings::filterWrapDispTokens[] =
 const char *FeSettings::startupTokens[] =
 {
 	"show_last_selection",
-	"launch_last_game",
+	"show_random_selection",
 	"displays_menu",
+	"launch_last_game",
 	NULL
 };
 
 const char *FeSettings::startupDispTokens[] =
 {
 	"Show Last Selection", // Default
-	"Launch Last Game",
+	"Show Random Selection",
 	"Show Displays Menu",
+	"Launch Last Game",
 	NULL
 };
 
@@ -482,6 +484,22 @@ void FeSettings::load()
 
 	if ( get_startup_mode() == ShowDisplaysMenu )
 		m_current_display = -1;
+	else if ( get_startup_mode() == ShowRandomSelection )
+	{
+		int display_count = (*get_displays()).size();
+		if ( display_count )
+		{
+			srand( time( 0 ) );
+			int display_index = rand() % display_count;
+			FeDisplayInfo* display = get_display( display_index );
+			int filter_count = display->get_filter_count();
+			int filter_index = filter_count ? rand() % filter_count : 0;
+
+			m_selected_display = display_index;
+			display->set_current_filter_index( filter_index );
+			display->set_rom_index( filter_index, rand() );
+		}
+	}
 
 	// init_display() is called during set_display(), no need to call it here
 	// Make sure we have some keyboard mappings
@@ -1819,7 +1837,28 @@ int FeSettings::get_display_index_from_name( const std::string &n ) const
 {
 	for ( unsigned int i=0; i<m_displays.size(); i++ )
 	{
-		if ( n.compare( m_displays[i].get_info( FeDisplayInfo::Name ) ) == 0 )
+		if ( icompare( n, m_displays[i].get_info( FeDisplayInfo::Name ) ) == 0 )
+			return i;
+	}
+	return -1;
+}
+
+int FeSettings::get_filter_index_from_name( const std::string &n ) const
+{
+	std::vector<std::string> names;
+	if ( m_current_display < 0 )
+	{
+		std::string temp_title;
+		std::vector<int> temp_ind;
+		int temp_idx;
+		get_displays_menu( temp_title, names, temp_ind, temp_idx );
+	}
+	else
+		m_displays[m_current_display].get_filters_list( names );
+
+	for ( unsigned int i=0; i<names.size(); i++ )
+	{
+		if ( icompare( n, names[i] ) == 0 )
 			return i;
 	}
 	return -1;

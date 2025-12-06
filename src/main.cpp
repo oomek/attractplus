@@ -60,6 +60,8 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 void process_args( int argc, char *argv[],
 			std::string &config_path,
 			bool &process_console,
+			std::string &startup_display,
+			std::string &startup_filter,
 			std::string &log_file,
 			FeLogLevel &log_level,
 			bool &window_topmost,
@@ -71,6 +73,8 @@ int main(int argc, char *argv[])
 	bool launch_game = false;
 	bool initial_load = true;
 	bool process_console = false;
+	std::string startup_display;
+	std::string startup_filter;
 	int last_fullscreen_mode = FeSettings::WindowType::Fullscreen;
 	int last_window_mode = FeSettings::WindowType::Window;
 	int last_display_index = -1;
@@ -85,7 +89,7 @@ int main(int argc, char *argv[])
 #endif
 
 	nowide::args a( argc, argv );
-	process_args( argc, argv, config_path, process_console, log_file, log_level, window_topmost, window_args );
+	process_args( argc, argv, config_path, process_console, startup_display, startup_filter, log_file, log_level, window_topmost, window_args );
 
 	FeSettings feSettings( config_path );
 	feSettings.set_window_topmost( window_topmost );
@@ -218,10 +222,33 @@ int main(int argc, char *argv[])
 #endif
 
 	// Only show intro if there are displays configured
-	if ( !(feSettings.displays_count() < 1) ) {
+	if ( !(feSettings.displays_count() < 1) )
+	{
+		if ( !startup_display.empty() )
+		{
+			// Display set by commandline so startup with provided selection
+			feSettings.set_info( FeSettings::StartupMode, "show_last_selection" );
 
-		// Load the display early so the intro can use the romlist and artwork
-		feSettings.set_display( feSettings.get_selected_display_index() );
+			int display_index = feSettings.get_display_index_from_name( startup_display );
+			if ( display_index < 0 )
+				display_index = std::clamp( as_int( startup_display ), 0, (int)(*feSettings.get_displays()).size() - 1 );
+			FeLog() << "Startup Display: '" << startup_display << "' = " << display_index << std::endl;
+			feSettings.set_display( display_index );
+
+			if ( !startup_filter.empty() )
+			{
+				int filter_index = feSettings.get_filter_index_from_name( startup_filter );
+				if ( filter_index < 0 )
+					filter_index = std::clamp( as_int( startup_filter ), 0, feSettings.get_display( display_index )->get_filter_count() - 1 );
+				FeLog() << "Startup Filter: '" << startup_filter << "' = " << filter_index << std::endl;
+				feSettings.set_current_selection( filter_index, -1 );
+			}
+		}
+		else
+		{
+			// Load the display early so the intro can use the romlist and artwork
+			feSettings.set_display( feSettings.get_selected_display_index() );
+		}
 
 		// Attempt to start the intro
 		if ( !feVM.load_intro() )
