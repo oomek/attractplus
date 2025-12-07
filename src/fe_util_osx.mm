@@ -49,25 +49,6 @@ void osx_hide_menu_bar()
 	[NSMenu setMenuBarVisible:NO];
 }
 
-std::string osx_clipboard_get_content()
-{
-	cocoa_ar_pool_class pool;
-
-	NSPasteboard* pboard = [NSPasteboard generalPasteboard];
-	NSString* nstext = [pboard stringForType:NSPasteboardTypeString];
-	return std::string( [nstext UTF8String] );
-}
-
-void osx_clipboard_set_content( const std::string &value )
-{
-	cocoa_ar_pool_class pool;
-
-	NSString *nstext = [NSString stringWithCString:value.c_str() encoding:NSUTF8StringEncoding];
-	NSPasteboard* pboard = [NSPasteboard generalPasteboard];
-	[pboard clearContents];
-	[pboard setString:nstext forType:NSPasteboardTypeString];
-}
-
 void osx_take_focus()
 {
 	[NSApp activateIgnoringOtherApps:YES];
@@ -75,6 +56,6 @@ void osx_take_focus()
 
 bool osx_get_capslock()
 {
-	CGEventFlags flags = CGEventSourceFlagsState(kCGEventSourceStatePrivate);
-	return ((flags & kCGEventFlagMaskAlphaShift) == kCGEventFlagMaskAlphaShift);
+	NSUInteger flags = [NSEvent modifierFlags];
+	return ( flags & NSAlphaShiftKeyMask );
 }

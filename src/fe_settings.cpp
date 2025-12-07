@@ -1284,6 +1284,11 @@ bool FeSettings::get_current_state( FeInputMap::Command c )
 	return m_inputmap.get_current_state( c, m_joy_thresh );
 }
 
+bool FeSettings::get_key_state( std::string key )
+{
+	return FeInputMapEntry( key ).get_current_state( m_joy_thresh );
+}
+
 void FeSettings::init_mouse_capture( sf::RenderWindow *window )
 {
 	sf::Vector2i size = sf::Vector2i( window->getSize() );

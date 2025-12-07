@@ -28,6 +28,7 @@
 #include <set>
 #include <SFML/Config.hpp>
 #include <SFML/Graphics.hpp>
+#include <SFML/Window/Clipboard.hpp>
 #include "nowide/fstream.hpp"
 
 #ifdef FE_DEBUG
