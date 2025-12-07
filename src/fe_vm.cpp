@@ -2728,22 +2728,29 @@ bool FeVM::cb_get_input_state( const char *input )
 	else if ( strcmp( input, "Shift" ) == 0 )
 	{
 		// Returns true if either shift active
-		if ( FeInputMapEntry( "LShift" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
-		if ( FeInputMapEntry( "RShift" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "LShift" ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "RShift" ) ) return true;
 		return false;
 	}
 	else if ( strcmp( input, "Control" ) == 0 )
 	{
 		// Returns true if either control active
-		if ( FeInputMapEntry( "LControl" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
-		if ( FeInputMapEntry( "RControl" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "LControl" ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "RControl" ) ) return true;
 		return false;
 	}
 	else if ( strcmp( input, "Alt" ) == 0 )
 	{
 		// Returns true if either alt active
-		if ( FeInputMapEntry( "LAlt" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
-		if ( FeInputMapEntry( "RAlt" ).get_current_state( fev->m_feSettings->get_joy_thresh() ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "LAlt" ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "RAlt" ) ) return true;
+		return false;
+	}
+	else if ( strcmp( input, "System" ) == 0 )
+	{
+		// Returns true if either system active
+		if ( fev->m_feSettings->get_key_state( "LSystem" ) ) return true;
+		if ( fev->m_feSettings->get_key_state( "RSystem" ) ) return true;
 		return false;
 	}
 
@@ -3411,7 +3418,9 @@ const char *FeVM::cb_get_text( const char *t )
 
 const char *FeVM::cb_get_clipboard()
 {
-	return clipboard_get_content().c_str();
+	static std::string retval;
+	retval = clipboard_get_content();
+	return retval.c_str();
 }
 
 void FeVM::cb_set_clipboard( const char *value )

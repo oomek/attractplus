@@ -33,16 +33,6 @@
 void osx_hide_menu_bar();
 
 //
-// Get a string from the OS X clipboard.
-//
-std::string osx_clipboard_get_content();
-
-//
-// Set a string to the OS X clipboard.
-//
-void osx_clipboard_set_content( const std::string & );
-
-//
 // Put the focus on the frontend.
 //
 void osx_take_focus();

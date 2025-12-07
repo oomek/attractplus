@@ -1835,83 +1835,14 @@ std::string name_with_brackets_stripped( const std::string &name )
 	return name.substr( 0, pos );
 }
 
-
 std::string clipboard_get_content()
 {
-	std::string retval;
-
-#ifdef SFML_SYSTEM_MACOS
-	retval = osx_clipboard_get_content();
-#endif
-
-#ifdef SFML_SYSTEM_WINDOWS
-	if (!IsClipboardFormatAvailable( CF_UNICODETEXT ))
-		return retval;
-
-	if (!OpenClipboard( NULL ))
-		return retval;
-
-	HGLOBAL hglob = GetClipboardData( CF_UNICODETEXT );
-	if ( hglob != NULL )
-	{
-		LPWSTR lptstr = ( LPWSTR )GlobalLock( hglob );
-		if (lptstr != NULL)
-		{
-			std::wstring str = lptstr;
-			retval = FeUtil::narrow( str );
-		}
-
-		GlobalUnlock( hglob );
-	}
-
-	CloseClipboard();
-#endif // if WINDOWS
-
-	return retval;
+	return sf::Clipboard::getString();
 }
 
-//
-// NOTE: Issue with w_chars
-//
 void clipboard_set_content( const std::string &value )
 {
-
-#ifdef SFML_SYSTEM_MACOS
-	osx_clipboard_set_content( value );
-#endif
-
-#ifdef SFML_SYSTEM_WINDOWS
-	if (!IsClipboardFormatAvailable( CF_UNICODETEXT ))
-		return;
-
-	if (!OpenClipboard(NULL))
-		return;
-
-	EmptyClipboard();
-
-	std::wstring val = FeUtil::widen( value );
-	rsize_t size = (val.size() + 1) * sizeof( wchar_t );
-	HGLOBAL hMem = GlobalAlloc( GMEM_MOVEABLE, size );
-	if ( !hMem ) {
-		CloseClipboard();
-		return;
-	}
-
-	wchar_t* pMem = static_cast<wchar_t*>( GlobalLock( hMem ) );
-	if (!pMem) {
-		GlobalFree( hMem );
-		CloseClipboard();
-		return;
-	}
-
-	wcscpy_s( pMem, size, val.c_str() );
-	GlobalUnlock( hMem );
-
-	if ( !SetClipboardData( CF_UNICODETEXT, hMem ) )
-		FeLog() << "Error: Failed to set clipboard data." << std::endl;
-
-	CloseClipboard();
-#endif // if WINDOWS
+	sf::Clipboard::setString( value );
 }
 
 #if defined(USE_XLIB)
@@ -2377,13 +2308,13 @@ bool get_capslock_state()
 	#endif
 
 	#ifdef USE_XLIB
-		Display* display = XOpenDisplay(nullptr);
-		if (!display) return false;
+		::Display *xdisp = XOpenDisplay( NULL );
+		if (!xdisp) return false;
 
 		XKeyboardState xks;
-		XGetKeyboardControl(display, &xks);
-		XCloseDisplay(display);
-		return (xks.led_mask & 1) != 0;
+		XGetKeyboardControl(xdisp, &xks);
+		XCloseDisplay(xdisp);
+		return xks.led_mask & 1;
 	#endif
 
 	return false;

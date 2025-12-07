@@ -362,6 +362,7 @@ public:
 	void set_default_command( FeInputMap::Command c, FeInputMap::Command v );
 
 	bool get_current_state( FeInputMap::Command c );
+	bool get_key_state( std::string key );
 	void get_input_mappings( std::vector < FeMapping > &l ) const { m_inputmap.get_mappings( l ); };
 	void set_input_mapping( FeMapping &m ) { m_inputmap.set_mapping( m ); };
 
