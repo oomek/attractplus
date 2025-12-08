@@ -2177,6 +2177,7 @@ Copy file from source to destination.
 
 -  `FeVersion` - [string] The current Attract-Mode Plus version.
 -  `FeVersionNum` - [int] The current Attract-Mode Plus version.
+-  `FeLogLevel` - [string] The current loglevel, will be one of: `"silent"`, `"info"`, or `"debug"`.
 -  `FeConfigDirectory` - [string] The path to the config directory.
 -  `IntroActive` - [boolean] `true` if the intro is active, `false` otherwise.
 -  `Language` - [string] The configured language.

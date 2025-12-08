@@ -135,6 +135,21 @@ void fe_set_log_level( enum FeLogLevel f )
 #endif
 }
 
+const char *fe_get_log_level_string()
+{
+	switch ( g_log_level )
+	{
+		case FeLog_Silent:
+			return "silent";
+		case FeLog_Info:
+			return "info";
+		case FeLog_Debug:
+			return "debug";
+		default:
+			return "";
+	}
+}
+
 void fe_print_version()
 {
 	FeLog() << FE_NAME << " " << FE_VERSION << " " << FE_BUILD_NUMBER << "("
