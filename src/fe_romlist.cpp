@@ -644,7 +644,10 @@ void FeRomList::create_filters(
 	// Keep the rom_index for each filter in-range by wrapping it
 	// - This feature is used by show_random_selection which set a random index before knowing the list size
 	for ( int i=0; i<filters_count; i++ )
-		display.set_rom_index( i, display.get_rom_index( i ) % m_filtered_list[i].filter_list.size() );
+	{
+		int filter_list_count = (int)m_filtered_list[i].filter_list.size();
+		display.set_rom_index( i, filter_list_count ? display.get_rom_index( i ) % filter_list_count : 0 );
+	}
 
 	FeLog() << " - Loaded filters in "
 		<< load_timer.getElapsedTime().asMilliseconds() << " ms ("
