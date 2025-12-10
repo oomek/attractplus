@@ -380,6 +380,7 @@ int main(int argc, char *argv[])
 			redraw=true;
 		}
 
+		FeInputMouse::clear();
 		FeInputMap::Command c;
 		std::optional<sf::Event> ev;
 		bool from_ui;

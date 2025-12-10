@@ -26,6 +26,7 @@
 #include <iostream>
 #include <algorithm>
 #include <iomanip>
+#include <limits.h>
 #include <cstring>
 #include <cmath>
 #include <set>
@@ -39,8 +40,6 @@ namespace
 	//
 	std::optional<sf::Event> g_last_touch;
 	bool g_touch_moved=false;
-
-	int g_wheel_delta=0;
 
 	static std::vector< int > g_joyfemap( sf::Joystick::Count, 0 );
 
@@ -124,6 +123,39 @@ namespace
 				<< ")" << std::endl;
 	}
 };
+
+sf::Vector2i FeInputMouse::m_pos_last = { INT_MAX, INT_MAX };
+sf::Vector2i FeInputMouse::m_pos_delta = { 0, 0 };
+int FeInputMouse::m_wheel_delta = 0;
+
+void FeInputMouse::clear()
+{
+	m_wheel_delta = 0;
+	m_pos_delta = sf::Vector2i( 0, 0 );
+}
+
+void FeInputMouse::set_wheel_delta( int delta )
+{
+	m_wheel_delta = delta;
+}
+
+int FeInputMouse::get_wheel_delta()
+{
+	return m_wheel_delta;
+}
+
+void FeInputMouse::set_pos_delta( sf::Vector2i p )
+{
+	if ( m_pos_last.x != INT_MAX && m_pos_last.y != INT_MAX )
+		m_pos_delta = p - m_pos_last;
+	m_pos_last = { p.x, p.y };
+}
+
+sf::Vector2i FeInputMouse::get_pos_delta()
+{
+	return m_pos_delta;
+}
+
 
 // Needs to stay aligned with sf::Keyboard
 //
@@ -384,6 +416,7 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 			sf::Vector2i p = event->position;
 			sf::Vector2i r1 = mc_rect.position;
 			sf::Vector2i r2 = r1 + mc_rect.size;
+			FeInputMouse::set_pos_delta( p );
 
 			if ( p.x < r1.x )
 			{
@@ -414,11 +447,8 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		if ( event )
 		{
 			m_type = Mouse;
-			g_wheel_delta = event->delta;
-			if ( event->delta > 0 )
-				m_code = MouseWheelUp;
-			else
-				m_code = MouseWheelDown;
+			m_code = event->delta > 0 ? MouseWheelUp : MouseWheelDown;
+			FeInputMouse::set_wheel_delta( event->delta );
 		}
 	}
 
@@ -639,12 +669,18 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 	{
 		switch ( m_code )
 		{
+		case MouseUp: return FeInputMouse::get_pos_delta().y < 0;
+		case MouseDown: return FeInputMouse::get_pos_delta().y > 0;
+		case MouseLeft: return FeInputMouse::get_pos_delta().x < 0;
+		case MouseRight: return FeInputMouse::get_pos_delta().x > 0;
+		case MouseWheelUp: return FeInputMouse::get_wheel_delta() > 0;
+		case MouseWheelDown: return FeInputMouse::get_wheel_delta() < 0;
 		case MouseBLeft: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Left );
 		case MouseBRight: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Right );
 		case MouseBMiddle: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Middle );
 		case MouseBX1: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Extra1 );
 		case MouseBX2: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Extra2 );
-		default: return false; // mouse moves and wheels are not supported
+		default: return false;
 		}
 	}
 	else if ( m_type == Touch )
@@ -691,11 +727,8 @@ int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 			return sf::Mouse::getPosition( wnd.get_win() ).y;
 		else if (( m_code == MouseLeft ) || ( m_code == MouseRight ))
 			return sf::Mouse::getPosition( wnd.get_win() ).x;
-		else if (( m_code == MouseWheelUp ) || ( m_code == MouseWheelDown )) {
-		   int temp = g_wheel_delta;
-			g_wheel_delta = 0;
-		   return temp;
-		}
+		else if (( m_code == MouseWheelUp ) || ( m_code == MouseWheelDown ))
+			return FeInputMouse::get_wheel_delta();
 	}
 	else if (( m_type >= Joystick0 ) && ( m_code < JoyButton0 ))
 	{
