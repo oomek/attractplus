@@ -108,6 +108,21 @@ private:
 	int m_code;
 };
 
+class FeInputMouse
+{
+private:
+	static sf::Vector2i m_pos_last;
+	static sf::Vector2i m_pos_delta;
+	static int m_wheel_delta;
+
+public:
+	static void clear();
+	static void set_wheel_delta( int delta );
+	static int get_wheel_delta();
+	static void set_pos_delta( sf::Vector2i p );
+	static sf::Vector2i get_pos_delta();
+};
+
 class FeInputMapEntry;
 
 class FeInputMap : public FeBaseConfigurable
