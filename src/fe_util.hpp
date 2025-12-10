@@ -311,6 +311,11 @@ bool make_dir(
 );
 
 //
+// Recursively delete directory and all its contents
+//
+void delete_dir( const std::string &path );
+
+//
 // Create "base" directory if it doesn't exist
 // Create "base" and "sub" directory if they dont exist
 // Returns true if either directory had to be created

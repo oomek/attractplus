@@ -352,8 +352,8 @@ if ( ver <= 0 )
 	//
 	console_report( mame_emu["name"], "" );
 	console_report( console_emu["name"], "" );
-	local wm = write_config( mame_emu, FeConfigDirectory + "emulators/templates/" + mame_emu["name"] + ".cfg" );
-	local wc = write_config( console_emu, FeConfigDirectory + "emulators/templates/" + console_emu["name"] + ".cfg", true );
+	local wm = write_config( mame_emu, FeConfigDirectory + "templates/emulators/" + mame_emu["name"] + ".cfg" );
+	local wc = write_config( console_emu, FeConfigDirectory + "templates/emulators/" + console_emu["name"] + ".cfg", true );
 	return;
 }
 else
@@ -427,7 +427,7 @@ foreach ( r in rp.rompaths )
 
 console_message( "Writing templates..." );
 console_report( mame_emu["name"], mame_emu["exe"] );
-write_config( mame_emu, emu_dir + "templates/" + mame_emu["name"] + ".cfg", true );
+write_config( mame_emu, FeConfigDirectory + "templates/emulators/" + mame_emu["name"] + ".cfg", true );
 
 emulators_to_generate.push( mame_emu["name"] );
 
@@ -505,7 +505,7 @@ foreach ( s in systems )
 		console_emu["exts"] += e + ";";
 
 	local cfg_fn = emu_dir + console_emu["name"] + ".cfg";
-	local tmp_fn = emu_dir + "templates/" + console_emu["name"] + ".cfg";
+	local tmp_fn = FeConfigDirectory + "templates/emulators/" + console_emu["name"] + ".cfg";
 
 	console_report( console_emu["name"], s.triggerpath );
 	write_config( console_emu, tmp_fn, true );
@@ -514,4 +514,4 @@ foreach ( s in systems )
 }
 
 if ( systems.len() == 0 )
-	write_config( console_emu, emu_dir + "templates/" + console_emu["name"] + ".cfg" );
+	write_config( console_emu, FeConfigDirectory + "templates/emulators/" + console_emu["name"] + ".cfg" );

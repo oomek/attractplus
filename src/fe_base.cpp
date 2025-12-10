@@ -64,7 +64,9 @@ const char *FE_TAG_DELIM        = "  ";
 const char *FE_DEFAULT_LANGUAGE          = "en";
 const char *FE_DEFAULT_ARTWORK           = "snap";
 const char *FE_EMULATOR_SUBDIR           = "emulators/";
-const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/";
+const char *FE_TEMPLATE_SUBDIR          = "templates/";
+const char *FE_TEMPLATE_EMULATOR_SUBDIR = "templates/emulators/";
+const char *FE_EMULATOR_TEMPLATES_SUBDIR = "emulators/templates/"; // Deprecated, left for migration cleanup
 const char *FE_EMULATOR_FILE_EXTENSION   = ".cfg";
 const char *FE_EMULATOR_DEFAULT          = "default-emulator.cfg";
 

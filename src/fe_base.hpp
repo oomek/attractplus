@@ -50,7 +50,9 @@ extern const char *FE_TAG_DELIM;
 extern const char *FE_DEFAULT_LANGUAGE;
 extern const char *FE_DEFAULT_ARTWORK;
 extern const char *FE_EMULATOR_SUBDIR;
-extern const char *FE_EMULATOR_TEMPLATES_SUBDIR;
+extern const char *FE_TEMPLATE_SUBDIR;
+extern const char *FE_TEMPLATE_EMULATOR_SUBDIR;
+extern const char *FE_EMULATOR_TEMPLATES_SUBDIR; // Deprecated, left for migration cleanup
 extern const char *FE_EMULATOR_FILE_EXTENSION;
 extern const char *FE_EMULATOR_DEFAULT;
 

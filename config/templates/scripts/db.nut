@@ -15,7 +15,7 @@
 // emulator config in <config>/emulators for each one that it finds.
 //
 // It also creates template configs to be selected in the config UI
-// in <config>/emulators/templates
+// in <config>/templates/emulators
 //
 // Some considerations:
 //    - Emulators with an "OS" specified are unique to the specified OS

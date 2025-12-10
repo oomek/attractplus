@@ -1075,14 +1075,14 @@ FeEmulatorInfo *FeRomList::create_emulator( const std::string &emu, const std::s
 	if ( !emu_template.empty() )
 	{
 		defaults_file = m_config_path;
-		defaults_file += FE_EMULATOR_TEMPLATES_SUBDIR;
+		defaults_file += FE_TEMPLATE_EMULATOR_SUBDIR;
 		defaults_file += emu_template;
 		defaults_file += FE_EMULATOR_FILE_EXTENSION;
 
 		if ( !new_emu.load_from_file( defaults_file ) )
 			FeLog() << "Unable to open file: " << defaults_file << std::endl;
 	}
-	else if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_EMULATOR_DEFAULT ) )
+	else if ( internal_resolve_config_file( m_config_path, defaults_file, FE_TEMPLATE_SUBDIR, FE_EMULATOR_DEFAULT ) )
 	{
 		if ( !new_emu.load_from_file( defaults_file ) )
 			FeLog() << "Unable to open file: " << defaults_file << std::endl;
