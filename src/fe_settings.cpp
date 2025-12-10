@@ -106,7 +106,8 @@ const char *FE_INTRO_SUBDIR			= "intro/";
 const char *FE_SCRAPER_SUBDIR			= "scraper/";
 const char *FE_MENU_ART_SUBDIR		= "menu-art/";
 const char *FE_OVERVIEW_SUBDIR		= "overview/";
-const char *FE_EMULATOR_SCRIPT_SUBDIR		= "emulators/script/";
+const char *FE_TEMPLATE_SCRIPT_SUBDIR	= "templates/scripts/";
+const char *FE_EMULATOR_SCRIPT_SUBDIR	= "emulators/script/"; // Deprecated, left for migration cleanup
 const char *FE_LIST_DEFAULT			= "default-display.cfg";
 const char *FE_FILTER_DEFAULT			= "default-filter.cfg";
 const char *FE_CFG_YES_STR				= "yes";
@@ -1023,6 +1024,26 @@ void FeSettings::migration_cleanup_dialog( FeOverlay *overlay )
 			std::string old_layout_nv = m_config_path + FE_LAYOUT_NV_FILE;
 			if ( file_exists( old_layout_nv ) )
 				delete_file( old_layout_nv );
+
+			std::string old_default_emulator = m_config_path + FE_EMULATOR_DEFAULT;
+			if ( file_exists( old_default_emulator ) )
+				delete_file( old_default_emulator );
+
+			std::string old_default_filter = m_config_path + FE_FILTER_DEFAULT;
+			if ( file_exists( old_default_filter ) )
+				delete_file( old_default_filter );
+
+			std::string old_default_display = m_config_path + FE_LIST_DEFAULT;
+			if ( file_exists( old_default_display ) )
+				delete_file( old_default_display );
+
+			std::string old_emulator_templates = m_config_path + FE_EMULATOR_TEMPLATES_SUBDIR;
+			if ( directory_exists( old_emulator_templates ) )
+				delete_dir( old_emulator_templates );
+
+			std::string old_scripts = m_config_path + FE_EMULATOR_SCRIPT_SUBDIR;
+			if ( directory_exists( old_scripts ) )
+				delete_dir( old_scripts );
 		}
 	}
 	m_split_config_format = true;
@@ -3295,7 +3316,7 @@ void FeSettings::get_list_of_emulators( std::vector<std::string> &emu_list, bool
 	std::string path = get_config_dir();
 
 	if ( get_templates )
-		path += FE_EMULATOR_TEMPLATES_SUBDIR;
+		path += FE_TEMPLATE_EMULATOR_SUBDIR;
 	else
 		path += FE_EMULATOR_SUBDIR;
 
@@ -3831,7 +3852,7 @@ void FeSettings::create_filter( FeDisplayInfo &d, const std::string &name ) cons
 	FeFilter new_filter( name );
 
 	std::string defaults_file;
-	if ( internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_FILTER_DEFAULT ) )
+	if ( internal_resolve_config_file( m_config_path, defaults_file, FE_TEMPLATE_SUBDIR, FE_FILTER_DEFAULT ) )
 		new_filter.load_from_file( defaults_file );
 
 	d.append_filter( new_filter );
@@ -3845,7 +3866,7 @@ bool FeSettings::load_default_display()
 bool FeSettings::apply_default_display( FeDisplayInfo &display )
 {
 	std::string filename;
-	if ( !internal_resolve_config_file( m_config_path, filename, NULL, FE_LIST_DEFAULT ) )
+	if ( !internal_resolve_config_file( m_config_path, filename, FE_TEMPLATE_SUBDIR, FE_LIST_DEFAULT ) )
 		return false;
 
 	display.load_from_file( filename );
@@ -3855,7 +3876,7 @@ bool FeSettings::apply_default_display( FeDisplayInfo &display )
 bool FeSettings::save_default_display()
 {
 	std::string defaults_file;
-	internal_resolve_config_file( m_config_path, defaults_file, NULL, FE_LIST_DEFAULT );
+	internal_resolve_config_file( m_config_path, defaults_file, FE_TEMPLATE_SUBDIR, FE_LIST_DEFAULT );
 	nowide::ofstream outfile( defaults_file.c_str() );
 	if ( !outfile.is_open() )
 		return false;
@@ -4923,12 +4944,12 @@ bool FeSettings::write_romlist(
 
 bool FeSettings::get_emulator_setup_script( std::string &path, std::string &file )
 {
-	confirm_directory( m_config_path, FE_EMULATOR_SUBDIR );
-	confirm_directory( m_config_path, FE_EMULATOR_TEMPLATES_SUBDIR );
+	confirm_directory( m_config_path, FE_TEMPLATE_SUBDIR );
+	confirm_directory( m_config_path, FE_TEMPLATE_EMULATOR_SUBDIR );
 
 	std::string temp;
 	if ( !internal_resolve_config_file( m_config_path,
-			temp, FE_EMULATOR_SCRIPT_SUBDIR, FE_EMULATOR_INIT_FILE ) )
+			temp, FE_TEMPLATE_SCRIPT_SUBDIR, FE_EMULATOR_INIT_FILE ) )
 	{
 		FeLog() << "Unable to open emulator init script: "  << FE_EMULATOR_INIT_FILE << std::endl;
 		return false;

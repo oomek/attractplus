@@ -1077,6 +1077,31 @@ bool make_dir( const std::string &dir )
 	return true; // assume success
 }
 
+//
+// Recursively delete directory and all its contents
+//
+void delete_dir( const std::string &path )
+{
+	std::vector<std::string> files;
+	std::vector<std::string> dummy;
+
+	get_filename_from_base( files, dummy, path, "", NULL );
+
+	for ( const auto& file : files )
+	{
+		if ( directory_exists( file ) )
+			delete_dir( file + "/" );
+		else
+			delete_file( file );
+	}
+
+#ifdef SFML_SYSTEM_WINDOWS
+	_wrmdir( FeUtil::widen( path ).c_str() );
+#else
+	rmdir( path.c_str() );
+#endif
+}
+
 bool confirm_directory( const std::string &base, const std::string &sub )
 {
 	bool created = false;

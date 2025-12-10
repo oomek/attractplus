@@ -2383,10 +2383,13 @@ bool FeVM::setup_wizard()
 	}
 
 	std::string read_base = m_feSettings->get_config_dir();
-	read_base += FE_EMULATOR_TEMPLATES_SUBDIR;
+	read_base += FE_TEMPLATE_EMULATOR_SUBDIR;
 
 	std::string write_base = m_feSettings->get_config_dir();
 	write_base += FE_EMULATOR_SUBDIR;
+
+	// Ensure the emulator directory exists before writing files
+	confirm_directory( m_feSettings->get_config_dir(), FE_EMULATOR_SUBDIR );
 
 	bool cancelled=false;
 	for ( std::vector<std::string>::iterator itr = emus_to_import.begin();

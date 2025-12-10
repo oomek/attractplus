@@ -217,7 +217,7 @@ function path_is_empty( paths, exts )
 // General idea:
 //   1. Try to find the specified emulator
 //   2. If found, create a config for it in "<config_dir>/emulators/"
-//   3. Separately generate a config template in "<config_dir>/emulators/templates"
+//   3. Separately generate a config template in "<config_dir>/templates/emulators"
 //      This template will be available to the user when they create a new emulator
 //      in the frontend.  The idea is to provide sensible default settings.
 //
@@ -344,10 +344,10 @@ function generate_emulator_config( emu )
 		emulators_to_generate.push( emu["name"] );
 	}
 
-	// Write template to emulators/templates/
+	// Write template to templates/emulators/
 	//
 	console_report( emu["name"], ( res ) ? emu["exe"] : "" );
-	write_config( emu, FeConfigDirectory + "emulators/templates/" + emu["name"] + ".cfg", true );
+	write_config( emu, FeConfigDirectory + "templates/emulators/" + emu["name"] + ".cfg", true );
 }
 
 ////////////////////////////////////////////////////////////////////////
