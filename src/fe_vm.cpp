@@ -2203,6 +2203,295 @@ void FeVM::script_get_config_options(
 	}
 }
 
+void FeVM::script_apply_preset_values(
+	FeConfigContext &ctx,
+	FeScriptConfigurable &configurable,
+	const std::string &script_path,
+	const std::string &script_file,
+	int first_idx,
+	bool force_apply )
+{
+	if ( script_path.empty() || script_file.empty() )
+		return;
+
+	FeConfigVM config_vm( configurable, script_path, script_file );
+	HSQUIRRELVM vm = config_vm.get_vm();
+
+	Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( _SC("UserConfig") );
+	if ( uConfig.IsNull() )
+		return;
+
+	// Find preset fields and check if any have changed
+	for ( unsigned int i = first_idx; i < ctx.opt_list.size(); i++ )
+	{
+		std::string key = ctx.opt_list[i].opaque_str;
+
+		// Strip '%' if per_display option
+		if ( !key.empty() && key[0] == '%' )
+			key = key.substr( 1 );
+
+		bool is_preset = false;
+		HSQOBJECT obj = uConfig.GetObject();
+		fe_get_attribute_bool( vm, obj, key, "is_preset", is_preset );
+
+		if ( !is_preset )
+			continue;
+
+		std::string new_preset_value = ctx.opt_list[i].get_value();
+
+		if ( new_preset_value == _( "Custom" ) )
+			continue;
+
+		std::string old_preset_value;
+		if ( !configurable.get_param( key, old_preset_value ) )
+			fe_get_object_string( vm, uConfig.GetSlot( key.c_str() ), old_preset_value );
+
+		if ( !force_apply && ( new_preset_value == old_preset_value ) )
+			continue;
+
+		sq_pushobject(vm, obj);
+		sq_pushstring(vm, scsqchar( key ), key.size() );
+
+		if ( SQ_SUCCEEDED( sq_getattributes(vm, -2) ) )
+		{
+			HSQOBJECT attr_obj;
+			sq_resetobject( &attr_obj );
+			sq_getstackobj( vm, -1, &attr_obj );
+
+			Sqrat::Object attr_table( attr_obj, vm );
+			sq_pop( vm, 2 );
+
+			if ( !attr_table.IsNull() )
+			{
+				Sqrat::Object presets_table = attr_table.GetSlot( _SC("presets") );
+				if ( !presets_table.IsNull() )
+				{
+					Sqrat::Object preset_values = presets_table.GetSlot( new_preset_value.c_str() );
+					if ( !preset_values.IsNull() )
+					{
+						// Apply all values from this preset to ctx.opt_list
+						Sqrat::Object::iterator preset_it;
+						while ( preset_values.Next( preset_it ) )
+						{
+							std::string preset_key, preset_value;
+							fe_get_object_string( vm, preset_it.getKey(), preset_key );
+							fe_get_object_string( vm, preset_it.getValue(), preset_value );
+
+							// Find the corresponding option in ctx.opt_list and update it
+							for ( unsigned int j = first_idx; j < ctx.opt_list.size(); j++ )
+							{
+								std::string opt_key = ctx.opt_list[j].opaque_str;
+
+								// Strip '%' if per_display option
+								if ( !opt_key.empty() && opt_key[0] == '%' )
+									opt_key = opt_key.substr( 1 );
+
+								if ( opt_key == preset_key )
+								{
+									ctx.opt_list[j].set_value( preset_value );
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			sq_pop( vm, 1 );
+		}
+	}
+}
+
+void FeVM::script_handle_preset_override(
+	FeConfigContext &ctx,
+	FeScriptConfigurable &configurable,
+	const std::string &script_path,
+	const std::string &script_file,
+	int changed_option_index )
+{
+	if ( script_path.empty() || script_file.empty() )
+		return;
+
+	FeConfigVM config_vm( configurable, script_path, script_file );
+	HSQUIRRELVM vm = config_vm.get_vm();
+
+	Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( _SC("UserConfig") );
+	if ( uConfig.IsNull() )
+		return;
+
+	std::string changed_key = ctx.opt_list[changed_option_index].opaque_str;
+
+	// Strip '%' if per_display option
+	if ( !changed_key.empty() && changed_key[0] == '%' )
+		changed_key = changed_key.substr( 1 );
+
+	// Find all preset fields and check if the changed option is controlled by any of them
+	for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+	{
+		std::string key = ctx.opt_list[i].opaque_str;
+
+		// Strip '%' if per_display option
+		if ( !key.empty() && key[0] == '%' )
+			key = key.substr( 1 );
+
+		bool is_preset = false;
+		HSQOBJECT obj = uConfig.GetObject();
+		fe_get_attribute_bool( vm, obj, key, "is_preset", is_preset );
+
+		if ( !is_preset )
+			continue;
+
+		// Get the presets table to check if changed_key is controlled by this preset
+		sq_pushobject(vm, obj);
+		sq_pushstring(vm, scsqchar( key ), key.size() );
+
+		if ( SQ_SUCCEEDED( sq_getattributes(vm, -2) ) )
+		{
+			HSQOBJECT attr_obj;
+			sq_resetobject( &attr_obj );
+			sq_getstackobj( vm, -1, &attr_obj );
+
+			Sqrat::Object attr_table( attr_obj, vm );
+			sq_pop( vm, 2 );
+
+			if ( !attr_table.IsNull() )
+			{
+				Sqrat::Object presets_table = attr_table.GetSlot( _SC("presets") );
+				if ( !presets_table.IsNull() )
+				{
+					// Check if any preset in the table controls the changed option
+					bool found = false;
+					Sqrat::Object::iterator preset_it;
+					while ( presets_table.Next( preset_it ) )
+					{
+						Sqrat::Object preset_values = preset_it.getValue();
+						if ( !preset_values.IsNull() )
+						{
+							Sqrat::Object controlled_value = preset_values.GetSlot( changed_key.c_str() );
+							if ( !controlled_value.IsNull() )
+							{
+								found = true;
+								break;
+							}
+						}
+					}
+
+					if ( found )
+					{
+						std::string current_preset = ctx.opt_list[i].get_value();
+						if ( current_preset != _( "Custom" ) )
+						{
+							ctx.opt_list[i].set_value( _( "Custom" ) );
+							ctx.save_req = true;
+						}
+
+						return;
+					}
+				}
+			}
+		}
+		else
+		{
+			sq_pop( vm, 1 );
+		}
+	}
+}
+
+void FeVM::script_update_preset_controlled_options(
+	FeConfigContext &ctx,
+	FeScriptConfigurable &configurable,
+	const std::string &script_path,
+	const std::string &script_file )
+{
+	for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+		ctx.opt_list[i].preset_controlled = false;
+
+	if ( script_path.empty() || script_file.empty() )
+		return;
+
+	FeConfigVM config_vm( configurable, script_path, script_file );
+	HSQUIRRELVM vm = config_vm.get_vm();
+
+	Sqrat::Object uConfig = Sqrat::RootTable().GetSlot( _SC("UserConfig") );
+	if ( uConfig.IsNull() )
+		return;
+
+	for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+	{
+		std::string key = ctx.opt_list[i].opaque_str;
+
+		// Strip '%' if per_display option
+		if ( !key.empty() && key[0] == '%' )
+			key = key.substr( 1 );
+
+		bool is_preset = false;
+		HSQOBJECT obj = uConfig.GetObject();
+		fe_get_attribute_bool( vm, obj, key, "is_preset", is_preset );
+
+		if ( !is_preset )
+			continue;
+
+		std::string current_preset = ctx.opt_list[i].get_value();
+
+		if ( current_preset == _( "Custom" ) || current_preset.empty() )
+			continue;
+
+		// Get the presets table and set the flag for all controlled options
+		sq_pushobject(vm, obj);
+		sq_pushstring(vm, scsqchar( key ), key.size() );
+
+		if ( SQ_SUCCEEDED( sq_getattributes(vm, -2) ) )
+		{
+			HSQOBJECT attr_obj;
+			sq_resetobject( &attr_obj );
+			sq_getstackobj( vm, -1, &attr_obj );
+
+			Sqrat::Object attr_table( attr_obj, vm );
+			sq_pop( vm, 2 );
+
+			if ( !attr_table.IsNull() )
+			{
+				Sqrat::Object presets_table = attr_table.GetSlot( _SC("presets") );
+				if ( !presets_table.IsNull() )
+				{
+					// Get the current preset configuration
+					Sqrat::Object preset_values = presets_table.GetSlot( current_preset.c_str() );
+					if ( !preset_values.IsNull() )
+					{
+						Sqrat::Object::iterator preset_it;
+						while ( preset_values.Next( preset_it ) )
+						{
+							std::string controlled_key;
+							fe_get_object_string( vm, preset_it.getKey(), controlled_key );
+
+							for ( unsigned int j = 0; j < ctx.opt_list.size(); j++ )
+							{
+								std::string opt_key = ctx.opt_list[j].opaque_str;
+
+								// Strip '%' if per_display option
+								if ( !opt_key.empty() && opt_key[0] == '%' )
+									opt_key = opt_key.substr( 1 );
+
+								if ( opt_key == controlled_key )
+								{
+									ctx.opt_list[j].preset_controlled = true;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			sq_pop( vm, 1 );
+		}
+	}
+}
+
 void FeVM::script_get_config_options(
 		FeConfigContext &ctx,
 		std::string &gen_help,
@@ -2230,7 +2519,7 @@ void FeVM::script_get_config_options(
 				HSQOBJECT obj = uConfig.GetObject();
 				std::string o_value = "", o_label = "";
 				std::string key = "", value = "", label = "", help = "", options = "";
-				bool is_input = false, is_func = false, is_info = false, per_display = false;
+				bool is_input = false, is_func = false, is_info = false, per_display = false, is_preset = false;
 				int order = -1;
 
 				// use the default value from the script if a value has not already been configured
@@ -2245,6 +2534,7 @@ void FeVM::script_get_config_options(
 				fe_get_attribute_bool( vm, obj, key, "is_function", is_func);
 				fe_get_attribute_bool( vm, obj, key, "is_info", is_info);
 				fe_get_attribute_bool( vm, obj, key, "per_display", per_display );
+				fe_get_attribute_bool( vm, obj, key, "is_preset", is_preset );
 
 				if ( !configurable.get_param( key, value ) ) value = o_value;
 				label = !o_label.empty() ? o_label : key;
@@ -2254,6 +2544,27 @@ void FeVM::script_get_config_options(
 				{
 					std::vector<std::string> options_list;
 					size_t pos=0;
+
+					// For preset fields, ensure "Custom" is always the first option
+					if ( is_preset )
+					{
+						bool has_custom = false;
+						std::string first_option;
+						size_t check_pos = 0;
+						token_helper( options, check_pos, first_option, "," );
+						if ( first_option == _( "Custom" ) )
+							has_custom = true;
+
+						if ( !has_custom )
+							options_list.push_back( _( "Custom" ) );
+
+						// Reset position to parse all options
+						pos = 0;
+
+						if ( value.empty() )
+							value = _( "Custom" );
+					}
+
 					do
 					{
 						std::string temp;
@@ -2301,6 +2612,10 @@ void FeVM::script_get_config_options(
 					(*itx).second.opaque_str = "%";
 					(*itx).second.opaque_str += temp;
 				}
+
+				// Note: Opaque values are: 1=is_input, 2=is_function, 3=is_preset
+				if ( is_preset )
+					(*itx).second.opaque = 3;
 			}
 
 			for ( std::multimap<int,FeMenuOpt>::iterator itr = my_opts.begin(); itr != my_opts.end(); ++itr )
@@ -3295,6 +3610,14 @@ Sqrat::Table FeVM::cb_get_config()
 		if ( !fev->m_script_cfg || !fev->m_script_cfg->get_param( key, value ) )
 		{
 			fe_get_object_string( vm, it.getValue(), value );
+
+			if ( value.empty() )
+			{
+				bool is_preset = false;
+				fe_get_attribute_bool( vm, uConfig.GetObject(), key, "is_preset", is_preset );
+				if ( is_preset )
+					value = _( "Custom" );
+			}
 		}
 
 		retval.SetValue( key.c_str(), value.c_str() );

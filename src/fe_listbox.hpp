@@ -160,6 +160,7 @@ public:
 	void set_selb(int b);
 	void set_sela(int a);
 	void set_sel_rgb( int, int, int );
+	void set_row_alpha( int index, int alpha );
 	int get_selbgr();
 	int get_selbgg();
 	int get_selbgb();

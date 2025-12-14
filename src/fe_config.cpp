@@ -1939,6 +1939,8 @@ bool FeScriptConfigMenu::on_option_select(
 
 bool FeScriptConfigMenu::save_helper( FeConfigContext &ctx, int first_idx )
 {
+	apply_presets_if_changed( ctx, first_idx );
+
 	m_configurable->clear_params();
 
 	if ( m_per_display )
@@ -1968,6 +1970,27 @@ bool FeScriptConfigMenu::save_helper( FeConfigContext &ctx, int first_idx )
 	}
 
 	return true;
+}
+
+void FeScriptConfigMenu::apply_presets_if_changed( FeConfigContext &ctx, int first_idx )
+{
+	FeVM::script_apply_preset_values( ctx, *m_configurable, m_file_path, m_file_name, first_idx );
+}
+
+void FeScriptConfigMenu::apply_preset_to_context( FeConfigContext &ctx, int preset_index )
+{
+	// Use force_apply=true so preset is applied even if it matches the saved value
+	FeVM::script_apply_preset_values( ctx, *m_configurable, m_file_path, m_file_name, 0, true );
+}
+
+void FeScriptConfigMenu::handle_preset_override( FeConfigContext &ctx, int changed_option_index )
+{
+	FeVM::script_handle_preset_override( ctx, *m_configurable, m_file_path, m_file_name, changed_option_index );
+}
+
+void FeScriptConfigMenu::update_preset_controlled_options( FeConfigContext &ctx )
+{
+	FeVM::script_update_preset_controlled_options( ctx, *m_configurable, m_file_path, m_file_name );
 }
 
 FePluginEditMenu::FePluginEditMenu()
