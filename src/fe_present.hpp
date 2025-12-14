@@ -176,6 +176,7 @@ protected:
 	FeText *m_overlay_caption;
 	FeListBox *m_overlay_lb;
 	bool m_layout_loaded;
+	bool m_layout_has_content;
 
 	FePresent( const FePresent & );
 	FePresent &operator=( const FePresent & );
