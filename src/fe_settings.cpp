@@ -347,7 +347,7 @@ std::vector<std::string> FeSettings::uiColorDispTokens =
 };
 
 FeSettings::FeSettings( const std::string &config_path ):
-	m_default_layout( "Basic" ),
+	m_default_layout( "BasicPlus" ),
 	m_default_romlist( "Mame" ),
 	m_default_display( "Default Display" ),
 	m_rl( m_config_path ),
