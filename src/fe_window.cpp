@@ -64,7 +64,8 @@ void set_win32_foreground_window( HWND hwnd, HWND order )
 
 FeWindowPosition::FeWindowPosition():
 	m_pos({ 0, 0 }),
-	m_size({ 0, 0 })
+	m_size({ 0, 0 }),
+	m_temporary( false )
 {}
 
 FeWindowPosition::FeWindowPosition(
@@ -72,7 +73,8 @@ FeWindowPosition::FeWindowPosition(
 	const sf::Vector2u &size
 ):
 	m_pos( pos ),
-	m_size( size )
+	m_size( size ),
+	m_temporary( false )
 {}
 
 int FeWindowPosition::process_setting(
@@ -354,6 +356,10 @@ void FeWindow::initial_create()
 			m_win_pos.m_size = sf::Vector2u( w, h );
 			m_win_pos.load_from_file( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 		}
+		
+		// Minimum window size (1x1) prevents (0x0) crash (may be set in window.am or commandline)
+		m_win_pos.m_size.x = std::max( m_win_pos.m_size.x, (unsigned int)1 );
+		m_win_pos.m_size.y = std::max( m_win_pos.m_size.y, (unsigned int)1 );
 
 		sf::Rect<int> window_rect( m_win_pos.m_pos, sf::Vector2i( m_win_pos.m_size ) );
 #if !defined(NO_MULTIMON)
