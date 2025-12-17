@@ -280,7 +280,7 @@ void FePresent::init_monitors()
 	if ( EnumDisplaySettings( NULL, ENUM_CURRENT_SETTINGS, &devMode ) != 0 )
 		m_refresh_rate = devMode.dmDisplayFrequency;
 
-	if ( m_feSettings->get_multimon() && !is_windowed_mode( m_feSettings->get_window_mode() ) )
+	if ( m_feSettings->get_multimon() && !is_windowed_mode( m_window.get_window_mode() ) )
 	{
 		EnumDisplayMonitors( NULL, NULL, my_mon_enum_proc, (LPARAM)&m_mon );
 
@@ -295,7 +295,7 @@ void FePresent::init_monitors()
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen
 		//
-		if ( m_feSettings->get_window_mode() == FeSettings::Fillscreen )
+		if ( m_window.get_window_mode() == FeSettings::Fillscreen )
 		{
 			translate_x += 1;
 			translate_y += 1;
@@ -351,7 +351,7 @@ void FePresent::init_monitors()
 	XCloseDisplay( xdisp );
  #else
 	bool set_first=true;
-	if ( xdisp && m_feSettings->get_multimon() && !is_windowed_mode( m_feSettings->get_window_mode() ) )
+	if ( xdisp && m_feSettings->get_multimon() && !is_windowed_mode( m_window.get_window_mode() ) )
 	{
 		int num = 0;
 		XineramaScreenInfo *si = XineramaQueryScreens( xdisp, &num );
@@ -398,7 +398,7 @@ void FePresent::init_monitors()
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen.
 		//
-		if ( m_feSettings->get_window_mode() == FeSettings::Fillscreen )
+		if ( m_window.get_window_mode() == FeSettings::Fillscreen )
 		{
 			mc.size.x -= 2;
 			mc.size.y -= 2;
@@ -1733,7 +1733,7 @@ void FePresent::set_mouse_pointer( bool b )
 {
 	m_mouse_pointer_visible = b;
 
-	if ( is_windowed_mode( m_feSettings->get_window_mode() ))
+	if ( is_windowed_mode( m_window.get_window_mode() ))
 		m_window.get_win().setMouseCursorVisible( true );
 	else
 		m_window.get_win().setMouseCursorVisible( b );
