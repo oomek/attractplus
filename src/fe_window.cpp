@@ -312,7 +312,7 @@ void FeWindow::initial_create()
 		vm.size.y = GetSystemMetrics( SM_CYVIRTUALSCREEN );
 	}
 
-	sf::Vector2i screen_size( vm.size.x, vm.size.y );
+	sf::Vector2u screen_size = vm.size;
 
 	// Some Windows users are reporting emulators hanging/failing to get focus when launched
 	// from 'fullscreen' (fullscreen, fillscreen where window dimensions = screen dimensions)
@@ -341,13 +341,11 @@ void FeWindow::initial_create()
 	if ( is_windowed_mode( m_win_mode ) )
 	{
 		// Default to a centered 4:3 window (3:4 on vertical monitors) at 3/4 screen height
-		int monitor_width = (int)vm.size.x;
-		int monitor_height = (int)vm.size.y;
-		bool vert = monitor_height > monitor_width;
-		int h = std::max( monitor_height * 3 / 4, 240 );
+		bool vert = vm.size.y > vm.size.x;
+		int h = std::max( (int)vm.size.y * 3 / 4, 240 );
 		int w = std::max( vert ? h * 3 / 4 : h * 4 / 3, 320 );
-		int x = (monitor_width - w) / 2;
-		int y = (monitor_height - h) / 2;
+		int x = (vm.size.x - w) / 2;
+		int y = (vm.size.y - h) / 2;
 
 		// Load the parameters from the window.am file (uses given args if none)
 		if ( !m_win_pos.m_temporary )
@@ -356,7 +354,7 @@ void FeWindow::initial_create()
 			m_win_pos.m_size = sf::Vector2u( w, h );
 			m_win_pos.load_from_file( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 		}
-		
+
 		// Minimum window size (1x1) prevents (0x0) crash (may be set in window.am or commandline)
 		m_win_pos.m_size.x = std::max( m_win_pos.m_size.x, (unsigned int)1 );
 		m_win_pos.m_size.y = std::max( m_win_pos.m_size.y, (unsigned int)1 );
@@ -406,15 +404,13 @@ void FeWindow::initial_create()
 	// in window.am is set to be > 0 Windows will move this window to 0,0.
 	// In this case we simply set the window mode to Fullscreen to correctly trigger other logic.
 	//
-	if (( m_win_mode == FeSettings::WindowNoBorder )
-		&& ( screen_size.x == (int)vm.size.x )
-		&& ( screen_size.y == (int)vm.size.y ))
-		{
-			FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen." << std::endl;
-			m_win_mode = FeSettings::Fullscreen;
-			wpos.x = 0;
-			wpos.y = 0;
-		}
+	if (( m_win_mode == FeSettings::WindowNoBorder ) && ( screen_size == vm.size ))
+	{
+		FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen." << std::endl;
+		m_win_mode = FeSettings::Fullscreen;
+		wpos.x = 0;
+		wpos.y = 0;
+	}
 
 	// To avoid problems with black screen on launching games when window mode is set to Fullscreen
 	// we hide the main renderwindow and show this m_blackout window instead
@@ -492,8 +488,8 @@ void FeWindow::initial_create()
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	set_win32_foreground_window( m_window->getNativeHandle(), m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
+	set_win32_foreground_window( hwnd, m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 
 	// Enable dark mode titlebar on Windows
 	BOOL value = TRUE;
@@ -501,6 +497,10 @@ void FeWindow::initial_create()
 
 	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
+
+	// Force a redraw by resizing the window to fix Win10 dark-mode title bar issue
+	m_window->setSize( vm.size + sf::Vector2u({ 1, 1 }) );
+	m_window->setSize( vm.size );
 #endif
 
 	m_fes.init_mouse_capture( m_window );
