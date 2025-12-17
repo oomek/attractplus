@@ -99,6 +99,7 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
+	int get_window_mode() { return m_win_mode; }
 };
 
 #endif
