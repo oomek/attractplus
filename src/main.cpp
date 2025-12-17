@@ -1247,6 +1247,7 @@ int main(int argc, char *argv[])
 		if ( feSettings.get_present_state() == FeSettings::Layout_Showing && ( feSettings.displays_count() < 1 ) )
 		{
 			feOverlay.splash_logo( _( "Press TAB to Configure" ) );
+			feVM.tick();
 			continue;
 		}
 
