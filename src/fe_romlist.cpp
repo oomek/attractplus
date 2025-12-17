@@ -581,6 +581,9 @@ void FeRomList::get_clone_group(
 	std::vector<FeRomInfo*> &group
 )
 {
+	if ( idx >= filter_size( filter_idx ) )
+		return;
+
 	FeRomInfo &rom = lookup( filter_idx, idx );
 
 	// Get the clone name
