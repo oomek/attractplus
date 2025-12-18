@@ -38,10 +38,11 @@ extern "C"
 #include "nowide/iostream.hpp"
 
 #define FE_NAME_D           "Attract-Mode Plus"
-#define FE_AUTHOR_D         "Copyright © 2013-2025 Andrew Mickelson & Radek Dutkiewicz"
+#define FE_AUTHOR_D         "Andrew Mickelson, Radek Dutkiewicz & Chadnaut"
+#define FE_COPYRIGHT_D      "Copyright © 2013-2026"
 
 const char *FE_NAME         = FE_NAME_D;
-const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " " FE_BUILD_D "\n" FE_AUTHOR_D;
+const char *FE_COPYRIGHT    = FE_NAME_D " " FE_VERSION_D " " FE_BUILD_D "\n" FE_AUTHOR_D "\n" FE_COPYRIGHT_D;
 const char *FE_VERSION      = FE_VERSION_D;
 const char *FE_BUILD_NUMBER = FE_BUILD_D;
 
