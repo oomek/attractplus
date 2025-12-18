@@ -50,7 +50,7 @@ jobs:
     - name: Install Linux Dependencies
       run: |
         sudo apt update
-        sudo apt install build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libegl1-mesa-dev libgbm-dev libdrm-dev libcurl4-gnutls-dev libboost-system-dev libboost-filesystem-dev libxi-dev
+        sudo apt install build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libegl1-mesa-dev libgbm-dev libdrm-dev libcurl4-gnutls-dev libxi-dev
 
     - name: Build AM+
       run: |

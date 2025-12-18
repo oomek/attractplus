@@ -38,7 +38,7 @@ jobs:
       run: |
         brew update
         brew upgrade
-        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo boost sfml openal-soft
+        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo sfml openal-soft
     #~ - name: MacOS switch to GCC
       #~ run: |
         #~ echo "CC=/usr/local/bin/gcc-10" >> $GITHUB_ENV
