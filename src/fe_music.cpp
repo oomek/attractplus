@@ -166,7 +166,21 @@ void FeMusic::set_playing( bool state )
 	m_music.stop();
 
 	if ( state == true && m_file_name != "" )
+	{
+		float vol = m_volume;
+		FePresent *fep = FePresent::script_get_fep();
+		if ( fep )
+			vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+
+		m_music.setVolume( vol );
+		m_music.setPan( m_pan );
+
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_media_volume( vol / 100.0f );
+
 		m_music.play();
+	}
 }
 
 float FeMusic::get_pitch()
