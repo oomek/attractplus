@@ -2,7 +2,7 @@
  * BasicPlus Layout
  *
  * @summary A minimalistic homage to the original Basic layout.
- * @version 1.7.5 2025-12-10
+ * @version 1.7.6 2025-12-22
  * @author Chadnaut
  * @url https://github.com/Chadnaut
  *
@@ -48,7 +48,7 @@ local bright_options = "0,10,20,30,40,50,60,70,80,90,100"
 local info_options = "Category,Manufacturer,Score,Year,Year+Category,Year+Manufacturer,Year+Score"
 
 class UserConfig
-</ help="BasicPlus v1.7.5 by Chadnaut\nA minimalistic homage to the original Basic layout" />
+</ help="BasicPlus v1.7.6 by Chadnaut\nA minimalistic homage to the original Basic layout" />
 {
     </ label="Preset", help="Set the layout theme preset - overrides some settings while in use\nSet to None to create your own theme", options="None,Basic,Inversion,Glassic,Cyber,Toon", order=0 /> theme_preset = "None"
     </ label="—————— List ——————", help="List Settings", is_info=true, order=1 /> list_section = "————————————————"
@@ -99,7 +99,7 @@ class UserConfig
 
     </ label="—————— Style ——————", help="Style Settings", is_info=true, order=42 /> style_section = "————————————————"
     </ label="Outline Size", help="Set the outline thickness", options="None,Hairline,Small,Medium,Large", order=43 /> style_ol_size = "None"
-    </ label="Corner Style", help="Set the corner style", options="Square,Bevel,Round", order=44 /> style_corner = "Bevel"
+    </ label="Corner Style", help="Set the corner style", options="Square,Bevel,Round", order=44 /> style_corner = "Round"
     </ label="Corner Radius X", help="Set the radius width", options="Smaller,Small,Medium,Large,Larger", order=45 /> style_radius_x = "Smaller"
     </ label="Corner Radius Y", help="Set the radius heigh", options="Smaller,Small,Medium,Large,Larger", order=46 /> style_radius_y = "Smaller"
     </ label="Corner Contour", help="Adjust the artwork corner size to preserve card padding", options="Yes,No", order=47 /> style_contour = "No"
