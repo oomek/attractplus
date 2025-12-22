@@ -2,7 +2,7 @@
  * ScorePlus Plugin
  *
  * @summary A five-star post-game rating system.
- * @version 1.0.2 2025-12-04
+ * @version 1.0.3 2025-12-22
  * @author Chadnaut
  * @url https://github.com/Chadnaut
  */
@@ -11,7 +11,7 @@ fe.do_nut("input.nut")
 
 // #region Config ------------------------------------------------------------------------------------------------------
 
-class UserConfig </ help="ScorePlus v1.0.2 by Chadnaut\nA five-star post-game rating system" /> {
+class UserConfig </ help="ScorePlus v1.0.3 by Chadnaut\nA five-star post-game rating system" /> {
     </ label="—————— Show ——————", help="Show Settings", is_info=true, order=0 /> show_section = "————————————————"
     </ label="When Votes Below", help="Display the voting screen when the total number of votes is below this value", options="0,1,3,5,10,100,1000,1000000", order=1 /> show_votes = "10"
     </ label="When PlayedCount Below", help="Display the voting screen when the total number of plays is below this value", options="0,1,3,5,10,100,1000", order=2 /> show_plays = "0"
@@ -24,20 +24,21 @@ class UserConfig </ help="ScorePlus v1.0.2 by Chadnaut\nA five-star post-game ra
     </ label="Vote Timeout", help="Set the time in seconds to dismiss the voting screen", options="3,5,10,15", order=8 /> vote_timeout = "5"
     </ label="Vote Weight", help="Set the weight percentage for new votes - larger values have a greater affect on the score\nHelps keep the score fresh, as votes have diminishing returns the more there are", options="Normal,10,20,30,40,50,60,70,80,90,100", order=9 /> vote_weight = "Normal"
     </ label="Allow Zero", help="Allow zero star votes", options="Yes,No", order=10 /> vote_zero = "Yes"
-    </ label="Show Timer", help="Show the voting timer", options="Yes,No", order=11 /> vote_timer = "Yes"
-    </ label="Show Results", help="Show the total score and votes after voting", options="Yes,No", order=12 /> vote_result = "On"
-    </ label="Score Labels", help="Set the score labels, separated by a semicolon\n0: Broken, 1: Poor, 2: Fair, 3: Good, 4: Excellent, 5: Outstanding", order=13 /> vote_labels = "Broken;Bad;Poor;Good;Excellent;Outstanding"
+    </ label="Stop Timer", help="Stop the voting timer on user input", options="Yes,No", order=11 /> vote_wait = "No"
+    </ label="Show Timer", help="Show the voting timer", options="Yes,No", order=12 /> vote_timer = "Yes"
+    </ label="Show Results", help="Show the total score and votes after voting", options="Yes,No", order=13 /> vote_result = "On"
+    </ label="Score Labels", help="Set the score labels, separated by a semicolon\n0: Broken, 1: Poor, 2: Fair, 3: Good, 4: Excellent, 5: Outstanding", order=14 /> vote_labels = "Broken;Bad;Poor;Good;Excellent;Outstanding"
 
-    </ label="—————— Animation ——————", help="Animation Settings", is_info=true, order=14 /> animation_section = "————————————————"
-    </ label="Motion", help="Enable star jumping animation", options="Yes,No", order=15 /> anim_motion = "On"
-    </ label="Transition", help="Enable transition fading animation", options="Yes,No", order=16 /> anim_transition = "On"
+    </ label="—————— Animation ——————", help="Animation Settings", is_info=true, order=15 /> animation_section = "————————————————"
+    </ label="Motion", help="Enable star jumping animation", options="Yes,No", order=16 /> anim_motion = "On"
+    </ label="Transition", help="Enable transition fading animation", options="Yes,No", order=17 /> anim_transition = "On"
 
-    </ label="—————— Debug ——————", help="Debug Settings", is_info=true, order=17 /> debug_section = "————————————————"
+    </ label="—————— Debug ——————", help="Debug Settings", is_info=true, order=18 /> debug_section = "————————————————"
     // NOTE: Some layouts expect a Score/Vote change prior to FromGame, which these hotkeys do not provide
-    </ label="Vote Hotkey", help="Set the control that toggles the voting screen", options=",Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10", order=18 /> debug_control = ""
-    </ label="Reset Hotkey", help="Set the control that resets the current game's score", options=",Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10", order=19 /> reset_control = ""
-    </ label="Reload", help="Set the control that resets the current game's score", options=",Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10", order=19 /> reset_control = ""
-    </ label="Debug Log", help="Print console logs when votes are changed", options="Yes,No", order=20 /> debug_log = "No"
+    </ label="Vote Hotkey", help="Set the control that toggles the voting screen", options=",Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10", order=19 /> debug_control = ""
+    </ label="Reset Hotkey", help="Set the control that resets the current game's score", options=",Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10", order=20 /> reset_control = ""
+    </ label="Reload", help="Set the control that resets the current game's score", options=",Custom1,Custom2,Custom3,Custom4,Custom5,Custom6,Custom7,Custom8,Custom9,Custom10", order=21 /> reset_control = ""
+    </ label="Debug Log", help="Print console logs when votes are changed", options="Yes,No", order=22 /> debug_log = "No"
 }
 
 if (FeVersionNum < 320) fe.log("Warning: ScorePlus requires Attract-Mode Plus v3.2.0 or higher")
@@ -114,6 +115,7 @@ class ScorePlus {
     show_to = 0
     show_dur = 0
     select_time = 0
+    change_time = 0
 
     // #endregion
     // #region Constructor ---------------------------------------------------------------------------------------------
@@ -174,7 +176,7 @@ class ScorePlus {
 
     function print_log(value) {
         if (!cfg.debug_log) return
-        fe.log("SearchPlus: " + value)
+        fe.log("ScorePlus: " + value)
     }
 
     // #endregion
@@ -183,12 +185,14 @@ class ScorePlus {
     /** Choose a lower score */
     function action_left(option) {
         if (select_time) return
+        cancel_timer()
         set_score(ceil(get_score() - 1))
     }
 
     /** Choose a higher score */
     function action_right(option) {
         if (select_time) return
+        cancel_timer()
         set_score(floor(get_score() + 1))
     }
 
@@ -306,14 +310,20 @@ class ScorePlus {
         timer_slice.rotation = timer_rotation
     }
 
+    /** Stop the timer and allow user to vote without auto hide */
+    function cancel_timer() {
+        if (!cfg.vote_wait || change_time) return
+        change_time = fe.layout.time
+    }
+
     /** Set the timer value, where 1.0 == full and 0.0 == empty */
     function update_timer(val) {
         if (cfg.vote_timer) {
             timer_slice.rotation = timer_rotation - val * 360.0
             timer_bg.visible = false
             timer_surf.clear = false
-            if (select_time)
-                timer_surf.alpha = ease_out(fe.layout.time - select_time, 255, -255, fade_dur)
+            local t = change_time ? change_time : select_time
+            if (t) timer_surf.alpha = ease_out(fe.layout.time - t, 255, -255, fade_dur)
         }
     }
 
@@ -345,13 +355,13 @@ class ScorePlus {
         master_surf.alpha = ease_out(t - toggle_time, show_from, show_to - show_from, show_dur)
 
         // Count-down the timer
-        local timeout = cfg.vote_timeout - (t - focus_time)
+        local timeout = max(0, cfg.vote_timeout - (t - focus_time))
 
         // Draw the timer
         update_timer(timeout / cfg.vote_timeout)
 
         // If the timer has run out the close the voting screen
-        if (timeout <= 0 && !select_time) set_focus(false)
+        if (timeout <= 0 && !select_time && !change_time) set_focus(false)
 
         // No selection has been made yet
         if (select_time == 0) {
@@ -518,6 +528,7 @@ class ScorePlus {
         show_to = next_focus ? 255 : 0
         if (next_focus) {
             focus_time = fe.layout.time
+            change_time = 0
             select_time = 0
             score_updated = false
             set_score(cfg.vote_default)
