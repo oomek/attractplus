@@ -499,8 +499,9 @@ void FeWindow::initial_create()
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 
 	// Force a redraw by resizing the window to fix Win10 dark-mode title bar issue
-	m_window->setSize( vm.size + sf::Vector2u({ 1, 1 }) );
-	m_window->setSize( vm.size );
+	// TODO: Investigate why it makes the whole AM+ blurry
+	// m_window->setSize( vm.size + sf::Vector2u({ 1, 1 }) );
+	// m_window->setSize( vm.size );
 #endif
 
 	m_fes.init_mouse_capture( m_window );
