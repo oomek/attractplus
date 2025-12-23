@@ -360,7 +360,7 @@ void FeWindow::initial_create()
 		m_win_pos.m_size.y = std::max( m_win_pos.m_size.y, (unsigned int)1 );
 
 		sf::Rect<int> window_rect( m_win_pos.m_pos, sf::Vector2i( m_win_pos.m_size ) );
-#if !defined(NO_MULTIMON)
+#if !defined(NO_MULTIMON) && defined(SFML_SYSTEM_WINDOWS)
 		// The window can be positioned anywhere in the virtual screen
 		sf::Rect<int> vm_rect(
 			{ GetSystemMetrics( SM_XVIRTUALSCREEN ), GetSystemMetrics( SM_YVIRTUALSCREEN ) },
