@@ -69,7 +69,15 @@ typedef AVCodec FeAVCodec;
 
 void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec );
 
-std::string g_decoder;
+namespace
+{
+	std::string g_decoder;
+
+#if FE_HWACCEL
+	AVBufferRef *g_hw_device_ctx = NULL;
+	AVHWDeviceType g_hw_device_type = AV_HWDEVICE_TYPE_NONE;
+#endif
+}
 
 //
 // As of Nov, 2017 RetroPie's default version of avcodec is old enough
@@ -1717,7 +1725,45 @@ std::string FeMedia::get_current_decoder()
 void FeMedia::set_current_decoder( const std::string &l )
 {
 	g_decoder = l;
+
+#if FE_HWACCEL
+	if ( g_hw_device_ctx )
+	{
+		av_buffer_unref( &g_hw_device_ctx );
+		FeDebug() << "Closed hardware video decoder context: "
+			<< av_hwdevice_get_type_name( g_hw_device_type ) << std::endl;
+		g_hw_device_ctx = NULL;
+		g_hw_device_type = AV_HWDEVICE_TYPE_NONE;
+	}
+
+	if ( !l.empty() && ( l.compare( "software" ) != 0 ) && ( l.compare( "mmal" ) != 0 ))
+	{
+		for ( int i=0; fe_hw_accels[i] != AV_HWDEVICE_TYPE_NONE; i++ )
+		{
+			if ( l.compare( av_hwdevice_get_type_name( fe_hw_accels[i] )) != 0 )
+				continue;
+
+			int ret = av_hwdevice_ctx_create( &g_hw_device_ctx, fe_hw_accels[i], NULL, NULL, 0 );
+
+			if ( ret < 0 )
+			{
+				FeLog() << "Error creating hardware video decoder context: "
+					<< av_hwdevice_get_type_name( fe_hw_accels[i] ) << std::endl;
+				g_hw_device_ctx = NULL;
+				g_hw_device_type = AV_HWDEVICE_TYPE_NONE;
+				return;
+			}
+
+			g_hw_device_type = fe_hw_accels[i];
+
+			FeDebug() << "Created hardware video decoder context: "
+				<< av_hwdevice_get_type_name( fe_hw_accels[i] ) << std::endl;
+			break;
+		}
+	}
+#endif
 }
+
 
 //
 // Try to use a hardware accelerated decoder where readily available...
@@ -1760,26 +1806,13 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 #endif
 
 #if FE_HWACCEL
-	for ( int i=0; fe_hw_accels[i] != AV_HWDEVICE_TYPE_NONE; i++ )
+	if ( g_hw_device_ctx && g_hw_device_type != AV_HWDEVICE_TYPE_NONE )
 	{
-		if ( g_decoder.compare( av_hwdevice_get_type_name( fe_hw_accels[i] )) != 0 )
-			continue;
-
-		AVBufferRef *device_ctx=NULL;
-		int ret = av_hwdevice_ctx_create( &device_ctx, fe_hw_accels[i], NULL, NULL, 0 );
-
-		if ( ret < 0 )
+		if ( g_decoder.compare( av_hwdevice_get_type_name( g_hw_device_type )) == 0 )
 		{
-			FeLog() << "error creating hw device context: "
-				<< av_hwdevice_get_type_name( fe_hw_accels[i] ) << std::endl;
-			return;
+			codec_ctx->hw_device_ctx = av_buffer_ref( g_hw_device_ctx );
+			codec_ctx->hwaccel_flags = AV_HWACCEL_FLAG_IGNORE_LEVEL;
 		}
-
-		codec_ctx->hw_device_ctx = device_ctx; // we are passing our buffer ref on device_ctx to codec_ctx here...
-		codec_ctx->hwaccel_flags = AV_HWACCEL_FLAG_IGNORE_LEVEL;
-
-		FeDebug() << "created hw device: "
-				<< av_hwdevice_get_type_name( fe_hw_accels[i] ) << std::endl;
 	}
 #endif
 }
