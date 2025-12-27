@@ -10,7 +10,7 @@ Empty;Vacío
 False;Falso
 Multi;Multijugador
 No Sort;No ordenar
-No;Número
+No;No
 None;Ninguno
 Off;Desactivado
 On;Activado
@@ -34,9 +34,9 @@ Add Rule;Agregar regla
 Allow Exit;Permitir salida
 Anisotropic Filtering;Filtrado anisotrópico
 Anti-Aliasing (MSAA);Antialiasing (MSAA)
-Artwork Label;Nombre del tema
-Artwork Name;Nombre de la obra de arte
-Artwork Path;Ruta del tema
+Artwork Label;Etiqueta de artes del juego
+Artwork Name;Nombre de artes del juego
+Artwork Path;Ruta de artes del juego
 Auto-detect Emulators;Detección automática de emuladores
 Check for Updates;Buscar actualizaciones
 Collection/Romlist;Colección/Lista de roms
@@ -98,14 +98,14 @@ Power Saving;Ahorro de energía
 Remove Input;Eliminar control
 Reverse Order;Orden inverso
 Rule;Regla
-Scrape Artwork;Extraer carátulas
-Scrape Fanart;Extraer fanart
-Scrape Flyers/Boxart;Extraer folletos/carátulas
-Scrape Game Logos (Wheel Art);Extraer logotipos de juegos (arte de la rueda)
-Scrape Marquees;Extraer imágenes de la pantalla
-Scrape Snaps;Extraer capturas de pantalla
-Scrape Videos (MAME only);Extraer vídeos (solo MAME)
-Scraper;Extractor
+Scrape Artwork;Escrapear Artes
+Scrape Fanart;Escrapear fanart
+Scrape Flyers/Boxart;Escrapear pósters/carátulas
+Scrape Game Logos (Wheel Art);Escrapear logotipos de juegos (arte de la rueda)
+Scrape Marquees;Escrapear marquesinas
+Scrape Snaps;Escrapear capturas de pantalla
+Scrape Videos (MAME only);Escrapear vídeos (solo MAME)
+Scraper;Escrapeador
 Screen Rotation;Rotación de pantalla
 Screen Saver Timeout;Límite de tiempo para el salvapantalla
 Selection Delay;Retardo de selección
@@ -188,8 +188,8 @@ Toggle Flip;Invertir
 Toggle Rotate Left;Rotar a la izquierda
 Exit;Salir (Confirmación)
 Exit to Desktop;Salir a escritorio
-Reload Layout;Recharger la mise en page
-Reload Config;Recharger la configuration
+Reload Layout;Recargar Layout
+Reload Config;Recargar Configuracion
 Reset Window;Restablecer ventana
 Screenshot;Captura de pantalla
 Random Game;Juego aleatorio
@@ -269,7 +269,7 @@ Loudness Normalisation;Normalización de volumen
 # -- splash_message --
 Generating Romlist;Generación de lista de roms
 Please Wait;Espere, por favor
-Scraping Artwork;Extraer carátulas
+Scraping Artwork;Escrapear Artes
 
 # -- confirm_dialog --
 Add '$1' to Favourites?;¿Añadir '$1' a favoritos?
@@ -325,7 +325,7 @@ Rom Extension(s);Extension(es) de roms
 System Identifier;Identificador de sistema
 Info Source/Scraper;Fuente de información/Scraper
 Additional Import File(s);Archivos de importación adicionales
-Non-Blocking Mode Wait;Modo de espera no bloqueante
+Non-Blocking Mode Wait;Modo de espera no bloqueado
 Exit Hotkey;Tecla rápida de salida
 Pause Hotkey;Pausar tecla de acceso rápido
 
