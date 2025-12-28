@@ -163,6 +163,11 @@ bool FeMusic::get_playing()
 
 void FeMusic::set_playing( bool state )
 {
+	set_playing( state, FeSoundInfo::Sound );
+}
+
+void FeMusic::set_playing( bool state, FeSoundInfo::SoundType st )
+{
 	m_music.stop();
 
 	if ( state == true && m_file_name != "" )
@@ -170,7 +175,7 @@ void FeMusic::set_playing( bool state )
 		float vol = m_volume;
 		FePresent *fep = FePresent::script_get_fep();
 		if ( fep )
-			vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+			vol = vol * fep->get_fes()->get_play_volume( st ) / 100.0;
 
 		m_music.setVolume( vol );
 		m_music.setPan( m_pan );
@@ -281,13 +286,13 @@ const char *FeMusic::get_metadata( const char* tag )
 	return it != metadata.end() ? it->second.c_str() : "";
 }
 
-void FeMusic::tick()
+void FeMusic::tick( FeSoundInfo::SoundType st )
 {
 	float vol = m_volume;
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
-		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+		vol = vol * fep->get_fes()->get_play_volume( st ) / 100.0;
 
 	if ( vol != m_music.getVolume() )
 	{

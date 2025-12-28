@@ -81,16 +81,17 @@ void FeSoundSystem::play_ambient()
 	if ( sound.compare( m_ambient_sound.get_file_name() ) != 0 )
 		m_ambient_sound.load( sound );
 
-	m_ambient_sound.set_playing( true );
+	m_ambient_sound.set_playing( true, FeSoundInfo::Ambient );
 }
 
 void FeSoundSystem::stop()
 {
-	m_ambient_sound.set_playing( false );
+	m_ambient_sound.set_playing( false, FeSoundInfo::Ambient );
 }
 
 void FeSoundSystem::tick()
 {
+	m_ambient_sound.tick( FeSoundInfo::Ambient );
 }
 
 void FeSoundSystem::release_audio( bool state )

@@ -28,6 +28,7 @@
 #include <sqrat.h>
 #include "fe_audio_fx.hpp"
 #include "sqrat_array_wrapper.hpp"
+#include "fe_input.hpp"
 
 class FeMusic
 {
@@ -60,6 +61,7 @@ public:
 
 	bool get_playing();
 	void set_playing( bool );
+	void set_playing( bool, FeSoundInfo::SoundType st );
 
     float get_pitch();
 	void set_pitch( float );
@@ -78,7 +80,7 @@ public:
 	int get_time();
 	const char *get_metadata( const char * );
 
-	void tick();
+	void tick( FeSoundInfo::SoundType st = FeSoundInfo::Sound );
 
 	FeAudioVisualiser* get_audio_visualiser() const;
 
