@@ -498,10 +498,10 @@ void FeWindow::initial_create()
 	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
 	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 
-	// Force a redraw by resizing the window to fix Win10 dark-mode title bar issue
-	// TODO: Investigate why it makes the whole AM+ blurry
-	// m_window->setSize( vm.size + sf::Vector2u({ 1, 1 }) );
-	// m_window->setSize( vm.size );
+	// Trigger title bar redraw to fix Win10 dark-mode (initially draws in light-mode)
+	display();
+	SendMessage(hwnd, WM_NCACTIVATE, FALSE, 0);
+	SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);
 #endif
 
 	m_fes.init_mouse_capture( m_window );
