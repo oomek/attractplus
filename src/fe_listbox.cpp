@@ -931,6 +931,20 @@ void FeListBox::set_sela(int a)
 	setSelColor( c );
 }
 
+void FeListBox::set_row_alpha( int index, int alpha )
+{
+	// Convert absolute list index to visible row index
+	int visible_row = index - m_list_start_offset;
+
+	// Only apply if the row is currently visible
+	if ( visible_row >= 0 && visible_row < (int)m_texts.size() )
+	{
+		sf::Color c = m_texts[visible_row].getColor();
+		c.a = alpha;
+		m_texts[visible_row].setColor( c );
+	}
+}
+
 void FeListBox::set_sel_rgb(int r, int g, int b )
 {
 	sf::Color c = m_selColour;
