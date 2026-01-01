@@ -108,7 +108,9 @@ Scrape Videos (MAME only);搜刮 Videos (MAME only)
 Scraper;搜刮器
 Screen Rotation;屏幕旋转
 Screen Saver Timeout;屏保等待时间
+Selection Speed;选择速度
 Selection Delay;选择延迟
+Selection Max Step;选择最大步进
 Show in Cycle;在界面切换转轮中显示
 Show in Menu;在界面选择菜单中显示
 Sort By;排序方式
@@ -409,7 +411,9 @@ _help_control_right;设置向右移动选区的控件
 _help_control_screen_saver;设置启动屏幕保护程序模式的控件
 _help_control_screenshot;设置截取前端屏幕截图的控件
 _help_control_select;设置启动当前选择的控件
+_help_control_selection_speed;设置选择移动的速度,单位为毫秒/步, 默认值为 40
 _help_control_selection_delay;设置按键重复开始前的延迟时间(毫秒), 默认值为 400
+_help_control_selection_max_step;设置选择移动的最大步进大小, 默认值为 128
 _help_control_toggle_flip;设置用于切换显示屏是否旋转180度的控件
 _help_control_toggle_fullscreen;在全屏和窗口模式之间切换
 _help_control_toggle_layout;设置切换要使用的布局脚本的控件(是否生效取决于您使用的布局)

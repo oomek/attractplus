@@ -108,7 +108,9 @@ Scrape Videos (MAME only);Récupérer des vidéos (MAME uniquement)
 Scraper;Grattoir
 Screen Rotation;Rotation de l'écran
 Screen Saver Timeout;Décompte économiseur d'écran
+Selection Speed;Vitesse de sélection
 Selection Delay;Délai de sélection
+Selection Max Step;Pas maximum de sélection
 Show in Cycle;Afficher en boucle
 Show in Menu;Afficher dans le menu
 Sort By;Classé par
@@ -409,7 +411,9 @@ _help_control_right;Définir la ou les commandes permettant de déplacer la sél
 _help_control_screen_saver;Définit le(s) contrôle(s) qui lance(nt) le mode "économiseur d'écran"
 _help_control_screenshot;Définit le(s) contrôle(s) qui enregistre(nt) une impression écran d'Attract-Mode Plus
 _help_control_select;Définit le(s) contrôle(s) qui valide(nt) la valeur sélectionnée
+_help_control_selection_speed;Définit la vitesse du mouvement de sélection en millisecondes par pas. (par défaut: 40).
 _help_control_selection_delay;Définir le délai en millisecondes avant le début de la répétition des touches (par défaut: 400).
+_help_control_selection_max_step;Définit la taille de pas maximale pour le mouvement de sélection. (par défaut: 128).
 _help_control_toggle_flip;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 180 degrés
 _help_control_toggle_fullscreen;Basculer entre le mode Plein écran et le mode Fenêtré
 _help_control_toggle_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)

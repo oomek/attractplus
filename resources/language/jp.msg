@@ -108,7 +108,9 @@ Scrape Videos (MAME only);ビデオをスクレイピング (MAMEのみ)
 Scraper;スクレーパー
 Screen Rotation;画面の回転
 Screen Saver Timeout;スクリーンセーバーのタイムアウト時間
+Selection Speed;選択速度
 Selection Delay;選択の遅延
+Selection Max Step;選択最大ステップ
 Show in Cycle;サイクルで表示
 Show in Menu;メニューに表示
 Sort By;並び替え
@@ -409,7 +411,9 @@ _help_control_right;選択範囲を右に移動するコントロールを設定
 _help_control_screen_saver;スクリーンショットを起動するキーを設定します
 _help_control_screenshot;スクリーンショットを撮るキーを設定します
 _help_control_select;現在選択されたゲームをプレイするキーを設定します
+_help_control_selection_speed;選択移動の速度をミリ秒単位でステップごとに設定します。デフォルトは40です。
 _help_control_selection_delay;キーリピート開始までの遅延時間をミリ秒単位で設定します。デフォルトは400です。
+_help_control_selection_max_step;選択移動の最大ステップサイズを設定します。デフォルトは128です。
 _help_control_toggle_flip;画面を180°回転するキーを設定します
 _help_control_toggle_fullscreen;ウィンドウモードをフルスクリーンとウィンドウの間で切り替えます。
 _help_control_toggle_layout;レイアウットを変更するキーを設定します. (レイアウットにより無視される場合があります)

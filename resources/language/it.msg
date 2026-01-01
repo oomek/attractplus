@@ -108,7 +108,9 @@ Scrape Videos (MAME only);Scarica video (solo per MAME)
 Scraper;Scratcher
 Screen Rotation;Rotazione schermo
 Screen Saver Timeout;Timeout salvaschermo
+Selection Speed;Velocità di selezione
 Selection Delay;Ritardo selezione
+Selection Max Step;Passo massimo di selezione
 Show in Cycle;Mostra nel ciclo
 Show in Menu;Mostra nel menù
 Sort By;Ordinato per
@@ -409,7 +411,9 @@ _help_control_right;Configura i controlli per spostare la selezione a destra
 _help_control_screen_saver;Configura i controlli per eseguire immediatamente il salvaschermo
 _help_control_screenshot;Configura i controlli per realizzare uno screenshot
 _help_control_select;Configura i controlli per eseguire la selezione attuale
-_help_control_selection_delay;Imposta il ritardo in millisecondi prima dell'inizio della ripetizione dei tasti, il valore predefinito è 400
+_help_control_selection_speed;Imposta la velocità del movimento di selezione in millisecondi per passo. Il valore predefinito è 40.
+_help_control_selection_delay;Imposta il ritardo in millisecondi prima dell'inizio della ripetizione dei tasti. Il valore predefinito è 400.
+_help_control_selection_max_step;Imposta la dimensione massima del passo per il movimento di selezione. Il valore predefinito è 128.
 _help_control_toggle_flip;Configura i controlli per ruotare display di 180 gradi
 _help_control_toggle_fullscreen;Alterna la modalità finestra tra Schermo intero e Finestra
 _help_control_toggle_layout;Configura i controlli per cambiare la pagina del tema. Tale funzione dipende da come è stato costruito il tema stesso: con alcuni potrebbe non succedere nulla.
