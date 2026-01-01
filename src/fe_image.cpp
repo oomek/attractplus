@@ -263,6 +263,22 @@ FeTextureContainer::FeTextureContainer(
 	m_fft_bands( 32 ),
 	m_entry( NULL )
 {
+#ifndef NO_MOVIE
+	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
+
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_media_volume( fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0f );
+	}
+
+	m_audio_effects.set_ready_for_processing();
+#endif
+
 	if ( is_artwork )
 	{
 		m_type = IsArtwork;
@@ -346,7 +362,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 		return false;
 	}
 
-	m_movie = new FeMedia( FeMedia::AudioVideo );
+	m_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
 	res = m_movie->open( "", loaded_name, &m_texture );
 
 	if ( !res )
@@ -583,6 +599,8 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			return true;
 		}
 	}
+
+	m_audio_effects.update_all();
 
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
@@ -933,6 +951,42 @@ FeMedia *FeTextureContainer::get_media() const
 
 void FeTextureContainer::release_audio( bool state )
 {
+}
+
+float FeTextureContainer::get_vu_mono() const
+{
+	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	return visualiser ? visualiser->get_vu_mono() : 0.0f;
+}
+
+float FeTextureContainer::get_vu_left() const
+{
+	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	return visualiser ? visualiser->get_vu_left() : 0.0f;
+}
+
+float FeTextureContainer::get_vu_right() const
+{
+	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	return visualiser ? visualiser->get_vu_right() : 0.0f;
+}
+
+const std::vector<float> *FeTextureContainer::get_fft_mono_ptr() const
+{
+	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	return visualiser ? visualiser->get_fft_mono_ptr() : nullptr;
+}
+
+const std::vector<float> *FeTextureContainer::get_fft_left_ptr() const
+{
+	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	return visualiser ? visualiser->get_fft_left_ptr() : nullptr;
+}
+
+const std::vector<float> *FeTextureContainer::get_fft_right_ptr() const
+{
+	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	return visualiser ? visualiser->get_fft_right_ptr() : nullptr;
 }
 
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
@@ -2105,37 +2159,19 @@ float FeImage::get_pan() const
 float FeImage::get_vu_mono() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
-	if ( tc )
-	{
-		FeMedia *media = tc->get_media();
-		if ( media )
-			return media->get_vu_mono();
-	}
-	return 0.0f;
+	return tc ? tc->get_vu_mono() : 0.0f;
 }
 
 float FeImage::get_vu_left() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
-	if ( tc )
-	{
-		FeMedia *media = tc->get_media();
-		if ( media )
-			return media->get_vu_left();
-	}
-	return 0.0f;
+	return tc ? tc->get_vu_left() : 0.0f;
 }
 
 float FeImage::get_vu_right() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
-	if ( tc )
-	{
-		FeMedia *media = tc->get_media();
-		if ( media )
-			return media->get_vu_right();
-	}
-	return 0.0f;
+	return tc ? tc->get_vu_right() : 0.0f;
 }
 
 const SqratArrayWrapper& FeImage::get_fft_array_mono() const
@@ -2143,14 +2179,10 @@ const SqratArrayWrapper& FeImage::get_fft_array_mono() const
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
 	{
-		FeMedia *media = tc->get_media();
-		if ( media )
+		if ( const auto* ptr = tc->get_fft_mono_ptr() )
 		{
-			if ( media->get_fft_mono_ptr() )
-			{
-				m_fft_array_wrapper.set_data( media->get_fft_mono_ptr() );
-				return m_fft_array_wrapper;
-			}
+			m_fft_array_wrapper.set_data( ptr );
+			return m_fft_array_wrapper;
 		}
 	}
 
@@ -2162,14 +2194,10 @@ const SqratArrayWrapper& FeImage::get_fft_array_left() const
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
 	{
-		FeMedia *media = tc->get_media();
-		if ( media )
+		if ( const auto* ptr = tc->get_fft_left_ptr() )
 		{
-			if ( media->get_fft_left_ptr() )
-			{
-				m_fft_array_wrapper.set_data( media->get_fft_left_ptr() );
-				return m_fft_array_wrapper;
-			}
+			m_fft_array_wrapper.set_data( ptr );
+			return m_fft_array_wrapper;
 		}
 	}
 
@@ -2181,14 +2209,10 @@ const SqratArrayWrapper& FeImage::get_fft_array_right() const
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>( m_tex );
 	if ( tc )
 	{
-		FeMedia *media = tc->get_media();
-		if ( media )
+		if ( const auto* ptr = tc->get_fft_right_ptr() )
 		{
-			if ( media->get_fft_right_ptr() )
-			{
-				m_fft_array_wrapper.set_data( media->get_fft_right_ptr() );
-				return m_fft_array_wrapper;
-			}
+			m_fft_array_wrapper.set_data( ptr );
+			return m_fft_array_wrapper;
 		}
 	}
 

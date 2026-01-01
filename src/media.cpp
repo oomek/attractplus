@@ -922,18 +922,15 @@ the_end:
 				<< std::endl;
 }
 
-FeMedia::FeMedia( Type t )
+FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
 	: sf::SoundStream(),
 	m_audio( NULL ),
 	m_video( NULL ),
-	m_aspect_ratio( 1.0 )
+	m_aspect_ratio( 1.0 ),
+	m_audio_effects( effects_manager )
 {
 	m_imp = new FeMediaImp( t );
 	sf::SoundStream::setSpatializationEnabled( false );
-
-	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -942,9 +939,6 @@ FeMedia::FeMedia( Type t )
 		if ( normaliser )
 			normaliser->set_enabled( fep->get_fes()->get_loudness() );
 	}
-
-	// Mark effects manager as ready for processing after all effects are constructed
-	m_audio_effects.set_ready_for_processing();
 
 	// Mark FeMedia object as ready for audio callbacks
 	m_ready.store( true, std::memory_order_release );
@@ -972,16 +966,7 @@ void FeMedia::setup_effect_processor()
 
 		std::lock_guard<std::mutex> l( m_closing_mutex );
 
-		if ( input_frames && input_frame_count > 0 )
-		{
-			m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
-		}
-		else if ( input_frames && output_frames && input_frame_count > 0 )
-		{
-			const unsigned int total_samples = input_frame_count * frame_channel_count;
-			std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
-		}
-
+		m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
 		output_frame_count = input_frame_count;
 	});
 }
@@ -1233,6 +1218,8 @@ bool FeMedia::open( const std::string &archive,
 		return false;
 	}
 
+	m_audio_effects.reset_all();
+
 	if ( m_imp->m_type & Audio )
 	{
 		int stream_id( -1 );
@@ -1482,9 +1469,6 @@ bool FeMedia::tick()
 {
 	if (( !m_video ) && ( !m_audio ))
 		return false;
-
-	if ( m_audio )
-		m_audio_effects.update_all();
 
 	if ( m_video )
 	{

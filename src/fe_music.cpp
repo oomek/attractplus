@@ -70,21 +70,7 @@ FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	                                    float *output_frames, unsigned int &output_frame_count,
 	                                    unsigned int frame_channel_count )
 	{
-		if ( input_frames && input_frame_count > 0 )
-		{
-			m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
-		}
-		else
-		{
-			m_audio_effects.reset_all();
-
-			if ( input_frames && output_frames && input_frame_count > 0 )
-			{
-				const unsigned int total_samples = input_frame_count * frame_channel_count;
-				std::memcpy( output_frames, input_frames, total_samples * sizeof(float) );
-			}
-		}
-
+		m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
 		output_frame_count = input_frame_count;
 	});
 }
@@ -115,9 +101,7 @@ void FeMusic::load( const std::string &fn )
 	}
 	m_file_name = fn;
 
-	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-	if ( normaliser )
-		normaliser->reset();
+	m_audio_effects.reset_all();
 }
 
 void FeMusic::set_file_name( const char *n )
