@@ -108,7 +108,9 @@ Scrape Videos (MAME only);Scrape Videos (nur für MAME)
 Scraper;Scraper
 Screen Rotation;Bildschirmdrehung
 Screen Saver Timeout;Timeout des Bildschirmschoners
+Selection Speed;Auswahlgeschwindigkeit
 Selection Delay;Auswahlverzögerung
+Selection Max Step;Maximaler Auswahlschritt
 Show in Cycle;Zeige in der Übersicht
 Show in Menu;Zeige im Menü
 Sort By;Sortiert nach
@@ -409,7 +411,9 @@ _help_control_right;Definiere die Taste(n) um die Auswahl nach rechts zu bewegen
 _help_control_screen_saver;Definiere die Taste(n), die den Bildschirmschoner starten
 _help_control_screenshot;Definiere die Taste(n), um ein Bildschirmphoto vom Frontend zu machen
 _help_control_select;Definiere die Taste(n), um die aktuelle Auswahl zu starten
+_help_control_selection_speed;Legt die Geschwindigkeit der Auswahlbewegung in Millisekunden pro Schritt fest. Standardwert: 40.
 _help_control_selection_delay;Legt die Verzögerung in Millisekunden fest, bevor die Tastenwiederholung beginnt. Standardwert: 400.
+_help_control_selection_max_step;Legt die maximale Schrittgröße für die Auswahlbewegung fest. Standardwert: 128.
 _help_control_toggle_flip;Definiere die Taste(n), die den Bildschirm um 180 Grad drehen
 _help_control_toggle_fullscreen;Fenstermodus zwischen Vollbild und Fenster umschalten
 _help_control_toggle_layout;Definiere die Taste(n), die das Thema wechseln (Dies funktioniert nicht bei allen Themen)

@@ -108,7 +108,9 @@ Scrape Videos (MAME only);Escrapear vídeos (solo MAME)
 Scraper;Escrapeador
 Screen Rotation;Rotación de pantalla
 Screen Saver Timeout;Límite de tiempo para el salvapantalla
+Selection Speed;Velocidad de selección
 Selection Delay;Retardo de selección
+Selection Max Step;Paso máximo de selección
 Show in Cycle;Mostrar en ciclo
 Show in Menu;Mostrar en el menú
 Sort By;Ordenado por
@@ -409,7 +411,9 @@ _help_control_right;Establece los controles que mueven la selección a la derech
 _help_control_screen_saver;Configura el(los) control(es) que lanzan el protector de pantalla
 _help_control_screenshot;Configura el(los) control(es) que toma una captura de pantalla del frontend
 _help_control_select;Configura los el(los) control(es) que lanzan la selción actual
-_help_control_selection_delay;Establece el retardo en milisegundos antes de que comience la repetición de teclas; el valor predeterminado es 400.
+_help_control_selection_speed;Establece la velocidad del movimiento de selección en milisegundos por paso. El valor predeterminado es 40.
+_help_control_selection_delay;Establece el retardo en milisegundos antes de que comience la repetición de teclas. El valor predeterminado es 400.
+_help_control_selection_max_step;Establece el tamaño máximo de paso para el movimiento de selección. El valor predeterminado es 128.
 _help_control_toggle_flip;Configura el(los) control(es) que cambia si la pantalla debe ser rotada o no 180 grados
 _help_control_toggle_fullscreen;Alterna el modo de ventana entre pantalla completa y ventana.
 _help_control_toggle_layout;Configura el(los) control(es) que cambia el script de tema a usar (Depende del tema que está usando si esto hace algo)

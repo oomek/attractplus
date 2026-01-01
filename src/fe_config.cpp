@@ -1557,14 +1557,20 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 
 	// Create a list of evenly spaced thresholds from 100...0 (clamped at 99...1)
 	std::vector<std::string> thresh = create_range( 100, 0, 21, 1, 100 );
+	std::vector<std::string> speed = { "100", "90", "80", "70", "60", "50", "40", "30", "20", "10" };
 	std::vector<std::string> delay = { "1000", "650", "400", "250" };
+	std::vector<std::string> max_step = { "128", "64", "32", "16", "8", "4", "2", "1" };
 
 	// Add the joystick and mouse threshold settings to this menu as well
+	std::string selection_speed = ctx.fe_settings.get_info( FeSettings::SelectionSpeed );
 	std::string selection_delay = ctx.fe_settings.get_info( FeSettings::SelectionDelay );
+	std::string selection_max_step = ctx.fe_settings.get_info( FeSettings::SelectionMaxStep );
 	std::string joy_thresh = ctx.fe_settings.get_info( FeSettings::JoystickThreshold );
 	std::string mouse_thresh = ctx.fe_settings.get_info( FeSettings::MouseThreshold );
 
+	ctx.add_opt( Opt::LIST, _( "Selection Speed" ), selection_speed, _( "_help_control_selection_speed" ), 1 )->append_vlist( speed );
 	ctx.add_opt( Opt::LIST, _( "Selection Delay" ), selection_delay, _( "_help_control_selection_delay" ), 1 )->append_vlist( delay );
+	ctx.add_opt( Opt::LIST, _( "Selection Max Step" ), selection_max_step, _( "_help_control_selection_max_step" ), 1 )->append_vlist( max_step );
 	ctx.add_opt( Opt::LIST, _( "Joystick Threshold" ), joy_thresh, _( "_help_control_joystick_threshold" ), 1 )->append_vlist( thresh );
 	ctx.add_opt( Opt::LIST, _( "Mouse Threshold" ), mouse_thresh, _( "_help_control_mouse_threshold" ), 1 )->append_vlist( thresh );
 	ctx.add_opt( Opt::MENU, _( "Joystick Mappings" ), "", _( "_help_control_joystick_map" ), 2 );
@@ -1574,7 +1580,9 @@ void FeInputSelMenu::get_options( FeConfigContext &ctx )
 
 bool FeInputSelMenu::save( FeConfigContext &ctx )
 {
-	ctx.fe_settings.set_info( FeSettings::SelectionDelay, ctx.opt_list[ ctx.opt_list.size() - 5 ].get_value() );
+	ctx.fe_settings.set_info( FeSettings::SelectionSpeed, ctx.opt_list[ ctx.opt_list.size() - 7 ].get_value() );
+	ctx.fe_settings.set_info( FeSettings::SelectionDelay, ctx.opt_list[ ctx.opt_list.size() - 6 ].get_value() );
+	ctx.fe_settings.set_info( FeSettings::SelectionMaxStep, ctx.opt_list[ ctx.opt_list.size() - 5 ].get_value() );
 	ctx.fe_settings.set_info( FeSettings::JoystickThreshold, ctx.opt_list[ ctx.opt_list.size() - 4 ].get_value() );
 	ctx.fe_settings.set_info( FeSettings::MouseThreshold, ctx.opt_list[ ctx.opt_list.size() - 3 ].get_value() );
 	return true;
