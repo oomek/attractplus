@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 #endif
 
 	FeVM feVM( feSettings, window, soundsys.get_ambient_sound(), process_console );
-	FeOverlay feOverlay( window, feSettings, feVM );
+	FeOverlay feOverlay( window, feSettings, feVM, soundsys );
 	feVM.set_overlay( &feOverlay );
 
 	// Set transforms now in case load_layout never gets called (ie: first-run), required for multimon
