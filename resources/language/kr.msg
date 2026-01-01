@@ -108,7 +108,9 @@ Scrape Videos (MAME only);외부 영상 다운로드 (MAME 전용)
 Scraper;스크래퍼
 Screen Rotation;화면 회전
 Screen Saver Timeout;화면 보호기 타임아웃 시간
+Selection Speed;선택 속도
 Selection Delay;선택 지연
+Selection Max Step;선택 최대 단계
 Show in Cycle;사이클에 보이기
 Show in Menu;목록 관리 메뉴에 보이기
 Sort By;목록 정렬 기준
@@ -409,7 +411,9 @@ _help_control_right;오른쪽 항목으로 한 칸 이동하는 키를 설정합
 _help_control_screen_saver;화면 보호기를 활성화하는 키를 설정합니다.
 _help_control_screenshot;스크린샷을 찍는 키를 설정합니다.
 _help_control_select;현재 선택된 게임을 실행하는 키를 설정합니다.
+_help_control_selection_speed;선택 이동의 속도를 밀리초 단위로 단계당 설정합니다. 기본값은 40입니다.
 _help_control_selection_delay;키 반복 시작 전 지연 시간을 밀리초 단위로 설정합니다. 기본값은 400입니다.
+_help_control_selection_max_step;선택 이동의 최대 단계 크기를 설정합니다. 기본값은 128입니다.
 _help_control_toggle_flip;화면을 180도 회전하는 키를 설정합니다.
 _help_control_toggle_fullscreen;창 모드를 전체 화면과 창 모드로 전환합니다.
 _help_control_toggle_layout;레이아웃을 변경하는 키를 설정합니다. (사용중인 레이아웃에 따라 동작 여부가 달라질 수 있습니다.)

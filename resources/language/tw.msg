@@ -108,7 +108,9 @@ Scrape Videos (MAME only);搜刮視訊 (僅 MAME)
 Scraper;刮擦器
 Screen Rotation;螢幕旋轉
 Screen Saver Timeout;螢幕保護啟動時間
+Selection Speed;選擇速度
 Selection Delay;選擇延遲
+Selection Max Step;選擇最大步進
 Show in Cycle;顯示在顯示介面循環裡
 Show in Menu;顯示在主選單
 Sort By;排序方式
@@ -409,7 +411,9 @@ _help_control_right;設定「右移選項」的控制鍵
 _help_control_screen_saver;設定「進入螢幕保護模式」的控制鍵
 _help_control_screenshot;設定「螢幕截圖」的控制鍵
 _help_control_select;設定「執行當前選項」的控制鍵
+_help_control_selection_speed;設定選擇移動的速度,單位為毫秒/步。預設值為 40
 _help_control_selection_delay;設定按鍵重複開始前的延遲時間 (以毫秒為單位),預設值為 400
+_help_control_selection_max_step;設定選擇移動的最大步進大小。預設值為 128
 _help_control_toggle_flip;設定「將顯示畫面旋轉 180 度」的控制鍵
 _help_control_toggle_fullscreen;在全螢幕和視窗模式之間切換
 _help_control_toggle_layout;設定「切換畫面佈局」的控制鍵 (主題資料夾中含有多個畫面佈局檔案時才會進行切換)
