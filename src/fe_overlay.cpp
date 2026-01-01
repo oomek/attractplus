@@ -300,10 +300,12 @@ private:
 
 FeOverlay::FeOverlay( FeWindow &wnd,
 		FeSettings &fes,
-		FePresent &fep )
+		FePresent &fep,
+		FeSoundSystem &ss )
 	: m_wnd( wnd ),
 	m_feSettings( fes ),
 	m_fePresent( fep ),
+	m_soundSystem( ss ),
 	m_overlay_is_on( false )
 {
 	clear_menu_command();
@@ -400,6 +402,8 @@ void FeOverlay::splash_message( const std::string &msg, const std::string &aux )
 	if ( m_fePresent.is_layout_loaded() )
 		m_fePresent.tick();
 
+	m_soundSystem.tick();
+
 	m_wnd.clear();
 	m_wnd.draw( m_fePresent, t );
 	m_wnd.draw( bg, t );
@@ -423,6 +427,8 @@ void FeOverlay::splash_logo( const std::string &aux )
 	// Process tick only when Layout is fully loaded
 	if ( m_fePresent.is_layout_loaded() )
 		m_fePresent.tick();
+
+	m_soundSystem.tick();
 
 	m_wnd.clear();
 	m_wnd.draw( m_fePresent, t );
@@ -969,6 +975,8 @@ void FeOverlay::input_map_dialog(
 
 		if ( m_fePresent.tick() )
 			redraw = true;
+
+		m_soundSystem.tick();
 
 		if ( redraw || !m_feSettings.get_info_bool( FeSettings::PowerSaving ) )
 		{
@@ -1835,6 +1843,8 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 
 		if ( m_fePresent.tick() )
 		{
+			m_soundSystem.tick();
+
 			m_fePresent.redraw_surfaces();
 			m_wnd.clear();
 			m_wnd.draw( m_fePresent, t );
@@ -1964,6 +1974,8 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 
 		if ( m_fePresent.tick() )
 			redraw = true;
+
+		m_soundSystem.tick();
 
 		if ( redraw || !m_feSettings.get_info_bool( FeSettings::PowerSaving ) )
 		{
@@ -2329,6 +2341,8 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 
 		if ( m_fePresent.tick() )
 			redraw = true;
+
+		m_soundSystem.tick();
 
 		// When left or right is hold reset the timer, so the cursor isn't blinking
 		if ( m_feSettings.get_current_state( FeInputMap::Left ) || m_feSettings.get_current_state( FeInputMap::Right ))

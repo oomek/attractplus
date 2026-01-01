@@ -45,6 +45,7 @@ private:
 	FeWindow &m_wnd;
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
+	FeSoundSystem &m_soundSystem;
 
 	sf::Color m_bg_color;
 	sf::Color m_text_color;
@@ -160,7 +161,8 @@ public:
 
 	FeOverlay( FeWindow &wnd,
 		FeSettings &fes,
-		FePresent &fep );
+		FePresent &fep,
+		FeSoundSystem &ss );
 
 	void splash_message( const std::string &, const std::string &aux="" );
 	void splash_logo( const std::string &aux="" );

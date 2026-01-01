@@ -33,7 +33,7 @@
 
 FeSoundSystem::FeSoundSystem( FeSettings *fes )
 	: m_event_sound( false ),
-	m_ambient_sound( true ),
+	m_ambient_sound( true, FeSoundInfo::Ambient ),
 	m_fes( fes ),
 	m_current_sound( FeInputMap::LAST_COMMAND )
 {
@@ -81,17 +81,17 @@ void FeSoundSystem::play_ambient()
 	if ( sound.compare( m_ambient_sound.get_file_name() ) != 0 )
 		m_ambient_sound.load( sound );
 
-	m_ambient_sound.set_playing( true, FeSoundInfo::Ambient );
+	m_ambient_sound.set_playing( true );
 }
 
 void FeSoundSystem::stop()
 {
-	m_ambient_sound.set_playing( false, FeSoundInfo::Ambient );
+	m_ambient_sound.set_playing( false );
 }
 
 void FeSoundSystem::tick()
 {
-	m_ambient_sound.tick( FeSoundInfo::Ambient );
+	m_ambient_sound.tick();
 }
 
 void FeSoundSystem::release_audio( bool state )

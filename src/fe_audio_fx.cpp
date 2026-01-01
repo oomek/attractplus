@@ -103,15 +103,20 @@ bool FeAudioEffectsManager::process_all( const float *input_frames, float *outpu
 	for ( size_t i = 0; i < m_effects.size(); ++i )
 	{
 		auto& effect = m_effects[i];
-		if ( effect && effect->is_enabled() )
+		if ( effect )
 		{
-			if ( effect->process( current_input, current_output, frame_count, channel_count ))
+			bool enabled = effect->is_enabled();
+			if ( dynamic_cast<FeAudioNormaliser*>( effect.get() ))
+			{
+				FePresent *fep = FePresent::script_get_fep();
+				if ( fep )
+					enabled = fep->get_fes()->get_loudness();
+			}
+
+			if ( enabled && effect->process( current_input, current_output, frame_count, channel_count ))
 				audio_modified = true;
-		}
-		else if ( effect )
-		{
-			// Pass-through
-			std::memcpy( current_output, current_input, frame_count * channel_count * sizeof( float ) );
+			else
+				std::memcpy( current_output, current_input, frame_count * channel_count * sizeof( float ) );
 		}
 
 		std::swap( current_input, current_output );
