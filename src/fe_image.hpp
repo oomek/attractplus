@@ -29,6 +29,7 @@
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "sqrat_array_wrapper.hpp"
+#include "fe_audio_fx.hpp"
 
 class FeSettings;
 class FeMedia;
@@ -192,6 +193,13 @@ public:
 	void set_fft_bands( int );
 	int get_fft_bands() const;
 
+	float get_vu_mono() const;
+	float get_vu_left() const;
+	float get_vu_right() const;
+	const std::vector<float> *get_fft_mono_ptr() const;
+	const std::vector<float> *get_fft_left_ptr() const;
+	const std::vector<float> *get_fft_right_ptr() const;
+
 	float get_sample_aspect_ratio() const;
 
 	FeMedia *get_media() const;
@@ -235,6 +243,7 @@ private:
 	float m_pan;
 	int m_fft_bands;
 	FeImageLoaderEntry *m_entry;
+	FeAudioEffectsManager m_audio_effects;
 };
 
 class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresentableParent

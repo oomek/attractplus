@@ -52,7 +52,7 @@ public:
 		AudioVideo=0x03
 	};
 
-	FeMedia( Type t );
+	FeMedia( Type t, FeAudioEffectsManager &effects_manager );
 	~FeMedia();
 
 	bool open( const std::string &archive,
@@ -126,7 +126,7 @@ private:
 	std::mutex m_callback_mutex;
 	std::mutex m_closing_mutex;
 
-	FeAudioEffectsManager m_audio_effects;
+	FeAudioEffectsManager &m_audio_effects;
 	void setup_effect_processor();
 
 	FeMedia( const FeMedia & );

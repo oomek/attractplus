@@ -673,6 +673,11 @@ void FeAudioVisualiser::update_fall() const
 		apply_vu_fall( m_fft_left_in[i], m_fft_left_out[i], fft_fall_amount );
 		apply_vu_fall( m_fft_right_in[i], m_fft_right_out[i], fft_fall_amount );
 	}
+
+	// Reset FFT input values so they can fall properly when no audio is present
+	m_fft_mono_in.assign( m_fft_bands, 0.0f );
+	m_fft_left_in.assign( m_fft_bands, 0.0f );
+	m_fft_right_in.assign( m_fft_bands, 0.0f );
 }
 
 FeAudioNormaliser::FeAudioNormaliser()
