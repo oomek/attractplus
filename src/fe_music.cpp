@@ -55,6 +55,14 @@ FeMusic::FeMusic( bool loop )
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_enabled( fep->get_fes()->get_loudness() );
+	}
+
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
 	m_music.setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
