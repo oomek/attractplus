@@ -40,10 +40,11 @@
 #endif
 
 
-FeMusic::FeMusic( bool loop )
+FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	: m_file_name( "" ),
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
+	m_sound_type( st ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -54,6 +55,14 @@ FeMusic::FeMusic( bool loop )
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
+
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_enabled( fep->get_fes()->get_loudness() );
+	}
 
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
@@ -105,6 +114,10 @@ void FeMusic::load( const std::string &fn )
 		return;
 	}
 	m_file_name = fn;
+
+	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+	if ( normaliser )
+		normaliser->reset();
 }
 
 void FeMusic::set_file_name( const char *n )
@@ -163,11 +176,6 @@ bool FeMusic::get_playing()
 
 void FeMusic::set_playing( bool state )
 {
-	set_playing( state, FeSoundInfo::Sound );
-}
-
-void FeMusic::set_playing( bool state, FeSoundInfo::SoundType st )
-{
 	m_music.stop();
 
 	if ( state == true && m_file_name != "" )
@@ -175,7 +183,7 @@ void FeMusic::set_playing( bool state, FeSoundInfo::SoundType st )
 		float vol = m_volume;
 		FePresent *fep = FePresent::script_get_fep();
 		if ( fep )
-			vol = vol * fep->get_fes()->get_play_volume( st ) / 100.0;
+			vol = vol * fep->get_fes()->get_play_volume( m_sound_type ) / 100.0;
 
 		m_music.setVolume( vol );
 		m_music.setPan( m_pan );
@@ -286,13 +294,13 @@ const char *FeMusic::get_metadata( const char* tag )
 	return it != metadata.end() ? it->second.c_str() : "";
 }
 
-void FeMusic::tick( FeSoundInfo::SoundType st )
+void FeMusic::tick()
 {
 	float vol = m_volume;
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
-		vol = vol * fep->get_fes()->get_play_volume( st ) / 100.0;
+		vol = vol * fep->get_fes()->get_play_volume( m_sound_type ) / 100.0;
 
 	if ( vol != m_music.getVolume() )
 	{

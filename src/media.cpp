@@ -935,6 +935,14 @@ FeMedia::FeMedia( Type t )
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_enabled( fep->get_fes()->get_loudness() );
+	}
+
 	// Mark effects manager as ready for processing after all effects are constructed
 	m_audio_effects.set_ready_for_processing();
 
@@ -968,15 +976,10 @@ void FeMedia::setup_effect_processor()
 		{
 			m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
 		}
-		else
+		else if ( input_frames && output_frames && input_frame_count > 0 )
 		{
-			m_audio_effects.reset_all();
-
-			if ( input_frames && output_frames && input_frame_count > 0 )
-			{
-				const unsigned int total_samples = input_frame_count * frame_channel_count;
-				std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
-			}
+			const unsigned int total_samples = input_frame_count * frame_channel_count;
+			std::memcpy( output_frames, input_frames, total_samples * sizeof( float ));
 		}
 
 		output_frame_count = input_frame_count;
@@ -1001,8 +1004,6 @@ void FeMedia::play()
 {
 	if ( !is_playing() )
 	{
-		m_audio_effects.reset_all();
-
 		if ( m_video )
 			m_video->play();
 
@@ -1018,8 +1019,6 @@ void FeMedia::signal_stop()
 
 	if ( m_video )
 		m_video->signal_stop();
-
-	m_audio_effects.reset_all();
 }
 
 void FeMedia::stop()
@@ -1061,8 +1060,6 @@ void FeMedia::stop()
 		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
 		m_imp->m_read_eof = false;
 	}
-
-	m_audio_effects.reset_all();
 }
 
 void FeMedia::close()
@@ -1180,8 +1177,6 @@ size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 bool FeMedia::open( const std::string &archive,
 	const std::string &name, sf::Texture *outt )
 {
-	m_audio_effects.reset_all();
-
 	FeFileInputStream *s = NULL;
 
 	if ( !archive.empty() )

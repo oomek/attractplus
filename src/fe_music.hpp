@@ -41,11 +41,12 @@ private:
 	bool m_play_state;
 	float m_volume;
 	float m_pan;
+	FeSoundInfo::SoundType m_sound_type;
 
 	FeAudioEffectsManager m_audio_effects;
 
 public:
-	FeMusic( bool loop=false );
+	FeMusic( bool loop=false, FeSoundInfo::SoundType st=FeSoundInfo::Sound );
 	~FeMusic();
 
 	void load( const std::string &fn );
@@ -61,7 +62,6 @@ public:
 
 	bool get_playing();
 	void set_playing( bool );
-	void set_playing( bool, FeSoundInfo::SoundType st );
 
     float get_pitch();
 	void set_pitch( float );
@@ -80,7 +80,7 @@ public:
 	int get_time();
 	const char *get_metadata( const char * );
 
-	void tick( FeSoundInfo::SoundType st = FeSoundInfo::Sound );
+	void tick();
 
 	FeAudioVisualiser* get_audio_visualiser() const;
 
