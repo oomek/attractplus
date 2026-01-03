@@ -1496,6 +1496,14 @@ bool FeMedia::tick()
 	if (( !m_video ) && ( !m_audio ))
 		return false;
 
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_enabled( fep->get_fes()->get_loudness() );
+	}
+
 	if ( m_audio )
 		m_audio_effects.update_all();
 

@@ -114,6 +114,10 @@ void FeMusic::load( const std::string &fn )
 		return;
 	}
 	m_file_name = fn;
+
+	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+	if ( normaliser )
+		normaliser->reset();
 }
 
 void FeMusic::set_file_name( const char *n )
@@ -296,7 +300,13 @@ void FeMusic::tick()
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
+	{
 		vol = vol * fep->get_fes()->get_play_volume( m_sound_type ) / 100.0;
+
+		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		if ( normaliser )
+			normaliser->set_enabled( fep->get_fes()->get_loudness() );
+	}
 
 	if ( vol != m_music.getVolume() )
 	{
