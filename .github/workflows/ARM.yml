@@ -14,17 +14,18 @@ on:
 
 jobs:
   buildAMarm:
-    name: ${{ matrix.platform.name }} ${{ matrix.config.name }} on ${{ matrix.os }}
+    name: Package ${{ matrix.platform.name }} ${{ matrix.config.name }} on ${{ matrix.os }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         platform:
-        - { name: armv7,   arch: arm32v7, pf: arm/v7,  shell: bash, amflags: USE_DRM=1 USE_MMAL=1}
-        - { name: aarch64, arch: arm64v8, pf: aarch64, shell: bash, amflags: USE_DRM=1}
+        - { name: armv7,   arch: armhf }
+        - { name: aarch64, arch: arm64 }
         config:
         - { name: shared, amflags: STATIC=0 }
         - { name: static, amflags: STATIC=1 }
+        video: [ X11, KMS ]
         os: [ bullseye, bookworm ]
         exclude:
           - config: { name: shared }
@@ -34,37 +35,42 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: am
+
     - name: Prepare
       id: vars
       run: |
+        [[ "${{ matrix.video }}" == "X11" ]] && sed -i 's/USE_DRM=1//' am/debian/rules
+        deb_version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
         fe_version=
         [[ ${GITHUB_REF} =~ ^refs/tags/* ]] && fe_version="${GITHUB_REF#refs/*/}"
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
-    - name: Build AM+
-      uses: uraimo/run-on-arch-action@v3
+        echo "deb_version=${deb_version}" >> $GITHUB_OUTPUT
+
+    - name: Build AM+ (Fast Containerized)
+      uses: jtdor/build-deb-action@v1
+      env:
+        DEB_BUILD_OPTIONS: noautodbgsym
       with:
-        arch: ${{ matrix.platform.name }}
-        distro: ${{ matrix.os }}
-        githubToken: ${{ github.token }}
-        dockerRunArgs: |
-          --volume "${GITHUB_WORKSPACE}/am:/am"
-        install: |
-          [[ "${{matrix.os}}" == "bookworm" ]] && backports_url="http://deb.debian.org/debian" || backports_url="http://archive.debian.org/debian/"
+        buildpackage-opts: --build=binary --no-sign --no-pre-clean
+        source-dir: am
+        host-arch: ${{ matrix.platform.arch }}
+        docker-image: debian:${{ matrix.os }}-slim
+        setup-hook: |
+          test "${{matrix.os}}" = "bookworm" && backports_url="http://deb.debian.org/debian" || backports_url="http://archive.debian.org/debian/"
           echo "deb ${backports_url} ${{matrix.os}}-backports main" > /etc/apt/sources.list.d/debian-backports.list
-          cat /etc/apt/sources.list.d/debian-backports.list
-          apt-get update -y -q
+          apt update
           apt-get install -y -q build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libxi-dev ca-certificates
           apt-get install -y -t ${{matrix.os}}-backports cmake
-        run: |
-          make -C am -j$(nproc) VERBOSE=1 FE_VERSION=${{ steps.vars.outputs.fe_version }} ${{matrix.platform.amflags}} ${{matrix.config.amflags}}
-    - name: Prepare artifacts
+
+    - name: Rename artifacts
       run: |
-        mkdir -p "${GITHUB_WORKSPACE}"/artifacts
-        find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
-        cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
-        cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
+        find ./ -name '*.deb'
+        version="$(head -1 am/debian/changelog | egrep -o "[0-9]+\.[0-9]+\.[0-9]+")"
+        cp "./debian/artifacts/attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.platform.arch }}.deb" "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}.deb"
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{matrix.platform.name}}-${{matrix.os}}
-        path: ./artifacts/
+        path: "./attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}.deb"
+        name: "attractplus_${{ steps.vars.outputs.deb_version }}_${{ matrix.os }}_${{ matrix.platform.arch }}_${{ matrix.video }}"
+        compression-level: 0
