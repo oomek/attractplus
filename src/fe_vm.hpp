@@ -188,6 +188,27 @@ public:
 			const std::string &script_path,
 			const std::string &script_file );
 
+	static void script_apply_preset_values(
+			FeConfigContext &ctx,
+			FeScriptConfigurable &configurable,
+			const std::string &script_path,
+			const std::string &script_file,
+			int first_idx,
+			bool force_apply = false );
+
+	static void script_handle_preset_override(
+			FeConfigContext &ctx,
+			FeScriptConfigurable &configurable,
+			const std::string &script_path,
+			const std::string &script_file,
+			int changed_option_index );
+
+	static void script_update_preset_controlled_options(
+			FeConfigContext &ctx,
+			FeScriptConfigurable &configurable,
+			const std::string &script_path,
+			const std::string &script_file );
+
 	static void script_run_config_function(
 			FeScriptConfigurable &configurable,
 			const std::string &script_path,

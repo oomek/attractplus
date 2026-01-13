@@ -1535,6 +1535,10 @@ int FeOverlay::display_config_dialog(
 		ctx.curr_sel = 0;
 	m->last_sel = ctx.curr_sel;
 
+	FeScriptConfigMenu *script_menu = dynamic_cast<FeScriptConfigMenu*>(m);
+	if ( script_menu )
+		script_menu->update_preset_controlled_options( ctx );
+
 	sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 	vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 
@@ -1563,6 +1567,16 @@ int FeOverlay::display_config_dialog(
 		text_index( vdialog, vindex, ctx.right_list, -1 );
 		layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
 
+		// Apply dimming to preset-controlled options
+		for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+		{
+			if ( ctx.opt_list[i].preset_controlled )
+			{
+				sdialog.set_row_alpha( i, m_disable_alpha );
+				vdialog.set_row_alpha( i, m_disable_alpha );
+			}
+		}
+
 		while ( text_index( sdialog, sindex, ctx.left_list, is_preview ? c.sel : -1 ) && event_loop( c ) == false )
 		{
 			m->last_sel = ctx.curr_sel;
@@ -1576,6 +1590,16 @@ int FeOverlay::display_config_dialog(
 
 			sdialog.setCustomText( ctx.curr_sel, ctx.left_list );
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
+
+			// Reapply dimming after navigation
+			for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+			{
+				if ( ctx.opt_list[i].preset_controlled )
+				{
+					sdialog.set_row_alpha( i, m_disable_alpha );
+					vdialog.set_row_alpha( i, m_disable_alpha );
+				}
+			}
 		}
 
 		text_index( sdialog, sindex, ctx.left_list, -1 );
@@ -1722,6 +1746,31 @@ int FeOverlay::display_config_dialog(
 						ctx.save_req = true;
 						ctx.curr_opt().set_value( new_value );
 						ctx.right_list[ctx.curr_sel] = ctx.curr_opt().get_value();
+
+						// Note: Opaque values are: 1=is_input, 2=is_function, 3=is_preset
+						if ( ctx.opt_list[ctx.curr_sel].opaque == 3 )
+						{
+							m->apply_preset_to_context( ctx, ctx.curr_sel );
+
+							for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+								ctx.right_list[i] = ctx.opt_list[i].get_value();
+
+							FeScriptConfigMenu *script_menu = dynamic_cast<FeScriptConfigMenu*>(m);
+							if ( script_menu )
+								script_menu->update_preset_controlled_options( ctx );
+						}
+						else
+						{
+							m->handle_preset_override( ctx, ctx.curr_sel );
+
+							for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+								if ( ctx.opt_list[i].opaque == 3 )
+									ctx.right_list[i] = ctx.opt_list[i].get_value();
+
+							FeScriptConfigMenu *script_menu = dynamic_cast<FeScriptConfigMenu*>(m);
+							if ( script_menu )
+								script_menu->update_preset_controlled_options( ctx );
+						}
 					}
 					else if ( refresh_colour )
 					{
@@ -1750,6 +1799,12 @@ int FeOverlay::display_config_dialog(
 					std::string d_str = utf32_to_utf8( str );
 					ctx.curr_opt().set_value( d_str );
 					ctx.right_list[ctx.curr_sel] = d_str;
+
+					m->handle_preset_override( ctx, ctx.curr_sel );
+
+					for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+						if ( ctx.opt_list[i].opaque == 3 )
+							ctx.right_list[i] = ctx.opt_list[i].get_value();
 				}
 			}
 
@@ -1785,6 +1840,14 @@ int FeOverlay::display_config_dialog(
 			layout_focus( sdialog, vdialog, LayoutFocus::Edit );
 
 			ctx.save_req = true;
+
+			m->handle_preset_override( ctx, ctx.curr_sel );
+
+			for ( unsigned int i = 0; i < ctx.opt_list.size(); i++ )
+				if ( ctx.opt_list[i].opaque == 3 )
+					ctx.right_list[i] = ctx.opt_list[i].get_value();
+
+			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 
 			if ( m->exit_on_change )
 			{
