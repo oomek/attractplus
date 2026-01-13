@@ -59,7 +59,7 @@ Displays;Pantallas
 Emulator Name;Nombre del Emulador
 Emulators;Emuladores
 Multiple Monitors;Múltiples Monitores
-Enabled;activado
+Enabled;Activado
 Exception;Excepción
 Exit Attract-Mode Plus;Salir de Attract-Mode Plus
 Exit Attract-Mode Plus?;Salir de Attract-Mode Plus?
@@ -71,7 +71,7 @@ Filter Wrap Mode;Modo de Ciclado de Filtro
 Filter;Filtro
 Settings;Ajustes
 Global Filter;Filtro Global
-Group Clones;Agrupar clones
+Group Clones;Agrupar Clones
 Hide Game Title Brackets;Ocultar corchetes del título del juego
 Format Game Title;Formato del título del juego
 Hide Console;Ocultar consola
@@ -99,7 +99,7 @@ Remove Input;Eliminar control
 Reverse Order;Orden inverso
 Rule;Regla
 Scrape Artwork;Escrapear Artes
-Scrape Fanart;Escrapear fanart
+Scrape Fanart;Escrapear Fanart
 Scrape Flyers/Boxart;Escrapear pósters/carátulas
 Scrape Game Logos (Wheel Art);Escrapear logotipos de juegos (arte de la rueda)
 Scrape Marquees;Escrapear marquesinas
@@ -149,7 +149,7 @@ Region;Región
 Rating;Clasificación
 Favourite;Favorito
 Tags;Etiquetas
-PlayedCount;Cuenta de partidas
+PlayedCount;Partidas jugadas
 PlayedTime;Tiempo jugado
 PlayedLast;Último juego jugado
 FileIsAvailable;Archivo disponible
@@ -201,7 +201,7 @@ Add/Remove Favourite;Agregar/eliminar favoritos
 Previous Favourite;Anterior favorito
 Next Favourite;Siguiente favorito
 Add/Remove Tags;Agregar/Remover etiquetas
-Screen Saver;Potector de pantalla
+Screen Saver;Protector de pantalla
 Previous Letter;Letra previa
 Next Letter;Letra siguiente
 Intro;Introducción
@@ -379,8 +379,8 @@ _help_control_custom9;Configura el(los) control(es) "Personalizado9"
 _help_control_displays_menu;Configurar el(los) control(es) que "muestra el menú"
 _help_control_down;Configurar el(los) control(es) que mueven hacia abajo la selección
 _help_control_edit_game;Establece los controles para editar el juego. Selección actual
-_help_control_exit_to_desktop;Configura el(los) control(es) que sale del frontend inmediatamente al escritorio
-_help_control_exit;Configura el(los) control(es) que cierran el frontend
+_help_control_exit_to_desktop;Configura el(los) control(es) de salida al escritorio
+_help_control_exit;Configura el(los) control(es) de salida
 _help_control_filters_menu;Configurar el(los) control(es) que muestran el "Menú de filtros"
 _help_control_insert_game;Establece los controles para insertar una nueva entrada de juego
 _help_control_intro;Establece los controles que muestran el vídeo de introducción.
@@ -402,7 +402,7 @@ _help_control_prev_filter;Configurar el(los) control(es) que mueven hacia el fil
 _help_control_prev_game;Establece los controles que te llevan al juego anterior.
 _help_control_prev_letter;Configura el(los) control(es) que mueve hacia la letra previa
 _help_control_prev_page;Configurar el(los) control(es) que mueven hacia arriba una página la selección
-_help_control_random_game;Configura el(los) control(es) que selecciona un jego aleatorio de la lista actual
+_help_control_random_game;Configura el(los) control(es) que selecciona un juego aleatorio de la lista actual
 _help_control_reload_layout;Establece los controles que recargan la pantalla actual. layout
 _help_control_reload_config;Configura los controles que recargan los archivos de configuración.
 _help_control_reset_window;Establecer los controles para restablecer el tamaño y la posición de la ventana
@@ -410,7 +410,7 @@ _help_control_replay_last_game;Configura el(los) control(es) que relanza el últ
 _help_control_right;Establece los controles que mueven la selección a la derecha.
 _help_control_screen_saver;Configura el(los) control(es) que lanzan el protector de pantalla
 _help_control_screenshot;Configura el(los) control(es) que toma una captura de pantalla del frontend
-_help_control_select;Configura los el(los) control(es) que lanzan la selción actual
+_help_control_select;Configura los el(los) control(es) que lanzan la selección actual
 _help_control_selection_speed;Establece la velocidad del movimiento de selección en milisegundos por paso. El valor predeterminado es 40.
 _help_control_selection_delay;Establece el retardo en milisegundos antes de que comience la repetición de teclas. El valor predeterminado es 400.
 _help_control_selection_max_step;Establece el tamaño máximo de paso para el movimiento de selección. El valor predeterminado es 128.
@@ -423,7 +423,7 @@ _help_control_toggle_rotate_left;Configura el(los) control(es) que cambia si la 
 _help_control_toggle_rotate_right;Configura el(los) control(es) que cambia si lapantalla debe ser rotada o no 90 grados a la derecha
 _help_control_up;Configurar el(los) control(es) que mueven hacia arriba la selección
 _help_display_add_filter;Agregar un filtro a este conjunto de filtros de pantalla
-_help_display_add;Agragar una nueva pantalla
+_help_display_add;Agregar una nueva pantalla
 _help_display_delete;Borra esta pantalla
 _help_display_filter;Configura este filtro desde el conjunto de filtros de pantalla
 _help_display_global_filter;Configura reglas globales de filtros que son aplicados a cada entrada de la lista de roms de esta pantalla
@@ -435,7 +435,7 @@ _help_display_name;Nombre de la pantalla
 _help_display_romlist;Colección/lista de roms usada para esta pantalla
 _help_display_sel;Configurar pantalla
 _help_display_edit_default;Configura las opciones predeterminadas para las nuevas pantallas
-_help_displaysmenu_exit;configura si la opción de Salir debe ser provista en el "menú de pantallas"
+_help_displaysmenu_exit;Configura si la opción de Salir debe ser provista en el "menú de pantallas"
 _help_displaysmenu_layout;El diseño del menú de visualización. Selecciona "Predeterminado" para usar el menú integrado del frontend.
 _help_displaysmenu_prompt;El mensaje del menú de pantallas (p. ej., "Seleccionar sistema")
 _help_displaysmenu;Configura las opciones del menú de visualización.
@@ -445,14 +445,14 @@ _help_emu_delete;Borra la entrada para este emulador
 _help_emu_executable;Ruta completa y nombre del ejecutable del emulador. $HOME es reemplazado por con el directorio home del usuario
 _help_emu_exit_hotkey;Configura una tecla global para salir del emulador. Attract-Mode Plus terminará el proceso del emulador si esta tecla es presionada
 _help_emu_gen_romlist;Genera una lista de roms buscando en las rutas de roms configuradas con las extensiones configuradas, incorporando XML e importando información adicional a la lista generada (si está disponible)
-_help_emu_import_extras;Ruta de cualquier archivo adicional que neceiste ser leido cuando se genera la lista de roms para este emulador.  Los archivos soportados son: catver.ini (para categorias de juegos) y nplayers.ini (para el número de jugadores). Es posible ingresar multiples rutas separadas por punto y coma.
+_help_emu_import_extras;Ruta de cualquier archivo adicional que necesite ser leido cuando se genera la lista de roms para este emulador.  Los archivos soportados son: catver.ini (para categorias de juegos) y nplayers.ini (para el número de jugadores). Es posible ingresar multiples rutas separadas por punto y coma.
 _help_emu_info_source;Use "listxml" si el emulador prove la salida de mame -listxml, "listsoftware" para la salida de mame/mess -listsoftware, "thegamesdb.net" para extraer información desde thegamesdb.net, o "steam" para leer desde una instalación de steam.  "listsoftware" y "thegamesdb.net" también requieren que sea configurado un identificador de sistema reconocible por esas fuentes
 _help_emu_name;Editar emulador
 _help_emu_nb_mode_wait;Configura un tiempo mínimo de ejecución (en segundos).  Attract-Mode Plus esperará después de ejecutar este emulador hasta que haya transcurrido el tiempo mínimo de ejecución y pasará a ejecución de fondo. Esto necesita ser configurado por Steam para funcionar correctamente en Windows. Configure esto en 0 a menos que sepa que lo necesita
 _help_emu_pause_hotkey;Establece una tecla de acceso rápido global para pausar el emulador. Al pulsarlo, Attract-Mode Plus pausará el proceso del emulador y volverá a la interfaz. El proceso del emulador se puede reanudar seleccionando de nuevo el mismo juego en la interfaz.
 _help_emu_romext;Extensión(es) para este emulador (por ej. .zip). Es posible ingresar multiples extensiones separadas por punto y coma. Especificar "<DIR>" como entrada si los juegos se encuientran en subdirectorios separados
 _help_emu_rompath;Ruta a las roms para este emulador.  Es posible ingresar multiples rutas separadas por punto y coma.
-_help_emu_scrape_artwork;Scrape missing artwork images for this emulator from TheGamesDB.net and mamedb.com
+_help_emu_scrape_artwork;Extraiga las imágenes de ilustraciones faltantes para este emulador de TheGamesDB.net y mamedb.com
 _help_emu_sel_auto_detect;Esto escaneará la carpeta principal en busca de emuladores conocidos y generará configuraciones predeterminadas para cada emulador encontrado.
 _help_emu_sel_gen_romlist;Genera una colección/lista de ROMs con juegos para varios emuladores
 _help_emu_sel;Configura el emulador
@@ -463,44 +463,44 @@ _help_filter_add_rule;Agrega una regla para este filtro
 _help_filter_delete;Borrar este filtro
 _help_filter_exception;Configura esta excepción de filtro. Si un juego coincide con una excepción, aparecerá en el filtro. Las reglas y excepciones se aplican en el orden en que aparecen.
 _help_filter_list_limit;Configurar esto a cero si desea limitar el tamaño de una lista ordenada. Use un valor positivo para las X primeras entradas (por ej. "10" entrega las primeras 10 entradas), un valor negativo para las últimas X entradas (por ej. "-25" entrega las últimas 25 entradas), o "0" para ilimitado
-_help_filter_name;Name ára este filtro
+_help_filter_name;Nombra este filtro
 _help_filter_reverse_order;Invierte el orden de la colección/lista de ROMs. El orden predeterminado es de la A a la Z para información, de mayor a menor para estadísticas o el orden de la lista de origen para "Sin ordenar".
 _help_filter_rule;Configura regla para el filtro
-_help_filter_sort_by;Atriburo del juego a partir del cual desea que la colección/lista de roms sea ordenada. Configure a "No ordenar" para mantener el orden de la colección/lista de romo
+_help_filter_sort_by;Atriburo del juego a partir del cual desea que la colección/lista de roms sea ordenada. Configure a "No ordenar" para mantener el orden de la colección/lista de ROMs
 _help_game_custom_args;Establece esto para anular los argumentos de línea de comandos predeterminados para este juego. Déjalo en blanco si quieres anularlos sin parámetros. Se sustituyen los siguientes elementos según corresponda: [nombre], [romext], [ruta_rom], [emulador], [nombre_archivo_rom], [sistema], [sisteman]
 _help_game_custom_executable;Establece esto para anular el ejecutable predeterminado de este juego.
 _help_game_delete;Elimina este juego de la lista de ROMs.
 _help_game_edit;Edita la información de este juego.
 _help_game_overview;Edita la descripción general del juego.
-_help_generator_build;Genera la lista de ROM con los emuladores seleccionados
-_help_generator_opt;Establece si este emulador se incluirá en la lista de ROM generada.
-_help_input_action;
+_help_generator_build;Genera la lista de ROMs con los emuladores seleccionados
+_help_generator_opt;Establece si este emulador se incluirá en la lista de ROMs generada.
+_help_input_action;Asigna una acción
 _help_input_add;Agrega una nueva asignación de controles para esta acción
 _help_input_default_action;Establece el comportamiento predeterminado para este control.
 _help_input_delete;Remover esta asignación de controles
 _help_layout_file;Algunas plantillas proporcionan varios archivos layout*.nut. Seleccione el archivo de plantilla que desea usar
 _help_layout_name;Configurar diseño
 _help_main_control;Configura las entradas de palanca, teclado y ratón que controlan Attract-Mode Plus
-_help_main_display;Configura los grupos de lista de roms/temas ("Pantallas") que están disponibles para hacer circular enAttract-Mode Plus
+_help_main_display;Configura los grupos de lista de roms/temas ("Pantallas") que están disponibles para hacer circular en Attract-Mode Plus
 _help_main_emu;Configura las opciones del emulador
 _help_main_intro;Configura las opciones de introducción
 _help_main_settings;Configura las opciones generales
 _help_main_plugin;Configura las opciones del plugin
 _help_main_scraper;Configura las opciones del scraper
 _help_main_screensaver_timeout;Cantidad de tiempo en segundos a esperar antes de lanzar el protector de pantalla. 0 para deshabilitar
-_help_main_screensaver;Configura ell protector de pantalla
+_help_main_screensaver;Configura el protector de pantalla
 _help_main_sound;Configura volumenes de sonidos, asignaciones de eventos de sonido y el tema (canción) de ambiente
 _help_misc_anisotropic_filtering;Establece el nivel de filtrado anisotrópico para las texturas. Esto mejorará la calidad de las texturas escaladas.
 _help_misc_antialiasing;Establecer el nivel de suavizado
 _help_misc_check_for_updates;Configura si Attract-Mode Plus debe buscar actualizaciones disponibles al inicio y mostrar un cuadro de diálogo de notificación de actualización cuando se encuentre una nueva versión.
-_help_misc_confirm_exit;Confirm before exiting Attract-Mode Plus?
+_help_misc_confirm_exit;Confirmar antes de salir de Attract-Mode Plus?
 _help_misc_confirm_favs;Confirma la adición/remoción a favoritos
 _help_misc_custom_overlay;Permitir que las plantillas personalicen la superposición utilizada para los menús Mostrar, Filtrar, Etiquetar y Salir
 _help_misc_exit_command;Comando seleccionado cuando Salir (con confirmación) es seleccionado [por ej. "sudo shutdown"]
 _help_misc_exit_message;Mensaje alternativo para salir de la interfaz [ej. "Apagar sistema"].
 _help_misc_filter_wrap_mode;Configura que pasa cuando el "Siguiente filtro" o "Filtro previo" alcanza el final del conjunto de filtros
 _help_misc_group_clones;Agrupa todos los clones de un juego en una sola entrada de lista.
-_help_misc_hide_brackets;Esconde Hide el texto en paréntesis cuando se muestran los títulos de los juegos
+_help_misc_hide_brackets;Esconde el texto en paréntesis cuando se muestran los títulos de los juegos
 _help_misc_prefix_modes;Mueve "The" y "Vs." Prefijos al final del título del juego
 _help_misc_hide_console;Ocultar la consola al inicio. Tenga en cuenta que esto solo funciona si inicia Attract-Mode Plus desde una interfaz gráfica de Windows. Si se inicia desde una ventana de consola existente (p. ej., un archivo por lotes), el proceso siempre se conectará a la consola existente y mostrará la salida en ella.
 _help_misc_image_cache_mbytes;Configura el tamaño máximo de la caché de imágenes interna de Attract-Mode Plus (en megabytes)
@@ -514,20 +514,20 @@ _help_misc_startup_mode;Establece qué debe suceder cuando Attract-Mode Plus se 
 _help_misc_track_usage;Configura si Attract-Mode Plus debería registrar el uso (tiempo jugado y cuenta de partidas para cada juego)
 _help_misc_ui_color;Selecciona el color que se usará en la interfaz de usuario de Attract-Mode Plus.
 _help_misc_video_decoder;Configura el decodificador que se usará para la reproducción de vídeo (si hay varios decodificadores disponibles).
-_help_misc_window_mode;configura si Attract-Mode Plus llena lapantalla o se ejecuta en una ventana
+_help_misc_window_mode;Configura si Attract-Mode Plus llena la pantalla o se ejecuta en una ventana
 _help_plugin_command;Ejecutable asociado a este plugin
 _help_plugin_enabled;Configura si este plugin está o no habilitado
-_help_plugin_name;Configurar plugin
-_help_plugin_sel;Configurar plugin
+_help_plugin_name;Configurar nombre del plugin
+_help_plugin_sel;Configurar la célula del plugin
 _help_rule_comp;Tipo de comparación para el filtro
 _help_rule_delete;Borra esta regla de filtro
 _help_rule_target;El atributo de información del juego en el cual quiere basar el fitro
 _help_rule_value;Expresión regular para filtrar. Por ejemplo, si el objetivo del filtro es "Año" y la comparación es "igual",un valor de "1984" coincidirá con el año 1984, "198." coincidirá con cualquier año de los 80s, y "(198.)|(199.)" coincidirá con cualquier año de los 80s o 90s
-_help_scraper_fanart;Set whether game fan art should be downloaded when scraping
+_help_scraper_fanart;Establecer si se debe descargar el arte del juego al extraer datos
 _help_scraper_flyers;Establecer si se deben descargar los folletos y las carátulas de los juegos al extraer datos
 _help_scraper_marquees;Establecer si se deben descargar las marquesinas y banners del juego al extraer datos
 _help_scraper_snaps;Establece si se deben descargar instantáneas del juego al extraer datos.
-_help_scraper_vids;Establece si se deben descargar los vídeos del juego al extraerlos.
+_help_scraper_vids;Establece si se deben descargar los vídeos del juego al extraer datos.
 _help_scraper_wheels;Establece si se deben descargar los logotipos de los juegos al extraer datos.
 _help_shortcut_artwork_name;Opcionalmente, proporciona un nombre para la imagen que se asociará a este acceso directo. La interfaz intentará cargar las imágenes con este nombre al mostrar el acceso directo.
 _help_shortcut_delete;Eliminar este acceso directo de la lista de ROMs
