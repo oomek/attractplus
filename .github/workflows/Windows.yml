@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: AM+ - Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: am
 
@@ -94,7 +94,7 @@ jobs:
         cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
         cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Windows
         path: ./artifacts/

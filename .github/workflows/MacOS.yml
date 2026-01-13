@@ -23,7 +23,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - name: AM+ - Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: am
     - name: Prepare
@@ -36,6 +36,7 @@ jobs:
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
     - name: Install MacOS brew
       run: |
+        brew pin ruby@3.3
         brew update
         brew upgrade
         brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo sfml openal-soft
@@ -53,7 +54,7 @@ jobs:
         mkdir -p "${GITHUB_WORKSPACE}"/artifacts
         bash am/util/osx/appbuilder.sh
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: MacOS
         path: ./artifacts/
