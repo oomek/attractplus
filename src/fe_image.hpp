@@ -202,6 +202,7 @@ public:
 
 	float get_sample_aspect_ratio() const;
 
+	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
 	FeMedia *get_media() const;
 
 protected:

@@ -655,7 +655,7 @@ int FeSettings::process_setting( const std::string &setting,
 		m_current_config_object = &m_displays.back();
 	}
 	else if ( setting.compare( otherSettingStrings[1] ) == 0 ) // sound
-		m_current_config_object = &m_sounds;
+		m_current_config_object = &m_sound_info;
 	else if ( setting.compare( otherSettingStrings[2] ) == 0 ) // input_map
 		m_current_config_object = &m_inputmap;
 	else if ( setting.compare( otherSettingStrings[3] ) == 0 ) // general
@@ -2640,43 +2640,47 @@ void FeSettings::toggle_layout()
 
 void FeSettings::set_volume( FeSoundInfo::SoundType t, const std::string &v )
 {
-	m_sounds.set_volume( t, v );
+	m_sound_info.set_volume( t, v );
 }
 
 int FeSettings::get_set_volume( FeSoundInfo::SoundType t ) const
 {
-	return m_sounds.get_set_volume( t );
+	return m_sound_info.get_set_volume( t );
 }
 
 int FeSettings::get_play_volume( FeSoundInfo::SoundType t ) const
 {
-	return m_sounds.get_play_volume( t );
+	return m_sound_info.get_play_volume( t );
 }
 
 bool FeSettings::get_mute() const
 {
-	return m_sounds.get_mute();
+	return m_sound_info.get_mute();
 }
 
 void FeSettings::set_mute( bool m )
 {
-	m_sounds.set_mute( m );
+	m_sound_info.set_mute( m );
 }
 
 bool FeSettings::get_loudness() const
 {
-	return m_sounds.get_loudness();
+	return m_sound_info.get_loudness();
 }
 
 void FeSettings::set_loudness( bool enabled )
 {
-	m_sounds.set_loudness( enabled );
+	m_sound_info.set_loudness( enabled );
+
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		fep->set_audio_loudness( enabled );
 }
 
 bool FeSettings::get_sound_file( FeInputMap::Command c, std::string &s, bool full_path ) const
 {
 	std::string filename;
-	if ( m_sounds.get_sound( c, filename ) )
+	if ( m_sound_info.get_sound( c, filename ) )
 	{
 		if ( full_path )
 		{
@@ -2696,7 +2700,7 @@ bool FeSettings::get_sound_file( FeInputMap::Command c, std::string &s, bool ful
 
 void FeSettings::set_sound_file( FeInputMap::Command c, const std::string &s )
 {
-	m_sounds.set_sound( c, s );
+	m_sound_info.set_sound( c, s );
 }
 
 void FeSettings::get_sounds_list( std::vector < std::string > &ll ) const
@@ -4040,7 +4044,7 @@ void FeSettings::save() const
 
 		// sound
 		outfile << otherSettingStrings[1] << std::endl;
-		m_sounds.save( outfile );
+		m_sound_info.save( outfile );
 		outfile << std::endl;
 
 		// input_map

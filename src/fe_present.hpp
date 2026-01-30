@@ -293,6 +293,7 @@ public:
 	bool get_overlay_custom_controls( FeText *&, FeListBox *& );
 
 	void set_video_play_state( bool state );
+	void set_audio_loudness( bool enabled );
 	bool get_video_toggle() { return m_playMovies; };
 
 	int get_layout_ms();

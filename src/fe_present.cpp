@@ -1484,6 +1484,19 @@ void FePresent::set_video_play_state( bool state )
 		(*itm)->set_play_state( state );
 }
 
+void FePresent::set_audio_loudness( bool enabled )
+{
+	for ( FeMusic *music : m_musics )
+		if ( music )
+			if ( auto normaliser = music->get_audio_effects().get_normaliser() )
+				normaliser->set_enabled( enabled );
+
+	for ( FeBaseTextureContainer *container : m_texturePool )
+		if ( auto tex = dynamic_cast<FeTextureContainer *>(container) )
+			if ( auto normaliser = tex->get_audio_effects().get_normaliser() )
+				normaliser->set_enabled( enabled );
+}
+
 const sf::Transform &FePresent::get_transform() const
 {
 	return m_layout_transform;

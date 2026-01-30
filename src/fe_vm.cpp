@@ -3444,3 +3444,12 @@ void FeVM::init_with_default_layout()
 	// Game listbox
 	cb_add_listbox( 0, 0, flw, flh );
 }
+
+void FeVM::set_audio_loudness( bool enabled )
+{
+	// Call base class to update audio normalisers in FeMusic and FeImage
+	FePresent::set_audio_loudness( enabled );
+
+	if ( auto normaliser = m_ambient_sound.get_audio_effects().get_normaliser() )
+		normaliser->set_enabled( enabled );
+}

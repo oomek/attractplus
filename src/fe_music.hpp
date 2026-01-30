@@ -82,6 +82,7 @@ public:
 
 	void tick();
 
+	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
 	FeAudioVisualiser* get_audio_visualiser() const;
 
 	float get_vu_mono();

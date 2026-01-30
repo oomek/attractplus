@@ -54,6 +54,7 @@ protected:
 	float m_device_sample_rate;
 };
 
+class FeAudioNormaliser;
 
 class FeAudioEffectsManager
 {
@@ -68,6 +69,8 @@ public:
 	void update_all();
 	void reset_all();
 	void set_ready_for_processing();
+
+	FeAudioNormaliser* get_normaliser() const;
 
 	// Get specific effect (returns nullptr if not found or wrong type)
 	template<typename T>
@@ -199,6 +202,11 @@ private:
 	float m_media_volume = 1.0f;
 	float m_max_peak = 0.0f;
 };
+
+inline FeAudioNormaliser* FeAudioEffectsManager::get_normaliser() const
+{
+	return get_effect<FeAudioNormaliser>();
+}
 
 template<typename T>
 T* FeAudioEffectsManager::get_effect() const

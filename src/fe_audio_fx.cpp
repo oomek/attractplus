@@ -106,12 +106,6 @@ bool FeAudioEffectsManager::process_all( const float *input_frames, float *outpu
 		if ( effect )
 		{
 			bool enabled = effect->is_enabled();
-			if ( dynamic_cast<FeAudioNormaliser*>( effect.get() ))
-			{
-				FePresent *fep = FePresent::script_get_fep();
-				if ( fep )
-					enabled = fep->get_fes()->get_loudness();
-			}
 
 			if ( enabled && effect->process( current_input, current_output, frame_count, channel_count ))
 				audio_modified = true;

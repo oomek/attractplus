@@ -142,6 +142,8 @@ public:
 	//
 	bool setup_wizard();
 
+	void set_audio_loudness( bool enabled );
+
 	// Scripting functionality
 	//
 	void vm_close();

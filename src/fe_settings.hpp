@@ -227,7 +227,7 @@ private:
 	FePathCache m_path_cache;
 
 	FeInputMap m_inputmap;
-	FeSoundInfo m_sounds;
+	FeSoundInfo m_sound_info;
 	FeTranslationMap m_translation_map;
 	FeLayoutInfo m_saver_params;
 	FeLayoutInfo m_intro_params;
