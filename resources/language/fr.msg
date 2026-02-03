@@ -104,8 +104,11 @@ Scrape Flyers/Boxart;Aspire les Flyers/Couvertures
 Scrape Game Logos (Wheel Art);Aspire les logos des jeux (Wheel Art)
 Scrape Marquees;Aspire les Marquees
 Scrape Snaps;Aspire les images des jeux
-Scrape Videos (MAME only);Récupérer des vidéos (MAME uniquement)
+Scrape Videos;Récupérer des vidéos
+Scrape Overview;Récupérer des descriptions
 Scraper;Grattoir
+ScreenScraper Username;Nom d'utilisateur ScreenScraper
+ScreenScraper Password;Mot de passe ScreenScraper
 Screen Rotation;Rotation de l'écran
 Screen Saver Timeout;Décompte économiseur d'écran
 Selection Speed;Vitesse de sélection
@@ -528,7 +531,10 @@ _help_scraper_flyers;Définir où les 'flyers' et les couvertures des boîtes de
 _help_scraper_marquees;Définir où les 'marquees' et les bannières des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scraper_snaps;Définir où les 'snapshots' des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scraper_vids;Définir où les videos des jeux doivent être téléchargés lorsqu'ils sont aspirés
+_help_scraper_overview;Définir où les descriptions des jeux doivent être téléchargés lorsqu'ils sont aspirés
 _help_scraper_wheels;Définir où les logos des jeux doivent être téléchargés lorsqu'ils sont aspirés
+_help_screenscraper_user;Optionnel: Votre nom d'utilisateur ScreenScraper.fr pour des limites de scraping plus élevées
+_help_screenscraper_pass;Optionnel: Votre mot de passe ScreenScraper.fr pour l'authentification
 _help_shortcut_artwork_name;Ajouter éventuellement un nom d'illustration à associer à ce raccourci. L'interface tentera de charger des illustrations portant ce nom lors de l'affichage du raccourci.
 _help_shortcut_delete;Supprimer ce raccourci de la liste des ROM.
 _help_shortcut_label;Modifier le libellé de ce raccourci

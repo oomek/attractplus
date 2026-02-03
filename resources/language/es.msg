@@ -104,8 +104,11 @@ Scrape Flyers/Boxart;Escrapear pósters/carátulas
 Scrape Game Logos (Wheel Art);Escrapear logotipos de juegos (arte de la rueda)
 Scrape Marquees;Escrapear marquesinas
 Scrape Snaps;Escrapear capturas de pantalla
-Scrape Videos (MAME only);Escrapear vídeos (solo MAME)
+Scrape Videos;Escrapear vídeos
+Scrape Overview;Escrapear descripciones
 Scraper;Escrapeador
+ScreenScraper Username;Usuario ScreenScraper
+ScreenScraper Password;Contraseña ScreenScraper
 Screen Rotation;Rotación de pantalla
 Screen Saver Timeout;Límite de tiempo para el salvapantalla
 Selection Speed;Velocidad de selección
@@ -528,7 +531,10 @@ _help_scraper_flyers;Establecer si se deben descargar los folletos y las carátu
 _help_scraper_marquees;Establecer si se deben descargar las marquesinas y banners del juego al extraer datos
 _help_scraper_snaps;Establece si se deben descargar instantáneas del juego al extraer datos.
 _help_scraper_vids;Establece si se deben descargar los vídeos del juego al extraer datos.
+_help_scraper_overview;Establece si se deben descargar las descripciones del juego al extraer datos.
 _help_scraper_wheels;Establece si se deben descargar los logotipos de los juegos al extraer datos.
+_help_screenscraper_user;Opcional: Su nombre de usuario de ScreenScraper.fr para límites de scraping más altos
+_help_screenscraper_pass;Opcional: Su contraseña de ScreenScraper.fr para la autenticación
 _help_shortcut_artwork_name;Opcionalmente, proporciona un nombre para la imagen que se asociará a este acceso directo. La interfaz intentará cargar las imágenes con este nombre al mostrar el acceso directo.
 _help_shortcut_delete;Eliminar este acceso directo de la lista de ROMs
 _help_shortcut_label;Edita la etiqueta de este acceso directo

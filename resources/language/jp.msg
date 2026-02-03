@@ -104,8 +104,11 @@ Scrape Flyers/Boxart;箱のアートーワーク, ポスターをダウンロー
 Scrape Game Logos (Wheel Art);ゲームロゴをダウンロード (Wheel Art)
 Scrape Marquees;Marqueeをダウンロード
 Scrape Snaps;スクリーンショットをダウンロード
-Scrape Videos (MAME only);ビデオをスクレイピング (MAMEのみ)
+Scrape Videos;ビデオをスクレイピング
+Scrape Overview;説明をスクレイピング
 Scraper;スクレーパー
+ScreenScraper Username;ScreenScraper ユーザー名
+ScreenScraper Password;ScreenScraper パスワード
 Screen Rotation;画面の回転
 Screen Saver Timeout;スクリーンセーバーのタイムアウト時間
 Selection Speed;選択速度
@@ -528,7 +531,10 @@ _help_scraper_flyers;オンラインから箱のアートーワーク, ポスタ
 _help_scraper_marquees;オンラインからMarqueeをダウンロードするかを設定します
 _help_scraper_snaps;オンラインからスクリーンショットをダウンロードするかを設定します
 _help_scraper_vids;スクレイピング時にゲームビデオをダウンロードするかどうかを設定します
+_help_scraper_overview;スクレイピング時にゲーム説明をダウンロードするかどうかを設定
 _help_scraper_wheels;オンラインからWheel Artタイプのゲームロゴをダウンロードするかを設定します
+_help_screenscraper_user;オプション: スクレイピング上限を引き上げるためのScreenScraper.frアカウントのユーザー名
+_help_screenscraper_pass;オプション: 認証用のScreenScraper.frアカウントのパスワードします
 _help_shortcut_artwork_name;このショートカットに関連付けるアートワーク名を任意で指定します。フロントエンドはショートカットを表示するときに、この名前のアートワークを読み込もうとします
 _help_shortcut_delete;このショートカットをROMリストから削除します
 _help_shortcut_label;このショートカットのラベルを編集します
