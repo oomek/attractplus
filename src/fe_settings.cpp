@@ -605,6 +605,8 @@ const char *FeSettings::configSettingStrings[] =
 	"scrape_videos",
 	"scrape_overview",
 	"thegamesdb_key",
+	"screenscraper_user",
+	"screenscraper_pass",
 	"power_saving",
 	"check_for_updates",
 #ifdef SFML_SYSTEM_WINDOWS
@@ -3479,6 +3481,10 @@ const std::string FeSettings::get_info( int index ) const
 		return prefixTokens[ m_prefix_mode ];
 	case ThegamesdbKey:
 		return m_tgdb_key;
+	case ScreenScraperUser:
+		return m_ss_user;
+	case ScreenScraperPass:
+		return m_ss_pass;
 
 	case CustomLanguages:
 	case DisplaysMenuExit:
@@ -3647,6 +3653,14 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case ThegamesdbKey:
 		m_tgdb_key = value;
+		break;
+
+	case ScreenScraperUser:
+		m_ss_user = value;
+		break;
+
+	case ScreenScraperPass:
+		m_ss_pass = value;
 		break;
 
 	case ConfirmFavourites:
@@ -4639,6 +4653,15 @@ bool FeSettings::internal_get_best_artwork_file(
 	std::string scraper_path = get_config_dir() + FE_SCRAPER_SUBDIR + emu_name + "/" + scrape_art + "/";
 	if ( directory_exists( scraper_path ) )
 		art_paths.push_back( scraper_path );
+
+	// For "snap" first check scraper/display_name/video/
+	// This matches the convention where users configure multiple paths for "snap"
+	if ( art_name.compare( "snap" ) == 0 && !image_only )
+	{
+		std::string scraper_video_path = get_config_dir() + FE_SCRAPER_SUBDIR + emu_name + "/video/";
+		if ( directory_exists( scraper_video_path ) )
+			art_paths.push_back( scraper_video_path );
+	}
 
 	if ( !art_paths.empty() )
 	{
