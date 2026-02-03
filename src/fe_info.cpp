@@ -1109,6 +1109,7 @@ const char *FeEmulatorInfo::infoSourceStrings[] =
 	"steam",
 	"thegamesdb.net",
 	"scummvm",
+	"screenscraper.fr",
 	"listsoftware+thegamesdb.net",
 	NULL
 };

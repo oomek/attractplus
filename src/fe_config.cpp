@@ -1716,7 +1716,10 @@ void FeScraperMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::TOGGLE, _( "Scrape Flyers/Boxart" ), ctx.fe_settings.get_info_bool( FeSettings::ScrapeFlyers ), _( "_help_scraper_flyers" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Scrape Game Logos (Wheel Art)" ), ctx.fe_settings.get_info_bool( FeSettings::ScrapeWheels ), _( "_help_scraper_wheels" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Scrape Fanart" ), ctx.fe_settings.get_info_bool( FeSettings::ScrapeFanArt ), _( "_help_scraper_fanart" ) );
-	ctx.add_opt( Opt::TOGGLE, _( "Scrape Videos (MAME only)" ), ctx.fe_settings.get_info_bool( FeSettings::ScrapeVids ), _( "_help_scraper_vids" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Scrape Videos" ), ctx.fe_settings.get_info_bool( FeSettings::ScrapeVids ), _( "_help_scraper_vids" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Scrape Overview" ), ctx.fe_settings.get_info_bool( FeSettings::ScrapeOverview ), _( "_help_scraper_overview" ) );
+	ctx.add_opt( Opt::EDIT, _( "ScreenScraper Username" ), ctx.fe_settings.get_info( FeSettings::ScreenScraperUser ), _( "_help_screenscraper_user" ) );
+	ctx.add_opt( Opt::EDIT, _( "ScreenScraper Password" ), ctx.fe_settings.get_info( FeSettings::ScreenScraperPass ), _( "_help_screenscraper_pass" ) );
 	FeBaseConfigMenu::get_options( ctx );
 }
 
@@ -1728,6 +1731,9 @@ bool FeScraperMenu::save( FeConfigContext &ctx )
 	ctx.fe_settings.set_info( FeSettings::ScrapeWheels, ctx.opt_list[3].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ScrapeFanArt, ctx.opt_list[4].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ScrapeVids, ctx.opt_list[5].get_bool() );
+	ctx.fe_settings.set_info( FeSettings::ScrapeOverview, ctx.opt_list[6].get_bool() );
+	ctx.fe_settings.set_info( FeSettings::ScreenScraperUser, ctx.opt_list[7].get_value() );
+	ctx.fe_settings.set_info( FeSettings::ScreenScraperPass, ctx.opt_list[8].get_value() );
 	return true;
 }
 
