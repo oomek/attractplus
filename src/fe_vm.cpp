@@ -59,6 +59,7 @@
 #include <ctime>
 #include <stdarg.h>
 #include <algorithm>
+#include <cmath>
 
 #ifndef SFML_SYSTEM_WINDOWS
 #include <sys/stat.h>
@@ -263,6 +264,38 @@ const char *FeVM::transitionTypeStrings[] =
 		"ChangedTag",
 		NULL
 };
+
+struct TransitionTypeMapping
+{
+	const char *name;
+	FeTransitionType value;
+};
+
+static const TransitionTypeMapping transitionTypeMappings[] =
+{
+	{ "StartLayout",      StartLayout },
+	{ "EndLayout",        EndLayout },
+	{ "ToNewSelection",   ToNewSelection },
+	{ "FromOldSelection", FromOldSelection },
+	{ "ToGame",           ToGame },
+	{ "FromGame",         FromGame },
+	{ "ToNewList",        ToNewList },
+	{ "EndNavigation",    EndNavigation },
+	{ "ShowOverlay",      ShowOverlay },
+	{ "HideOverlay",      HideOverlay },
+	{ "NewSelOverlay",    NewSelOverlay },
+	{ "ChangedTag",       ChangedTag },
+	{ NULL, (FeTransitionType)0 }
+};
+
+const char *FeVM::get_transition_name( FeTransitionType t )
+{
+	if ( t == 0 )
+		return transitionTypeStrings[0];
+
+	int index = (int)std::log2( (double)t );
+	return transitionTypeStrings[index];
+}
 
 FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console_input )
 	: FePresent( &fes, wnd ),
@@ -876,9 +909,9 @@ bool FeVM::on_new_layout()
 
 	Enumeration transition;
 	i=0;
-	while ( transitionTypeStrings[i] != NULL )
+	while ( transitionTypeMappings[i].name != NULL )
 	{
-		transition.Const( transitionTypeStrings[i], i );
+		transition.Const( transitionTypeMappings[i].name, transitionTypeMappings[i].value );
 		i++;
 	}
 	ConstTable().Enum( _SC("Transition"), transition );
@@ -1613,7 +1646,7 @@ void FeVM::on_transition(
 {
 	using namespace Sqrat;
 
-	FeDebug() << "[Transition] type=" << transitionTypeStrings[t] << ", var=" << var << std::endl;
+	FeDebug() << "[Transition] type=" << get_transition_name( t ) << ", var=" << var << std::endl;
 
 	FeStableClock clk;
 	int ttime = 0;

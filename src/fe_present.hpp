@@ -47,18 +47,18 @@ namespace sf
 
 enum FeTransitionType
 {
-	StartLayout=0,		// var: FromToScreenSaver, FromToFrontend or FromToNoValue
-	EndLayout,			// var: FromToScreenSaver, FromToFrontend or FromToNoValue
-	ToNewSelection,	// var = index_offset of new selection
-	FromOldSelection,	// var = index_offset of old selection
-	ToGame,				// var = 0
-	FromGame,			// var = 0
-	ToNewList,			// var = filter offset of new filter (if available), otherwise 0
-	EndNavigation,		// var = 0
-	ShowOverlay,		// var = Custom, Exit, Displays, Filters, Tags
-	HideOverlay,		// var = 0
-	NewSelOverlay,		// var = index of new selection
-	ChangedTag		   // var = FeRomInfo::Favourite, FeRomInfo::Tags
+	StartLayout      = 1<<0,  // var: FromToScreenSaver, FromToFrontend or FromToNoValue
+	EndLayout        = 1<<1,  // var: FromToScreenSaver, FromToFrontend or FromToNoValue
+	ToNewSelection   = 1<<2,  // var = index_offset of new selection
+	FromOldSelection = 1<<3,  // var = index_offset of old selection
+	ToGame           = 1<<4,  // var = 0
+	FromGame         = 1<<5,  // var = 0
+	ToNewList        = 1<<6,  // var = filter offset of new filter (if available), otherwise 0
+	EndNavigation    = 1<<7,  // var = 0
+	ShowOverlay      = 1<<8,  // var = Custom, Exit, Displays, Filters, Tags
+	HideOverlay      = 1<<9,  // var = 0
+	NewSelOverlay    = 1<<10, // var = index of new selection
+	ChangedTag       = 1<<11  // var = FeRomInfo::Favourite, FeRomInfo::Tags
 };
 
 //
