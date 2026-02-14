@@ -326,6 +326,7 @@ public:
 	int get_texture_width() const;
 	int get_texture_height() const;
 	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
+	void set_texture( const sf::Texture &texture );
 
 	void transition_swap( FeImage * );
 	bool fix_masked_image();
@@ -554,6 +555,7 @@ protected:
 	FeBlend::Mode m_blend_mode;
 	bool m_preserve_aspect_ratio;
 	float m_force_aspect_ratio;
+	bool m_using_external_texture;
 
 	sf::Vector2f m_scale;
 	sf::FloatRect m_fit_rect;

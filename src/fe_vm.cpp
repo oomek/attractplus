@@ -1183,6 +1183,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("frame_time"), &FePresent::get_layout_frame_time )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 		.Prop(_SC("surface"), &FePresent::get_main_surface )
+		.Prop(_SC("snapshot"), &FePresent::get_main_surface_snapshot )
 		.Func(_SC("redraw"), &FePresent::redraw )
 	);
 
@@ -1442,6 +1443,8 @@ bool FeVM::on_new_layout()
 
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 	m_main_surface = fev->add_surface( 0, 0, fev->m_mon[0].get_width(), fev->m_mon[0].get_height(), fev->m_mon[0] );
+	m_main_surface_snapshot = fev->add_image( false, "", 0, 0, m_mon[0].get_width(), m_mon[0].get_height(), m_mon[0] );
+	m_main_surface_snapshot->set_visible( false );
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
