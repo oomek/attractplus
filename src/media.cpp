@@ -946,7 +946,6 @@ FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
 
 FeMedia::~FeMedia()
 {
-	m_alive.store( false, std::memory_order_release );
 	close();
 
 	delete m_imp;
@@ -999,6 +998,8 @@ void FeMedia::play()
 
 void FeMedia::signal_stop()
 {
+	m_alive.store( false, std::memory_order_release );
+
 	if ( m_audio )
 		sf::SoundStream::stop();
 
