@@ -1720,7 +1720,7 @@ void FeVM::on_transition(
 				m_sort_zorder_triggered = false;
 			}
 
-			video_tick();
+			tick();
 			clk.tick();
 
 			redraw_surfaces();

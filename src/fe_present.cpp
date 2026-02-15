@@ -1375,8 +1375,8 @@ void FePresent::redraw()
 	if ( is_layout_loaded() )
 		tick();
 
-	m_window.clear();
 	redraw_surfaces();
+	m_window.clear();
 	m_window.draw( *this, m_layout_transform );
 	m_window.display();
 
