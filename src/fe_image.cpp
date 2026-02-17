@@ -1053,6 +1053,8 @@ void FeSurfaceTextureContainer::on_redraw_surfaces()
 	if ( fep )
 		if ( this == fep->get_main_presentable() )
 			states.transform = fep->get_transform();
+		else if ( this == fep->get_overlay_presentable() )
+			states.transform = fep->get_ui_transform();
 
 	if ( m_clear ) m_texture.clear( sf::Color::Transparent );
 	if ( m_redraw )

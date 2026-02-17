@@ -162,6 +162,7 @@ protected:
 	std::vector<FeMonitor> m_mon;
 	FeImage *m_main_surface;
 	FeImage *m_main_surface_snapshot;
+	FeImage *m_overlay_surface;
 	sf::Texture m_main_surface_snapshot_texture;
 	int m_refresh_rate;
 	bool m_playMovies;
@@ -185,6 +186,7 @@ protected:
 	FePresent &operator=( const FePresent & );
 
 	void toggle_movie();
+	sf::Vector2f get_parent_scale_factor( const FePresentableParent &p ) const;
 
 	void toggle_rotate( FeSettings::RotationState ); // toggle between none and provided state
 	FeSettings::RotationState get_actual_rotation();
@@ -308,6 +310,7 @@ public:
 	FeImage *get_main_surface() const;
 	FeImage *get_main_surface_snapshot() const;
 	FePresentableParent *get_main_presentable() const;
+	FePresentableParent *get_overlay_presentable() const;
 
 	//
 	// Script static functions

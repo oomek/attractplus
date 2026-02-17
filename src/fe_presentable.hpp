@@ -119,8 +119,11 @@ public:
 	std::vector< FeBasePresentable * > elements;
 
 	int m_nesting_level;
+	FePresentableParent *m_parent;
 	int get_nesting_level();
 	void set_nesting_level( int );
+	FePresentableParent *get_parent_presentable() const;
+	void set_parent_presentable( FePresentableParent *parent );
 
 	FeImage *add_image(const char *,float, float, float, float);
 	FeImage *add_image(const char *, float, float);

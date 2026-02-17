@@ -36,7 +36,8 @@ FeBasePresentable::~FeBasePresentable()
 }
 
 FePresentableParent::FePresentableParent( )
-	: m_nesting_level ( 0 )
+	: m_nesting_level ( 0 ),
+	m_parent( NULL )
 {
 }
 
@@ -246,6 +247,16 @@ int FePresentableParent::get_nesting_level()
 void FePresentableParent::set_nesting_level( int p )
 {
 	m_nesting_level = p;
+}
+
+FePresentableParent *FePresentableParent::get_parent_presentable() const
+{
+	return m_parent;
+}
+
+void FePresentableParent::set_parent_presentable( FePresentableParent *parent )
+{
+	m_parent = parent;
 }
 
 FeImage *FePresentableParent::add_image(const char *n, float x, float y, float w, float h)

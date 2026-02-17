@@ -1214,6 +1214,21 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("is_up"), &FeVM::overlay_is_on )
 		.Prop( _SC("list_index"), &FeVM::overlay_get_list_index )
 		.Prop( _SC("list_size"), &FeVM::overlay_get_list_size )
+		.Prop( _SC("surface"), &FeVM::overlay_get_surface )
+		.Prop( _SC("width"), &FeVM::overlay_get_width )
+		.Prop( _SC("height"), &FeVM::overlay_get_height )
+		.Overload<FeImage * (FeVM::*)(const char *, float, float, float, float)>(_SC("add_image"), &FeVM::overlay_add_image)
+		.Overload<FeImage * (FeVM::*)(const char *, float, float)>(_SC("add_image"), &FeVM::overlay_add_image)
+		.Overload<FeImage * (FeVM::*)(const char *)>(_SC("add_image"), &FeVM::overlay_add_image)
+		.Overload<FeImage * (FeVM::*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FeVM::overlay_add_artwork)
+		.Overload<FeImage * (FeVM::*)(const char *, float, float)>(_SC("add_artwork"), &FeVM::overlay_add_artwork)
+		.Overload<FeImage * (FeVM::*)(const char *)>(_SC("add_artwork"), &FeVM::overlay_add_artwork)
+		.Func( _SC("add_clone"), &FeVM::overlay_add_clone )
+		.Func( _SC("add_text"), &FeVM::overlay_add_text )
+		.Func( _SC("add_listbox"), &FeVM::overlay_add_listbox )
+		.Func( _SC("add_rectangle"), &FeVM::overlay_add_rectangle )
+		.Overload<FeImage * (FeVM::*)(float, float, int, int)>(_SC("add_surface"), &FeVM::overlay_add_surface)
+		.Overload<FeImage * (FeVM::*)(int, int)>(_SC("add_surface"), &FeVM::overlay_add_surface)
 		.Overload<void (FeVM::*)(FeText *, FeListBox *)>(_SC("set_custom_controls"), &FeVM::overlay_set_custom_controls)
 		.Overload<void (FeVM::*)(FeText *)>(_SC("set_custom_controls"), &FeVM::overlay_set_custom_controls)
 		.Overload<void (FeVM::*)()>(_SC("set_custom_controls"), &FeVM::overlay_set_custom_controls)
@@ -1447,6 +1462,7 @@ bool FeVM::on_new_layout()
 	m_main_surface = fev->add_surface( 0, 0, fev->m_mon[0].get_width(), fev->m_mon[0].get_height(), fev->m_mon[0] );
 	m_main_surface_snapshot = fev->add_image( false, "", 0, 0, m_mon[0].get_width(), m_mon[0].get_height(), m_mon[0] );
 	m_main_surface_snapshot->set_visible( false );
+	m_overlay_surface = fev->add_surface( 0, 0, fev->m_mon[0].get_width(), fev->m_mon[0].get_height(), fev->m_mon[0] );
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
@@ -1457,6 +1473,8 @@ bool FeVM::on_new_layout()
 	//
 	Array obj( vm );
 	fe.Bind( _SC("obj"), obj );
+	Array ui_obj( vm );
+	fe.Bind( _SC("ui_obj"), ui_obj );
 	RootTable().Bind( _SC("fe"),  fe );
 
 	// We keep a "non-volatile" table for use by layouts/plugins, the
@@ -1870,6 +1888,145 @@ int FeVM::overlay_get_list_index()
 int FeVM::overlay_get_list_size()
 {
 	return m_overlay->overlay_get_list_size();
+}
+
+FeImage *FeVM::overlay_get_surface()
+{
+	return m_overlay_surface;
+}
+
+float FeVM::overlay_get_width()
+{
+	FeSettings::RotationState actual_rotation = get_actual_rotation();
+	if ( actual_rotation == FeSettings::RotateLeft || actual_rotation == FeSettings::RotateRight )
+		return static_cast<float>( m_mon[0].size.y );
+
+	return static_cast<float>( m_mon[0].size.x );
+}
+
+float FeVM::overlay_get_height()
+{
+	FeSettings::RotationState actual_rotation = get_actual_rotation();
+	if ( actual_rotation == FeSettings::RotateLeft || actual_rotation == FeSettings::RotateRight )
+		return static_cast<float>( m_mon[0].size.x );
+
+	return static_cast<float>( m_mon[0].size.y );
+}
+
+FeImage *FeVM::overlay_add_image( const char *n, float x, float y, float w, float h )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeImage *ret = add_image( false, n, x, y, w, h, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
+}
+
+FeImage *FeVM::overlay_add_image( const char *n, float x, float y )
+{
+	return overlay_add_image( n, x, y, 0, 0 );
+}
+
+FeImage *FeVM::overlay_add_image( const char *n )
+{
+	return overlay_add_image( n, 0, 0, 0, 0 );
+}
+
+FeImage *FeVM::overlay_add_artwork( const char *n, float x, float y, float w, float h )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeImage *ret = add_image( true, n, x, y, w, h, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
+}
+
+FeImage *FeVM::overlay_add_artwork( const char *n, float x, float y )
+{
+	return overlay_add_artwork( n, x, y, 0, 0 );
+}
+
+FeImage *FeVM::overlay_add_artwork( const char *n )
+{
+	return overlay_add_artwork( n, 0, 0, 0, 0 );
+}
+
+FeImage *FeVM::overlay_add_clone( FeImage *o )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeImage *ret = add_clone( o, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
+}
+
+FeText *FeVM::overlay_add_text( const char *n, int x, int y, int w, int h )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeText *ret = add_text( n, x, y, w, h, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
+}
+
+FeListBox *FeVM::overlay_add_listbox( int x, int y, int w, int h )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeListBox *ret = add_listbox( x, y, w, h, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
+}
+
+FeRectangle *FeVM::overlay_add_rectangle( float x, float y, float w, float h )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeRectangle *ret = add_rectangle( x, y, w, h, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
+}
+
+FeImage *FeVM::overlay_add_surface( int w, int h )
+{
+	return overlay_add_surface( 0, 0, w, h );
+}
+
+FeImage *FeVM::overlay_add_surface( float x, float y, int w, int h )
+{
+	FePresentableParent *overlay_parent = get_overlay_presentable();
+	if ( !overlay_parent )
+		return NULL;
+
+	FeImage *ret = add_surface( x, y, w, h, *overlay_parent );
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array ui_obj( fe.GetSlot( _SC("ui_obj") ) );
+	ui_obj.Append( ret );
+	return ret;
 }
 
 void FeVM::overlay_set_custom_controls( FeText *caption, FeListBox *opts )

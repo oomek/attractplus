@@ -194,7 +194,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_layout_loaded( false ),
 	m_layout_has_content( false ),
 	m_main_surface( NULL ),
-	m_main_surface_snapshot( NULL )
+	m_main_surface_snapshot( NULL ),
+	m_overlay_surface( NULL )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -466,6 +467,9 @@ void FePresent::clear_layout()
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
+	m_main_surface = NULL;
+	m_main_surface_snapshot = NULL;
+	m_overlay_surface = NULL;
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	il.set_background_loading( false );
@@ -583,6 +587,24 @@ void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 	}
 }
 
+sf::Vector2f FePresent::get_parent_scale_factor( const FePresentableParent &p ) const
+{
+	FePresentableParent *overlay_presentable = get_overlay_presentable();
+	if ( overlay_presentable )
+	{
+		const FePresentableParent *current = &p;
+		while ( current )
+		{
+			if ( current == overlay_presentable )
+				return sf::Vector2f( 1.0f, 1.0f );
+
+			current = current->get_parent_presentable();
+		}
+	}
+
+	return m_layoutScale;
+}
+
 FeImage *FePresent::add_image( bool is_artwork,
 		const std::string &n,
 		float x,
@@ -593,9 +615,10 @@ FeImage *FePresent::add_image( bool is_artwork,
 {
 	FeTextureContainer *new_tex = new FeTextureContainer( is_artwork, n );
 	new_tex->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
+	const sf::Vector2f scale = get_parent_scale_factor( p );
 
 	FeImage *new_image = new FeImage( p, new_tex, x, y, w, h );
-	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_image->set_scale_factor( scale.x, scale.y );
 
 	// if this is a static image/video then load it now
 	//
@@ -615,7 +638,9 @@ FeImage *FePresent::add_image( bool is_artwork,
 FeImage *FePresent::add_clone( FeImage *o,
 			FePresentableParent &p )
 {
+	const sf::Vector2f scale = get_parent_scale_factor( p );
 	FeImage *new_image = new FeImage( o );
+	new_image->set_scale_factor( scale.x, scale.y );
 	flag_redraw();
 	p.elements.push_back( new_image );
 
@@ -628,10 +653,11 @@ FeImage *FePresent::add_clone( FeImage *o,
 FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 			FePresentableParent &p )
 {
+	const sf::Vector2f scale = get_parent_scale_factor( p );
 	FeText *new_text = new FeText( p, n, x, y, w, h );
 
 	new_text->setFont( *get_layout_font() );
-	new_text->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_text->set_scale_factor( scale.x, scale.y );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;
@@ -644,10 +670,11 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
 		FePresentableParent &p )
 {
+	const sf::Vector2f scale = get_parent_scale_factor( p );
 	FeListBox *new_lb = new FeListBox( p, x, y, w, h );
 
 	new_lb->setFont( *get_layout_font() );
-	new_lb->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_lb->set_scale_factor( scale.x, scale.y );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;
@@ -661,8 +688,9 @@ FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
 FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 		FePresentableParent &p )
 {
+	const sf::Vector2f scale = get_parent_scale_factor( p );
 	FeRectangle *new_rc = new FeRectangle( p, x, y, w, h );
-	new_rc->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_rc->set_scale_factor( scale.x, scale.y );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;
@@ -674,15 +702,17 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 
 FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentableParent &p )
 {
+	const sf::Vector2f scale = get_parent_scale_factor( p );
 	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer( w, h );
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 	new_surface->set_nesting_level( p.get_nesting_level() + 1 );
+	new_surface->set_parent_presentable( &p );
 
 	//
 	// Set the default sprite size to the same as the texture itself
 	//
 	FeImage *new_image = new FeImage( p, new_surface, x, y, w, h );
-	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_image->set_scale_factor( scale.x, scale.y );
 	new_image->set_blend_mode( FeBlend::Premultiplied );
 
 	new_image->texture_changed();
@@ -1845,6 +1875,14 @@ FeImage *FePresent::get_main_surface_snapshot() const
 FePresentableParent *FePresent::get_main_presentable() const
 {
 	return m_main_surface->get_presentable_parent();
+}
+
+FePresentableParent *FePresent::get_overlay_presentable() const
+{
+	if ( !m_overlay_surface )
+		return NULL;
+
+	return m_overlay_surface->get_presentable_parent();
 }
 
 FeStableClock::FeStableClock()
