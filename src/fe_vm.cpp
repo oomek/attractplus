@@ -2113,6 +2113,7 @@ public:
 			fe.Overload<const char *(*)(const char *, int, int)>(_SC("get_text"), &FeVM::cb_get_text);
 			fe.Overload<const char *(*)(const char *, int)>(_SC("get_text"), &FeVM::cb_get_text);
 			fe.Overload<const char *(*)(const char *)>(_SC("get_text"), &FeVM::cb_get_text);
+			fe.Func<Sqrat::Table (*)()>(_SC("get_general_config"), &FeVM::cb_get_general_config);
 		}
 
 		Sqrat::RootTable().Bind( _SC("fe"), fe );
