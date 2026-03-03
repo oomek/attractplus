@@ -141,15 +141,29 @@ namespace {
 		// Create application
 		status = NvAPI_DRS_CreateApplication( hSession, hProfile, &app );
 		if ( status != NVAPI_ERROR )
-			FeDebug() << "NvAPI: CreateProfile: " << nvapi_get_error_msg( status );
+			FeDebug() << "NvAPI: CreateApplication: " << nvapi_get_error_msg( status );
 
 		if ( status == NVAPI_EXECUTABLE_ALREADY_IN_USE )
 		{
-			FeLog() << "NvAPI ERROR: " << nowide::narrow( file_name ) << " is already assigned in another nvidia profile" << std::endl;
-			FeLog() << std::endl;
-			status = NvAPI_DRS_DestroySession( hSession );
-			FeDebug() << "NvAPI: Closing Nvidia session: " << nvapi_get_error_msg( status );
-			return 0;
+			NvDRSProfileHandle existingProfile;
+			NVDRS_APPLICATION existingApp;
+			existingApp.version = NVDRS_APPLICATION_VER;
+			status = NvAPI_DRS_FindApplicationByName( hSession, app.appName, &existingProfile, &existingApp );
+			FeDebug() << "NvAPI: FindApplicationByName: " << nvapi_get_error_msg( status );
+
+			if ( status == NVAPI_OK )
+			{
+				NVDRS_PROFILE existingProfileInfo;
+				existingProfileInfo.version = NVDRS_PROFILE_VER;
+				status = NvAPI_DRS_GetProfileInfo( hSession, existingProfile, &existingProfileInfo );
+				FeDebug() << "NvAPI: GetProfileInfo: " << nvapi_get_error_msg( status );
+
+				if ( status == NVAPI_OK )
+					FeDebug() << "NvAPI: Updating existing exe: " << nowide::narrow( file_name ) << " in profile: "
+						<< nowide::narrow((wchar_t*)existingProfileInfo.profileName) << std::endl;
+
+				hProfile = existingProfile;
+			}
 		}
 
 		NVDRS_SETTING setting;
