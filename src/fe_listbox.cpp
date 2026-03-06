@@ -1020,7 +1020,8 @@ void FeListBox::set_font( const char *f )
 		setFont( *font );
 		m_font_name = f;
 
-		FePresent::script_flag_redraw();
+		if ( m_scripted )
+			FePresent::script_do_update( this );
 	}
 }
 
