@@ -477,9 +477,15 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		const auto* event = e.getIf<sf::Event::TouchMoved>();
 		if ( event && g_last_touch.has_value() )
 		{
+			const auto* last = g_last_touch->getIf<sf::Event::TouchMoved>();
+			if ( !last )
+			{
+				g_last_touch = e;
+				return;
+			}
 			const int THRESH = 100;
-			int diff_x = event->position.x - g_last_touch->getIf<sf::Event::TouchMoved>()->position.x;
-			int diff_y = event->position.y - g_last_touch->getIf<sf::Event::TouchMoved>()->position.y;
+			int diff_x = event->position.x - last->position.x;
+			int diff_y = event->position.y - last->position.y;
 
 			if ( abs( diff_y ) > THRESH )
 			{
@@ -506,12 +512,20 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 				g_last_touch = e;
 			}
 		}
+		else if ( event )
+		{
+			g_last_touch = e;
+		}
 	}
 
 	else if ( e.is<sf::Event::TouchBegan>() )
 	{
+		const auto* event = e.getIf<sf::Event::TouchBegan>();
 		g_touch_moved = false;
-		g_last_touch = e;
+		if ( event )
+		{
+			g_last_touch = e;
+		}
 	}
 
 	else if ( e.is<sf::Event::TouchEnded>() )
