@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////
 //
 // Attract-Mode Frontend - Fade Module
-//
+// v1.01 (2026)
 /////////////////////////////////////////////////////////
 //
 // FadeArt - creates an artwork that does a smooth fade from existing to
@@ -31,6 +31,9 @@ class FadeArt
 	// between available artworks for the current game
 	//
 	long_fade=2500;
+
+	// default to randomized behavior for multiple matches.
+	randomize = true;
 
 	//
 	// Constructor for a FadeArt object.
@@ -83,7 +86,7 @@ class FadeArt
 			if ( tmp.len() > 0 )
 			{
 				local arr = split( tmp, ";" );
-				test = arr[ rand()%arr.len() ];
+				test = arr[ randomize ? rand()%arr.len() : 0 ];
 			}
 
 			// Start changed: ArcadeBliss to show default artwork from the layout dir
