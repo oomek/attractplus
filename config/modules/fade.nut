@@ -32,8 +32,8 @@ class FadeArt
 	//
 	long_fade=2500;
 
-	// default to randomized behavior for multiple matches.   Added by @gnolivos
-	randomize = true;  // set to 'myart.randomize = false' in your layout to always use the first available artwork instead of random.
+	// default to randomized behavior for multiple matches.
+	randomize = true;
 
 	//
 	// Constructor for a FadeArt object.
@@ -86,7 +86,7 @@ class FadeArt
 			if ( tmp.len() > 0 )
 			{
 				local arr = split( tmp, ";" );
-				test = arr[ randomize ? rand()%arr.len() : 0 ];    //Added by @gnolivos.  This determines whether to randomize, or use first match.
+				test = arr[ randomize ? rand()%arr.len() : 0 ];
 			}
 
 			// Start changed: ArcadeBliss to show default artwork from the layout dir
