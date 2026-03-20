@@ -73,6 +73,7 @@ Settings;Paramètres
 Global Filter;Filtre global
 Group Clones;Grouper les clones
 Hide Game Title Brackets;Masquer les parenthèses du titre du jeu
+Randomise Artwork;Mélanger les illustrations
 Format Game Title;Format du titre du jeu
 Hide Console;Masquer la console
 Image Cache Size;Taille du cache d'images
@@ -501,6 +502,7 @@ _help_misc_exit_message;Message alternatif pour quitter l'interface [ex.: «Arr�
 _help_misc_filter_wrap_mode;Définit l'action a mener lorsque "Filtre suivant" ou "Filtre précédent" arrivent à une  extrémité de la liste de filtre.
 _help_misc_group_clones;Regrouper tous les clones d'un jeu sous une seule entrée de liste.
 _help_misc_hide_brackets;Cacher le texte entre crochets lors de l'affichage du titre du jeu
+_help_misc_randomise_artwork;Mélange les illustrations lorsque plusieurs correspondances sont trouvées.
 _help_misc_prefix_modes;Déplacer «The» et «Vs». Préfixe à la fin du titre du jeu
 _help_misc_hide_console;Masquer la console au démarrage. Notez que cela fonctionne uniquement si Attract-Mode Plus est lancé depuis une interface graphique Windows. Si le processus est lancé depuis une fenêtre de console existante (par exemple, un fichier batch), il s'y connectera et y affichera sa sortie.
 _help_misc_image_cache_mbytes;Configurer la taille maximale du cache d'images interne d'Attract-Mode Plus (en mégaoctets)

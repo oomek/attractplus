@@ -73,6 +73,7 @@ Settings;Einstellungen
 Global Filter;Globaler Filter
 Group Clones;Gruppenklone
 Hide Game Title Brackets;Spieltitel-Klammern ausblenden
+Randomise Artwork;Artwork zufällig anordnen
 Format Game Title;Spieltitel formatieren
 Hide Console;Konsole ausblenden
 Image Cache Size;Bildcache-Größe
@@ -501,6 +502,7 @@ _help_misc_exit_message;Alternative Abschiedsnachricht beim Beenden des Programm
 _help_misc_filter_wrap_mode;Definiere was passieren soll wenn die "Nächster Filter" oder "Vorheriger Filter" Aktionen das Ende Filterliste erreichen
 _help_misc_group_clones;Gruppieren Sie alle Klone eines Spiels unter einem einzigen Listeneintrag
 _help_misc_hide_brackets;Verberge bei der Anzeige der Spieletitel den Text in Klammern
+_help_misc_randomise_artwork;Zufällige Auswahl des Artworks, wenn mehrere Treffer gefunden werden.
 _help_misc_prefix_modes;Verschiebt „The“ und „Vs.“ Präfixe am Ende des Spieltitels
 _help_misc_hide_console;Verstecke das Kommandozeilenfenster beim Starten. Bitte beachte, dass dies nur in einer Windows Schaltfläche funktioniert. Wird die Anwendung durch ein Kommandozeilenfenster, wie z.B. einer Batch-Datei, gestartet, wird der Ladevorgang and dieses Fenster gebunden sein
 _help_misc_image_cache_mbytes;Konfiguriert die maximale Größe des internen Bildcaches von Attract-Mode Plus (in Megabyte).
