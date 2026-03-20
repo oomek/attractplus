@@ -104,8 +104,11 @@ Scrape Flyers/Boxart;박스 아트, 홍보 포스터 다운로드
 Scrape Game Logos (Wheel Art);게임 로고 (Wheel Art) 다운로드
 Scrape Marquees;Marquee 다운로드
 Scrape Snaps;스크린샷 다운로드
-Scrape Videos (MAME only);외부 영상 다운로드 (MAME 전용)
+Scrape Videos;외부 영상 다운로드
+Scrape Overview;게임 설명 다운로드
 Scraper;스크래퍼
+ScreenScraper Username;ScreenScraper 사용자 이름
+ScreenScraper Password;ScreenScraper 비밀번호
 Screen Rotation;화면 회전
 Screen Saver Timeout;화면 보호기 타임아웃 시간
 Selection Speed;선택 속도
@@ -528,7 +531,10 @@ _help_scraper_flyers;온라인에서 게임 홍보 포스터 > 박스 아트를 
 _help_scraper_marquees;온라인에서 Marquee를 다운로드 할지 설정합니다.
 _help_scraper_snaps;온라인에서 스크린샷을 다운로드 할지 설정합니다.
 _help_scraper_vids;게임 영상을 가져올 지 여부를 설정합니다
+_help_scraper_overview;게임 설명을 가져올 지 여부를 설정합니다
 _help_scraper_wheels;온라인에서 Wheel Art 형식의 게임 로고를 다운로드 할지 설정합니다.
+_help_screenscraper_user;선택 사항: 더 높은 스크래핑 제한을 위해 ScreenScraper.fr 계정 사용자 이름
+_help_screenscraper_pass;선택 사항: 인증을 위한 ScreenScraper.fr 계정 비밀번호
 _help_shortcut_artwork_name;이 바로가기에 연결될 아트워크를 설정합니다. 바로가기를 표시할 때 이 이름으로 된 아트워크를 찾을 것입니다
 _help_shortcut_delete;롬 목록에서 이 바로가기를 제거합니다
 _help_shortcut_label;이 바로가기의 이름을 설정합니다
