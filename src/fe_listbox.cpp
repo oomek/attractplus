@@ -597,6 +597,21 @@ void FeListBox::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 		target.draw( (*itl), states );
 }
 
+void FeListBox::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
+{
+	const std::size_t begin = geometry.size();
+	for ( const FeTextPrimitive &text : m_texts )
+		text.append_render_geometry( geometry, get_z() );
+	if ( get_shader() )
+	{
+		for ( std::size_t i = begin; i < geometry.size(); ++i )
+		{
+			geometry[i].shader = get_shader();
+			geometry[i].custom_shader = true;
+		}
+	}
+}
+
 void FeListBox::clear()
 {
 	m_texts.clear();

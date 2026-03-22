@@ -1,0 +1,237 @@
+#ifndef FE_SDL3_GPU_HPP
+#define FE_SDL3_GPU_HPP
+
+#include "fe_renderer.hpp"
+#include "fe_blend.hpp"
+#include <string>
+#include <unordered_map>
+class FeImage;
+
+#ifdef USE_SDL3_GPU
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_gpu.h>
+
+bool fe_sdl3_gpu_present_requested();
+#endif
+
+class FeSdl3GpuContext
+{
+public:
+	struct FrameStats
+	{
+		bool executed;
+		bool acquired_swapchain;
+		bool depth_ready;
+		bool pipeline_ready;
+		bool draw_ready;
+		unsigned long long submitted_frames;
+		int last_viewport_width;
+		int last_viewport_height;
+	};
+
+	FeSdl3GpuContext();
+	~FeSdl3GpuContext();
+
+	void submit_frame( const FeRenderFrame &frame );
+	const FeRenderFrame &get_frame() const;
+	std::size_t get_cached_texture_count() const;
+	bool execute_frame();
+	const FrameStats &get_frame_stats() const;
+	bool is_available() const;
+	bool should_present() const;
+	bool has_submitted_frame() const;
+	bool has_frame_content() const;
+
+#ifdef USE_SDL3_GPU
+	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );
+	void shutdown();
+	bool wrap_native_window( void *native_window_handle, int width, int height );
+	void release_window();
+	SDL_Window *get_window() const;
+	SDL_GPUDevice *get_device() const;
+	void write_debug_log( const char *message ) const;
+#endif
+
+private:
+	struct TextureCacheEntry
+	{
+		float width;
+		float height;
+		bool mipmapped;
+		unsigned long long last_seen_frame;
+		unsigned long long last_upload_frame;
+		unsigned long long last_upload_content_version;
+
+#ifdef USE_SDL3_GPU
+		SDL_GPUTexture *gpu_texture;
+#endif
+	};
+
+	struct PreparedImage
+	{
+		const FeRenderGeometry *geometry;
+		std::size_t first_vertex;
+		std::size_t vertex_count;
+		int blend_mode;
+
+#ifdef USE_SDL3_GPU
+		SDL_GPUTexture *gpu_texture;
+#endif
+	};
+
+	struct SurfaceCacheEntry
+	{
+		unsigned long long last_seen_frame;
+		int width;
+		int height;
+		bool mipmapped;
+		bool rendered_once;
+		std::uint64_t vertex_signature;
+		std::uint64_t last_signature;
+
+#ifdef USE_SDL3_GPU
+		SDL_GPUTexture *color_texture;
+		SDL_GPUTexture *depth_texture;
+		SDL_GPUBuffer *vertex_buffer;
+		Uint32 vertex_buffer_size;
+#endif
+	};
+
+#ifdef USE_SDL3_GPU
+	struct CustomUniformBinding
+	{
+		std::string name;
+		int slot;
+		int components;
+
+		CustomUniformBinding() : slot( 0 ), components( 0 ) {}
+	};
+
+	struct CustomSamplerBinding
+	{
+		std::string name;
+		int slot;
+		bool current_texture;
+		FeImage *image;
+
+		CustomSamplerBinding() : slot( 0 ), current_texture( false ), image( nullptr ) {}
+	};
+
+	struct CustomShaderEntry
+	{
+		std::string source_path;
+		unsigned long long source_stamp;
+		unsigned long long vertex_source_stamp;
+		bool uses_current_texture;
+		bool has_custom_vertex;
+		SDL_GPUShader *vertex_shader;
+		SDL_GPUShader *fragment_shader;
+		SDL_GPUGraphicsPipeline *blend_pipelines[FeBlend::None + 1];
+		std::vector<CustomUniformBinding> vertex_uniforms;
+		std::vector<CustomUniformBinding> fragment_uniforms;
+		std::vector<CustomSamplerBinding> fragment_samplers;
+
+		CustomShaderEntry()
+			: source_stamp( 0 ),
+			  vertex_source_stamp( 0 ),
+			  uses_current_texture( false ),
+			  has_custom_vertex( false ),
+			  vertex_shader( nullptr ),
+			  fragment_shader( nullptr )
+		{
+			for ( int i = 0; i <= FeBlend::None; ++i )
+				blend_pipelines[ i ] = nullptr;
+		}
+	};
+#endif
+
+	void sync_texture_cache();
+	void clear_texture_cache();
+	void build_prepared_images();
+
+#ifdef USE_SDL3_GPU
+	void release_gpu_texture( TextureCacheEntry &entry );
+	bool upload_gpu_texture( const void *texture_id, int texture_source_type, TextureCacheEntry &entry );
+	void release_white_texture();
+	bool ensure_white_texture();
+	void release_vertex_buffer();
+	bool upload_vertex_buffer();
+	bool upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
+	void release_depth_target();
+	bool ensure_depth_target( int width, int height );
+	void release_surface_cache();
+	void release_surface_target( SurfaceCacheEntry &entry );
+	bool ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceCacheEntry &entry );
+	void release_custom_shader_cache();
+	void release_custom_shader( CustomShaderEntry &entry );
+	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
+	bool create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry );
+	bool build_custom_vertex_shader(
+		const FeRenderGeometry &image,
+		std::string &source_code,
+		std::vector<CustomUniformBinding> &uniforms );
+	bool build_custom_fragment_shader(
+		const FeRenderGeometry &image,
+		std::string &source_code,
+		std::vector<CustomUniformBinding> &uniforms,
+		std::vector<CustomSamplerBinding> &samplers );
+	void build_custom_uniform_data(
+		const FeRenderGeometry &image,
+		const std::vector<CustomUniformBinding> &uniforms,
+		std::vector<float> &data ) const;
+	bool render_surface_frames( SDL_GPUCommandBuffer *command_buffer );
+	bool render_geometry_batch(
+		SDL_GPURenderPass *render_pass,
+		SDL_GPUCommandBuffer *command_buffer,
+		const FePerspectiveCamera &camera,
+		int viewport_width,
+		int viewport_height,
+		const std::vector<FeRenderGeometry> &geometry,
+		std::uint64_t geometry_signature,
+		bool use_surface_targets,
+		SDL_GPUBuffer **cached_vertex_buffer,
+		Uint32 *cached_vertex_buffer_size,
+		std::uint64_t *cached_vertex_signature,
+		bool &drew_anything );
+	void release_image_pipeline();
+	bool initialize_image_pipeline( SDL_GPUTextureFormat swapchain_format );
+#endif
+
+	FeRenderFrame m_frame;
+	FrameStats m_frame_stats;
+	std::unordered_map<const void *, TextureCacheEntry> m_texture_cache;
+	std::unordered_map<const void *, SurfaceCacheEntry> m_surface_cache;
+	std::vector<PreparedImage> m_prepared_images;
+	std::vector<FeRenderVertex> m_vertex_stream;
+#ifdef USE_SDL3_GPU
+	std::unordered_map<std::string, CustomShaderEntry> m_custom_shader_cache;
+	bool m_sdl_ready;
+	bool m_window_claimed;
+	SDL_Window *m_window;
+	SDL_GPUDevice *m_device;
+	SDL_GPUBuffer *m_vertex_buffer;
+	Uint32 m_vertex_buffer_size;
+	std::uint64_t m_vertex_buffer_signature;
+	SDL_GPUShader *m_vertex_shader;
+	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
+	SDL_GPUSampler *m_linear_sampler;
+	SDL_GPUSampler *m_linear_repeat_sampler;
+	SDL_GPUSampler *m_nearest_sampler;
+	SDL_GPUSampler *m_nearest_repeat_sampler;
+	SDL_GPUGraphicsPipeline *m_blend_pipelines[FeBlend::None + 1];
+	SDL_GPUTexture *m_white_texture;
+	SDL_GPUTexture *m_depth_texture;
+	SDL_GPUTextureFormat m_depth_format;
+	int m_depth_width;
+	int m_depth_height;
+	SDL_GPUTextureFormat m_swapchain_format;
+	bool m_pipeline_attempted;
+	bool m_present_disabled;
+	unsigned int m_failed_present_frames;
+	bool m_has_submitted_frame;
+	bool m_logged_successful_present;
+	bool m_debug_logging_enabled;
+#endif
+};
+
+#endif

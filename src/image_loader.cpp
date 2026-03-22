@@ -503,6 +503,11 @@ int FeImageLoaderEntry::get_height()
 	return m_height;
 }
 
+bool FeImageLoaderEntry::is_loaded() const
+{
+	return m_loaded.load( std::memory_order_relaxed );
+}
+
 void FeImageLoaderEntry::add_ref()
 {
 	m_ref_count.fetch_add( 1, std::memory_order_relaxed );

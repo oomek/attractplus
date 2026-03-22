@@ -477,6 +477,112 @@ int FeTextPrimitive::getActualHeight()
 	return (int)h;
 }
 
+namespace
+{
+	void append_render_vertices(
+		std::vector<FeRenderGeometry> &geometry,
+		const sf::VertexArray &vertices,
+		const sf::Transform &transform,
+		const sf::Texture *texture,
+		std::uint64_t texture_version,
+		float z )
+	{
+		if ( vertices.getVertexCount() == 0 )
+			return;
+
+		FeRenderGeometry drawable;
+		drawable.texture_id = texture;
+		drawable.texture_source_type = texture ? FeRenderTextureSourceSfTexture : FeRenderTextureSourceNone;
+		drawable.texture_repeated = false;
+		drawable.texture_smooth = texture ? texture->isSmooth() : true;
+		drawable.texture_mipmap = false;
+		drawable.texture_width = texture ? static_cast<float>( texture->getSize().x ) : 1.0f;
+		drawable.texture_height = texture ? static_cast<float>( texture->getSize().y ) : 1.0f;
+		drawable.blend_mode = 0;
+		drawable.shader = nullptr;
+		drawable.custom_shader = false;
+		drawable.textured = ( texture != nullptr );
+		drawable.texture_dynamic = ( texture != nullptr );
+		drawable.texture_content_version = texture_version;
+		drawable.vertices.reserve( vertices.getVertexCount() );
+
+		for ( std::size_t i = 0; i < vertices.getVertexCount(); ++i )
+		{
+			const sf::Vertex &source = vertices[i];
+			const sf::Vector2f position = transform.transformPoint( source.position );
+
+			FeRenderVertex vertex = {};
+			vertex.x = position.x;
+			vertex.y = position.y;
+			vertex.z = z;
+			vertex.u = source.texCoords.x;
+			vertex.v = source.texCoords.y;
+			vertex.r = source.color.r;
+			vertex.g = source.color.g;
+			vertex.b = source.color.b;
+			vertex.a = source.color.a;
+			drawable.vertices.push_back( vertex );
+		}
+
+		geometry.push_back( drawable );
+	}
+}
+
+void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geometry, float z ) const
+{
+	if ( m_needs_pos_set )
+		set_positions();
+
+	if ( m_bgRect.getFillColor().a > 0 )
+	{
+		const sf::Transform transform = m_bgRect.getTransform();
+		const sf::Color color = m_bgRect.getFillColor();
+
+		FeRenderGeometry background;
+		background.texture_id = nullptr;
+		background.texture_width = 1.0f;
+		background.texture_height = 1.0f;
+		background.blend_mode = 0;
+		background.shader = nullptr;
+		background.custom_shader = false;
+		background.textured = false;
+		background.texture_dynamic = false;
+		background.texture_mipmap = false;
+		background.vertices.reserve( 6 );
+
+		const sf::Vector2f p0 = transform.transformPoint( { 0.0f, 0.0f } );
+		const sf::Vector2f p1 = transform.transformPoint( { m_bgRect.getSize().x, 0.0f } );
+		const sf::Vector2f p2 = transform.transformPoint( { 0.0f, m_bgRect.getSize().y } );
+		const sf::Vector2f p3 = transform.transformPoint( m_bgRect.getSize() );
+		const sf::Vector2f positions[6] = { p0, p1, p2, p2, p1, p3 };
+
+		for ( const sf::Vector2f &position : positions )
+		{
+			FeRenderVertex vertex = {};
+			vertex.x = position.x;
+			vertex.y = position.y;
+			vertex.z = z;
+			vertex.u = 0.0f;
+			vertex.v = 0.0f;
+			vertex.r = color.r;
+			vertex.g = color.g;
+			vertex.b = color.b;
+			vertex.a = color.a;
+			background.vertices.push_back( vertex );
+		}
+
+		geometry.push_back( background );
+	}
+
+	for ( const sf::JustifyText &text : m_texts )
+	{
+		const sf::Texture *texture = text.getTexturePtr();
+		const std::uint64_t texture_version = text.getTextureVersion();
+		append_render_vertices( geometry, text.getOutlineGeometry(), text.getTransform(), texture, texture_version, z );
+		append_render_vertices( geometry, text.getFillGeometry(), text.getTransform(), texture, texture_version, z );
+	}
+}
+
 void FeTextPrimitive::setFont( const sf::Font &font )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )

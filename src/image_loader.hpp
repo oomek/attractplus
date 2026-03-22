@@ -44,6 +44,7 @@ public:
 
 	int get_width();
 	int get_height();
+	bool is_loaded() const;
 
    unsigned char *get_data();
 

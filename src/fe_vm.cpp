@@ -939,12 +939,16 @@ bool FeVM::on_new_layout()
 			&FeBasePresentable::get_visible, &FeBasePresentable::set_visible )
 		.Prop(_SC("x"), &FeBasePresentable::get_x, &FeBasePresentable::set_x )
 		.Prop(_SC("y"), &FeBasePresentable::get_y, &FeBasePresentable::set_y )
+		.Prop(_SC("z"), &FeBasePresentable::get_z, &FeBasePresentable::set_z )
 		.Prop(_SC("width"),
 			&FeBasePresentable::get_width, &FeBasePresentable::set_width )
 		.Prop(_SC("height"),
 			&FeBasePresentable::get_height, &FeBasePresentable::set_height )
 		.Prop(_SC("rotation"),
 			&FeBasePresentable::getRotation, &FeBasePresentable::setRotation )
+		.Prop(_SC("rotation_x"), &FeBasePresentable::get_rotation_x, &FeBasePresentable::set_rotation_x )
+		.Prop(_SC("rotation_y"), &FeBasePresentable::get_rotation_y, &FeBasePresentable::set_rotation_y )
+		.Prop(_SC("rotation_z"), &FeBasePresentable::get_rotation_z, &FeBasePresentable::set_rotation_z )
 		.Prop(_SC("red"), &FeBasePresentable::get_r, &FeBasePresentable::set_r )
 		.Prop(_SC("green"), &FeBasePresentable::get_g, &FeBasePresentable::set_g )
 		.Prop(_SC("blue"), &FeBasePresentable::get_b, &FeBasePresentable::set_b )
@@ -1184,6 +1188,10 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("base_rotation"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )
 		.Prop( _SC("toggle_rotation"), &FePresent::get_toggle_rotation, &FePresent::set_toggle_rotation )
 		.Prop( _SC("page_size"), &FePresent::get_page_size, &FePresent::set_page_size )
+		.Prop( _SC("perspective_fov"), &FePresent::get_perspective_fov, &FePresent::set_perspective_fov )
+		.Prop( _SC("perspective_near"), &FePresent::get_perspective_near, &FePresent::set_perspective_near )
+		.Prop( _SC("perspective_far"), &FePresent::get_perspective_far, &FePresent::set_perspective_far )
+		.Prop( _SC("perspective_default_z"), &FePresent::get_perspective_default_z, &FePresent::set_perspective_default_z )
 		.Prop(_SC("preserve_aspect_ratio"), &FePresent::get_preserve_aspect_ratio, &FePresent::set_preserve_aspect_ratio )
 		.Prop(_SC("time"), &FePresent::get_layout_ms )
 		.Prop(_SC("frame_time"), &FePresent::get_layout_frame_time )
@@ -1607,12 +1615,14 @@ bool FeVM::process_console_input()
 bool FeVM::on_tick()
 {
 	using namespace Sqrat;
-	m_redraw_triggered = process_console_input();
+	bool redraw = m_redraw_triggered || process_console_input();
+	m_redraw_triggered = false;
 
 	if ( m_sort_zorder_triggered )
 	{
 		sort_zorder();
 		m_sort_zorder_triggered = false;
+		redraw = true;
 	}
 
 	for ( std::vector<FeCallback>::iterator itr = m_ticks.begin();
@@ -1649,7 +1659,7 @@ bool FeVM::on_tick()
 
 	m_layout_time.tick();
 
-	return m_redraw_triggered;
+	return redraw || m_redraw_triggered;
 }
 
 void FeVM::on_transition(
@@ -1728,6 +1738,7 @@ void FeVM::on_transition(
 			video_tick();
 			clk.tick();
 
+			submit_render_frame();
 			redraw_surfaces();
 			m_window.clear();
 			m_window.draw( *this );

@@ -25,6 +25,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
+#include "fe_renderer.hpp"
 #include "tp.hpp"
 
 class FeSettings;
@@ -88,6 +89,7 @@ public:
 
 	int get_actual_width() { return m_draw_text.getActualWidth(); };
 	int get_actual_height() { return m_draw_text.getActualHeight(); };
+	void build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
 
 	int get_bgr();
 	int get_bgg();

@@ -596,6 +596,76 @@ void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) cons
 	target.draw( m_rect, states );
 }
 
+bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
+{
+	geometry.clear();
+
+	const std::size_t point_count = m_rect.getPointCount();
+	if ( point_count < 3 )
+		return false;
+
+	const sf::Transform transform = m_rect.getTransform();
+	const sf::Color color = m_rect.getFillColor();
+	const sf::Vector2f first = transform.transformPoint( m_rect.getPoint( 0 ) );
+	const sf::Vector2f first_local = m_rect.getPoint( 0 );
+	const sf::Vector2f rect_size = m_rect.getSize();
+
+	auto normalized_uv = [&]( const sf::Vector2f &point )
+	{
+		const float u = ( rect_size.x != 0.0f ) ? ( point.x / rect_size.x ) : 0.0f;
+		const float v = ( rect_size.y != 0.0f ) ? ( point.y / rect_size.y ) : 0.0f;
+		return sf::Vector2f( u, v );
+	};
+
+	for ( std::size_t i = 1; i + 1 < point_count; ++i )
+	{
+		const sf::Vector2f second = transform.transformPoint( m_rect.getPoint( i ) );
+		const sf::Vector2f third = transform.transformPoint( m_rect.getPoint( i + 1 ) );
+		const sf::Vector2f second_local = m_rect.getPoint( i );
+		const sf::Vector2f third_local = m_rect.getPoint( i + 1 );
+		const sf::Vector2f uv0 = normalized_uv( first_local );
+		const sf::Vector2f uv1 = normalized_uv( second_local );
+		const sf::Vector2f uv2 = normalized_uv( third_local );
+
+		FeRenderVertex v0 = {};
+		v0.x = first.x;
+		v0.y = first.y;
+		v0.z = get_z();
+		v0.u = uv0.x;
+		v0.v = uv0.y;
+		v0.r = color.r;
+		v0.g = color.g;
+		v0.b = color.b;
+		v0.a = color.a;
+
+		FeRenderVertex v1 = v0;
+		v1.x = second.x;
+		v1.y = second.y;
+		v1.u = uv1.x;
+		v1.v = uv1.y;
+
+		FeRenderVertex v2 = v0;
+		v2.x = third.x;
+		v2.y = third.y;
+		v2.u = uv2.x;
+		v2.v = uv2.y;
+
+		geometry.vertices.push_back( v0 );
+		geometry.vertices.push_back( v1 );
+		geometry.vertices.push_back( v2 );
+	}
+
+	geometry.texture_id = nullptr;
+	geometry.texture_width = 1.0f;
+	geometry.texture_height = 1.0f;
+	geometry.blend_mode = m_blend_mode;
+	geometry.shader = get_shader();
+	geometry.custom_shader = ( geometry.shader != nullptr );
+	geometry.textured = false;
+	geometry.texture_dynamic = false;
+	return !geometry.vertices.empty();
+}
+
 void FeRectangle::scale()
 {
 	sf::Vector2f pos = m_position;

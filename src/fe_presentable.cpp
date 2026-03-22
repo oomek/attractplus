@@ -27,6 +27,9 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	: m_parent( p ),
 	m_shader( NULL ),
 	m_visible( true ),
+	m_z( 0.0f ),
+	m_rotation_x( 0.0f ),
+	m_rotation_y( 0.0f ),
 	m_zorder( 0 )
 {
 }
@@ -84,6 +87,11 @@ float FeBasePresentable::get_y() const
 	return getPosition().y;
 }
 
+float FeBasePresentable::get_z() const
+{
+	return m_z;
+}
+
 void FeBasePresentable::set_x( float x )
 {
 	setPosition( sf::Vector2f( x, get_y() ));
@@ -92,6 +100,17 @@ void FeBasePresentable::set_x( float x )
 void FeBasePresentable::set_y( float y )
 {
 	setPosition( sf::Vector2f( get_x(), y ));
+}
+
+void FeBasePresentable::set_z( float z )
+{
+	if ( z == m_z )
+		return;
+
+	m_z = z;
+
+	FePresent::script_flag_sort_zorder();
+	FePresent::script_flag_redraw();
 }
 
 float FeBasePresentable::get_width() const
@@ -215,6 +234,44 @@ FeShader *FeBasePresentable::script_get_shader() const
 void FeBasePresentable::script_set_shader( FeShader *sh )
 {
 	m_shader = sh;
+}
+
+float FeBasePresentable::get_rotation_x() const
+{
+	return m_rotation_x;
+}
+
+void FeBasePresentable::set_rotation_x( float rotation )
+{
+	if ( rotation == m_rotation_x )
+		return;
+
+	m_rotation_x = rotation;
+	FePresent::script_flag_redraw();
+}
+
+float FeBasePresentable::get_rotation_y() const
+{
+	return m_rotation_y;
+}
+
+void FeBasePresentable::set_rotation_y( float rotation )
+{
+	if ( rotation == m_rotation_y )
+		return;
+
+	m_rotation_y = rotation;
+	FePresent::script_flag_redraw();
+}
+
+float FeBasePresentable::get_rotation_z() const
+{
+	return getRotation();
+}
+
+void FeBasePresentable::set_rotation_z( float rotation )
+{
+	setRotation( rotation );
 }
 
 int FeBasePresentable::get_zorder()

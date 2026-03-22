@@ -55,6 +55,9 @@
 # If you set this to 1, AM+ will link the system SFML version
 # If left to blank, AM+ will build and link the extlib/SFML version
 #USE_SYSTEM_SFML=1
+#
+# Enable the SDL3 GPU graphics path
+USE_SDL3_GPU=1
 ###############################
 
 #FE_DEBUG=1
@@ -134,6 +137,11 @@ RES_FONTS_DIR=$(RES_DIR)/fonts
 RES_IMGS_DIR=$(RES_DIR)/images
 RES_LANGUAGE_DIR=$(RES_DIR)/language
 RES_LANGUAGE_FILE=$(RES_LANGUAGE_DIR)/language.h
+SDL3_SHADER_DIR=config/shaders/sdl3
+SDL3_SHADER_COMPILER ?= glslangValidator
+SDL3_SHADER_SPV = \
+	$(SDL3_SHADER_DIR)/image.vert.spv \
+	$(SDL3_SHADER_DIR)/image.frag.spv
 
 _DEP =\
 	fe_base.hpp \
@@ -148,7 +156,9 @@ _DEP =\
 	fe_settings.hpp \
 	fe_config.hpp \
 	fe_presentable.hpp \
+	fe_renderer.hpp \
 	fe_present.hpp \
+	fe_sdl3_gpu.hpp \
 	sprite.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
@@ -193,7 +203,9 @@ _OBJ =\
 	scraper_gamesdb.o \
 	fe_config.o \
 	fe_presentable.o \
+	fe_renderer.o \
 	fe_present.o \
+	fe_sdl3_gpu.o \
 	sprite.o \
 	fe_image.o \
 	fe_sound.o \
@@ -333,6 +345,15 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
  EXE_EXT = .exe
 else
  CFLAGS += -DDATA_PATH=\"$(DATA_PATH)\"
+endif
+
+ifeq ($(USE_SDL3_GPU),1)
+ ifneq ($(shell $(PKG_CONFIG) --exists sdl3 && echo 1 || echo 0),1)
+  $(error USE_SDL3_GPU=1 requires SDL3 development files available through pkg-config)
+ endif
+ CFLAGS += -DUSE_SDL3_GPU
+ CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
+ LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
 endif
 
 #
@@ -495,6 +516,17 @@ endif
 .PHONY: clean
 .PHONY: install
 .PHONY: sfml sfmlbuild
+.PHONY: sdl3-shaders
+
+sdl3-shaders: $(SDL3_SHADER_SPV)
+
+$(SDL3_SHADER_DIR)/%.vert.spv: $(SDL3_SHADER_DIR)/%.vert.glsl
+	$(info Compiling $< to $@...)
+	$(SILENT)$(SDL3_SHADER_COMPILER) -V -S vert -o $@ $<
+
+$(SDL3_SHADER_DIR)/%.frag.spv: $(SDL3_SHADER_DIR)/%.frag.glsl
+	$(info Compiling $< to $@...)
+	$(SILENT)$(SDL3_SHADER_COMPILER) -V -S frag -o $@ $<
 
 SFML_FLAGS =
 ifneq ($(USE_SYSTEM_SFML),1)

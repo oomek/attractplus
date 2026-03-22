@@ -24,6 +24,7 @@
 #define TEXT_Primitive_HPP
 
 #include "justify_text.hpp"
+#include "fe_renderer.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -116,6 +117,7 @@ public:
 
 	int getActualWidth(); // return the width of the actual text
 	int getActualHeight(); // return the height of the actual text
+	void append_render_geometry( std::vector<FeRenderGeometry> &geometry, float z ) const;
 
 private:
 	sf::RectangleShape m_bgRect;

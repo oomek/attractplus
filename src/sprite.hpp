@@ -61,6 +61,7 @@
 #include <SFML/Graphics/Transformable.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include "fe_renderer.hpp"
 
 namespace sf
 {
@@ -263,6 +264,8 @@ public :
 	using sf::Transformable::setRotation;
 	using sf::Transformable::setPosition;
 	using sf::Transformable::setOrigin;
+
+	void getRenderVertices( std::vector<FeRenderVertex> &out, float z ) const;
 
 private :
 

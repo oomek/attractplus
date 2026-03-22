@@ -26,6 +26,7 @@
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
 #include "fe_blend.hpp"
+#include "fe_sdl3_gpu.hpp"
 #include "fe_vm.hpp"
 #include "fe_audio_fx.hpp"
 #include "zip.hpp"
@@ -44,6 +45,16 @@ FeBaseTextureContainer::FeBaseTextureContainer()
 
 FeBaseTextureContainer::~FeBaseTextureContainer()
 {
+}
+
+bool FeBaseTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &, unsigned int &, unsigned int & ) const
+{
+	return false;
+}
+
+bool FeBaseTextureContainer::copy_pixels_rgba_to( void *, std::size_t, unsigned int &, unsigned int & ) const
+{
+	return false;
 }
 
 bool FeBaseTextureContainer::get_visible() const
@@ -235,6 +246,16 @@ void FeBaseTextureContainer::on_redraw_surfaces()
 {
 }
 
+bool FeBaseTextureContainer::is_volatile_texture() const
+{
+	return false;
+}
+
+unsigned long long FeBaseTextureContainer::get_texture_content_version() const
+{
+	return 0;
+}
+
 namespace
 {
 	//
@@ -258,6 +279,7 @@ FeTextureContainer::FeTextureContainer(
 	m_video_flags( VF_Normal ),
 	m_mipmap( false ),
 	m_smooth( false ),
+	m_pixel_cache_valid( false ),
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
@@ -333,6 +355,11 @@ bool FeTextureContainer::fix_masked_image()
 		if ( m_texture.loadFromImage( tmp_img ) )
 			retval=true;
 
+		const unsigned char *src = tmp_img.getPixelsPtr();
+		const std::size_t size = static_cast<std::size_t>( tmp_s.x ) * static_cast<std::size_t>( tmp_s.y ) * 4;
+		m_pixel_cache.assign( src, src + size );
+		m_pixel_cache_valid = true;
+
 		notify_texture_change();
 	}
 
@@ -395,12 +422,19 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	if ( res && !is_image )
 	{
-		// Fill the first video frame with an opaque black colour
-		size_t required_pixels = m_texture.getSize().x * m_texture.getSize().y;
-		if ( s_black_pixels.size() < required_pixels )
-    		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
-		m_texture.update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
+		if ( !fe_sdl3_gpu_present_requested() )
+		{
+			// Fill the first video frame with an opaque black colour
+			size_t required_pixels = m_texture.getSize().x * m_texture.getSize().y;
+			if ( s_black_pixels.size() < required_pixels )
+	    		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
+			m_texture.update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
+		}
+		m_pixel_cache.clear();
+		m_pixel_cache_valid = false;
 	}
+	else
+		m_pixel_cache_valid = false;
 
 	m_texture.setSmooth( m_smooth );
 	m_file_name = loaded_name;
@@ -447,6 +481,9 @@ bool FeTextureContainer::try_to_load(
 	if ( data )
 	{
 		m_texture.update( data );
+		const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
+		m_pixel_cache.assign( data, data + size );
+		m_pixel_cache_valid = true;
 		il.release_entry( &m_entry ); // don't need entry any more
 		if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 		m_texture.setSmooth( m_smooth );
@@ -592,6 +629,9 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		if ( il.check_loaded( m_entry ) )
 		{
 			m_texture.update( m_entry->get_data() );
+			const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
+			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
+			m_pixel_cache_valid = true;
 			if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 			m_texture.setSmooth( m_smooth );
 
@@ -650,6 +690,8 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		if ( m_movie->tick() )
 		{
+			m_pixel_cache.clear();
+			m_pixel_cache_valid = false;
 			if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 			return true;
 		}
@@ -840,6 +882,8 @@ void FeTextureContainer::clear()
 {
 	m_movie_status = -1;
 	m_file_name.clear();
+	m_pixel_cache.clear();
+	m_pixel_cache_valid = false;
 
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
@@ -856,6 +900,116 @@ void FeTextureContainer::clear()
 		FeImageLoader &il = FeImageLoader::get_ref();
 		il.release_entry( &m_entry );
 	}
+}
+
+bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const
+{
+#ifndef NO_MOVIE
+	if ( m_movie && m_movie->copy_video_frame_rgba( pixels, width, height ) )
+		return true;
+#endif
+
+	if ( m_entry && m_entry->is_loaded() )
+	{
+		width = static_cast<unsigned int>( m_entry->get_width() );
+		height = static_cast<unsigned int>( m_entry->get_height() );
+		if ( width == 0 || height == 0 )
+			return false;
+
+		const unsigned char *src = m_entry->get_data();
+		if ( !src )
+			return false;
+
+		const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+		pixels.assign( src, src + data_size );
+		return true;
+	}
+
+	const sf::Vector2u size = m_texture.getSize();
+	width = size.x;
+	height = size.y;
+	if ( width == 0 || height == 0 )
+		return false;
+
+	if ( m_pixel_cache_valid )
+	{
+		pixels = m_pixel_cache;
+		return !pixels.empty();
+	}
+
+	const sf::Image image = m_texture.copyToImage();
+	const unsigned char *src = image.getPixelsPtr();
+	if ( !src )
+		return false;
+
+	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+	pixels.assign( src, src + data_size );
+	return true;
+}
+
+bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
+{
+#ifndef NO_MOVIE
+	if ( m_movie )
+	{
+		if ( !pixels )
+			return m_movie->get_video_frame_dimensions( width, height );
+
+		return m_movie->copy_video_frame_rgba_to( pixels, pixel_count, width, height );
+	}
+#endif
+
+	if ( m_entry && m_entry->is_loaded() )
+	{
+		width = static_cast<unsigned int>( m_entry->get_width() );
+		height = static_cast<unsigned int>( m_entry->get_height() );
+		if ( width == 0 || height == 0 )
+			return false;
+
+		if ( !pixels )
+			return true;
+
+		const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+		if ( pixel_count < data_size )
+			return false;
+
+		const unsigned char *src = m_entry->get_data();
+		if ( !src )
+			return false;
+
+		std::memcpy( pixels, src, data_size );
+		return true;
+	}
+
+	const sf::Vector2u size = m_texture.getSize();
+	width = size.x;
+	height = size.y;
+	if ( width == 0 || height == 0 )
+		return false;
+
+	if ( !pixels )
+		return true;
+
+	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+	if ( pixel_count < data_size )
+		return false;
+
+	if ( m_pixel_cache_valid )
+	{
+		if ( m_pixel_cache.size() < data_size )
+			return false;
+
+		std::memcpy( pixels, m_pixel_cache.data(), data_size );
+		return true;
+	}
+
+	const sf::Image image = m_texture.copyToImage();
+	const unsigned char *src = image.getPixelsPtr();
+	if ( !src )
+		return false;
+
+	std::memcpy( pixels, src, data_size );
+	return true;
 }
 
 void FeTextureContainer::set_smooth( bool s )
@@ -940,6 +1094,24 @@ float FeTextureContainer::get_sample_aspect_ratio() const
 		return 1.0;
 }
 
+bool FeTextureContainer::is_volatile_texture() const
+{
+#ifndef NO_MOVIE
+	return ( m_movie != NULL );
+#else
+	return false;
+#endif
+}
+
+unsigned long long FeTextureContainer::get_texture_content_version() const
+{
+#ifndef NO_MOVIE
+	if ( m_movie )
+		return m_movie->get_video_frame_serial();
+#endif
+	return 0;
+}
+
 FeMedia *FeTextureContainer::get_media() const
 {
 #ifndef NO_MOVIE
@@ -1003,6 +1175,48 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	}
 	if ( m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
 		m_texture.clear( sf::Color::Transparent );
+}
+
+bool FeSurfaceTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const
+{
+	const sf::Image image = m_texture.getTexture().copyToImage();
+	const sf::Vector2u size = image.getSize();
+	width = size.x;
+	height = size.y;
+	if ( width == 0 || height == 0 )
+		return false;
+
+	const unsigned char *src = image.getPixelsPtr();
+	if ( !src )
+		return false;
+
+	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+	pixels.assign( src, src + data_size );
+	return true;
+}
+
+bool FeSurfaceTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
+{
+	const sf::Vector2u size = m_texture.getTexture().getSize();
+	width = size.x;
+	height = size.y;
+	if ( width == 0 || height == 0 )
+		return false;
+
+	if ( !pixels )
+		return true;
+
+	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+	if ( pixel_count < data_size )
+		return false;
+
+	const sf::Image image = m_texture.getTexture().copyToImage();
+	const unsigned char *src = image.getPixelsPtr();
+	if ( !src )
+		return false;
+
+	std::memcpy( pixels, src, data_size );
+	return true;
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -1112,6 +1326,21 @@ bool FeSurfaceTextureContainer::get_redraw() const
 	return m_redraw;
 }
 
+bool FeSurfaceTextureContainer::is_volatile_texture() const
+{
+	return true;
+}
+
+int FeSurfaceTextureContainer::get_width() const
+{
+	return static_cast<int>( m_texture.getSize().x );
+}
+
+int FeSurfaceTextureContainer::get_height() const
+{
+	return static_cast<int>( m_texture.getSize().y );
+}
+
 FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 {
 	return this;
@@ -1186,12 +1415,17 @@ FeImage::FeImage( FeImage *o ):
 
 FeImage::~FeImage() {}
 
-const sf::Texture *FeImage::get_texture()
+const sf::Texture *FeImage::get_texture() const
 {
 	if ( m_tex )
 		return &(m_tex->get_texture());
 	else
 		return NULL;
+}
+
+const FeBaseTextureContainer *FeImage::get_texture_container() const
+{
+	return m_tex;
 }
 
 bool FeImage::get_visible() const
@@ -1288,6 +1522,38 @@ bool FeImage::fix_masked_image()
 	return m_tex->fix_masked_image();
 }
 
+bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
+{
+	geometry.clear();
+
+	const sf::Texture *texture = get_texture();
+	if ( !texture )
+		return false;
+
+	const sf::Vector2u texture_size = texture->getSize();
+	if ( texture_size.x == 0 || texture_size.y == 0 )
+		return false;
+
+	m_sprite.getRenderVertices( geometry.vertices, get_z() );
+
+	if ( geometry.vertices.empty() )
+		return false;
+
+	geometry.texture_id = m_tex;
+	geometry.texture_source_type = FeRenderTextureSourceContainer;
+	geometry.texture_repeated = m_tex->get_repeat();
+	geometry.texture_smooth = m_tex->get_smooth();
+	geometry.texture_mipmap = m_tex->get_mipmap();
+	geometry.texture_width = static_cast<float>( texture_size.x );
+	geometry.texture_height = static_cast<float>( texture_size.y );
+	geometry.blend_mode = static_cast<int>( m_blend_mode );
+	geometry.shader = get_shader();
+	geometry.custom_shader = ( geometry.shader != nullptr );
+	geometry.textured = true;
+	geometry.texture_dynamic = m_tex->is_volatile_texture();
+	geometry.texture_content_version = m_tex->get_texture_content_version();
+	return true;
+}
 
 void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {

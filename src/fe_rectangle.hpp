@@ -26,6 +26,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
+#include "fe_renderer.hpp"
 #include "rounded_rectangle_shape.hpp"
 
 class FeSettings;
@@ -115,6 +116,7 @@ public:
 
 	int get_blend_mode() const;
 	void set_blend_mode( int b );
+	bool build_render_geometry( FeRenderGeometry &geometry ) const;
 
 	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
 

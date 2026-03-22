@@ -24,6 +24,7 @@
 #define MEDIA_HPP
 
 #include <SFML/Audio.hpp>
+#include <cstddef>
 #include <vector>
 #include <string>
 #include <atomic>
@@ -78,6 +79,10 @@ public:
 	bool is_playing();
 	bool is_multiframe() const;
 	float get_aspect_ratio() const;
+	bool get_video_frame_dimensions( unsigned int &width, unsigned int &height );
+	bool copy_video_frame_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
+	bool copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
+	unsigned long long get_video_frame_serial() const;
 
 	sf::Time get_video_time();
 	sf::Time get_duration() const;

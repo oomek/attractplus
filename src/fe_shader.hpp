@@ -23,6 +23,9 @@
 #ifndef FE_SHADER_HPP
 #define FE_SHADER_HPP
 
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include <SFML/Graphics/Shader.hpp>
 class FeImage;
 
@@ -54,12 +57,26 @@ public:
 
 	const sf::Shader *get_shader() const { return ( m_type != Empty ) ? &m_shader : NULL; };
 	Type get_type() const { return m_type; };
+	const std::string &get_vertex_source_path() const { return m_vertex_source_path; };
+	const std::string &get_fragment_source_path() const { return m_fragment_source_path; };
+	const std::string &get_vertex_source_code() const { return m_vertex_source_code; };
+	const std::string &get_fragment_source_code() const { return m_fragment_source_code; };
+	const std::vector<float> *get_param( const char *name ) const;
+	bool uses_current_texture( const char *name ) const;
+	FeImage *get_texture_param_image( const char *name ) const;
 
 private:
 	FeShader( const FeShader & );
 	const FeShader &operator=( const FeShader & );
 
 	Type m_type;
+	std::string m_vertex_source_path;
+	std::string m_fragment_source_path;
+	std::string m_vertex_source_code;
+	std::string m_fragment_source_code;
+	std::unordered_map<std::string, std::vector<float>> m_params;
+	std::unordered_map<std::string, bool> m_current_texture_params;
+	std::unordered_map<std::string, FeImage *> m_texture_image_params;
 	sf::Shader m_shader;
 };
 

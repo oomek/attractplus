@@ -25,6 +25,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
+#include "fe_renderer.hpp"
 #include "fe_settings.hpp"
 #include "fe_music.hpp"
 #include "fe_sound.hpp"
@@ -153,6 +154,7 @@ protected:
 	FeSettings::RotationState m_toggleRotation;
 	sf::Transform m_layout_transform;
 	sf::Transform m_ui_transform;
+	FePerspectiveCamera m_layout_camera;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
@@ -225,6 +227,14 @@ protected:
 	void set_selection_index( int );
 	void set_layout_width( float );
 	void set_layout_height( float );
+	float get_perspective_fov() const;
+	void set_perspective_fov( float fov );
+	float get_perspective_near() const;
+	void set_perspective_near( float near_plane );
+	float get_perspective_far() const;
+	void set_perspective_far( float far_plane );
+	float get_perspective_default_z() const;
+	void set_perspective_default_z( float z );
 	void set_base_rotation( int );
 	void set_toggle_rotation( int );
 	void set_layout_font_name( const char * );
@@ -252,11 +262,14 @@ public:
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required
 	bool video_tick(); // update videos only. return true if redraw required
 	void redraw(); // redraw the screen while doing computationally intensive loops
+	void submit_render_frame();
 
 	bool saver_activation_check();
 	void on_stop_frontend();
 	void pre_run();
 	void post_run();
+	void build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
+	void build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &surfaces ) const;
 
 	bool reset_screen_saver();
 	bool handle_event( FeInputMap::Command );
@@ -270,6 +283,7 @@ public:
 
 	const sf::Transform &get_transform() const;
 	const sf::Transform &get_ui_transform() const;
+	const FePerspectiveCamera &get_layout_camera() const { return m_layout_camera; }
 	const sf::Font *get_layout_font();
 	const sf::Font *get_default_font();
 	const FeFontContainer *get_default_font_container();

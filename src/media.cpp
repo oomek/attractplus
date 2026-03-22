@@ -27,6 +27,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
 #include "fe_audio_fx.hpp"
+#include "fe_sdl3_gpu.hpp"
 
 extern "C"
 {
@@ -212,6 +213,7 @@ public:
 	std::recursive_mutex image_swap_mutex;
 	std::uint8_t *display_frame;
 	std::condition_variable_any frame_displayed;
+	std::atomic<unsigned long long> frame_serial;
 
 	FeVideoImp( FeMedia *parent );
 	~FeVideoImp();
@@ -221,7 +223,10 @@ public:
 
 	void signal_stop(); // signal the bg thread we are stopping, without blocking
 
+	bool get_rgba_frame_dimensions( unsigned int &width, unsigned int &height );
 	void init_rgba_buffer();
+	bool copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
+	bool copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
 	void video_thread();
 };
 
@@ -470,7 +475,8 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 		display_texture( NULL ),
 		disptex_width( 0 ),
 		disptex_height( 0 ),
-		display_frame( NULL )
+		display_frame( NULL ),
+		frame_serial( 0 )
 {
 	video_timer.reset();
 	FePresent *fep = FePresent::script_get_fep();
@@ -614,6 +620,46 @@ void FeVideoImp::init_rgba_buffer()
 	// Override linesize with original video width
 	// to remove stride padding with sws_scale
 	rgba_linesize[0] = disptex_width * 4;
+}
+
+bool FeVideoImp::copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height )
+{
+	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
+	if ( !rgba_buffer[0] || disptex_width <= 0 || disptex_height <= 0 )
+		return false;
+
+	width = static_cast<unsigned int>( disptex_width );
+	height = static_cast<unsigned int>( disptex_height );
+	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+	pixels.assign( rgba_buffer[0], rgba_buffer[0] + data_size );
+	return true;
+}
+
+bool FeVideoImp::get_rgba_frame_dimensions( unsigned int &width, unsigned int &height )
+{
+	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
+	if ( !rgba_buffer[0] || disptex_width <= 0 || disptex_height <= 0 )
+		return false;
+
+	width = static_cast<unsigned int>( disptex_width );
+	height = static_cast<unsigned int>( disptex_height );
+	return true;
+}
+
+bool FeVideoImp::copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height )
+{
+	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
+	if ( !pixels || !rgba_buffer[0] || disptex_width <= 0 || disptex_height <= 0 )
+		return false;
+
+	width = static_cast<unsigned int>( disptex_width );
+	height = static_cast<unsigned int>( disptex_height );
+	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
+	if ( pixel_count < data_size )
+		return false;
+
+	std::memcpy( pixels, rgba_buffer[0], data_size );
+	return true;
 }
 
 void FeVideoImp::video_thread()
@@ -1476,14 +1522,38 @@ bool FeMedia::tick()
 		std::lock_guard<std::recursive_mutex> l( m_video->image_swap_mutex );
 		if ( m_video->display_frame )
 		{
-			m_video->display_texture->update( m_video->display_frame );
+			if ( !fe_sdl3_gpu_present_requested() )
+				m_video->display_texture->update( m_video->display_frame );
 			m_video->display_frame = NULL;
+			m_video->frame_serial.fetch_add( 1, std::memory_order_release );
 			m_video->frame_displayed.notify_one();
 			return true;
 		}
 	}
 
 	return false;
+}
+
+bool FeMedia::get_video_frame_dimensions( unsigned int &width, unsigned int &height )
+{
+	return m_video && m_video->get_rgba_frame_dimensions( width, height );
+}
+
+bool FeMedia::copy_video_frame_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height )
+{
+	return m_video && m_video->copy_rgba_frame( pixels, width, height );
+}
+
+bool FeMedia::copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height )
+{
+	return m_video && m_video->copy_rgba_frame_to( pixels, pixel_count, width, height );
+}
+
+unsigned long long FeMedia::get_video_frame_serial() const
+{
+	return m_video
+		? m_video->frame_serial.load( std::memory_order_acquire )
+		: 0;
 }
 
 

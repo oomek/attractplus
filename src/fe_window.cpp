@@ -43,9 +43,61 @@
 #endif // SFM_SYSTEM_MACOS
 
 #include <iostream>
+#include <cstdlib>
+#include <fstream>
 #include "nowide/fstream.hpp"
 
 #include <SFML/System/Sleep.hpp>
+
+#ifdef USE_SDL3_GPU
+namespace
+{
+	std::string get_gpu_log_path()
+	{
+		const std::string base_path = get_program_path();
+		if ( base_path.empty() )
+			return "fe_sdl3_gpu.log";
+
+		std::string log_path( base_path );
+		const char last = log_path[ log_path.size() - 1 ];
+		if ( last != '/' && last != '\\' )
+			log_path += '/';
+		log_path += "fe_sdl3_gpu.log";
+		return log_path;
+	}
+
+	void append_gpu_probe_log( const std::string &message )
+	{
+		static bool s_truncated_gpu_log = false;
+		const std::ios_base::openmode mode = s_truncated_gpu_log ? std::ios::app : std::ios::trunc;
+		std::ofstream log_file( get_gpu_log_path().c_str(), mode );
+		if ( log_file )
+		{
+			log_file << message << std::endl;
+			s_truncated_gpu_log = true;
+		}
+	}
+
+	bool has_gpu_present_marker()
+	{
+		if ( std::ifstream( "fe_sdl3_gpu_present.txt" ) )
+			return true;
+
+		const std::string base_path = get_program_path();
+		if ( !base_path.empty() )
+		{
+			std::string marker_path( base_path );
+			const char last = marker_path[ marker_path.size() - 1 ];
+			if ( last != '/' && last != '\\' )
+				marker_path += '/';
+			marker_path += "fe_sdl3_gpu_present.txt";
+			return static_cast<bool>( std::ifstream( marker_path.c_str() ) );
+		}
+
+		return false;
+	}
+}
+#endif
 
 #ifdef SFML_SYSTEM_WINDOWS
 void set_win32_foreground_window( HWND hwnd, HWND order )
@@ -150,12 +202,72 @@ FeWindow::~FeWindow()
 
 void FeWindow::display()
 {
-	m_window->display();
+	bool used_sdl_gpu_present = false;
+#ifdef USE_SDL3_GPU
+	const bool s_enable_gpu_present =
+		( std::getenv( "FE_SDL3_GPU_PRESENT" ) != nullptr ) || has_gpu_present_marker();
+	static bool s_logged_gpu_present_probe = false;
+	if ( !s_logged_gpu_present_probe )
+	{
+		std::ostringstream stream;
+		stream
+			<< "display: gpu_present_requested=" << ( s_enable_gpu_present ? 1 : 0 )
+			<< " env=" << ( std::getenv( "FE_SDL3_GPU_PRESENT" ) ? 1 : 0 )
+			<< " marker=" << ( has_gpu_present_marker() ? 1 : 0 )
+			<< " program_path=" << get_program_path();
+		append_gpu_probe_log( stream.str() );
+		s_logged_gpu_present_probe = true;
+	}
+	if ( s_enable_gpu_present )
+	{
+		static int s_logged_submitted = -1;
+		static int s_logged_content = -1;
+		static int s_logged_available = -1;
+		const int submitted = m_gpu_context.has_submitted_frame() ? 1 : 0;
+		const int content = m_gpu_context.has_frame_content() ? 1 : 0;
+		const int available = m_gpu_context.is_available() ? 1 : 0;
+		if ( submitted != s_logged_submitted || content != s_logged_content || available != s_logged_available )
+		{
+			std::ostringstream stream;
+			stream
+				<< "display: gpu_state"
+				<< " submitted=" << submitted
+				<< " content=" << content
+				<< " available=" << available;
+			append_gpu_probe_log( stream.str() );
+			s_logged_submitted = submitted;
+			s_logged_content = content;
+			s_logged_available = available;
+		}
+#if defined(SFML_SYSTEM_WINDOWS)
+		if ( !m_gpu_context.is_available() && m_window && m_gpu_context.has_submitted_frame() && m_gpu_context.has_frame_content() )
+		{
+			const sf::Vector2u size = m_window->getSize();
+			if ( !m_gpu_context.wrap_native_window(
+					reinterpret_cast<void *>( m_window->getNativeHandle() ),
+					static_cast<int>( size.x ),
+					static_cast<int>( size.y ) ) )
+			{
+				FeLog() << "WARNING: SDL3 GPU backend initialization failed: " << SDL_GetError() << std::endl;
+			}
+			else
+			{
+				FeDebug() << "SDL3 GPU backend initialized for the frontend window." << std::endl;
+			}
+		}
+#endif
+		if ( m_gpu_context.should_present() )
+			used_sdl_gpu_present = m_gpu_context.execute_frame();
+	}
+#endif
+
+	if ( !used_sdl_gpu_present )
+		m_window->display();
 
 	// Starting from Windows Vista non fullscreen window modes
 	// should be synced by DWM, instead of v-sync
 #ifdef SFML_SYSTEM_WINDOWS
-	if ( m_win_mode != FeSettings::Fullscreen )
+	if ( !used_sdl_gpu_present && ( m_win_mode != FeSettings::Fullscreen ) )
 		DwmFlush();
 	check_for_sleep();
 #endif
@@ -811,6 +923,10 @@ void FeWindow::close()
 		save();
 		m_window->close();
 	}
+
+#ifdef USE_SDL3_GPU
+	m_gpu_context.release_window();
+#endif
 }
 
 bool FeWindow::hasFocus()

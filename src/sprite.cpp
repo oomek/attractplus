@@ -327,6 +327,64 @@ void FeSprite::setBorderScale( float s )
 	}
 }
 
+void FeSprite::getRenderVertices( std::vector<FeRenderVertex> &out, float z ) const
+{
+	out.clear();
+
+	if ( !m_texture || m_vertices.getVertexCount() == 0 )
+		return;
+
+	const sf::Transform transform = getTransform();
+	const auto convert_vertex = [&]( const sf::Vertex &vertex ) -> FeRenderVertex
+	{
+		const sf::Vector2f world_pos = transform.transformPoint( vertex.position );
+		return FeRenderVertex{
+			world_pos.x,
+			world_pos.y,
+			z,
+			vertex.texCoords.x,
+			vertex.texCoords.y,
+			vertex.color.r,
+			vertex.color.g,
+			vertex.color.b,
+			vertex.color.a
+		};
+	};
+
+	if ( m_vertices.getPrimitiveType() == sf::PrimitiveType::TriangleStrip )
+	{
+		if ( m_vertices.getVertexCount() < 3 )
+			return;
+
+		out.reserve( ( m_vertices.getVertexCount() - 2 ) * 3 );
+		for ( size_t i = 2; i < m_vertices.getVertexCount(); i++ )
+		{
+			const sf::Vertex &v0 = m_vertices[ i - 2 ];
+			const sf::Vertex &v1 = m_vertices[ i - 1 ];
+			const sf::Vertex &v2 = m_vertices[ i ];
+
+			if ( i % 2 == 0 )
+			{
+				out.push_back( convert_vertex( v0 ) );
+				out.push_back( convert_vertex( v1 ) );
+				out.push_back( convert_vertex( v2 ) );
+			}
+			else
+			{
+				out.push_back( convert_vertex( v1 ) );
+				out.push_back( convert_vertex( v0 ) );
+				out.push_back( convert_vertex( v2 ) );
+			}
+		}
+
+		return;
+	}
+
+	out.reserve( m_vertices.getVertexCount() );
+	for ( size_t i = 0; i < m_vertices.getVertexCount(); i++ )
+		out.push_back( convert_vertex( m_vertices[i] ) );
+}
+
 ////////////////////////////////////////////////////////////
 void FeSprite::updateGeometry()
 {

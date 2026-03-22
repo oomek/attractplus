@@ -1285,6 +1285,7 @@ int main(int argc, char *argv[])
 
 		if ( redraw || !feSettings.get_info_bool( FeSettings::PowerSaving ) )
 		{
+			feVM.submit_render_frame();
 			feVM.redraw_surfaces();
 
 			// begin drawing

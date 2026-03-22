@@ -54,6 +54,7 @@ namespace sf
 {
 class Font;
 class RenderTarget;
+class Texture;
 
 ////////////////////////////////////////////////////////////
 /// \brief Graphical text that can be drawn to a render target
@@ -442,6 +443,10 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     [[nodiscard]] FloatRect getGlobalBounds() const;
+    [[nodiscard]] const VertexArray& getFillGeometry() const;
+    [[nodiscard]] const VertexArray& getOutlineGeometry() const;
+    [[nodiscard]] const Texture* getTexturePtr() const;
+    [[nodiscard]] std::uint64_t getTextureVersion() const;
 
 private:
     ////////////////////////////////////////////////////////////

@@ -375,6 +375,38 @@ FloatRect JustifyText::getGlobalBounds() const
 
 
 ////////////////////////////////////////////////////////////
+const VertexArray& JustifyText::getFillGeometry() const
+{
+    ensureGeometryUpdate();
+    return m_vertices;
+}
+
+
+////////////////////////////////////////////////////////////
+const VertexArray& JustifyText::getOutlineGeometry() const
+{
+    ensureGeometryUpdate();
+    return m_outlineVertices;
+}
+
+
+////////////////////////////////////////////////////////////
+const Texture* JustifyText::getTexturePtr() const
+{
+    ensureGeometryUpdate();
+    return &m_font->getTexture(m_characterSize);
+}
+
+
+////////////////////////////////////////////////////////////
+std::uint64_t JustifyText::getTextureVersion() const
+{
+    ensureGeometryUpdate();
+    return m_fontTextureId;
+}
+
+
+////////////////////////////////////////////////////////////
 void JustifyText::draw(RenderTarget& target, RenderStates states) const
 {
     ensureGeometryUpdate();

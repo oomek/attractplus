@@ -182,6 +182,20 @@ void FeText::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 	target.draw( m_draw_text, states );
 }
 
+void FeText::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
+{
+	const std::size_t begin = geometry.size();
+	m_draw_text.append_render_geometry( geometry, get_z() );
+	if ( get_shader() )
+	{
+		for ( std::size_t i = begin; i < geometry.size(); ++i )
+		{
+			geometry[i].shader = get_shader();
+			geometry[i].custom_shader = true;
+		}
+	}
+}
+
 void FeText::set_word_wrap( bool w )
 {
 	m_draw_text.setWordWrap( w );

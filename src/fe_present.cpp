@@ -547,6 +547,12 @@ namespace
 {
 	bool zcompare( FeBasePresentable *one, FeBasePresentable *two )
 	{
+		if ( one->get_z() < two->get_z() )
+			return true;
+
+		if ( one->get_z() > two->get_z() )
+			return false;
+
 		return ( one->get_zorder() < two->get_zorder() );
 	}
 };
@@ -578,6 +584,211 @@ void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 			if ( (*itl)->get_visible() )
 				target.draw( (*itl)->drawable(), states );
 		}
+	}
+}
+
+void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
+{
+	geometry.clear();
+
+	for ( const FeMonitor &monitor : m_mon )
+	{
+		for ( const FeBasePresentable *presentable : monitor.elements )
+		{
+			if ( !presentable || !presentable->get_visible() )
+				continue;
+
+			const FeImage *image = dynamic_cast<const FeImage *>( presentable );
+			if ( image )
+			{
+				FeRenderGeometry image_geometry;
+				if ( image->build_render_geometry( image_geometry ) )
+					geometry.push_back( image_geometry );
+				continue;
+			}
+
+			const FeRectangle *rectangle = dynamic_cast<const FeRectangle *>( presentable );
+			if ( rectangle )
+			{
+				FeRenderGeometry rectangle_geometry;
+				if ( rectangle->build_render_geometry( rectangle_geometry ) )
+					geometry.push_back( rectangle_geometry );
+				continue;
+			}
+
+			const FeText *text = dynamic_cast<const FeText *>( presentable );
+			if ( text )
+			{
+				text->build_render_geometry( geometry );
+				continue;
+			}
+
+			const FeListBox *listbox = dynamic_cast<const FeListBox *>( presentable );
+			if ( listbox )
+				listbox->build_render_geometry( geometry );
+		}
+	}
+}
+
+void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &surfaces ) const
+{
+	surfaces.clear();
+
+	struct SurfaceState
+	{
+		std::uint64_t signature;
+		bool dynamic_content;
+	};
+
+	auto hash_combine = []( std::uint64_t seed, std::uint64_t value ) -> std::uint64_t
+	{
+		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
+	};
+	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed ) -> std::uint64_t
+	{
+		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.texture_id ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_source_type ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_repeated ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.vertices.size() ) );
+		for ( const FeRenderVertex &vertex : geometry.vertices )
+		{
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.r ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.g ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.b ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.a ) );
+		}
+		return seed;
+	};
+
+	std::vector<FeSurfaceTextureContainer *> surface_list;
+	surface_list.reserve( m_texturePool.size() );
+	for ( FeBaseTextureContainer *container : m_texturePool )
+	{
+		FeSurfaceTextureContainer *surface = dynamic_cast<FeSurfaceTextureContainer *>( container );
+		if ( surface )
+			surface_list.push_back( surface );
+	}
+
+	std::stable_sort(
+		surface_list.begin(),
+		surface_list.end(),
+		[]( FeSurfaceTextureContainer *a, FeSurfaceTextureContainer *b )
+		{
+			return a->get_nesting_level() > b->get_nesting_level();
+		} );
+
+	std::unordered_map<const FeSurfaceTextureContainer *, SurfaceState> surface_states;
+	surface_states.reserve( surface_list.size() );
+
+	for ( FeSurfaceTextureContainer *surface : surface_list )
+	{
+		FeRenderSurfaceFrame frame;
+		frame.surface_id = surface;
+		frame.surface_texture_id = surface;
+		frame.surface_texture_source_type = FeRenderTextureSourceContainer;
+		frame.nesting_level = surface->get_nesting_level();
+		frame.width = surface->get_width();
+		frame.height = surface->get_height();
+		frame.mipmapped = surface->get_mipmap();
+		frame.clear = surface->get_clear();
+		frame.redraw = surface->get_redraw();
+		frame.camera = m_layout_camera;
+		frame.camera.update_projection( static_cast<float>( frame.width ), static_cast<float>( frame.height ) );
+		frame.geometry_signature = 1469598103934665603ULL;
+		frame.content_signature = 1469598103934665603ULL;
+
+		for ( const FeBasePresentable *presentable : surface->elements )
+		{
+			if ( !presentable || !presentable->get_visible() )
+				continue;
+
+			const FeImage *image = dynamic_cast<const FeImage *>( presentable );
+			if ( image )
+			{
+				FeRenderGeometry image_geometry;
+				if ( image->build_render_geometry( image_geometry ) )
+				{
+					bool referenced_surface_dynamic = false;
+					if ( image_geometry.texture_source_type == FeRenderTextureSourceContainer )
+					{
+						const FeSurfaceTextureContainer *referenced_surface =
+							dynamic_cast<const FeSurfaceTextureContainer *>(
+								static_cast<const FeBaseTextureContainer *>( image_geometry.texture_id ) );
+						if ( referenced_surface )
+						{
+							auto child_it = surface_states.find( referenced_surface );
+							if ( child_it != surface_states.end() )
+							{
+								frame.content_signature = hash_combine( frame.content_signature, child_it->second.signature );
+								referenced_surface_dynamic = child_it->second.dynamic_content;
+							}
+						}
+					}
+
+					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader || referenced_surface_dynamic;
+					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
+					frame.content_signature = hash_geometry( image_geometry, frame.content_signature );
+					frame.geometry.push_back( image_geometry );
+				}
+				continue;
+			}
+
+			const FeRectangle *rectangle = dynamic_cast<const FeRectangle *>( presentable );
+			if ( rectangle )
+			{
+				FeRenderGeometry rectangle_geometry;
+				if ( rectangle->build_render_geometry( rectangle_geometry ) )
+				{
+					frame.dynamic_content = frame.dynamic_content || rectangle_geometry.texture_dynamic || rectangle_geometry.custom_shader;
+					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature );
+					frame.content_signature = hash_geometry( rectangle_geometry, frame.content_signature );
+					frame.geometry.push_back( rectangle_geometry );
+				}
+				continue;
+			}
+
+			const FeText *text = dynamic_cast<const FeText *>( presentable );
+			if ( text )
+			{
+				const std::size_t old_size = frame.geometry.size();
+				text->build_render_geometry( frame.geometry );
+				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
+				{
+					const FeRenderGeometry &text_geometry = frame.geometry[i];
+					frame.dynamic_content = frame.dynamic_content || text_geometry.texture_dynamic || text_geometry.custom_shader;
+					frame.geometry_signature = hash_geometry( text_geometry, frame.geometry_signature );
+					frame.content_signature = hash_geometry( text_geometry, frame.content_signature );
+				}
+				continue;
+			}
+
+			const FeListBox *listbox = dynamic_cast<const FeListBox *>( presentable );
+			if ( listbox )
+			{
+				const std::size_t old_size = frame.geometry.size();
+				listbox->build_render_geometry( frame.geometry );
+				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
+				{
+					const FeRenderGeometry &list_geometry = frame.geometry[i];
+					frame.dynamic_content = frame.dynamic_content || list_geometry.texture_dynamic || list_geometry.custom_shader;
+					frame.geometry_signature = hash_geometry( list_geometry, frame.geometry_signature );
+					frame.content_signature = hash_geometry( list_geometry, frame.content_signature );
+				}
+			}
+		}
+
+		if ( !frame.clear && frame.redraw )
+			frame.dynamic_content = true;
+
+		surface_states[ surface ] = { frame.content_signature, frame.dynamic_content };
+		surfaces.push_back( frame );
 	}
 }
 
@@ -847,6 +1058,65 @@ void FePresent::set_layout_height( float h )
 		set_transforms();
 		flag_redraw();
 	}
+}
+
+float FePresent::get_perspective_fov() const
+{
+	return m_layout_camera.fov_y_degrees;
+}
+
+void FePresent::set_perspective_fov( float fov )
+{
+	if ( fov <= 1.0f || fov >= 179.0f || fov == m_layout_camera.fov_y_degrees )
+		return;
+
+	m_layout_camera.fov_y_degrees = fov;
+	set_transforms();
+	flag_redraw();
+}
+
+float FePresent::get_perspective_near() const
+{
+	return m_layout_camera.near_plane;
+}
+
+void FePresent::set_perspective_near( float near_plane )
+{
+	if ( near_plane <= 0.0f || near_plane >= m_layout_camera.far_plane || near_plane == m_layout_camera.near_plane )
+		return;
+
+	m_layout_camera.near_plane = near_plane;
+	set_transforms();
+	flag_redraw();
+}
+
+float FePresent::get_perspective_far() const
+{
+	return m_layout_camera.far_plane;
+}
+
+void FePresent::set_perspective_far( float far_plane )
+{
+	if ( far_plane <= m_layout_camera.near_plane || far_plane == m_layout_camera.far_plane )
+		return;
+
+	m_layout_camera.far_plane = far_plane;
+	set_transforms();
+	flag_redraw();
+}
+
+float FePresent::get_perspective_default_z() const
+{
+	return m_layout_camera.default_plane_z;
+}
+
+void FePresent::set_perspective_default_z( float z )
+{
+	if ( z == m_layout_camera.default_plane_z )
+		return;
+
+	m_layout_camera.default_plane_z = z;
+	flag_redraw();
 }
 
 const FeFontContainer *FePresent::get_pooled_font( const std::string &n )
@@ -1367,12 +1637,38 @@ void FePresent::redraw()
 	if ( is_layout_loaded() )
 		tick();
 
+	submit_render_frame();
+
 	m_window.clear();
 	redraw_surfaces();
 	m_window.draw( *this, m_layout_transform );
 	m_window.display();
 
 	m_layout_time.tick();
+}
+
+void FePresent::submit_render_frame()
+{
+	FeRenderFrame frame;
+	frame.camera = m_layout_camera;
+	frame.viewport_width = m_mon[0].size.x;
+	frame.viewport_height = m_mon[0].size.y;
+	frame.frame_number = static_cast<unsigned long long>( m_layout_time.getElapsedTime().asMilliseconds() );
+	build_render_geometry( frame.images );
+	build_render_surface_frames( frame.surfaces );
+	frame.image_count = static_cast<unsigned long long>( frame.images.size() );
+	m_window.get_gpu_context().submit_frame( frame );
+#ifdef USE_SDL3_GPU
+	{
+		std::ostringstream stream;
+		stream
+			<< "redraw: submitted frame"
+			<< " images=" << frame.images.size()
+			<< " surfaces=" << frame.surfaces.size()
+			<< " viewport=" << frame.viewport_width << "x" << frame.viewport_height;
+		m_window.get_gpu_context().write_debug_log( stream.str().c_str() );
+	}
+#endif
 }
 
 bool FePresent::saver_activation_check()
@@ -1572,6 +1868,9 @@ FeSettings::RotationState FePresent::get_actual_rotation()
 void FePresent::set_transforms()
 {
 	m_layout_transform = m_mon[0].transform;
+	m_layout_camera.update_projection(
+		static_cast<float>( m_mon[0].size.x ),
+		static_cast<float>( m_mon[0].size.y ) );
 
 	FeSettings::RotationState actualRotation = get_actual_rotation();
 

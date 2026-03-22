@@ -28,6 +28,7 @@
 #endif
 
 #include <SFML/Graphics.hpp>
+#include "fe_sdl3_gpu.hpp"
 
 class FeSettings;
 
@@ -75,6 +76,7 @@ private:
 	int m_win_mode;
 	bool m_mouse_outside = true;
 	FeWindowPosition m_win_pos;
+	FeSdl3GpuContext m_gpu_context;
 
 public:
 	FeWindow( FeSettings &fes );
@@ -99,6 +101,8 @@ public:
 	const std::optional<sf::Event> pollEvent();
 
 	sf::RenderWindow &get_win();
+	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }
+	const FeSdl3GpuContext &get_gpu_context() const { return m_gpu_context; }
 	int get_window_mode() { return m_win_mode; }
 };
 

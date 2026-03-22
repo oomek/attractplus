@@ -23,9 +23,11 @@
 #ifndef FE_IMAGE_HPP
 #define FE_IMAGE_HPP
 
+#include <cstddef>
 #include <SFML/Graphics.hpp>
 #include <sqrat.h>
 #include "sprite.hpp"
+#include "fe_renderer.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "sqrat_array_wrapper.hpp"
@@ -55,6 +57,8 @@ public:
 	virtual ~FeBaseTextureContainer();
 
 	virtual const sf::Texture &get_texture()=0;
+	virtual bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const;
+	virtual bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const;
 
 	virtual void on_new_selection( FeSettings *feSettings )=0;
 	virtual void on_end_navigation( FeSettings *feSettings )=0;
@@ -116,6 +120,8 @@ public:
 
 	virtual void release_audio( bool );
 	virtual void on_redraw_surfaces();
+	virtual bool is_volatile_texture() const;
+	virtual unsigned long long get_texture_content_version() const;
 
 protected:
 	FeBaseTextureContainer();
@@ -144,6 +150,8 @@ public:
 	~FeTextureContainer();
 
 	const sf::Texture &get_texture();
+	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
+	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 	bool get_visible() const;
 
 	void on_new_selection( FeSettings *feSettings );
@@ -201,6 +209,8 @@ public:
 	const std::vector<float> *get_fft_right_ptr() const;
 
 	float get_sample_aspect_ratio() const;
+	bool is_volatile_texture() const;
+	unsigned long long get_texture_content_version() const override;
 
 	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
 	FeMedia *get_media() const;
@@ -224,6 +234,8 @@ private:
 	void clear();
 
 	sf::Texture m_texture;
+	mutable std::vector<unsigned char> m_pixel_cache;
+	mutable bool m_pixel_cache_valid;
 
 	std::string m_art_name; // artwork label/template name (dynamic images)
 	std::string m_file_name; // the name of the loaded file
@@ -276,6 +288,9 @@ public:
 
 	void set_redraw( bool );
 	bool get_redraw() const;
+	bool is_volatile_texture() const;
+	int get_width() const;
+	int get_height() const;
 
 	FePresentableParent *get_presentable_parent();
 
@@ -284,6 +299,10 @@ private:
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
+
+public:
+	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
+	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 };
 
 class FeImage : public sf::Drawable, public FeBasePresentable
@@ -322,7 +341,8 @@ public:
 	FeImage( FeImage * ); // clone the given image (texture is not copied)
 	~FeImage();
 
-	const sf::Texture *get_texture();
+	const sf::Texture *get_texture() const;
+	const FeBaseTextureContainer *get_texture_container() const;
 	int get_texture_width() const;
 	int get_texture_height() const;
 	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
@@ -511,6 +531,7 @@ public:
 	int get_blend_mode() const;
 
 	bool get_visible() const;
+	bool build_render_geometry( FeRenderGeometry &geometry ) const;
 
 	//
 	// Callback functions for use with surface objects

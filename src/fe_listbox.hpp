@@ -25,6 +25,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "fe_presentable.hpp"
+#include "fe_renderer.hpp"
 #include "tp.hpp"
 
 #include <map>
@@ -184,6 +185,7 @@ public:
 	void set_format_string( const char *s );
 	int get_selected_row() const;
 	void set_selected_row( int r );
+	void build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
 private:
 	void update_list_settings( FeSettings *s );
 	void refresh_selection();

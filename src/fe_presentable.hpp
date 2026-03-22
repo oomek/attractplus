@@ -42,6 +42,9 @@ private:
 	FePresentableParent &m_parent;
 	FeShader *m_shader;
 	bool m_visible;
+	float m_z;
+	float m_rotation_x;
+	float m_rotation_y;
 	int m_zorder;
 
 public:
@@ -71,8 +74,10 @@ public:
 	//
 	float get_x() const;
 	float get_y() const;
+	float get_z() const;
 	void set_x( float x );
 	void set_y( float y );
+	void set_z( float z );
 
 	float get_width() const;
 	float get_height() const;
@@ -98,6 +103,13 @@ public:
 	FeShader *get_shader() const;
 	FeShader *script_get_shader() const;
 	void script_set_shader( FeShader *s );
+
+	float get_rotation_x() const;
+	void set_rotation_x( float rotation );
+	float get_rotation_y() const;
+	void set_rotation_y( float rotation );
+	float get_rotation_z() const;
+	void set_rotation_z( float rotation );
 
 	int get_zorder();
 	void set_zorder( int );
