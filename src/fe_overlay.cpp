@@ -2092,13 +2092,12 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 	sf::Clock cursor_timer;
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
-	const sf::Font *font = tp->getFont();
-	sf::Text cursor( *font,"|", tp->getCharacterSize() / tp->getTextScale().x );
+	sf::RectangleShape cursor;
 	cursor.setFillColor( tp->getColor() );
-	cursor.setScale( tp->getTextScale() );
+	cursor.setSize( { std::max( 1.0f, std::round( tp->getTextScale().x ) ), static_cast<float>( tp->getGlyphSize() ) } );
 
 	int cursor_pos=str.size();
-	cursor.setPosition({ static_cast<float>( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().size.x / 2.0 + cursor.getLocalBounds().position.x ) * cursor.getScale().x ), 0 }); // x
+	cursor.setPosition({ static_cast<float>( tp->setString( str, cursor_pos ).x - std::max( 1.0f, cursor.getSize().x ) / 2.0f ), 0 }); // x
 	cursor.setPosition({ cursor.getPosition().x, static_cast<float>( std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 ))}); // y
 
 	bool redraw=true;
@@ -2333,7 +2332,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 
 			if ( redraw )
 			{
-				cursor.setPosition({ static_cast<float>( tp->setString( str, cursor_pos ).x - std::floor( cursor.getLocalBounds().size.x / 2.0 + cursor.getLocalBounds().position.x ) * cursor.getScale().x ), 0 }); // x
+				cursor.setPosition({ static_cast<float>( tp->setString( str, cursor_pos ).x - std::max( 1.0f, cursor.getSize().x ) / 2.0f ), 0 }); // x
 				cursor.setPosition({ cursor.getPosition().x, static_cast<float>( std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 ))}); // y
 				cursor_timer.restart();
 			}

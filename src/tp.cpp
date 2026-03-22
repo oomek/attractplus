@@ -46,7 +46,7 @@ FeTextPrimitive::FeTextPrimitive( )
 }
 
 FeTextPrimitive::FeTextPrimitive(
-			const sf::Font *font,
+			const FeFont *font,
 			sf::Color colour,
 			sf::Color bgcolour,
 			unsigned int charactersize,
@@ -155,7 +155,7 @@ void FeTextPrimitive::fit_string(
 	first_char = position;
 	hard_wrap = false;
 
-	const sf::Font *font = getFont();
+	const FeFont *font = getFont();
 	unsigned int charsize = m_texts[0].getCharacterSize();
 	unsigned int spacing = charsize;
 	float width = m_bgRect.getSize().x / m_texts[0].getScale().x;
@@ -297,7 +297,7 @@ sf::Vector2f FeTextPrimitive::setString(
 	//
 	// Calculate the number of lines we can fit in our RectShape
 	//
-	const sf::Font *font = getFont();
+	const FeFont *font = getFont();
 	const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
 	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
 	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
@@ -392,7 +392,7 @@ void FeTextPrimitive::set_positions() const
 	float spacing = charSize;
 	int glyphSize = getGlyphSize();
 
-	const sf::Font *font = getFont();
+	const FeFont *font = getFont();
 	int margin = ( m_margin < 0 ) ? floorf( font->getLineSpacing( charSize ) / 2.0 ) : m_margin;
 	spacing = getLineSpacingFactored( font, spacing );
 
@@ -483,7 +483,9 @@ namespace
 		std::vector<FeRenderGeometry> &geometry,
 		const sf::VertexArray &vertices,
 		const sf::Transform &transform,
-		const sf::Texture *texture,
+		const FeFont::TexturePageId *texture,
+		const sf::Vector2u texture_size,
+		bool texture_smooth,
 		std::uint64_t texture_version,
 		float z )
 	{
@@ -492,12 +494,12 @@ namespace
 
 		FeRenderGeometry drawable;
 		drawable.texture_id = texture;
-		drawable.texture_source_type = texture ? FeRenderTextureSourceSfTexture : FeRenderTextureSourceNone;
+		drawable.texture_source_type = texture ? FeRenderTextureSourceFontPage : FeRenderTextureSourceNone;
 		drawable.texture_repeated = false;
-		drawable.texture_smooth = texture ? texture->isSmooth() : true;
+		drawable.texture_smooth = texture ? texture_smooth : true;
 		drawable.texture_mipmap = false;
-		drawable.texture_width = texture ? static_cast<float>( texture->getSize().x ) : 1.0f;
-		drawable.texture_height = texture ? static_cast<float>( texture->getSize().y ) : 1.0f;
+		drawable.texture_width = texture ? static_cast<float>( texture_size.x ) : 1.0f;
+		drawable.texture_height = texture ? static_cast<float>( texture_size.y ) : 1.0f;
 		drawable.blend_mode = 0;
 		drawable.shader = nullptr;
 		drawable.custom_shader = false;
@@ -576,14 +578,16 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 
 	for ( const sf::JustifyText &text : m_texts )
 	{
-		const sf::Texture *texture = text.getTexturePtr();
+		const FeFont::TexturePageId *texture = text.getTexturePageId();
+		const sf::Vector2u texture_size = text.getTextureSize();
+		const bool texture_smooth = text.getFont().isSmooth();
 		const std::uint64_t texture_version = text.getTextureVersion();
-		append_render_vertices( geometry, text.getOutlineGeometry(), text.getTransform(), texture, texture_version, z );
-		append_render_vertices( geometry, text.getFillGeometry(), text.getTransform(), texture, texture_version, z );
+		append_render_vertices( geometry, text.getOutlineGeometry(), text.getTransform(), texture, texture_size, texture_smooth, texture_version, z );
+		append_render_vertices( geometry, text.getFillGeometry(), text.getTransform(), texture, texture_size, texture_smooth, texture_version, z );
 	}
 }
 
-void FeTextPrimitive::setFont( const sf::Font &font )
+void FeTextPrimitive::setFont( const FeFont &font )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setFont( font );
@@ -591,7 +595,7 @@ void FeTextPrimitive::setFont( const sf::Font &font )
 	m_needs_pos_set = true;
 }
 
-const sf::Font *FeTextPrimitive::getFont() const
+const FeFont *FeTextPrimitive::getFont() const
 {
 	return &m_texts[0].getFont();
 }
@@ -611,7 +615,7 @@ unsigned int FeTextPrimitive::getCharacterSize() const
 
 unsigned int FeTextPrimitive::getGlyphSize() const
 {
-	const sf::Font *font = getFont();
+	const FeFont *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
 	const sf::Glyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & sf::Text::Bold );
 	return floorf(glyph->bounds.size.y * m_texts[0].getScale().y);
@@ -641,7 +645,7 @@ float FeTextPrimitive::getLineSpacing() const
 	return m_line_spacing;
 }
 
-int FeTextPrimitive::getLineSpacingFactored( const sf::Font *font, int charsize ) const
+int FeTextPrimitive::getLineSpacingFactored( const FeFont *font, int charsize ) const
 {
 	return std::max( 1, (int)ceilf( font->getLineSpacing( charsize ) * m_line_spacing ));
 }

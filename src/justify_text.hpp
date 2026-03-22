@@ -46,13 +46,14 @@
 #include <SFML/System/String.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include "fe_font.hpp"
+
 #include <cstddef>
 #include <cstdint>
 
 
 namespace sf
 {
-class Font;
 class RenderTarget;
 class Texture;
 
@@ -102,13 +103,13 @@ public:
     /// \param characterSize  Base size of characters, in pixels
     ///
     ////////////////////////////////////////////////////////////
-    JustifyText(const Font& font, String string = "", unsigned int characterSize = 30);
+    JustifyText(const FeFont& font, String string = "", unsigned int characterSize = 30);
 
     ////////////////////////////////////////////////////////////
     /// \brief Disallow construction from a temporary font
     ///
     ////////////////////////////////////////////////////////////
-    JustifyText(const Font&& font, String string = "", unsigned int characterSize = 30) = delete;
+    JustifyText(const FeFont&& font, String string = "", unsigned int characterSize = 30) = delete;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the justify width
@@ -164,13 +165,13 @@ public:
     /// \see `getFont`
     ///
     ////////////////////////////////////////////////////////////
-    void setFont(const Font& font);
+    void setFont(const FeFont& font);
 
     ////////////////////////////////////////////////////////////
     /// \brief Disallow setting from a temporary font
     ///
     ////////////////////////////////////////////////////////////
-    void setFont(const Font&& font) = delete;
+    void setFont(const FeFont&& font) = delete;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the character size
@@ -327,7 +328,7 @@ public:
     /// \see `setFont`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Font& getFont() const;
+    [[nodiscard]] const FeFont& getFont() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the character size
@@ -445,7 +446,8 @@ public:
     [[nodiscard]] FloatRect getGlobalBounds() const;
     [[nodiscard]] const VertexArray& getFillGeometry() const;
     [[nodiscard]] const VertexArray& getOutlineGeometry() const;
-    [[nodiscard]] const Texture* getTexturePtr() const;
+    [[nodiscard]] const FeFont::TexturePageId* getTexturePageId() const;
+    [[nodiscard]] Vector2u getTextureSize() const;
     [[nodiscard]] std::uint64_t getTextureVersion() const;
 
 private:
@@ -479,7 +481,7 @@ private:
     unsigned int          m_width{0};                                  //!< Width to justify (AM+)
     std::uint32_t         m_justify{None};                             //!< Justify method (AM+)
     String                m_string;                                    //!< String to display
-    const Font*           m_font{};                                    //!< Font used to display the string
+    const FeFont*         m_font{};                                    //!< Font used to display the string
     unsigned int          m_characterSize{30};                         //!< Base size of characters, in pixels
     float                 m_letterSpacingFactor{1.f};                  //!< Spacing factor between letters
     float                 m_lineSpacingFactor{1.f};                    //!< Spacing factor between lines

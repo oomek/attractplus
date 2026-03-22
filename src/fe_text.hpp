@@ -39,7 +39,7 @@ public:
 	FeText( FePresentableParent &p,
 		const std::string &str, int x, int y, int w, int h );
 
-	void setFont( const sf::Font & );
+	void setFont( const FeFont & );
 	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
 	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};

@@ -52,7 +52,7 @@ public:
 
 	// Constructor for use in overlay.  sets m_scripted to false
 	FeListBox( FePresentableParent &p,
-			const sf::Font *font,
+			const FeFont *font,
 			sf::Color colour,
 			sf::Color bgcolour,
 			sf::Color selcolour,
@@ -67,7 +67,7 @@ public:
 
 	FeListBox &operator=( const FeListBox & );
 
-	void setFont( const sf::Font & );
+	void setFont( const FeFont & );
 	sf::Vector2f getPosition() const;
 	void setPosition( const sf::Vector2f & );
 	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};

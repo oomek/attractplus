@@ -119,14 +119,14 @@ void FeFontContainer::load_default_font()
 	std::ignore = m_font.openFromMemory( m_font_binary_data.data(), m_font_binary_data.size() );
 }
 
-const sf::Font &FeFontContainer::get_font() const
+const FeFont &FeFontContainer::get_font() const
 {
 	return m_font;
 }
 
 void FeFontContainer::clear_font()
 {
-	m_font = sf::Font();
+	m_font.clear();
 	m_needs_reload = true;
 }
 
@@ -1807,7 +1807,7 @@ const sf::Transform &FePresent::get_ui_transform() const
 	return m_ui_transform;
 }
 
-const sf::Font *FePresent::get_layout_font()
+const FeFont *FePresent::get_layout_font()
 {
 	if ( !m_layoutFont )
 		m_layoutFont = get_default_font_container();
@@ -1815,7 +1815,7 @@ const sf::Font *FePresent::get_layout_font()
 	return &(m_layoutFont->get_font());
 }
 
-const sf::Font *FePresent::get_default_font()
+const FeFont *FePresent::get_default_font()
 {
 	return &(get_default_font_container()->get_font());
 }

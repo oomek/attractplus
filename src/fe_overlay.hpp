@@ -74,7 +74,7 @@ private:
 	int m_border_thickness;
 	int m_enable_alpha;
 	int m_disable_alpha;
-	const sf::Font *m_font;
+	const FeFont *m_font;
 	FeInputMap::Command m_menu_command;
 
 	enum LayoutStyle {

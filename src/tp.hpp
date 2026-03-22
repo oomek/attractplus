@@ -25,6 +25,7 @@
 
 #include "justify_text.hpp"
 #include "fe_renderer.hpp"
+#include "fe_font.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -42,7 +43,7 @@ public:
 
 	FeTextPrimitive();
 
-	FeTextPrimitive( const sf::Font *font,
+	FeTextPrimitive( const FeFont *font,
 			sf::Color colour,
 			sf::Color bgcolour,
 			unsigned int charactersize,
@@ -67,7 +68,7 @@ public:
 	sf::Vector2f setString( const std::basic_string<std::uint32_t> &t,
 					int cursor_string_pos=-1 ); // no utf-8 conversion
 
-	void setFont( const sf::Font & );
+	void setFont( const FeFont & );
 	void setCharacterSize( unsigned int );
 	void setCharacterSpacing( float );
 	void setLineSpacing( float );
@@ -93,7 +94,7 @@ public:
 	void setTextScale( const sf::Vector2f & );
 	void setFrom( const FeTextPrimitive &c );
 
-	const sf::Font *getFont() const;
+	const FeFont *getFont() const;
 	sf::Color getColor() const;
 	sf::Color getBgColor() const;
 	sf::Color getOutlineColor() const;
@@ -102,7 +103,7 @@ public:
 	unsigned int getGlyphSize() const;
 	float getCharacterSpacing() const;
 	float getLineSpacing() const;
-	int getLineSpacingFactored( const sf::Font *, int ) const;
+	int getLineSpacingFactored( const FeFont *, int ) const;
 	Alignment getAlignment() const;
 	sf::Vector2f getPosition() const;
 	sf::Vector2f getSize() const;

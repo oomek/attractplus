@@ -31,7 +31,6 @@
 ////////////////////////////////////////////////////////////
 // Headers
 ////////////////////////////////////////////////////////////
-#include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include "justify_text.hpp" // AM+
 #include <SFML/Graphics/Texture.hpp>
@@ -90,7 +89,7 @@ void addGlyphQuad(sf::VertexArray& vertices, sf::Vector2f position, sf::Color co
 namespace sf
 {
 ////////////////////////////////////////////////////////////
-JustifyText::JustifyText(const Font& font, String string, unsigned int characterSize) :
+JustifyText::JustifyText(const FeFont& font, String string, unsigned int characterSize) :
 m_string(std::move(string)),
 m_font(&font),
 m_characterSize(characterSize)
@@ -132,7 +131,7 @@ void JustifyText::setString(const String& string)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setFont(const Font& font)
+void JustifyText::setFont(const FeFont& font)
 {
     if (m_font != &font)
     {
@@ -255,7 +254,7 @@ const String& JustifyText::getString() const
 
 
 ////////////////////////////////////////////////////////////
-const Font& JustifyText::getFont() const
+const FeFont& JustifyText::getFont() const
 {
     return *m_font;
 }
@@ -391,10 +390,22 @@ const VertexArray& JustifyText::getOutlineGeometry() const
 
 
 ////////////////////////////////////////////////////////////
-const Texture* JustifyText::getTexturePtr() const
+const FeFont::TexturePageId* JustifyText::getTexturePageId() const
 {
     ensureGeometryUpdate();
-    return &m_font->getTexture(m_characterSize);
+    return m_font->getTexturePageId(m_characterSize);
+}
+
+
+////////////////////////////////////////////////////////////
+Vector2u JustifyText::getTextureSize() const
+{
+    ensureGeometryUpdate();
+
+    unsigned int width = 0;
+    unsigned int height = 0;
+    m_font->getTextureSize(m_characterSize, width, height);
+    return {width, height};
 }
 
 
@@ -412,7 +423,7 @@ void JustifyText::draw(RenderTarget& target, RenderStates states) const
     ensureGeometryUpdate();
 
     states.transform *= getTransform();
-    states.texture        = &m_font->getTexture(m_characterSize);
+    states.texture        = &m_font->getFallbackTexture(m_characterSize);
     states.coordinateType = CoordinateType::Pixels;
 
     // Only draw the outline if there is something to draw
@@ -493,11 +504,11 @@ void JustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, b
 void JustifyText::ensureGeometryUpdate() const
 {
     // Do nothing, if geometry has not changed and the font texture has not changed
-    if (!m_geometryNeedUpdate && m_font->getTexture(m_characterSize).getNativeHandle() == m_fontTextureId)
+    if (!m_geometryNeedUpdate && m_font->getTextureVersion(m_characterSize) == m_fontTextureId)
         return;
 
     // Save the current fonts texture id
-    m_fontTextureId = m_font->getTexture(m_characterSize).getNativeHandle();
+    m_fontTextureId = m_font->getTextureVersion(m_characterSize);
 
     // Mark geometry as updated
     m_geometryNeedUpdate = false;

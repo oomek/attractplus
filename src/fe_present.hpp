@@ -24,6 +24,7 @@
 #define FE_PRESENT_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_font.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"
 #include "fe_settings.hpp"
@@ -74,7 +75,7 @@ public:
 	void set_font( const std::string &n );
 	void load_default_font();
 
-	const sf::Font &get_font() const;
+	const FeFont &get_font() const;
 	const std::string &get_name() const { return m_name; };
 
 	void clear_font();
@@ -83,7 +84,7 @@ private:
 	FeFontContainer( const FeFontContainer & );
 	const FeFontContainer &operator=( const FeFontContainer & );
 
-	mutable sf::Font m_font;
+	mutable FeFont m_font;
 	std::string m_name;
 	mutable bool m_needs_reload;
 	std::vector<unsigned char> m_font_binary_data;
@@ -284,8 +285,8 @@ public:
 	const sf::Transform &get_transform() const;
 	const sf::Transform &get_ui_transform() const;
 	const FePerspectiveCamera &get_layout_camera() const { return m_layout_camera; }
-	const sf::Font *get_layout_font();
-	const sf::Font *get_default_font();
+	const FeFont *get_layout_font();
+	const FeFont *get_default_font();
 	const FeFontContainer *get_default_font_container();
 	const sf::Image *get_logo_image();
 	const sf::Image *get_logo_full_image();

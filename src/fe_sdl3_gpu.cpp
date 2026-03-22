@@ -1,5 +1,6 @@
 #include "fe_sdl3_gpu.hpp"
 #include "fe_image.hpp"
+#include "fe_font.hpp"
 #include "media.hpp"
 #include "fe_shader.hpp"
 #include "fe_util.hpp"
@@ -1281,6 +1282,7 @@ bool FeSdl3GpuContext::upload_gpu_texture( const void *texture_id, int texture_s
 	bool direct_media_upload = false;
 	bool black_media_placeholder = false;
 	const FeBaseTextureContainer *direct_container = nullptr;
+	const FeFont::TexturePageId *direct_font_page = nullptr;
 
 	if ( texture_source_type == FeRenderTextureSourceContainer )
 	{
@@ -1305,6 +1307,16 @@ bool FeSdl3GpuContext::upload_gpu_texture( const void *texture_id, int texture_s
 		}
 		else if ( !source_container || !source_container->copy_pixels_rgba( pixel_data, source_width, source_height ) )
 			return false;
+	}
+	else if ( texture_source_type == FeRenderTextureSourceFontPage )
+	{
+		const FeFont::TexturePageId *font_page = static_cast<const FeFont::TexturePageId *>( texture_id );
+		if ( !font_page || !font_page->font )
+			return false;
+
+		if ( !font_page->font->getTextureSize( font_page->character_size, source_width, source_height ) )
+			return false;
+		direct_font_page = font_page;
 	}
 	else if ( texture_source_type == FeRenderTextureSourceSfTexture )
 	{
@@ -1393,6 +1405,20 @@ bool FeSdl3GpuContext::upload_gpu_texture( const void *texture_id, int texture_s
 		unsigned int copied_width = 0;
 		unsigned int copied_height = 0;
 		if ( !direct_container->copy_pixels_rgba_to( mapped, upload_size, copied_width, copied_height ) ||
+			( copied_width != source_width ) ||
+			( copied_height != source_height ) )
+		{
+			SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
+			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+			release_gpu_texture( entry );
+			return false;
+		}
+	}
+	else if ( direct_font_page )
+	{
+		unsigned int copied_width = 0;
+		unsigned int copied_height = 0;
+		if ( !direct_font_page->font->copyTexturePixelsTo( direct_font_page->character_size, mapped, upload_size, copied_width, copied_height ) ||
 			( copied_width != source_width ) ||
 			( copied_height != source_height ) )
 		{

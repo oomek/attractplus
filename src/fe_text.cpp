@@ -42,7 +42,7 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	update_font_size();
 }
 
-void FeText::setFont( const sf::Font &f )
+void FeText::setFont( const FeFont &f )
 {
 	m_draw_text.setFont( f );
 }
@@ -537,7 +537,7 @@ void FeText::set_font( const char *f )
 	if ( !fc )
 		return;
 
-	const sf::Font *font=&(fc->get_font());
+	const FeFont *font=&(fc->get_font());
 	if ( font )
 	{
 		setFont( *font );

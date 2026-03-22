@@ -59,7 +59,7 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 
 FeListBox::FeListBox(
 		FePresentableParent &p,
-		const sf::Font *font,
+		const FeFont *font,
 		sf::Color colour,
 		sf::Color bgcolour,
 		sf::Color selcolour,
@@ -94,7 +94,7 @@ FeListBox::FeListBox( FePresentableParent &p )
     m_scripted = false;
 }
 
-void FeListBox::setFont( const sf::Font &f )
+void FeListBox::setFont( const FeFont &f )
 {
 	m_base_text.setFont( f );
 }
@@ -1028,7 +1028,7 @@ void FeListBox::set_font( const char *f )
 	if ( !fc )
 		return;
 
-	const sf::Font *font=&(fc->get_font());
+	const FeFont *font=&(fc->get_font());
 
 	if ( font )
 	{

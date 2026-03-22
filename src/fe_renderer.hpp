@@ -42,7 +42,8 @@ enum FeRenderTextureSourceType
 {
 	FeRenderTextureSourceNone = 0,
 	FeRenderTextureSourceSfTexture,
-	FeRenderTextureSourceContainer
+	FeRenderTextureSourceContainer,
+	FeRenderTextureSourceFontPage
 };
 
 struct FeRenderGeometry
