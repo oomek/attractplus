@@ -3,6 +3,7 @@
 #include "fe_font.hpp"
 #include "media.hpp"
 #include "fe_shader.hpp"
+#include "fe_blend.hpp"
 #include "fe_util.hpp"
 
 #include <algorithm>
@@ -85,16 +86,20 @@ namespace
 			case FeBlend::Screen:
 				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
 				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
 				break;
 			case FeBlend::Multiply:
 				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
 				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
+				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
 				break;
 			case FeBlend::Overlay:
 				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
 				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_COLOR;
-				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
+				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
+				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_COLOR;
 				break;
 			case FeBlend::Premultiplied:
 				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
@@ -1722,6 +1727,38 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	return &entry;
 }
 
+FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image )
+{
+	if ( !m_device || !m_vertex_shader || !image.textured )
+		return nullptr;
+
+	if ( blend_mode < FeBlend::Alpha || blend_mode > FeBlend::None )
+		return nullptr;
+
+	const char *raw_source = FeBlend::get_default_shader_source( blend_mode );
+	if ( !raw_source || !raw_source[0] )
+		return nullptr;
+
+	const std::string cache_key = "__builtin_blend_" + std::to_string( blend_mode ) + "__";
+	const unsigned long long source_stamp = 1ULL;
+
+	CustomShaderEntry &entry = m_custom_shader_cache[ cache_key ];
+	if ( entry.fragment_shader && entry.source_stamp == source_stamp )
+		return &entry;
+
+	release_custom_shader( entry );
+	entry.source_path = cache_key;
+	if ( !create_builtin_blend_shader_entry( blend_mode, image, entry ) )
+	{
+		m_custom_shader_cache.erase( cache_key );
+		return nullptr;
+	}
+
+	entry.source_stamp = source_stamp;
+	entry.vertex_source_stamp = 0ULL;
+	return &entry;
+}
+
 bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry )
 {
 	std::string fragment_source_code;
@@ -1877,39 +1914,134 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	return true;
 }
 
-bool FeSdl3GpuContext::build_custom_fragment_shader(
+bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image, CustomShaderEntry &entry )
+{
+	const char *raw_source = FeBlend::get_default_shader_source( blend_mode );
+	if ( !raw_source || !raw_source[0] )
+		return false;
+
+	std::string fragment_source_code;
+	std::vector<CustomUniformBinding> fragment_uniforms;
+	std::vector<CustomSamplerBinding> fragment_samplers;
+	if ( !build_custom_fragment_shader_from_source(
+		image,
+		entry.source_path,
+		std::string( raw_source ),
+		fragment_source_code,
+		fragment_uniforms,
+		fragment_samplers ) )
+		return false;
+
+	std::string fragment_spirv_path;
+	if ( !compile_custom_shader_to_spirv( entry.source_path, fragment_source_code, false, fragment_spirv_path ) )
+		return false;
+
+	ShaderBlob fragment_blob = {};
+	if ( !read_binary_file( fragment_spirv_path, fragment_blob.code ) || fragment_blob.code.empty() )
+	{
+		write_debug_log( ( std::string( "custom_shader: failed reading compiled blob " ) + fragment_spirv_path ).c_str() );
+		return false;
+	}
+	fragment_blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
+	fragment_blob.entrypoint = "main";
+
+	SDL_GPUShaderCreateInfo fragment_info = {};
+	fragment_info.code_size = fragment_blob.code.size();
+	fragment_info.code = fragment_blob.code.data();
+	fragment_info.entrypoint = fragment_blob.entrypoint;
+	fragment_info.format = fragment_blob.format;
+	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+	fragment_info.num_uniform_buffers = 1;
+	fragment_info.num_samplers = static_cast<Uint32>( fragment_samplers.size() );
+
+	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
+	if ( !entry.fragment_shader )
+	{
+		write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUShader failed for " ) + entry.source_path ).c_str() );
+		return false;
+	}
+
+	SDL_GPUVertexBufferDescription vertex_buffer = {};
+	vertex_buffer.slot = 0;
+	vertex_buffer.pitch = sizeof( FeRenderVertex );
+	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+	vertex_buffer.instance_step_rate = 0;
+
+	SDL_GPUVertexAttribute attributes[3] = {};
+	attributes[0].location = 0;
+	attributes[0].buffer_slot = 0;
+	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[0].offset = offsetof( FeRenderVertex, x );
+	attributes[1].location = 1;
+	attributes[1].buffer_slot = 0;
+	attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[1].offset = offsetof( FeRenderVertex, u );
+	attributes[2].location = 2;
+	attributes[2].buffer_slot = 0;
+	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+	attributes[2].offset = offsetof( FeRenderVertex, r );
+
+	SDL_GPUColorTargetDescription color_target = {};
+	color_target.format = m_swapchain_format;
+
+	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
+	pipeline_info.vertex_shader = m_vertex_shader;
+	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
+	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
+	pipeline_info.vertex_input_state.vertex_attributes = attributes;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 3;
+	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
+	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+	pipeline_info.rasterizer_state.enable_depth_clip = true;
+	pipeline_info.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	pipeline_info.multisample_state.sample_mask = 0;
+	pipeline_info.target_info.color_target_descriptions = &color_target;
+	pipeline_info.target_info.num_color_targets = 1;
+	pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	pipeline_info.target_info.has_depth_stencil_target = true;
+	pipeline_info.depth_stencil_state.enable_depth_test = true;
+	pipeline_info.depth_stencil_state.enable_depth_write = true;
+	pipeline_info.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+	pipeline_info.fragment_shader = entry.fragment_shader;
+
+	for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
+	{
+		color_target.blend_state = make_gpu_blend_state( mode );
+		entry.blend_pipelines[ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+		if ( !entry.blend_pipelines[ mode ] )
+		{
+			write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
+			release_custom_shader( entry );
+			return false;
+		}
+	}
+
+	entry.vertex_uniforms.clear();
+	entry.fragment_uniforms = fragment_uniforms;
+	entry.fragment_samplers = fragment_samplers;
+	entry.uses_current_texture = true;
+	entry.has_custom_vertex = false;
+	write_debug_log( ( std::string( "custom_shader: ready " ) + entry.source_path ).c_str() );
+	return true;
+}
+
+bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	const FeRenderGeometry &image,
+	const std::string &source_id,
+	const std::string &raw_source,
 	std::string &source_code,
 	std::vector<CustomUniformBinding> &uniforms,
 	std::vector<CustomSamplerBinding> &samplers )
 {
-	uniforms.clear();
-	samplers.clear();
-
-	if ( !image.shader )
-		return false;
-
-	std::string raw_source;
-	const std::string &source_path = image.shader->get_fragment_source_path();
-	if ( !source_path.empty() )
-	{
-		if ( !read_file_content( source_path, raw_source ) )
-		{
-			write_debug_log( ( std::string( "custom_shader: failed to read source " ) + source_path ).c_str() );
-			return false;
-		}
-	}
-	else
-	{
-		raw_source = image.shader->get_fragment_source_code();
-		if ( raw_source.empty() )
-			return false;
-	}
-
 	std::vector<ParsedCustomUniform> parsed_uniforms;
 	std::string stripped_source;
 	if ( !parse_custom_uniforms( raw_source, parsed_uniforms, stripped_source ) )
 		return false;
+
+	uniforms.clear();
+	samplers.clear();
 
 	for ( const ParsedCustomUniform &uniform : parsed_uniforms )
 	{
@@ -1918,8 +2050,8 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 			CustomSamplerBinding binding = {};
 			binding.name = uniform.name;
 			binding.slot = static_cast<int>( samplers.size() );
-			binding.current_texture = image.shader->uses_current_texture( uniform.name.c_str() );
-			binding.image = image.shader->get_texture_param_image( uniform.name.c_str() );
+			binding.current_texture = image.shader ? image.shader->uses_current_texture( uniform.name.c_str() ) : false;
+			binding.image = image.shader ? image.shader->get_texture_param_image( uniform.name.c_str() ) : nullptr;
 			if ( !binding.current_texture && !binding.image )
 				binding.current_texture = true;
 			samplers.push_back( binding );
@@ -1928,7 +2060,7 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 
 		if ( static_cast<int>( uniforms.size() ) >= FE_MAX_CUSTOM_SHADER_UNIFORMS )
 		{
-			write_debug_log( ( std::string( "custom_shader: too many numeric uniforms in " ) + source_path ).c_str() );
+			write_debug_log( ( std::string( "custom_shader: too many numeric uniforms in " ) + source_id ).c_str() );
 			return false;
 		}
 
@@ -1990,6 +2122,44 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 	shader << "\n" << stripped_source;
 	source_code = shader.str();
 	return true;
+}
+
+bool FeSdl3GpuContext::build_custom_fragment_shader(
+	const FeRenderGeometry &image,
+	std::string &source_code,
+	std::vector<CustomUniformBinding> &uniforms,
+	std::vector<CustomSamplerBinding> &samplers )
+{
+	uniforms.clear();
+	samplers.clear();
+
+	if ( !image.shader )
+		return false;
+
+	std::string raw_source;
+	const std::string &source_path = image.shader->get_fragment_source_path();
+	if ( !source_path.empty() )
+	{
+		if ( !read_file_content( source_path, raw_source ) )
+		{
+			write_debug_log( ( std::string( "custom_shader: failed to read source " ) + source_path ).c_str() );
+			return false;
+		}
+	}
+	else
+	{
+		raw_source = image.shader->get_fragment_source_code();
+		if ( raw_source.empty() )
+			return false;
+	}
+
+	return build_custom_fragment_shader_from_source(
+		image,
+		source_path.empty() ? std::string( "memory-fragment" ) : source_path,
+		raw_source,
+		source_code,
+		uniforms,
+		samplers );
 }
 
 bool FeSdl3GpuContext::build_custom_vertex_shader(
@@ -2342,6 +2512,8 @@ bool FeSdl3GpuContext::render_geometry_batch(
 
 		if ( image.custom_shader )
 			prepared.custom_shader = get_custom_shader_entry( image );
+		else if ( image.textured )
+			prepared.custom_shader = get_builtin_blend_shader_entry( image.blend_mode, image );
 
 		for ( FeRenderVertex vertex : image.vertices )
 		{

@@ -165,7 +165,16 @@ private:
 	void release_custom_shader_cache();
 	void release_custom_shader( CustomShaderEntry &entry );
 	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
+	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
 	bool create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry );
+	bool create_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image, CustomShaderEntry &entry );
+	bool build_custom_fragment_shader_from_source(
+		const FeRenderGeometry &image,
+		const std::string &source_id,
+		const std::string &raw_source,
+		std::string &source_code,
+		std::vector<CustomUniformBinding> &uniforms,
+		std::vector<CustomSamplerBinding> &samplers );
 	bool build_custom_vertex_shader(
 		const FeRenderGeometry &image,
 		std::string &source_code,

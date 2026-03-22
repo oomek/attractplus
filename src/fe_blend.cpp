@@ -25,6 +25,12 @@
 
 namespace
 {
+	const char *DEFAULT_SHADER_GLSL_ALPHA = \
+		"uniform sampler2D texture;" \
+		"void main(){" \
+		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
+		"gl_FragColor = gl_Color * pixel;}";
+
 	const char *DEFAULT_SHADER_GLSL_MULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
@@ -113,6 +119,31 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 				std::ignore = default_shader_premultiplied->loadFromMemory( DEFAULT_SHADER_GLSL_PREMULTIPLIED, sf::Shader::Type::Fragment );
 			}
 			return default_shader_premultiplied;
+		default:
+			return NULL;
+	}
+}
+
+const char *FeBlend::get_default_shader_source( int blend_mode )
+{
+	switch( blend_mode )
+	{
+		case FeBlend::Alpha:
+		case FeBlend::Add:
+		case FeBlend::Subtract:
+		case FeBlend::None:
+			return DEFAULT_SHADER_GLSL_ALPHA;
+
+		case FeBlend::Screen:
+		case FeBlend::Multiply:
+			return DEFAULT_SHADER_GLSL_MULTIPLIED;
+
+		case FeBlend::Overlay:
+			return DEFAULT_SHADER_GLSL_OVERLAY;
+
+		case FeBlend::Premultiplied:
+			return DEFAULT_SHADER_GLSL_PREMULTIPLIED;
+
 		default:
 			return NULL;
 	}
