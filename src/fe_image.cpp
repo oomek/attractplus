@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #ifndef NO_MOVIE
 #include "media.hpp"
@@ -45,6 +46,16 @@ FeBaseTextureContainer::FeBaseTextureContainer()
 
 FeBaseTextureContainer::~FeBaseTextureContainer()
 {
+}
+
+const void *FeBaseTextureContainer::get_texture_source_id() const
+{
+	return this;
+}
+
+int FeBaseTextureContainer::get_texture_source_type() const
+{
+	return FeRenderTextureSourceContainer;
 }
 
 bool FeBaseTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &, unsigned int &, unsigned int & ) const
@@ -246,6 +257,10 @@ void FeBaseTextureContainer::on_redraw_surfaces()
 {
 }
 
+void FeBaseTextureContainer::prepare_for_draw() const
+{
+}
+
 bool FeBaseTextureContainer::is_volatile_texture() const
 {
 	return false;
@@ -264,6 +279,15 @@ namespace
 	// been experienced at 2 when returning from games).
 	//
 	const int PLAY_COUNT=5;
+
+	FloatEdges fe_image_scaled_edges( const FloatEdges &edges, const sf::Vector2f &scale )
+	{
+		return FloatEdges(
+			edges.left / scale.x,
+			edges.top / scale.y,
+			edges.right / scale.x,
+			edges.bottom / scale.y );
+	}
 };
 
 FeTextureContainer::FeTextureContainer(
@@ -280,6 +304,9 @@ FeTextureContainer::FeTextureContainer(
 	m_mipmap( false ),
 	m_smooth( false ),
 	m_pixel_cache_valid( false ),
+	m_texture_size( 0, 0 ),
+	m_repeat( false ),
+	m_fallback_dirty( false ),
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
@@ -343,6 +370,7 @@ bool FeTextureContainer::get_visible() const
 bool FeTextureContainer::fix_masked_image()
 {
 	bool retval=false;
+	ensure_fallback_texture();
 
 	sf::Image tmp_img = m_texture.copyToImage();
 	sf::Vector2u tmp_s = tmp_img.getSize();
@@ -359,6 +387,7 @@ bool FeTextureContainer::fix_masked_image()
 		const std::size_t size = static_cast<std::size_t>( tmp_s.x ) * static_cast<std::size_t>( tmp_s.y ) * 4;
 		m_pixel_cache.assign( src, src + size );
 		m_pixel_cache_valid = true;
+		m_fallback_dirty = false;
 
 		notify_texture_change();
 	}
@@ -386,6 +415,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	if ( !file_exists( loaded_name ) )
 	{
 		m_texture = sf::Texture();
+		m_fallback_dirty = false;
 		return false;
 	}
 
@@ -398,6 +428,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 			<< loaded_name << std::endl;
 
 		m_texture = sf::Texture();
+		m_fallback_dirty = false;
 		delete m_movie;
 		m_movie = NULL;
 		return false;
@@ -430,13 +461,20 @@ bool FeTextureContainer::load_with_ffmpeg(
 	    		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
 			m_texture.update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
 		}
+		m_texture_size = m_texture.getSize();
 		m_pixel_cache.clear();
 		m_pixel_cache_valid = false;
+		m_fallback_dirty = false;
 	}
 	else
+	{
+		m_texture_size = m_texture.getSize();
 		m_pixel_cache_valid = false;
+		m_fallback_dirty = false;
+	}
 
 	m_texture.setSmooth( m_smooth );
+	m_texture.setRepeated( m_repeat );
 	m_file_name = loaded_name;
 
 	return true;
@@ -466,6 +504,7 @@ bool FeTextureContainer::try_to_load(
 	if ( !file_exists( loaded_name ) )
 	{
 		m_texture = sf::Texture();
+		m_fallback_dirty = false;
 		return false;
 	}
 
@@ -474,19 +513,17 @@ bool FeTextureContainer::try_to_load(
 
 	m_file_name = loaded_name;
 
-	// resize our texture accordingly
-	if ( m_texture.getSize() != sf::Vector2u( m_entry->get_width(), m_entry->get_height() ))
-		std::ignore = m_texture.resize({ static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() )});
-
 	if ( data )
 	{
-		m_texture.update( data );
+		m_texture_size = { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
 		const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
 		m_pixel_cache.assign( data, data + size );
 		m_pixel_cache_valid = true;
 		il.release_entry( &m_entry ); // don't need entry any more
-		if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
-		m_texture.setSmooth( m_smooth );
+		m_fallback_dirty = true;
+
+		if ( !fe_sdl3_gpu_present_requested() )
+			ensure_fallback_texture();
 	}
 
 	return true;
@@ -494,7 +531,35 @@ bool FeTextureContainer::try_to_load(
 
 const sf::Texture &FeTextureContainer::get_texture()
 {
+	ensure_fallback_texture();
 	return m_texture;
+}
+
+const sf::Texture *FeTextureContainer::get_texture_fallback() const
+{
+	ensure_fallback_texture();
+	return &m_texture;
+}
+
+sf::Vector2u FeTextureContainer::get_texture_size() const
+{
+#ifndef NO_MOVIE
+	if ( m_movie )
+	{
+		unsigned int width = 0;
+		unsigned int height = 0;
+		if ( m_movie->get_video_frame_dimensions( width, height ) && width > 0 && height > 0 )
+			return { width, height };
+	}
+#endif
+
+	if ( m_entry && m_entry->is_loaded() )
+		return { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
+
+	if ( m_texture_size.x > 0 && m_texture_size.y > 0 )
+		return m_texture_size;
+
+	return m_texture.getSize();
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -628,12 +693,14 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		FeImageLoader &il = FeImageLoader::get_ref();
 		if ( il.check_loaded( m_entry ) )
 		{
-			m_texture.update( m_entry->get_data() );
+			m_texture_size = { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
 			const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
 			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
 			m_pixel_cache_valid = true;
-			if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
-			m_texture.setSmooth( m_smooth );
+			m_fallback_dirty = true;
+
+			if ( !fe_sdl3_gpu_present_requested() )
+				ensure_fallback_texture();
 
 			il.release_entry( &m_entry );
 			return true;
@@ -692,7 +759,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		{
 			m_pixel_cache.clear();
 			m_pixel_cache_valid = false;
-			if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
+			m_fallback_dirty = false;
 			return true;
 		}
 	}
@@ -830,6 +897,7 @@ void FeTextureContainer::load_file( const char *n )
 	{
 		clear();
 		m_texture = sf::Texture();
+		m_fallback_dirty = false;
 		notify_texture_change();
 		return;
 	}
@@ -884,6 +952,8 @@ void FeTextureContainer::clear()
 	m_file_name.clear();
 	m_pixel_cache.clear();
 	m_pixel_cache_valid = false;
+	m_texture_size = { 0, 0 };
+	m_fallback_dirty = false;
 
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
@@ -926,8 +996,8 @@ bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, u
 	}
 
 	const sf::Vector2u size = m_texture.getSize();
-	width = size.x;
-	height = size.y;
+	width = m_texture_size.x ? m_texture_size.x : size.x;
+	height = m_texture_size.y ? m_texture_size.y : size.y;
 	if ( width == 0 || height == 0 )
 		return false;
 
@@ -937,6 +1007,7 @@ bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, u
 		return !pixels.empty();
 	}
 
+	ensure_fallback_texture();
 	const sf::Image image = m_texture.copyToImage();
 	const unsigned char *src = image.getPixelsPtr();
 	if ( !src )
@@ -982,8 +1053,8 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 	}
 
 	const sf::Vector2u size = m_texture.getSize();
-	width = size.x;
-	height = size.y;
+	width = m_texture_size.x ? m_texture_size.x : size.x;
+	height = m_texture_size.y ? m_texture_size.y : size.y;
 	if ( width == 0 || height == 0 )
 		return false;
 
@@ -1003,6 +1074,7 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 		return true;
 	}
 
+	ensure_fallback_texture();
 	const sf::Image image = m_texture.copyToImage();
 	const unsigned char *src = image.getPixelsPtr();
 	if ( !src )
@@ -1026,7 +1098,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie ) std::ignore = m_texture.generateMipmap();
+	if ( m_mipmap && !m_movie && !m_fallback_dirty ) std::ignore = m_texture.generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -1036,12 +1108,37 @@ bool FeTextureContainer::get_mipmap() const
 
 void FeTextureContainer::set_repeat( bool r )
 {
+	m_repeat = r;
 	m_texture.setRepeated( r );
 }
 
 bool FeTextureContainer::get_repeat() const
 {
-	return m_texture.isRepeated();
+	return m_repeat;
+}
+
+void FeTextureContainer::prepare_for_draw() const
+{
+	ensure_fallback_texture();
+}
+
+void FeTextureContainer::ensure_fallback_texture() const
+{
+	if ( !m_fallback_dirty )
+		return;
+
+	if ( !m_pixel_cache_valid || m_texture_size.x == 0 || m_texture_size.y == 0 )
+		return;
+
+	if ( m_texture.getSize() != m_texture_size )
+		std::ignore = const_cast<sf::Texture &>( m_texture ).resize( m_texture_size );
+
+	const_cast<sf::Texture &>( m_texture ).update( m_pixel_cache.data() );
+	const_cast<sf::Texture &>( m_texture ).setSmooth( m_smooth );
+	const_cast<sf::Texture &>( m_texture ).setRepeated( m_repeat );
+	if ( m_mipmap )
+		std::ignore = const_cast<sf::Texture &>( m_texture ).generateMipmap();
+	m_fallback_dirty = false;
 }
 
 void FeTextureContainer::set_volume( float v )
@@ -1164,7 +1261,11 @@ const std::vector<float> *FeTextureContainer::get_fft_right_ptr() const
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	: m_clear( true ),
 	m_redraw( true ),
-	m_mipmap( false )
+	m_mipmap( false ),
+	m_repeat( false ),
+	m_smooth( false ),
+	m_fallback_dirty( false ),
+	m_texture_size( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) )
 {
 	sf::ContextSettings ctx;
 	FePresent *fep = FePresent::script_get_fep();
@@ -1177,8 +1278,35 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 		m_texture.clear( sf::Color::Transparent );
 }
 
+void FeSurfaceTextureContainer::ensure_fallback_render() const
+{
+	if ( !m_fallback_dirty )
+		return;
+
+	FeSurfaceTextureContainer *self = const_cast<FeSurfaceTextureContainer *>( this );
+	if ( self->m_clear )
+		self->m_texture.clear( sf::Color::Transparent );
+
+	if ( self->m_redraw )
+	{
+		for ( std::vector<FeBasePresentable *>::const_iterator itr = self->elements.begin();
+				itr != self->elements.end(); ++itr )
+		{
+			if ( (*itr)->get_visible() )
+				self->m_texture.draw( (*itr)->drawable() );
+		}
+
+		self->m_texture.display();
+		if ( self->m_mipmap )
+			std::ignore = self->m_texture.generateMipmap();
+	}
+
+	self->m_fallback_dirty = false;
+}
+
 bool FeSurfaceTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const
 {
+	ensure_fallback_render();
 	const sf::Image image = m_texture.getTexture().copyToImage();
 	const sf::Vector2u size = image.getSize();
 	width = size.x;
@@ -1197,6 +1325,7 @@ bool FeSurfaceTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pi
 
 bool FeSurfaceTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
 {
+	ensure_fallback_render();
 	const sf::Vector2u size = m_texture.getTexture().getSize();
 	width = size.x;
 	height = size.y;
@@ -1231,7 +1360,19 @@ FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
 
 const sf::Texture &FeSurfaceTextureContainer::get_texture()
 {
+	ensure_fallback_render();
 	return m_texture.getTexture();
+}
+
+const sf::Texture *FeSurfaceTextureContainer::get_texture_fallback() const
+{
+	ensure_fallback_render();
+	return &m_texture.getTexture();
+}
+
+sf::Vector2u FeSurfaceTextureContainer::get_texture_size() const
+{
+	return m_texture_size;
 }
 
 void FeSurfaceTextureContainer::on_new_selection( FeSettings *s )
@@ -1258,32 +1399,20 @@ void FeSurfaceTextureContainer::on_new_list( FeSettings *s, bool )
 
 void FeSurfaceTextureContainer::on_redraw_surfaces()
 {
-	//
-	// Draw the surface's draw list to the render texture
-	//
-	if ( m_clear ) m_texture.clear( sf::Color::Transparent );
-	if ( m_redraw )
-	{
-		for ( std::vector<FeBasePresentable *>::const_iterator itr = elements.begin();
-					itr != elements.end(); ++itr )
-		{
-			if ( (*itr)->get_visible() )
-				m_texture.draw( (*itr)->drawable() );
-		}
-
-		m_texture.display();
-		if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
-	}
+	m_fallback_dirty = true;
+	if ( !fe_sdl3_gpu_present_requested() )
+		ensure_fallback_render();
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )
 {
+	m_smooth = s;
 	m_texture.setSmooth( s );
 }
 
 bool FeSurfaceTextureContainer::get_smooth() const
 {
-	return m_texture.isSmooth();
+	return m_smooth;
 }
 
 void FeSurfaceTextureContainer::set_mipmap( bool m )
@@ -1308,12 +1437,13 @@ bool FeSurfaceTextureContainer::get_clear() const
 
 void FeSurfaceTextureContainer::set_repeat( bool r )
 {
+	m_repeat = r;
 	m_texture.setRepeated( r );
 }
 
 bool FeSurfaceTextureContainer::get_repeat() const
 {
-	return m_texture.isRepeated();
+	return m_repeat;
 }
 
 void FeSurfaceTextureContainer::set_redraw( bool r )
@@ -1333,17 +1463,22 @@ bool FeSurfaceTextureContainer::is_volatile_texture() const
 
 int FeSurfaceTextureContainer::get_width() const
 {
-	return static_cast<int>( m_texture.getSize().x );
+	return static_cast<int>( m_texture_size.x );
 }
 
 int FeSurfaceTextureContainer::get_height() const
 {
-	return static_cast<int>( m_texture.getSize().y );
+	return static_cast<int>( m_texture_size.y );
 }
 
 FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 {
 	return this;
+}
+
+void FeSurfaceTextureContainer::prepare_for_draw() const
+{
+	ensure_fallback_render();
 }
 
 FeImage::FeImage(
@@ -1374,6 +1509,16 @@ FeImage::FeImage(
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
+	m_color( sf::Color::White ),
+	m_texture_rect( sf::Vector2f( 0.f, 0.f ), sf::Vector2f( 0.f, 0.f ) ),
+	m_skew( 0.f, 0.f ),
+	m_pinch( 0.f, 0.f ),
+	m_border( 0, 0, 0, 0 ),
+	m_padding( 0, 0, 0, 0 ),
+	m_border_scale( 1.f ),
+	m_render_crop( 0.f, 0.f, 0.f, 0.f ),
+	m_render_position( 0.f, 0.f ),
+	m_render_origin( 0.f, 0.f ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -1405,6 +1550,16 @@ FeImage::FeImage( FeImage *o ):
 	m_blend_mode( o->m_blend_mode ),
 	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio ),
 	m_force_aspect_ratio( o->m_force_aspect_ratio ),
+	m_color( o->m_color ),
+	m_texture_rect( o->m_texture_rect ),
+	m_skew( o->m_skew ),
+	m_pinch( o->m_pinch ),
+	m_border( o->m_border ),
+	m_padding( o->m_padding ),
+	m_border_scale( o->m_border_scale ),
+	m_render_crop( o->m_render_crop ),
+	m_render_position( o->m_render_position ),
+	m_render_origin( o->m_render_origin ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -1418,7 +1573,7 @@ FeImage::~FeImage() {}
 const sf::Texture *FeImage::get_texture() const
 {
 	if ( m_tex )
-		return &(m_tex->get_texture());
+		return m_tex->get_texture_fallback();
 	else
 		return NULL;
 }
@@ -1442,11 +1597,13 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 	if ( new_tex )
 		m_tex = new_tex;
 
-	m_sprite.setTexture( m_tex->get_texture() );
+	const sf::Texture *fallback_texture = m_tex->get_texture_fallback();
+	if ( fallback_texture )
+		m_sprite.setTexture( *fallback_texture );
 
-	//  reset texture rect now to the one reported by the new texture object
-	m_sprite.setTextureRect(
-		sf::FloatRect({ 0, 0 }, { static_cast<float>( m_tex->get_texture().getSize().x ), static_cast<float>( m_tex->get_texture().getSize().y )}));
+	const sf::Vector2u size = m_tex->get_texture_size();
+	m_texture_rect = sf::FloatRect({ 0, 0 }, { static_cast<float>( size.x ), static_cast<float>( size.y )});
+	m_sprite.setTextureRect( m_texture_rect );
 
 	scale();
 }
@@ -1526,21 +1683,17 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 {
 	geometry.clear();
 
-	const sf::Texture *texture = get_texture();
-	if ( !texture )
-		return false;
-
-	const sf::Vector2u texture_size = texture->getSize();
+	const sf::Vector2u texture_size = m_tex->get_texture_size();
 	if ( texture_size.x == 0 || texture_size.y == 0 )
 		return false;
 
-	m_sprite.getRenderVertices( geometry.vertices, get_z() );
+	append_render_vertices( geometry.vertices, get_z() );
 
 	if ( geometry.vertices.empty() )
 		return false;
 
-	geometry.texture_id = m_tex;
-	geometry.texture_source_type = FeRenderTextureSourceContainer;
+	geometry.texture_id = m_tex->get_texture_source_id();
+	geometry.texture_source_type = m_tex->get_texture_source_type();
 	geometry.texture_repeated = m_tex->get_repeat();
 	geometry.texture_smooth = m_tex->get_smooth();
 	geometry.texture_mipmap = m_tex->get_mipmap();
@@ -1557,6 +1710,9 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 
 void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
+	if ( m_tex )
+		m_tex->prepare_for_draw();
+
 	FeShader *s = get_shader();
 	if ( s )
 	{
@@ -1571,10 +1727,187 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	target.draw( m_sprite, states );
 }
 
+void FeImage::sync_fallback_sprite()
+{
+	const sf::Texture *fallback_texture = m_tex ? m_tex->get_texture_fallback() : NULL;
+	if ( fallback_texture )
+		m_sprite.setTexture( *fallback_texture );
+
+	m_sprite.setTextureRect( m_texture_rect );
+	m_sprite.setColor( m_color );
+	m_sprite.setCrop( m_render_crop );
+	m_sprite.setScale( m_scale );
+	m_sprite.setPosition( m_render_position );
+	m_sprite.setRotation( sf::degrees( m_rotation ) );
+	m_sprite.setOrigin( m_render_origin );
+	m_sprite.setSkewX( m_skew.x );
+	m_sprite.setSkewY( m_skew.y );
+	m_sprite.setPinchX( m_pinch.x );
+	m_sprite.setPinchY( m_pinch.y );
+	m_sprite.setBorder( m_border );
+	m_sprite.setPadding( m_padding );
+	m_sprite.setBorderScale( m_border_scale );
+}
+
+void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float z ) const
+{
+	out.clear();
+
+	const sf::Vector2f tex_size( std::abs( m_texture_rect.size.x ), std::abs( m_texture_rect.size.y ) );
+	if ( tex_size.x == 0.f || tex_size.y == 0.f )
+		return;
+
+	FloatEdges pos( 0.f, 0.f, tex_size.x, tex_size.y );
+	FloatEdges tex( m_texture_rect.position, m_texture_rect.position + m_texture_rect.size );
+	const sf::Vector2f scale_abs( std::abs( m_scale.x ), std::abs( m_scale.y ) );
+	const sf::Vector2f sskew( m_skew.x / scale_abs.x, m_skew.y / scale_abs.y );
+	const bool has_border = m_border.left || m_border.top || m_border.right || m_border.bottom;
+
+	if ( !has_border )
+	{
+		const FloatEdges scrop = fe_image_scaled_edges( m_render_crop, scale_abs );
+		pos.left += scrop.left;
+		pos.top += scrop.top;
+		pos.right -= scrop.right;
+		pos.bottom -= scrop.bottom;
+		tex.left += scrop.left;
+		tex.top += scrop.top;
+		tex.right -= scrop.right;
+		tex.bottom -= scrop.bottom;
+	}
+
+	const FloatEdges spadding = fe_image_scaled_edges(
+		FloatEdges( static_cast<float>( m_padding.left ), static_cast<float>( m_padding.top ),
+			static_cast<float>( m_padding.right ), static_cast<float>( m_padding.bottom ) ),
+		scale_abs );
+	pos.left -= spadding.left;
+	pos.top -= spadding.top;
+	pos.right = std::max( pos.left, pos.right + spadding.right );
+	pos.bottom = std::max( pos.top, pos.bottom + spadding.bottom );
+
+	std::vector<sf::Vertex> vertices;
+	auto push_vertex = [&]( float px, float py, float tx, float ty )
+	{
+		sf::Vertex v;
+		v.position = { px, py };
+		v.texCoords = { tx, ty };
+		v.color = m_color;
+		vertices.push_back( v );
+	};
+
+	if ( has_border )
+	{
+		const sf::Vector2f total_size( pos.right - pos.left, pos.bottom - pos.top );
+		FloatEdges sborder = fe_image_scaled_edges(
+			FloatEdges( static_cast<float>( m_border.left ), static_cast<float>( m_border.top ),
+				static_cast<float>( m_border.right ), static_cast<float>( m_border.bottom ) ),
+			scale_abs );
+
+		float s = m_border_scale;
+		for ( int i = 0; i < 2; ++i )
+		{
+			s *= std::min(
+				total_size.x / std::max( ( sborder.left + sborder.right ) * s, total_size.x ),
+				total_size.y / std::max( ( sborder.top + sborder.bottom ) * s, total_size.y ) );
+		}
+
+		const FloatEdges border( sborder.left * s, sborder.top * s, sborder.right * s, sborder.bottom * s );
+		float px[4] = { pos.left, pos.left + border.left, pos.right - border.right, pos.right };
+		float py[4] = { pos.top, pos.top + border.top, pos.bottom - border.bottom, pos.bottom };
+		float tx[4] = { tex.left, tex.left + ( m_border.left / tex_size.x ) * ( tex.right - tex.left ), tex.right - ( m_border.right / tex_size.x ) * ( tex.right - tex.left ), tex.right };
+		float ty[4] = { tex.top, tex.top + ( m_border.top / tex_size.y ) * ( tex.bottom - tex.top ), tex.bottom - ( m_border.bottom / tex_size.y ) * ( tex.bottom - tex.top ), tex.bottom };
+		float sx[4] = { 0, border.top / total_size.y * sskew.x, ( total_size.y - border.bottom ) / total_size.y * sskew.x, sskew.x };
+		float sy[4] = { 0, border.left / total_size.y * sskew.y, ( total_size.x - border.right ) / total_size.x * sskew.y, sskew.y };
+		px[2] = std::max( px[2], px[1] );
+		py[2] = std::max( py[2], py[1] );
+
+		const std::pair<int, int> slice[28] = {
+			{ 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 }, { 2, 0 }, { 2, 1 }, { 3, 0 }, { 3, 1 }, { 3, 1 }, { 3, 1 },
+			{ 3, 1 }, { 3, 2 }, { 2, 1 }, { 2, 2 }, { 1, 1 }, { 1, 2 }, { 0, 1 }, { 0, 2 }, { 0, 2 }, { 0, 2 },
+			{ 0, 2 }, { 0, 3 }, { 1, 2 }, { 1, 3 }, { 2, 2 }, { 2, 3 }, { 3, 2 }, { 3, 3 }
+		};
+
+		vertices.reserve( 28 );
+		for ( const auto &coord : slice )
+			push_vertex( px[coord.first] + sx[coord.second], py[coord.second] + sy[coord.first], tx[coord.first], ty[coord.second] );
+	}
+	else if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
+	{
+		const int edges = 3;
+		const int slices = 256 - edges;
+		const sf::Vector2f spinch( m_pinch.x / scale_abs.x, m_pinch.y / scale_abs.y );
+		const float bws = ( pos.right - pos.left ) / slices;
+		const float pys = spinch.y / slices;
+		const float sys = sskew.y / slices;
+		const float bps = bws - spinch.x * 2 / slices;
+		const float tws = ( tex.right - tex.left ) / slices;
+
+		vertices.reserve( slices + edges );
+		for ( int i = 0; i < slices + edges; ++i )
+		{
+			const int j = std::min( std::max( 0, i - 1 ), slices );
+			if ( i % 2 )
+				push_vertex( pos.left + bps * j + sskew.x + spinch.x, pos.bottom - ( pys - sys ) * j, tex.left + tws * j, tex.bottom );
+			else
+				push_vertex( pos.left + bws * j, pos.top + ( pys + sys ) * j, tex.left + tws * j, tex.top );
+		}
+	}
+	else
+	{
+		vertices.reserve( 4 );
+		push_vertex( pos.left, pos.top, tex.left, tex.top );
+		push_vertex( pos.left + sskew.x, pos.bottom, tex.left, tex.bottom );
+		push_vertex( pos.right, pos.top + sskew.y, tex.right, tex.top );
+		push_vertex( pos.right + sskew.x, pos.bottom + sskew.y, tex.right, tex.bottom );
+	}
+
+	const sf::Transform transform =
+		sf::Transform().translate( m_render_position ).rotate( sf::degrees( m_rotation ) ).scale( m_scale ).translate( -m_render_origin );
+
+	auto convert_vertex = [&]( const sf::Vertex &vertex ) -> FeRenderVertex
+	{
+		const sf::Vector2f world_pos = transform.transformPoint( vertex.position );
+		return FeRenderVertex{
+			world_pos.x,
+			world_pos.y,
+			z,
+			vertex.texCoords.x,
+			vertex.texCoords.y,
+			vertex.color.r,
+			vertex.color.g,
+			vertex.color.b,
+			vertex.color.a
+		};
+	};
+
+	if ( vertices.size() >= 3 )
+	{
+		out.reserve( ( vertices.size() - 2 ) * 3 );
+		for ( std::size_t i = 2; i < vertices.size(); ++i )
+		{
+			const sf::Vertex &v0 = vertices[i - 2];
+			const sf::Vertex &v1 = vertices[i - 1];
+			const sf::Vertex &v2 = vertices[i];
+			if ( i % 2 == 0 )
+			{
+				out.push_back( convert_vertex( v0 ) );
+				out.push_back( convert_vertex( v1 ) );
+				out.push_back( convert_vertex( v2 ) );
+			}
+			else
+			{
+				out.push_back( convert_vertex( v1 ) );
+				out.push_back( convert_vertex( v0 ) );
+				out.push_back( convert_vertex( v2 ) );
+			}
+		}
+	}
+}
+
 void FeImage::scale()
 {
 	// The texture size is the actual pixel dimensions of the image
-	sf::FloatRect texture_rect = m_sprite.getTextureRect();
+	sf::FloatRect texture_rect = m_texture_rect;
 	sf::Vector2f tex_size = sf::Vector2f(
 		abs( texture_rect.size.x ),
 		abs( texture_rect.size.y )
@@ -1683,7 +2016,7 @@ void FeImage::scale()
 	);
 
 	// Populate the fit_rect so users can get the resulting image dimensions
-	IntEdges padding = m_sprite.getPadding();
+	IntEdges padding = m_padding;
 	m_fit_rect = sf::FloatRect(
 		sf::Vector2f(
 			pos.x - pos_rotation.x + offset.x - ( origin.x * scale.x ) + (( crop.left - padding.left ) * flip.x ) - m_pos.x,
@@ -1696,11 +2029,11 @@ void FeImage::scale()
 	);
 
 	// Apply the transformations
-	m_sprite.setCrop( crop );
-	m_sprite.setScale( scale );
-	m_sprite.setPosition( pos );
-	m_sprite.setRotation( rotation );
-	m_sprite.setOrigin( origin );
+	m_render_crop = crop;
+	m_scale = scale;
+	m_render_position = pos;
+	m_render_origin = origin;
+	sync_fallback_sprite();
 }
 
 sf::Vector2f FeImage::getPosition() const
@@ -1809,13 +2142,14 @@ void FeImage::setRotation( float r )
 
 sf::Color FeImage::getColor() const
 {
-	return m_sprite.getColor();
+	return m_color;
 }
 
 void FeImage::setColor( sf::Color c )
 {
-	if ( c != m_sprite.getColor() )
+	if ( c != m_color )
 	{
+		m_color = c;
 		m_sprite.setColor( c );
 		FePresent::script_flag_redraw();
 	}
@@ -1823,18 +2157,19 @@ void FeImage::setColor( sf::Color c )
 
 sf::Vector2u FeImage::getTextureSize() const
 {
-	return m_tex->get_texture().getSize();
+	return m_tex->get_texture_size();
 }
 
 sf::FloatRect FeImage::getTextureRect() const
 {
-	return m_sprite.getTextureRect();
+	return m_texture_rect;
 }
 
 void FeImage::setTextureRect( const sf::FloatRect &r )
 {
-	if ( r != m_sprite.getTextureRect() )
+	if ( r != m_texture_rect )
 	{
+		m_texture_rect = r;
 		m_sprite.setTextureRect( r );
 		scale();
 		FePresent::script_flag_redraw();
@@ -1981,7 +2316,7 @@ int FeImage::resolveFit() const
 		return Fill;
 
 	// When using border Fill must be used to correctly position the texture
-	IntEdges b = m_sprite.getBorder();
+	IntEdges b = m_border;
 	if ( b.left || b.top || b.right || b.bottom )
 		return Fill;
 
@@ -2034,22 +2369,22 @@ float FeImage::get_rotation_origin_y() const
 
 float FeImage::get_skew_x() const
 {
-	return m_sprite.getSkewX();
+	return m_skew.x;
 }
 
 float FeImage::get_skew_y() const
 {
-	return m_sprite.getSkewY();
+	return m_skew.y;
 }
 
 float FeImage::get_pinch_x() const
 {
-	return m_sprite.getPinchX();
+	return m_pinch.x;
 }
 
 float FeImage::get_pinch_y() const
 {
-	return m_sprite.getPinchY();
+	return m_pinch.y;
 }
 
 void FeImage::set_origin_x( float x )
@@ -2217,8 +2552,9 @@ void FeImage::set_rotation_origin_y( float y )
 
 void FeImage::set_skew_x( float x )
 {
-	if ( x != m_sprite.getSkewX() )
+	if ( x != m_skew.x )
 	{
+		m_skew.x = x;
 		m_sprite.setSkewX( x );
 		FePresent::script_flag_redraw();
 	}
@@ -2226,8 +2562,9 @@ void FeImage::set_skew_x( float x )
 
 void FeImage::set_skew_y( float y )
 {
-	if ( y != m_sprite.getSkewY() )
+	if ( y != m_skew.y )
 	{
+		m_skew.y = y;
 		m_sprite.setSkewY( y );
 		FePresent::script_flag_redraw();
 	}
@@ -2235,8 +2572,9 @@ void FeImage::set_skew_y( float y )
 
 void FeImage::set_pinch_x( float x )
 {
-	if ( x != m_sprite.getPinchX() )
+	if ( x != m_pinch.x )
 	{
+		m_pinch.x = x;
 		m_sprite.setPinchX( x );
 		FePresent::script_flag_redraw();
 	}
@@ -2244,8 +2582,9 @@ void FeImage::set_pinch_x( float x )
 
 void FeImage::set_pinch_y( float y )
 {
-	if ( y != m_sprite.getPinchY() )
+	if ( y != m_pinch.y )
 	{
+		m_pinch.y = y;
 		m_sprite.setPinchY( y );
 		FePresent::script_flag_redraw();
 	}
@@ -2613,8 +2952,9 @@ FePresentableParent *FeImage::get_presentable_parent()
 void FeImage::set_border( int l, int t, int r, int b )
 {
 	IntEdges border( std::max(0, l), std::max(0, t), std::max(0, r), std::max(0, b) );
-	if ( border != m_sprite.getBorder() )
+	if ( border != m_border )
 	{
+		m_border = border;
 		m_sprite.setBorder( border );
 		scale();
 		FePresent::script_flag_redraw();
@@ -2624,8 +2964,9 @@ void FeImage::set_border( int l, int t, int r, int b )
 void FeImage::set_padding( int l, int t, int r, int b )
 {
 	IntEdges padding( l, t, r, b );
-	if ( padding != m_sprite.getPadding() )
+	if ( padding != m_padding )
 	{
+		m_padding = padding;
 		m_sprite.setPadding( padding );
 		scale();
 		FePresent::script_flag_redraw();
@@ -2634,8 +2975,9 @@ void FeImage::set_padding( int l, int t, int r, int b )
 
 void FeImage::set_border_scale( float s )
 {
-	if ( s != m_sprite.getBorderScale() )
+	if ( s != m_border_scale )
 	{
+		m_border_scale = s;
 		m_sprite.setBorderScale( s );
 		scale();
 		FePresent::script_flag_redraw();
@@ -2644,95 +2986,95 @@ void FeImage::set_border_scale( float s )
 
 int FeImage::get_padding_left() const
 {
-	return m_sprite.getPadding().left;
+	return m_padding.left;
 }
 
 int FeImage::get_padding_top() const
 {
-	return m_sprite.getPadding().top;
+	return m_padding.top;
 }
 
 int FeImage::get_padding_right() const
 {
-	return m_sprite.getPadding().right;
+	return m_padding.right;
 }
 
 int FeImage::get_padding_bottom() const
 {
-	return m_sprite.getPadding().bottom;
+	return m_padding.bottom;
 }
 
 void FeImage::set_padding_left( int l )
 {
-	IntEdges padding = m_sprite.getPadding();
+	IntEdges padding = m_padding;
 	set_padding( l, padding.top, padding.right, padding.bottom );
 }
 
 void FeImage::set_padding_top( int t )
 {
-	IntEdges padding = m_sprite.getPadding();
+	IntEdges padding = m_padding;
 	set_padding( padding.left, t, padding.right, padding.bottom );
 }
 
 void FeImage::set_padding_right( int r )
 {
-	IntEdges padding = m_sprite.getPadding();
+	IntEdges padding = m_padding;
 	set_padding( padding.left, padding.top, r, padding.bottom );
 }
 
 void FeImage::set_padding_bottom( int b )
 {
-	IntEdges padding = m_sprite.getPadding();
+	IntEdges padding = m_padding;
 	set_padding( padding.left, padding.top, padding.right, b );
 }
 
 int FeImage::get_border_left() const
 {
-	return m_sprite.getBorder().left;
+	return m_border.left;
 }
 
 int FeImage::get_border_top() const
 {
-	return m_sprite.getBorder().top;
+	return m_border.top;
 }
 
 int FeImage::get_border_right() const
 {
-	return m_sprite.getBorder().right;
+	return m_border.right;
 }
 
 int FeImage::get_border_bottom() const
 {
-	return m_sprite.getBorder().bottom;
+	return m_border.bottom;
 }
 
 void FeImage::set_border_left( int l )
 {
-	IntEdges border = m_sprite.getBorder();
+	IntEdges border = m_border;
 	set_border( l, border.top, border.right, border.bottom );
 }
 
 void FeImage::set_border_top( int t )
 {
-	IntEdges border = m_sprite.getBorder();
+	IntEdges border = m_border;
 	set_border( border.left, t, border.right, border.bottom );
 }
 
 void FeImage::set_border_right( int r )
 {
-	IntEdges border = m_sprite.getBorder();
+	IntEdges border = m_border;
 	set_border( border.left, border.top, r, border.bottom );
 }
 
 void FeImage::set_border_bottom( int b )
 {
-	IntEdges border = m_sprite.getBorder();
+	IntEdges border = m_border;
 	set_border( border.left, border.top, border.right, b );
 }
 
 float FeImage::get_border_scale() const
 {
-	return m_sprite.getBorderScale();
+	return m_border_scale;
 }
 
 void FeImage::set_fft_bands( int count )

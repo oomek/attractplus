@@ -57,6 +57,10 @@ public:
 	virtual ~FeBaseTextureContainer();
 
 	virtual const sf::Texture &get_texture()=0;
+	virtual const sf::Texture *get_texture_fallback() const=0;
+	virtual sf::Vector2u get_texture_size() const=0;
+	virtual const void *get_texture_source_id() const;
+	virtual int get_texture_source_type() const;
 	virtual bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const;
 	virtual bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const;
 
@@ -120,6 +124,7 @@ public:
 
 	virtual void release_audio( bool );
 	virtual void on_redraw_surfaces();
+	virtual void prepare_for_draw() const;
 	virtual bool is_volatile_texture() const;
 	virtual unsigned long long get_texture_content_version() const;
 
@@ -150,6 +155,8 @@ public:
 	~FeTextureContainer();
 
 	const sf::Texture &get_texture();
+	const sf::Texture *get_texture_fallback() const override;
+	sf::Vector2u get_texture_size() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 	bool get_visible() const;
@@ -217,8 +224,10 @@ public:
 
 protected:
 	FeTextureContainer *get_derived_texture_container();
+	void prepare_for_draw() const override;
 
 private:
+	void ensure_fallback_texture() const;
 
 #ifndef NO_MOVIE
 	bool load_with_ffmpeg(
@@ -257,6 +266,9 @@ private:
 	int m_fft_bands;
 	FeImageLoaderEntry *m_entry;
 	FeAudioEffectsManager m_audio_effects;
+	sf::Vector2u m_texture_size;
+	bool m_repeat;
+	mutable bool m_fallback_dirty;
 };
 
 class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresentableParent
@@ -267,6 +279,8 @@ public:
 	~FeSurfaceTextureContainer();
 
 	const sf::Texture &get_texture();
+	const sf::Texture *get_texture_fallback() const override;
+	sf::Vector2u get_texture_size() const override;
 
 	void on_new_selection( FeSettings *feSettings );
 	void on_end_navigation( FeSettings *feSettings );
@@ -293,12 +307,18 @@ public:
 	int get_height() const;
 
 	FePresentableParent *get_presentable_parent();
+	void prepare_for_draw() const override;
 
 private:
+	void ensure_fallback_render() const;
 	sf::RenderTexture m_texture;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
+	bool m_repeat;
+	bool m_smooth;
+	mutable bool m_fallback_dirty;
+	sf::Vector2u m_texture_size;
 
 public:
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
@@ -587,9 +607,23 @@ protected:
 	void draw( sf::RenderTarget& target, sf::RenderStates states ) const;
 
 private:
+	void sync_fallback_sprite();
+	void append_render_vertices( std::vector<FeRenderVertex> &out, float z ) const;
+
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
 	mutable SqratArrayWrapper m_fft_array_wrapper;
+
+	sf::Color m_color;
+	sf::FloatRect m_texture_rect;
+	sf::Vector2f m_skew;
+	sf::Vector2f m_pinch;
+	IntEdges m_border;
+	IntEdges m_padding;
+	float m_border_scale;
+	FloatEdges m_render_crop;
+	sf::Vector2f m_render_position;
+	sf::Vector2f m_render_origin;
 
 };
 

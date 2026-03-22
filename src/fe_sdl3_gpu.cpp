@@ -2493,26 +2493,6 @@ bool FeSdl3GpuContext::render_geometry_batch(
 						sampler_repeated = container->get_repeat();
 						sampler_smooth = container->get_smooth();
 					}
-					else
-					{
-						const sf::Texture *external_texture = sampler.image->get_texture();
-						if ( external_texture )
-						{
-							TextureCacheEntry &cache_entry = m_texture_cache[ external_texture ];
-							cache_entry.width = static_cast<float>( external_texture->getSize().x );
-							cache_entry.height = static_cast<float>( external_texture->getSize().y );
-							cache_entry.mipmapped = sampler.image->get_mipmap();
-							cache_entry.last_seen_frame = m_frame.frame_number;
-							if ( !cache_entry.gpu_texture )
-							{
-								if ( !upload_gpu_texture( external_texture, FeRenderTextureSourceSfTexture, cache_entry ) )
-									samplers_ready = false;
-							}
-							sampler_texture = cache_entry.gpu_texture;
-							sampler_repeated = external_texture->isRepeated();
-							sampler_smooth = external_texture->isSmooth();
-						}
-					}
 				}
 
 				if ( !samplers_ready || !sampler_texture )
