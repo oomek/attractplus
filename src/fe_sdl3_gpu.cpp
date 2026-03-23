@@ -1198,7 +1198,7 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 		return true;
 
 	const char *debug_env = SDL_getenv( "FE_SDL3_GPU_DEBUG_LOG" );
-	m_debug_logging_enabled = true || debug_mode || ( debug_env && debug_env[0] && debug_env[0] != '0' );
+	m_debug_logging_enabled = debug_mode || ( debug_env && debug_env[0] && debug_env[0] != '0' );
 
 	if ( !m_sdl_ready )
 	{
@@ -2850,19 +2850,6 @@ bool FeSdl3GpuContext::render_geometry_batch(
 				auto surface_it = m_surfaces.find( image.texture_id );
 				if ( surface_it != m_surfaces.end() )
 					prepared.gpu_texture = surface_it->second.color_texture;
-				else if ( m_debug_logging_enabled &&
-					image.texture_source_type == FeRenderTextureSourceContainer &&
-					image.texture_id &&
-					dynamic_cast<const FeSurfaceTextureContainer *>(
-						static_cast<const FeBaseTextureContainer *>( image.texture_id ) ) != nullptr )
-				{
-					std::ostringstream stream;
-					stream
-						<< "render_geometry_batch: missing surface source"
-						<< " texture_id=" << image.texture_id
-						<< " geometry_vertices=" << image.vertices.size();
-					write_debug_log( stream.str().c_str() );
-				}
 			}
 
 			if ( !prepared.gpu_texture )
@@ -3190,24 +3177,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 			}
 
 			if ( waiting_on_dependency )
-			{
-				if ( m_debug_logging_enabled )
-				{
-					std::ostringstream stream;
-					stream
-						<< "render_surface_frames: waiting"
-						<< " surface=" << surface_index
-						<< " surface_id=" << surface.surface_texture_id
-						<< " deps=";
-					for ( std::size_t i = 0; i < dependencies.size(); ++i )
-					{
-						if ( i ) stream << ",";
-						stream << dependencies[i];
-					}
-					write_debug_log( stream.str().c_str() );
-				}
 				continue;
-			}
 
 			SurfaceEntry &entry = m_surfaces[ surface.surface_texture_id ];
 			entry.last_seen_frame = m_frame.frame_number;
@@ -3219,27 +3189,6 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 				surface.dynamic_content ||
 				( entry.last_signature != surface.content_signature ) ||
 				( surface.redraw && !surface.clear );
-
-			if ( m_debug_logging_enabled )
-			{
-				std::ostringstream stream;
-				stream
-					<< "render_surface_frames: surface=" << surface_index
-					<< " surface_id=" << surface.surface_texture_id
-					<< " needs_render=" << ( needs_render ? 1 : 0 )
-					<< " rendered_once=" << ( entry.rendered_once ? 1 : 0 )
-					<< " redraw=" << ( surface.redraw ? 1 : 0 )
-					<< " clear=" << ( surface.clear ? 1 : 0 )
-					<< " dynamic=" << ( surface.dynamic_content ? 1 : 0 )
-					<< " geometry=" << surface.geometry.size()
-					<< " deps=";
-				for ( std::size_t i = 0; i < dependencies.size(); ++i )
-				{
-					if ( i ) stream << ",";
-					stream << dependencies[i];
-				}
-				write_debug_log( stream.str().c_str() );
-			}
 
 			if ( needs_render )
 			{
