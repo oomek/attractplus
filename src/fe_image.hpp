@@ -358,7 +358,7 @@ public:
 		float h
 	);
 
-	FeImage( FeImage * ); // clone the given image (texture is not copied)
+	FeImage( FeImage *, FePresentableParent & ); // clone the given image (texture is not copied)
 	~FeImage();
 
 	const sf::Texture *get_texture() const;

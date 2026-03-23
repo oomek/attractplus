@@ -192,7 +192,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_overlay_caption( NULL ),
 	m_overlay_lb( NULL ),
 	m_layout_loaded( false ),
-	m_layout_has_content( false )
+	m_layout_has_content( false ),
+	m_render_frame_serial( 0 )
 {
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
@@ -448,6 +449,8 @@ void FePresent::clear_resources()
 //
 void FePresent::clear_layout()
 {
+	m_window.get_gpu_context().clear_layout_resources();
+
 	//
 	// keep toggle rotation, base rotation and mute state through clear
 	//
@@ -639,6 +642,13 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		std::uint64_t signature;
 		bool dynamic_content;
 	};
+	struct PendingSurfaceFrame
+	{
+		FeSurfaceTextureContainer *surface;
+		FeRenderSurfaceFrame frame;
+		std::vector<const FeSurfaceTextureContainer *> dependencies;
+		std::size_t original_index;
+	};
 
 	auto hash_combine = []( std::uint64_t seed, std::uint64_t value ) -> std::uint64_t
 	{
@@ -684,11 +694,11 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			return a->get_nesting_level() > b->get_nesting_level();
 		} );
 
-	std::unordered_map<const FeSurfaceTextureContainer *, SurfaceState> surface_states;
-	surface_states.reserve( surface_list.size() );
-
-	for ( FeSurfaceTextureContainer *surface : surface_list )
+	std::vector<PendingSurfaceFrame> pending_frames;
+	pending_frames.reserve( surface_list.size() );
+	for ( std::size_t surface_index = 0; surface_index < surface_list.size(); ++surface_index )
 	{
+		FeSurfaceTextureContainer *surface = surface_list[ surface_index ];
 		FeRenderSurfaceFrame frame;
 		frame.surface_id = surface;
 		frame.surface_texture_id = surface;
@@ -703,6 +713,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		frame.camera.update_projection( static_cast<float>( frame.width ), static_cast<float>( frame.height ) );
 		frame.geometry_signature = 1469598103934665603ULL;
 		frame.content_signature = 1469598103934665603ULL;
+		std::vector<const FeSurfaceTextureContainer *> dependencies;
 
 		for ( const FeBasePresentable *presentable : surface->elements )
 		{
@@ -715,24 +726,16 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				FeRenderGeometry image_geometry;
 				if ( image->build_render_geometry( image_geometry ) )
 				{
-					bool referenced_surface_dynamic = false;
 					if ( image_geometry.texture_source_type == FeRenderTextureSourceContainer )
 					{
 						const FeSurfaceTextureContainer *referenced_surface =
 							dynamic_cast<const FeSurfaceTextureContainer *>(
 								static_cast<const FeBaseTextureContainer *>( image_geometry.texture_id ) );
-						if ( referenced_surface )
-						{
-							auto child_it = surface_states.find( referenced_surface );
-							if ( child_it != surface_states.end() )
-							{
-								frame.content_signature = hash_combine( frame.content_signature, child_it->second.signature );
-								referenced_surface_dynamic = child_it->second.dynamic_content;
-							}
-						}
+						if ( referenced_surface && referenced_surface != surface )
+							dependencies.push_back( referenced_surface );
 					}
 
-					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader || referenced_surface_dynamic;
+					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
 					frame.content_signature = hash_geometry( image_geometry, frame.content_signature );
 					frame.geometry.push_back( image_geometry );
@@ -787,8 +790,86 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		if ( !frame.clear && frame.redraw )
 			frame.dynamic_content = true;
 
-		surface_states[ surface ] = { frame.content_signature, frame.dynamic_content };
-		surfaces.push_back( frame );
+		std::sort( dependencies.begin(), dependencies.end() );
+		dependencies.erase( std::unique( dependencies.begin(), dependencies.end() ), dependencies.end() );
+		pending_frames.push_back( { surface, frame, dependencies, surface_index } );
+	}
+
+	std::unordered_map<const FeSurfaceTextureContainer *, std::size_t> pending_indices;
+	pending_indices.reserve( pending_frames.size() );
+	for ( std::size_t i = 0; i < pending_frames.size(); ++i )
+		pending_indices[ pending_frames[i].surface ] = i;
+
+	std::vector<int> indegree( pending_frames.size(), 0 );
+	std::vector<std::vector<std::size_t>> dependents( pending_frames.size() );
+	for ( std::size_t i = 0; i < pending_frames.size(); ++i )
+	{
+		for ( const FeSurfaceTextureContainer *dependency : pending_frames[i].dependencies )
+		{
+			auto it = pending_indices.find( dependency );
+			if ( it == pending_indices.end() )
+				continue;
+
+			++indegree[i];
+			dependents[it->second].push_back( i );
+		}
+	}
+
+	std::vector<std::size_t> ordered_indices;
+	ordered_indices.reserve( pending_frames.size() );
+	std::vector<bool> emitted( pending_frames.size(), false );
+	while ( ordered_indices.size() < pending_frames.size() )
+	{
+		std::size_t chosen = pending_frames.size();
+		for ( std::size_t i = 0; i < pending_frames.size(); ++i )
+		{
+			if ( emitted[i] || indegree[i] != 0 )
+				continue;
+
+			if ( chosen == pending_frames.size() ||
+				pending_frames[i].frame.nesting_level > pending_frames[chosen].frame.nesting_level ||
+				( pending_frames[i].frame.nesting_level == pending_frames[chosen].frame.nesting_level &&
+					pending_frames[i].original_index < pending_frames[chosen].original_index ) )
+			{
+				chosen = i;
+			}
+		}
+
+		if ( chosen == pending_frames.size() )
+		{
+			for ( std::size_t i = 0; i < pending_frames.size(); ++i )
+			{
+				if ( emitted[i] )
+					continue;
+
+				chosen = i;
+				break;
+			}
+		}
+
+		emitted[chosen] = true;
+		ordered_indices.push_back( chosen );
+		for ( std::size_t dependent : dependents[chosen] )
+			--indegree[dependent];
+	}
+
+	std::unordered_map<const FeSurfaceTextureContainer *, SurfaceState> surface_states;
+	surface_states.reserve( pending_frames.size() );
+	for ( std::size_t ordered_index : ordered_indices )
+	{
+		PendingSurfaceFrame &pending = pending_frames[ordered_index];
+		for ( const FeSurfaceTextureContainer *dependency : pending.dependencies )
+		{
+			auto it = surface_states.find( dependency );
+			if ( it == surface_states.end() )
+				continue;
+
+			pending.frame.content_signature = hash_combine( pending.frame.content_signature, it->second.signature );
+			pending.frame.dynamic_content = pending.frame.dynamic_content || it->second.dynamic_content;
+		}
+
+		surface_states[ pending.surface ] = { pending.frame.content_signature, pending.frame.dynamic_content };
+		surfaces.push_back( pending.frame );
 	}
 }
 
@@ -824,7 +905,7 @@ FeImage *FePresent::add_image( bool is_artwork,
 FeImage *FePresent::add_clone( FeImage *o,
 			FePresentableParent &p )
 {
-	FeImage *new_image = new FeImage( o );
+	FeImage *new_image = new FeImage( o, p );
 	flag_redraw();
 	p.elements.push_back( new_image );
 
@@ -1653,7 +1734,7 @@ void FePresent::submit_render_frame()
 	frame.camera = m_layout_camera;
 	frame.viewport_width = m_mon[0].size.x;
 	frame.viewport_height = m_mon[0].size.y;
-	frame.frame_number = static_cast<unsigned long long>( m_layout_time.getElapsedTime().asMilliseconds() );
+	frame.frame_number = ++m_render_frame_serial;
 	build_render_geometry( frame.images );
 	build_render_surface_frames( frame.surfaces );
 	frame.image_count = static_cast<unsigned long long>( frame.images.size() );

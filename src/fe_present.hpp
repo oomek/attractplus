@@ -180,6 +180,7 @@ protected:
 	FeListBox *m_overlay_lb;
 	bool m_layout_loaded;
 	bool m_layout_has_content;
+	unsigned long long m_render_frame_serial;
 
 	FePresent( const FePresent & );
 	FePresent &operator=( const FePresent & );

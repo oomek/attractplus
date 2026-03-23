@@ -22,6 +22,7 @@
 
 #include "fe_blend.hpp"
 #include "fe_util.hpp" // for FE_VERSION_INT macro
+#include "fe_base.hpp"
 
 namespace
 {
@@ -52,6 +53,7 @@ namespace
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_Color.w;}";
 
+	sf::Shader *default_shader_alpha=NULL;
 	sf::Shader *default_shader_multiplied=NULL;
 	sf::Shader *default_shader_overlay=NULL;
 	sf::Shader *default_shader_premultiplied=NULL;
@@ -88,15 +90,25 @@ sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
 	}
 }
 
+bool FeBlend::uses_default_shader( int blend_mode )
+{
+	return ( get_default_shader_source( blend_mode ) != NULL );
+}
+
 sf::Shader* FeBlend::get_default_shader( int blend_mode )
 {
+	if ( !uses_default_shader( blend_mode ) )
+		return NULL;
+
 	switch( blend_mode )
 	{
 		case FeBlend::Alpha:
-		case FeBlend::Add:
-		case FeBlend::Subtract:
-		case FeBlend::None:
-			return NULL;
+			if ( !default_shader_alpha )
+			{
+				default_shader_alpha = new sf::Shader();
+				std::ignore = default_shader_alpha->loadFromMemory( DEFAULT_SHADER_GLSL_ALPHA, sf::Shader::Type::Fragment );
+			}
+			return default_shader_alpha;
 		case FeBlend::Screen:
 		case FeBlend::Multiply:
 			if ( !default_shader_multiplied )
@@ -129,21 +141,14 @@ const char *FeBlend::get_default_shader_source( int blend_mode )
 	switch( blend_mode )
 	{
 		case FeBlend::Alpha:
-		case FeBlend::Add:
-		case FeBlend::Subtract:
-		case FeBlend::None:
 			return DEFAULT_SHADER_GLSL_ALPHA;
-
 		case FeBlend::Screen:
 		case FeBlend::Multiply:
 			return DEFAULT_SHADER_GLSL_MULTIPLIED;
-
 		case FeBlend::Overlay:
 			return DEFAULT_SHADER_GLSL_OVERLAY;
-
 		case FeBlend::Premultiplied:
 			return DEFAULT_SHADER_GLSL_PREMULTIPLIED;
-
 		default:
 			return NULL;
 	}
@@ -151,6 +156,12 @@ const char *FeBlend::get_default_shader_source( int blend_mode )
 
 void FeBlend::clear_default_shaders()
 {
+	if ( default_shader_alpha )
+	{
+		delete default_shader_alpha;
+		default_shader_alpha = NULL;
+	}
+
 	if ( default_shader_multiplied )
 	{
 		delete default_shader_multiplied;

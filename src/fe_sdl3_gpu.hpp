@@ -34,13 +34,14 @@ public:
 
 	void submit_frame( const FeRenderFrame &frame );
 	const FeRenderFrame &get_frame() const;
-	std::size_t get_cached_texture_count() const;
+	std::size_t get_texture_count() const;
 	bool execute_frame();
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	bool has_frame_content() const;
+	void clear_layout_resources();
 
 #ifdef USE_SDL3_GPU
 	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );
@@ -53,7 +54,7 @@ public:
 #endif
 
 private:
-	struct TextureCacheEntry
+	struct TextureEntry
 	{
 		float width;
 		float height;
@@ -79,7 +80,7 @@ private:
 #endif
 	};
 
-	struct SurfaceCacheEntry
+	struct SurfaceEntry
 	{
 		unsigned long long last_seen_frame;
 		int width;
@@ -107,6 +108,15 @@ private:
 		CustomUniformBinding() : slot( 0 ), components( 0 ) {}
 	};
 
+	struct CustomVaryingBinding
+	{
+		std::string type;
+		std::string name;
+		int location;
+
+		CustomVaryingBinding() : location( 0 ) {}
+	};
+
 	struct CustomSamplerBinding
 	{
 		std::string name;
@@ -124,6 +134,8 @@ private:
 		unsigned long long vertex_source_stamp;
 		bool uses_current_texture;
 		bool has_custom_vertex;
+		bool fast_current_texture_only;
+		bool compile_failed;
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *blend_pipelines[FeBlend::None + 1];
@@ -136,6 +148,8 @@ private:
 			  vertex_source_stamp( 0 ),
 			  uses_current_texture( false ),
 			  has_custom_vertex( false ),
+			  fast_current_texture_only( false ),
+			  compile_failed( false ),
 			  vertex_shader( nullptr ),
 			  fragment_shader( nullptr )
 		{
@@ -143,15 +157,29 @@ private:
 				blend_pipelines[ i ] = nullptr;
 		}
 	};
+
+	struct BuiltinShaderEntry
+	{
+		std::string source_id;
+		SDL_GPUShader *fragment_shader;
+		SDL_GPUGraphicsPipeline *blend_pipelines[FeBlend::None + 1];
+
+		BuiltinShaderEntry()
+			: fragment_shader( nullptr )
+		{
+			for ( int i = 0; i <= FeBlend::None; ++i )
+				blend_pipelines[i] = nullptr;
+		}
+	};
 #endif
 
-	void sync_texture_cache();
-	void clear_texture_cache();
+	void sync_textures();
+	void clear_textures();
 	void build_prepared_images();
 
 #ifdef USE_SDL3_GPU
-	void release_gpu_texture( TextureCacheEntry &entry );
-	bool upload_gpu_texture( const void *texture_id, int texture_source_type, TextureCacheEntry &entry );
+	void release_texture( TextureEntry &entry );
+	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry );
 	void release_white_texture();
 	bool ensure_white_texture();
 	void release_vertex_buffer();
@@ -159,15 +187,19 @@ private:
 	bool upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
 	void release_depth_target();
 	bool ensure_depth_target( int width, int height );
-	void release_surface_cache();
-	void release_surface_target( SurfaceCacheEntry &entry );
-	bool ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceCacheEntry &entry );
-	void release_custom_shader_cache();
+	void release_surfaces();
+	void release_surface_target( SurfaceEntry &entry );
+	bool ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );
+	void release_custom_shaders();
 	void release_custom_shader( CustomShaderEntry &entry );
+	void release_builtin_shaders();
+	void release_builtin_shader( BuiltinShaderEntry &entry );
 	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
 	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
+	BuiltinShaderEntry *get_fast_builtin_shader_entry( int blend_mode );
 	bool create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry );
 	bool create_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image, CustomShaderEntry &entry );
+	bool create_fast_builtin_shader_entry( int blend_mode, BuiltinShaderEntry &entry );
 	bool build_custom_fragment_shader_from_source(
 		const FeRenderGeometry &image,
 		const std::string &source_id,
@@ -208,12 +240,14 @@ private:
 
 	FeRenderFrame m_frame;
 	FrameStats m_frame_stats;
-	std::unordered_map<const void *, TextureCacheEntry> m_texture_cache;
-	std::unordered_map<const void *, SurfaceCacheEntry> m_surface_cache;
+	std::unordered_map<const void *, TextureEntry> m_textures;
+	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
 	std::vector<PreparedImage> m_prepared_images;
 	std::vector<FeRenderVertex> m_vertex_stream;
 #ifdef USE_SDL3_GPU
-	std::unordered_map<std::string, CustomShaderEntry> m_custom_shader_cache;
+	std::unordered_map<std::string, CustomShaderEntry> m_custom_shaders;
+	std::unordered_map<std::string, std::string> m_custom_shader_sources;
+	std::unordered_map<int, BuiltinShaderEntry> m_builtin_shaders;
 	bool m_sdl_ready;
 	bool m_window_claimed;
 	SDL_Window *m_window;

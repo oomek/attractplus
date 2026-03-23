@@ -1528,15 +1528,14 @@ FeImage::FeImage(
 	scale();
 }
 
-FeImage::FeImage( FeImage *o ):
-	FeBasePresentable( *o ),
+FeImage::FeImage( FeImage *o, FePresentableParent &p ):
+	FeBasePresentable( p ),
 	m_tex( o->m_tex ),
-	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_auto_size( o->m_auto_size ),
 	m_origin( o->m_origin ),
-	m_transform_origin( o->m_anchor ),
+	m_transform_origin( o->m_transform_origin ),
 	m_transform_origin_type( o->m_transform_origin_type ),
 	m_anchor( o->m_anchor ),
 	m_anchor_type( o->m_anchor_type ),
@@ -1564,8 +1563,15 @@ FeImage::FeImage( FeImage *o ):
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
 {
+	set_visible( o->get_visible() );
+	set_z( o->get_z() );
+	script_set_shader( o->get_shader() );
+	set_rotation_x( o->get_rotation_x() );
+	set_rotation_y( o->get_rotation_y() );
+	set_zorder( o->get_zorder() );
 	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
+	texture_changed();
 }
 
 FeImage::~FeImage() {}

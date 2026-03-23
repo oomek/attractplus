@@ -605,9 +605,7 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		return false;
 
 	const sf::Transform transform = m_rect.getTransform();
-	const sf::Color color = m_rect.getFillColor();
-	const sf::Vector2f first = transform.transformPoint( m_rect.getPoint( 0 ) );
-	const sf::Vector2f first_local = m_rect.getPoint( 0 );
+	const sf::Color fill_color = m_rect.getFillColor();
 	const sf::Vector2f rect_size = m_rect.getSize();
 
 	auto normalized_uv = [&]( const sf::Vector2f &point )
@@ -616,6 +614,44 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		const float v = ( rect_size.y != 0.0f ) ? ( point.y / rect_size.y ) : 0.0f;
 		return sf::Vector2f( u, v );
 	};
+	auto append_triangle = [&]( const sf::Vector2f &p0,
+		const sf::Vector2f &p1,
+		const sf::Vector2f &p2,
+		const sf::Vector2f &uv0,
+		const sf::Vector2f &uv1,
+		const sf::Vector2f &uv2,
+		const sf::Color &color )
+	{
+		FeRenderVertex v0 = {};
+		v0.x = p0.x;
+		v0.y = p0.y;
+		v0.z = get_z();
+		v0.u = uv0.x;
+		v0.v = uv0.y;
+		v0.r = color.r;
+		v0.g = color.g;
+		v0.b = color.b;
+		v0.a = color.a;
+
+		FeRenderVertex v1 = v0;
+		v1.x = p1.x;
+		v1.y = p1.y;
+		v1.u = uv1.x;
+		v1.v = uv1.y;
+
+		FeRenderVertex v2 = v0;
+		v2.x = p2.x;
+		v2.y = p2.y;
+		v2.u = uv2.x;
+		v2.v = uv2.y;
+
+		geometry.vertices.push_back( v0 );
+		geometry.vertices.push_back( v1 );
+		geometry.vertices.push_back( v2 );
+	};
+
+	const sf::Vector2f first_local = m_rect.getPoint( 0 );
+	const sf::Vector2f first = transform.transformPoint( first_local );
 
 	for ( std::size_t i = 1; i + 1 < point_count; ++i )
 	{
@@ -627,32 +663,52 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		const sf::Vector2f uv1 = normalized_uv( second_local );
 		const sf::Vector2f uv2 = normalized_uv( third_local );
 
-		FeRenderVertex v0 = {};
-		v0.x = first.x;
-		v0.y = first.y;
-		v0.z = get_z();
-		v0.u = uv0.x;
-		v0.v = uv0.y;
-		v0.r = color.r;
-		v0.g = color.g;
-		v0.b = color.b;
-		v0.a = color.a;
+		append_triangle( first, second, third, uv0, uv1, uv2, fill_color );
+	}
 
-		FeRenderVertex v1 = v0;
-		v1.x = second.x;
-		v1.y = second.y;
-		v1.u = uv1.x;
-		v1.v = uv1.y;
+	const float outline = m_rect.getOutlineThickness();
+	const sf::Color outline_color = m_rect.getOutlineColor();
+	if ( outline > 0.0f && outline_color.a > 0 )
+	{
+		const unsigned int corner_points = static_cast<unsigned int>( point_count / 4 );
+		sf::RoundedRectangleShape outer_rect(
+			sf::Vector2f( rect_size.x + outline * 2.0f, rect_size.y + outline * 2.0f ),
+			sf::Vector2f(
+				std::max( 0.0f, m_rect.getCornerRadius().x + outline ),
+				std::max( 0.0f, m_rect.getCornerRadius().y + outline ) ),
+			corner_points );
+		const sf::Vector2f outline_offset( outline, outline );
 
-		FeRenderVertex v2 = v0;
-		v2.x = third.x;
-		v2.y = third.y;
-		v2.u = uv2.x;
-		v2.v = uv2.y;
+		for ( std::size_t i = 0; i < point_count; ++i )
+		{
+			const std::size_t next = ( i + 1 ) % point_count;
+			const sf::Vector2f inner_local_0 = m_rect.getPoint( i );
+			const sf::Vector2f inner_local_1 = m_rect.getPoint( next );
+			const sf::Vector2f outer_local_0 = outer_rect.getPoint( i ) - outline_offset;
+			const sf::Vector2f outer_local_1 = outer_rect.getPoint( next ) - outline_offset;
 
-		geometry.vertices.push_back( v0 );
-		geometry.vertices.push_back( v1 );
-		geometry.vertices.push_back( v2 );
+			const sf::Vector2f inner_0 = transform.transformPoint( inner_local_0 );
+			const sf::Vector2f inner_1 = transform.transformPoint( inner_local_1 );
+			const sf::Vector2f outer_0 = transform.transformPoint( outer_local_0 );
+			const sf::Vector2f outer_1 = transform.transformPoint( outer_local_1 );
+
+			append_triangle(
+				outer_0,
+				outer_1,
+				inner_0,
+				normalized_uv( outer_local_0 ),
+				normalized_uv( outer_local_1 ),
+				normalized_uv( inner_local_0 ),
+				outline_color );
+			append_triangle(
+				inner_0,
+				outer_1,
+				inner_1,
+				normalized_uv( inner_local_0 ),
+				normalized_uv( outer_local_1 ),
+				normalized_uv( inner_local_1 ),
+				outline_color );
+		}
 	}
 
 	geometry.texture_id = nullptr;
