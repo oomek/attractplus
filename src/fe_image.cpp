@@ -1726,16 +1726,6 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	if ( m_tex )
 		m_tex->prepare_for_draw();
 
-	FeShader *s = get_shader();
-	if ( s )
-	{
-		const sf::Shader *sh = s->get_shader();
-		if ( sh )
-			states.shader = sh;
-	}
-	else
-		states.shader = FeBlend::get_default_shader( m_blend_mode );
-
 	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
 	target.draw( m_sprite, states );
 }

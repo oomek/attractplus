@@ -584,14 +584,6 @@ void FeListBox::set_scale_factor( float scale_x, float scale_y )
 
 void FeListBox::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 {
-	FeShader *s = get_shader();
-	if ( s )
-	{
-		const sf::Shader *sh = s->get_shader();
-		if ( sh )
-			states.shader = sh;
-	}
-
 	for ( std::vector<FeTextPrimitive>::const_iterator itl=m_texts.begin();
 				itl != m_texts.end(); ++itl )
 		target.draw( (*itl), states );

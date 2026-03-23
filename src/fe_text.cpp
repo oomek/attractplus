@@ -171,14 +171,6 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 
 void FeText::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 {
-	FeShader *s = get_shader();
-	if ( s )
-	{
-		const sf::Shader *sh = s->get_shader();
-		if ( sh )
-			states.shader = sh;
-	}
-
 	target.draw( m_draw_text, states );
 }
 

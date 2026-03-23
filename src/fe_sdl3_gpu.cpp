@@ -54,10 +54,21 @@ namespace
 		}
 	}
 
-	bool shader_compile_output_callback( const char *line, void * )
+	struct ShaderCompileLogCapture
+	{
+		std::ostringstream stream;
+	};
+
+	bool shader_compile_output_callback( const char *line, void *opaque )
 	{
 		if ( line && line[0] )
-			append_debug_log( std::string( "shader_compile: " ) + trim( line ) );
+		{
+			const std::string message = trim( line );
+			append_debug_log( std::string( "shader_compile: " ) + message );
+			ShaderCompileLogCapture *capture = static_cast<ShaderCompileLogCapture *>( opaque );
+			if ( capture )
+				capture->stream << message << "\n";
+		}
 		return true;
 	}
 
@@ -297,55 +308,6 @@ namespace
 			levels++;
 		}
 		return levels;
-	}
-
-	bool compile_custom_shader_to_spirv(
-		const std::string &source_id,
-		const std::string &translated_source,
-		bool vertex_stage,
-		std::string &spirv_path )
-	{
-		std::string cache_root = join_path( get_base_path(), "cache/" );
-		confirm_directory( cache_root, "" );
-		confirm_directory( cache_root, "shaders/" );
-		cache_root = join_path( cache_root, "shaders/" );
-		confirm_directory( cache_root, "sdl3/" );
-		cache_root = join_path( cache_root, "sdl3/" );
-
-		const std::string cache_name =
-			sanitize_filename( source_id ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
-		const std::string stage_name = vertex_stage ? "vert" : "frag";
-		const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
-		spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
-
-		if ( !file_exists( spirv_path ) )
-		{
-			if ( !write_file_content( glsl_path, translated_source ) )
-			{
-				append_debug_log( std::string( "custom_shader: failed to write translated shader " ) + glsl_path );
-				return false;
-			}
-
-			const char *compiler = SDL_getenv( "FE_SDL3_GPU_GLSLANG" );
-			const std::string compiler_name =
-				( compiler && compiler[ 0 ] ) ? compiler : "glslangValidator";
-			const std::string args =
-				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
-
-			append_debug_log( std::string( "custom_shader: compiling " ) + source_id );
-			if ( !run_program( compiler_name, args, cache_root, shader_compile_output_callback, nullptr, true, nullptr ) )
-			{
-				append_debug_log( std::string( "custom_shader: glslang compile failed for " ) + source_id );
-				FeLog() << "FeSdl3GpuContext: custom "
-					<< ( vertex_stage ? "vertex" : "fragment" )
-					<< " shader compile failed: "
-					<< source_id
-					<< std::endl;
-				return false;
-			}
-		}
-
-		return file_exists( spirv_path );
 	}
 
 	std::string build_builtin_vertex_shader()
@@ -831,6 +793,17 @@ namespace
 		const char *entrypoint;
 	};
 
+	struct ShaderCompileCacheEntry
+	{
+		bool compile_failed;
+		ShaderBlob blob;
+
+		ShaderCompileCacheEntry()
+			: compile_failed( false )
+		{
+		}
+	};
+
 	struct FeSdl3GpuDrawUniforms
 	{
 		float projection[16];
@@ -899,99 +872,90 @@ namespace
 		return stream.good();
 	}
 
-	bool compile_internal_shader_blob(
+	std::unordered_map<std::string, ShaderCompileCacheEntry> &get_shader_compile_cache()
+	{
+		static std::unordered_map<std::string, ShaderCompileCacheEntry> cache;
+		return cache;
+	}
+
+	bool compile_shader_blob(
 		const std::string &source_id,
-		const std::string &source_code,
+		const std::string &translated_source,
 		bool vertex_stage,
 		ShaderBlob &blob )
 	{
-		std::string spirv_path;
-		if ( !compile_custom_shader_to_spirv( source_id, source_code, vertex_stage, spirv_path ) )
-			return false;
+		const std::string cache_key =
+			std::string( vertex_stage ? "vert|" : "frag|" ) +
+			std::to_string( std::hash<std::string>{}( translated_source ) );
+		auto &cache = get_shader_compile_cache();
+		auto cache_it = cache.find( cache_key );
+		if ( cache_it != cache.end() )
+		{
+			if ( cache_it->second.compile_failed )
+				return false;
+
+			blob = cache_it->second.blob;
+			return !blob.code.empty();
+		}
+
+		std::string cache_root = join_path( get_base_path(), "cache/" );
+		confirm_directory( cache_root, "" );
+		confirm_directory( cache_root, "shaders/" );
+		cache_root = join_path( cache_root, "shaders/" );
+		confirm_directory( cache_root, "sdl3/" );
+		cache_root = join_path( cache_root, "sdl3/" );
+
+		const std::string cache_name =
+			sanitize_filename( source_id ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
+		const std::string stage_name = vertex_stage ? "vert" : "frag";
+		const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
+		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
+
+		if ( !file_exists( spirv_path ) )
+		{
+			if ( !write_file_content( glsl_path, translated_source ) )
+			{
+				append_debug_log( std::string( "shader_blob: failed to write translated shader " ) + glsl_path );
+				cache[ cache_key ].compile_failed = true;
+				return false;
+			}
+
+			const char *compiler = SDL_getenv( "FE_SDL3_GPU_GLSLANG" );
+			const std::string compiler_name =
+				( compiler && compiler[ 0 ] ) ? compiler : "glslangValidator";
+			const std::string args =
+				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
+			ShaderCompileLogCapture capture = {};
+
+			append_debug_log( std::string( "shader_blob: compiling " ) + source_id );
+			if ( !run_program( compiler_name, args, cache_root, shader_compile_output_callback, &capture, true, nullptr ) )
+			{
+				append_debug_log( std::string( "shader_blob: glslang compile failed for " ) + source_id );
+				FeLog() << "FeSdl3GpuContext: "
+					<< ( vertex_stage ? "vertex" : "fragment" )
+					<< " shader compile failed: "
+					<< source_id
+					<< std::endl;
+				if ( !capture.stream.str().empty() )
+					FeLog() << capture.stream.str();
+				cache[ cache_key ].compile_failed = true;
+				return false;
+			}
+		}
 
 		if ( !read_binary_file( spirv_path, blob.code ) || blob.code.empty() )
+		{
+			cache[ cache_key ].compile_failed = true;
 			return false;
+		}
 
 		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
 		blob.entrypoint = "main";
+
+		ShaderCompileCacheEntry &entry = cache[ cache_key ];
+		entry.compile_failed = false;
+		entry.blob = blob;
 		return true;
-	}
-
-	bool load_shader_blob( SDL_GPUDevice *device, const char *env_name, const char *default_base, ShaderBlob &blob )
-	{
-		struct Candidate
-		{
-			SDL_GPUShaderFormat format;
-			const char *suffix;
-			const char *entrypoint;
-		};
-
-		static const Candidate candidates[] =
-		{
-			{ SDL_GPU_SHADERFORMAT_SPIRV, ".spv", "main" },
-#if defined( SFML_SYSTEM_WINDOWS )
-			{ SDL_GPU_SHADERFORMAT_DXIL, ".dxil", "main" },
-#endif
-#if defined( SFML_SYSTEM_MACOS )
-			{ SDL_GPU_SHADERFORMAT_METALLIB, ".metallib", "main0" },
-			{ SDL_GPU_SHADERFORMAT_MSL, ".msl", "main0" },
-#endif
-		};
-
-		const SDL_GPUShaderFormat supported_formats = SDL_GetGPUShaderFormats( device );
-		const char *env_path = SDL_getenv( env_name );
-		if ( env_path && env_path[0] )
-		{
-			std::string path( env_path );
-			for ( const Candidate &candidate : candidates )
-			{
-				if ( !( supported_formats & candidate.format ) )
-					continue;
-
-				if ( path.size() < std::strlen( candidate.suffix ) )
-					continue;
-
-				if ( path.compare( path.size() - std::strlen( candidate.suffix ), std::strlen( candidate.suffix ), candidate.suffix ) != 0 )
-					continue;
-
-				if ( !read_binary_file( path, blob.code ) )
-					return false;
-
-				blob.format = candidate.format;
-				blob.entrypoint = candidate.entrypoint;
-				return true;
-			}
-
-			return false;
-		}
-
-		std::vector<std::string> search_roots;
-		const std::string base_path = get_base_path();
-		if ( !base_path.empty() )
-			search_roots.push_back( base_path );
-
-		for ( const Candidate &candidate : candidates )
-		{
-			if ( !( supported_formats & candidate.format ) )
-				continue;
-
-			for ( const std::string &root : search_roots )
-			{
-				const std::string path = join_path( root, std::string( default_base ) + candidate.suffix );
-				append_debug_log( std::string( "load_shader_blob: try " ) + path );
-				if ( !file_exists( path ) )
-					continue;
-
-				if ( !read_binary_file( path, blob.code ) )
-					return false;
-
-				blob.format = candidate.format;
-				blob.entrypoint = candidate.entrypoint;
-				return true;
-			}
-		}
-
-		return false;
 	}
 }
 
@@ -2007,18 +1971,9 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 
 	entry.source_id = "__builtin_fast_blend_" + std::to_string( blend_mode ) + "__";
 
-	std::string fragment_spirv_path;
-	if ( !compile_custom_shader_to_spirv( entry.source_id, source_code, false, fragment_spirv_path ) )
-		return false;
-
 	ShaderBlob fragment_blob = {};
-	if ( !read_binary_file( fragment_spirv_path, fragment_blob.code ) || fragment_blob.code.empty() )
-	{
-		write_debug_log( ( std::string( "builtin_shader: failed reading compiled blob " ) + fragment_spirv_path ).c_str() );
+	if ( !compile_shader_blob( entry.source_id, source_code, false, fragment_blob ) )
 		return false;
-	}
-	fragment_blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
-	fragment_blob.entrypoint = "main";
 
 	SDL_GPUShaderCreateInfo fragment_info = {};
 	fragment_info.code_size = fragment_blob.code.size();
@@ -2103,22 +2058,13 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	if ( !build_custom_fragment_shader( image, fragment_source_code, fragment_uniforms, fragment_samplers ) )
 		return false;
 
-	std::string fragment_spirv_path;
 	const std::string fragment_source_id =
 		!image.shader->get_fragment_source_path().empty()
 			? image.shader->get_fragment_source_path()
 			: entry.source_path + "|fragment";
-	if ( !compile_custom_shader_to_spirv( fragment_source_id, fragment_source_code, false, fragment_spirv_path ) )
-		return false;
-
 	ShaderBlob fragment_blob = {};
-	if ( !read_binary_file( fragment_spirv_path, fragment_blob.code ) || fragment_blob.code.empty() )
-	{
-		write_debug_log( ( std::string( "custom_shader: failed reading compiled blob " ) + fragment_spirv_path ).c_str() );
+	if ( !compile_shader_blob( fragment_source_id, fragment_source_code, false, fragment_blob ) )
 		return false;
-	}
-	fragment_blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
-	fragment_blob.entrypoint = "main";
 
 	SDL_GPUShader *vertex_shader = m_vertex_shader;
 	std::vector<CustomUniformBinding> vertex_uniforms;
@@ -2131,22 +2077,13 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		if ( !build_custom_vertex_shader( image, vertex_source_code, vertex_uniforms ) )
 			return false;
 
-		std::string vertex_spirv_path;
 		const std::string vertex_source_id =
 			!image.shader->get_vertex_source_path().empty()
 				? image.shader->get_vertex_source_path()
 				: entry.source_path + "|vertex";
-		if ( !compile_custom_shader_to_spirv( vertex_source_id, vertex_source_code, true, vertex_spirv_path ) )
-			return false;
-
 		ShaderBlob vertex_blob = {};
-		if ( !read_binary_file( vertex_spirv_path, vertex_blob.code ) || vertex_blob.code.empty() )
-		{
-			write_debug_log( ( std::string( "custom_shader: failed reading compiled blob " ) + vertex_spirv_path ).c_str() );
+		if ( !compile_shader_blob( vertex_source_id, vertex_source_code, true, vertex_blob ) )
 			return false;
-		}
-		vertex_blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
-		vertex_blob.entrypoint = "main";
 
 		SDL_GPUShaderCreateInfo vertex_info = {};
 		vertex_info.code_size = vertex_blob.code.size();
@@ -2269,18 +2206,9 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 		fragment_samplers ) )
 		return false;
 
-	std::string fragment_spirv_path;
-	if ( !compile_custom_shader_to_spirv( entry.source_path, fragment_source_code, false, fragment_spirv_path ) )
-		return false;
-
 	ShaderBlob fragment_blob = {};
-	if ( !read_binary_file( fragment_spirv_path, fragment_blob.code ) || fragment_blob.code.empty() )
-	{
-		write_debug_log( ( std::string( "custom_shader: failed reading compiled blob " ) + fragment_spirv_path ).c_str() );
+	if ( !compile_shader_blob( entry.source_path, fragment_source_code, false, fragment_blob ) )
 		return false;
-	}
-	fragment_blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
-	fragment_blob.entrypoint = "main";
 
 	SDL_GPUShaderCreateInfo fragment_info = {};
 	fragment_info.code_size = fragment_blob.code.size();
@@ -3362,7 +3290,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 
 	ShaderBlob vertex_blob = {};
 	ShaderBlob fragment_blobs[FeBlend::None + 1] = {};
-	if ( !compile_internal_shader_blob( "__builtin_image_vertex__", build_builtin_vertex_shader(), true, vertex_blob ) )
+	if ( !compile_shader_blob( "__builtin_image_vertex__", build_builtin_vertex_shader(), true, vertex_blob ) )
 	{
 		write_debug_log( "initialize_image_pipeline: failed to compile internal vertex shader" );
 		return false;
@@ -3377,7 +3305,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 			fragment_source = build_builtin_passthrough_fragment_shader();
 
 		if ( fragment_source.empty() ||
-			!compile_internal_shader_blob(
+			!compile_shader_blob(
 				std::string( "__builtin_image_fragment_" ) + std::to_string( mode ) + "__",
 				fragment_source,
 				false,

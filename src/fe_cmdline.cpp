@@ -21,11 +21,11 @@
  */
 
 #include "fe_settings.hpp"
+#include "fe_shader.hpp"
 #include "fe_util.hpp"
 #include <iostream>
 #include <cstring>
 #include <sstream>
-#include <SFML/Graphics/Shader.hpp>
 #include <SFML/Window/Context.hpp>
 
 #include <SFML/OpenGL.hpp>
@@ -280,7 +280,7 @@ void process_args( int argc, char *argv[],
 				<< " - renderer: " << glGetString( GL_RENDERER ) << std::endl
 				<< " - shader  : " << glGetString( GL_SHADING_LANGUAGE_VERSION ) << std::endl << std::endl;
 
-			if ( sf::Shader::isAvailable() )
+			if ( fe_shaders_available() )
 				FeLog() << "Shaders are available." << std::endl;
 			else
 				FeLog() << "Shaders are not available." << std::endl;

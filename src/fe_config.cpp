@@ -27,7 +27,6 @@
 #include "fe_vm.hpp"
 #include "fe_cache.hpp"
 
-#include <SFML/Graphics/Shader.hpp>
 #ifndef NO_MOVIE
 #include "media.hpp"
 #endif

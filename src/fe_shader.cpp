@@ -21,10 +21,11 @@
  */
 
 #include "fe_shader.hpp"
-#include "fe_presentable.hpp"
 #include "fe_image.hpp"
 #include "fe_present.hpp"
-#include <iostream>
+#include "fe_util.hpp"
+#include "fe_base.hpp"
+#include <SFML/System/InputStream.hpp>
 
 namespace
 {
@@ -64,6 +65,11 @@ namespace
 	}
 }
 
+bool fe_shaders_available()
+{
+	return true;
+}
+
 FeShader::FeShader()
 	: m_type( Empty )
 {
@@ -74,11 +80,9 @@ bool FeShader::load( sf::InputStream &vert, sf::InputStream &frag )
 	m_type = VertexAndFragment;
 	m_vertex_source_path.clear();
 	m_fragment_source_path.clear();
-	if ( !read_stream_to_string( vert, m_vertex_source_code ) )
-		m_vertex_source_code.clear();
-	if ( !read_stream_to_string( frag, m_fragment_source_code ) )
-		m_fragment_source_code.clear();
-	return m_shader.loadFromStream( vert, frag );
+	return
+		read_stream_to_string( vert, m_vertex_source_code ) &&
+		read_stream_to_string( frag, m_fragment_source_code );
 }
 
 bool FeShader::load( sf::InputStream &sh, Type t )
@@ -89,17 +93,12 @@ bool FeShader::load( sf::InputStream &sh, Type t )
 	if ( t == Fragment )
 	{
 		m_vertex_source_code.clear();
-		if ( !read_stream_to_string( sh, m_fragment_source_code ) )
-			m_fragment_source_code.clear();
+		return read_stream_to_string( sh, m_fragment_source_code );
 	}
-	else
-	{
-		if ( !read_stream_to_string( sh, m_vertex_source_code ) )
-			m_vertex_source_code.clear();
-		m_fragment_source_code.clear();
-	}
-	sf::Shader::Type type = (t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex;
-	return m_shader.loadFromStream( sh, type );
+
+	const bool loaded = read_stream_to_string( sh, m_vertex_source_code );
+	m_fragment_source_code.clear();
+	return loaded;
 }
 
 bool FeShader::load( const std::string &vert, const std::string &frag )
@@ -117,7 +116,7 @@ bool FeShader::load( const std::string &vert, const std::string &frag )
 	m_fragment_source_path = frag;
 	m_vertex_source_code.clear();
 	m_fragment_source_code.clear();
-	return m_shader.loadFromFile( vert, frag );
+	return true;
 }
 
 bool FeShader::load( const std::string &sh, Type t )
@@ -139,8 +138,7 @@ bool FeShader::load( const std::string &sh, Type t )
 	}
 	m_vertex_source_code.clear();
 	m_fragment_source_code.clear();
-	sf::Shader::Type type = (t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex;
-	return m_shader.loadFromFile( sh, type );
+	return true;
 }
 
 bool FeShader::loadFromMemory( const std::string &vert, const std::string &frag )
@@ -150,7 +148,7 @@ bool FeShader::loadFromMemory( const std::string &vert, const std::string &frag 
 	m_fragment_source_path.clear();
 	m_vertex_source_code = vert;
 	m_fragment_source_code = frag;
-	return m_shader.loadFromMemory( vert, frag );
+	return true;
 }
 
 bool FeShader::loadFromMemory( const std::string &sh, Type t )
@@ -168,8 +166,7 @@ bool FeShader::loadFromMemory( const std::string &sh, Type t )
 		m_vertex_source_code = sh;
 		m_fragment_source_code.clear();
 	}
-	sf::Shader::Type type = (t == Fragment) ? sf::Shader::Type::Fragment : sf::Shader::Type::Vertex;
-	return m_shader.loadFromMemory( sh, type );
+	return true;
 }
 
 void FeShader::set_param( const char *name, float x )
@@ -177,7 +174,6 @@ void FeShader::set_param( const char *name, float x )
 	if ( m_type != Empty )
 	{
 		m_params[ name ] = { x };
-		m_shader.setUniform( name, x );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -187,7 +183,6 @@ void FeShader::set_param( const char *name, float x, float y )
 	if ( m_type != Empty )
 	{
 		m_params[ name ] = { x, y };
-		m_shader.setUniform( name, sf::Glsl::Vec2( x, y ) );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -197,7 +192,6 @@ void FeShader::set_param( const char *name, float x, float y, float z )
 	if ( m_type != Empty )
 	{
 		m_params[ name ] = { x, y, z };
-		m_shader.setUniform( name, sf::Glsl::Vec3( x, y, z ) );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -207,7 +201,6 @@ void FeShader::set_param( const char *name, float x, float y, float z, float w )
 	if ( m_type != Empty )
 	{
 		m_params[ name ] = { x, y, z, w };
-		m_shader.setUniform( name, sf::Glsl::Vec4( x, y, z, w ) );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -218,7 +211,6 @@ void FeShader::set_texture_param( const char *name )
 	{
 		m_current_texture_params[ name ] = true;
 		m_texture_image_params.erase( name );
-		m_shader.setUniform( name, sf::Shader::CurrentTexture );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -227,15 +219,9 @@ void FeShader::set_texture_param( const char *name, FeImage *image )
 {
 	if (( m_type != Empty ) && ( image ))
 	{
-		const sf::Texture *texture = image->get_texture();
-
-		if ( texture )
-		{
-			m_current_texture_params[ name ] = false;
-			m_texture_image_params[ name ] = image;
-			m_shader.setUniform( name, *texture );
-			FePresent::script_flag_redraw();
-		}
+		m_current_texture_params[ name ] = false;
+		m_texture_image_params[ name ] = image;
+		FePresent::script_flag_redraw();
 	}
 }
 

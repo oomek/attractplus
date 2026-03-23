@@ -26,8 +26,13 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <SFML/Graphics/Shader.hpp>
 class FeImage;
+namespace sf
+{
+	class InputStream;
+}
+
+bool fe_shaders_available();
 
 class FeShader
 {
@@ -54,8 +59,6 @@ public:
 	void set_param( const char *name, float x, float y, float z, float w );
 	void set_texture_param( const char *name );
 	void set_texture_param( const char *name, FeImage *image );
-
-	const sf::Shader *get_shader() const { return ( m_type != Empty ) ? &m_shader : NULL; };
 	Type get_type() const { return m_type; };
 	const std::string &get_vertex_source_path() const { return m_vertex_source_path; };
 	const std::string &get_fragment_source_path() const { return m_fragment_source_path; };
@@ -77,7 +80,6 @@ private:
 	std::unordered_map<std::string, std::vector<float>> m_params;
 	std::unordered_map<std::string, bool> m_current_texture_params;
 	std::unordered_map<std::string, FeImage *> m_texture_image_params;
-	sf::Shader m_shader;
 };
 
 #endif

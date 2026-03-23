@@ -52,11 +52,6 @@ namespace
 		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_Color.w;}";
-
-	sf::Shader *default_shader_alpha=NULL;
-	sf::Shader *default_shader_multiplied=NULL;
-	sf::Shader *default_shader_overlay=NULL;
-	sf::Shader *default_shader_premultiplied=NULL;
 };
 
 sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
@@ -95,47 +90,6 @@ bool FeBlend::uses_default_shader( int blend_mode )
 	return ( get_default_shader_source( blend_mode ) != NULL );
 }
 
-sf::Shader* FeBlend::get_default_shader( int blend_mode )
-{
-	if ( !uses_default_shader( blend_mode ) )
-		return NULL;
-
-	switch( blend_mode )
-	{
-		case FeBlend::Alpha:
-			if ( !default_shader_alpha )
-			{
-				default_shader_alpha = new sf::Shader();
-				std::ignore = default_shader_alpha->loadFromMemory( DEFAULT_SHADER_GLSL_ALPHA, sf::Shader::Type::Fragment );
-			}
-			return default_shader_alpha;
-		case FeBlend::Screen:
-		case FeBlend::Multiply:
-			if ( !default_shader_multiplied )
-			{
-				default_shader_multiplied = new sf::Shader();
-				std::ignore = default_shader_multiplied->loadFromMemory( DEFAULT_SHADER_GLSL_MULTIPLIED, sf::Shader::Type::Fragment );
-			}
-			return default_shader_multiplied;
-		case FeBlend::Overlay:
-			if ( !default_shader_overlay )
-			{
-				default_shader_overlay = new sf::Shader();
-				std::ignore = default_shader_overlay->loadFromMemory( DEFAULT_SHADER_GLSL_OVERLAY, sf::Shader::Type::Fragment );
-			}
-			return default_shader_overlay;
-		case FeBlend::Premultiplied:
-			if ( !default_shader_premultiplied )
-			{
-				default_shader_premultiplied = new sf::Shader();
-				std::ignore = default_shader_premultiplied->loadFromMemory( DEFAULT_SHADER_GLSL_PREMULTIPLIED, sf::Shader::Type::Fragment );
-			}
-			return default_shader_premultiplied;
-		default:
-			return NULL;
-	}
-}
-
 const char *FeBlend::get_default_shader_source( int blend_mode )
 {
 	switch( blend_mode )
@@ -156,27 +110,4 @@ const char *FeBlend::get_default_shader_source( int blend_mode )
 
 void FeBlend::clear_default_shaders()
 {
-	if ( default_shader_alpha )
-	{
-		delete default_shader_alpha;
-		default_shader_alpha = NULL;
-	}
-
-	if ( default_shader_multiplied )
-	{
-		delete default_shader_multiplied;
-		default_shader_multiplied = NULL;
-	}
-
-	if ( default_shader_overlay )
-	{
-		delete default_shader_overlay;
-		default_shader_overlay = NULL;
-	}
-
-	if ( default_shader_premultiplied )
-	{
-		delete default_shader_premultiplied;
-		default_shader_premultiplied = NULL;
-	}
 }

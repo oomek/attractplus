@@ -27,6 +27,7 @@
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
 #include "fe_overlay.hpp"
+#include "fe_shader.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
 #include "fe_sound.hpp"
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
 	// Redirect SFML error buffer to FeLog
 	sf::err().rdbuf(FeLog().rdbuf());
 
-	if ( !sf::Shader::isAvailable() )
+	if ( !fe_shaders_available() )
 	{
 		FeLog() << "Error, Attract-Mode Plus requires shader support."  << std::endl;
 		return 1;

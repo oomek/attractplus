@@ -42,7 +42,6 @@ public:
 
 	static sf::BlendMode get_blend_mode( int blend_mode );
 	static bool uses_default_shader( int blend_mode );
-	static sf::Shader* get_default_shader( int blend_mode );
 	static const char *get_default_shader_source( int blend_mode );
 
 	static void clear_default_shaders();

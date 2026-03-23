@@ -581,16 +581,6 @@ sf::Vector2f FeRectangle::alignTypeToVector( int type )
 
 void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) const
 {
-	FeShader *s = get_shader();
-	if ( s )
-	{
-		const sf::Shader *sh = s->get_shader();
-		if ( sh )
-			states.shader = sh;
-	}
-	else
-		states.shader = FeBlend::get_default_shader( m_blend_mode );
-
 	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
 
 	target.draw( m_rect, states );
