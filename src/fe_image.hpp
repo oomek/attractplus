@@ -269,6 +269,7 @@ private:
 	sf::Vector2u m_texture_size;
 	bool m_repeat;
 	mutable bool m_fallback_dirty;
+	unsigned long long m_content_version;
 };
 
 class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresentableParent

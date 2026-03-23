@@ -648,11 +648,15 @@ void FeSdl3GpuContext::sync_textures()
 				image.texture_dynamic &&
 				!had_texture &&
 				( image.texture_content_version == 0 );
+			const bool has_explicit_content_version =
+				( image.texture_content_version != 0 );
 			const bool needs_upload =
 				!had_texture ||
 				( previous_width != image.texture_width ) ||
 				( previous_height != image.texture_height ) ||
 				( previous_mipmapped != image.texture_mipmap ) ||
+				( has_explicit_content_version &&
+					entry.last_upload_content_version != content_version ) ||
 				( image.texture_dynamic && entry.last_upload_content_version != content_version );
 
 			if ( needs_upload && !waiting_for_first_dynamic_frame )

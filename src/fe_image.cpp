@@ -310,7 +310,8 @@ FeTextureContainer::FeTextureContainer(
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
-	m_entry( NULL )
+	m_entry( NULL ),
+	m_content_version( 1 )
 {
 #ifndef NO_MOVIE
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
@@ -388,6 +389,7 @@ bool FeTextureContainer::fix_masked_image()
 		m_pixel_cache.assign( src, src + size );
 		m_pixel_cache_valid = true;
 		m_fallback_dirty = false;
+		++m_content_version;
 
 		notify_texture_change();
 	}
@@ -476,6 +478,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	m_texture.setSmooth( m_smooth );
 	m_texture.setRepeated( m_repeat );
 	m_file_name = loaded_name;
+	++m_content_version;
 
 	return true;
 }
@@ -525,6 +528,8 @@ bool FeTextureContainer::try_to_load(
 		if ( !fe_sdl3_gpu_present_requested() )
 			ensure_fallback_texture();
 	}
+
+	++m_content_version;
 
 	return true;
 }
@@ -698,6 +703,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
 			m_pixel_cache_valid = true;
 			m_fallback_dirty = true;
+			++m_content_version;
 
 			if ( !fe_sdl3_gpu_present_requested() )
 				ensure_fallback_texture();
@@ -954,6 +960,7 @@ void FeTextureContainer::clear()
 	m_pixel_cache_valid = false;
 	m_texture_size = { 0, 0 };
 	m_fallback_dirty = false;
+	++m_content_version;
 
 #ifndef NO_MOVIE
 	// If a movie is running, close it...
@@ -1206,7 +1213,7 @@ unsigned long long FeTextureContainer::get_texture_content_version() const
 	if ( m_movie )
 		return m_movie->get_video_frame_serial();
 #endif
-	return 0;
+	return m_content_version;
 }
 
 FeMedia *FeTextureContainer::get_media() const
