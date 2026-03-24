@@ -75,7 +75,7 @@ namespace
 	{
 		const float local_x = ( vertex.x - geometry.origin.x ) * geometry.scale.x;
 		const float local_y = ( vertex.y - geometry.origin.y ) * geometry.scale.y;
-		const float local_z = vertex.z - geometry.origin_z;
+		const float local_z = vertex.z - geometry.origin.z;
 
 		const float radians_x = geometry.rotation_x * FE_PI / 180.0f;
 		const float radians_y = geometry.rotation_y * FE_PI / 180.0f;
@@ -98,7 +98,7 @@ namespace
 
 		const float rotated_x3 = ( rotated_x2 * cos_z ) - ( rotated_y2 * sin_z );
 		const float rotated_y3 = ( rotated_x2 * sin_z ) + ( rotated_y2 * cos_z );
-		const float rotated_z3 = rotated_z2 + geometry.origin_z;
+		const float rotated_z3 = rotated_z2 + geometry.origin.z;
 
 		return FeRenderVertex{
 			rotated_x3 + geometry.position.x,
@@ -147,8 +147,7 @@ FeSpriteGeometry::FeSpriteGeometry()
 	  padding(),
 	  scale( 1.f, 1.f ),
 	  position( 0.f, 0.f ),
-	  origin( 0.f, 0.f ),
-	  origin_z( 0.f ),
+	  origin( 0.f, 0.f, 0.f ),
 	  skew( 0.f, 0.f ),
 	  pinch( 0.f, 0.f ),
 	  color( sf::Color::White ),
@@ -162,7 +161,7 @@ FeSpriteGeometry::FeSpriteGeometry()
 void fe_sprite_append_render_vertices(
 	std::vector<FeRenderVertex> &out,
 	const FeSpriteGeometry &geometry,
-	float z )
+	float zorder )
 {
 	out.clear();
 
@@ -305,7 +304,7 @@ void fe_sprite_append_render_vertices(
 				fe_sprite_append_quad(
 					out,
 					geometry,
-					z,
+					zorder,
 					grid[y][x],
 					grid[y + 1][x],
 					grid[y][x + 1],
@@ -317,5 +316,5 @@ void fe_sprite_append_render_vertices(
 	}
 
 	out.reserve( 6 );
-	fe_sprite_append_quad( out, geometry, z, top_left, bottom_left, top_right, bottom_right );
+	fe_sprite_append_quad( out, geometry, zorder, top_left, bottom_left, top_right, bottom_right );
 }

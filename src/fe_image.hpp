@@ -456,12 +456,15 @@ public:
 	float get_transform_origin_y() const;
 
 	void set_anchor( float x, float y );
+	void set_anchor( float x, float y, float z );
 	void set_anchor_type( int t );
 	int get_anchor_type() const;
 	void set_anchor_x( float x );
 	float get_anchor_x() const;
 	void set_anchor_y( float y );
 	float get_anchor_y() const;
+	void set_anchor_z( float z );
+	float get_anchor_z() const;
 
 	void set_crop( bool c );
 	bool get_crop() const;
@@ -482,12 +485,13 @@ public:
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
 	int get_rotation_origin_type() const;
+	void set_rotation_origin( float x, float y, float z );
 	void set_rotation_origin_x( float x );
 	float get_rotation_origin_x() const;
 	void set_rotation_origin_y( float y );
 	float get_rotation_origin_y() const;
-	void set_origin_z( float z );
-	float get_origin_z() const;
+	void set_rotation_origin_z( float z );
+	float get_rotation_origin_z() const;
 
 	void set_skew_x( float x );
 	float get_skew_x() const;
@@ -574,15 +578,15 @@ protected:
 	sf::Vector2f m_size;
 	sf::Vector2u m_auto_size;
 
-	sf::Vector2f m_origin;
+	sf::Vector3f m_origin;
 	sf::Vector2f m_transform_origin;
 	FeImage::Alignment m_transform_origin_type;
 
-	sf::Vector2f m_anchor;
+	sf::Vector3f m_anchor;
 	FeImage::Alignment m_anchor_type;
 
 	float m_rotation;
-	sf::Vector2f m_rotation_origin;
+	sf::Vector3f m_rotation_origin;
 	FeImage::Alignment m_rotation_origin_type;
 
 	bool m_crop;
@@ -606,7 +610,7 @@ protected:
 
 private:
 	FeSpriteGeometry build_sprite_geometry() const;
-	void append_render_vertices( std::vector<FeRenderVertex> &out, float z ) const;
+	void append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const;
 
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
@@ -614,7 +618,6 @@ private:
 
 	sf::Color m_color;
 	sf::FloatRect m_texture_rect;
-	float m_origin_z;
 	sf::Vector2f m_skew;
 	sf::Vector2f m_pinch;
 	IntEdges m_border;
@@ -622,7 +625,7 @@ private:
 	float m_border_scale;
 	FloatEdges m_render_crop;
 	sf::Vector2f m_render_position;
-	sf::Vector2f m_render_origin;
+	sf::Vector3f m_render_origin;
 
 };
 

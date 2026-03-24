@@ -1540,13 +1540,13 @@ FeImage::FeImage(
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_auto_size( w == 0, h == 0 ),
-	m_origin( 0.f, 0.f ),
+	m_origin( 0.f, 0.f, 0.f ),
 	m_transform_origin( 0.f, 0.f ),
 	m_transform_origin_type( TopLeft ),
-	m_anchor( 0.f, 0.f ),
+	m_anchor( 0.f, 0.f, 0.f ),
 	m_anchor_type( TopLeft ),
 	m_rotation( 0.0 ),
-	m_rotation_origin( 0.f, 0.f ),
+	m_rotation_origin( 0.f, 0.f, 0.f ),
 	m_rotation_origin_type( TopLeft ),
 	m_crop( true ),
 	m_fit( Fill ),
@@ -1557,7 +1557,6 @@ FeImage::FeImage(
 	m_force_aspect_ratio( 0.0 ),
 	m_color( sf::Color::White ),
 	m_texture_rect( sf::Vector2f( 0.f, 0.f ), sf::Vector2f( 0.f, 0.f ) ),
-	m_origin_z( 0.f ),
 	m_skew( 0.f, 0.f ),
 	m_pinch( 0.f, 0.f ),
 	m_border( 0, 0, 0, 0 ),
@@ -1565,7 +1564,7 @@ FeImage::FeImage(
 	m_border_scale( 1.f ),
 	m_render_crop( 0.f, 0.f, 0.f, 0.f ),
 	m_render_position( 0.f, 0.f ),
-	m_render_origin( 0.f, 0.f ),
+	m_render_origin( 0.f, 0.f, 0.f ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -1598,7 +1597,6 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_force_aspect_ratio( o->m_force_aspect_ratio ),
 	m_color( o->m_color ),
 	m_texture_rect( o->m_texture_rect ),
-	m_origin_z( o->m_origin_z ),
 	m_skew( o->m_skew ),
 	m_pinch( o->m_pinch ),
 	m_border( o->m_border ),
@@ -1790,7 +1788,6 @@ FeSpriteGeometry FeImage::build_sprite_geometry() const
 	geometry.scale = m_scale;
 	geometry.position = m_render_position;
 	geometry.origin = m_render_origin;
-	geometry.origin_z = m_origin_z;
 	geometry.skew = m_skew;
 	geometry.pinch = m_pinch;
 	geometry.color = m_color;
@@ -1801,9 +1798,9 @@ FeSpriteGeometry FeImage::build_sprite_geometry() const
 	return geometry;
 }
 
-void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float z ) const
+void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const
 {
-	fe_sprite_append_render_vertices( out, build_sprite_geometry(), z );
+	fe_sprite_append_render_vertices( out, build_sprite_geometry(), zorder - m_anchor.z );
 }
 
 void FeImage::scale()
@@ -1912,9 +1909,10 @@ void FeImage::scale()
 		( m_rotation_origin.y - m_anchor.y ) * m_size.y
 	);
 
-	sf::Vector2f origin = sf::Vector2f(
+	sf::Vector3f origin = sf::Vector3f(
 		( m_origin.x + m_rotation_origin.x * m_size.x ) / scale.x,
-		( m_origin.y + m_rotation_origin.y * m_size.y ) / scale.y
+		( m_origin.y + m_rotation_origin.y * m_size.y ) / scale.y,
+		m_origin.z + m_rotation_origin.z
 	);
 
 	// Populate the fit_rect so users can get the resulting image dimensions
@@ -2197,6 +2195,11 @@ float FeImage::get_anchor_y() const
 	return m_anchor.y;
 }
 
+float FeImage::get_anchor_z() const
+{
+	return m_anchor.z;
+}
+
 bool FeImage::get_crop() const
 {
 	return m_crop;
@@ -2266,9 +2269,9 @@ float FeImage::get_rotation_origin_y() const
 	return m_rotation_origin.y;
 }
 
-float FeImage::get_origin_z() const
+float FeImage::get_rotation_origin_z() const
 {
-	return m_origin_z;
+	return m_rotation_origin.z;
 }
 
 float FeImage::get_skew_x() const
@@ -2319,8 +2322,8 @@ void FeImage::set_transform_origin( float x, float y )
 	)
 	{
 		m_transform_origin = sf::Vector2f( x, y );
-		m_anchor = sf::Vector2f( x, y );
-		m_rotation_origin = sf::Vector2f( x, y );
+		m_anchor = sf::Vector3f( x, y, m_anchor.z );
+		m_rotation_origin = sf::Vector3f( x, y, m_rotation_origin.z );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2335,9 +2338,14 @@ void FeImage::set_transform_origin_type( int t )
 
 void FeImage::set_anchor( float x, float y )
 {
-	if ( x != m_anchor.x || y != m_anchor.y )
+	set_anchor( x, y, m_anchor.z );
+}
+
+void FeImage::set_anchor( float x, float y, float z )
+{
+	if ( x != m_anchor.x || y != m_anchor.y || z != m_anchor.z )
 	{
-		m_anchor = sf::Vector2f( x, y );
+		m_anchor = sf::Vector3f( x, y, z );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2347,7 +2355,7 @@ void FeImage::set_anchor_type( int t )
 {
 	m_anchor_type = (FeImage::Alignment)t;
 	sf::Vector2f a = alignTypeToVector( t );
-	set_anchor( a.x, a.y );
+	set_anchor( a.x, a.y, get_anchor_z() );
 }
 
 void FeImage::set_fit_anchor( float x, float y )
@@ -2369,19 +2377,14 @@ void FeImage::set_fit_anchor_type( int t )
 
 void FeImage::set_rotation_origin( float x, float y )
 {
-	if ( x != m_rotation_origin.x || y != m_rotation_origin.y )
-	{
-		m_rotation_origin = sf::Vector2f( x, y );
-		scale();
-		FePresent::script_flag_redraw();
-	}
+	set_rotation_origin( x, y, m_rotation_origin.z );
 }
 
 void FeImage::set_rotation_origin_type( int t )
 {
 	m_rotation_origin_type = (FeImage::Alignment)t;
 	sf::Vector2f o = alignTypeToVector( t );
-	set_rotation_origin( o.x, o.y );
+	set_rotation_origin( o.x, o.y, get_rotation_origin_z() );
 }
 
 void FeImage::set_transform_origin_x( float x )
@@ -2416,6 +2419,11 @@ void FeImage::set_anchor_x( float x )
 void FeImage::set_anchor_y( float y )
 {
 	set_anchor( get_anchor_x(), y );
+}
+
+void FeImage::set_anchor_z( float z )
+{
+	set_anchor( get_anchor_x(), get_anchor_y(), z );
 }
 
 void FeImage::set_crop( bool c )
@@ -2454,13 +2462,19 @@ void FeImage::set_rotation_origin_y( float y )
 	set_rotation_origin( get_rotation_origin_x(), y );
 }
 
-void FeImage::set_origin_z( float z )
+void FeImage::set_rotation_origin( float x, float y, float z )
 {
-	if ( z != m_origin_z )
+	if ( x != m_rotation_origin.x || y != m_rotation_origin.y || z != m_rotation_origin.z )
 	{
-		m_origin_z = z;
+		m_rotation_origin = sf::Vector3f( x, y, z );
+		scale();
 		FePresent::script_flag_redraw();
 	}
+}
+
+void FeImage::set_rotation_origin_z( float z )
+{
+	set_rotation_origin( get_rotation_origin_x(), get_rotation_origin_y(), z );
 }
 
 void FeImage::set_skew_x( float x )

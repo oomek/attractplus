@@ -25,6 +25,7 @@
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <SFML/System/Vector3.hpp>
 
 #include <vector>
 
@@ -100,8 +101,7 @@ struct FeSpriteGeometry
 	IntEdges padding;
 	sf::Vector2f scale;
 	sf::Vector2f position;
-	sf::Vector2f origin;
-	float origin_z;
+	sf::Vector3f origin;
 	sf::Vector2f skew;
 	sf::Vector2f pinch;
 	sf::Color color;
@@ -116,6 +116,6 @@ struct FeSpriteGeometry
 void fe_sprite_append_render_vertices(
 	std::vector<FeRenderVertex> &out,
 	const FeSpriteGeometry &geometry,
-	float z );
+	float zorder );
 
 #endif
