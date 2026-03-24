@@ -1441,7 +1441,7 @@ bool FeMedia::open( const std::string &archive,
 				m_video->disptex_height = codec_ctx->height;
 
 				m_video->display_texture = outt;
-				if ( outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ))
+				if ( outt && outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ))
 					std::ignore = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height )});
 
 				m_video->init_rgba_buffer();

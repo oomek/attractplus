@@ -24,6 +24,7 @@
 #define FE_IMAGE_HPP
 
 #include <cstddef>
+#include <memory>
 #include <SFML/Graphics.hpp>
 #include <sqrat.h>
 #include "sprite.hpp"
@@ -56,7 +57,6 @@ class FeBaseTextureContainer
 public:
 	virtual ~FeBaseTextureContainer();
 
-	virtual const sf::Texture &get_texture()=0;
 	virtual const sf::Texture *get_texture_fallback() const=0;
 	virtual sf::Vector2u get_texture_size() const=0;
 	virtual const void *get_texture_source_id() const;
@@ -124,7 +124,6 @@ public:
 
 	virtual void release_audio( bool );
 	virtual void on_redraw_surfaces();
-	virtual void prepare_for_draw() const;
 	virtual bool is_volatile_texture() const;
 	virtual unsigned long long get_texture_content_version() const;
 
@@ -154,7 +153,6 @@ public:
 
 	~FeTextureContainer();
 
-	const sf::Texture &get_texture();
 	const sf::Texture *get_texture_fallback() const override;
 	sf::Vector2u get_texture_size() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
@@ -224,10 +222,10 @@ public:
 
 protected:
 	FeTextureContainer *get_derived_texture_container();
-	void prepare_for_draw() const override;
 
 private:
 	void ensure_fallback_texture() const;
+	sf::Texture *ensure_fallback_texture_storage() const;
 
 #ifndef NO_MOVIE
 	bool load_with_ffmpeg(
@@ -242,7 +240,7 @@ private:
 	void internal_update_selection( FeSettings *feSettings );
 	void clear();
 
-	sf::Texture m_texture;
+	mutable std::unique_ptr<sf::Texture> m_fallback_texture;
 	mutable std::vector<unsigned char> m_pixel_cache;
 	mutable bool m_pixel_cache_valid;
 
@@ -279,7 +277,6 @@ public:
 	FeSurfaceTextureContainer( int width, int height );
 	~FeSurfaceTextureContainer();
 
-	const sf::Texture &get_texture();
 	const sf::Texture *get_texture_fallback() const override;
 	sf::Vector2u get_texture_size() const override;
 
@@ -308,11 +305,11 @@ public:
 	int get_height() const;
 
 	FePresentableParent *get_presentable_parent();
-	void prepare_for_draw() const override;
 
 private:
 	void ensure_fallback_render() const;
-	sf::RenderTexture m_texture;
+	sf::RenderTexture *ensure_fallback_target() const;
+	mutable std::unique_ptr<sf::RenderTexture> m_fallback_texture;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
@@ -362,7 +359,6 @@ public:
 	FeImage( FeImage *, FePresentableParent & ); // clone the given image (texture is not copied)
 	~FeImage();
 
-	const sf::Texture *get_texture() const;
 	const FeBaseTextureContainer *get_texture_container() const;
 	int get_texture_width() const;
 	int get_texture_height() const;
