@@ -29,6 +29,7 @@
 #include "fe_sdl3_gpu.hpp"
 #include "fe_vm.hpp"
 #include "fe_audio_fx.hpp"
+#include "fe_sprite.hpp"
 #include "zip.hpp"
 #include "image_loader.hpp"
 
@@ -275,15 +276,6 @@ namespace
 	// been experienced at 2 when returning from games).
 	//
 	const int PLAY_COUNT=5;
-
-	FloatEdges fe_image_scaled_edges( const FloatEdges &edges, const sf::Vector2f &scale )
-	{
-		return FloatEdges(
-			edges.left / scale.x,
-			edges.top / scale.y,
-			edges.right / scale.x,
-			edges.bottom / scale.y );
-	}
 };
 
 FeTextureContainer::FeTextureContainer(
@@ -1565,6 +1557,7 @@ FeImage::FeImage(
 	m_force_aspect_ratio( 0.0 ),
 	m_color( sf::Color::White ),
 	m_texture_rect( sf::Vector2f( 0.f, 0.f ), sf::Vector2f( 0.f, 0.f ) ),
+	m_origin_z( 0.f ),
 	m_skew( 0.f, 0.f ),
 	m_pinch( 0.f, 0.f ),
 	m_border( 0, 0, 0, 0 ),
@@ -1605,6 +1598,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_force_aspect_ratio( o->m_force_aspect_ratio ),
 	m_color( o->m_color ),
 	m_texture_rect( o->m_texture_rect ),
+	m_origin_z( o->m_origin_z ),
 	m_skew( o->m_skew ),
 	m_pinch( o->m_pinch ),
 	m_border( o->m_border ),
@@ -1757,186 +1751,57 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 
 void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-	const_cast<FeImage *>( this )->sync_fallback_sprite();
+	const sf::Texture *fallback_texture = m_tex ? m_tex->get_texture_fallback() : NULL;
+	if ( !fallback_texture )
+		return;
+
+	std::vector<FeRenderVertex> render_vertices;
+	append_render_vertices( render_vertices, 0.0f );
+	if ( render_vertices.empty() )
+		return;
+
+	sf::VertexArray vertices( sf::PrimitiveType::Triangles, render_vertices.size() );
+	for ( std::size_t i = 0; i < render_vertices.size(); ++i )
+	{
+		const FeRenderVertex &vertex = render_vertices[i];
+		vertices[i].position = { vertex.x, vertex.y };
+		vertices[i].texCoords = { vertex.u, vertex.v };
+		vertices[i].color = { vertex.r, vertex.g, vertex.b, vertex.a };
+	}
+
 	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
-	target.draw( m_sprite, states );
+	states.texture = fallback_texture;
+	target.draw( vertices, states );
 }
 
-void FeImage::sync_fallback_sprite()
+FeSpriteGeometry FeImage::build_sprite_geometry() const
 {
-	const sf::Texture *fallback_texture = m_tex ? m_tex->get_texture_fallback() : NULL;
-	if ( fallback_texture )
-		m_sprite.setTexture( *fallback_texture );
-
-	m_sprite.setTextureRect( m_texture_rect );
-	m_sprite.setColor( m_color );
-	m_sprite.setCrop( m_render_crop );
-	m_sprite.setScale( m_scale );
-	m_sprite.setPosition( m_render_position );
-	m_sprite.setRotation( sf::degrees( m_rotation ) );
-	m_sprite.setOrigin( m_render_origin );
-	m_sprite.setSkewX( m_skew.x );
-	m_sprite.setSkewY( m_skew.y );
-	m_sprite.setPinchX( m_pinch.x );
-	m_sprite.setPinchY( m_pinch.y );
-	m_sprite.setBorder( m_border );
-	m_sprite.setPadding( m_padding );
-	m_sprite.setBorderScale( m_border_scale );
+	FeSpriteGeometry geometry;
+	geometry.texture_rect = FloatEdges(
+		m_texture_rect.position.x,
+		m_texture_rect.position.y,
+		m_texture_rect.position.x + m_texture_rect.size.x,
+		m_texture_rect.position.y + m_texture_rect.size.y );
+	geometry.crop = m_render_crop;
+	geometry.border = m_border;
+	geometry.padding = m_padding;
+	geometry.scale = m_scale;
+	geometry.position = m_render_position;
+	geometry.origin = m_render_origin;
+	geometry.origin_z = m_origin_z;
+	geometry.skew = m_skew;
+	geometry.pinch = m_pinch;
+	geometry.color = m_color;
+	geometry.rotation_x = get_rotation_x();
+	geometry.rotation_y = get_rotation_y();
+	geometry.rotation_z = m_rotation;
+	geometry.border_scale = m_border_scale;
+	return geometry;
 }
 
 void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float z ) const
 {
-	out.clear();
-
-	const sf::Vector2f tex_size( std::abs( m_texture_rect.size.x ), std::abs( m_texture_rect.size.y ) );
-	if ( tex_size.x == 0.f || tex_size.y == 0.f )
-		return;
-
-	FloatEdges pos( 0.f, 0.f, tex_size.x, tex_size.y );
-	FloatEdges tex( m_texture_rect.position, m_texture_rect.position + m_texture_rect.size );
-	const sf::Vector2f scale_abs( std::abs( m_scale.x ), std::abs( m_scale.y ) );
-	const sf::Vector2f sskew( m_skew.x / scale_abs.x, m_skew.y / scale_abs.y );
-	const bool has_border = m_border.left || m_border.top || m_border.right || m_border.bottom;
-
-	if ( !has_border )
-	{
-		const FloatEdges scrop = fe_image_scaled_edges( m_render_crop, scale_abs );
-		pos.left += scrop.left;
-		pos.top += scrop.top;
-		pos.right -= scrop.right;
-		pos.bottom -= scrop.bottom;
-		tex.left += scrop.left;
-		tex.top += scrop.top;
-		tex.right -= scrop.right;
-		tex.bottom -= scrop.bottom;
-	}
-
-	const FloatEdges spadding = fe_image_scaled_edges(
-		FloatEdges( static_cast<float>( m_padding.left ), static_cast<float>( m_padding.top ),
-			static_cast<float>( m_padding.right ), static_cast<float>( m_padding.bottom ) ),
-		scale_abs );
-	pos.left -= spadding.left;
-	pos.top -= spadding.top;
-	pos.right = std::max( pos.left, pos.right + spadding.right );
-	pos.bottom = std::max( pos.top, pos.bottom + spadding.bottom );
-
-	std::vector<sf::Vertex> vertices;
-	auto push_vertex = [&]( float px, float py, float tx, float ty )
-	{
-		sf::Vertex v;
-		v.position = { px, py };
-		v.texCoords = { tx, ty };
-		v.color = m_color;
-		vertices.push_back( v );
-	};
-
-	if ( has_border )
-	{
-		const sf::Vector2f total_size( pos.right - pos.left, pos.bottom - pos.top );
-		FloatEdges sborder = fe_image_scaled_edges(
-			FloatEdges( static_cast<float>( m_border.left ), static_cast<float>( m_border.top ),
-				static_cast<float>( m_border.right ), static_cast<float>( m_border.bottom ) ),
-			scale_abs );
-
-		float s = m_border_scale;
-		for ( int i = 0; i < 2; ++i )
-		{
-			s *= std::min(
-				total_size.x / std::max( ( sborder.left + sborder.right ) * s, total_size.x ),
-				total_size.y / std::max( ( sborder.top + sborder.bottom ) * s, total_size.y ) );
-		}
-
-		const FloatEdges border( sborder.left * s, sborder.top * s, sborder.right * s, sborder.bottom * s );
-		float px[4] = { pos.left, pos.left + border.left, pos.right - border.right, pos.right };
-		float py[4] = { pos.top, pos.top + border.top, pos.bottom - border.bottom, pos.bottom };
-		float tx[4] = { tex.left, tex.left + ( m_border.left / tex_size.x ) * ( tex.right - tex.left ), tex.right - ( m_border.right / tex_size.x ) * ( tex.right - tex.left ), tex.right };
-		float ty[4] = { tex.top, tex.top + ( m_border.top / tex_size.y ) * ( tex.bottom - tex.top ), tex.bottom - ( m_border.bottom / tex_size.y ) * ( tex.bottom - tex.top ), tex.bottom };
-		float sx[4] = { 0, border.top / total_size.y * sskew.x, ( total_size.y - border.bottom ) / total_size.y * sskew.x, sskew.x };
-		float sy[4] = { 0, border.left / total_size.y * sskew.y, ( total_size.x - border.right ) / total_size.x * sskew.y, sskew.y };
-		px[2] = std::max( px[2], px[1] );
-		py[2] = std::max( py[2], py[1] );
-
-		const std::pair<int, int> slice[28] = {
-			{ 0, 0 }, { 0, 1 }, { 1, 0 }, { 1, 1 }, { 2, 0 }, { 2, 1 }, { 3, 0 }, { 3, 1 }, { 3, 1 }, { 3, 1 },
-			{ 3, 1 }, { 3, 2 }, { 2, 1 }, { 2, 2 }, { 1, 1 }, { 1, 2 }, { 0, 1 }, { 0, 2 }, { 0, 2 }, { 0, 2 },
-			{ 0, 2 }, { 0, 3 }, { 1, 2 }, { 1, 3 }, { 2, 2 }, { 2, 3 }, { 3, 2 }, { 3, 3 }
-		};
-
-		vertices.reserve( 28 );
-		for ( const auto &coord : slice )
-			push_vertex( px[coord.first] + sx[coord.second], py[coord.second] + sy[coord.first], tx[coord.first], ty[coord.second] );
-	}
-	else if (( m_pinch.x != 0.f ) || ( m_pinch.y != 0.f ))
-	{
-		const int edges = 3;
-		const int slices = 256 - edges;
-		const sf::Vector2f spinch( m_pinch.x / scale_abs.x, m_pinch.y / scale_abs.y );
-		const float bws = ( pos.right - pos.left ) / slices;
-		const float pys = spinch.y / slices;
-		const float sys = sskew.y / slices;
-		const float bps = bws - spinch.x * 2 / slices;
-		const float tws = ( tex.right - tex.left ) / slices;
-
-		vertices.reserve( slices + edges );
-		for ( int i = 0; i < slices + edges; ++i )
-		{
-			const int j = std::min( std::max( 0, i - 1 ), slices );
-			if ( i % 2 )
-				push_vertex( pos.left + bps * j + sskew.x + spinch.x, pos.bottom - ( pys - sys ) * j, tex.left + tws * j, tex.bottom );
-			else
-				push_vertex( pos.left + bws * j, pos.top + ( pys + sys ) * j, tex.left + tws * j, tex.top );
-		}
-	}
-	else
-	{
-		vertices.reserve( 4 );
-		push_vertex( pos.left, pos.top, tex.left, tex.top );
-		push_vertex( pos.left + sskew.x, pos.bottom, tex.left, tex.bottom );
-		push_vertex( pos.right, pos.top + sskew.y, tex.right, tex.top );
-		push_vertex( pos.right + sskew.x, pos.bottom + sskew.y, tex.right, tex.bottom );
-	}
-
-	const sf::Transform transform =
-		sf::Transform().translate( m_render_position ).rotate( sf::degrees( m_rotation ) ).scale( m_scale ).translate( -m_render_origin );
-
-	auto convert_vertex = [&]( const sf::Vertex &vertex ) -> FeRenderVertex
-	{
-		const sf::Vector2f world_pos = transform.transformPoint( vertex.position );
-		return FeRenderVertex{
-			world_pos.x,
-			world_pos.y,
-			z,
-			vertex.texCoords.x,
-			vertex.texCoords.y,
-			vertex.color.r,
-			vertex.color.g,
-			vertex.color.b,
-			vertex.color.a
-		};
-	};
-
-	if ( vertices.size() >= 3 )
-	{
-		out.reserve( ( vertices.size() - 2 ) * 3 );
-		for ( std::size_t i = 2; i < vertices.size(); ++i )
-		{
-			const sf::Vertex &v0 = vertices[i - 2];
-			const sf::Vertex &v1 = vertices[i - 1];
-			const sf::Vertex &v2 = vertices[i];
-			if ( i % 2 == 0 )
-			{
-				out.push_back( convert_vertex( v0 ) );
-				out.push_back( convert_vertex( v1 ) );
-				out.push_back( convert_vertex( v2 ) );
-			}
-			else
-			{
-				out.push_back( convert_vertex( v1 ) );
-				out.push_back( convert_vertex( v0 ) );
-				out.push_back( convert_vertex( v2 ) );
-			}
-		}
-	}
+	fe_sprite_append_render_vertices( out, build_sprite_geometry(), z );
 }
 
 void FeImage::scale()
@@ -2399,6 +2264,11 @@ float FeImage::get_rotation_origin_y() const
 	return m_rotation_origin.y;
 }
 
+float FeImage::get_origin_z() const
+{
+	return m_origin_z;
+}
+
 float FeImage::get_skew_x() const
 {
 	return m_skew.x;
@@ -2580,6 +2450,15 @@ void FeImage::set_rotation_origin_x( float x )
 void FeImage::set_rotation_origin_y( float y )
 {
 	set_rotation_origin( get_rotation_origin_x(), y );
+}
+
+void FeImage::set_origin_z( float z )
+{
+	if ( z != m_origin_z )
+	{
+		m_origin_z = z;
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeImage::set_skew_x( float x )

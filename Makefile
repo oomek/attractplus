@@ -159,7 +159,7 @@ _DEP =\
 	fe_renderer.hpp \
 	fe_present.hpp \
 	fe_sdl3_gpu.hpp \
-	sprite.hpp \
+	fe_sprite.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
 	fe_music.hpp \
@@ -207,7 +207,7 @@ _OBJ =\
 	fe_renderer.o \
 	fe_present.o \
 	fe_sdl3_gpu.o \
-	sprite.o \
+	fe_sprite.o \
 	fe_image.o \
 	fe_sound.o \
 	fe_music.o \

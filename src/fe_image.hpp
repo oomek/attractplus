@@ -27,7 +27,7 @@
 #include <memory>
 #include <SFML/Graphics.hpp>
 #include <sqrat.h>
-#include "sprite.hpp"
+#include "fe_sprite.hpp"
 #include "fe_renderer.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
@@ -486,6 +486,8 @@ public:
 	float get_rotation_origin_x() const;
 	void set_rotation_origin_y( float y );
 	float get_rotation_origin_y() const;
+	void set_origin_z( float z );
+	float get_origin_z() const;
 
 	void set_skew_x( float x );
 	float get_skew_x() const;
@@ -568,7 +570,6 @@ public:
 
 protected:
 	FeBaseTextureContainer *m_tex;
-	FeSprite m_sprite;
 	sf::Vector2f m_pos;
 	sf::Vector2f m_size;
 	sf::Vector2u m_auto_size;
@@ -604,7 +605,7 @@ protected:
 	void draw( sf::RenderTarget& target, sf::RenderStates states ) const;
 
 private:
-	void sync_fallback_sprite();
+	FeSpriteGeometry build_sprite_geometry() const;
 	void append_render_vertices( std::vector<FeRenderVertex> &out, float z ) const;
 
 	std::vector<float> m_fft_data_zero;
@@ -613,6 +614,7 @@ private:
 
 	sf::Color m_color;
 	sf::FloatRect m_texture_rect;
+	float m_origin_z;
 	sf::Vector2f m_skew;
 	sf::Vector2f m_pinch;
 	IntEdges m_border;
