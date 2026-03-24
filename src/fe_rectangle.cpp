@@ -589,6 +589,7 @@ void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) cons
 bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 {
 	geometry.clear();
+	geometry.zbuffer = get_zbuffer();
 
 	const std::size_t point_count = m_rect.getPointCount();
 	if ( point_count < 3 )

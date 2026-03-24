@@ -57,6 +57,7 @@ struct FeRenderGeometry
 	float texture_width;
 	float texture_height;
 	int blend_mode;
+	bool zbuffer;
 	const FeShader *shader;
 	bool custom_shader;
 	bool textured;

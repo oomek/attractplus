@@ -42,6 +42,7 @@ private:
 	FePresentableParent &m_parent;
 	FeShader *m_shader;
 	bool m_visible;
+	bool m_zbuffer;
 	float m_z;
 	float m_rotation_x;
 	float m_rotation_y;
@@ -99,6 +100,8 @@ public:
 
 	virtual bool get_visible() const;
 	void set_visible( bool );
+	bool get_zbuffer() const;
+	void set_zbuffer( bool );
 
 	FeShader *get_shader() const;
 	FeShader *script_get_shader() const;

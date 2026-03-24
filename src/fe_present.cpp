@@ -660,6 +660,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_source_type ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_repeated ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.vertices.size() ) );
 		for ( const FeRenderVertex &vertex : geometry.vertices )

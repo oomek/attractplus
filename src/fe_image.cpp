@@ -1617,6 +1617,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	set_rotation_x( o->get_rotation_x() );
 	set_rotation_y( o->get_rotation_y() );
 	set_zorder( o->get_zorder() );
+	set_zbuffer( o->get_zbuffer() );
 	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
 	texture_changed();
@@ -1741,6 +1742,7 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.texture_width = static_cast<float>( texture_size.x );
 	geometry.texture_height = static_cast<float>( texture_size.y );
 	geometry.blend_mode = static_cast<int>( m_blend_mode );
+	geometry.zbuffer = get_zbuffer();
 	geometry.shader = get_shader();
 	geometry.custom_shader = ( geometry.shader != nullptr );
 	geometry.textured = true;

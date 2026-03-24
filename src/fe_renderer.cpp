@@ -53,10 +53,11 @@ FeRenderGeometry::FeRenderGeometry()
 	  texture_source_type( FeRenderTextureSourceNone ),
 	  texture_repeated( false ),
 	  texture_smooth( true ),
-	  texture_mipmap( false ),
-	  texture_width( 0.0f ),
+	texture_mipmap( false ),
+	texture_width( 0.0f ),
 	texture_height( 0.0f ),
 	blend_mode( 0 ),
+	zbuffer( false ),
 	shader( nullptr ),
 	custom_shader( false ),
 	textured( false ),
@@ -76,6 +77,7 @@ void FeRenderGeometry::clear()
 	texture_width = 0.0f;
 	texture_height = 0.0f;
 	blend_mode = 0;
+	zbuffer = false;
 	shader = nullptr;
 	custom_shader = false;
 	textured = false;

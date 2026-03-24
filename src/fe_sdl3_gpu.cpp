@@ -141,6 +141,21 @@ namespace
 		return blend_state;
 	}
 
+	int get_depth_pipeline_index( bool zbuffer )
+	{
+		return zbuffer ? 1 : 0;
+	}
+
+	void configure_pipeline_depth_state( SDL_GPUGraphicsPipelineCreateInfo &pipeline_info, bool zbuffer )
+	{
+		pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+		pipeline_info.target_info.has_depth_stencil_target = true;
+		pipeline_info.depth_stencil_state.enable_depth_test = zbuffer;
+		pipeline_info.depth_stencil_state.enable_depth_write = zbuffer;
+		pipeline_info.depth_stencil_state.compare_op =
+			zbuffer ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL : SDL_GPU_COMPAREOP_ALWAYS;
+	}
+
 	bool parse_custom_uniforms(
 		const std::string &source,
 		std::vector<ParsedCustomUniform> &uniforms,
@@ -279,6 +294,7 @@ namespace
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_repeated ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_smooth ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.blend_mode ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.custom_shader ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.vertices.size() ) );
 
@@ -432,7 +448,8 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
 		m_fragment_shaders[i] = nullptr;
-		m_blend_pipelines[i] = nullptr;
+		for ( int z = 0; z < 2; ++z )
+			m_blend_pipelines[z][i] = nullptr;
 	}
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
@@ -1005,7 +1022,7 @@ bool FeSdl3GpuContext::execute_frame()
 	const SDL_GPUTextureFormat swapchain_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
 	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
 
-	if ( ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[FeBlend::Alpha] )
+	if ( ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
 	{
 		release_custom_shaders();
 		release_image_pipeline();
@@ -1019,7 +1036,7 @@ bool FeSdl3GpuContext::execute_frame()
 		m_pipeline_attempted = true;
 	}
 
-	m_frame_stats.pipeline_ready = ( m_blend_pipelines[FeBlend::Alpha] != nullptr );
+	m_frame_stats.pipeline_ready = ( m_blend_pipelines[0][FeBlend::Alpha] != nullptr );
 	if ( !m_frame_stats.pipeline_ready )
 		write_debug_log( "execute_frame: image pipeline not ready" );
 
@@ -1063,7 +1080,7 @@ bool FeSdl3GpuContext::execute_frame()
 		return false;
 	}
 
-	if ( m_blend_pipelines[FeBlend::Alpha] && !m_frame.images.empty() )
+	if ( m_blend_pipelines[0][FeBlend::Alpha] && !m_frame.images.empty() )
 	{
 		if ( !render_geometry_batch(
 				render_pass,
@@ -1623,10 +1640,13 @@ void FeSdl3GpuContext::release_image_pipeline()
 
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		if ( m_blend_pipelines[i] )
+		for ( int z = 0; z < 2; ++z )
 		{
-			SDL_ReleaseGPUGraphicsPipeline( m_device, m_blend_pipelines[i] );
-			m_blend_pipelines[i] = nullptr;
+			if ( m_blend_pipelines[z][i] )
+			{
+				SDL_ReleaseGPUGraphicsPipeline( m_device, m_blend_pipelines[z][i] );
+				m_blend_pipelines[z][i] = nullptr;
+			}
 		}
 	}
 
@@ -1674,10 +1694,13 @@ void FeSdl3GpuContext::release_builtin_shader( BuiltinShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		if ( entry.blend_pipelines[i] )
+		for ( int z = 0; z < 2; ++z )
 		{
-			SDL_ReleaseGPUGraphicsPipeline( m_device, entry.blend_pipelines[i] );
-			entry.blend_pipelines[i] = nullptr;
+			if ( entry.blend_pipelines[z][i] )
+			{
+				SDL_ReleaseGPUGraphicsPipeline( m_device, entry.blend_pipelines[z][i] );
+				entry.blend_pipelines[z][i] = nullptr;
+			}
 		}
 	}
 
@@ -1702,10 +1725,13 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		if ( entry.blend_pipelines[ i ] )
+		for ( int z = 0; z < 2; ++z )
 		{
-			SDL_ReleaseGPUGraphicsPipeline( m_device, entry.blend_pipelines[ i ] );
-			entry.blend_pipelines[ i ] = nullptr;
+			if ( entry.blend_pipelines[ z ][ i ] )
+			{
+				SDL_ReleaseGPUGraphicsPipeline( m_device, entry.blend_pipelines[ z ][ i ] );
+				entry.blend_pipelines[ z ][ i ] = nullptr;
+			}
 		}
 	}
 
@@ -2030,20 +2056,20 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
-	pipeline_info.target_info.has_depth_stencil_target = true;
-	pipeline_info.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
-	pipeline_info.depth_stencil_state.enable_depth_test = true;
-	pipeline_info.depth_stencil_state.enable_depth_write = true;
 
-	for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
+	for ( int z = 0; z < 2; ++z )
 	{
-		color_target.blend_state = make_gpu_blend_state( mode );
-		entry.blend_pipelines[mode] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
-		if ( !entry.blend_pipelines[mode] )
+		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
-			write_debug_log( ( std::string( "builtin_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_id ).c_str() );
-			release_builtin_shader( entry );
-			return false;
+			color_target.blend_state = make_gpu_blend_state( mode );
+			entry.blend_pipelines[z][mode] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			if ( !entry.blend_pipelines[z][mode] )
+			{
+				write_debug_log( ( std::string( "builtin_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_id ).c_str() );
+				release_builtin_shader( entry );
+				return false;
+			}
 		}
 	}
 
@@ -2156,22 +2182,21 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
-	pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	pipeline_info.target_info.has_depth_stencil_target = true;
-	pipeline_info.depth_stencil_state.enable_depth_test = true;
-	pipeline_info.depth_stencil_state.enable_depth_write = true;
-	pipeline_info.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
 	pipeline_info.fragment_shader = entry.fragment_shader;
 
-	for ( int blend_mode = FeBlend::Alpha; blend_mode <= FeBlend::None; ++blend_mode )
+	for ( int z = 0; z < 2; ++z )
 	{
-		color_target.blend_state = make_gpu_blend_state( blend_mode );
-		entry.blend_pipelines[ blend_mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
-		if ( !entry.blend_pipelines[ blend_mode ] )
+		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		for ( int blend_mode = FeBlend::Alpha; blend_mode <= FeBlend::None; ++blend_mode )
 		{
-			write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
-			release_custom_shader( entry );
-			return false;
+			color_target.blend_state = make_gpu_blend_state( blend_mode );
+			entry.blend_pipelines[ z ][ blend_mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			if ( !entry.blend_pipelines[ z ][ blend_mode ] )
+			{
+				write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
+				release_custom_shader( entry );
+				return false;
+			}
 		}
 	}
 
@@ -2264,22 +2289,21 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
-	pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	pipeline_info.target_info.has_depth_stencil_target = true;
-	pipeline_info.depth_stencil_state.enable_depth_test = true;
-	pipeline_info.depth_stencil_state.enable_depth_write = true;
-	pipeline_info.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
 	pipeline_info.fragment_shader = entry.fragment_shader;
 
-	for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
+	for ( int z = 0; z < 2; ++z )
 	{
-		color_target.blend_state = make_gpu_blend_state( mode );
-		entry.blend_pipelines[ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
-		if ( !entry.blend_pipelines[ mode ] )
+		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
-			write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
-			release_custom_shader( entry );
-			return false;
+			color_target.blend_state = make_gpu_blend_state( mode );
+			entry.blend_pipelines[ z ][ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			if ( !entry.blend_pipelines[ z ][ mode ] )
+			{
+				write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
+				release_custom_shader( entry );
+				return false;
+			}
 		}
 	}
 
@@ -2737,7 +2761,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	std::uint64_t *cached_vertex_signature,
 	bool &drew_anything )
 {
-	if ( !render_pass || !command_buffer || !m_blend_pipelines[FeBlend::Alpha] || geometry.empty() )
+	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || geometry.empty() )
 		return true;
 
 	std::vector<FeRenderVertex> vertex_stream;
@@ -2750,6 +2774,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		std::size_t first_vertex;
 		std::size_t vertex_count;
 		int blend_mode;
+		bool zbuffer;
 		bool texture_repeated;
 		bool texture_smooth;
 		CustomShaderEntry *custom_shader;
@@ -2765,6 +2790,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		prepared.first_vertex = vertex_stream.size();
 		prepared.vertex_count = image.vertices.size();
 		prepared.blend_mode = image.blend_mode;
+		prepared.zbuffer = image.zbuffer;
 		prepared.texture_repeated = image.texture_repeated;
 		prepared.texture_smooth = image.texture_smooth;
 		prepared.custom_shader = nullptr;
@@ -2856,12 +2882,13 @@ bool FeSdl3GpuContext::render_geometry_batch(
 			continue;
 
 		const int blend_mode = clamp_blend_mode( image.blend_mode );
+		const int depth_pipeline = get_depth_pipeline_index( image.zbuffer );
 		SDL_GPUGraphicsPipeline *pipeline = nullptr;
 		if ( image.custom_shader )
 		{
-			pipeline = image.custom_shader->blend_pipelines[ blend_mode ];
+			pipeline = image.custom_shader->blend_pipelines[ depth_pipeline ][ blend_mode ];
 			if ( !pipeline )
-				pipeline = image.custom_shader->blend_pipelines[ FeBlend::Alpha ];
+				pipeline = image.custom_shader->blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 
 			if ( pipeline )
 			{
@@ -2902,17 +2929,17 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		else if ( image.builtin_shader )
 		{
 			SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
-			pipeline = image.builtin_shader->blend_pipelines[ blend_mode ];
+			pipeline = image.builtin_shader->blend_pipelines[ depth_pipeline ][ blend_mode ];
 			if ( !pipeline )
-				pipeline = image.builtin_shader->blend_pipelines[ FeBlend::Alpha ];
+				pipeline = image.builtin_shader->blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 		}
 
 		if ( !pipeline )
 		{
 			SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
-			pipeline = m_blend_pipelines[ blend_mode ];
+			pipeline = m_blend_pipelines[ depth_pipeline ][ blend_mode ];
 			if ( !pipeline )
-				pipeline = m_blend_pipelines[ FeBlend::Alpha ];
+				pipeline = m_blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 		}
 		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
 
@@ -3054,7 +3081,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 
 bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buffer )
 {
-	if ( !command_buffer || !m_blend_pipelines[ FeBlend::Alpha ] )
+	if ( !command_buffer || !m_blend_pipelines[0][ FeBlend::Alpha ] )
 		return true;
 
 	std::unordered_map<const void *, std::size_t> surface_indices;
@@ -3447,25 +3474,24 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
-	pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	pipeline_info.target_info.has_depth_stencil_target = true;
-	pipeline_info.depth_stencil_state.enable_depth_test = true;
-	pipeline_info.depth_stencil_state.enable_depth_write = true;
-	pipeline_info.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
 
-	for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
+	for ( int z = 0; z < 2; ++z )
 	{
-		color_target.blend_state = make_gpu_blend_state( mode );
-		pipeline_info.fragment_shader = m_fragment_shaders[ mode ];
-		pipeline_info.target_info.color_target_descriptions = &color_target;
-		m_blend_pipelines[ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
-		if ( !m_blend_pipelines[ mode ] )
+		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
-			std::ostringstream stream;
-			stream << "initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for blend mode " << mode;
-			write_debug_log( stream.str().c_str() );
-			release_image_pipeline();
-			return false;
+			color_target.blend_state = make_gpu_blend_state( mode );
+			pipeline_info.fragment_shader = m_fragment_shaders[ mode ];
+			pipeline_info.target_info.color_target_descriptions = &color_target;
+			m_blend_pipelines[ z ][ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			if ( !m_blend_pipelines[ z ][ mode ] )
+			{
+				std::ostringstream stream;
+				stream << "initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for blend mode " << mode;
+				write_debug_log( stream.str().c_str() );
+				release_image_pipeline();
+				return false;
+			}
 		}
 	}
 

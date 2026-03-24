@@ -27,6 +27,7 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	: m_parent( p ),
 	m_shader( NULL ),
 	m_visible( true ),
+	m_zbuffer( false ),
 	m_z( 0.0f ),
 	m_rotation_x( 0.0f ),
 	m_rotation_y( 0.0f ),
@@ -213,6 +214,20 @@ void FeBasePresentable::set_visible( bool v )
 		m_visible = v;
 		FePresent::script_flag_redraw();
 	}
+}
+
+bool FeBasePresentable::get_zbuffer() const
+{
+	return m_zbuffer;
+}
+
+void FeBasePresentable::set_zbuffer( bool enabled )
+{
+	if ( enabled == m_zbuffer )
+		return;
+
+	m_zbuffer = enabled;
+	FePresent::script_flag_redraw();
 }
 
 FeShader *FeBasePresentable::get_shader() const

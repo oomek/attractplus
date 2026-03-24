@@ -182,9 +182,15 @@ void FeText::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) co
 	{
 		for ( std::size_t i = begin; i < geometry.size(); ++i )
 		{
+			geometry[i].zbuffer = get_zbuffer();
 			geometry[i].shader = get_shader();
 			geometry[i].custom_shader = true;
 		}
+	}
+	else
+	{
+		for ( std::size_t i = begin; i < geometry.size(); ++i )
+			geometry[i].zbuffer = get_zbuffer();
 	}
 }
 
