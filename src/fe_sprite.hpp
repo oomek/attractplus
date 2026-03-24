@@ -102,8 +102,6 @@ struct FeSpriteGeometry
 	sf::Vector2f scale;
 	sf::Vector2f position;
 	sf::Vector3f origin;
-	sf::Vector2f skew;
-	sf::Vector2f pinch;
 	sf::Color color;
 	float rotation_x;
 	float rotation_y;

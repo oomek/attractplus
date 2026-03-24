@@ -993,8 +993,10 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("rotation_origin_x"), &FeImage::get_rotation_origin_x, &FeImage::set_rotation_origin_x )
 		.Prop(_SC("rotation_origin_y"), &FeImage::get_rotation_origin_y, &FeImage::set_rotation_origin_y )
 		.Prop(_SC("rotation_origin_z"), &FeImage::get_rotation_origin_z, &FeImage::set_rotation_origin_z )
+		// "skew_x/y" deprecated as of 4.0.0, use 3D rotation instead
 		.Prop(_SC("skew_x"), &FeImage::get_skew_x, &FeImage::set_skew_x )
 		.Prop(_SC("skew_y"), &FeImage::get_skew_y, &FeImage::set_skew_y )
+		// "pinch_x/y" deprecated as of 4.0.0, use 3D rotation instead
 		.Prop(_SC("pinch_x"), &FeImage::get_pinch_x, &FeImage::set_pinch_x )
 		.Prop(_SC("pinch_y"), &FeImage::get_pinch_y, &FeImage::set_pinch_y )
 		.Prop(_SC("texture_width"), &FeImage::get_texture_width )

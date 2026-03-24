@@ -618,8 +618,6 @@ private:
 
 	sf::Color m_color;
 	sf::FloatRect m_texture_rect;
-	sf::Vector2f m_skew;
-	sf::Vector2f m_pinch;
 	IntEdges m_border;
 	IntEdges m_padding;
 	float m_border_scale;

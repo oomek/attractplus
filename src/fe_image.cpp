@@ -1557,8 +1557,6 @@ FeImage::FeImage(
 	m_force_aspect_ratio( 0.0 ),
 	m_color( sf::Color::White ),
 	m_texture_rect( sf::Vector2f( 0.f, 0.f ), sf::Vector2f( 0.f, 0.f ) ),
-	m_skew( 0.f, 0.f ),
-	m_pinch( 0.f, 0.f ),
 	m_border( 0, 0, 0, 0 ),
 	m_padding( 0, 0, 0, 0 ),
 	m_border_scale( 1.f ),
@@ -1597,8 +1595,6 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_force_aspect_ratio( o->m_force_aspect_ratio ),
 	m_color( o->m_color ),
 	m_texture_rect( o->m_texture_rect ),
-	m_skew( o->m_skew ),
-	m_pinch( o->m_pinch ),
 	m_border( o->m_border ),
 	m_padding( o->m_padding ),
 	m_border_scale( o->m_border_scale ),
@@ -1788,8 +1784,6 @@ FeSpriteGeometry FeImage::build_sprite_geometry() const
 	geometry.scale = m_scale;
 	geometry.position = m_render_position;
 	geometry.origin = m_render_origin;
-	geometry.skew = m_skew;
-	geometry.pinch = m_pinch;
 	geometry.color = m_color;
 	geometry.rotation_x = get_rotation_x();
 	geometry.rotation_y = get_rotation_y();
@@ -2276,22 +2270,22 @@ float FeImage::get_rotation_origin_z() const
 
 float FeImage::get_skew_x() const
 {
-	return m_skew.x;
+	return 0.0f;
 }
 
 float FeImage::get_skew_y() const
 {
-	return m_skew.y;
+	return 0.0f;
 }
 
 float FeImage::get_pinch_x() const
 {
-	return m_pinch.x;
+	return 0.0f;
 }
 
 float FeImage::get_pinch_y() const
 {
-	return m_pinch.y;
+	return 0.0f;
 }
 
 void FeImage::set_origin_x( float x )
@@ -2479,38 +2473,22 @@ void FeImage::set_rotation_origin_z( float z )
 
 void FeImage::set_skew_x( float x )
 {
-	if ( x != m_skew.x )
-	{
-		m_skew.x = x;
-		FePresent::script_flag_redraw();
-	}
+	FeLog() << "Image skew_x is deprecated use 3D rotation instead." << std::endl;
 }
 
 void FeImage::set_skew_y( float y )
 {
-	if ( y != m_skew.y )
-	{
-		m_skew.y = y;
-		FePresent::script_flag_redraw();
-	}
+	FeLog() << "Image skew_y is deprecated use 3D rotation instead." << std::endl;
 }
 
 void FeImage::set_pinch_x( float x )
 {
-	if ( x != m_pinch.x )
-	{
-		m_pinch.x = x;
-		FePresent::script_flag_redraw();
-	}
+	FeLog() << "Image pinch_x is deprecated use 3D rotation instead." << std::endl;
 }
 
 void FeImage::set_pinch_y( float y )
 {
-	if ( y != m_pinch.y )
-	{
-		m_pinch.y = y;
-		FePresent::script_flag_redraw();
-	}
+	FeLog() << "Image pinch_y is deprecated use 3D rotation instead." << std::endl;
 }
 
 int FeImage::get_texture_width() const

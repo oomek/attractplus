@@ -148,8 +148,6 @@ FeSpriteGeometry::FeSpriteGeometry()
 	  scale( 1.f, 1.f ),
 	  position( 0.f, 0.f ),
 	  origin( 0.f, 0.f, 0.f ),
-	  skew( 0.f, 0.f ),
-	  pinch( 0.f, 0.f ),
 	  color( sf::Color::White ),
 	  rotation_x( 0.f ),
 	  rotation_y( 0.f ),
@@ -174,8 +172,6 @@ void fe_sprite_append_render_vertices(
 	FloatEdges pos( 0.f, 0.f, tex_size.x, tex_size.y );
 	FloatEdges tex( geometry.texture_rect );
 	const sf::Vector2f scale_abs( fe_sprite_safe_abs( geometry.scale.x ), fe_sprite_safe_abs( geometry.scale.y ) );
-	const sf::Vector2f skew( geometry.skew.x / scale_abs.x, geometry.skew.y / scale_abs.y );
-	const sf::Vector2f pinch( geometry.pinch.x / scale_abs.x, geometry.pinch.y / scale_abs.y );
 	const bool has_border =
 		geometry.border.left || geometry.border.top || geometry.border.right || geometry.border.bottom;
 
@@ -214,7 +210,7 @@ void fe_sprite_append_render_vertices(
 		tex.top
 	};
 	const FeLocalVertex bottom_left{
-		pos.left + skew.x + pinch.x,
+		pos.left,
 		pos.bottom,
 		0.0f,
 		tex.left,
@@ -222,14 +218,14 @@ void fe_sprite_append_render_vertices(
 	};
 	const FeLocalVertex top_right{
 		pos.right,
-		pos.top + skew.y + pinch.y,
+		pos.top,
 		0.0f,
 		tex.right,
 		tex.top
 	};
 	const FeLocalVertex bottom_right{
-		pos.right + skew.x - pinch.x,
-		pos.bottom + skew.y - pinch.y,
+		pos.right,
+		pos.bottom,
 		0.0f,
 		tex.right,
 		tex.bottom
