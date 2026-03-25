@@ -56,8 +56,6 @@
 # If left to blank, AM+ will build and link the extlib/SFML version
 #USE_SYSTEM_SFML=1
 #
-# Enable the SDL3 GPU graphics path
-USE_SDL3_GPU=1
 ###############################
 
 #FE_DEBUG=1
@@ -349,14 +347,11 @@ else
  CFLAGS += -DDATA_PATH=\"$(DATA_PATH)\"
 endif
 
-ifeq ($(USE_SDL3_GPU),1)
- ifneq ($(shell $(PKG_CONFIG) --exists sdl3 && echo 1 || echo 0),1)
-  $(error USE_SDL3_GPU=1 requires SDL3 development files available through pkg-config)
- endif
- CFLAGS += -DUSE_SDL3_GPU
- CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
- LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
+ifneq ($(shell $(PKG_CONFIG) --exists sdl3 && echo 1 || echo 0),1)
+ $(error SDL3 development files are required through pkg-config)
 endif
+CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
+LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
 
 #
 # Check whether optional libs should be enabled

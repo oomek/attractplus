@@ -50,7 +50,6 @@
 
 #include <SFML/System/Sleep.hpp>
 
-#ifdef USE_SDL3_GPU
 namespace
 {
 	char32_t decode_utf8_first_codepoint( const char *text )
@@ -382,31 +381,7 @@ namespace
 		}
 	}
 
-	bool has_gpu_present_marker()
-	{
-		if ( std::ifstream( "fe_sdl3_gpu_present.txt" ) )
-			return true;
-
-		const std::string base_path = get_program_path();
-		if ( !base_path.empty() )
-		{
-			std::string marker_path( base_path );
-			const char last = marker_path[ marker_path.size() - 1 ];
-			if ( last != '/' && last != '\\' )
-				marker_path += '/';
-			marker_path += "fe_sdl3_gpu_present.txt";
-			return static_cast<bool>( std::ifstream( marker_path.c_str() ) );
-		}
-
-		return false;
-	}
-
-	bool gpu_present_requested()
-	{
-		return ( std::getenv( "FE_SDL3_GPU_PRESENT" ) != nullptr ) || has_gpu_present_marker();
-	}
 }
-#endif
 
 #ifdef SFML_SYSTEM_WINDOWS
 void set_win32_foreground_window( HWND hwnd, HWND order )
@@ -517,7 +492,6 @@ sf::RenderWindow *FeWindow::ensure_legacy_window()
 	if ( !m_sdl_window_owned )
 		return nullptr;
 
-#ifdef USE_SDL3_GPU
 	void *native_handle = m_gpu_context.get_native_window_handle();
 	if ( !native_handle )
 		return nullptr;
@@ -527,29 +501,21 @@ sf::RenderWindow *FeWindow::ensure_legacy_window()
 	if ( m_legacy_view_set )
 		m_window->setView( m_legacy_view );
 	return m_window;
-#else
-	return nullptr;
-#endif
 }
 
 void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
-#ifdef USE_SDL3_GPU
-	const bool s_enable_gpu_present = gpu_present_requested();
 	static bool s_logged_gpu_present_probe = false;
 	if ( !s_logged_gpu_present_probe )
 	{
 		std::ostringstream stream;
 		stream
-			<< "display: gpu_present_requested=" << ( s_enable_gpu_present ? 1 : 0 )
-			<< " env=" << ( std::getenv( "FE_SDL3_GPU_PRESENT" ) ? 1 : 0 )
-			<< " marker=" << ( has_gpu_present_marker() ? 1 : 0 )
+			<< "display: gpu_present_requested=1"
 			<< " program_path=" << get_program_path();
 		append_gpu_probe_log( stream.str() );
 		s_logged_gpu_present_probe = true;
 	}
-	if ( s_enable_gpu_present )
 	{
 		static int s_logged_submitted = -1;
 		static int s_logged_content = -1;
@@ -590,7 +556,6 @@ void FeWindow::display()
 		if ( m_gpu_context.should_present() )
 			used_sdl_gpu_present = m_gpu_context.execute_frame();
 	}
-#endif
 
 	if ( m_legacy_frame_drawn && m_window )
 	{
@@ -662,7 +627,6 @@ void FeWindow::initial_create()
 	if ( m_window )
 		save();
 
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		delete m_window;
@@ -670,7 +634,6 @@ void FeWindow::initial_create()
 		m_gpu_context.release_window();
 		m_sdl_window_owned = false;
 	}
-#endif
 
 	if ( !m_window )
 		m_window = new sf::RenderWindow();
@@ -907,13 +870,13 @@ void FeWindow::initial_create()
 	m_legacy_window_context = ctx;
 
 	bool use_sdl_owned_window = false;
-#if defined(USE_SDL3_GPU) && defined(SFML_SYSTEM_WINDOWS)
-	use_sdl_owned_window = gpu_present_requested() && ( m_win_mode != FeSettings::Fullscreen );
+#if defined(SFML_SYSTEM_WINDOWS)
+	use_sdl_owned_window = ( m_win_mode != FeSettings::Fullscreen );
 #endif
 
 	if ( use_sdl_owned_window )
 	{
-#if defined(USE_SDL3_GPU) && defined(SFML_SYSTEM_WINDOWS)
+#if defined(SFML_SYSTEM_WINDOWS)
 		delete m_window;
 		m_window = nullptr;
 
@@ -1345,7 +1308,6 @@ void FeWindow::save()
 	{
 		if ( m_sdl_window_owned )
 		{
-#ifdef USE_SDL3_GPU
 			if ( SDL_Window *window = m_gpu_context.get_window() )
 			{
 				int x = 0;
@@ -1357,7 +1319,6 @@ void FeWindow::save()
 				FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) ) );
 				win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 			}
-#endif
 		}
 		else if ( m_window )
 		{
@@ -1379,9 +1340,7 @@ void FeWindow::close()
 			m_window = NULL;
 		}
 
-#ifdef USE_SDL3_GPU
 		m_gpu_context.release_window();
-#endif
 		m_sdl_window_owned = false;
 		return;
 	}
@@ -1393,21 +1352,17 @@ void FeWindow::close()
 		m_window->close();
 	}
 
-#ifdef USE_SDL3_GPU
 	m_gpu_context.release_window();
-#endif
 }
 
 bool FeWindow::hasFocus()
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		SDL_Window *window = m_gpu_context.get_window();
 		if ( window )
 			return SDL_GetKeyboardFocus() == window || SDL_GetMouseFocus() == window;
 	}
-#endif
 
 	if ( m_window )
 		return m_window->hasFocus();
@@ -1428,7 +1383,6 @@ bool FeWindow::isOpen()
 
 sf::Vector2u FeWindow::get_size() const
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		if ( SDL_Window *window = m_gpu_context.get_window() )
@@ -1439,7 +1393,6 @@ sf::Vector2u FeWindow::get_size() const
 			return sf::Vector2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
 		}
 	}
-#endif
 
 	if ( m_window )
 		return m_window->getSize();
@@ -1449,7 +1402,6 @@ sf::Vector2u FeWindow::get_size() const
 
 sf::Vector2i FeWindow::get_position() const
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		if ( SDL_Window *window = m_gpu_context.get_window() )
@@ -1460,7 +1412,6 @@ sf::Vector2i FeWindow::get_position() const
 			return sf::Vector2i( x, y );
 		}
 	}
-#endif
 
 	if ( m_window )
 		return m_window->getPosition();
@@ -1470,7 +1421,6 @@ sf::Vector2i FeWindow::get_position() const
 
 sf::Vector2i FeWindow::get_mouse_position() const
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		if ( SDL_Window *window = m_gpu_context.get_window() )
@@ -1481,7 +1431,6 @@ sf::Vector2i FeWindow::get_mouse_position() const
 			return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
 		}
 	}
-#endif
 
 	if ( m_window )
 		return sf::Mouse::getPosition( *m_window );
@@ -1491,7 +1440,6 @@ sf::Vector2i FeWindow::get_mouse_position() const
 
 void FeWindow::set_mouse_position( const sf::Vector2i &pos )
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		if ( SDL_Window *window = m_gpu_context.get_window() )
@@ -1500,7 +1448,6 @@ void FeWindow::set_mouse_position( const sf::Vector2i &pos )
 			return;
 		}
 	}
-#endif
 
 	if ( m_window )
 		sf::Mouse::setPosition( pos, *m_window );
@@ -1514,7 +1461,6 @@ void FeWindow::set_key_repeat_enabled( bool enabled )
 
 void FeWindow::set_mouse_cursor_visible( bool visible )
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		if ( SDL_Window *window = m_gpu_context.get_window() )
@@ -1523,7 +1469,6 @@ void FeWindow::set_mouse_cursor_visible( bool visible )
 			return;
 		}
 	}
-#endif
 
 	if ( m_window )
 		m_window->setMouseCursorVisible( visible );
@@ -1539,10 +1484,8 @@ void FeWindow::set_view( const sf::View &view )
 
 bool FeWindow::save_screenshot( const std::string &filename )
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned && m_gpu_context.save_screenshot( filename ) )
 		return true;
-#endif
 
 	if ( sf::RenderWindow *window = ensure_legacy_window() )
 	{
@@ -1610,7 +1553,6 @@ void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 
 const std::optional<sf::Event> FeWindow::pollEvent()
 {
-#ifdef USE_SDL3_GPU
 	if ( m_sdl_window_owned )
 	{
 		SDL_Event event;
@@ -1622,7 +1564,6 @@ const std::optional<sf::Event> FeWindow::pollEvent()
 
 		return {};
 	}
-#endif
 
 	if ( m_window )
 		return m_window->pollEvent();

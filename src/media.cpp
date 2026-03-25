@@ -1522,7 +1522,7 @@ bool FeMedia::tick()
 		std::lock_guard<std::recursive_mutex> l( m_video->image_swap_mutex );
 		if ( m_video->display_frame )
 		{
-			if ( !fe_sdl3_gpu_present_requested() )
+			if ( m_video->display_texture )
 				m_video->display_texture->update( m_video->display_frame );
 			m_video->display_frame = NULL;
 			m_video->frame_serial.fetch_add( 1, std::memory_order_release );

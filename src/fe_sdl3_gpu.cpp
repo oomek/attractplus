@@ -16,10 +16,6 @@
 #include <set>
 #include <sstream>
 
-#ifdef USE_SDL3_GPU
-#include <SFML/Graphics/Texture.hpp>
-#endif
-
 namespace
 {
 	const int FE_MAX_CUSTOM_SHADER_UNIFORMS = 32;
@@ -27,7 +23,6 @@ namespace
 	std::string get_base_path();
 	void append_debug_log( const std::string &message );
 
-#ifdef USE_SDL3_GPU
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
 		SDL_Surface *surface = SDL_CreateSurfaceFrom(
@@ -43,7 +38,6 @@ namespace
 		SDL_DestroySurface( surface );
 		return result;
 	}
-#endif
 
 	struct ParsedCustomUniform
 	{
@@ -459,26 +453,6 @@ namespace
 
 }
 
-bool fe_sdl3_gpu_present_requested()
-{
-	static const bool s_present_requested = []() -> bool
-	{
-		if ( SDL_getenv( "FE_SDL3_GPU_PRESENT" ) != nullptr )
-			return true;
-
-		if ( std::ifstream( "fe_sdl3_gpu_present.txt" ) )
-			return true;
-
-		const std::string base_path = get_base_path();
-		if ( !base_path.empty() )
-			return std::ifstream( join_path( base_path, "fe_sdl3_gpu_present.txt" ).c_str() ).good();
-
-		return false;
-	}();
-
-	return s_present_requested;
-}
-
 FeSdl3GpuContext::FeSdl3GpuContext()
 {
 	m_frame_stats.executed = false;
@@ -490,7 +464,6 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_frame_stats.last_viewport_width = 0;
 	m_frame_stats.last_viewport_height = 0;
 
-#ifdef USE_SDL3_GPU
 	m_sdl_ready = false;
 	m_window_claimed = false;
 	m_window = nullptr;
@@ -523,14 +496,11 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_has_submitted_frame = false;
 	m_logged_successful_present = false;
 	m_debug_logging_enabled = false;
-#endif
 }
 
 FeSdl3GpuContext::~FeSdl3GpuContext()
 {
-#ifdef USE_SDL3_GPU
 	shutdown();
-#endif
 }
 
 void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
@@ -546,7 +516,6 @@ void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
 		m_vertex_stream.clear();
 	}
 
-#ifdef USE_SDL3_GPU
 	if ( m_debug_logging_enabled )
 	{
 		std::size_t surface_geometry_count = 0;
@@ -604,7 +573,6 @@ void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
 			write_debug_log( shader_stream.str().c_str() );
 		}
 	}
-#endif
 
 }
 
@@ -625,10 +593,8 @@ const FeSdl3GpuContext::FrameStats &FeSdl3GpuContext::get_frame_stats() const
 
 void FeSdl3GpuContext::clear_layout_resources()
 {
-#ifdef USE_SDL3_GPU
 	release_surfaces();
 	clear_textures();
-#endif
 }
 
 void FeSdl3GpuContext::sync_textures()
@@ -667,8 +633,6 @@ void FeSdl3GpuContext::sync_textures()
 		entry.height = image.texture_height;
 		entry.mipmapped = image.texture_mipmap;
 		entry.last_seen_frame = m_frame.frame_number;
-
-#ifdef USE_SDL3_GPU
 		if ( is_available() )
 		{
 			const bool had_texture = ( entry.gpu_texture != nullptr );
@@ -703,7 +667,6 @@ void FeSdl3GpuContext::sync_textures()
 				}
 			}
 		}
-#endif
 	};
 
 	for ( const FeRenderGeometry &image : m_frame.images )
@@ -717,9 +680,7 @@ void FeSdl3GpuContext::sync_textures()
 	{
 		if ( it->second.last_seen_frame != m_frame.frame_number )
 		{
-#ifdef USE_SDL3_GPU
 			release_texture( it->second );
-#endif
 			it = m_textures.erase( it );
 		}
 		else
@@ -731,9 +692,7 @@ void FeSdl3GpuContext::clear_textures()
 {
 	for ( auto &entry : m_textures )
 	{
-#ifdef USE_SDL3_GPU
 		release_texture( entry.second );
-#endif
 	}
 
 	m_textures.clear();
@@ -752,8 +711,6 @@ void FeSdl3GpuContext::build_prepared_images()
 		prepared.first_vertex = m_vertex_stream.size();
 		prepared.vertex_count = image.vertices.size();
 		prepared.blend_mode = image.blend_mode;
-
-#ifdef USE_SDL3_GPU
 		if ( image.textured )
 		{
 			prepared.gpu_texture = nullptr;
@@ -769,7 +726,6 @@ void FeSdl3GpuContext::build_prepared_images()
 		}
 		else
 			prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
-#endif
 
 		m_vertex_stream.insert( m_vertex_stream.end(), image.vertices.begin(), image.vertices.end() );
 
@@ -779,29 +735,17 @@ void FeSdl3GpuContext::build_prepared_images()
 
 bool FeSdl3GpuContext::is_available() const
 {
-#ifdef USE_SDL3_GPU
 	return ( m_device != nullptr ) && ( m_window != nullptr ) && m_window_claimed;
-#else
-	return false;
-#endif
 }
 
 bool FeSdl3GpuContext::should_present() const
 {
-#ifdef USE_SDL3_GPU
 	return is_available() && !m_present_disabled && has_submitted_frame() && has_frame_content();
-#else
-	return false;
-#endif
 }
 
 bool FeSdl3GpuContext::has_submitted_frame() const
 {
-#ifdef USE_SDL3_GPU
 	return m_has_submitted_frame;
-#else
-	return false;
-#endif
 }
 
 bool FeSdl3GpuContext::has_frame_content() const
@@ -818,7 +762,6 @@ bool FeSdl3GpuContext::has_frame_content() const
 
 bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
 {
-#ifdef USE_SDL3_GPU
 	if ( !is_available() || !has_submitted_frame() )
 		return false;
 
@@ -1051,13 +994,8 @@ bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
 	SDL_ReleaseGPUTexture( m_device, color_texture );
 
 	return save_rgba_png( filename, width, height, pixels.data() );
-#else
-	static_cast<void>( filename );
-	return false;
-#endif
 }
 
-#ifdef USE_SDL3_GPU
 namespace
 {
 	int clamp_blend_mode( int blend_mode )
@@ -1776,21 +1714,6 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 		if ( !font_page->font->getTextureSize( font_page->character_size, source_width, source_height ) )
 			return false;
 		direct_font_page = font_page;
-	}
-	else if ( texture_source_type == FeRenderTextureSourceSfTexture )
-	{
-		const sf::Texture *source_texture = static_cast<const sf::Texture *>( texture_id );
-		const sf::Image source_image = source_texture->copyToImage();
-		const sf::Vector2u source_size = source_image.getSize();
-		const unsigned char *pixels = source_image.getPixelsPtr();
-		if ( !pixels || source_size.x == 0 || source_size.y == 0 )
-			return false;
-
-		source_width = source_size.x;
-		source_height = source_size.y;
-		pixel_data.assign(
-			pixels,
-			pixels + static_cast<std::size_t>( source_width ) * static_cast<std::size_t>( source_height ) * 4 );
 	}
 	else
 		return false;
@@ -3928,4 +3851,3 @@ void *FeSdl3GpuContext::get_native_window_handle() const
 	return nullptr;
 #endif
 }
-#endif

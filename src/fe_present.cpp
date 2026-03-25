@@ -1740,7 +1740,6 @@ void FePresent::submit_render_frame()
 	build_render_surface_frames( frame.surfaces );
 	frame.image_count = static_cast<unsigned long long>( frame.images.size() );
 	m_window.get_gpu_context().submit_frame( frame );
-#ifdef USE_SDL3_GPU
 	{
 		std::ostringstream stream;
 		stream
@@ -1750,7 +1749,6 @@ void FePresent::submit_render_frame()
 			<< " viewport=" << frame.viewport_width << "x" << frame.viewport_height;
 		m_window.get_gpu_context().write_debug_log( stream.str().c_str() );
 	}
-#endif
 }
 
 bool FePresent::saver_activation_check()

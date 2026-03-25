@@ -411,9 +411,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	}
 
 	m_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
-	sf::Texture *fallback_texture = fe_sdl3_gpu_present_requested()
-		? NULL
-		: ensure_fallback_texture_storage();
+	sf::Texture *fallback_texture = NULL;
 	res = m_movie->open( "", loaded_name, fallback_texture );
 
 	if ( !res )
@@ -447,15 +445,6 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	if ( res && !is_image )
 	{
-		if ( !fe_sdl3_gpu_present_requested() )
-		{
-			// Fill the first video frame with an opaque black colour
-			size_t required_pixels = fallback_texture ? fallback_texture->getSize().x * fallback_texture->getSize().y : 0;
-			if ( s_black_pixels.size() < required_pixels )
-	    		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
-			if ( fallback_texture && required_pixels > 0 )
-				fallback_texture->update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
-		}
 		if ( fallback_texture )
 			m_texture_size = fallback_texture->getSize();
 		else
@@ -536,9 +525,6 @@ bool FeTextureContainer::try_to_load(
 		m_pixel_cache_valid = true;
 		il.release_entry( &m_entry ); // don't need entry any more
 		m_fallback_dirty = true;
-
-		if ( !fe_sdl3_gpu_present_requested() )
-			ensure_fallback_texture();
 	}
 
 	++m_content_version;
@@ -710,9 +696,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			m_pixel_cache_valid = true;
 			m_fallback_dirty = true;
 			++m_content_version;
-
-			if ( !fe_sdl3_gpu_present_requested() )
-				ensure_fallback_texture();
 
 			il.release_entry( &m_entry );
 			return true;
@@ -1449,8 +1432,6 @@ void FeSurfaceTextureContainer::on_new_list( FeSettings *s, bool )
 void FeSurfaceTextureContainer::on_redraw_surfaces()
 {
 	m_fallback_dirty = true;
-	if ( !fe_sdl3_gpu_present_requested() )
-		ensure_fallback_render();
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )

@@ -41,7 +41,6 @@ struct FeRenderVertex
 enum FeRenderTextureSourceType
 {
 	FeRenderTextureSourceNone = 0,
-	FeRenderTextureSourceSfTexture,
 	FeRenderTextureSourceContainer,
 	FeRenderTextureSourceFontPage
 };

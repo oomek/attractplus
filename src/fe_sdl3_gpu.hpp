@@ -3,16 +3,11 @@
 
 #include "fe_renderer.hpp"
 #include "fe_blend.hpp"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_gpu.h>
 #include <string>
 #include <unordered_map>
 class FeImage;
-
-#ifdef USE_SDL3_GPU
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_gpu.h>
-
-bool fe_sdl3_gpu_present_requested();
-#endif
 
 class FeSdl3GpuContext
 {
@@ -43,8 +38,6 @@ public:
 	bool has_frame_content() const;
 	bool save_screenshot( const std::string &filename );
 	void clear_layout_resources();
-
-#ifdef USE_SDL3_GPU
 	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );
 	void shutdown();
 	bool wrap_native_window( void *native_window_handle, int width, int height );
@@ -54,7 +47,6 @@ public:
 	SDL_GPUDevice *get_device() const;
 	void *get_native_window_handle() const;
 	void write_debug_log( const char *message ) const;
-#endif
 
 private:
 	struct TextureEntry
@@ -65,10 +57,7 @@ private:
 		unsigned long long last_seen_frame;
 		unsigned long long last_upload_frame;
 		unsigned long long last_upload_content_version;
-
-#ifdef USE_SDL3_GPU
 		SDL_GPUTexture *gpu_texture;
-#endif
 	};
 
 	struct PreparedImage
@@ -77,10 +66,7 @@ private:
 		std::size_t first_vertex;
 		std::size_t vertex_count;
 		int blend_mode;
-
-#ifdef USE_SDL3_GPU
 		SDL_GPUTexture *gpu_texture;
-#endif
 	};
 
 	struct SurfaceEntry
@@ -92,16 +78,12 @@ private:
 		bool rendered_once;
 		std::uint64_t vertex_signature;
 		std::uint64_t last_signature;
-
-#ifdef USE_SDL3_GPU
 		SDL_GPUTexture *color_texture;
 		SDL_GPUTexture *depth_texture;
 		SDL_GPUBuffer *vertex_buffer;
 		Uint32 vertex_buffer_size;
-#endif
 	};
 
-#ifdef USE_SDL3_GPU
 	struct CustomUniformBinding
 	{
 		std::string name;
@@ -176,13 +158,10 @@ private:
 					blend_pipelines[z][i] = nullptr;
 		}
 	};
-#endif
 
 	void sync_textures();
 	void clear_textures();
 	void build_prepared_images();
-
-#ifdef USE_SDL3_GPU
 	void release_texture( TextureEntry &entry );
 	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry );
 	void release_white_texture();
@@ -241,7 +220,6 @@ private:
 		bool &drew_anything );
 	void release_image_pipeline();
 	bool initialize_image_pipeline( SDL_GPUTextureFormat swapchain_format );
-#endif
 
 	FeRenderFrame m_frame;
 	FrameStats m_frame_stats;
@@ -249,7 +227,6 @@ private:
 	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
 	std::vector<PreparedImage> m_prepared_images;
 	std::vector<FeRenderVertex> m_vertex_stream;
-#ifdef USE_SDL3_GPU
 	std::unordered_map<std::string, CustomShaderEntry> m_custom_shaders;
 	std::unordered_map<std::string, std::string> m_custom_shader_sources;
 	std::unordered_map<int, BuiltinShaderEntry> m_builtin_shaders;
@@ -281,7 +258,6 @@ private:
 	bool m_has_submitted_frame;
 	bool m_logged_successful_present;
 	bool m_debug_logging_enabled;
-#endif
 };
 
 #endif
