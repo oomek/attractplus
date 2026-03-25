@@ -138,7 +138,7 @@ private:
 		bool compile_failed;
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *blend_pipelines[2][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
 		std::vector<CustomUniformBinding> vertex_uniforms;
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
@@ -153,7 +153,7 @@ private:
 			  vertex_shader( nullptr ),
 			  fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 2; ++z )
+			for ( int z = 0; z < 3; ++z )
 				for ( int i = 0; i <= FeBlend::None; ++i )
 					blend_pipelines[ z ][ i ] = nullptr;
 		}
@@ -163,12 +163,12 @@ private:
 	{
 		std::string source_id;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *blend_pipelines[2][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
 
 		BuiltinShaderEntry()
 			: fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 2; ++z )
+			for ( int z = 0; z < 3; ++z )
 				for ( int i = 0; i <= FeBlend::None; ++i )
 					blend_pipelines[z][i] = nullptr;
 		}
@@ -258,12 +258,14 @@ private:
 	Uint32 m_vertex_buffer_size;
 	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
+	SDL_GPUShader *m_alpha_prepass_shader;
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUSampler *m_linear_sampler;
 	SDL_GPUSampler *m_linear_repeat_sampler;
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
-	SDL_GPUGraphicsPipeline *m_blend_pipelines[2][FeBlend::None + 1];
+	SDL_GPUGraphicsPipeline *m_blend_pipelines[3][FeBlend::None + 1];
+	SDL_GPUGraphicsPipeline *m_alpha_prepass_pipeline;
 	SDL_GPUTexture *m_white_texture;
 	SDL_GPUTexture *m_depth_texture;
 	SDL_GPUTextureFormat m_depth_format;

@@ -141,19 +141,38 @@ namespace
 		return blend_state;
 	}
 
-	int get_depth_pipeline_index( bool zbuffer )
+	enum DepthPipelineMode
 	{
-		return zbuffer ? 1 : 0;
+		DepthPipelineNone = 0,
+		DepthPipelineWrite = 1,
+		DepthPipelineTestOnly = 2
+	};
+
+	int get_depth_pipeline_index( bool zbuffer, bool translucent )
+	{
+		if ( !zbuffer )
+			return DepthPipelineNone;
+
+		return translucent ? DepthPipelineTestOnly : DepthPipelineWrite;
 	}
 
-	void configure_pipeline_depth_state( SDL_GPUGraphicsPipelineCreateInfo &pipeline_info, bool zbuffer )
+	void configure_pipeline_depth_state( SDL_GPUGraphicsPipelineCreateInfo &pipeline_info, int depth_mode )
 	{
 		pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
 		pipeline_info.target_info.has_depth_stencil_target = true;
-		pipeline_info.depth_stencil_state.enable_depth_test = zbuffer;
-		pipeline_info.depth_stencil_state.enable_depth_write = zbuffer;
+		pipeline_info.depth_stencil_state.enable_depth_test = ( depth_mode != DepthPipelineNone );
+		pipeline_info.depth_stencil_state.enable_depth_write = ( depth_mode == DepthPipelineWrite );
 		pipeline_info.depth_stencil_state.compare_op =
-			zbuffer ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL : SDL_GPU_COMPAREOP_ALWAYS;
+			( depth_mode != DepthPipelineNone ) ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL : SDL_GPU_COMPAREOP_ALWAYS;
+	}
+
+	bool geometry_uses_translucent_depth_pipeline( const FeRenderGeometry &image )
+	{
+		if ( !image.zbuffer )
+			return false;
+
+		return image.textured &&
+			( ( image.blend_mode == FeBlend::Alpha ) || ( image.blend_mode == FeBlend::Premultiplied ) );
 	}
 
 	bool parse_custom_uniforms(
@@ -372,6 +391,24 @@ namespace
 			"}\n";
 	}
 
+	std::string build_alpha_prepass_fragment_shader()
+	{
+		return
+			"#version 450\n"
+			"layout(location = 0) in vec2 frag_texcoord;\n"
+			"layout(location = 1) in vec4 frag_color;\n"
+			"layout(location = 0) out vec4 out_color;\n"
+			"layout(set = 2, binding = 0) uniform sampler2D image_texture;\n"
+			"void main()\n"
+			"{\n"
+			"\tivec2 tex_size = textureSize(image_texture, 0);\n"
+			"\tvec2 uv = tex_size.x > 0 && tex_size.y > 0 ? frag_texcoord / vec2(tex_size) : vec2(0.0);\n"
+			"\tfloat alpha = (frag_color * texture(image_texture, uv)).a;\n"
+			"\tif (alpha < 0.5) discard;\n"
+			"\tout_color = vec4(0.0);\n"
+			"}\n";
+	}
+
 	std::string build_fast_builtin_fragment_shader( int blend_mode )
 	{
 		const char *raw_source = FeBlend::get_default_shader_source( blend_mode );
@@ -445,12 +482,14 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_vertex_buffer_size = 0;
 	m_vertex_buffer_signature = 0;
 	m_vertex_shader = nullptr;
+	m_alpha_prepass_shader = nullptr;
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
 		m_fragment_shaders[i] = nullptr;
-		for ( int z = 0; z < 2; ++z )
+		for ( int z = 0; z < 3; ++z )
 			m_blend_pipelines[z][i] = nullptr;
 	}
+	m_alpha_prepass_pipeline = nullptr;
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
 	m_nearest_sampler = nullptr;
@@ -1638,9 +1677,15 @@ void FeSdl3GpuContext::release_image_pipeline()
 {
 	release_builtin_shaders();
 
+	if ( m_alpha_prepass_pipeline )
+	{
+		SDL_ReleaseGPUGraphicsPipeline( m_device, m_alpha_prepass_pipeline );
+		m_alpha_prepass_pipeline = nullptr;
+	}
+
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		for ( int z = 0; z < 2; ++z )
+		for ( int z = 0; z < 3; ++z )
 		{
 			if ( m_blend_pipelines[z][i] )
 			{
@@ -1688,13 +1733,19 @@ void FeSdl3GpuContext::release_image_pipeline()
 		SDL_ReleaseGPUShader( m_device, m_vertex_shader );
 		m_vertex_shader = nullptr;
 	}
+
+	if ( m_alpha_prepass_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_alpha_prepass_shader );
+		m_alpha_prepass_shader = nullptr;
+	}
 }
 
 void FeSdl3GpuContext::release_builtin_shader( BuiltinShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		for ( int z = 0; z < 2; ++z )
+		for ( int z = 0; z < 3; ++z )
 		{
 			if ( entry.blend_pipelines[z][i] )
 			{
@@ -1725,7 +1776,7 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		for ( int z = 0; z < 2; ++z )
+		for ( int z = 0; z < 3; ++z )
 		{
 			if ( entry.blend_pipelines[ z ][ i ] )
 			{
@@ -2057,9 +2108,9 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
 
-	for ( int z = 0; z < 2; ++z )
+	for ( int z = 0; z < 3; ++z )
 	{
-		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( mode );
@@ -2184,9 +2235,9 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	pipeline_info.target_info.num_color_targets = 1;
 	pipeline_info.fragment_shader = entry.fragment_shader;
 
-	for ( int z = 0; z < 2; ++z )
+	for ( int z = 0; z < 3; ++z )
 	{
-		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int blend_mode = FeBlend::Alpha; blend_mode <= FeBlend::None; ++blend_mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( blend_mode );
@@ -2291,9 +2342,9 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	pipeline_info.target_info.num_color_targets = 1;
 	pipeline_info.fragment_shader = entry.fragment_shader;
 
-	for ( int z = 0; z < 2; ++z )
+	for ( int z = 0; z < 3; ++z )
 	{
-		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( mode );
@@ -2775,6 +2826,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		std::size_t vertex_count;
 		int blend_mode;
 		bool zbuffer;
+		bool translucent_depth;
 		bool texture_repeated;
 		bool texture_smooth;
 		CustomShaderEntry *custom_shader;
@@ -2791,6 +2843,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		prepared.vertex_count = image.vertices.size();
 		prepared.blend_mode = image.blend_mode;
 		prepared.zbuffer = image.zbuffer;
+		prepared.translucent_depth = geometry_uses_translucent_depth_pipeline( image );
 		prepared.texture_repeated = image.texture_repeated;
 		prepared.texture_smooth = image.texture_smooth;
 		prepared.custom_shader = nullptr;
@@ -2876,13 +2929,38 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		uniforms.plane_distance = camera.near_plane + 1.0f;
 	SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
 
+	if ( m_alpha_prepass_pipeline )
+	{
+		SDL_BindGPUGraphicsPipeline( render_pass, m_alpha_prepass_pipeline );
+
+		for ( const LocalPreparedImage &image : prepared_images )
+		{
+			if ( !image.translucent_depth || !image.gpu_texture || image.vertex_count == 0 || image.custom_shader )
+				continue;
+
+			SDL_GPUTextureSamplerBinding sampler_binding = {};
+			sampler_binding.texture = image.gpu_texture;
+			if ( image.texture_smooth )
+				sampler_binding.sampler = image.texture_repeated ? m_linear_repeat_sampler : m_linear_sampler;
+			else
+				sampler_binding.sampler = image.texture_repeated ? m_nearest_repeat_sampler : m_nearest_sampler;
+			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
+			SDL_DrawGPUPrimitives(
+				render_pass,
+				static_cast<Uint32>( image.vertex_count ),
+				1,
+				static_cast<Uint32>( image.first_vertex ),
+				0 );
+		}
+	}
+
 	for ( const LocalPreparedImage &image : prepared_images )
 	{
 		if ( !image.gpu_texture || image.vertex_count == 0 )
 			continue;
 
 		const int blend_mode = clamp_blend_mode( image.blend_mode );
-		const int depth_pipeline = get_depth_pipeline_index( image.zbuffer );
+		const int depth_pipeline = get_depth_pipeline_index( image.zbuffer, image.translucent_depth );
 		SDL_GPUGraphicsPipeline *pipeline = nullptr;
 		if ( image.custom_shader )
 		{
@@ -3316,10 +3394,17 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 
 	ShaderBlob vertex_blob = {};
+	ShaderBlob alpha_prepass_blob = {};
 	ShaderBlob fragment_blobs[FeBlend::None + 1] = {};
 	if ( !compile_shader_blob( "__builtin_image_vertex__", build_builtin_vertex_shader(), true, vertex_blob ) )
 	{
 		write_debug_log( "initialize_image_pipeline: failed to compile internal vertex shader" );
+		return false;
+	}
+
+	if ( !compile_shader_blob( "__builtin_image_alpha_prepass__", build_alpha_prepass_fragment_shader(), false, alpha_prepass_blob ) )
+	{
+		write_debug_log( "initialize_image_pipeline: failed to compile internal alpha prepass shader" );
 		return false;
 	}
 
@@ -3363,6 +3448,18 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	SDL_GPUShaderCreateInfo fragment_info = {};
 	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
 	fragment_info.num_samplers = 1;
+
+	fragment_info.code_size = alpha_prepass_blob.code.size();
+	fragment_info.code = alpha_prepass_blob.code.data();
+	fragment_info.entrypoint = alpha_prepass_blob.entrypoint;
+	fragment_info.format = alpha_prepass_blob.format;
+	m_alpha_prepass_shader = SDL_CreateGPUShader( m_device, &fragment_info );
+	if ( !m_alpha_prepass_shader )
+	{
+		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUShader failed for alpha prepass shader" );
+		release_image_pipeline();
+		return false;
+	}
 
 	for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 	{
@@ -3459,6 +3556,12 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = swapchain_format;
 
+	SDL_GPUColorTargetDescription alpha_prepass_target = {};
+	alpha_prepass_target.format = swapchain_format;
+	alpha_prepass_target.blend_state.enable_color_write_mask = true;
+	alpha_prepass_target.blend_state.color_write_mask = 0;
+	alpha_prepass_target.blend_state.enable_blend = false;
+
 	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
 	pipeline_info.vertex_shader = m_vertex_shader;
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
@@ -3475,9 +3578,21 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
 
-	for ( int z = 0; z < 2; ++z )
+	SDL_GPUGraphicsPipelineCreateInfo alpha_prepass_info = pipeline_info;
+	alpha_prepass_info.fragment_shader = m_alpha_prepass_shader;
+	alpha_prepass_info.target_info.color_target_descriptions = &alpha_prepass_target;
+	configure_pipeline_depth_state( alpha_prepass_info, DepthPipelineWrite );
+	m_alpha_prepass_pipeline = SDL_CreateGPUGraphicsPipeline( m_device, &alpha_prepass_info );
+	if ( !m_alpha_prepass_pipeline )
 	{
-		configure_pipeline_depth_state( pipeline_info, z != 0 );
+		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for alpha prepass" );
+		release_image_pipeline();
+		return false;
+	}
+
+	for ( int z = 0; z < 3; ++z )
+	{
+		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( mode );
