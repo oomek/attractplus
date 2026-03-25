@@ -106,6 +106,7 @@ struct FeSpriteGeometry
 	float rotation_x;
 	float rotation_y;
 	float rotation_z;
+	int rotation_order;
 	float border_scale;
 
 	FeSpriteGeometry();

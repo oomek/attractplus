@@ -31,6 +31,7 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	m_z( 0.0f ),
 	m_rotation_x( 0.0f ),
 	m_rotation_y( 0.0f ),
+	m_rotation_order( XYZ ),
 	m_zorder( 0 )
 {
 }
@@ -287,6 +288,24 @@ float FeBasePresentable::get_rotation_z() const
 void FeBasePresentable::set_rotation_z( float rotation )
 {
 	setRotation( rotation );
+}
+
+int FeBasePresentable::get_rotation_order() const
+{
+	return static_cast<int>( m_rotation_order );
+}
+
+void FeBasePresentable::set_rotation_order( int order )
+{
+	if ( order < XYZ || order > ZYX )
+		return;
+
+	const RotationOrder new_order = static_cast<RotationOrder>( order );
+	if ( new_order == m_rotation_order )
+		return;
+
+	m_rotation_order = new_order;
+	FePresent::script_flag_redraw();
 }
 
 int FeBasePresentable::get_zorder()

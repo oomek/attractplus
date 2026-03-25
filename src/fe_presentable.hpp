@@ -38,6 +38,17 @@ namespace sf
 
 class FeBasePresentable
 {
+public:
+	enum RotationOrder
+	{
+		XYZ = 0,
+		XZY,
+		YXZ,
+		YZX,
+		ZXY,
+		ZYX
+	};
+
 private:
 	FePresentableParent &m_parent;
 	FeShader *m_shader;
@@ -46,6 +57,7 @@ private:
 	float m_z;
 	float m_rotation_x;
 	float m_rotation_y;
+	RotationOrder m_rotation_order;
 	int m_zorder;
 
 public:
@@ -113,6 +125,8 @@ public:
 	void set_rotation_y( float rotation );
 	float get_rotation_z() const;
 	void set_rotation_z( float rotation );
+	int get_rotation_order() const;
+	void set_rotation_order( int order );
 
 	int get_zorder();
 	void set_zorder( int );

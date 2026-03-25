@@ -1610,6 +1610,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	script_set_shader( o->get_shader() );
 	set_rotation_x( o->get_rotation_x() );
 	set_rotation_y( o->get_rotation_y() );
+	set_rotation_order( o->get_rotation_order() );
 	set_zorder( o->get_zorder() );
 	set_zbuffer( o->get_zbuffer() );
 	set_smooth( o->get_smooth() );
@@ -1788,6 +1789,7 @@ FeSpriteGeometry FeImage::build_sprite_geometry() const
 	geometry.rotation_x = get_rotation_x();
 	geometry.rotation_y = get_rotation_y();
 	geometry.rotation_z = m_rotation;
+	geometry.rotation_order = get_rotation_order();
 	geometry.border_scale = m_border_scale;
 	return geometry;
 }

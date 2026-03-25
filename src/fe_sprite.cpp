@@ -27,6 +27,13 @@
 
 namespace
 {
+	struct FeRotationState
+	{
+		float x;
+		float y;
+		float z;
+	};
+
 	struct FeLocalVertex
 	{
 		float x;
@@ -68,6 +75,30 @@ namespace
 		return fe_sprite_lerp( top, bottom, ty );
 	}
 
+	void fe_sprite_rotate_x( FeRotationState &value, float cos_x, float sin_x )
+	{
+		const float next_y = ( value.y * cos_x ) - ( value.z * sin_x );
+		const float next_z = ( value.y * sin_x ) + ( value.z * cos_x );
+		value.y = next_y;
+		value.z = next_z;
+	}
+
+	void fe_sprite_rotate_y( FeRotationState &value, float cos_y, float sin_y )
+	{
+		const float next_x = ( value.x * cos_y ) + ( value.z * sin_y );
+		const float next_z = -( value.x * sin_y ) + ( value.z * cos_y );
+		value.x = next_x;
+		value.z = next_z;
+	}
+
+	void fe_sprite_rotate_z( FeRotationState &value, float cos_z, float sin_z )
+	{
+		const float next_x = ( value.x * cos_z ) - ( value.y * sin_z );
+		const float next_y = ( value.x * sin_z ) + ( value.y * cos_z );
+		value.x = next_x;
+		value.y = next_y;
+	}
+
 	FeRenderVertex fe_sprite_transform_vertex(
 		const FeLocalVertex &vertex,
 		const FeSpriteGeometry &geometry,
@@ -88,22 +119,47 @@ namespace
 		const float cos_z = std::cos( radians_z );
 		const float sin_z = std::sin( radians_z );
 
-		const float rotated_x1 = local_x;
-		const float rotated_y1 = ( local_y * cos_x ) - ( local_z * sin_x );
-		const float rotated_z1 = ( local_y * sin_x ) + ( local_z * cos_x );
+		FeRotationState rotated{ local_x, local_y, local_z };
 
-		const float rotated_x2 = ( rotated_x1 * cos_y ) + ( rotated_z1 * sin_y );
-		const float rotated_y2 = rotated_y1;
-		const float rotated_z2 = -( rotated_x1 * sin_y ) + ( rotated_z1 * cos_y );
-
-		const float rotated_x3 = ( rotated_x2 * cos_z ) - ( rotated_y2 * sin_z );
-		const float rotated_y3 = ( rotated_x2 * sin_z ) + ( rotated_y2 * cos_z );
-		const float rotated_z3 = rotated_z2 + geometry.origin.z;
+		switch ( geometry.rotation_order )
+		{
+		default:
+		case 0:
+			fe_sprite_rotate_x( rotated, cos_x, sin_x );
+			fe_sprite_rotate_y( rotated, cos_y, sin_y );
+			fe_sprite_rotate_z( rotated, cos_z, sin_z );
+			break;
+		case 1:
+			fe_sprite_rotate_x( rotated, cos_x, sin_x );
+			fe_sprite_rotate_z( rotated, cos_z, sin_z );
+			fe_sprite_rotate_y( rotated, cos_y, sin_y );
+			break;
+		case 2:
+			fe_sprite_rotate_y( rotated, cos_y, sin_y );
+			fe_sprite_rotate_x( rotated, cos_x, sin_x );
+			fe_sprite_rotate_z( rotated, cos_z, sin_z );
+			break;
+		case 3:
+			fe_sprite_rotate_y( rotated, cos_y, sin_y );
+			fe_sprite_rotate_z( rotated, cos_z, sin_z );
+			fe_sprite_rotate_x( rotated, cos_x, sin_x );
+			break;
+		case 4:
+			fe_sprite_rotate_z( rotated, cos_z, sin_z );
+			fe_sprite_rotate_x( rotated, cos_x, sin_x );
+			fe_sprite_rotate_y( rotated, cos_y, sin_y );
+			break;
+		case 5:
+			fe_sprite_rotate_z( rotated, cos_z, sin_z );
+			fe_sprite_rotate_y( rotated, cos_y, sin_y );
+			fe_sprite_rotate_x( rotated, cos_x, sin_x );
+			break;
+		}
 
 		return FeRenderVertex{
-			rotated_x3 + geometry.position.x,
-			rotated_y3 + geometry.position.y,
-			base_z + rotated_z3,
+			rotated.x + geometry.position.x,
+			rotated.y + geometry.position.y,
+			base_z + rotated.z + geometry.origin.z,
 			vertex.u,
 			vertex.v,
 			geometry.color.r,
@@ -152,6 +208,7 @@ FeSpriteGeometry::FeSpriteGeometry()
 	  rotation_x( 0.f ),
 	  rotation_y( 0.f ),
 	  rotation_z( 0.f ),
+	  rotation_order( 0 ),
 	  border_scale( 1.f )
 {
 }
