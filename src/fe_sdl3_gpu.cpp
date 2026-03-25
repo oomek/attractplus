@@ -17,7 +17,6 @@
 #include <sstream>
 
 #ifdef USE_SDL3_GPU
-#include <SFML/Graphics/Image.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #endif
 
@@ -27,6 +26,24 @@ namespace
 	std::string join_path( const std::string &base, const std::string &suffix );
 	std::string get_base_path();
 	void append_debug_log( const std::string &message );
+
+#ifdef USE_SDL3_GPU
+	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
+	{
+		SDL_Surface *surface = SDL_CreateSurfaceFrom(
+			width,
+			height,
+			SDL_PIXELFORMAT_RGBA32,
+			const_cast<std::uint8_t *>( pixels ),
+			width * 4 );
+		if ( !surface )
+			return false;
+
+		const bool result = SDL_SavePNG( surface, filename.c_str() );
+		SDL_DestroySurface( surface );
+		return result;
+	}
+#endif
 
 	struct ParsedCustomUniform
 	{
@@ -799,6 +816,247 @@ bool FeSdl3GpuContext::has_frame_content() const
 	return false;
 }
 
+bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
+{
+#ifdef USE_SDL3_GPU
+	if ( !is_available() || !has_submitted_frame() )
+		return false;
+
+	int width = m_frame.viewport_width;
+	int height = m_frame.viewport_height;
+	if (( width <= 0 ) || ( height <= 0 ))
+	{
+		int sdl_width = 0;
+		int sdl_height = 0;
+		SDL_GetWindowSizeInPixels( m_window, &sdl_width, &sdl_height );
+		width = sdl_width;
+		height = sdl_height;
+	}
+
+	if (( width <= 0 ) || ( height <= 0 ))
+		return false;
+
+	SDL_GPUTextureFormat target_format = m_swapchain_format;
+	if ( target_format == SDL_GPU_TEXTUREFORMAT_INVALID )
+		target_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
+
+	switch ( target_format )
+	{
+	case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM:
+	case SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB:
+	case SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM:
+	case SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB:
+		break;
+
+	default:
+		FeLog() << "Could not save screenshot: unsupported GPU texture format." << std::endl;
+		return false;
+	}
+
+	if ( !ensure_depth_target( width, height ) )
+		return false;
+
+	if (( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
+	{
+		release_custom_shaders();
+		release_image_pipeline();
+		m_swapchain_format = target_format;
+		m_pipeline_attempted = false;
+	}
+
+	if ( !m_pipeline_attempted )
+	{
+		initialize_image_pipeline( target_format );
+		m_pipeline_attempted = true;
+	}
+
+	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
+		return false;
+
+	build_prepared_images();
+
+	SDL_GPUTextureCreateInfo texture_info = {};
+	texture_info.type = SDL_GPU_TEXTURETYPE_2D;
+	texture_info.format = target_format;
+	texture_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+	texture_info.width = static_cast<Uint32>( width );
+	texture_info.height = static_cast<Uint32>( height );
+	texture_info.layer_count_or_depth = 1;
+	texture_info.num_levels = 1;
+	texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+
+	SDL_GPUTexture *color_texture = SDL_CreateGPUTexture( m_device, &texture_info );
+	if ( !color_texture )
+		return false;
+
+	SDL_GPUTransferBufferCreateInfo transfer_info = {};
+	transfer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
+	transfer_info.size = static_cast<Uint32>( width * height * 4 );
+
+	SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
+	if ( !transfer_buffer )
+	{
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command_buffer )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	if ( !render_surface_frames( command_buffer ) )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	SDL_GPUColorTargetInfo color_target = {};
+	color_target.texture = color_texture;
+	color_target.mip_level = 0;
+	color_target.layer_or_depth_plane = 0;
+	color_target.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+	color_target.load_op = SDL_GPU_LOADOP_CLEAR;
+	color_target.store_op = SDL_GPU_STOREOP_STORE;
+
+	SDL_GPUDepthStencilTargetInfo depth_target = {};
+	if ( m_depth_texture )
+	{
+		depth_target.texture = m_depth_texture;
+		depth_target.clear_depth = 1.0f;
+		depth_target.load_op = SDL_GPU_LOADOP_CLEAR;
+		depth_target.store_op = SDL_GPU_STOREOP_STORE;
+		depth_target.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
+		depth_target.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
+		depth_target.cycle = false;
+		depth_target.clear_stencil = 0;
+	}
+
+	SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass(
+		command_buffer,
+		&color_target,
+		1,
+		m_depth_texture ? &depth_target : nullptr );
+	if ( !render_pass )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	bool drew_anything = false;
+	if ( !m_frame.images.empty() )
+	{
+		if ( !render_geometry_batch(
+				render_pass,
+				command_buffer,
+				m_frame.camera,
+				width,
+				height,
+				m_frame.images,
+				compute_geometry_signature( m_frame.images ),
+				true,
+				&m_vertex_buffer,
+				&m_vertex_buffer_size,
+				&m_vertex_buffer_signature,
+				drew_anything ) )
+		{
+			SDL_EndGPURenderPass( render_pass );
+			SDL_CancelGPUCommandBuffer( command_buffer );
+			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+			SDL_ReleaseGPUTexture( m_device, color_texture );
+			return false;
+		}
+	}
+
+	SDL_EndGPURenderPass( render_pass );
+
+	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
+	if ( !copy_pass )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	SDL_GPUTextureRegion source = {};
+	source.texture = color_texture;
+	source.mip_level = 0;
+	source.layer = 0;
+	source.x = 0;
+	source.y = 0;
+	source.z = 0;
+	source.w = static_cast<Uint32>( width );
+	source.h = static_cast<Uint32>( height );
+	source.d = 1;
+
+	SDL_GPUTextureTransferInfo destination = {};
+	destination.transfer_buffer = transfer_buffer;
+	destination.offset = 0;
+	destination.pixels_per_row = static_cast<Uint32>( width );
+	destination.rows_per_layer = static_cast<Uint32>( height );
+
+	SDL_DownloadFromGPUTexture( copy_pass, &source, &destination );
+	SDL_EndGPUCopyPass( copy_pass );
+
+	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	if ( !SDL_WaitForGPUIdle( m_device ) )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	const std::uint8_t *mapped = static_cast<const std::uint8_t *>( SDL_MapGPUTransferBuffer( m_device, transfer_buffer, false ) );
+	if ( !mapped )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		SDL_ReleaseGPUTexture( m_device, color_texture );
+		return false;
+	}
+
+	std::vector<std::uint8_t> pixels( static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4 );
+	if ( target_format == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM ||
+		 target_format == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB )
+	{
+		for ( int i = 0; i < ( width * height ); ++i )
+		{
+			const int src = i * 4;
+			pixels[ src + 0 ] = mapped[ src + 2 ];
+			pixels[ src + 1 ] = mapped[ src + 1 ];
+			pixels[ src + 2 ] = mapped[ src + 0 ];
+			pixels[ src + 3 ] = mapped[ src + 3 ];
+		}
+	}
+	else
+	{
+		std::memcpy( pixels.data(), mapped, pixels.size() );
+	}
+
+	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
+	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+	SDL_ReleaseGPUTexture( m_device, color_texture );
+
+	return save_rgba_png( filename, width, height, pixels.data() );
+#else
+	static_cast<void>( filename );
+	return false;
+#endif
+}
+
 #ifdef USE_SDL3_GPU
 namespace
 {
@@ -1041,9 +1299,9 @@ bool FeSdl3GpuContext::execute_frame()
 	SDL_GPUTexture *swapchain_texture = nullptr;
 	Uint32 swapchain_width = 0;
 	Uint32 swapchain_height = 0;
-	if ( !SDL_AcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
+	if ( !SDL_WaitAndAcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
 	{
-		write_debug_log( "execute_frame: SDL_AcquireGPUSwapchainTexture failed" );
+		write_debug_log( "execute_frame: SDL_WaitAndAcquireGPUSwapchainTexture failed" );
 		m_failed_present_frames++;
 		return false;
 	}

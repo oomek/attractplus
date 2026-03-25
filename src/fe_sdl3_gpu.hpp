@@ -41,6 +41,7 @@ public:
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	bool has_frame_content() const;
+	bool save_screenshot( const std::string &filename );
 	void clear_layout_resources();
 
 #ifdef USE_SDL3_GPU

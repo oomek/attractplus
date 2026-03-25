@@ -392,7 +392,7 @@ void FePresent::init_monitors()
  #endif
 #endif
 	{
-		FeMonitor mc( 0, m_window.get_win().getSize().x, m_window.get_win().getSize().y );
+		FeMonitor mc( 0, m_window.get_size().x, m_window.get_size().y );
 
 #ifdef SFML_SYSTEM_WINDOWS
 		//
@@ -2132,9 +2132,9 @@ void FePresent::set_mouse_pointer( bool b )
 	m_mouse_pointer_visible = b;
 
 	if ( is_windowed_mode( m_window.get_window_mode() ))
-		m_window.get_win().setMouseCursorVisible( true );
+		m_window.set_mouse_cursor_visible( true );
 	else
-		m_window.get_win().setMouseCursorVisible( b );
+		m_window.set_mouse_cursor_visible( b );
 }
 
 bool FePresent::get_mouse_pointer()

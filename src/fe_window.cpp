@@ -524,6 +524,8 @@ sf::RenderWindow *FeWindow::ensure_legacy_window()
 
 	m_window = new sf::RenderWindow();
 	m_window->create( static_cast<sf::WindowHandle>( native_handle ), m_legacy_window_context );
+	if ( m_legacy_view_set )
+		m_window->setView( m_legacy_view );
 	return m_window;
 #else
 	return nullptr;
@@ -1510,10 +1512,49 @@ void FeWindow::set_key_repeat_enabled( bool enabled )
 		m_window->setKeyRepeatEnabled( enabled );
 }
 
+void FeWindow::set_mouse_cursor_visible( bool visible )
+{
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		if ( SDL_Window *window = m_gpu_context.get_window() )
+		{
+			visible ? SDL_ShowCursor() : SDL_HideCursor();
+			return;
+		}
+	}
+#endif
+
+	if ( m_window )
+		m_window->setMouseCursorVisible( visible );
+}
+
 void FeWindow::set_view( const sf::View &view )
 {
+	m_legacy_view = view;
+	m_legacy_view_set = true;
+	if ( m_window )
+		m_window->setView( view );
+}
+
+bool FeWindow::save_screenshot( const std::string &filename )
+{
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned && m_gpu_context.save_screenshot( filename ) )
+		return true;
+#endif
+
 	if ( sf::RenderWindow *window = ensure_legacy_window() )
-		window->setView( view );
+	{
+		sf::Texture texture;
+		if ( texture.resize({ window->getSize().x, window->getSize().y }) )
+		{
+			texture.update( *window );
+			return texture.copyToImage().saveToFile( filename );
+		}
+	}
+
+	return false;
 }
 
 void FeWindow::clear()

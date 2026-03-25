@@ -752,13 +752,7 @@ int main(int argc, char *argv[])
 						std::string filename;
 						get_available_filename( feSettings.get_config_dir(),
 										"screen", ".png", filename );
-
-						sf::RenderWindow &w = window.get_win();
-						sf::Texture texture;
-						if ( texture.resize({ w.getSize().x, w.getSize().y }))
-							texture.update( w );
-						sf::Image sshot_img = texture.copyToImage();
-						std::ignore = sshot_img.saveToFile( filename );
+						std::ignore = window.save_screenshot( filename );
 					}
 					break;
 
