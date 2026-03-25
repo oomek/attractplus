@@ -1320,6 +1320,31 @@ bool FeSdl3GpuContext::wrap_native_window( void *native_window_handle, int width
 	return true;
 }
 
+bool FeSdl3GpuContext::claim_window( SDL_Window *window )
+{
+	release_window();
+
+	if ( !window )
+		return false;
+
+	if ( !initialize() )
+		return false;
+
+	m_window = window;
+	m_window_claimed = SDL_ClaimWindowForGPUDevice( m_device, m_window );
+	if ( !m_window_claimed )
+	{
+		m_window = nullptr;
+		write_debug_log( "claim_window: SDL_ClaimWindowForGPUDevice failed" );
+		return false;
+	}
+
+	write_debug_log( "claim_window: success" );
+	m_present_disabled = false;
+	m_failed_present_frames = 0;
+	return true;
+}
+
 void FeSdl3GpuContext::release_window()
 {
 	if ( m_device && m_window && m_window_claimed )
@@ -3628,5 +3653,21 @@ SDL_Window *FeSdl3GpuContext::get_window() const
 SDL_GPUDevice *FeSdl3GpuContext::get_device() const
 {
 	return m_device;
+}
+
+void *FeSdl3GpuContext::get_native_window_handle() const
+{
+	if ( !m_window )
+		return nullptr;
+
+#if defined( SFML_SYSTEM_WINDOWS )
+	SDL_PropertiesID props = SDL_GetWindowProperties( m_window );
+	if ( !props )
+		return nullptr;
+
+	return SDL_GetPointerProperty( props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr );
+#else
+	return nullptr;
+#endif
 }
 #endif

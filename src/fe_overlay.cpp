@@ -873,11 +873,10 @@ void FeOverlay::input_map_dialog(
 	// Make sure the appropriate mouse capture variables are set, in case
 	// the user has just changed the mouse threshold
 	//
-	sf::RenderWindow &rwnd = m_wnd.get_win();
-	m_feSettings.init_mouse_capture( &rwnd );
+	m_feSettings.init_mouse_capture( &m_wnd );
 
 	// Centre the mouse in case the user is mapping a mouse move event
-	sf::Mouse::setPosition( sf::Vector2i( m_screen_size ) / 2, rwnd );
+	m_wnd.set_mouse_position( sf::Vector2i( m_screen_size ) / 2 );
 
 	// empty the window event queue
 	while ( const std::optional ev = m_wnd.pollEvent() )
@@ -917,7 +916,7 @@ void FeOverlay::input_map_dialog(
 					done = true;
 				else
 				{
-					FeInputSingle single( ev.value(), mc_rect, joy_thresh, rwnd.hasFocus() );
+					FeInputSingle single( ev.value(), mc_rect, joy_thresh, m_wnd.hasFocus() );
 					if ( single.get_type() != FeInputSingle::Unsupported )
 					{
 						if (( ev->is<sf::Event::KeyPressed>() )
@@ -2072,17 +2071,17 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 class FeKeyRepeat
 {
 private:
-	sf::RenderWindow &m_wnd;
+	FeWindow &m_wnd;
 public:
-	FeKeyRepeat( sf::RenderWindow &wnd )
+	FeKeyRepeat( FeWindow &wnd )
 	: m_wnd( wnd )
 	{
-		m_wnd.setKeyRepeatEnabled( true );
+		m_wnd.set_key_repeat_enabled( true );
 	}
 
 	~FeKeyRepeat()
 	{
-		m_wnd.setKeyRepeatEnabled( false );
+		m_wnd.set_key_repeat_enabled( false );
 	}
 };
 
@@ -2101,7 +2100,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 	cursor.setPosition({ cursor.getPosition().x, static_cast<float>( std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 ))}); // y
 
 	bool redraw=true;
-	FeKeyRepeat key_repeat_enabler( m_wnd.get_win() );
+	FeKeyRepeat key_repeat_enabler( m_wnd );
 
 	std::optional<sf::Event> joy_guard;
 	bool did_delete( false ); // flag if the user just deleted a character using the UI controls

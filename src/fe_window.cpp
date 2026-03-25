@@ -44,6 +44,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <cstdint>
 #include <fstream>
 #include "nowide/fstream.hpp"
 
@@ -52,6 +53,309 @@
 #ifdef USE_SDL3_GPU
 namespace
 {
+	char32_t decode_utf8_first_codepoint( const char *text )
+	{
+		if ( !text )
+			return 0;
+
+		const unsigned char *bytes = reinterpret_cast<const unsigned char *>( text );
+		if ( bytes[0] == 0 )
+			return 0;
+
+		if ( ( bytes[0] & 0x80 ) == 0 )
+			return bytes[0];
+
+		if ( ( bytes[0] & 0xE0 ) == 0xC0 && bytes[1] != 0 )
+			return ( ( bytes[0] & 0x1F ) << 6 ) | ( bytes[1] & 0x3F );
+
+		if ( ( bytes[0] & 0xF0 ) == 0xE0 && bytes[1] != 0 && bytes[2] != 0 )
+			return ( ( bytes[0] & 0x0F ) << 12 ) | ( ( bytes[1] & 0x3F ) << 6 ) | ( bytes[2] & 0x3F );
+
+		if ( ( bytes[0] & 0xF8 ) == 0xF0 && bytes[1] != 0 && bytes[2] != 0 && bytes[3] != 0 )
+			return ( ( bytes[0] & 0x07 ) << 18 ) | ( ( bytes[1] & 0x3F ) << 12 ) | ( ( bytes[2] & 0x3F ) << 6 ) | ( bytes[3] & 0x3F );
+
+		return 0;
+	}
+
+	sf::Keyboard::Key sdl_scancode_to_sf_key( SDL_Scancode scancode )
+	{
+		switch ( scancode )
+		{
+		case SDL_SCANCODE_A: return sf::Keyboard::Key::A;
+		case SDL_SCANCODE_B: return sf::Keyboard::Key::B;
+		case SDL_SCANCODE_C: return sf::Keyboard::Key::C;
+		case SDL_SCANCODE_D: return sf::Keyboard::Key::D;
+		case SDL_SCANCODE_E: return sf::Keyboard::Key::E;
+		case SDL_SCANCODE_F: return sf::Keyboard::Key::F;
+		case SDL_SCANCODE_G: return sf::Keyboard::Key::G;
+		case SDL_SCANCODE_H: return sf::Keyboard::Key::H;
+		case SDL_SCANCODE_I: return sf::Keyboard::Key::I;
+		case SDL_SCANCODE_J: return sf::Keyboard::Key::J;
+		case SDL_SCANCODE_K: return sf::Keyboard::Key::K;
+		case SDL_SCANCODE_L: return sf::Keyboard::Key::L;
+		case SDL_SCANCODE_M: return sf::Keyboard::Key::M;
+		case SDL_SCANCODE_N: return sf::Keyboard::Key::N;
+		case SDL_SCANCODE_O: return sf::Keyboard::Key::O;
+		case SDL_SCANCODE_P: return sf::Keyboard::Key::P;
+		case SDL_SCANCODE_Q: return sf::Keyboard::Key::Q;
+		case SDL_SCANCODE_R: return sf::Keyboard::Key::R;
+		case SDL_SCANCODE_S: return sf::Keyboard::Key::S;
+		case SDL_SCANCODE_T: return sf::Keyboard::Key::T;
+		case SDL_SCANCODE_U: return sf::Keyboard::Key::U;
+		case SDL_SCANCODE_V: return sf::Keyboard::Key::V;
+		case SDL_SCANCODE_W: return sf::Keyboard::Key::W;
+		case SDL_SCANCODE_X: return sf::Keyboard::Key::X;
+		case SDL_SCANCODE_Y: return sf::Keyboard::Key::Y;
+		case SDL_SCANCODE_Z: return sf::Keyboard::Key::Z;
+		case SDL_SCANCODE_1: return sf::Keyboard::Key::Num1;
+		case SDL_SCANCODE_2: return sf::Keyboard::Key::Num2;
+		case SDL_SCANCODE_3: return sf::Keyboard::Key::Num3;
+		case SDL_SCANCODE_4: return sf::Keyboard::Key::Num4;
+		case SDL_SCANCODE_5: return sf::Keyboard::Key::Num5;
+		case SDL_SCANCODE_6: return sf::Keyboard::Key::Num6;
+		case SDL_SCANCODE_7: return sf::Keyboard::Key::Num7;
+		case SDL_SCANCODE_8: return sf::Keyboard::Key::Num8;
+		case SDL_SCANCODE_9: return sf::Keyboard::Key::Num9;
+		case SDL_SCANCODE_0: return sf::Keyboard::Key::Num0;
+		case SDL_SCANCODE_ESCAPE: return sf::Keyboard::Key::Escape;
+		case SDL_SCANCODE_LCTRL: return sf::Keyboard::Key::LControl;
+		case SDL_SCANCODE_LSHIFT: return sf::Keyboard::Key::LShift;
+		case SDL_SCANCODE_LALT: return sf::Keyboard::Key::LAlt;
+		case SDL_SCANCODE_LGUI: return sf::Keyboard::Key::LSystem;
+		case SDL_SCANCODE_RCTRL: return sf::Keyboard::Key::RControl;
+		case SDL_SCANCODE_RSHIFT: return sf::Keyboard::Key::RShift;
+		case SDL_SCANCODE_RALT: return sf::Keyboard::Key::RAlt;
+		case SDL_SCANCODE_RGUI: return sf::Keyboard::Key::RSystem;
+		case SDL_SCANCODE_MENU: return sf::Keyboard::Key::Menu;
+		case SDL_SCANCODE_LEFTBRACKET: return sf::Keyboard::Key::LBracket;
+		case SDL_SCANCODE_RIGHTBRACKET: return sf::Keyboard::Key::RBracket;
+		case SDL_SCANCODE_SEMICOLON: return sf::Keyboard::Key::Semicolon;
+		case SDL_SCANCODE_COMMA: return sf::Keyboard::Key::Comma;
+		case SDL_SCANCODE_PERIOD: return sf::Keyboard::Key::Period;
+		case SDL_SCANCODE_APOSTROPHE: return sf::Keyboard::Key::Apostrophe;
+		case SDL_SCANCODE_SLASH: return sf::Keyboard::Key::Slash;
+		case SDL_SCANCODE_BACKSLASH: return sf::Keyboard::Key::Backslash;
+		case SDL_SCANCODE_GRAVE: return sf::Keyboard::Key::Grave;
+		case SDL_SCANCODE_EQUALS: return sf::Keyboard::Key::Equal;
+		case SDL_SCANCODE_MINUS: return sf::Keyboard::Key::Hyphen;
+		case SDL_SCANCODE_SPACE: return sf::Keyboard::Key::Space;
+		case SDL_SCANCODE_RETURN: return sf::Keyboard::Key::Enter;
+		case SDL_SCANCODE_BACKSPACE: return sf::Keyboard::Key::Backspace;
+		case SDL_SCANCODE_TAB: return sf::Keyboard::Key::Tab;
+		case SDL_SCANCODE_PAGEUP: return sf::Keyboard::Key::PageUp;
+		case SDL_SCANCODE_PAGEDOWN: return sf::Keyboard::Key::PageDown;
+		case SDL_SCANCODE_END: return sf::Keyboard::Key::End;
+		case SDL_SCANCODE_HOME: return sf::Keyboard::Key::Home;
+		case SDL_SCANCODE_INSERT: return sf::Keyboard::Key::Insert;
+		case SDL_SCANCODE_DELETE: return sf::Keyboard::Key::Delete;
+		case SDL_SCANCODE_KP_PLUS: return sf::Keyboard::Key::Add;
+		case SDL_SCANCODE_KP_MINUS: return sf::Keyboard::Key::Subtract;
+		case SDL_SCANCODE_KP_MULTIPLY: return sf::Keyboard::Key::Multiply;
+		case SDL_SCANCODE_KP_DIVIDE: return sf::Keyboard::Key::Divide;
+		case SDL_SCANCODE_LEFT: return sf::Keyboard::Key::Left;
+		case SDL_SCANCODE_RIGHT: return sf::Keyboard::Key::Right;
+		case SDL_SCANCODE_UP: return sf::Keyboard::Key::Up;
+		case SDL_SCANCODE_DOWN: return sf::Keyboard::Key::Down;
+		case SDL_SCANCODE_KP_0: return sf::Keyboard::Key::Numpad0;
+		case SDL_SCANCODE_KP_1: return sf::Keyboard::Key::Numpad1;
+		case SDL_SCANCODE_KP_2: return sf::Keyboard::Key::Numpad2;
+		case SDL_SCANCODE_KP_3: return sf::Keyboard::Key::Numpad3;
+		case SDL_SCANCODE_KP_4: return sf::Keyboard::Key::Numpad4;
+		case SDL_SCANCODE_KP_5: return sf::Keyboard::Key::Numpad5;
+		case SDL_SCANCODE_KP_6: return sf::Keyboard::Key::Numpad6;
+		case SDL_SCANCODE_KP_7: return sf::Keyboard::Key::Numpad7;
+		case SDL_SCANCODE_KP_8: return sf::Keyboard::Key::Numpad8;
+		case SDL_SCANCODE_KP_9: return sf::Keyboard::Key::Numpad9;
+		case SDL_SCANCODE_F1: return sf::Keyboard::Key::F1;
+		case SDL_SCANCODE_F2: return sf::Keyboard::Key::F2;
+		case SDL_SCANCODE_F3: return sf::Keyboard::Key::F3;
+		case SDL_SCANCODE_F4: return sf::Keyboard::Key::F4;
+		case SDL_SCANCODE_F5: return sf::Keyboard::Key::F5;
+		case SDL_SCANCODE_F6: return sf::Keyboard::Key::F6;
+		case SDL_SCANCODE_F7: return sf::Keyboard::Key::F7;
+		case SDL_SCANCODE_F8: return sf::Keyboard::Key::F8;
+		case SDL_SCANCODE_F9: return sf::Keyboard::Key::F9;
+		case SDL_SCANCODE_F10: return sf::Keyboard::Key::F10;
+		case SDL_SCANCODE_F11: return sf::Keyboard::Key::F11;
+		case SDL_SCANCODE_F12: return sf::Keyboard::Key::F12;
+		case SDL_SCANCODE_F13: return sf::Keyboard::Key::F13;
+		case SDL_SCANCODE_F14: return sf::Keyboard::Key::F14;
+		case SDL_SCANCODE_F15: return sf::Keyboard::Key::F15;
+		case SDL_SCANCODE_PAUSE: return sf::Keyboard::Key::Pause;
+		default: return sf::Keyboard::Key::Unknown;
+		}
+	}
+
+	sf::Mouse::Button sdl_mouse_button_to_sf( Uint8 button )
+	{
+		switch ( button )
+		{
+		case SDL_BUTTON_LEFT: return sf::Mouse::Button::Left;
+		case SDL_BUTTON_RIGHT: return sf::Mouse::Button::Right;
+		case SDL_BUTTON_MIDDLE: return sf::Mouse::Button::Middle;
+		case SDL_BUTTON_X1: return sf::Mouse::Button::Extra1;
+		case SDL_BUTTON_X2: return sf::Mouse::Button::Extra2;
+		default: return sf::Mouse::Button::Left;
+		}
+	}
+
+	sf::Joystick::Axis sdl_joystick_axis_to_sf( Uint8 axis )
+	{
+		switch ( axis )
+		{
+		case 0: return sf::Joystick::Axis::X;
+		case 1: return sf::Joystick::Axis::Y;
+		case 2: return sf::Joystick::Axis::Z;
+		case 3: return sf::Joystick::Axis::R;
+		case 4: return sf::Joystick::Axis::U;
+		case 5: return sf::Joystick::Axis::V;
+		case 6: return sf::Joystick::Axis::PovX;
+		case 7: return sf::Joystick::Axis::PovY;
+		default: return sf::Joystick::Axis::X;
+		}
+	}
+
+	bool sdl_event_targets_window( const SDL_Event &event, Uint32 window_id )
+	{
+		switch ( event.type )
+		{
+		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+		case SDL_EVENT_WINDOW_RESIZED:
+		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+		case SDL_EVENT_WINDOW_FOCUS_GAINED:
+		case SDL_EVENT_WINDOW_FOCUS_LOST:
+			return event.window.windowID == window_id;
+		case SDL_EVENT_TEXT_INPUT:
+			return event.text.windowID == window_id;
+		case SDL_EVENT_KEY_DOWN:
+		case SDL_EVENT_KEY_UP:
+			return event.key.windowID == window_id;
+		case SDL_EVENT_MOUSE_MOTION:
+			return event.motion.windowID == window_id;
+		case SDL_EVENT_MOUSE_WHEEL:
+			return event.wheel.windowID == window_id;
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
+		case SDL_EVENT_MOUSE_BUTTON_UP:
+			return event.button.windowID == window_id;
+		default:
+			return true;
+		}
+	}
+
+	std::optional<sf::Event> translate_sdl_event( const SDL_Event &event, SDL_Window *window )
+	{
+		if ( !window )
+			return {};
+
+		const Uint32 window_id = SDL_GetWindowID( window );
+		if ( window_id == 0 )
+			return {};
+
+		if ( !sdl_event_targets_window( event, window_id ) )
+			return {};
+
+		switch ( event.type )
+		{
+		case SDL_EVENT_QUIT:
+			return sf::Event::Closed{};
+
+		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+			return sf::Event::Closed{};
+
+		case SDL_EVENT_WINDOW_FOCUS_GAINED:
+			return sf::Event::FocusGained{};
+
+		case SDL_EVENT_WINDOW_FOCUS_LOST:
+			return sf::Event::FocusLost{};
+
+		case SDL_EVENT_WINDOW_RESIZED:
+		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			return sf::Event::Resized{ sf::Vector2u( static_cast<unsigned int>( event.window.data1 ),
+				static_cast<unsigned int>( event.window.data2 ) ) };
+
+		case SDL_EVENT_TEXT_INPUT:
+		{
+			const char32_t unicode = decode_utf8_first_codepoint( event.text.text );
+			if ( unicode != 0 )
+				return sf::Event::TextEntered{ unicode };
+			return {};
+		}
+
+		case SDL_EVENT_KEY_DOWN:
+		case SDL_EVENT_KEY_UP:
+		{
+			if ( event.key.repeat )
+				return {};
+
+			const SDL_Keymod mods = SDL_GetModState();
+			const auto key = sdl_scancode_to_sf_key( event.key.scancode );
+			const bool alt = ( mods & SDL_KMOD_ALT ) != 0;
+			const bool control = ( mods & SDL_KMOD_CTRL ) != 0;
+			const bool shift = ( mods & SDL_KMOD_SHIFT ) != 0;
+			const bool system = ( mods & SDL_KMOD_GUI ) != 0;
+
+			if ( event.type == SDL_EVENT_KEY_DOWN )
+				return sf::Event::KeyPressed{ key, sf::Keyboard::Scancode::Unknown, alt, control, shift, system };
+
+			return sf::Event::KeyReleased{ key, sf::Keyboard::Scancode::Unknown, alt, control, shift, system };
+		}
+
+		case SDL_EVENT_MOUSE_MOTION:
+			return sf::Event::MouseMoved{ sf::Vector2i( static_cast<int>( event.motion.x ), static_cast<int>( event.motion.y ) ) };
+
+		case SDL_EVENT_MOUSE_WHEEL:
+		{
+			const sf::Mouse::Wheel wheel = ( event.wheel.x != 0.0f ) ? sf::Mouse::Wheel::Horizontal : sf::Mouse::Wheel::Vertical;
+			const float delta = ( event.wheel.x != 0.0f ) ? event.wheel.x : event.wheel.y;
+			return sf::Event::MouseWheelScrolled{
+				wheel,
+				delta,
+				sf::Vector2i( static_cast<int>( event.wheel.mouse_x ), static_cast<int>( event.wheel.mouse_y ) )
+			};
+		}
+
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
+			return sf::Event::MouseButtonPressed{
+				sdl_mouse_button_to_sf( event.button.button ),
+				sf::Vector2i( static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) )
+			};
+
+		case SDL_EVENT_MOUSE_BUTTON_UP:
+			return sf::Event::MouseButtonReleased{
+				sdl_mouse_button_to_sf( event.button.button ),
+				sf::Vector2i( static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) )
+			};
+
+		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+			return sf::Event::JoystickMoved{
+				static_cast<unsigned int>( event.jaxis.which ),
+				sdl_joystick_axis_to_sf( event.jaxis.axis ),
+				static_cast<float>( event.jaxis.value ) * ( 100.0f / 32767.0f )
+			};
+
+		case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+			return sf::Event::JoystickButtonPressed{
+				static_cast<unsigned int>( event.jbutton.which ),
+				static_cast<unsigned int>( event.jbutton.button )
+			};
+
+		case SDL_EVENT_JOYSTICK_BUTTON_UP:
+			return sf::Event::JoystickButtonReleased{
+				static_cast<unsigned int>( event.jbutton.which ),
+				static_cast<unsigned int>( event.jbutton.button )
+			};
+
+		case SDL_EVENT_JOYSTICK_ADDED:
+			return sf::Event::JoystickConnected{ static_cast<unsigned int>( event.jdevice.which ) };
+
+		case SDL_EVENT_JOYSTICK_REMOVED:
+			return sf::Event::JoystickDisconnected{ static_cast<unsigned int>( event.jdevice.which ) };
+
+		default:
+			return {};
+		}
+	}
+
 	std::string get_gpu_log_path()
 	{
 		const std::string base_path = get_program_path();
@@ -95,6 +399,11 @@ namespace
 		}
 
 		return false;
+	}
+
+	bool gpu_present_requested()
+	{
+		return ( std::getenv( "FE_SDL3_GPU_PRESENT" ) != nullptr ) || has_gpu_present_marker();
 	}
 }
 #endif
@@ -200,12 +509,32 @@ FeWindow::~FeWindow()
 		delete m_window;
 }
 
+sf::RenderWindow *FeWindow::ensure_legacy_window()
+{
+	if ( m_window )
+		return m_window;
+
+	if ( !m_sdl_window_owned )
+		return nullptr;
+
+#ifdef USE_SDL3_GPU
+	void *native_handle = m_gpu_context.get_native_window_handle();
+	if ( !native_handle )
+		return nullptr;
+
+	m_window = new sf::RenderWindow();
+	m_window->create( static_cast<sf::WindowHandle>( native_handle ), m_legacy_window_context );
+	return m_window;
+#else
+	return nullptr;
+#endif
+}
+
 void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
 #ifdef USE_SDL3_GPU
-	const bool s_enable_gpu_present =
-		( std::getenv( "FE_SDL3_GPU_PRESENT" ) != nullptr ) || has_gpu_present_marker();
+	const bool s_enable_gpu_present = gpu_present_requested();
 	static bool s_logged_gpu_present_probe = false;
 	if ( !s_logged_gpu_present_probe )
 	{
@@ -240,7 +569,7 @@ void FeWindow::display()
 			s_logged_available = available;
 		}
 #if defined(SFML_SYSTEM_WINDOWS)
-		if ( !m_gpu_context.is_available() && m_window && m_gpu_context.has_submitted_frame() && m_gpu_context.has_frame_content() )
+		if ( !m_sdl_window_owned && !m_gpu_context.is_available() && m_window && m_gpu_context.has_submitted_frame() && m_gpu_context.has_frame_content() )
 		{
 			const sf::Vector2u size = m_window->getSize();
 			if ( !m_gpu_context.wrap_native_window(
@@ -261,8 +590,18 @@ void FeWindow::display()
 	}
 #endif
 
-	if ( !used_sdl_gpu_present )
+	if ( m_legacy_frame_drawn && m_window )
+	{
 		m_window->display();
+		used_sdl_gpu_present = true;
+	}
+	else if ( !used_sdl_gpu_present && m_window )
+		m_window->display();
+
+	m_legacy_clear_requested = false;
+	m_legacy_frame_drawn = false;
+	m_deferred_drawable = nullptr;
+	m_deferred_drawable_states = sf::RenderStates::Default;
 
 	// Starting from Windows Vista non fullscreen window modes
 	// should be synced by DWM, instead of v-sync
@@ -320,7 +659,18 @@ void FeWindow::initial_create()
 	// If re-initialising save its position first
 	if ( m_window )
 		save();
-	else
+
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		delete m_window;
+		m_window = NULL;
+		m_gpu_context.release_window();
+		m_sdl_window_owned = false;
+	}
+#endif
+
+	if ( !m_window )
 		m_window = new sf::RenderWindow();
 
 	int style_map[4] =
@@ -552,30 +902,93 @@ void FeWindow::initial_create()
 	//
 	sf::ContextSettings ctx;
 	ctx.antiAliasingLevel = m_fes.get_antialiasing();
+	m_legacy_window_context = ctx;
 
-	m_window->create( vm, FE_NAME, style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
+	bool use_sdl_owned_window = false;
+#if defined(USE_SDL3_GPU) && defined(SFML_SYSTEM_WINDOWS)
+	use_sdl_owned_window = gpu_present_requested() && ( m_win_mode != FeSettings::Fullscreen );
+#endif
+
+	if ( use_sdl_owned_window )
+	{
+#if defined(USE_SDL3_GPU) && defined(SFML_SYSTEM_WINDOWS)
+		delete m_window;
+		m_window = nullptr;
+
+		if ( !m_gpu_context.initialize() )
+			FeLog() << "WARNING: SDL3 GPU backend initialization failed before SDL window creation: " << SDL_GetError() << std::endl;
+		else
+		{
+			SDL_WindowFlags flags = SDL_WINDOW_HIDDEN;
+			if ( m_win_mode == FeSettings::Window )
+				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_RESIZABLE );
+			if ( m_win_mode != FeSettings::Window )
+				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_BORDERLESS );
+
+			SDL_Window *sdl_window = SDL_CreateWindow( FE_NAME, static_cast<int>( vm.size.x ), static_cast<int>( vm.size.y ), flags );
+			if ( !sdl_window )
+			{
+				FeLog() << "WARNING: SDL3 GPU SDL window creation failed: " << SDL_GetError() << std::endl;
+			}
+			else
+			{
+				SDL_SetWindowPosition( sdl_window, wpos.x, wpos.y );
+				if ( !m_gpu_context.claim_window( sdl_window ) )
+				{
+					FeLog() << "WARNING: SDL3 GPU window claim failed: " << SDL_GetError() << std::endl;
+					SDL_DestroyWindow( sdl_window );
+				}
+				else
+				{
+					void *native_handle = m_gpu_context.get_native_window_handle();
+					if ( !native_handle )
+					{
+						FeLog() << "WARNING: SDL3 GPU native window handle lookup failed." << std::endl;
+						m_gpu_context.release_window();
+					}
+					else
+					{
+						m_sdl_window_owned = true;
+						SDL_ShowWindow( sdl_window );
+					}
+				}
+			}
+		}
+#endif
+	}
+
+	if ( !m_sdl_window_owned )
+		m_window->create( vm, FE_NAME, style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
 
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
 	// when we rely solely on DwmFlush()
 #if defined(SFML_SYSTEM_WINDOWS)
-	m_window->setVerticalSyncEnabled( m_win_mode == FeSettings::Fullscreen );
+	if ( m_window )
+		m_window->setVerticalSyncEnabled( m_win_mode == FeSettings::Fullscreen );
 #else
-	m_window->setVerticalSyncEnabled(true);
+	if ( m_window )
+		m_window->setVerticalSyncEnabled(true);
 #endif
-	m_window->setKeyRepeatEnabled(false);
-	m_window->setMouseCursorVisible( is_windowed_mode( m_win_mode ));
-	m_window->setJoystickThreshold( 1.0 );
+	if ( m_window )
+	{
+		m_window->setKeyRepeatEnabled(false);
+		m_window->setMouseCursorVisible( is_windowed_mode( m_win_mode ));
+		m_window->setJoystickThreshold( 1.0 );
+	}
 
 #ifndef SFML_SYSTEM_MACOS
     sf::Image icon;
-    if ( icon.loadFromMemory( attractplus_icon, sizeof( attractplus_icon )))
+    if ( m_window && icon.loadFromMemory( attractplus_icon, sizeof( attractplus_icon )))
     	m_window->setIcon({ icon.getSize().y, icon.getSize().y }, icon.getPixelsPtr() );
 #endif
 	// We need to clear and display here before calling setSize and setPosition
 	// to avoid a white window flash on launch.
-	clear();
-	display();
+	if ( m_window )
+	{
+		clear();
+		display();
+	}
 
 #ifdef SFML_SYSTEM_MACOS
 	if ( m_win_mode == FeSettings::Fillscreen )
@@ -587,40 +1000,52 @@ void FeWindow::initial_create()
 
 #if defined(USE_XLIB)
 	if ( m_win_mode == FeSettings::Fillscreen )
-		set_x11_fullscreen_state( m_window->getNativeHandle() );
+	{
+		if ( m_window )
+			set_x11_fullscreen_state( m_window->getNativeHandle() );
+	}
 #endif
 
 	// Known issue: Linux Mint 18.3 Cinnamon w/ SFML 2.5.1, position isn't being set
 	// (Window always winds up at 0,0)
 	// There is currently no way to create window at position, or create hidden then reveal
-	m_window->setPosition( wpos );
+	if ( m_window )
+		m_window->setPosition( wpos );
 
 	FeDebug() << "Created " << FE_NAME << " Window: " << wsize.x << "x" << wsize.y << " @ "
 		<< wpos.x << "," << wpos.y << " [OpenGL surface: "
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	HWND hwnd = static_cast<HWND>( m_window->getNativeHandle() );
-	set_win32_foreground_window( hwnd, m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
+	HWND hwnd = nullptr;
+	if ( m_sdl_window_owned )
+		hwnd = static_cast<HWND>( m_gpu_context.get_native_window_handle() );
+	else if ( m_window )
+		hwnd = static_cast<HWND>( m_window->getNativeHandle() );
+	if ( hwnd )
+	{
+		set_win32_foreground_window( hwnd, m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
 
-	// Enable dark mode titlebar on Windows
-	BOOL value = TRUE;
-	DwmSetWindowAttribute( hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof( value ));
+		// Enable dark mode titlebar on Windows
+		BOOL value = TRUE;
+		DwmSetWindowAttribute( hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof( value ));
 
-	s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
-	SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
+		s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
+		SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 
-	// Trigger title bar redraw to fix Win10 dark-mode (initially draws in light-mode)
-	display();
-	SendMessage(hwnd, WM_NCACTIVATE, FALSE, 0);
-	SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);
+		// Trigger title bar redraw to fix Win10 dark-mode (initially draws in light-mode)
+		if ( m_window )
+			display();
+		SendMessage(hwnd, WM_NCACTIVATE, FALSE, 0);
+		SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);
+	}
 #endif
 
-	m_fes.init_mouse_capture( m_window );
+	m_fes.init_mouse_capture( this );
 
 	// Only mess with the mouse position if mouse moves mapped
 	if ( m_fes.has_mouse_moves() )
-		sf::Mouse::setPosition( wsize / 2, *m_window );
+		set_mouse_position( sf::Vector2i( wsize / 2 ) );
 }
 
 void launch_callback( void *o )
@@ -668,9 +1093,9 @@ bool FeWindow::run()
 		//
 		reset_pos = sf::Mouse::getPosition();
 
-		sf::Vector2i hide_pos = m_window->getPosition();
-		hide_pos.x += get_win().getSize().x - 1;
-		hide_pos.y += get_win().getSize().y - 1;
+		sf::Vector2i hide_pos = get_position();
+		hide_pos.x += static_cast<int>( get_size().x ) - 1;
+		hide_pos.y += static_cast<int>( get_size().y ) - 1;
 
 		sf::Mouse::setPosition( hide_pos );
 	}
@@ -721,9 +1146,11 @@ bool FeWindow::run()
 #if defined(SFML_SYSTEM_WINDOWS)
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
-		set_win32_foreground_window( m_window->getNativeHandle(), HWND_BOTTOM );
+		if ( m_window )
+			set_win32_foreground_window( m_window->getNativeHandle(), HWND_BOTTOM );
 		m_blackout.display();
-		m_window->setVisible( false );
+		if ( m_window )
+			m_window->setVisible( false );
 		set_win32_foreground_window( m_blackout.getNativeHandle(), HWND_TOP );
 	}
 	else
@@ -841,8 +1268,9 @@ bool FeWindow::run()
 		initial_create(); // On raspberry pi or with DRM, we have forcibly closed the window, so recreate it now
  #endif
 	}
- #if defined(USE_XLIB)
-	set_x11_foreground_window( m_window->getNativeHandle() );
+#if defined(USE_XLIB)
+	if ( m_window )
+		set_x11_foreground_window( m_window->getNativeHandle() );
  #endif
 
 #elif defined(SFML_SYSTEM_MACOS)
@@ -851,7 +1279,8 @@ bool FeWindow::run()
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
 		m_blackout.display();
-		m_window->setVisible( true );
+		if ( m_window )
+			m_window->setVisible( true );
 
 		// Since we are double/triple buffering in fullscreen
 		// we need to clear the frames rendered ahead
@@ -861,10 +1290,14 @@ bool FeWindow::run()
 			clear();
 			display();
 		}
-		set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+		if ( m_window )
+			set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
 	}
 	else
-		set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+	{
+		if ( m_window )
+			set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+	}
 #endif
 
 	if ( !windowed && m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
@@ -898,7 +1331,7 @@ bool FeWindow::has_running_process()
 
 sf::RenderWindow &FeWindow::get_win()
 {
-	if ( !m_window )
+	if ( !ensure_legacy_window() )
 		FeLog() << "FeWindow::get_win() on NULL window!" << std::endl;
 
 	return *m_window;
@@ -906,17 +1339,51 @@ sf::RenderWindow &FeWindow::get_win()
 
 void FeWindow::save()
 {
-	if ( m_window && is_windowed_mode( m_win_mode ) && !m_win_pos.m_temporary )
+	if ( is_windowed_mode( m_win_mode ) && !m_win_pos.m_temporary )
 	{
-		m_window->display(); // Crashing on Linux workaround
-
-		FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
-		win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
+		if ( m_sdl_window_owned )
+		{
+#ifdef USE_SDL3_GPU
+			if ( SDL_Window *window = m_gpu_context.get_window() )
+			{
+				int x = 0;
+				int y = 0;
+				int w = 0;
+				int h = 0;
+				SDL_GetWindowPosition( window, &x, &y );
+				SDL_GetWindowSize( window, &w, &h );
+				FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) ) );
+				win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
+			}
+#endif
+		}
+		else if ( m_window )
+		{
+			m_window->display(); // Crashing on Linux workaround
+			FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
+			win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
+		}
 	}
 }
 
 void FeWindow::close()
 {
+	if ( m_sdl_window_owned )
+	{
+		save();
+		if ( m_window )
+		{
+			delete m_window;
+			m_window = NULL;
+		}
+
+#ifdef USE_SDL3_GPU
+		m_gpu_context.release_window();
+#endif
+		m_sdl_window_owned = false;
+		return;
+	}
+
 	if ( m_window )
 	{
 		m_window->display(); // Crashing on Linux workaround
@@ -931,6 +1398,15 @@ void FeWindow::close()
 
 bool FeWindow::hasFocus()
 {
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		SDL_Window *window = m_gpu_context.get_window();
+		if ( window )
+			return SDL_GetKeyboardFocus() == window || SDL_GetMouseFocus() == window;
+	}
+#endif
+
 	if ( m_window )
 		return m_window->hasFocus();
 
@@ -939,25 +1415,176 @@ bool FeWindow::hasFocus()
 
 bool FeWindow::isOpen()
 {
+	if ( m_sdl_window_owned )
+		return m_gpu_context.get_window() != nullptr;
+
 	if ( m_window )
 		return m_window->isOpen();
 
 	return false;
 }
 
+sf::Vector2u FeWindow::get_size() const
+{
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		if ( SDL_Window *window = m_gpu_context.get_window() )
+		{
+			int width = 0;
+			int height = 0;
+			SDL_GetWindowSize( window, &width, &height );
+			return sf::Vector2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
+		}
+	}
+#endif
+
+	if ( m_window )
+		return m_window->getSize();
+
+	return {};
+}
+
+sf::Vector2i FeWindow::get_position() const
+{
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		if ( SDL_Window *window = m_gpu_context.get_window() )
+		{
+			int x = 0;
+			int y = 0;
+			SDL_GetWindowPosition( window, &x, &y );
+			return sf::Vector2i( x, y );
+		}
+	}
+#endif
+
+	if ( m_window )
+		return m_window->getPosition();
+
+	return {};
+}
+
+sf::Vector2i FeWindow::get_mouse_position() const
+{
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		if ( SDL_Window *window = m_gpu_context.get_window() )
+		{
+			float x = 0.0f;
+			float y = 0.0f;
+			SDL_GetMouseState( &x, &y );
+			return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
+		}
+	}
+#endif
+
+	if ( m_window )
+		return sf::Mouse::getPosition( *m_window );
+
+	return {};
+}
+
+void FeWindow::set_mouse_position( const sf::Vector2i &pos )
+{
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		if ( SDL_Window *window = m_gpu_context.get_window() )
+		{
+			SDL_WarpMouseInWindow( window, static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
+			return;
+		}
+	}
+#endif
+
+	if ( m_window )
+		sf::Mouse::setPosition( pos, *m_window );
+}
+
+void FeWindow::set_key_repeat_enabled( bool enabled )
+{
+	if ( m_window )
+		m_window->setKeyRepeatEnabled( enabled );
+}
+
+void FeWindow::set_view( const sf::View &view )
+{
+	if ( sf::RenderWindow *window = ensure_legacy_window() )
+		window->setView( view );
+}
+
 void FeWindow::clear()
 {
+	if ( m_sdl_window_owned )
+	{
+		m_legacy_clear_requested = true;
+		if ( m_window )
+			m_window->clear();
+		return;
+	}
+
 	if ( m_window )
 		m_window->clear();
 }
 
 void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 {
+	if ( m_sdl_window_owned )
+	{
+		if ( !m_window && dynamic_cast<const FePresent *>( &d ) )
+		{
+			m_deferred_drawable = &d;
+			m_deferred_drawable_states = r;
+			return;
+		}
+
+		if ( sf::RenderWindow *window = ensure_legacy_window() )
+		{
+			if ( m_legacy_clear_requested )
+			{
+				window->clear();
+				m_legacy_clear_requested = false;
+			}
+
+			if ( m_deferred_drawable )
+			{
+				window->draw( *m_deferred_drawable, m_deferred_drawable_states );
+				m_legacy_frame_drawn = true;
+				m_deferred_drawable = nullptr;
+				m_deferred_drawable_states = sf::RenderStates::Default;
+			}
+
+			window->draw( d, r );
+			m_legacy_frame_drawn = true;
+		}
+		return;
+	}
+
 	if ( m_window )
 		m_window->draw( d, r );
 }
 
 const std::optional<sf::Event> FeWindow::pollEvent()
 {
-	return m_window->pollEvent();
+#ifdef USE_SDL3_GPU
+	if ( m_sdl_window_owned )
+	{
+		SDL_Event event;
+		while ( SDL_PollEvent( &event ) )
+		{
+			if ( const auto translated = translate_sdl_event( event, m_gpu_context.get_window() ) )
+				return translated;
+		}
+
+		return {};
+	}
+#endif
+
+	if ( m_window )
+		return m_window->pollEvent();
+
+	return {};
 }

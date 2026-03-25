@@ -75,8 +75,16 @@ private:
 #endif
 	int m_win_mode;
 	bool m_mouse_outside = true;
+	bool m_sdl_window_owned = false;
+	bool m_legacy_clear_requested = false;
+	bool m_legacy_frame_drawn = false;
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
+	sf::ContextSettings m_legacy_window_context;
+	const sf::Drawable *m_deferred_drawable = nullptr;
+	sf::RenderStates m_deferred_drawable_states = sf::RenderStates::Default;
+
+	sf::RenderWindow *ensure_legacy_window();
 
 public:
 	FeWindow( FeSettings &fes );
@@ -95,6 +103,13 @@ public:
 	void save();
 	bool hasFocus();
 	bool isOpen();
+	sf::Vector2u get_size() const;
+	sf::Vector2i get_position() const;
+	sf::Vector2i get_mouse_position() const;
+	void set_mouse_position( const sf::Vector2i &pos );
+	void set_key_repeat_enabled( bool enabled );
+	void set_view( const sf::View &view );
+	bool owns_sdl_window() const { return m_sdl_window_owned; }
 
 	void clear();
 	void draw( const sf::Drawable &d, const sf::RenderStates &t=sf::RenderStates::Default );

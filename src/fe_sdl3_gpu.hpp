@@ -47,9 +47,11 @@ public:
 	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );
 	void shutdown();
 	bool wrap_native_window( void *native_window_handle, int width, int height );
+	bool claim_window( SDL_Window *window );
 	void release_window();
 	SDL_Window *get_window() const;
 	SDL_GPUDevice *get_device() const;
+	void *get_native_window_handle() const;
 	void write_debug_log( const char *message ) const;
 #endif
 

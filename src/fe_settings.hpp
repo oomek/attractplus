@@ -57,6 +57,7 @@ extern const char *FE_CFG_NO_STR;
 extern const int FE_DEFAULT_UI_COLOR_TOKEN;
 
 class FeOverlay;
+class FeWindow;
 
 // A container for each task when importing/building romlists from the command line
 class FeImportTask
@@ -234,7 +235,7 @@ private:
 	FeLayoutInfo m_current_layout_params; // copy of current layout params (w/ per display params as well)
 	FeLayoutInfo m_display_menu_per_display_params; // stores only the 'per_display' params for the display menu
 	sf::IntRect m_mousecap_rect;
-	sf::RenderWindow *m_rwnd;
+	FeWindow *m_rwnd;
 
 	int m_current_display; // The index of the current display, -1 if showing a custom displays_menu
 	int m_selected_display; // The index of the displays_menu selected display, -1 if EXIT is selected. Equals m_current_display if displays_menu not shown.
@@ -438,7 +439,7 @@ public:
 	bool select_last_launch( bool initial_load = false );
 	bool is_last_launch( int filter_offset, int index_offset );
 	int get_joy_thresh() const { return m_joy_thresh; }
-	void init_mouse_capture( sf::RenderWindow *window );
+	void init_mouse_capture( FeWindow *window );
 	bool has_mouse_moves() const { return m_inputmap.has_mouse_moves(); }
 	bool test_mouse_wrap() const;
 	void wrap_mouse();

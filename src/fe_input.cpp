@@ -738,9 +738,9 @@ int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 	if ( m_type == Mouse )
 	{
 		if (( m_code == MouseUp ) || ( m_code == MouseDown ))
-			return sf::Mouse::getPosition( wnd.get_win() ).y;
+			return wnd.get_mouse_position().y;
 		else if (( m_code == MouseLeft ) || ( m_code == MouseRight ))
-			return sf::Mouse::getPosition( wnd.get_win() ).x;
+			return wnd.get_mouse_position().x;
 		else if (( m_code == MouseWheelUp ) || ( m_code == MouseWheelDown ))
 			return FeInputMouse::get_wheel_delta();
 	}

@@ -424,7 +424,7 @@ int main(int argc, char *argv[])
 					const auto* resize = ev->getIf<sf::Event::Resized>();
 					if ( resize )
 					{
-						window.get_win().setView( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
+						window.set_view( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
 						feVM.init_monitors();
 						feVM.load_layout();
 						redraw = true;

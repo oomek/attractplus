@@ -1310,9 +1310,9 @@ bool FeSettings::get_key_state( std::string key )
 	return FeInputMapEntry( key ).get_current_state( m_joy_thresh );
 }
 
-void FeSettings::init_mouse_capture( sf::RenderWindow *window )
+void FeSettings::init_mouse_capture( FeWindow *window )
 {
-	sf::Vector2i size = sf::Vector2i( window->getSize() );
+	sf::Vector2i size = sf::Vector2i( window->get_size() );
 	sf::Vector2i center = size / 2;
 	int radius = size.x * m_mouse_thresh / 400;
 
@@ -1329,15 +1329,15 @@ bool FeSettings::test_mouse_wrap() const
 	return (
 		has_mouse_moves()
 		&& m_rwnd->hasFocus()
-		&& !m_mousecap_rect.contains( sf::Mouse::getPosition( *m_rwnd ) )
+		&& !m_mousecap_rect.contains( m_rwnd->get_mouse_position() )
 	);
 }
 
 // Wrap the mouse position to the capture rectangle
 void FeSettings::wrap_mouse()
 {
-	sf::Vector2i pos = sf::Mouse::getPosition( *m_rwnd );
-	sf::Vector2i center = sf::Vector2i( m_rwnd->getSize() ) / 2;
+	sf::Vector2i pos = m_rwnd->get_mouse_position();
+	sf::Vector2i center = sf::Vector2i( m_rwnd->get_size() ) / 2;
 	sf::Vector2i diff = pos - center;
 
 	// A single axis gets wrapped at a time, which allows diagonals to register
@@ -1346,7 +1346,7 @@ void FeSettings::wrap_mouse()
 	else
 		pos.y = center.y;
 
-	sf::Mouse::setPosition( pos, *m_rwnd );
+	m_rwnd->set_mouse_position( pos );
 }
 
 int FeSettings::get_filter_index_from_offset( int offset ) const
