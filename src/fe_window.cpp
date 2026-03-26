@@ -739,7 +739,6 @@ void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
 	const bool legacy_window_open = m_window && m_window->isOpen();
-	const bool present_legacy_frame = m_legacy_frame_drawn && legacy_window_open;
 	static bool s_logged_gpu_present_probe = false;
 	if ( !s_logged_gpu_present_probe )
 	{
@@ -787,20 +786,13 @@ void FeWindow::display()
 			}
 		}
 #endif
-		if ( !present_legacy_frame && m_gpu_context.should_present() )
+		if ( m_gpu_context.should_present() )
 			used_sdl_gpu_present = m_gpu_context.execute_frame( m_overlay_geometry.empty() ? nullptr : &m_overlay_geometry );
 	}
 
-	if ( present_legacy_frame )
-	{
-		m_window->display();
-		used_sdl_gpu_present = true;
-	}
-	else if ( !used_sdl_gpu_present && legacy_window_open )
+	if ( !used_sdl_gpu_present && legacy_window_open )
 		m_window->display();
 
-	m_legacy_clear_requested = false;
-	m_legacy_frame_drawn = false;
 	m_overlay_geometry.clear();
 	m_overlay_images.clear();
 
@@ -1746,17 +1738,10 @@ bool FeWindow::save_screenshot( const std::string &filename )
 	return false;
 }
 
-void FeWindow::draw_background_capture()
-{
-	if ( !m_sdl_window_owned )
-		return;
-}
-
 void FeWindow::clear()
 {
 	if ( m_sdl_window_owned )
 	{
-		m_legacy_clear_requested = true;
 		m_overlay_geometry.clear();
 		m_overlay_images.clear();
 		return;

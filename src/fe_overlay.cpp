@@ -41,7 +41,6 @@ namespace
 void draw_overlay_scene_background( FeWindow &window, FePresent &present )
 {
 	present.submit_render_frame();
-	window.draw_background_capture();
 }
 
 unsigned char my_char_table[] =

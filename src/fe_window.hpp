@@ -77,8 +77,6 @@ private:
 	int m_win_mode;
 	bool m_mouse_outside = true;
 	bool m_sdl_window_owned = false;
-	bool m_legacy_clear_requested = false;
-	bool m_legacy_frame_drawn = false;
 	struct OverlayTextureEntry
 	{
 		std::vector<unsigned char> pixels;
@@ -117,7 +115,6 @@ public:
 	void set_mouse_cursor_visible( bool visible );
 	void set_view( const sf::View &view );
 	bool save_screenshot( const std::string &filename );
-	void draw_background_capture();
 	bool owns_sdl_window() const { return m_sdl_window_owned; }
 
 	void clear();

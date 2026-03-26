@@ -358,32 +358,42 @@ bool FeTextureContainer::get_visible() const
 
 bool FeTextureContainer::fix_masked_image()
 {
-	bool retval=false;
-	ensure_fallback_texture();
-	sf::Texture *fallback_texture = ensure_fallback_texture_storage();
+	unsigned int width = 0;
+	unsigned int height = 0;
+	std::vector<unsigned char> pixels;
+	if ( !copy_pixels_rgba( pixels, width, height ) )
+		return false;
 
-	sf::Image tmp_img = fallback_texture->copyToImage();
-	sf::Vector2u tmp_s = tmp_img.getSize();
+	if (( width == 0 ) || ( height == 0 ) || pixels.size() < 4 )
+		return false;
 
-	if (( tmp_s.x > 0 ) && ( tmp_s.y > 0 ))
+	const unsigned char mask_r = pixels[0];
+	const unsigned char mask_g = pixels[1];
+	const unsigned char mask_b = pixels[2];
+	const unsigned char mask_a = pixels[3];
+	const std::size_t pixel_count = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height );
+	if ( pixels.size() < pixel_count * 4 )
+		return false;
+
+	for ( std::size_t i = 0; i < pixel_count; ++i )
 	{
-		sf::Color p = tmp_img.getPixel({ 0, 0 });
-		tmp_img.createMaskFromColor( p );
-
-		if ( fallback_texture->loadFromImage( tmp_img ) )
-			retval=true;
-
-		const unsigned char *src = tmp_img.getPixelsPtr();
-		const std::size_t size = static_cast<std::size_t>( tmp_s.x ) * static_cast<std::size_t>( tmp_s.y ) * 4;
-		m_pixel_cache.assign( src, src + size );
-		m_pixel_cache_valid = true;
-		m_fallback_dirty = false;
-		++m_content_version;
-
-		notify_texture_change();
+		const std::size_t offset = i * 4;
+		if ( pixels[offset] == mask_r
+			&& pixels[offset + 1] == mask_g
+			&& pixels[offset + 2] == mask_b
+			&& pixels[offset + 3] == mask_a )
+		{
+			pixels[offset + 3] = 0;
+		}
 	}
 
-	return retval;
+	m_pixel_cache = std::move( pixels );
+	m_pixel_cache_valid = true;
+	m_texture_size = { width, height };
+	m_fallback_dirty = true;
+	++m_content_version;
+	notify_texture_change();
+	return true;
 }
 
 struct RGBAPixel { std::uint8_t r,g,b,a; };
