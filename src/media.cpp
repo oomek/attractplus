@@ -24,7 +24,6 @@
 #include "zip.hpp"
 #include "fe_base.hpp"
 #include "fe_file.hpp"
-#include <SFML/Graphics.hpp>
 #include "fe_present.hpp"
 #include "fe_audio_fx.hpp"
 #include "fe_sdl3_gpu.hpp"
@@ -183,8 +182,7 @@ class FeVideoImp : public FeBaseStream
 private:
 	//
 	// Video decoding and colour conversion runs on a dedicated thread.
-	// Loading the result into an sf::Texture and displaying it is done
-	// on the main thread.
+	// The main thread consumes decoded RGBA frame data.
 	//
 	std::thread m_video_thread;
 	FeMedia *m_parent;
@@ -202,13 +200,12 @@ public:
 	sf::Time time_base;
 	sf::Time max_sleep;
 	sf::Clock video_timer;
-	sf::Texture *display_texture;
 	int disptex_width;
 	int disptex_height;
 
 	//
 	// The video thread sets display_frame when the next image frame is decoded.
-	// The main thread then copies the image into the corresponding sf::Texture.
+	// The main thread then marks that frame as consumed.
 	//
 	std::recursive_mutex image_swap_mutex;
 	std::uint8_t *display_frame;
@@ -472,7 +469,6 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 		hwaccel_output_format( AV_PIX_FMT_NONE ),
 #endif
 		run_video_thread( false ),
-		display_texture( NULL ),
 		disptex_width( 0 ),
 		disptex_height( 0 ),
 		display_frame( NULL ),
@@ -1207,7 +1203,7 @@ size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 }
 
 bool FeMedia::open( const std::string &archive,
-	const std::string &name, sf::Texture *outt )
+	const std::string &name )
 {
 	FeFileInputStream *s = NULL;
 
@@ -1440,10 +1436,6 @@ bool FeMedia::open( const std::string &archive,
 				m_video->disptex_width = codec_ctx->width;
 				m_video->disptex_height = codec_ctx->height;
 
-				m_video->display_texture = outt;
-				if ( outt && outt->getSize() != sf::Vector2u( m_video->disptex_width, m_video->disptex_height ))
-					std::ignore = m_video->display_texture->resize({ static_cast<unsigned int>( m_video->disptex_width ), static_cast<unsigned int>( m_video->disptex_height )});
-
 				m_video->init_rgba_buffer();
 			}
 		}
@@ -1522,8 +1514,6 @@ bool FeMedia::tick()
 		std::lock_guard<std::recursive_mutex> l( m_video->image_swap_mutex );
 		if ( m_video->display_frame )
 		{
-			if ( m_video->display_texture )
-				m_video->display_texture->update( m_video->display_frame );
 			m_video->display_frame = NULL;
 			m_video->frame_serial.fetch_add( 1, std::memory_order_release );
 			m_video->frame_displayed.notify_one();

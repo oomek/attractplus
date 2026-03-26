@@ -415,7 +415,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 		return false;
 
 	m_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
-	res = m_movie->open( "", loaded_name, NULL );
+	res = m_movie->open( "", loaded_name );
 
 	if ( !res )
 	{

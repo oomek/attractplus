@@ -36,11 +36,6 @@ class FeMediaImp;
 class FeAudioImp;
 class FeVideoImp;
 
-namespace sf
-{
-	class Texture;
-};
-
 class FeMedia : private sf::SoundStream
 {
 friend class FeVideoImp;
@@ -57,8 +52,7 @@ public:
 	~FeMedia();
 
 	bool open( const std::string &archive,
-			const std::string &name,
-			sf::Texture *out_texture=NULL );
+			const std::string &name );
 
 	void play();
 	void stop();
