@@ -32,6 +32,8 @@
 #include "fe_rectangle.hpp"
 #include "tp.hpp"
 #include "base64.hpp"
+#include <set>
+#include <typeinfo>
 
 #ifdef SFML_SYSTEM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -696,11 +698,12 @@ bool FeWindow::append_native_overlay_drawable( const sf::Drawable &d, const sf::
 	}
 	else
 	{
-		static bool s_logged_ignored_overlay_drawable = false;
-		if ( !s_logged_ignored_overlay_drawable )
+		static std::set<std::string> s_logged_ignored_overlay_drawable_types;
+		const std::string type_name = typeid( d ).name();
+		if ( s_logged_ignored_overlay_drawable_types.insert( type_name ).second )
 		{
-			FeLog() << "WARNING: Ignoring unsupported legacy overlay drawable on SDL window path." << std::endl;
-			s_logged_ignored_overlay_drawable = true;
+			FeLog() << "WARNING: Ignoring unsupported legacy overlay drawable on SDL window path: "
+				<< type_name << std::endl;
 		}
 		return true;
 	}
