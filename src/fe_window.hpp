@@ -27,7 +27,6 @@
 #include <windows.h>
 #endif
 
-#include <memory>
 #include <unordered_map>
 #include <SFML/Graphics.hpp>
 #include "fe_sdl3_gpu.hpp"
@@ -80,7 +79,6 @@ private:
 	bool m_sdl_window_owned = false;
 	bool m_legacy_clear_requested = false;
 	bool m_legacy_frame_drawn = false;
-	bool m_legacy_view_set = false;
 	struct OverlayTextureEntry
 	{
 		std::vector<unsigned char> pixels;
@@ -90,13 +88,7 @@ private:
 	std::unordered_map<const sf::Image *, OverlayTextureEntry> m_overlay_images;
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
-	sf::ContextSettings m_legacy_window_context;
-	sf::View m_legacy_view;
-	sf::Texture m_legacy_background_texture;
-	std::unique_ptr<sf::Sprite> m_legacy_background_sprite;
 
-	sf::RenderWindow *ensure_legacy_window();
-	bool update_legacy_background();
 	const FeRenderRawTextureSource *cache_overlay_image( const sf::Image &image );
 	bool append_native_overlay_drawable( const sf::Drawable &d, const sf::RenderStates &r );
 

@@ -603,52 +603,6 @@ FeWindow::~FeWindow()
 		delete m_window;
 }
 
-sf::RenderWindow *FeWindow::ensure_legacy_window()
-{
-	if ( m_window && ( !m_sdl_window_owned || m_window->isOpen() ) )
-		return m_window;
-
-	if ( !m_sdl_window_owned )
-		return nullptr;
-
-	void *native_handle = m_gpu_context.get_native_window_handle();
-	if ( !native_handle )
-		return nullptr;
-
-	if ( !m_window )
-		m_window = new sf::RenderWindow();
-	m_window->create( static_cast<sf::WindowHandle>( native_handle ), m_legacy_window_context );
-	if ( m_legacy_view_set )
-		m_window->setView( m_legacy_view );
-	return m_window;
-}
-
-bool FeWindow::update_legacy_background()
-{
-	if ( !m_sdl_window_owned )
-		return false;
-
-	std::vector<std::uint8_t> pixels;
-	int width = 0;
-	int height = 0;
-	if ( !m_gpu_context.capture_frame_rgba( pixels, width, height ) )
-		return false;
-
-	if (( width <= 0 ) || ( height <= 0 ))
-		return false;
-
-	const sf::Vector2u size( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
-	if ( m_legacy_background_texture.getSize() != size )
-	{
-		if ( !m_legacy_background_texture.resize( size ) )
-			return false;
-	}
-
-	m_legacy_background_texture.update( pixels.data(), size, { 0, 0 } );
-	m_legacy_background_sprite = std::make_unique<sf::Sprite>( m_legacy_background_texture );
-	return true;
-}
-
 const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const sf::Image &image )
 {
 	OverlayTextureEntry &entry = m_overlay_images[ &image ];
@@ -915,9 +869,6 @@ void FeWindow::initial_create()
 		m_sdl_window_owned = false;
 	}
 
-	if ( !m_window )
-		m_window = new sf::RenderWindow();
-
 	int style_map[4] =
 	{
 		sf::Style::None,       // FeSettings::Fillscreen
@@ -1147,11 +1098,10 @@ void FeWindow::initial_create()
 	//
 	sf::ContextSettings ctx;
 	ctx.antiAliasingLevel = m_fes.get_antialiasing();
-	m_legacy_window_context = ctx;
 
 	bool use_sdl_owned_window = false;
 #if defined(SFML_SYSTEM_WINDOWS)
-	use_sdl_owned_window = ( m_win_mode != FeSettings::Fullscreen );
+	use_sdl_owned_window = true;
 #endif
 
 	if ( use_sdl_owned_window )
@@ -1167,7 +1117,9 @@ void FeWindow::initial_create()
 			SDL_WindowFlags flags = SDL_WINDOW_HIDDEN;
 			if ( m_win_mode == FeSettings::Window )
 				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_RESIZABLE );
-			if ( m_win_mode != FeSettings::Window )
+			else if ( m_win_mode == FeSettings::Fullscreen )
+				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_FULLSCREEN );
+			else
 				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_BORDERLESS );
 
 			SDL_Window *sdl_window = SDL_CreateWindow( FE_NAME, static_cast<int>( vm.size.x ), static_cast<int>( vm.size.y ), flags );
@@ -1203,7 +1155,11 @@ void FeWindow::initial_create()
 	}
 
 	if ( !m_sdl_window_owned )
+	{
+		if ( !m_window )
+			m_window = new sf::RenderWindow();
 		m_window->create( vm, FE_NAME, style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
+	}
 
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
@@ -1768,8 +1724,6 @@ void FeWindow::set_mouse_cursor_visible( bool visible )
 
 void FeWindow::set_view( const sf::View &view )
 {
-	m_legacy_view = view;
-	m_legacy_view_set = true;
 	if ( m_window )
 		m_window->setView( view );
 }
@@ -1779,12 +1733,12 @@ bool FeWindow::save_screenshot( const std::string &filename )
 	if ( m_sdl_window_owned && m_gpu_context.save_screenshot( filename ) )
 		return true;
 
-	if ( sf::RenderWindow *window = ensure_legacy_window() )
+	if ( m_window )
 	{
 		sf::Texture texture;
-		if ( texture.resize({ window->getSize().x, window->getSize().y }) )
+		if ( texture.resize({ m_window->getSize().x, m_window->getSize().y }) )
 		{
-			texture.update( *window );
+			texture.update( *m_window );
 			return texture.copyToImage().saveToFile( filename );
 		}
 	}
