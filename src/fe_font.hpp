@@ -44,7 +44,6 @@ public:
 	bool getTextureSize( unsigned int characterSize, unsigned int &width, unsigned int &height ) const;
 	bool copyTexturePixels( unsigned int characterSize, std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const;
 	bool copyTexturePixelsTo( unsigned int characterSize, void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const;
-	const sf::Texture &getFallbackTexture( unsigned int characterSize ) const;
 
 	void setSmooth( bool smooth );
 	bool isSmooth() const;
@@ -73,8 +72,6 @@ private:
 		std::vector<Row> rows;
 		std::vector<std::uint8_t> pixels;
 		std::uint64_t version;
-		mutable sf::Texture fallback_texture;
-		mutable bool fallback_dirty;
 	};
 
 	struct FontHandles;
@@ -88,7 +85,6 @@ private:
 	bool setCurrentSize( unsigned int characterSize ) const;
 	bool resizePage( Page &page, unsigned int width, unsigned int height ) const;
 	void markPageDirty( Page &page ) const;
-	void updateFallbackTexture( Page &page ) const;
 
 	std::shared_ptr<FontHandles> m_fontHandles;
 	bool m_isSmooth;

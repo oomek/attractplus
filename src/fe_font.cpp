@@ -1,6 +1,5 @@
 #include "fe_font.hpp"
 
-#include <SFML/Graphics/Image.hpp>
 #include <SFML/System/Err.hpp>
 #include <SFML/System/FileInputStream.hpp>
 #include <SFML/System/MemoryInputStream.hpp>
@@ -84,8 +83,7 @@ FeFont::Page::Page( bool smooth, const FeFont *owner, unsigned int size )
 	: width( 128 ),
 	  height( 128 ),
 	  nextRow( 3 ),
-	  version( 1 ),
-	  fallback_dirty( true )
+	  version( 1 )
 {
 	texture_id.font = owner;
 	texture_id.character_size = size;
@@ -108,13 +106,6 @@ FeFont::Page::Page( bool smooth, const FeFont *owner, unsigned int size )
 			pixels[ index + 2 ] = 255;
 			pixels[ index + 3 ] = 255;
 		}
-
-	if ( fallback_texture.resize( { width, height } ) )
-	{
-		fallback_texture.setSmooth( smooth );
-		fallback_texture.update( pixels.data(), { width, height }, { 0, 0 } );
-		fallback_dirty = false;
-	}
 }
 
 FeFont::FeFont()
@@ -361,24 +352,12 @@ bool FeFont::copyTexturePixelsTo( unsigned int characterSize, void *pixels, std:
 	return true;
 }
 
-const sf::Texture &FeFont::getFallbackTexture( unsigned int characterSize ) const
-{
-	Page &page = loadPage( characterSize );
-	updateFallbackTexture( page );
-	return page.fallback_texture;
-}
-
 void FeFont::setSmooth( bool smooth )
 {
 	if ( smooth == m_isSmooth )
 		return;
 
 	m_isSmooth = smooth;
-	for ( PageTable::iterator it = m_pages.begin(); it != m_pages.end(); ++it )
-	{
-		it->second.fallback_texture.setSmooth( smooth );
-		it->second.fallback_dirty = true;
-	}
 }
 
 bool FeFont::isSmooth() const
@@ -629,21 +608,4 @@ bool FeFont::resizePage( Page &page, unsigned int width, unsigned int height ) c
 void FeFont::markPageDirty( Page &page ) const
 {
 	++page.version;
-	page.fallback_dirty = true;
-}
-
-void FeFont::updateFallbackTexture( Page &page ) const
-{
-	if ( !page.fallback_dirty )
-		return;
-
-	if ( page.fallback_texture.getSize().x != page.width || page.fallback_texture.getSize().y != page.height )
-	{
-		if ( !page.fallback_texture.resize( { page.width, page.height } ) )
-			return;
-		page.fallback_texture.setSmooth( m_isSmooth );
-	}
-
-	page.fallback_texture.update( page.pixels.data(), { page.width, page.height }, { 0, 0 } );
-	page.fallback_dirty = false;
 }

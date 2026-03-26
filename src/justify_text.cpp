@@ -31,9 +31,7 @@
 ////////////////////////////////////////////////////////////
 // Headers
 ////////////////////////////////////////////////////////////
-#include <SFML/Graphics/RenderTarget.hpp>
 #include "justify_text.hpp" // AM+
-#include <SFML/Graphics/Texture.hpp>
 
 #include <algorithm>
 #include <utility>
