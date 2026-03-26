@@ -75,6 +75,7 @@ struct FeRenderSurfaceFrame
 	int nesting_level;
 	FePerspectiveCamera camera;
 	std::vector<FeRenderGeometry> geometry;
+	std::vector<const void *> dependencies;
 	int width;
 	int height;
 	bool mipmapped;

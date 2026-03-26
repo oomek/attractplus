@@ -109,6 +109,7 @@ void FeRenderSurfaceFrame::clear_frame()
 	nesting_level = 0;
 	camera = FePerspectiveCamera();
 	geometry.clear();
+	dependencies.clear();
 	width = 0;
 	height = 0;
 	mipmapped = false;

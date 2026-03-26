@@ -1004,18 +1004,7 @@ bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, u
 		return !pixels.empty();
 	}
 
-	ensure_fallback_texture();
-	if ( !m_fallback_texture )
-		return false;
-
-	const sf::Image image = m_fallback_texture->copyToImage();
-	const unsigned char *src = image.getPixelsPtr();
-	if ( !src )
-		return false;
-
-	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-	pixels.assign( src, src + data_size );
-	return true;
+	return false;
 }
 
 bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
@@ -1074,17 +1063,7 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 		return true;
 	}
 
-	ensure_fallback_texture();
-	if ( !m_fallback_texture )
-		return false;
-
-	const sf::Image image = m_fallback_texture->copyToImage();
-	const unsigned char *src = image.getPixelsPtr();
-	if ( !src )
-		return false;
-
-	std::memcpy( pixels, src, data_size );
-	return true;
+	return false;
 }
 
 void FeTextureContainer::set_smooth( bool s )

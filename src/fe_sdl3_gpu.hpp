@@ -5,8 +5,10 @@
 #include "fe_blend.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 class FeImage;
 
 class FeSdl3GpuContext
@@ -36,6 +38,7 @@ public:
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	bool has_frame_content() const;
+	bool capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool save_screenshot( const std::string &filename );
 	void clear_layout_resources();
 	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );

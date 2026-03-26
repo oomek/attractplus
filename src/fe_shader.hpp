@@ -67,6 +67,7 @@ public:
 	const std::vector<float> *get_param( const char *name ) const;
 	bool uses_current_texture( const char *name ) const;
 	FeImage *get_texture_param_image( const char *name ) const;
+	const std::unordered_map<std::string, FeImage *> &get_texture_param_images() const { return m_texture_image_params; };
 
 private:
 	FeShader( const FeShader & );

@@ -503,6 +503,32 @@ sf::RenderWindow *FeWindow::ensure_legacy_window()
 	return m_window;
 }
 
+bool FeWindow::update_legacy_background()
+{
+	if ( !m_sdl_window_owned )
+		return false;
+
+	std::vector<std::uint8_t> pixels;
+	int width = 0;
+	int height = 0;
+	if ( !m_gpu_context.capture_frame_rgba( pixels, width, height ) )
+		return false;
+
+	if (( width <= 0 ) || ( height <= 0 ))
+		return false;
+
+	const sf::Vector2u size( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
+	if ( m_legacy_background_texture.getSize() != size )
+	{
+		if ( !m_legacy_background_texture.resize( size ) )
+			return false;
+	}
+
+	m_legacy_background_texture.update( pixels.data(), size, { 0, 0 } );
+	m_legacy_background_sprite = std::make_unique<sf::Sprite>( m_legacy_background_texture );
+	return true;
+}
+
 void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
@@ -567,8 +593,6 @@ void FeWindow::display()
 
 	m_legacy_clear_requested = false;
 	m_legacy_frame_drawn = false;
-	m_deferred_drawable = nullptr;
-	m_deferred_drawable_states = sf::RenderStates::Default;
 
 	// Starting from Windows Vista non fullscreen window modes
 	// should be synced by DWM, instead of v-sync
@@ -1294,14 +1318,6 @@ bool FeWindow::has_running_process()
 	return ( m_running_pid != 0 );
 }
 
-sf::RenderWindow &FeWindow::get_win()
-{
-	if ( !ensure_legacy_window() )
-		FeLog() << "FeWindow::get_win() on NULL window!" << std::endl;
-
-	return *m_window;
-}
-
 void FeWindow::save()
 {
 	if ( is_windowed_mode( m_win_mode ) && !m_win_pos.m_temporary )
@@ -1500,6 +1516,27 @@ bool FeWindow::save_screenshot( const std::string &filename )
 	return false;
 }
 
+void FeWindow::draw_background_capture()
+{
+	if ( !m_sdl_window_owned )
+		return;
+
+	if ( sf::RenderWindow *window = ensure_legacy_window() )
+	{
+		if ( m_legacy_clear_requested )
+		{
+			window->clear();
+			m_legacy_clear_requested = false;
+		}
+
+		if ( update_legacy_background() && m_legacy_background_sprite )
+		{
+			window->draw( *m_legacy_background_sprite );
+			m_legacy_frame_drawn = true;
+		}
+	}
+}
+
 void FeWindow::clear()
 {
 	if ( m_sdl_window_owned )
@@ -1518,27 +1555,12 @@ void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 {
 	if ( m_sdl_window_owned )
 	{
-		if ( !m_window && dynamic_cast<const FePresent *>( &d ) )
-		{
-			m_deferred_drawable = &d;
-			m_deferred_drawable_states = r;
-			return;
-		}
-
 		if ( sf::RenderWindow *window = ensure_legacy_window() )
 		{
 			if ( m_legacy_clear_requested )
 			{
 				window->clear();
 				m_legacy_clear_requested = false;
-			}
-
-			if ( m_deferred_drawable )
-			{
-				window->draw( *m_deferred_drawable, m_deferred_drawable_states );
-				m_legacy_frame_drawn = true;
-				m_deferred_drawable = nullptr;
-				m_deferred_drawable_states = sf::RenderStates::Default;
 			}
 
 			window->draw( d, r );

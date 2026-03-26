@@ -38,6 +38,12 @@ const bool FORCE_ODD_ROWS = true;
 namespace
 {
 
+void draw_overlay_scene_background( FeWindow &window, FePresent &present )
+{
+	present.submit_render_frame();
+	window.draw_background_capture();
+}
+
 unsigned char my_char_table[] =
 {
 	' ',
@@ -405,7 +411,7 @@ void FeOverlay::splash_message( const std::string &msg, const std::string &aux )
 	m_soundSystem.tick();
 
 	m_wnd.clear();
-	m_wnd.draw( m_fePresent, t );
+	draw_overlay_scene_background( m_wnd, m_fePresent );
 	m_wnd.draw( bg, t );
 	m_wnd.draw( message, t );
 	m_wnd.draw( extra, t );
@@ -431,7 +437,7 @@ void FeOverlay::splash_logo( const std::string &aux )
 	m_soundSystem.tick();
 
 	m_wnd.clear();
-	m_wnd.draw( m_fePresent, t );
+	draw_overlay_scene_background( m_wnd, m_fePresent );
 	m_wnd.draw( bg, t );
 	m_wnd.draw( logo, t );
 	m_wnd.draw( extra, t );
@@ -982,7 +988,7 @@ void FeOverlay::input_map_dialog(
 			m_fePresent.redraw_surfaces();
 
 			m_wnd.clear();
-			m_wnd.draw( m_fePresent, t );
+			draw_overlay_scene_background( m_wnd, m_fePresent );
 			m_wnd.draw( bg, t );
 			m_wnd.draw( message, t );
 			m_wnd.display();
@@ -1846,7 +1852,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 
 			m_fePresent.redraw_surfaces();
 			m_wnd.clear();
-			m_wnd.draw( m_fePresent, t );
+			draw_overlay_scene_background( m_wnd, m_fePresent );
 
 			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
 					itr < ctx.draw_list.end(); ++itr )
@@ -1980,7 +1986,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 		{
 			m_fePresent.redraw_surfaces();
 			m_wnd.clear();
-			m_wnd.draw( m_fePresent, t );
+			draw_overlay_scene_background( m_wnd, m_fePresent );
 
 			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
 					itr < ctx.draw_list.end(); ++itr )
@@ -2348,7 +2354,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 
 		m_fePresent.redraw_surfaces();
 		m_wnd.clear();
-		m_wnd.draw( m_fePresent, t );
+		draw_overlay_scene_background( m_wnd, m_fePresent );
 
 		for ( std::vector<sf::Drawable *>::iterator itr=d.begin();
 				itr < d.end(); ++itr )

@@ -29,6 +29,7 @@
 #include "fe_input.hpp"
 #include "fe_file.hpp"
 #include "fe_blend.hpp"
+#include "fe_shader.hpp"
 #include "zip.hpp"
 #include "base64.hpp"
 #include "image_loader.hpp"
@@ -646,7 +647,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 	{
 		FeSurfaceTextureContainer *surface;
 		FeRenderSurfaceFrame frame;
-		std::vector<const FeSurfaceTextureContainer *> dependencies;
+		std::vector<const void *> dependencies;
 		std::size_t original_index;
 	};
 
@@ -677,6 +678,34 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		}
 		return seed;
 	};
+	auto append_surface_dependencies =
+		[]( const FeRenderGeometry &geometry,
+			const FeSurfaceTextureContainer *current_surface,
+			std::vector<const void *> &dependencies )
+		{
+			if ( geometry.texture_source_type == FeRenderTextureSourceContainer )
+			{
+				const FeSurfaceTextureContainer *referenced_surface =
+					dynamic_cast<const FeSurfaceTextureContainer *>(
+						static_cast<const FeBaseTextureContainer *>( geometry.texture_id ) );
+				if ( referenced_surface && referenced_surface != current_surface )
+					dependencies.push_back( referenced_surface );
+			}
+
+			if ( !geometry.shader )
+				return;
+
+			for ( const auto &entry : geometry.shader->get_texture_param_images() )
+			{
+				FeImage *shader_image = entry.second;
+				const FeBaseTextureContainer *texture_container =
+					shader_image ? shader_image->get_texture_container() : nullptr;
+				const FeSurfaceTextureContainer *referenced_surface =
+					dynamic_cast<const FeSurfaceTextureContainer *>( texture_container );
+				if ( referenced_surface && referenced_surface != current_surface )
+					dependencies.push_back( referenced_surface );
+			}
+		};
 
 	std::vector<FeSurfaceTextureContainer *> surface_list;
 	surface_list.reserve( m_texturePool.size() );
@@ -714,7 +743,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		frame.camera.update_projection( static_cast<float>( frame.width ), static_cast<float>( frame.height ) );
 		frame.geometry_signature = 1469598103934665603ULL;
 		frame.content_signature = 1469598103934665603ULL;
-		std::vector<const FeSurfaceTextureContainer *> dependencies;
+		std::vector<const void *> dependencies;
 
 		for ( const FeBasePresentable *presentable : surface->elements )
 		{
@@ -727,15 +756,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				FeRenderGeometry image_geometry;
 				if ( image->build_render_geometry( image_geometry ) )
 				{
-					if ( image_geometry.texture_source_type == FeRenderTextureSourceContainer )
-					{
-						const FeSurfaceTextureContainer *referenced_surface =
-							dynamic_cast<const FeSurfaceTextureContainer *>(
-								static_cast<const FeBaseTextureContainer *>( image_geometry.texture_id ) );
-						if ( referenced_surface && referenced_surface != surface )
-							dependencies.push_back( referenced_surface );
-					}
-
+					append_surface_dependencies( image_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
 					frame.content_signature = hash_geometry( image_geometry, frame.content_signature );
@@ -750,6 +771,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				FeRenderGeometry rectangle_geometry;
 				if ( rectangle->build_render_geometry( rectangle_geometry ) )
 				{
+					append_surface_dependencies( rectangle_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || rectangle_geometry.texture_dynamic || rectangle_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature );
 					frame.content_signature = hash_geometry( rectangle_geometry, frame.content_signature );
@@ -766,6 +788,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
 				{
 					const FeRenderGeometry &text_geometry = frame.geometry[i];
+					append_surface_dependencies( text_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || text_geometry.texture_dynamic || text_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( text_geometry, frame.geometry_signature );
 					frame.content_signature = hash_geometry( text_geometry, frame.content_signature );
@@ -781,6 +804,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
 				{
 					const FeRenderGeometry &list_geometry = frame.geometry[i];
+					append_surface_dependencies( list_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || list_geometry.texture_dynamic || list_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( list_geometry, frame.geometry_signature );
 					frame.content_signature = hash_geometry( list_geometry, frame.content_signature );
@@ -793,6 +817,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 
 		std::sort( dependencies.begin(), dependencies.end() );
 		dependencies.erase( std::unique( dependencies.begin(), dependencies.end() ), dependencies.end() );
+		frame.dependencies = dependencies;
 		pending_frames.push_back( { surface, frame, dependencies, surface_index } );
 	}
 
@@ -805,9 +830,9 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 	std::vector<std::vector<std::size_t>> dependents( pending_frames.size() );
 	for ( std::size_t i = 0; i < pending_frames.size(); ++i )
 	{
-		for ( const FeSurfaceTextureContainer *dependency : pending_frames[i].dependencies )
+		for ( const void *dependency : pending_frames[i].dependencies )
 		{
-			auto it = pending_indices.find( dependency );
+			auto it = pending_indices.find( static_cast<const FeSurfaceTextureContainer *>( dependency ) );
 			if ( it == pending_indices.end() )
 				continue;
 
@@ -859,9 +884,9 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 	for ( std::size_t ordered_index : ordered_indices )
 	{
 		PendingSurfaceFrame &pending = pending_frames[ordered_index];
-		for ( const FeSurfaceTextureContainer *dependency : pending.dependencies )
+		for ( const void *dependency : pending.dependencies )
 		{
-			auto it = surface_states.find( dependency );
+			auto it = surface_states.find( static_cast<const FeSurfaceTextureContainer *>( dependency ) );
 			if ( it == surface_states.end() )
 				continue;
 
@@ -1723,7 +1748,8 @@ void FePresent::redraw()
 
 	m_window.clear();
 	redraw_surfaces();
-	m_window.draw( *this, m_layout_transform );
+	if ( !m_window.owns_sdl_window() )
+		m_window.draw( *this, m_layout_transform );
 	m_window.display();
 
 	m_layout_time.tick();

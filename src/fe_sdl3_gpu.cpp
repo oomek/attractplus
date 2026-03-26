@@ -760,13 +760,13 @@ bool FeSdl3GpuContext::has_frame_content() const
 	return false;
 }
 
-bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
+bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height )
 {
 	if ( !is_available() || !has_submitted_frame() )
 		return false;
 
-	int width = m_frame.viewport_width;
-	int height = m_frame.viewport_height;
+	width = m_frame.viewport_width;
+	height = m_frame.viewport_height;
 	if (( width <= 0 ) || ( height <= 0 ))
 	{
 		int sdl_width = 0;
@@ -792,7 +792,7 @@ bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
 		break;
 
 	default:
-		FeLog() << "Could not save screenshot: unsupported GPU texture format." << std::endl;
+		FeLog() << "Could not capture GPU frame: unsupported GPU texture format." << std::endl;
 		return false;
 	}
 
@@ -971,7 +971,7 @@ bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
 		return false;
 	}
 
-	std::vector<std::uint8_t> pixels( static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4 );
+	pixels.resize( static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4 );
 	if ( target_format == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM ||
 		 target_format == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB )
 	{
@@ -992,6 +992,17 @@ bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
 	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
 	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 	SDL_ReleaseGPUTexture( m_device, color_texture );
+
+	return true;
+}
+
+bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
+{
+	int width = 0;
+	int height = 0;
+	std::vector<std::uint8_t> pixels;
+	if ( !capture_frame_rgba( pixels, width, height ) )
+		return false;
 
 	return save_rgba_png( filename, width, height, pixels.data() );
 }
@@ -3294,6 +3305,13 @@ bool FeSdl3GpuContext::render_geometry_batch(
 						if ( surface_it != m_surfaces.end() )
 							sampler_texture = surface_it->second.color_texture;
 
+						if ( !sampler_texture &&
+							dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
+						{
+							samplers_ready = false;
+							break;
+						}
+
 						if ( !sampler_texture )
 						{
 							TextureEntry &cache_entry = m_textures[ container ];
@@ -3396,18 +3414,13 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 			}
 
 			bool waiting_on_dependency = false;
-			std::vector<std::size_t> dependencies;
-			for ( const FeRenderGeometry &geometry : surface.geometry )
+			for ( const void *dependency_id : surface.dependencies )
 			{
-				if ( geometry.texture_source_type != FeRenderTextureSourceContainer || !geometry.texture_id )
-					continue;
-
-				auto dependency_it = surface_indices.find( geometry.texture_id );
+				auto dependency_it = surface_indices.find( dependency_id );
 				if ( dependency_it == surface_indices.end() )
 					continue;
 
 				const std::size_t dependency_index = dependency_it->second;
-				dependencies.push_back( dependency_index );
 				if ( dependency_index != surface_index && !rendered[dependency_index] )
 				{
 					waiting_on_dependency = true;

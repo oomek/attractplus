@@ -27,6 +27,7 @@
 #include <windows.h>
 #endif
 
+#include <memory>
 #include <SFML/Graphics.hpp>
 #include "fe_sdl3_gpu.hpp"
 
@@ -82,11 +83,12 @@ private:
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
 	sf::ContextSettings m_legacy_window_context;
-	const sf::Drawable *m_deferred_drawable = nullptr;
-	sf::RenderStates m_deferred_drawable_states = sf::RenderStates::Default;
 	sf::View m_legacy_view;
+	sf::Texture m_legacy_background_texture;
+	std::unique_ptr<sf::Sprite> m_legacy_background_sprite;
 
 	sf::RenderWindow *ensure_legacy_window();
+	bool update_legacy_background();
 
 public:
 	FeWindow( FeSettings &fes );
@@ -113,13 +115,13 @@ public:
 	void set_mouse_cursor_visible( bool visible );
 	void set_view( const sf::View &view );
 	bool save_screenshot( const std::string &filename );
+	void draw_background_capture();
 	bool owns_sdl_window() const { return m_sdl_window_owned; }
 
 	void clear();
 	void draw( const sf::Drawable &d, const sf::RenderStates &t=sf::RenderStates::Default );
 	const std::optional<sf::Event> pollEvent();
 
-	sf::RenderWindow &get_win();
 	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }
 	const FeSdl3GpuContext &get_gpu_context() const { return m_gpu_context; }
 	int get_window_mode() { return m_win_mode; }
