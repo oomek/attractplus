@@ -1386,18 +1386,33 @@ bool FeWindow::run()
 	bool have_paused_prog = m_running_pid && process_exists( m_running_pid );
 
 #if defined(SFML_SYSTEM_WINDOWS)
+	auto get_frontend_hwnd = [&]() -> HWND
+	{
+		if ( m_sdl_window_owned )
+			return static_cast<HWND>( m_gpu_context.get_native_window_handle() );
+		if ( m_window )
+			return static_cast<HWND>( m_window->getNativeHandle() );
+		return nullptr;
+	};
+
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
-		if ( m_window )
-			set_win32_foreground_window( m_window->getNativeHandle(), HWND_BOTTOM );
+		if ( HWND hwnd = get_frontend_hwnd() )
+			set_win32_foreground_window( hwnd, HWND_BOTTOM );
 		m_blackout.display();
-		if ( m_window )
+		if ( m_sdl_window_owned )
+		{
+			if ( SDL_Window *window = m_gpu_context.get_window() )
+				SDL_HideWindow( window );
+		}
+		else if ( m_window )
 			m_window->setVisible( false );
 		set_win32_foreground_window( m_blackout.getNativeHandle(), HWND_TOP );
 	}
 	else
 	{
-		set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+		if ( HWND hwnd = get_frontend_hwnd() )
+			set_win32_foreground_window( hwnd, HWND_TOP );
 		if ( !is_multimon_config( m_fes ))
 			clear();
 		display();
@@ -1521,7 +1536,12 @@ bool FeWindow::run()
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
 		m_blackout.display();
-		if ( m_window )
+		if ( m_sdl_window_owned )
+		{
+			if ( SDL_Window *window = m_gpu_context.get_window() )
+				SDL_ShowWindow( window );
+		}
+		else if ( m_window )
 			m_window->setVisible( true );
 
 		// Since we are double/triple buffering in fullscreen
@@ -1532,13 +1552,13 @@ bool FeWindow::run()
 			clear();
 			display();
 		}
-		if ( m_window )
-			set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+		if ( HWND hwnd = get_frontend_hwnd() )
+			set_win32_foreground_window( hwnd, HWND_TOP );
 	}
 	else
 	{
-		if ( m_window )
-			set_win32_foreground_window( m_window->getNativeHandle(), HWND_TOP );
+		if ( HWND hwnd = get_frontend_hwnd() )
+			set_win32_foreground_window( hwnd, HWND_TOP );
 	}
 #endif
 
