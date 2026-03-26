@@ -36,10 +36,8 @@
 #include <SFML/Graphics/Export.hpp>
 
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/Drawable.hpp>
 #include <SFML/Graphics/PrimitiveType.hpp>
 #include <SFML/Graphics/Rect.hpp>
-#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Transformable.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 
@@ -54,14 +52,13 @@
 
 namespace sf
 {
-class RenderTarget;
 class Texture;
 
 ////////////////////////////////////////////////////////////
 /// \brief Graphical text that can be drawn to a render target
 ///
 ////////////////////////////////////////////////////////////
-class SFML_GRAPHICS_API JustifyText : public Drawable, public Transformable
+class SFML_GRAPHICS_API JustifyText : public Transformable
 {
 public:
     ////////////////////////////////////////////////////////////
@@ -451,15 +448,6 @@ public:
     [[nodiscard]] std::uint64_t getTextureVersion() const;
 
 private:
-    ////////////////////////////////////////////////////////////
-    /// \brief Draw the text to a render target
-    ///
-    /// \param target Render target to draw to
-    /// \param states Current render states
-    ///
-    ////////////////////////////////////////////////////////////
-    void draw(RenderTarget& target, RenderStates states) const override;
-
     ////////////////////////////////////////////////////////////
     /// \brief Adjust spacing for justified strings
     ///

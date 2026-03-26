@@ -582,13 +582,6 @@ void FeListBox::set_scale_factor( float scale_x, float scale_y )
 		m_scale_factor = 1.f;
 }
 
-void FeListBox::draw( sf::RenderTarget &target, sf::RenderStates states ) const
-{
-	for ( std::vector<FeTextPrimitive>::const_iterator itl=m_texts.begin();
-				itl != m_texts.end(); ++itl )
-		target.draw( (*itl), states );
-}
-
 void FeListBox::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
 {
 	const std::size_t begin = geometry.size();

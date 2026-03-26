@@ -29,7 +29,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 
-class FeTextPrimitive : public sf::Drawable
+class FeTextPrimitive
 {
 public:
 	enum Alignment {
@@ -162,8 +162,6 @@ private:
 
 	void set_positions() const;
 
-	// override from base
-	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 };
 
 #endif

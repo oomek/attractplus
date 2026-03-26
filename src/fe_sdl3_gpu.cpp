@@ -1001,6 +1001,91 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	return true;
 }
 
+bool FeSdl3GpuContext::capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height )
+{
+	if ( !is_available() || !surface_texture_id )
+		return false;
+
+	auto it = m_surfaces.find( surface_texture_id );
+	if ( it == m_surfaces.end() || !it->second.color_texture || it->second.width <= 0 || it->second.height <= 0 )
+		return false;
+
+	const SurfaceEntry &entry = it->second;
+	width = entry.width;
+	height = entry.height;
+
+	SDL_GPUTransferBufferCreateInfo transfer_info = {};
+	transfer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
+	transfer_info.size = static_cast<Uint32>( width * height * 4 );
+
+	SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
+	if ( !transfer_buffer )
+		return false;
+
+	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command_buffer )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		return false;
+	}
+
+	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
+	if ( !copy_pass )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		return false;
+	}
+
+	SDL_GPUTextureRegion source = {};
+	source.texture = entry.color_texture;
+	source.mip_level = 0;
+	source.layer = 0;
+	source.x = 0;
+	source.y = 0;
+	source.z = 0;
+	source.w = static_cast<Uint32>( width );
+	source.h = static_cast<Uint32>( height );
+	source.d = 1;
+
+	SDL_GPUTextureTransferInfo destination = {};
+	destination.transfer_buffer = transfer_buffer;
+	destination.offset = 0;
+	destination.pixels_per_row = static_cast<Uint32>( width );
+	destination.rows_per_layer = static_cast<Uint32>( height );
+
+	SDL_DownloadFromGPUTexture( copy_pass, &source, &destination );
+	SDL_EndGPUCopyPass( copy_pass );
+
+	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		return false;
+	}
+
+	if ( !SDL_WaitForGPUIdle( m_device ) )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		return false;
+	}
+
+	const std::uint8_t *mapped = static_cast<const std::uint8_t *>( SDL_MapGPUTransferBuffer( m_device, transfer_buffer, false ) );
+	if ( !mapped )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		return false;
+	}
+
+	const std::size_t pixel_count =
+		static_cast<std::size_t>( width ) *
+		static_cast<std::size_t>( height ) * 4;
+	pixels.assign( mapped, mapped + pixel_count );
+
+	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
+	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+	return true;
+}
+
 bool FeSdl3GpuContext::save_screenshot( const std::string &filename )
 {
 	int width = 0;

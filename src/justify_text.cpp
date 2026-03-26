@@ -418,21 +418,6 @@ std::uint64_t JustifyText::getTextureVersion() const
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::draw(RenderTarget& target, RenderStates states) const
-{
-    ensureGeometryUpdate();
-
-    states.transform *= getTransform();
-    states.texture        = &m_font->getFallbackTexture(m_characterSize);
-    states.coordinateType = CoordinateType::Pixels;
-
-    // Only draw the outline if there is something to draw
-    if (m_outlineThickness != 0)
-        target.draw(m_outlineVertices, states);
-
-    target.draw(m_vertices, states);
-}
-
 // Use the difference between bounds and width to update the spacing
 void JustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, bool isBold, float italicShear) const
 {

@@ -1285,8 +1285,6 @@ int main(int argc, char *argv[])
 
 			// begin drawing
 			window.clear();
-			if ( !window.owns_sdl_window() )
-				window.draw( feVM );
 			window.display();
 			redraw=false;
 		}

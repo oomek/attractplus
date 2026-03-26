@@ -33,7 +33,7 @@ class FeSettings;
 //
 // Text (w/ background) to display info on screen
 //
-class FeText : public FeBasePresentable, public sf::Drawable
+class FeText : public FeBasePresentable
 {
 public:
 	FeText( FePresentableParent &p,
@@ -56,8 +56,6 @@ public:
 	void on_new_list( FeSettings * );
 	void on_new_selection( FeSettings * );
 	void set_scale_factor( float, float );
-
-	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
 
 	int getIndexOffset() const;
 	void setIndexOffset( int );
@@ -118,9 +116,6 @@ public:
 	void set_justify(int j);
 	void set_align(int a);
 	void set_font(const char *f);
-
-protected:
-	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 
 private:
 	FeText( const FeText & );

@@ -294,7 +294,6 @@ FeTextureContainer::FeTextureContainer(
 	m_pixel_cache_valid( false ),
 	m_texture_size( 0, 0 ),
 	m_repeat( false ),
-	m_fallback_dirty( false ),
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
@@ -390,7 +389,6 @@ bool FeTextureContainer::fix_masked_image()
 	m_pixel_cache = std::move( pixels );
 	m_pixel_cache_valid = true;
 	m_texture_size = { width, height };
-	m_fallback_dirty = true;
 	++m_content_version;
 	notify_texture_change();
 	return true;
@@ -414,23 +412,16 @@ bool FeTextureContainer::load_with_ffmpeg(
 	clear();
 
 	if ( !file_exists( loaded_name ) )
-	{
-		m_fallback_texture.reset();
-		m_fallback_dirty = false;
 		return false;
-	}
 
 	m_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
-	sf::Texture *fallback_texture = NULL;
-	res = m_movie->open( "", loaded_name, fallback_texture );
+	res = m_movie->open( "", loaded_name, NULL );
 
 	if ( !res )
 	{
 		FeLog() << "ERROR loading video: "
 			<< loaded_name << std::endl;
 
-		m_fallback_texture.reset();
-		m_fallback_dirty = false;
 		delete m_movie;
 		m_movie = NULL;
 		return false;
@@ -453,40 +444,19 @@ bool FeTextureContainer::load_with_ffmpeg(
 	else
 		m_movie_status = 1; // 1=on track to be played
 
+	unsigned int width = 0;
+	unsigned int height = 0;
+	if ( m_movie && m_movie->get_video_frame_dimensions( width, height ) )
+		m_texture_size = { width, height };
+
 	if ( res && !is_image )
 	{
-		if ( fallback_texture )
-			m_texture_size = fallback_texture->getSize();
-		else
-		{
-			unsigned int width = 0;
-			unsigned int height = 0;
-			if ( m_movie->get_video_frame_dimensions( width, height ) )
-				m_texture_size = { width, height };
-		}
 		m_pixel_cache.clear();
 		m_pixel_cache_valid = false;
-		m_fallback_dirty = false;
 	}
 	else
 	{
-		if ( fallback_texture )
-			m_texture_size = fallback_texture->getSize();
-		else
-		{
-			unsigned int width = 0;
-			unsigned int height = 0;
-			if ( m_movie && m_movie->get_video_frame_dimensions( width, height ) )
-				m_texture_size = { width, height };
-		}
 		m_pixel_cache_valid = false;
-		m_fallback_dirty = false;
-	}
-
-	if ( fallback_texture )
-	{
-		fallback_texture->setSmooth( m_smooth );
-		fallback_texture->setRepeated( m_repeat );
 	}
 	m_file_name = loaded_name;
 	++m_content_version;
@@ -516,11 +486,7 @@ bool FeTextureContainer::try_to_load(
 	clear();
 
 	if ( !file_exists( loaded_name ) )
-	{
-		m_fallback_texture.reset();
-		m_fallback_dirty = false;
 		return false;
-	}
 
 	if ( il.load_image_from_file( loaded_name, &m_entry ) )
 		data = m_entry->get_data();
@@ -534,18 +500,11 @@ bool FeTextureContainer::try_to_load(
 		m_pixel_cache.assign( data, data + size );
 		m_pixel_cache_valid = true;
 		il.release_entry( &m_entry ); // don't need entry any more
-		m_fallback_dirty = true;
 	}
 
 	++m_content_version;
 
 	return true;
-}
-
-const sf::Texture *FeTextureContainer::get_texture_fallback() const
-{
-	ensure_fallback_texture();
-	return m_fallback_texture.get();
 }
 
 sf::Vector2u FeTextureContainer::get_texture_size() const
@@ -566,7 +525,7 @@ sf::Vector2u FeTextureContainer::get_texture_size() const
 	if ( m_texture_size.x > 0 && m_texture_size.y > 0 )
 		return m_texture_size;
 
-	return m_fallback_texture ? m_fallback_texture->getSize() : sf::Vector2u();
+	return sf::Vector2u();
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -665,10 +624,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	if ( !loaded )
 	{
 		if ( image_list.empty() )
-		{
 			clear();
-			m_fallback_texture.reset();
-		}
 		else
 		{
 			for ( itr=image_list.begin();
@@ -704,7 +660,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
 			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
 			m_pixel_cache_valid = true;
-			m_fallback_dirty = true;
 			++m_content_version;
 
 			il.release_entry( &m_entry );
@@ -764,7 +719,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		{
 			m_pixel_cache.clear();
 			m_pixel_cache_valid = false;
-			m_fallback_dirty = false;
 			return true;
 		}
 	}
@@ -901,8 +855,6 @@ void FeTextureContainer::load_file( const char *n )
 	if ( filename.empty() )
 	{
 		clear();
-		m_fallback_texture.reset();
-		m_fallback_dirty = false;
 		notify_texture_change();
 		return;
 	}
@@ -958,8 +910,6 @@ void FeTextureContainer::clear()
 	m_pixel_cache.clear();
 	m_pixel_cache_valid = false;
 	m_texture_size = { 0, 0 };
-	m_fallback_texture.reset();
-	m_fallback_dirty = false;
 	++m_content_version;
 
 #ifndef NO_MOVIE
@@ -1002,9 +952,8 @@ bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, u
 		return true;
 	}
 
-	const sf::Vector2u size = m_fallback_texture ? m_fallback_texture->getSize() : sf::Vector2u();
-	width = m_texture_size.x ? m_texture_size.x : size.x;
-	height = m_texture_size.y ? m_texture_size.y : size.y;
+	width = m_texture_size.x;
+	height = m_texture_size.y;
 	if ( width == 0 || height == 0 )
 		return false;
 
@@ -1051,9 +1000,8 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 		return true;
 	}
 
-	const sf::Vector2u size = m_fallback_texture ? m_fallback_texture->getSize() : sf::Vector2u();
-	width = m_texture_size.x ? m_texture_size.x : size.x;
-	height = m_texture_size.y ? m_texture_size.y : size.y;
+	width = m_texture_size.x;
+	height = m_texture_size.y;
 	if ( width == 0 || height == 0 )
 		return false;
 
@@ -1079,8 +1027,6 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 void FeTextureContainer::set_smooth( bool s )
 {
 	m_smooth = s;
-	if ( m_fallback_texture )
-		m_fallback_texture->setSmooth( s );
 }
 
 bool FeTextureContainer::get_smooth() const
@@ -1091,8 +1037,6 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
-	if ( m_mipmap && !m_movie && !m_fallback_dirty && m_fallback_texture )
-		std::ignore = m_fallback_texture->generateMipmap();
 }
 
 bool FeTextureContainer::get_mipmap() const
@@ -1103,46 +1047,11 @@ bool FeTextureContainer::get_mipmap() const
 void FeTextureContainer::set_repeat( bool r )
 {
 	m_repeat = r;
-	if ( m_fallback_texture )
-		m_fallback_texture->setRepeated( r );
 }
 
 bool FeTextureContainer::get_repeat() const
 {
 	return m_repeat;
-}
-
-void FeTextureContainer::ensure_fallback_texture() const
-{
-	if ( !m_fallback_dirty )
-		return;
-
-	if ( !m_pixel_cache_valid || m_texture_size.x == 0 || m_texture_size.y == 0 )
-		return;
-
-	sf::Texture *fallback_texture = ensure_fallback_texture_storage();
-	if ( fallback_texture->getSize() != m_texture_size )
-		std::ignore = fallback_texture->resize( m_texture_size );
-
-	fallback_texture->update( m_pixel_cache.data() );
-	fallback_texture->setSmooth( m_smooth );
-	fallback_texture->setRepeated( m_repeat );
-	if ( m_mipmap )
-		std::ignore = fallback_texture->generateMipmap();
-	m_fallback_dirty = false;
-}
-
-sf::Texture *FeTextureContainer::ensure_fallback_texture_storage() const
-{
-	if ( !m_fallback_texture )
-	{
-		FeTextureContainer *self = const_cast<FeTextureContainer *>( this );
-		self->m_fallback_texture = std::make_unique<sf::Texture>();
-		self->m_fallback_texture->setSmooth( m_smooth );
-		self->m_fallback_texture->setRepeated( m_repeat );
-	}
-
-	return m_fallback_texture.get();
 }
 
 void FeTextureContainer::set_volume( float v )
@@ -1268,111 +1177,52 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	m_mipmap( false ),
 	m_repeat( false ),
 	m_smooth( false ),
-	m_fallback_dirty( false ),
 	m_texture_size( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) )
 {
 }
 
-void FeSurfaceTextureContainer::ensure_fallback_render() const
-{
-	if ( !m_fallback_dirty )
-		return;
-
-	FeSurfaceTextureContainer *self = const_cast<FeSurfaceTextureContainer *>( this );
-	sf::RenderTexture *fallback_texture = self->ensure_fallback_target();
-	if ( self->m_clear )
-		fallback_texture->clear( sf::Color::Transparent );
-
-	if ( self->m_redraw )
-	{
-		for ( std::vector<FeBasePresentable *>::const_iterator itr = self->elements.begin();
-				itr != self->elements.end(); ++itr )
-		{
-			if ( (*itr)->get_visible() )
-				fallback_texture->draw( (*itr)->drawable() );
-		}
-
-		fallback_texture->display();
-		if ( self->m_mipmap )
-			std::ignore = fallback_texture->generateMipmap();
-	}
-
-	self->m_fallback_dirty = false;
-}
-
-sf::RenderTexture *FeSurfaceTextureContainer::ensure_fallback_target() const
-{
-	if ( !m_fallback_texture )
-	{
-		FeSurfaceTextureContainer *self = const_cast<FeSurfaceTextureContainer *>( this );
-		self->m_fallback_texture = std::make_unique<sf::RenderTexture>();
-
-		sf::ContextSettings ctx;
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
-		{
-			FeSettings *fes = fep->get_fes();
-			if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
-		}
-
-		if ( self->m_fallback_texture->resize( m_texture_size, ctx ) )
-			self->m_fallback_texture->clear( sf::Color::Transparent );
-
-		self->m_fallback_texture->setSmooth( m_smooth );
-		self->m_fallback_texture->setRepeated( m_repeat );
-	}
-
-	return m_fallback_texture.get();
-}
-
 bool FeSurfaceTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const
 {
-	ensure_fallback_render();
-	if ( !m_fallback_texture )
-		return false;
-
-	const sf::Image image = m_fallback_texture->getTexture().copyToImage();
-	const sf::Vector2u size = image.getSize();
-	width = size.x;
-	height = size.y;
-	if ( width == 0 || height == 0 )
-		return false;
-
-	const unsigned char *src = image.getPixelsPtr();
-	if ( !src )
-		return false;
-
-	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-	pixels.assign( src, src + data_size );
-	return true;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		std::vector<std::uint8_t> sdl_pixels;
+		int sdl_width = 0;
+		int sdl_height = 0;
+		if ( fep->get_gpu_context().capture_surface_rgba( this, sdl_pixels, sdl_width, sdl_height ) )
+		{
+			width = static_cast<unsigned int>( sdl_width );
+			height = static_cast<unsigned int>( sdl_height );
+			pixels.assign( sdl_pixels.begin(), sdl_pixels.end() );
+			return true;
+		}
+	}
+	return false;
 }
 
 bool FeSurfaceTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
 {
-	ensure_fallback_render();
-	if ( !m_fallback_texture )
-		return false;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		std::vector<std::uint8_t> sdl_pixels;
+		int sdl_width = 0;
+		int sdl_height = 0;
+		if ( fep->get_gpu_context().capture_surface_rgba( this, sdl_pixels, sdl_width, sdl_height ) )
+		{
+			width = static_cast<unsigned int>( sdl_width );
+			height = static_cast<unsigned int>( sdl_height );
+			if ( !pixels )
+				return true;
 
-	const sf::Vector2u size = m_fallback_texture->getTexture().getSize();
-	width = size.x;
-	height = size.y;
-	if ( width == 0 || height == 0 )
-		return false;
+			if ( pixel_count < sdl_pixels.size() )
+				return false;
 
-	if ( !pixels )
-		return true;
-
-	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-	if ( pixel_count < data_size )
-		return false;
-
-	const sf::Image image = m_fallback_texture->getTexture().copyToImage();
-	const unsigned char *src = image.getPixelsPtr();
-	if ( !src )
-		return false;
-
-	std::memcpy( pixels, src, data_size );
-	return true;
+			std::memcpy( pixels, sdl_pixels.data(), sdl_pixels.size() );
+			return true;
+		}
+	}
+	return false;
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -1383,12 +1233,6 @@ FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
 		elements.pop_back();
 		delete p;
 	}
-}
-
-const sf::Texture *FeSurfaceTextureContainer::get_texture_fallback() const
-{
-	ensure_fallback_render();
-	return m_fallback_texture ? &m_fallback_texture->getTexture() : NULL;
 }
 
 sf::Vector2u FeSurfaceTextureContainer::get_texture_size() const
@@ -1420,14 +1264,11 @@ void FeSurfaceTextureContainer::on_new_list( FeSettings *s, bool )
 
 void FeSurfaceTextureContainer::on_redraw_surfaces()
 {
-	m_fallback_dirty = true;
 }
 
 void FeSurfaceTextureContainer::set_smooth( bool s )
 {
 	m_smooth = s;
-	if ( m_fallback_texture )
-		m_fallback_texture->setSmooth( s );
 }
 
 bool FeSurfaceTextureContainer::get_smooth() const
@@ -1458,8 +1299,6 @@ bool FeSurfaceTextureContainer::get_clear() const
 void FeSurfaceTextureContainer::set_repeat( bool r )
 {
 	m_repeat = r;
-	if ( m_fallback_texture )
-		m_fallback_texture->setRepeated( r );
 }
 
 bool FeSurfaceTextureContainer::get_repeat() const
@@ -1714,31 +1553,6 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.texture_dynamic = m_tex->is_volatile_texture();
 	geometry.texture_content_version = m_tex->get_texture_content_version();
 	return true;
-}
-
-void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
-{
-	const sf::Texture *fallback_texture = m_tex ? m_tex->get_texture_fallback() : NULL;
-	if ( !fallback_texture )
-		return;
-
-	std::vector<FeRenderVertex> render_vertices;
-	append_render_vertices( render_vertices, 0.0f );
-	if ( render_vertices.empty() )
-		return;
-
-	sf::VertexArray vertices( sf::PrimitiveType::Triangles, render_vertices.size() );
-	for ( std::size_t i = 0; i < render_vertices.size(); ++i )
-	{
-		const FeRenderVertex &vertex = render_vertices[i];
-		vertices[i].position = { vertex.x, vertex.y };
-		vertices[i].texCoords = { vertex.u, vertex.v };
-		vertices[i].color = { vertex.r, vertex.g, vertex.b, vertex.a };
-	}
-
-	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
-	states.texture = fallback_texture;
-	target.draw( vertices, states );
 }
 
 FeSpriteGeometry FeImage::build_sprite_geometry() const

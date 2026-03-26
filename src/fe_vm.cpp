@@ -1758,8 +1758,6 @@ void FeVM::on_transition(
 			redraw_surfaces();
 			submit_render_frame();
 			m_window.clear();
-			if ( !m_window.owns_sdl_window() )
-				m_window.draw( *this );
 			m_window.display();
 			ttime = clk.getElapsedTime().asMilliseconds();
 			m_layout_time.tick();

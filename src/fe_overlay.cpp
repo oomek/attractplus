@@ -231,13 +231,13 @@ class FeEventLoopCtx
 {
 public:
 	FeEventLoopCtx(
-		const std::vector<sf::Drawable *> &draw_list,
+		const std::vector<FeOverlayDrawItem> &draw_list,
 		int &sel,
 		int default_sel,
 		int list_size
 	);
 
-	const std::vector<sf::Drawable *> &draw_list; // draw list
+	const std::vector<FeOverlayDrawItem> &draw_list; // draw list
 	int &sel;			// selection counter
 	int default_sel;	// default selection
 	int list_size;		// total number of options
@@ -252,7 +252,7 @@ public:
 };
 
 FeEventLoopCtx::FeEventLoopCtx(
-	const std::vector<sf::Drawable *> &draw_list,
+	const std::vector<FeOverlayDrawItem> &draw_list,
 	int &sel,
 	int default_sel,
 	int list_size
@@ -467,7 +467,7 @@ int FeOverlay::common_list_dialog(
 	FeInputMap::Command extra_exit )
 {
 	int sel = default_sel;
-	std::vector<sf::Drawable *> draw_list;
+	std::vector<FeOverlayDrawItem> draw_list;
 	FeEventLoopCtx c( draw_list, sel, cancel_sel, options.size() );
 	c.extra_exit = extra_exit;
 
@@ -539,11 +539,11 @@ int FeOverlay::common_list_dialog(
 		FeTextPrimitive header = layout_header( LayoutStyle::Centre );
 		FeListBox dialog = layout_list( LayoutStyle::Body | LayoutStyle::Large );
 
-		draw_list.push_back( &bg );
-		draw_list.push_back( &letterbox );
-		draw_list.push_back( &border );
-		draw_list.push_back( &header );
-		draw_list.push_back( &dialog );
+		draw_list.emplace_back( bg );
+		draw_list.emplace_back( letterbox );
+		draw_list.emplace_back( border );
+		draw_list.emplace_back( header );
+		draw_list.emplace_back( dialog );
 
 		header.setString( title );
 		dialog.setCustomText( sel, options );
@@ -627,7 +627,7 @@ int FeOverlay::languages_dialog()
 
 	sf::RectangleShape bg = layout_background();
 	FeListBox dialog = layout_list( LayoutStyle::Full | LayoutStyle::Large );
-	std::vector<sf::Drawable*> draw_list = { &bg, &dialog };
+	std::vector<FeOverlayDrawItem> draw_list = { FeOverlayDrawItem( bg ), FeOverlayDrawItem( dialog ) };
 
 	std::vector<std::string> labels;
 	for ( const auto& lang : ll )
@@ -726,7 +726,7 @@ int FeOverlay::common_basic_dialog(
 			int cancel_sel,
 			FeInputMap::Command extra_exit )
 {
-	std::vector<sf::Drawable *> draw_list;
+	std::vector<FeOverlayDrawItem> draw_list;
 	int sel=default_sel;
 
 	FeEventLoopCtx c( draw_list, sel, cancel_sel, list.size() );
@@ -801,9 +801,9 @@ int FeOverlay::common_basic_dialog(
 		message.setString( msg_str );
 		dialog.setCustomText( sel, list );
 
-		draw_list.push_back( &bg );
-		draw_list.push_back( &message );
-		draw_list.push_back( &dialog );
+		draw_list.emplace_back( bg );
+		draw_list.emplace_back( message );
+		draw_list.emplace_back( dialog );
 
 		m_overlay_list_index = sel;
 		m_overlay_list_size = list.size();
@@ -845,7 +845,7 @@ bool FeOverlay::edit_dialog(
 
 	message.setString( msg_str );
 
-	std::vector<sf::Drawable*> draw_list = { &bg, &message, &tp };
+	std::vector<FeOverlayDrawItem> draw_list = { FeOverlayDrawItem( bg ), FeOverlayDrawItem( message ), FeOverlayDrawItem( tp ) };
 
 	std::basic_string<std::uint32_t> str = utf8_to_utf32( text );
 
@@ -1520,18 +1520,18 @@ int FeOverlay::display_config_dialog(
 	FeTextPrimitive sindex = layout_index( LayoutStyle::Left );
 	FeTextPrimitive vindex = layout_index( LayoutStyle::Right );
 
-	std::vector<sf::Drawable*> draw_list;
-	if ( !is_preview ) draw_list.push_back( &bg );
-	draw_list.push_back( &sdialog );
-	if ( is_edit ) draw_list.push_back( &vdialog );
-	if ( is_edit && is_preview ) draw_list.push_back( &sindex );
-	if ( is_edit && is_preview ) draw_list.push_back( &vindex );
-	if ( !is_preview ) draw_list.push_back( &letterbox_top );
-	if ( !is_preview ) draw_list.push_back( &border_top );
-	if ( !is_preview ) draw_list.push_back( &header );
-	draw_list.push_back( &letterbox_bottom );
-	draw_list.push_back( &border_bottom );
-	draw_list.push_back( &footer );
+	std::vector<FeOverlayDrawItem> draw_list;
+	if ( !is_preview ) draw_list.emplace_back( bg );
+	draw_list.emplace_back( sdialog );
+	if ( is_edit ) draw_list.emplace_back( vdialog );
+	if ( is_edit && is_preview ) draw_list.emplace_back( sindex );
+	if ( is_edit && is_preview ) draw_list.emplace_back( vindex );
+	if ( !is_preview ) draw_list.emplace_back( letterbox_top );
+	if ( !is_preview ) draw_list.emplace_back( border_top );
+	if ( !is_preview ) draw_list.emplace_back( header );
+	draw_list.emplace_back( letterbox_bottom );
+	draw_list.emplace_back( border_bottom );
+	draw_list.emplace_back( footer );
 
 	header.setString( ctx.title );
 
@@ -1872,9 +1872,8 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 			m_wnd.clear();
 			draw_overlay_scene_background( m_wnd, m_fePresent );
 
-			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
-					itr < ctx.draw_list.end(); ++itr )
-				m_wnd.draw( *(*itr), t );
+			for ( const FeOverlayDrawItem &item : ctx.draw_list )
+				m_wnd.draw( item, t );
 			draw_native_logo_if_needed();
 
 			m_wnd.display();
@@ -2007,9 +2006,8 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			m_wnd.clear();
 			draw_overlay_scene_background( m_wnd, m_fePresent );
 
-			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
-					itr < ctx.draw_list.end(); ++itr )
-				m_wnd.draw( *(*itr), t );
+			for ( const FeOverlayDrawItem &item : ctx.draw_list )
+				m_wnd.draw( item, t );
 			draw_native_logo_if_needed();
 
 			m_wnd.display();
@@ -2111,7 +2109,7 @@ public:
 	}
 };
 
-bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
+bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *tp )
 {
 	sf::Clock cursor_timer;
@@ -2376,9 +2374,8 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 		m_wnd.clear();
 		draw_overlay_scene_background( m_wnd, m_fePresent );
 
-		for ( std::vector<sf::Drawable *>::iterator itr=d.begin();
-				itr < d.end(); ++itr )
-			m_wnd.draw( *(*itr), t );
+		for ( const FeOverlayDrawItem &item : d )
+			m_wnd.draw( item, t );
 		draw_native_logo_if_needed();
 
 		int ms = cursor_timer.getElapsedTime().asMilliseconds();

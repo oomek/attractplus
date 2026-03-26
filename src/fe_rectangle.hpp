@@ -31,7 +31,7 @@
 
 class FeSettings;
 
-class FeRectangle : public sf::Drawable, public FeBasePresentable
+class FeRectangle : public FeBasePresentable
 {
 public:
 	public:
@@ -117,11 +117,6 @@ public:
 	int get_blend_mode() const;
 	void set_blend_mode( int b );
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
-
-	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
-
-protected:
-	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 
 private:
 	sf::RoundedRectangleShape m_rect;

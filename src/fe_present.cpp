@@ -574,23 +574,6 @@ void FePresent::sort_zorder()
 		std::stable_sort( (*itm).elements.begin(), (*itm).elements.end(), zcompare );
 }
 
-void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
-{
-	std::vector<FeBasePresentable *>::const_iterator itl;
-
-	//
-	for ( unsigned int i=0; i<m_mon.size(); i++ )
-	{
-		// use m_transform on monitor 0
-		states.transform = i ? m_mon[i].transform : m_layout_transform;
-		for ( itl=m_mon[i].elements.begin(); itl != m_mon[i].elements.end(); ++itl )
-		{
-			if ( (*itl)->get_visible() )
-				target.draw( (*itl)->drawable(), states );
-		}
-	}
-}
-
 void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
 {
 	geometry.clear();
@@ -1747,8 +1730,6 @@ void FePresent::redraw()
 	redraw_surfaces();
 	submit_render_frame();
 	m_window.clear();
-	if ( !m_window.owns_sdl_window() )
-		m_window.draw( *this, m_layout_transform );
 	m_window.display();
 
 	m_layout_time.tick();

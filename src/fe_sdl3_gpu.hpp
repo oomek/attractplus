@@ -39,6 +39,7 @@ public:
 	bool has_submitted_frame() const;
 	bool has_frame_content() const;
 	bool capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height );
+	bool capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool save_screenshot( const std::string &filename );
 	void clear_layout_resources();
 	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );

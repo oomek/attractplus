@@ -32,6 +32,36 @@
 #include "fe_sdl3_gpu.hpp"
 
 class FeSettings;
+class FeTextPrimitive;
+class FeListBox;
+class FeText;
+class FeRectangle;
+
+struct FeOverlayDrawItem
+{
+	enum Type
+	{
+		RectangleShape,
+		TextPrimitive,
+		ListBox,
+		Text,
+		Rectangle
+	};
+
+	Type type;
+	const void *item;
+
+	explicit FeOverlayDrawItem( const sf::RectangleShape &rect )
+		: type( RectangleShape ), item( &rect ) {}
+	explicit FeOverlayDrawItem( const FeTextPrimitive &text )
+		: type( TextPrimitive ), item( &text ) {}
+	explicit FeOverlayDrawItem( const FeListBox &listbox )
+		: type( ListBox ), item( &listbox ) {}
+	explicit FeOverlayDrawItem( const FeText &text )
+		: type( Text ), item( &text ) {}
+	explicit FeOverlayDrawItem( const FeRectangle &rect )
+		: type( Rectangle ), item( &rect ) {}
+};
 
 class FeWindowPosition : public FeBaseConfigurable
 {
@@ -88,7 +118,7 @@ private:
 	FeSdl3GpuContext m_gpu_context;
 
 	const FeRenderRawTextureSource *cache_overlay_image( const sf::Image &image );
-	bool append_native_overlay_drawable( const sf::Drawable &d, const sf::RenderStates &r );
+	bool append_native_overlay_item( const FeOverlayDrawItem &item, const sf::RenderStates &r );
 
 public:
 	FeWindow( FeSettings &fes );
@@ -118,7 +148,12 @@ public:
 	bool owns_sdl_window() const { return m_sdl_window_owned; }
 
 	void clear();
-	void draw( const sf::Drawable &d, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeOverlayDrawItem &item, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const sf::RectangleShape &rect, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeTextPrimitive &text, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeListBox &listbox, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeText &text, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeRectangle &rect, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth = true, const sf::Color &color = sf::Color::White );
 	const std::optional<sf::Event> pollEvent();
 

@@ -579,13 +579,6 @@ sf::Vector2f FeRectangle::alignTypeToVector( int type )
 	}
 }
 
-void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) const
-{
-	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
-
-	target.draw( m_rect, states );
-}
-
 bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 {
 	geometry.clear();

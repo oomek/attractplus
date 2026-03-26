@@ -169,11 +169,6 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 		m_scale_factor = 1.f;
 }
 
-void FeText::draw( sf::RenderTarget &target, sf::RenderStates states ) const
-{
-	target.draw( m_draw_text, states );
-}
-
 void FeText::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
 {
 	const std::size_t begin = geometry.size();

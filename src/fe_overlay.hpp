@@ -154,7 +154,7 @@ private:
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
 
-	bool edit_loop( std::vector<sf::Drawable *> draw_list,
+	bool edit_loop( std::vector<FeOverlayDrawItem> draw_list,
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *lb );
 
 public:

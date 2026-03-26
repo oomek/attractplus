@@ -32,8 +32,6 @@
 #include "fe_rectangle.hpp"
 #include "tp.hpp"
 #include "base64.hpp"
-#include <set>
-#include <typeinfo>
 
 #ifdef SFML_SYSTEM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
@@ -621,45 +619,34 @@ const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const sf::Image &
 	return &entry.source;
 }
 
-bool FeWindow::append_native_overlay_drawable( const sf::Drawable &d, const sf::RenderStates &r )
+bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const sf::RenderStates &r )
 {
 	std::vector<FeRenderGeometry> geometry;
 
-	if ( const auto *rect = dynamic_cast<const sf::RectangleShape *>( &d ) )
+	switch ( item.type )
 	{
-		if ( !append_rectangle_shape_geometry( geometry, *rect ) )
+	case FeOverlayDrawItem::RectangleShape:
+		if ( !append_rectangle_shape_geometry( geometry, *static_cast<const sf::RectangleShape *>( item.item ) ) )
 			return true;
-	}
-	else if ( const auto *rect = dynamic_cast<const FeRectangle *>( &d ) )
-	{
-		FeRenderGeometry entry;
-		if ( rect->build_render_geometry( entry ) )
-			geometry.push_back( std::move( entry ) );
-		else
-			return true;
-	}
-	else if ( const auto *text = dynamic_cast<const FeText *>( &d ) )
-	{
-		text->build_render_geometry( geometry );
-	}
-	else if ( const auto *list = dynamic_cast<const FeListBox *>( &d ) )
-	{
-		list->build_render_geometry( geometry );
-	}
-	else if ( const auto *primitive = dynamic_cast<const FeTextPrimitive *>( &d ) )
-	{
-		primitive->append_render_geometry( geometry, 0.0f );
-	}
-	else
-	{
-		static std::set<std::string> s_logged_ignored_overlay_drawable_types;
-		const std::string type_name = typeid( d ).name();
-		if ( s_logged_ignored_overlay_drawable_types.insert( type_name ).second )
+		break;
+	case FeOverlayDrawItem::TextPrimitive:
+		static_cast<const FeTextPrimitive *>( item.item )->append_render_geometry( geometry, 0.0f );
+		break;
+	case FeOverlayDrawItem::ListBox:
+		static_cast<const FeListBox *>( item.item )->build_render_geometry( geometry );
+		break;
+	case FeOverlayDrawItem::Text:
+		static_cast<const FeText *>( item.item )->build_render_geometry( geometry );
+		break;
+	case FeOverlayDrawItem::Rectangle:
 		{
-			FeLog() << "WARNING: Ignoring unsupported legacy overlay drawable on SDL window path: "
-				<< type_name << std::endl;
+			FeRenderGeometry entry;
+			if ( static_cast<const FeRectangle *>( item.item )->build_render_geometry( entry ) )
+				geometry.push_back( std::move( entry ) );
+			else
+				return true;
 		}
-		return true;
+		break;
 	}
 
 	apply_overlay_transform( geometry, r.transform );
@@ -1751,16 +1738,38 @@ void FeWindow::clear()
 		m_window->clear();
 }
 
-void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
+void FeWindow::draw( const FeOverlayDrawItem &item, const sf::RenderStates &r )
 {
 	if ( m_sdl_window_owned )
 	{
-		append_native_overlay_drawable( d, r );
+		append_native_overlay_item( item, r );
 		return;
 	}
+}
 
-	if ( m_window )
-		m_window->draw( d, r );
+void FeWindow::draw( const sf::RectangleShape &rect, const sf::RenderStates &r )
+{
+	draw( FeOverlayDrawItem( rect ), r );
+}
+
+void FeWindow::draw( const FeTextPrimitive &text, const sf::RenderStates &r )
+{
+	draw( FeOverlayDrawItem( text ), r );
+}
+
+void FeWindow::draw( const FeListBox &listbox, const sf::RenderStates &r )
+{
+	draw( FeOverlayDrawItem( listbox ), r );
+}
+
+void FeWindow::draw( const FeText &text, const sf::RenderStates &r )
+{
+	draw( FeOverlayDrawItem( text ), r );
+}
+
+void FeWindow::draw( const FeRectangle &rect, const sf::RenderStates &r )
+{
+	draw( FeOverlayDrawItem( rect ), r );
 }
 
 const std::optional<sf::Event> FeWindow::pollEvent()

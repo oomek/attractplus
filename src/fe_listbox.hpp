@@ -37,7 +37,7 @@ class FeFontContainer;
 //
 // The text game list
 //
-class FeListBox : public FeBasePresentable, public sf::Drawable
+class FeListBox : public FeBasePresentable
 {
 public:
 	enum SelectionMode
@@ -119,8 +119,6 @@ public:
 	bool get_no_margin();
 	void set_margin( int );
 	int get_margin();
-
-	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
 
 	int get_bgr();
 	int get_bgg();
@@ -223,7 +221,6 @@ private:
 	int m_custom_sel;
 	bool m_has_custom_list;
 
-	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
 };
 
 #endif

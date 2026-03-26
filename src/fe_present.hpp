@@ -124,7 +124,6 @@ private:
 };
 
 class FePresent
-	: public sf::Drawable
 {
 	friend class FePresentableParent;
 	friend class FeVM;
@@ -193,7 +192,6 @@ protected:
 	// Overrides from base classes:
 	//
 	void sort_zorder();
-	void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 
 	FeImage *add_image(bool a, const std::string &n, float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_clone(FeImage *, FePresentableParent &p);
@@ -318,6 +316,8 @@ public:
 	int get_refresh_rate();
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
+	FeSdl3GpuContext &get_gpu_context() { return m_window.get_gpu_context(); }
+	const FeSdl3GpuContext &get_gpu_context() const { return m_window.get_gpu_context(); }
 
 	//
 	// Script static functions

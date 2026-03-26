@@ -32,7 +32,6 @@ class FePresentableParent;
 
 namespace sf
 {
-	class Drawable;
 	class Color;
 };
 
@@ -68,7 +67,6 @@ public:
 	virtual void on_new_list( FeSettings * );
 	virtual void set_scale_factor( float, float );
 
-	virtual const sf::Drawable &drawable() const=0;
 	virtual sf::Vector2f getPosition() const=0;
 	virtual void setPosition( const sf::Vector2f & )=0;
 	virtual sf::Vector2f getSize() const=0;

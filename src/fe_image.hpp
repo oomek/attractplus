@@ -57,7 +57,6 @@ class FeBaseTextureContainer
 public:
 	virtual ~FeBaseTextureContainer();
 
-	virtual const sf::Texture *get_texture_fallback() const=0;
 	virtual sf::Vector2u get_texture_size() const=0;
 	virtual const void *get_texture_source_id() const;
 	virtual int get_texture_source_type() const;
@@ -153,7 +152,6 @@ public:
 
 	~FeTextureContainer();
 
-	const sf::Texture *get_texture_fallback() const override;
 	sf::Vector2u get_texture_size() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
@@ -224,9 +222,6 @@ protected:
 	FeTextureContainer *get_derived_texture_container();
 
 private:
-	void ensure_fallback_texture() const;
-	sf::Texture *ensure_fallback_texture_storage() const;
-
 #ifndef NO_MOVIE
 	bool load_with_ffmpeg(
 		const std::string &filename,
@@ -240,7 +235,6 @@ private:
 	void internal_update_selection( FeSettings *feSettings );
 	void clear();
 
-	mutable std::unique_ptr<sf::Texture> m_fallback_texture;
 	mutable std::vector<unsigned char> m_pixel_cache;
 	mutable bool m_pixel_cache_valid;
 
@@ -266,7 +260,6 @@ private:
 	FeAudioEffectsManager m_audio_effects;
 	sf::Vector2u m_texture_size;
 	bool m_repeat;
-	mutable bool m_fallback_dirty;
 	unsigned long long m_content_version;
 };
 
@@ -277,7 +270,6 @@ public:
 	FeSurfaceTextureContainer( int width, int height );
 	~FeSurfaceTextureContainer();
 
-	const sf::Texture *get_texture_fallback() const override;
 	sf::Vector2u get_texture_size() const override;
 
 	void on_new_selection( FeSettings *feSettings );
@@ -307,15 +299,11 @@ public:
 	FePresentableParent *get_presentable_parent();
 
 private:
-	void ensure_fallback_render() const;
-	sf::RenderTexture *ensure_fallback_target() const;
-	mutable std::unique_ptr<sf::RenderTexture> m_fallback_texture;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
 	bool m_repeat;
 	bool m_smooth;
-	mutable bool m_fallback_dirty;
 	sf::Vector2u m_texture_size;
 
 public:
@@ -323,7 +311,7 @@ public:
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 };
 
-class FeImage : public sf::Drawable, public FeBasePresentable
+class FeImage : public FeBasePresentable
 {
 public:
 	enum Alignment
@@ -367,8 +355,6 @@ public:
 	void transition_swap( FeImage * );
 	bool fix_masked_image();
 	FePresentableParent *get_presentable_parent();
-	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
-
 	template <typename T>
 	void setSize( T w, T h ) { setSize( sf::Vector2f( w, h ) ); };
 	void setSize( const sf::Vector2f &s );
@@ -605,8 +591,6 @@ protected:
 	int resolveFit() const;
 	float resolveAspectRatio() const;
 	sf::Vector2f alignTypeToVector( int a );
-
-	void draw( sf::RenderTarget& target, sf::RenderStates states ) const;
 
 private:
 	FeSpriteGeometry build_sprite_geometry() const;
