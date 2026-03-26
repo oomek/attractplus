@@ -28,6 +28,7 @@
 #endif
 
 #include <memory>
+#include <unordered_map>
 #include <SFML/Graphics.hpp>
 #include "fe_sdl3_gpu.hpp"
 
@@ -80,6 +81,13 @@ private:
 	bool m_legacy_clear_requested = false;
 	bool m_legacy_frame_drawn = false;
 	bool m_legacy_view_set = false;
+	struct OverlayTextureEntry
+	{
+		std::vector<unsigned char> pixels;
+		FeRenderRawTextureSource source;
+	};
+	std::vector<FeRenderGeometry> m_overlay_geometry;
+	std::unordered_map<const sf::Image *, OverlayTextureEntry> m_overlay_images;
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
 	sf::ContextSettings m_legacy_window_context;
@@ -89,6 +97,8 @@ private:
 
 	sf::RenderWindow *ensure_legacy_window();
 	bool update_legacy_background();
+	const FeRenderRawTextureSource *cache_overlay_image( const sf::Image &image );
+	bool append_native_overlay_drawable( const sf::Drawable &d, const sf::RenderStates &r );
 
 public:
 	FeWindow( FeSettings &fes );
@@ -120,6 +130,7 @@ public:
 
 	void clear();
 	void draw( const sf::Drawable &d, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth = true, const sf::Color &color = sf::Color::White );
 	const std::optional<sf::Event> pollEvent();
 
 	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }

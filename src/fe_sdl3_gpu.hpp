@@ -32,7 +32,7 @@ public:
 	void submit_frame( const FeRenderFrame &frame );
 	const FeRenderFrame &get_frame() const;
 	std::size_t get_texture_count() const;
-	bool execute_frame();
+	bool execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry = nullptr );
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
 	bool should_present() const;
@@ -162,7 +162,7 @@ private:
 		}
 	};
 
-	void sync_textures();
+	void sync_textures( const std::vector<FeRenderGeometry> *extra_geometry = nullptr );
 	void clear_textures();
 	void build_prepared_images();
 	void release_texture( TextureEntry &entry );

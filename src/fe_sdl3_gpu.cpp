@@ -507,7 +507,6 @@ void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
 {
 	m_frame = frame;
 	m_has_submitted_frame = true;
-	sync_textures();
 	if ( m_debug_logging_enabled )
 		build_prepared_images();
 	else
@@ -597,11 +596,13 @@ void FeSdl3GpuContext::clear_layout_resources()
 	clear_textures();
 }
 
-void FeSdl3GpuContext::sync_textures()
+void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra_geometry )
 {
 	std::size_t geometry_count = m_frame.images.size();
 	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
 		geometry_count += surface.geometry.size();
+	if ( extra_geometry )
+		geometry_count += extra_geometry->size();
 
 	if ( geometry_count == 0 )
 	{
@@ -674,6 +675,10 @@ void FeSdl3GpuContext::sync_textures()
 
 	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
 		for ( const FeRenderGeometry &image : surface.geometry )
+			sync_geometry( image );
+
+	if ( extra_geometry )
+		for ( const FeRenderGeometry &image : *extra_geometry )
 			sync_geometry( image );
 
 	for ( auto it = m_textures.begin(); it != m_textures.end(); )
@@ -1222,7 +1227,7 @@ namespace
 	}
 }
 
-bool FeSdl3GpuContext::execute_frame()
+bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry )
 {
 	m_frame_stats.executed = false;
 	m_frame_stats.acquired_swapchain = false;
@@ -1236,6 +1241,8 @@ bool FeSdl3GpuContext::execute_frame()
 		m_failed_present_frames++;
 		return false;
 	}
+
+	sync_textures( overlay_geometry );
 
 	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
 	if ( !command_buffer )
@@ -1347,6 +1354,31 @@ bool FeSdl3GpuContext::execute_frame()
 			m_failed_present_frames++;
 			return false;
 		}
+	}
+
+	if ( m_blend_pipelines[0][FeBlend::Alpha] && overlay_geometry && !overlay_geometry->empty() )
+	{
+		bool overlay_drew = false;
+		if ( !render_geometry_batch(
+				render_pass,
+				command_buffer,
+				m_frame.camera,
+				m_frame.viewport_width,
+				m_frame.viewport_height,
+				*overlay_geometry,
+				compute_geometry_signature( *overlay_geometry ),
+				false,
+				nullptr,
+				nullptr,
+				nullptr,
+				overlay_drew ) )
+		{
+			SDL_EndGPURenderPass( render_pass );
+			write_debug_log( "execute_frame: render_overlay_geometry failed" );
+			m_failed_present_frames++;
+			return false;
+		}
+		m_frame_stats.draw_ready = m_frame_stats.draw_ready || overlay_drew;
 	}
 
 	SDL_EndGPURenderPass( render_pass );
@@ -1725,6 +1757,18 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 		if ( !font_page->font->getTextureSize( font_page->character_size, source_width, source_height ) )
 			return false;
 		direct_font_page = font_page;
+	}
+	else if ( texture_source_type == FeRenderTextureSourceRawRgba )
+	{
+		const FeRenderRawTextureSource *raw = static_cast<const FeRenderRawTextureSource *>( texture_id );
+		if ( !raw || !raw->pixels || raw->width == 0 || raw->height == 0 )
+			return false;
+		source_width = raw->width;
+		source_height = raw->height;
+		const std::size_t pixel_count =
+			static_cast<std::size_t>( raw->width ) *
+			static_cast<std::size_t>( raw->height ) * 4;
+		pixel_data.assign( raw->pixels, raw->pixels + pixel_count );
 	}
 	else
 		return false;

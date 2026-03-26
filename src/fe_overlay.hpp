@@ -76,6 +76,8 @@ private:
 	int m_disable_alpha;
 	const FeFont *m_font;
 	FeInputMap::Command m_menu_command;
+	const sf::Image *m_native_logo_image;
+	int m_native_logo_style;
 
 	enum LayoutStyle {
 		None	= 0,
@@ -98,8 +100,9 @@ private:
 	FeTextPrimitive layout_footer();
 	FeTextPrimitive layout_message( int style = LayoutStyle::None );
 	FeTextPrimitive layout_index( int style = LayoutStyle::None );
-	sf::Sprite layout_logo( sf::Texture &texture, int style = LayoutStyle::None );
+	sf::FloatRect layout_logo_bounds( const sf::Vector2u &logo_size, int style = LayoutStyle::None );
 	FeListBox layout_list( int style = LayoutStyle::None );
+	void draw_native_logo_if_needed();
 
 	void theme_letterbox( sf::RectangleShape &rect );
 	void theme_border( sf::RectangleShape &rect );

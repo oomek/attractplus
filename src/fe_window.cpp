@@ -27,6 +27,10 @@
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
 #include "fe_present.hpp"
+#include "fe_text.hpp"
+#include "fe_listbox.hpp"
+#include "fe_rectangle.hpp"
+#include "tp.hpp"
 #include "base64.hpp"
 
 #ifdef SFML_SYSTEM_WINDOWS
@@ -52,6 +56,119 @@
 
 namespace
 {
+	void apply_overlay_transform( std::vector<FeRenderGeometry> &geometry, const sf::Transform &transform )
+	{
+		if ( transform == sf::Transform::Identity )
+			return;
+
+		for ( FeRenderGeometry &entry : geometry )
+		{
+			for ( FeRenderVertex &vertex : entry.vertices )
+			{
+				const sf::Vector2f p = transform.transformPoint( { vertex.x, vertex.y } );
+				vertex.x = p.x;
+				vertex.y = p.y;
+			}
+		}
+	}
+
+	void append_solid_triangle(
+		FeRenderGeometry &geometry,
+		const sf::Vector2f &p0,
+		const sf::Vector2f &p1,
+		const sf::Vector2f &p2,
+		const sf::Color &color )
+	{
+		FeRenderVertex v0 = {};
+		v0.x = p0.x;
+		v0.y = p0.y;
+		v0.z = 0.0f;
+		v0.r = color.r;
+		v0.g = color.g;
+		v0.b = color.b;
+		v0.a = color.a;
+
+		FeRenderVertex v1 = v0;
+		v1.x = p1.x;
+		v1.y = p1.y;
+
+		FeRenderVertex v2 = v0;
+		v2.x = p2.x;
+		v2.y = p2.y;
+
+		geometry.vertices.push_back( v0 );
+		geometry.vertices.push_back( v1 );
+		geometry.vertices.push_back( v2 );
+	}
+
+	void append_rect_fill( FeRenderGeometry &geometry, const sf::Transform &transform, const sf::Vector2f &size, const sf::Color &color )
+	{
+		if ( color.a == 0 )
+			return;
+
+		const sf::Vector2f p0 = transform.transformPoint( { 0.0f, 0.0f } );
+		const sf::Vector2f p1 = transform.transformPoint( { size.x, 0.0f } );
+		const sf::Vector2f p2 = transform.transformPoint( { 0.0f, size.y } );
+		const sf::Vector2f p3 = transform.transformPoint( size );
+		append_solid_triangle( geometry, p0, p1, p2, color );
+		append_solid_triangle( geometry, p2, p1, p3, color );
+	}
+
+	void append_rect_outline(
+		std::vector<FeRenderGeometry> &geometry,
+		const sf::RectangleShape &rect )
+	{
+		const sf::Color color = rect.getOutlineColor();
+		const float thickness = std::abs( rect.getOutlineThickness() );
+		if ( color.a == 0 || thickness <= 0.0f )
+			return;
+
+		const sf::Vector2f size = rect.getSize();
+		const sf::Transform transform = rect.getTransform();
+
+		auto append_border = [&]( const sf::Vector2f &pos, const sf::Vector2f &border_size )
+		{
+			if ( border_size.x <= 0.0f || border_size.y <= 0.0f )
+				return;
+
+			FeRenderGeometry border;
+			border.clear();
+			border.textured = false;
+			border.texture_width = 1.0f;
+			border.texture_height = 1.0f;
+			border.zbuffer = false;
+			const sf::Transform local = transform * sf::Transform().translate( pos );
+			append_rect_fill( border, local, border_size, color );
+			if ( !border.vertices.empty() )
+				geometry.push_back( border );
+		};
+
+		append_border( { -thickness, -thickness }, { size.x + thickness * 2.0f, thickness } );
+		append_border( { -thickness, size.y }, { size.x + thickness * 2.0f, thickness } );
+		append_border( { -thickness, 0.0f }, { thickness, size.y } );
+		append_border( { size.x, 0.0f }, { thickness, size.y } );
+	}
+
+	bool append_rectangle_shape_geometry( std::vector<FeRenderGeometry> &geometry, const sf::RectangleShape &rect )
+	{
+		const sf::Color fill = rect.getFillColor();
+		if ( fill.a > 0 )
+		{
+			FeRenderGeometry background;
+			background.clear();
+			background.textured = false;
+			background.texture_width = 1.0f;
+			background.texture_height = 1.0f;
+			background.zbuffer = false;
+			append_rect_fill( background, rect.getTransform(), rect.getSize(), fill );
+			if ( !background.vertices.empty() )
+				geometry.push_back( background );
+		}
+
+		append_rect_outline( geometry, rect );
+		return !geometry.empty();
+	}
+
 	char32_t decode_utf8_first_codepoint( const char *text )
 	{
 		if ( !text )
@@ -486,7 +603,7 @@ FeWindow::~FeWindow()
 
 sf::RenderWindow *FeWindow::ensure_legacy_window()
 {
-	if ( m_window )
+	if ( m_window && ( !m_sdl_window_owned || m_window->isOpen() ) )
 		return m_window;
 
 	if ( !m_sdl_window_owned )
@@ -496,7 +613,8 @@ sf::RenderWindow *FeWindow::ensure_legacy_window()
 	if ( !native_handle )
 		return nullptr;
 
-	m_window = new sf::RenderWindow();
+	if ( !m_window )
+		m_window = new sf::RenderWindow();
 	m_window->create( static_cast<sf::WindowHandle>( native_handle ), m_legacy_window_context );
 	if ( m_legacy_view_set )
 		m_window->setView( m_legacy_view );
@@ -529,9 +647,142 @@ bool FeWindow::update_legacy_background()
 	return true;
 }
 
+const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const sf::Image &image )
+{
+	OverlayTextureEntry &entry = m_overlay_images[ &image ];
+	const sf::Vector2u size = image.getSize();
+	const std::size_t pixel_count =
+		static_cast<std::size_t>( size.x ) *
+		static_cast<std::size_t>( size.y ) * 4;
+	const std::uint8_t *pixels = image.getPixelsPtr();
+	if ( !pixels || pixel_count == 0 )
+		return nullptr;
+
+	entry.pixels.assign( pixels, pixels + pixel_count );
+	entry.source.pixels = entry.pixels.data();
+	entry.source.width = size.x;
+	entry.source.height = size.y;
+	return &entry.source;
+}
+
+bool FeWindow::append_native_overlay_drawable( const sf::Drawable &d, const sf::RenderStates &r )
+{
+	std::vector<FeRenderGeometry> geometry;
+
+	if ( const auto *rect = dynamic_cast<const sf::RectangleShape *>( &d ) )
+	{
+		if ( !append_rectangle_shape_geometry( geometry, *rect ) )
+			return true;
+	}
+	else if ( const auto *rect = dynamic_cast<const FeRectangle *>( &d ) )
+	{
+		FeRenderGeometry entry;
+		if ( rect->build_render_geometry( entry ) )
+			geometry.push_back( std::move( entry ) );
+		else
+			return true;
+	}
+	else if ( const auto *text = dynamic_cast<const FeText *>( &d ) )
+	{
+		text->build_render_geometry( geometry );
+	}
+	else if ( const auto *list = dynamic_cast<const FeListBox *>( &d ) )
+	{
+		list->build_render_geometry( geometry );
+	}
+	else if ( const auto *primitive = dynamic_cast<const FeTextPrimitive *>( &d ) )
+	{
+		primitive->append_render_geometry( geometry, 0.0f );
+	}
+	else
+	{
+		static bool s_logged_ignored_overlay_drawable = false;
+		if ( !s_logged_ignored_overlay_drawable )
+		{
+			FeLog() << "WARNING: Ignoring unsupported legacy overlay drawable on SDL window path." << std::endl;
+			s_logged_ignored_overlay_drawable = true;
+		}
+		return true;
+	}
+
+	apply_overlay_transform( geometry, r.transform );
+	for ( FeRenderGeometry &entry : geometry )
+		entry.zbuffer = false;
+	m_overlay_geometry.insert( m_overlay_geometry.end(), geometry.begin(), geometry.end() );
+	return true;
+}
+
+void FeWindow::draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth, const sf::Color &color )
+{
+	if ( !m_sdl_window_owned )
+		return;
+
+	const FeRenderRawTextureSource *source = cache_overlay_image( image );
+	if ( !source || source->width == 0 || source->height == 0 )
+		return;
+
+	FeRenderGeometry entry;
+	entry.clear();
+	entry.texture_id = source;
+	entry.texture_source_type = FeRenderTextureSourceRawRgba;
+	entry.texture_repeated = false;
+	entry.texture_smooth = smooth;
+	entry.texture_mipmap = false;
+	entry.texture_width = static_cast<float>( source->width );
+	entry.texture_height = static_cast<float>( source->height );
+	entry.blend_mode = FeBlend::Alpha;
+	entry.zbuffer = false;
+	entry.shader = nullptr;
+	entry.custom_shader = false;
+	entry.textured = true;
+	entry.texture_dynamic = false;
+	entry.texture_content_version = 1;
+	entry.vertices.reserve( 6 );
+
+	const float left = bounds.position.x;
+	const float top = bounds.position.y;
+	const float right = bounds.position.x + bounds.size.x;
+	const float bottom = bounds.position.y + bounds.size.y;
+	const sf::Vector2f positions[6] = {
+		{ left, top },
+		{ right, top },
+		{ left, bottom },
+		{ left, bottom },
+		{ right, top },
+		{ right, bottom }
+	};
+	const sf::Vector2f texcoords[6] = {
+		{ 0.0f, 0.0f },
+		{ static_cast<float>( source->width ), 0.0f },
+		{ 0.0f, static_cast<float>( source->height ) },
+		{ 0.0f, static_cast<float>( source->height ) },
+		{ static_cast<float>( source->width ), 0.0f },
+		{ static_cast<float>( source->width ), static_cast<float>( source->height ) }
+	};
+
+	for ( int i = 0; i < 6; ++i )
+	{
+		FeRenderVertex vertex = {};
+		vertex.x = positions[i].x;
+		vertex.y = positions[i].y;
+		vertex.z = 0.0f;
+		vertex.u = texcoords[i].x;
+		vertex.v = texcoords[i].y;
+		vertex.r = color.r;
+		vertex.g = color.g;
+		vertex.b = color.b;
+		vertex.a = color.a;
+		entry.vertices.push_back( vertex );
+	}
+
+	m_overlay_geometry.push_back( std::move( entry ) );
+}
+
 void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
+	const bool legacy_window_open = m_window && m_window->isOpen();
+	const bool present_legacy_frame = m_legacy_frame_drawn && legacy_window_open;
 	static bool s_logged_gpu_present_probe = false;
 	if ( !s_logged_gpu_present_probe )
 	{
@@ -579,20 +830,22 @@ void FeWindow::display()
 			}
 		}
 #endif
-		if ( m_gpu_context.should_present() )
-			used_sdl_gpu_present = m_gpu_context.execute_frame();
+		if ( !present_legacy_frame && m_gpu_context.should_present() )
+			used_sdl_gpu_present = m_gpu_context.execute_frame( m_overlay_geometry.empty() ? nullptr : &m_overlay_geometry );
 	}
 
-	if ( m_legacy_frame_drawn && m_window )
+	if ( present_legacy_frame )
 	{
 		m_window->display();
 		used_sdl_gpu_present = true;
 	}
-	else if ( !used_sdl_gpu_present && m_window )
+	else if ( !used_sdl_gpu_present && legacy_window_open )
 		m_window->display();
 
 	m_legacy_clear_requested = false;
 	m_legacy_frame_drawn = false;
+	m_overlay_geometry.clear();
+	m_overlay_images.clear();
 
 	// Starting from Windows Vista non fullscreen window modes
 	// should be synced by DWM, instead of v-sync
@@ -608,7 +861,7 @@ void FeWindow::check_for_sleep()
 {
 	if ( s_system_resumed )
 	{
-		if ( m_window )
+		if ( m_window && m_window->isOpen() )
 		{
 			m_window->clear();
 			m_window->display();
@@ -1520,21 +1773,6 @@ void FeWindow::draw_background_capture()
 {
 	if ( !m_sdl_window_owned )
 		return;
-
-	if ( sf::RenderWindow *window = ensure_legacy_window() )
-	{
-		if ( m_legacy_clear_requested )
-		{
-			window->clear();
-			m_legacy_clear_requested = false;
-		}
-
-		if ( update_legacy_background() && m_legacy_background_sprite )
-		{
-			window->draw( *m_legacy_background_sprite );
-			m_legacy_frame_drawn = true;
-		}
-	}
 }
 
 void FeWindow::clear()
@@ -1542,8 +1780,8 @@ void FeWindow::clear()
 	if ( m_sdl_window_owned )
 	{
 		m_legacy_clear_requested = true;
-		if ( m_window )
-			m_window->clear();
+		m_overlay_geometry.clear();
+		m_overlay_images.clear();
 		return;
 	}
 
@@ -1555,17 +1793,7 @@ void FeWindow::draw( const sf::Drawable &d, const sf::RenderStates &r )
 {
 	if ( m_sdl_window_owned )
 	{
-		if ( sf::RenderWindow *window = ensure_legacy_window() )
-		{
-			if ( m_legacy_clear_requested )
-			{
-				window->clear();
-				m_legacy_clear_requested = false;
-			}
-
-			window->draw( d, r );
-			m_legacy_frame_drawn = true;
-		}
+		append_native_overlay_drawable( d, r );
 		return;
 	}
 

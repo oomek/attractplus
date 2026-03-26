@@ -312,7 +312,9 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 	m_feSettings( fes ),
 	m_fePresent( fep ),
 	m_soundSystem( ss ),
-	m_overlay_is_on( false )
+	m_overlay_is_on( false ),
+	m_native_logo_image( nullptr ),
+	m_native_logo_style( LayoutStyle::None )
 {
 	clear_menu_command();
 	init();
@@ -422,9 +424,7 @@ void FeOverlay::splash_logo( const std::string &aux )
 {
 	sf::RectangleShape bg = layout_background();
 	FeTextPrimitive extra = layout_footer();
-
-	sf::Texture logo_texture = sf::Texture( *(FePresent::script_get_fep()->get_logo_full_image()) );
-	sf::Sprite logo = layout_logo( logo_texture, LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre );
+	const sf::Image *logo_image = FePresent::script_get_fep()->get_logo_full_image();
 
 	extra.setString( aux );
 
@@ -439,7 +439,7 @@ void FeOverlay::splash_logo( const std::string &aux )
 	m_wnd.clear();
 	draw_overlay_scene_background( m_wnd, m_fePresent );
 	m_wnd.draw( bg, t );
-	m_wnd.draw( logo, t );
+	m_wnd.draw_overlay_image( *logo_image, layout_logo_bounds( logo_image->getSize(), LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ) );
 	m_wnd.draw( extra, t );
 	m_wnd.display();
 }
@@ -1271,11 +1271,8 @@ FeTextPrimitive FeOverlay::layout_message( int style )
 
 // Create the AM Logo sprite, sized to fit the header
 // - The texture must be created by the caller to control its lifetime
-sf::Sprite FeOverlay::layout_logo( sf::Texture &texture, int style )
+sf::FloatRect FeOverlay::layout_logo_bounds( const sf::Vector2u &logo_size, int style )
 {
-	texture.setSmooth( true );
-	std::ignore = texture.generateMipmap();
-	sf::Vector2u logo_size = texture.getSize();
 	int margin = ( m_letterbox_top_height - m_header_char_size ) / 2.0;
 
 	float height = m_header_char_size;
@@ -1291,10 +1288,17 @@ sf::Sprite FeOverlay::layout_logo( sf::Texture &texture, int style )
 	if ( style & LayoutStyle::Centre ) x = ( m_screen_size.x - width ) / 2.0;
 	if ( style & LayoutStyle::Middle ) y = ( m_screen_size.y - height ) / 2.0;
 
-	sf::Sprite sprite( texture );
-	sprite.setScale( sf::Vector2f( width / logo_size.x, height / logo_size.y ) );
-	sprite.setPosition( m_screen_pos + sf::Vector2f( x, y ) );
-	return sprite;
+	return sf::FloatRect( m_screen_pos + sf::Vector2f( x, y ), sf::Vector2f( width, height ) );
+}
+
+void FeOverlay::draw_native_logo_if_needed()
+{
+	if ( !m_wnd.owns_sdl_window() || !m_native_logo_image )
+		return;
+
+	m_wnd.draw_overlay_image(
+		*m_native_logo_image,
+		layout_logo_bounds( m_native_logo_image->getSize(), m_native_logo_style ) );
 }
 
 // Create a list index overlay for use with LayoutPreview lists
@@ -1511,8 +1515,7 @@ int FeOverlay::display_config_dialog(
 	sf::RectangleShape border_bottom = layout_border( LayoutStyle::Bottom );
 	FeTextPrimitive header = layout_header( LayoutStyle::Left );
 	FeTextPrimitive footer = layout_footer();
-	sf::Texture logo_texture = sf::Texture( *(FePresent::script_get_fep()->get_logo_image()) );
-	sf::Sprite logo = layout_logo( logo_texture );
+	const sf::Image *logo_image = FePresent::script_get_fep()->get_logo_image();
 	FeListBox sdialog = layout_list(( is_edit ? LayoutStyle::Left : LayoutStyle::Centre ) | ( is_preview ? LayoutStyle::Single : LayoutStyle::Middle ));
 	FeListBox vdialog = layout_list(( is_edit ? LayoutStyle::Right : LayoutStyle::Centre ) | ( is_preview ? LayoutStyle::Single : LayoutStyle::Middle ));
 	FeTextPrimitive sindex = layout_index( LayoutStyle::Left );
@@ -1527,7 +1530,6 @@ int FeOverlay::display_config_dialog(
 	if ( !is_preview ) draw_list.push_back( &letterbox_top );
 	if ( !is_preview ) draw_list.push_back( &border_top );
 	if ( !is_preview ) draw_list.push_back( &header );
-	if ( !is_preview ) draw_list.push_back( &logo );
 	draw_list.push_back( &letterbox_bottom );
 	draw_list.push_back( &border_bottom );
 	draw_list.push_back( &footer );
@@ -1554,6 +1556,23 @@ int FeOverlay::display_config_dialog(
 	}
 
 	FeFlagMinder fm( m_overlay_is_on );
+	struct NativeLogoGuard
+	{
+		FeOverlay &overlay;
+		const sf::Image *previous_image;
+		int previous_style;
+
+		~NativeLogoGuard()
+		{
+			overlay.m_native_logo_image = previous_image;
+			overlay.m_native_logo_style = previous_style;
+		}
+	} native_logo_guard{ *this, m_native_logo_image, m_native_logo_style };
+	if ( !is_preview && m_wnd.owns_sdl_window() )
+	{
+		m_native_logo_image = logo_image;
+		m_native_logo_style = LayoutStyle::None;
+	}
 
 	//
 	// Event loop processing
@@ -1857,6 +1876,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
 					itr < ctx.draw_list.end(); ++itr )
 				m_wnd.draw( *(*itr), t );
+			draw_native_logo_if_needed();
 
 			m_wnd.display();
 		}
@@ -1991,6 +2011,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
 					itr < ctx.draw_list.end(); ++itr )
 				m_wnd.draw( *(*itr), t );
+			draw_native_logo_if_needed();
 
 			m_wnd.display();
 			redraw = false;
@@ -2359,6 +2380,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 		for ( std::vector<sf::Drawable *>::iterator itr=d.begin();
 				itr < d.end(); ++itr )
 			m_wnd.draw( *(*itr), t );
+		draw_native_logo_if_needed();
 
 		int ms = cursor_timer.getElapsedTime().asMilliseconds();
 		int cursor_fade = std::clamp( sin( ms / 500.0 * M_PI ) * 2.0 + 1.0, 0.0, 1.0 ) * 255;

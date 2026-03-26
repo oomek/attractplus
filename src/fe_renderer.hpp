@@ -42,7 +42,15 @@ enum FeRenderTextureSourceType
 {
 	FeRenderTextureSourceNone = 0,
 	FeRenderTextureSourceContainer,
-	FeRenderTextureSourceFontPage
+	FeRenderTextureSourceFontPage,
+	FeRenderTextureSourceRawRgba
+};
+
+struct FeRenderRawTextureSource
+{
+	const unsigned char *pixels;
+	unsigned int width;
+	unsigned int height;
 };
 
 struct FeRenderGeometry

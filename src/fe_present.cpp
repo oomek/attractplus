@@ -1744,10 +1744,9 @@ void FePresent::redraw()
 	if ( is_layout_loaded() )
 		tick();
 
-	submit_render_frame();
-
-	m_window.clear();
 	redraw_surfaces();
+	submit_render_frame();
+	m_window.clear();
 	if ( !m_window.owns_sdl_window() )
 		m_window.draw( *this, m_layout_transform );
 	m_window.display();
