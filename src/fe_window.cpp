@@ -601,6 +601,11 @@ FeWindow::~FeWindow()
 		delete m_window;
 }
 
+bool FeWindow::owns_sdl_window() const
+{
+	return m_gpu_context.get_window() != nullptr;
+}
+
 const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const sf::Image &image )
 {
 	OverlayTextureEntry &entry = m_overlay_images[ &image ];
@@ -658,7 +663,7 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 
 void FeWindow::draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth, const sf::Color &color )
 {
-	if ( !m_sdl_window_owned )
+	if ( !owns_sdl_window() )
 		return;
 
 	const FeRenderRawTextureSource *source = cache_overlay_image( image );
@@ -756,8 +761,8 @@ void FeWindow::display()
 			s_logged_content = content;
 			s_logged_available = available;
 		}
-#if defined(SFML_SYSTEM_WINDOWS)
-		if ( !m_sdl_window_owned && !m_gpu_context.is_available() && m_window && m_gpu_context.has_submitted_frame() && m_gpu_context.has_frame_content() )
+#if !defined(SFML_SYSTEM_WINDOWS)
+		if ( !owns_sdl_window() && !m_gpu_context.is_available() && m_window && m_gpu_context.has_submitted_frame() && m_gpu_context.has_frame_content() )
 		{
 			const sf::Vector2u size = m_window->getSize();
 			if ( !m_gpu_context.wrap_native_window(
@@ -840,12 +845,11 @@ void FeWindow::initial_create()
 	if ( m_window )
 		save();
 
-	if ( m_sdl_window_owned )
+	if ( owns_sdl_window() )
 	{
 		delete m_window;
 		m_window = NULL;
 		m_gpu_context.release_window();
-		m_sdl_window_owned = false;
 	}
 
 	int style_map[4] =
@@ -1124,7 +1128,6 @@ void FeWindow::initial_create()
 					}
 					else
 					{
-						m_sdl_window_owned = true;
 						SDL_ShowWindow( sdl_window );
 					}
 				}
@@ -1133,23 +1136,22 @@ void FeWindow::initial_create()
 #endif
 	}
 
-	if ( !m_sdl_window_owned )
-	{
-		if ( !m_window )
-			m_window = new sf::RenderWindow();
-		m_window->create( vm, FE_NAME, style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
-	}
+#if !defined(SFML_SYSTEM_WINDOWS)
+	if ( !m_window )
+		m_window = new sf::RenderWindow();
+	m_window->create( vm, FE_NAME, style_map[ m_win_mode ], state_map[ m_win_mode ], ctx );
+#endif
 
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
 	// when we rely solely on DwmFlush()
 #if defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-		m_window->setVerticalSyncEnabled( m_win_mode == FeSettings::Fullscreen );
+	(void)ctx;
 #else
 	if ( m_window )
 		m_window->setVerticalSyncEnabled(true);
 #endif
+#if !defined(SFML_SYSTEM_WINDOWS)
 	if ( m_window )
 	{
 		m_window->setKeyRepeatEnabled(false);
@@ -1169,6 +1171,7 @@ void FeWindow::initial_create()
 		clear();
 		display();
 	}
+#endif
 
 #ifdef SFML_SYSTEM_MACOS
 	if ( m_win_mode == FeSettings::Fillscreen )
@@ -1198,10 +1201,7 @@ void FeWindow::initial_create()
 
 #if defined(SFML_SYSTEM_WINDOWS)
 	HWND hwnd = nullptr;
-	if ( m_sdl_window_owned )
-		hwnd = static_cast<HWND>( m_gpu_context.get_native_window_handle() );
-	else if ( m_window )
-		hwnd = static_cast<HWND>( m_window->getNativeHandle() );
+	hwnd = static_cast<HWND>( m_gpu_context.get_native_window_handle() );
 	if ( hwnd )
 	{
 		set_win32_foreground_window( hwnd, m_fes.get_window_topmost() ? HWND_TOPMOST : HWND_TOP );
@@ -1214,8 +1214,7 @@ void FeWindow::initial_create()
 		SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 
 		// Trigger title bar redraw to fix Win10 dark-mode (initially draws in light-mode)
-		if ( m_window )
-			display();
+		display();
 		SendMessage(hwnd, WM_NCACTIVATE, FALSE, 0);
 		SendMessage(hwnd, WM_NCACTIVATE, TRUE, 0);
 	}
@@ -1326,11 +1325,7 @@ bool FeWindow::run()
 #if defined(SFML_SYSTEM_WINDOWS)
 	auto get_frontend_hwnd = [&]() -> HWND
 	{
-		if ( m_sdl_window_owned )
-			return static_cast<HWND>( m_gpu_context.get_native_window_handle() );
-		if ( m_window )
-			return static_cast<HWND>( m_window->getNativeHandle() );
-		return nullptr;
+		return static_cast<HWND>( m_gpu_context.get_native_window_handle() );
 	};
 
 	if ( m_win_mode == FeSettings::Fullscreen )
@@ -1338,13 +1333,10 @@ bool FeWindow::run()
 		if ( HWND hwnd = get_frontend_hwnd() )
 			set_win32_foreground_window( hwnd, HWND_BOTTOM );
 		m_blackout.display();
-		if ( m_sdl_window_owned )
+		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
-			if ( SDL_Window *window = m_gpu_context.get_window() )
-				SDL_HideWindow( window );
+			SDL_HideWindow( window );
 		}
-		else if ( m_window )
-			m_window->setVisible( false );
 		set_win32_foreground_window( m_blackout.getNativeHandle(), HWND_TOP );
 	}
 	else
@@ -1474,13 +1466,10 @@ bool FeWindow::run()
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
 		m_blackout.display();
-		if ( m_sdl_window_owned )
+		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
-			if ( SDL_Window *window = m_gpu_context.get_window() )
-				SDL_ShowWindow( window );
+			SDL_ShowWindow( window );
 		}
-		else if ( m_window )
-			m_window->setVisible( true );
 
 		// Since we are double/triple buffering in fullscreen
 		// we need to clear the frames rendered ahead
@@ -1533,24 +1522,15 @@ void FeWindow::save()
 {
 	if ( is_windowed_mode( m_win_mode ) && !m_win_pos.m_temporary )
 	{
-		if ( m_sdl_window_owned )
+		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
-			if ( SDL_Window *window = m_gpu_context.get_window() )
-			{
-				int x = 0;
-				int y = 0;
-				int w = 0;
-				int h = 0;
-				SDL_GetWindowPosition( window, &x, &y );
-				SDL_GetWindowSize( window, &w, &h );
-				FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) ) );
-				win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
-			}
-		}
-		else if ( m_window )
-		{
-			m_window->display(); // Crashing on Linux workaround
-			FeWindowPosition win_pos( m_window->getPosition(), m_window->getSize() );
+			int x = 0;
+			int y = 0;
+			int w = 0;
+			int h = 0;
+			SDL_GetWindowPosition( window, &x, &y );
+			SDL_GetWindowSize( window, &w, &h );
+			FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) ) );
 			win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 		}
 	}
@@ -1558,20 +1538,10 @@ void FeWindow::save()
 
 void FeWindow::close()
 {
-	if ( m_sdl_window_owned )
-	{
-		save();
-		if ( m_window )
-		{
-			delete m_window;
-			m_window = NULL;
-		}
-
-		m_gpu_context.release_window();
-		m_sdl_window_owned = false;
-		return;
-	}
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	save();
+	m_gpu_context.release_window();
+#else
 	if ( m_window )
 	{
 		m_window->display(); // Crashing on Linux workaround
@@ -1580,104 +1550,103 @@ void FeWindow::close()
 	}
 
 	m_gpu_context.release_window();
+#endif
 }
 
 bool FeWindow::hasFocus()
 {
-	if ( m_sdl_window_owned )
-	{
-		SDL_Window *window = m_gpu_context.get_window();
-		if ( window )
-			return SDL_GetKeyboardFocus() == window || SDL_GetMouseFocus() == window;
-	}
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	SDL_Window *window = m_gpu_context.get_window();
+	return window && ( SDL_GetKeyboardFocus() == window || SDL_GetMouseFocus() == window );
+#else
 	if ( m_window )
 		return m_window->hasFocus();
 
 	return false;
+#endif
 }
 
 bool FeWindow::isOpen()
 {
-	if ( m_sdl_window_owned )
-		return m_gpu_context.get_window() != nullptr;
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	return m_gpu_context.get_window() != nullptr;
+#else
 	if ( m_window )
 		return m_window->isOpen();
 
 	return false;
+#endif
 }
 
 sf::Vector2u FeWindow::get_size() const
 {
-	if ( m_sdl_window_owned )
+#if defined(SFML_SYSTEM_WINDOWS)
+	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
-		if ( SDL_Window *window = m_gpu_context.get_window() )
-		{
-			int width = 0;
-			int height = 0;
-			SDL_GetWindowSize( window, &width, &height );
-			return sf::Vector2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
-		}
+		int width = 0;
+		int height = 0;
+		SDL_GetWindowSize( window, &width, &height );
+		return sf::Vector2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
 	}
 
+	return {};
+#else
 	if ( m_window )
 		return m_window->getSize();
 
 	return {};
+#endif
 }
 
 sf::Vector2i FeWindow::get_position() const
 {
-	if ( m_sdl_window_owned )
+#if defined(SFML_SYSTEM_WINDOWS)
+	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
-		if ( SDL_Window *window = m_gpu_context.get_window() )
-		{
-			int x = 0;
-			int y = 0;
-			SDL_GetWindowPosition( window, &x, &y );
-			return sf::Vector2i( x, y );
-		}
+		int x = 0;
+		int y = 0;
+		SDL_GetWindowPosition( window, &x, &y );
+		return sf::Vector2i( x, y );
 	}
 
+	return {};
+#else
 	if ( m_window )
 		return m_window->getPosition();
 
 	return {};
+#endif
 }
 
 sf::Vector2i FeWindow::get_mouse_position() const
 {
-	if ( m_sdl_window_owned )
+#if defined(SFML_SYSTEM_WINDOWS)
+	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
-		if ( SDL_Window *window = m_gpu_context.get_window() )
-		{
-			float x = 0.0f;
-			float y = 0.0f;
-			SDL_GetMouseState( &x, &y );
-			return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
-		}
+		float x = 0.0f;
+		float y = 0.0f;
+		SDL_GetMouseState( &x, &y );
+		return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
 	}
 
+	return {};
+#else
 	if ( m_window )
 		return sf::Mouse::getPosition( *m_window );
 
 	return {};
+#endif
 }
 
 void FeWindow::set_mouse_position( const sf::Vector2i &pos )
 {
-	if ( m_sdl_window_owned )
-	{
-		if ( SDL_Window *window = m_gpu_context.get_window() )
-		{
-			SDL_WarpMouseInWindow( window, static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
-			return;
-		}
-	}
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	if ( SDL_Window *window = m_gpu_context.get_window() )
+		SDL_WarpMouseInWindow( window, static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
+#else
 	if ( m_window )
 		sf::Mouse::setPosition( pos, *m_window );
+#endif
 }
 
 void FeWindow::set_key_repeat_enabled( bool enabled )
@@ -1688,17 +1657,13 @@ void FeWindow::set_key_repeat_enabled( bool enabled )
 
 void FeWindow::set_mouse_cursor_visible( bool visible )
 {
-	if ( m_sdl_window_owned )
-	{
-		if ( SDL_Window *window = m_gpu_context.get_window() )
-		{
-			visible ? SDL_ShowCursor() : SDL_HideCursor();
-			return;
-		}
-	}
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	if ( SDL_Window *window = m_gpu_context.get_window() )
+		visible ? SDL_ShowCursor() : SDL_HideCursor();
+#else
 	if ( m_window )
 		m_window->setMouseCursorVisible( visible );
+#endif
 }
 
 void FeWindow::set_view( const sf::View &view )
@@ -1709,9 +1674,9 @@ void FeWindow::set_view( const sf::View &view )
 
 bool FeWindow::save_screenshot( const std::string &filename )
 {
-	if ( m_sdl_window_owned && m_gpu_context.save_screenshot( filename ) )
-		return true;
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	return m_gpu_context.save_screenshot( filename );
+#else
 	if ( m_window )
 	{
 		sf::Texture texture;
@@ -1723,28 +1688,26 @@ bool FeWindow::save_screenshot( const std::string &filename )
 	}
 
 	return false;
+#endif
 }
 
 void FeWindow::clear()
 {
-	if ( m_sdl_window_owned )
-	{
-		m_overlay_geometry.clear();
-		m_overlay_images.clear();
-		return;
-	}
-
+#if defined(SFML_SYSTEM_WINDOWS)
+	m_overlay_geometry.clear();
+	m_overlay_images.clear();
+#else
 	if ( m_window )
 		m_window->clear();
+#endif
 }
 
 void FeWindow::draw( const FeOverlayDrawItem &item, const sf::RenderStates &r )
 {
-	if ( m_sdl_window_owned )
-	{
-		append_native_overlay_item( item, r );
+	if ( !owns_sdl_window() )
 		return;
-	}
+
+	append_native_overlay_item( item, r );
 }
 
 void FeWindow::draw( const sf::RectangleShape &rect, const sf::RenderStates &r )
@@ -1774,20 +1737,19 @@ void FeWindow::draw( const FeRectangle &rect, const sf::RenderStates &r )
 
 const std::optional<sf::Event> FeWindow::pollEvent()
 {
-	if ( m_sdl_window_owned )
+#if defined(SFML_SYSTEM_WINDOWS)
+	SDL_Event event;
+	while ( SDL_PollEvent( &event ) )
 	{
-		SDL_Event event;
-		while ( SDL_PollEvent( &event ) )
-		{
-			if ( const auto translated = translate_sdl_event( event, m_gpu_context.get_window() ) )
-				return translated;
-		}
-
-		return {};
+		if ( const auto translated = translate_sdl_event( event, m_gpu_context.get_window() ) )
+			return translated;
 	}
 
+	return {};
+#else
 	if ( m_window )
 		return m_window->pollEvent();
 
 	return {};
+#endif
 }

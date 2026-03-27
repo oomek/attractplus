@@ -1,6 +1,6 @@
 /attract
 *.o
-obj
+obj*
 core
 *.dll
 *.exe
@@ -18,3 +18,5 @@ core
 /modules
 /history.idx
 /.vscode
+attractplus
+attractplus-console

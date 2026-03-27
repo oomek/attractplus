@@ -1278,7 +1278,8 @@ int main(int argc, char *argv[])
 			command_timer.restart();
 		}
 
-		if ( redraw || !feSettings.get_info_bool( FeSettings::PowerSaving ) )
+		const bool continuous_sdl_present = window.owns_sdl_window();
+		if ( continuous_sdl_present || redraw || !feSettings.get_info_bool( FeSettings::PowerSaving ) )
 		{
 			feVM.redraw_surfaces();
 			feVM.submit_render_frame();

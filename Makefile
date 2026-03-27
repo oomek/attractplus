@@ -126,7 +126,7 @@ bindir=$(exec_prefix)/bin
 DATA_PATH:=$(datadir)/attractplus/
 EXE_BASE=attractplus
 EXE_EXT=
-OBJ_DIR=obj
+OBJ_DIR_PREFIX ?= obj
 SRC_DIR=src
 EXTLIBS_DIR=extlibs
 FE_FLAGS=
@@ -352,6 +352,17 @@ ifneq ($(shell $(PKG_CONFIG) --exists sdl3 && echo 1 || echo 0),1)
 endif
 CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
 LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
+ifneq ($(shell $(PKG_CONFIG) --exists SDL3_image && echo 1 || echo 0),1)
+ ifneq ($(shell $(PKG_CONFIG) --exists sdl3-image && echo 1 || echo 0),1)
+  $(error SDL3_image development files are required through pkg-config)
+ else
+  SDL3_IMAGE_PKG = sdl3-image
+ endif
+else
+ SDL3_IMAGE_PKG = SDL3_image
+endif
+CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SDL3_IMAGE_PKG))
+LIBS += $(shell $(PKG_CONFIG) --libs $(SDL3_IMAGE_PKG))
 
 #
 # Check whether optional libs should be enabled
@@ -429,6 +440,43 @@ else
  PKG_CONFIG_LIBS += libavformat libavcodec libavutil libswscale libswresample
  _DEP += media.hpp
  _OBJ += media.o
+endif
+
+ifeq ($(origin OBJ_DIR), undefined)
+BUILD_OBJ_TAG :=
+ifeq ($(FE_WINDOWS_COMPILE),1)
+ ifneq ($(origin CROSS),undefined)
+  BUILD_OBJ_TAG := windows-$(subst .,_,$(subst /,_,$(TOOLCHAIN)))
+ else
+  BUILD_OBJ_TAG := windows-native
+ endif
+else ifeq ($(FE_MACOSX_COMPILE),1)
+ BUILD_OBJ_TAG := macos
+else
+ BUILD_OBJ_TAG := linux
+ ifeq ($(USE_DRM),1)
+  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-drm
+ else
+  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-x11
+ endif
+endif
+ifeq ($(USE_SYSTEM_SFML),1)
+ BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-sys-sfml
+else
+ BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-ext-sfml
+endif
+ifeq ($(STATIC),1)
+ BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-static
+else
+ BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-shared
+endif
+ifeq ($(FE_HWACCEL_VAAPI),1)
+ BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-vaapi
+endif
+ifeq ($(FE_HWACCEL_VDPAU),1)
+ BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-vdpau
+endif
+OBJ_DIR := $(OBJ_DIR_PREFIX)-$(BUILD_OBJ_TAG)
 endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR) -I$(RES_LANGUAGE_DIR)
@@ -546,8 +594,9 @@ endif
 ifeq ($(FE_MACOSX_COMPILE),1)
 	$(eval SFML_FLAGS += -DSFML_USE_SYSTEM_DEPS=1)
 endif
+	$(SILENT)$(MD) $(SFML_OBJ_DIR)
 	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE $(SFML_FLAGS)
-	+$(SILENT)$(CMAKE) --build obj/sfml --config Release --target install
+	+$(SILENT)$(CMAKE) --build $(SFML_OBJ_DIR) --config Release --target install
 	touch $(SFML_TOKEN)
 endif
 else

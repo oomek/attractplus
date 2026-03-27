@@ -6,6 +6,7 @@
 #include "fe_blend.hpp"
 #include "fe_util.hpp"
 #include "fe_base.hpp"
+#include <SDL3_image/SDL_image.h>
 
 #include <algorithm>
 #include <cmath>
@@ -25,6 +26,9 @@ namespace
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
+		if ( width <= 0 || height <= 0 || !pixels )
+			return false;
+
 		SDL_Surface *surface = SDL_CreateSurfaceFrom(
 			width,
 			height,
@@ -34,7 +38,7 @@ namespace
 		if ( !surface )
 			return false;
 
-		const bool result = SDL_SavePNG( surface, filename.c_str() );
+		const bool result = IMG_SavePNG( surface, filename.c_str() );
 		SDL_DestroySurface( surface );
 		return result;
 	}

@@ -106,7 +106,6 @@ private:
 #endif
 	int m_win_mode;
 	bool m_mouse_outside = true;
-	bool m_sdl_window_owned = false;
 	struct OverlayTextureEntry
 	{
 		std::vector<unsigned char> pixels;
@@ -145,7 +144,7 @@ public:
 	void set_mouse_cursor_visible( bool visible );
 	void set_view( const sf::View &view );
 	bool save_screenshot( const std::string &filename );
-	bool owns_sdl_window() const { return m_sdl_window_owned; }
+	bool owns_sdl_window() const;
 
 	void clear();
 	void draw( const FeOverlayDrawItem &item, const sf::RenderStates &t=sf::RenderStates::Default );
