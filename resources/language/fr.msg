@@ -17,6 +17,10 @@ On;Activé
 OR;OU
 True;Vrai
 Yes;Oui
+Stopped;Arrete
+Paused;En pause
+Playing;En lecture
+Ended;Termine
 Import;Importer
 Cancel;Annuler
 

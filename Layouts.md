@@ -1973,7 +1973,14 @@ The class representing a sound object. Instances of this class are returned by t
 -  `volume` 🔶 - Get/set the volume of played sound. Range is `[0...100]`.
 -  `pan` 🔶 - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
 -  `playing` - Get/set whether the sound is currently playing (boolean).
--  `loop` - Get/set whether the sound should be looped (boolean).
+-  `rewind` - Get/set how the `playing` property behaves (boolean). If `true`, `playing` behaves as play/stop and setting `playing` to `false` rewinds to the beginning. If `false`, `playing` behaves as play/pause and setting `playing` to `true` resumes from the current position. Default value is `true`.
+-  `status` - Get the current playback status. Can have one of the following values:
+   -  `Status.Stopped`
+   -  `Status.Paused`
+   -  `Status.Playing`
+   -  `Status.Ended`
+-  `status_msg` - Get the current playback status as the translated string for `"Stopped"`, `"Paused"`, `"Playing"` or `"Ended"`.
+-  `loop` - Get/set whether the sound should be looped (boolean). Default value is `false`.
 -  `pitch` - Get/set the sound pitch (float). Default value is `1`.
 -  `x` - Get/set the x position of the sound. Default value is `0`.
 -  `y` - Get/set the y position of the sound. Default value is `0`.
@@ -1993,13 +2000,20 @@ The class representing an audio track. Instances of this class are returned by t
 -  `volume` - Get/set the volume of played audio track. Range is `[0...100]`
 -  `pan` - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
 -  `playing` - Get/set whether the audio track is currently playing (boolean).
--  `loop` - Get/set whether the audio track should be looped (boolean).
+-  `rewind` - Get/set how the `playing` property behaves (boolean). If `true`, `playing` behaves as play/stop and setting `playing` to `false` rewinds to the beginning. If `false`, `playing` behaves as play/pause and setting `playing` to `true` resumes from the current position. Default value is `true`.
+-  `status` - Get the current playback status. Can have one of the following values:
+   -  `Status.Stopped`
+   -  `Status.Paused`
+   -  `Status.Playing`
+   -  `Status.Ended`
+-  `status_msg` - Get the current playback status as the translated string for `"Stopped"`, `"Paused"`, `"Playing"` or `"Ended"`.
+-  `loop` - Get/set whether the audio track should be looped (boolean). Default value is `false`.
 -  `pitch` - Get/set the audio track pitch (float). Default value is `1`.
 -  `x` - Get/set the x position of the audio track. Default value is `0`.
 -  `y` - Get/set the y position of the audio track. Default value is `0`.
 -  `z` - Get/set the z position of the audio track. Default value is `0`.
 -  `duration` - Get the audio track duration (in milliseconds).
--  `time` - Get the time that the audio track is current at (in milliseconds).
+-  `time` - Get/set the time that the audio track is current at (in milliseconds).
 -  `vu` - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.

@@ -104,6 +104,7 @@ FeSound::FeSound( bool loop )
 	m_sound( m_buffer ),
 	m_file_name( "" ),
 	m_play_state( false ),
+	m_rewind( true ),
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_pitch( 1.0 ),
@@ -145,9 +146,11 @@ void FeSound::load( const std::string &fn )
 	{
 		FeLog() << "Error loading sound file: " << fn << std::endl;
 		m_file_name = "";
+		m_play_state = false;
 		return;
 	}
 	m_file_name = fn;
+	m_play_state = false;
 }
 
 void FeSound::set_file_name( const char *n )
@@ -189,33 +192,94 @@ void FeSound::set_pan( float p )
 
 void FeSound::set_playing( bool flag )
 {
-	m_play_state = flag;
-
-	if ( m_play_state == true && m_file_name != "" )
+	if ( !flag )
 	{
-		m_sound.stop();
-		m_sound.setLooping( m_loop );
-		m_sound.setPosition( m_position );
-		m_sound.setPitch( m_pitch );
+		m_play_state = false;
 
-		float vol = m_volume;
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
-			vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+		if ( m_rewind )
+			m_sound.stop();
+		else
+			m_sound.pause();
 
-		m_sound.setVolume( vol );
-		m_sound.setPan( m_pan );
-		m_sound.play();
+		return;
 	}
-	else
+
+	if ( m_file_name == "" )
 	{
-		m_sound.stop();
+		m_play_state = false;
+		return;
 	}
+
+	const bool ended = ( get_status() == FePlaybackStatusEnded );
+	m_play_state = true;
+
+	m_sound.setLooping( m_loop );
+	m_sound.setPosition( m_position );
+	m_sound.setPitch( m_pitch );
+
+	float vol = m_volume;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+
+	m_sound.setVolume( vol );
+	m_sound.setPan( m_pan );
+
+	if ( m_sound.getStatus() == sf::SoundSource::Status::Playing )
+		m_sound.stop();
+	else if ( ended || (( m_sound.getStatus() == sf::SoundSource::Status::Stopped )
+		&& ( m_buffer.getDuration() > sf::Time::Zero )
+		&& ( m_sound.getPlayingOffset() >= m_buffer.getDuration() )))
+		m_sound.setPlayingOffset( sf::Time::Zero );
+
+	m_sound.play();
 }
 
 bool FeSound::get_playing()
 {
 	return ( m_sound.getStatus() == sf::SoundSource::Status::Playing ) ? true : false;
+}
+
+bool FeSound::get_rewind()
+{
+	return m_rewind;
+}
+
+void FeSound::set_rewind( bool rewind )
+{
+	m_rewind = rewind;
+}
+
+FePlaybackStatus FeSound::get_status()
+{
+	switch ( m_sound.getStatus() )
+	{
+	case sf::SoundSource::Status::Playing:
+		return FePlaybackStatusPlaying;
+	case sf::SoundSource::Status::Paused:
+		return FePlaybackStatusPaused;
+	default:
+		if ( m_play_state
+			|| (( m_buffer.getDuration() > sf::Time::Zero )
+				&& ( m_sound.getPlayingOffset() >= m_buffer.getDuration() )))
+			return FePlaybackStatusEnded;
+		return FePlaybackStatusStopped;
+	}
+}
+
+std::string FeSound::get_status_msg()
+{
+	switch ( get_status() )
+	{
+	case FePlaybackStatusPlaying:
+		return _( "Playing" );
+	case FePlaybackStatusPaused:
+		return _( "Paused" );
+	case FePlaybackStatusEnded:
+		return _( "Ended" );
+	default:
+		return _( "Stopped" );
+	}
 }
 
 float FeSound::get_pitch()

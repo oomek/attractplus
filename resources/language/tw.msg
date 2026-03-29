@@ -17,6 +17,10 @@ On;開啟
 OR;或
 True;是
 Yes;是
+Stopped;已停止
+Paused;已暫停
+Playing;播放中
+Ended;已結束
 Import;進口
 Cancel;取消
 

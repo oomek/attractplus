@@ -30,6 +30,14 @@
 #include "sqrat_array_wrapper.hpp"
 #include "fe_input.hpp"
 
+enum FePlaybackStatus
+{
+	FePlaybackStatusStopped = 0,
+	FePlaybackStatusPaused,
+	FePlaybackStatusPlaying,
+	FePlaybackStatusEnded
+};
+
 class FeMusic
 {
 private:
@@ -39,6 +47,7 @@ private:
 
 	std::string m_file_name;
 	bool m_play_state;
+	bool m_rewind;
 	float m_volume;
 	float m_pan;
 	FeSoundInfo::SoundType m_sound_type;
@@ -62,6 +71,10 @@ public:
 
 	bool get_playing();
 	void set_playing( bool );
+	bool get_rewind();
+	void set_rewind( bool );
+	FePlaybackStatus get_status();
+	std::string get_status_msg();
 
     float get_pitch();
 	void set_pitch( float );
@@ -78,6 +91,7 @@ public:
 
 	int get_duration();
 	int get_time();
+	void set_time( int );
 	const char *get_metadata( const char * );
 
 	void tick();
