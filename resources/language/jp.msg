@@ -17,6 +17,10 @@ On;オン
 OR;又は
 True;有効
 Yes;はい
+Stopped;停止
+Paused;一時停止
+Playing;再生中
+Ended;終了
 Import;輸入
 Cancel;キャンセル
 

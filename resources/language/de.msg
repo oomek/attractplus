@@ -17,6 +17,10 @@ On;Ein
 OR;ODER
 True;Wahr
 Yes;Ja
+Stopped;Gestoppt
+Paused;Pausiert
+Playing;Abspielen
+Ended;Beendet
 Import;Import
 Cancel;Stornieren
 

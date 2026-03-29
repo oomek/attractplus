@@ -42,6 +42,7 @@ private:
 	sf::Sound m_sound;
 	std::string m_file_name;
 	bool m_play_state;
+	bool m_rewind;
 	float m_volume;
 	float m_pan;
 	float m_pitch;
@@ -66,6 +67,10 @@ public:
 
 	bool get_playing();
 	void set_playing( bool );
+	bool get_rewind();
+	void set_rewind( bool );
+	FePlaybackStatus get_status();
+	std::string get_status_msg();
 
 	float get_pitch();
 	void set_pitch( float );

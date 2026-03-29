@@ -42,6 +42,8 @@
 
 FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	: m_file_name( "" ),
+	m_play_state( false ),
+	m_rewind( true ),
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_sound_type( st ),
@@ -97,9 +99,11 @@ void FeMusic::load( const std::string &fn )
 	{
 		FeLog() << "Error loading audio file: " << fn << std::endl;
 		m_file_name = "";
+		m_play_state = false;
 		return;
 	}
 	m_file_name = fn;
+	m_play_state = false;
 
 	m_audio_effects.reset_all();
 }
@@ -111,6 +115,7 @@ void FeMusic::set_file_name( const char *n )
 	if ( filename.empty() )
 	{
 		m_file_name = "";
+		m_play_state = false;
 		m_music.stop();
 		return;
 	}
@@ -160,23 +165,88 @@ bool FeMusic::get_playing()
 
 void FeMusic::set_playing( bool state )
 {
-	m_music.stop();
-
-	if ( state == true && m_file_name != "" )
+	if ( !state )
 	{
-		float vol = m_volume;
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
-			vol = vol * fep->get_fes()->get_play_volume( m_sound_type ) / 100.0;
+		m_play_state = false;
 
-		m_music.setVolume( vol );
-		m_music.setPan( m_pan );
+		if ( m_rewind )
+			m_music.stop();
+		else
+			m_music.pause();
 
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-		if ( normaliser )
-			normaliser->set_media_volume( vol / 100.0f );
+		return;
+	}
 
+	if ( m_file_name == "" )
+	{
+		m_play_state = false;
+		return;
+	}
+
+	const bool ended = ( get_status() == FePlaybackStatusEnded );
+	m_play_state = true;
+
+	float vol = m_volume;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		vol = vol * fep->get_fes()->get_play_volume( m_sound_type ) / 100.0;
+
+	m_music.setVolume( vol );
+	m_music.setPan( m_pan );
+
+	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+	if ( normaliser )
+		normaliser->set_media_volume( vol / 100.0f );
+
+	const sf::SoundSource::Status status = m_music.getStatus();
+	if ( ended || (( status == sf::SoundSource::Status::Stopped )
+		&& ( m_music.getDuration() > sf::Time::Zero )
+		&& ( m_music.getPlayingOffset() >= m_music.getDuration() )))
+		m_music.setPlayingOffset( sf::Time::Zero );
+
+	if ( status != sf::SoundSource::Status::Playing )
 		m_music.play();
+}
+
+bool FeMusic::get_rewind()
+{
+	return m_rewind;
+}
+
+void FeMusic::set_rewind( bool rewind )
+{
+	m_rewind = rewind;
+}
+
+FePlaybackStatus FeMusic::get_status()
+{
+	switch ( m_music.getStatus() )
+	{
+	case sf::SoundSource::Status::Playing:
+		return FePlaybackStatusPlaying;
+	case sf::SoundSource::Status::Paused:
+		return FePlaybackStatusPaused;
+	default:
+		if ( m_play_state
+			|| (( m_music.getDuration() > sf::Time::Zero )
+				&& ( m_music.getPlayingOffset() >= m_music.getDuration() )))
+			return FePlaybackStatusEnded;
+		return FePlaybackStatusStopped;
+	}
+}
+
+std::string FeMusic::get_status_msg()
+{
+	switch ( get_status() )
+	{
+	case FePlaybackStatusPlaying:
+		return _( "Playing" );
+	case FePlaybackStatusPaused:
+		return _( "Paused" );
+	case FePlaybackStatusEnded:
+		return _( "Ended" );
+	default:
+		return _( "Stopped" );
 	}
 }
 
@@ -241,6 +311,15 @@ int FeMusic::get_duration()
 int FeMusic::get_time()
 {
 	return m_music.getPlayingOffset().asMilliseconds();
+}
+
+void FeMusic::set_time( int time )
+{
+	const int clamped_time = std::clamp( time, 0, get_duration() );
+	m_music.setPlayingOffset( sf::milliseconds( clamped_time ) );
+
+	if ( m_music.getStatus() == sf::SoundSource::Status::Stopped )
+		m_play_state = (( get_duration() > 0 ) && ( clamped_time >= get_duration() ));
 }
 
 const char *FeMusic::get_metadata( const char* tag )

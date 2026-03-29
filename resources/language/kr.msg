@@ -17,6 +17,10 @@ On;켜기
 OR;또는
 True;참
 Yes;예
+Stopped;중지됨
+Paused;일시 정지
+Playing;재생 중
+Ended;종료됨
 Import;수입
 Cancel;취소
 

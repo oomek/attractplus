@@ -17,6 +17,10 @@ On;Activado
 OR;O
 True;Verdadero
 Yes;Si
+Stopped;Detenido
+Paused;Pausado
+Playing;Reproduciendo
+Ended;Finalizado
 Import;Importar
 Cancel;Cancelar
 

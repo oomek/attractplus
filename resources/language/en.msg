@@ -17,6 +17,10 @@ On;On
 OR;OR
 True;True
 Yes;Yes
+Stopped;Stopped
+Paused;Paused
+Playing;Playing
+Ended;Ended
 Import;Import
 Cancel;Cancel
 

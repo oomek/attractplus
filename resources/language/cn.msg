@@ -17,6 +17,10 @@ On;在
 OR;或
 True;真的
 Yes;是
+Stopped;已停止
+Paused;已暂停
+Playing;播放中
+Ended;已结束
 Import;进口
 Cancel;取消
 
