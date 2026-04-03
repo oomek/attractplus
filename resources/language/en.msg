@@ -77,6 +77,7 @@ Settings;Settings
 Global Filter;Global Filter
 Group Clones;Group Clones
 Hide Game Title Brackets;Hide Game Title Brackets
+Randomise Artwork;Randomise Artwork
 Format Game Title;Format Game Title
 Hide Console;Hide Console
 Image Cache Size;Image Cache Size
@@ -505,6 +506,7 @@ _help_misc_exit_message;Alternate message to exit the frontend [i.e. "Shut Down 
 _help_misc_filter_wrap_mode;Set what happens when the "Next Filter" or "Previous Filter" actions reach the end of the filter set
 _help_misc_group_clones;Group all clones of a game under one single list entry
 _help_misc_hide_brackets;Hide text in brackets when showing game titles
+_help_misc_randomise_artwork;Randomise artwork when multiple matches are found.
 _help_misc_prefix_modes;Move "The" and "Vs." prefixes to the end of the game title
 _help_misc_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode Plus from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
 _help_misc_image_cache_mbytes;Configure the maximum size of Attract-Mode Plus's internal image cache (in megabytes)

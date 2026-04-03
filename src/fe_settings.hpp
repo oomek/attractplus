@@ -142,6 +142,7 @@ public:
 		ScreenSaverTimeout,
 		DisplaysMenuExit,
 		HideBrackets,
+		RandomiseArtwork,
 		GroupClones,
 		StartupMode,
 		PrefixMode,
@@ -253,6 +254,7 @@ private:
 	bool m_custom_languages;
 	bool m_displays_menu_exit;
 	bool m_hide_brackets;
+	bool m_randomise_artwork;
 	bool m_group_clones;
 	StartupModeType m_startup_mode;
 	PrefixModeType m_prefix_mode;

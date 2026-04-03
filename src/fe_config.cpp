@@ -1792,6 +1792,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::TOGGLE, _( "Confirm Exit" ), ctx.fe_settings.get_info_bool( FeSettings::ConfirmExit ), _( "_help_misc_confirm_exit" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Custom Overlay" ), ctx.fe_settings.get_info_bool( FeSettings::CustomOverlay ), _( "_help_misc_custom_overlay" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Hide Game Title Brackets" ), ctx.fe_settings.get_info_bool( FeSettings::HideBrackets ), _( "_help_misc_hide_brackets" ) );
+	ctx.add_opt( Opt::TOGGLE, _( "Randomise Artwork" ), ctx.fe_settings.get_info_bool( FeSettings::RandomiseArtwork ), _( "_help_misc_randomise_artwork" ) );
 
 	std::vector<std::string> prefix_modes = _( FeSettings::prefixDispTokens );
 	std::string prefix_mode = value_at( prefix_modes, ctx.fe_settings.get_prefix_mode() );
@@ -1865,6 +1866,7 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	ctx.fe_settings.set_info( FeSettings::ConfirmExit, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::CustomOverlay, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::HideBrackets, ctx.opt_list[i++].get_bool() );
+	ctx.fe_settings.set_info( FeSettings::RandomiseArtwork, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::PrefixMode, FeSettings::prefixTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::FilterWrapMode, FeSettings::filterWrapTokens[ ctx.opt_list[i++].get_vindex() ] );
 

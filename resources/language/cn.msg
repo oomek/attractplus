@@ -77,6 +77,7 @@ Settings;设置
 Global Filter;全局分类
 Group Clones;分组克隆
 Hide Game Title Brackets;隐藏比赛标题括号
+Randomise Artwork;随机化艺术图
 Format Game Title;格式化游戏标题
 Hide Console;隐藏控制台
 Image Cache Size;图像缓存大小
@@ -505,6 +506,7 @@ _help_misc_exit_message;退出前端的备选消息(例如“关闭系统”)
 _help_misc_filter_wrap_mode;设置当“下一个筛选器”或“上一个筛选器”操作到达筛选器集末尾时的行为
 _help_misc_group_clones;将同一游戏的所有克隆版本分组到一个列表项下
 _help_misc_hide_brackets;显示游戏标题时隐藏括号中的文本
+_help_misc_randomise_artwork;当发现多个匹配项时随机选择艺术图。
 _help_misc_prefix_modes;将“The”和“Vs.”前缀移动到游戏标题的末尾
 _help_misc_hide_console;启动时隐藏控制台。请注意, 此功能仅在从 Windows 图形用户界面启动 Attract-Mode Plus 时有效。如果从现有控制台窗口(例如批处理文件)启动, 则该进程将始终“附加”到现有控制台并向其输出。
 _help_misc_image_cache_mbytes;配置Attract-Mode Plus内部图像缓存的最大大小(以兆字节为单位)
