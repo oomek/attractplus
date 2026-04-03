@@ -22,7 +22,6 @@ namespace
 	const int FE_MAX_CUSTOM_SHADER_UNIFORMS = 32;
 	std::string join_path( const std::string &base, const std::string &suffix );
 	std::string get_base_path();
-	void append_debug_log( const std::string &message );
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
@@ -79,7 +78,7 @@ namespace
 		if ( line && line[0] )
 		{
 			const std::string message = trim( line );
-			append_debug_log( std::string( "shader_compile: " ) + message );
+			FeLog() << "shader_compile: " << message << std::endl;
 			ShaderCompileLogCapture *capture = static_cast<ShaderCompileLogCapture *>( opaque );
 			if ( capture )
 				capture->stream << message << "\n";
@@ -1127,22 +1126,6 @@ namespace
 		return get_program_path();
 	}
 
-	std::string get_debug_log_path()
-	{
-		const std::string base_path = get_base_path();
-		if ( !base_path.empty() )
-			return join_path( base_path, "fe_sdl3_gpu.log" );
-
-		return "fe_sdl3_gpu.log";
-	}
-
-	void append_debug_log( const std::string &message )
-	{
-		std::ofstream log_file( get_debug_log_path().c_str(), std::ios::app );
-		if ( log_file )
-			log_file << message << std::endl;
-	}
-
 	struct ShaderBlob
 	{
 		SDL_GPUShaderFormat format;
@@ -1272,7 +1255,7 @@ namespace
 		{
 			if ( !write_file_content( glsl_path, translated_source ) )
 			{
-				append_debug_log( std::string( "shader_blob: failed to write translated shader " ) + glsl_path );
+				FeLog() << "shader_blob: failed to write translated shader " << glsl_path << std::endl;
 				cache[ cache_key ].compile_failed = true;
 				return false;
 			}
@@ -1284,10 +1267,10 @@ namespace
 				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
 			ShaderCompileLogCapture capture = {};
 
-			append_debug_log( std::string( "shader_blob: compiling " ) + source_id );
+			FeLog() << "shader_blob: compiling " << source_id << std::endl;
 			if ( !run_program( compiler_name, args, cache_root, shader_compile_output_callback, &capture, true, nullptr ) )
 			{
-				append_debug_log( std::string( "shader_blob: glslang compile failed for " ) + source_id );
+				FeLog() << "shader_blob: glslang compile failed for " << source_id << std::endl;
 				FeLog() << "FeSdl3GpuContext: "
 					<< ( vertex_stage ? "vertex" : "fragment" )
 					<< " shader compile failed: "
@@ -3969,7 +3952,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 void FeSdl3GpuContext::write_debug_log( const char *message ) const
 {
 	if ( m_debug_logging_enabled && message && message[0] )
-		append_debug_log( message );
+		FeLog() << message << std::endl;
 }
 
 SDL_Window *FeSdl3GpuContext::get_window() const
