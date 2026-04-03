@@ -1,7 +1,7 @@
 ##
 ##
 ##  Attract-Mode frontend
-##  Copyright (C) 2013-2018 Andrew Mickelson
+##  Copyright (C) 2013-2026 Andrew Mickelson
 ##
 ##  This file is part of Attract-Mode.
 ##
@@ -60,7 +60,7 @@
 #FE_DEBUG=1
 #VERBOSE=1
 
-override FE_VERSION := v3.2.2
+override FE_VERSION := v3.2.3
 
 CC ?= gcc
 CXX ?= g++

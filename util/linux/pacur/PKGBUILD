@@ -8,7 +8,7 @@ targets=(
     "debian-bookworm"
 )
 pkgname="attractplus"
-pkgver="3.2.2"
+pkgver="3.2.3"
 pkgrel="1"
 pkgdesc="Attract-Mode Plus emulator frontend"
 pkgdesclong=(
