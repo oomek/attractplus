@@ -108,8 +108,11 @@ Scrape Flyers/Boxart;Scrape Flyers/Boxart
 Scrape Game Logos (Wheel Art);Scrape Game Logos (Wheel Art)
 Scrape Marquees;Scrape Marquees
 Scrape Snaps;Scrape Snaps
-Scrape Videos (MAME only);Scrape Videos (MAME only)
+Scrape Videos;Scrape Videos
+Scrape Overview;Scrape Overview
 Scraper;Scraper
+ScreenScraper Username;ScreenScraper Username
+ScreenScraper Password;ScreenScraper Password
 Screen Rotation;Screen Rotation
 Screen Saver Timeout;Screen Saver Timeout
 Selection Speed;Selection Speed
@@ -532,7 +535,10 @@ _help_scraper_flyers;Set whether game flyers and box covers should be downloaded
 _help_scraper_marquees;Set whether game marquees and banners should be downloaded when scraping
 _help_scraper_snaps;Set whether game snapshots should be downloaded when scraping
 _help_scraper_vids;Set whether game videos should be downloaded when scraping
+_help_scraper_overview;Set whether game descriptions should be downloaded when scraping
 _help_scraper_wheels;Set whether game logos should be downloaded when scraping
+_help_screenscraper_user;Optional: Your ScreenScraper.fr account username for higher scraping limits
+_help_screenscraper_pass;Optional: Your ScreenScraper.fr account password for authentication
 _help_shortcut_artwork_name;Optionally provide an artwork name to be associated with this shortcut.  The frontend will try to load artworks with this name when displaying the shortcut
 _help_shortcut_delete;Delete this shortcut from the Romlist
 _help_shortcut_label;Edit this shortcut's label

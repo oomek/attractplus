@@ -172,6 +172,8 @@ public:
 		ScrapeVids,
 		ScrapeOverview,
 		ThegamesdbKey,
+		ScreenScraperUser,
+		ScreenScraperPass,
 		PowerSaving,
 		CheckForUpdates,
 #ifdef SFML_SYSTEM_WINDOWS
@@ -210,6 +212,10 @@ private:
 
 	// configured API key to use for for thegamesdb.net scraping.  If blank, AM's standard public key is used
 	std::string m_tgdb_key;
+
+	// configured API credentials for screenScraper.fr scraping
+	std::string m_ss_user;
+	std::string m_ss_pass;
 
 	std::string m_default_layout;
 	std::string m_default_romlist;
@@ -329,6 +335,7 @@ private:
 	bool simple_scraper( FeImporterContext &, const char *, const char *, const char *, const char *, bool = false );
 	bool general_mame_scraper( FeImporterContext & );
 	bool thegamesdb_scraper( FeImporterContext & );
+	bool screenscraper_scraper( FeImporterContext & );
 	bool apply_xml_import( FeImporterContext & );
 
 	bool load_game_extras(

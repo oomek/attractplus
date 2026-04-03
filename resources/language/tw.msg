@@ -108,8 +108,11 @@ Scrape Flyers/Boxart;搜刮宣傳/盒裝插圖
 Scrape Game Logos (Wheel Art);搜刮遊戲圖標 (輪播插圖)
 Scrape Marquees;搜刮遊戲招牌插圖
 Scrape Snaps;搜刮遊戲捉圖
-Scrape Videos (MAME only);搜刮視訊 (僅 MAME)
+Scrape Videos;搜刮視訊
+Scrape Overview;搜刮遊戲描述
 Scraper;刮擦器
+ScreenScraper Username;ScreenScraper 使用者名稱
+ScreenScraper Password;ScreenScraper 密碼
 Screen Rotation;螢幕旋轉
 Screen Saver Timeout;螢幕保護啟動時間
 Selection Speed;選擇速度
@@ -532,7 +535,10 @@ _help_scraper_flyers;設定是否要搜刮宣傳/盒裝插圖
 _help_scraper_marquees;設定是否要搜刮遊戲招牌插圖
 _help_scraper_snaps;設定是否要搜刮遊戲捉圖
 _help_scraper_vids;設定是否要搜刮遊戲視訊
+_help_scraper_overview;設定是否要搜刮遊戲描述
 _help_scraper_wheels;設定是否要搜刮遊戲圖標 (輪播插圖)
+_help_screenscraper_user;選填：您的ScreenScraper.fr帳號使用者名稱以獲得更高的刮削限制
+_help_screenscraper_pass;選填：您的ScreenScraper.fr帳號密碼用於身份驗證
 _help_shortcut_artwork_name;提供要與此捷徑關聯的插圖名稱 (Attract-Mode Plus 將會在顯示這個捷徑時嘗試使用這個名稱載入插圖資源)
 _help_shortcut_delete;從遊戲清單刪除這個捷徑
 _help_shortcut_label;編輯這個捷徑的標題名稱

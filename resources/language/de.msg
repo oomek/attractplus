@@ -108,8 +108,11 @@ Scrape Flyers/Boxart;Flyer/Boxart extrahieren
 Scrape Game Logos (Wheel Art);Scrape Spiele Logos (Wheel Art)
 Scrape Marquees;Laufschrift extrahieren
 Scrape Snaps;Snapshots extrahieren
-Scrape Videos (MAME only);Scrape Videos (nur für MAME)
+Scrape Videos;Scrape Videos
+Scrape Overview;Spielbeschreibungen
 Scraper;Scraper
+ScreenScraper Username;ScreenScraper Benutzername
+ScreenScraper Password;ScreenScraper Passwort
 Screen Rotation;Bildschirmdrehung
 Screen Saver Timeout;Timeout des Bildschirmschoners
 Selection Speed;Auswahlgeschwindigkeit
@@ -532,7 +535,10 @@ _help_scraper_flyers;Lege fest ob, Spiele Flyer und Box Covers während des Scra
 _help_scraper_marquees;Lege fest ob, Spiele Marquees und Banner während des Scrapens heruntergeladen werden sollen
 _help_scraper_snaps;Lege fest ob, Spiel Snapshots während des Scrapens heruntergeladen werden sollen
 _help_scraper_vids;Lege fest ob, Videos der Spiele während des Scrapens heruntergeladen werden sollen
+_help_scraper_overview;Lege fest ob, Spielbeschreibungen während des Scrapens heruntergeladen werden sollen
 _help_scraper_wheels;Lege fest ob, Spiel Logos während des Scrapens heruntergeladen werden sollen
+_help_screenscraper_user;Optional: Ihr ScreenScraper.fr Benutzername für höhere Scraping-Limits
+_help_screenscraper_pass;Optional: Ihr ScreenScraper.fr Passwort für die Authentifizierung
 _help_shortcut_artwork_name;Hier kannst du Bilddateien einer Verknüpfung zuordnen. Das Frontend wird versuchen Bilddateien mit diesem Namen zu laden wenn die jeweilige Verknüpfung angezeigt wird
 _help_shortcut_delete;Lösche diese Verknüpfung aus der Romliste
 _help_shortcut_label;Editiere den Namen der Verknüpfung

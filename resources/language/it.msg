@@ -108,8 +108,11 @@ Scrape Flyers/Boxart;Recupera i flyer/boxart
 Scrape Game Logos (Wheel Art);Recupera i logo
 Scrape Marquees;Recupera i marquee
 Scrape Snaps;Recupera le snap
-Scrape Videos (MAME only);Scarica video (solo per MAME)
+Scrape Videos;Scarica video
+Scrape Overview;Scarica descrizioni
 Scraper;Scratcher
+ScreenScraper Username;Nome utente ScreenScraper
+ScreenScraper Password;Password ScreenScraper
 Screen Rotation;Rotazione schermo
 Screen Saver Timeout;Timeout salvaschermo
 Selection Speed;Velocità di selezione
@@ -532,7 +535,10 @@ _help_scraper_flyers;Stabilisce se i flyers e le copertine delle confezioni devo
 _help_scraper_marquees;Stabilisce se i marquee devono essere recuperati dalla rete
 _help_scraper_snaps;Stabilisce se gli snapshot devono essere recuperati dalla rete
 _help_scraper_vids;Stabilisce se i video devono essere recuperati dalla rete
+_help_scraper_overview;Stabilisce se le descrizioni devono essere recuperate dalla rete
 _help_scraper_wheels;Stabilisce se i logo devono essere recuperati dalla rete
+_help_screenscraper_user;Opzionale: Il tuo nome utente ScreenScraper.fr per limiti di scraping più elevati
+_help_screenscraper_pass;Opzionale: La tua password ScreenScraper.fr per l'autenticazione
 _help_shortcut_artwork_name;Facoltativamente, fornisci un nome di grafica da associare a questa scorciatoia. Il frontend proverà a caricare le illustrazioni con questo nome quando visualizza la scorciatoia
 _help_shortcut_delete;Elimina questa scorciatoia dalla Romlist
 _help_shortcut_label;Modifica l'etichetta di questa scorciatoia
