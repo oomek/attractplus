@@ -41,9 +41,11 @@
 
 extern const char *FE_ART_EXTENSIONS[];
 
+extern const char *FE_DEFAULT_CFG_PATH;
 extern const char *FE_CFG_FILE;
 extern const char *FE_WINDOW_FILE;
 extern const char *FE_CFG_SUBDIR;
+extern const char *FE_CACHE_SUBDIR;
 extern const char *FE_SCRIPT_NV_FILE;
 extern const char *FE_LAYOUT_NV_FILE;
 

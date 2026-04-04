@@ -230,6 +230,22 @@ void FePresent::init_monitors()
 #endif
 
 #if defined(USE_DRM)
+	if ( m_window.owns_sdl_window() )
+	{
+		if ( SDL_Window *window = m_window.get_gpu_context().get_window() )
+		{
+			const SDL_DisplayID display = SDL_GetDisplayForWindow( window );
+			if ( display )
+			{
+				if ( const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode( display ) )
+					m_refresh_rate = static_cast<int>( mode->refresh_rate + 0.5f );
+				else if ( const SDL_DisplayMode *desktop_mode = SDL_GetDesktopDisplayMode( display ) )
+					m_refresh_rate = static_cast<int>( desktop_mode->refresh_rate + 0.5f );
+			}
+		}
+	}
+	else
+	{
 	#define MAX_DRM_DEVICES 64
 
 	drmDevicePtr devices[MAX_DRM_DEVICES] = { NULL };
@@ -271,6 +287,7 @@ void FePresent::init_monitors()
 		close( drm_fd );
 	}
 	drmFreeDevices( devices, num_devices );
+	}
 #endif
 
 #if defined(SFML_SYSTEM_WINDOWS)
@@ -1746,15 +1763,6 @@ void FePresent::submit_render_frame()
 	build_render_surface_frames( frame.surfaces );
 	frame.image_count = static_cast<unsigned long long>( frame.images.size() );
 	m_window.get_gpu_context().submit_frame( frame );
-	{
-		std::ostringstream stream;
-		stream
-			<< "redraw: submitted frame"
-			<< " images=" << frame.images.size()
-			<< " surfaces=" << frame.surfaces.size()
-			<< " viewport=" << frame.viewport_width << "x" << frame.viewport_height;
-		m_window.get_gpu_context().write_debug_log( stream.str().c_str() );
-	}
 }
 
 bool FePresent::saver_activation_check()

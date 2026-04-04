@@ -4,6 +4,7 @@
 #include "media.hpp"
 #include "fe_shader.hpp"
 #include "fe_blend.hpp"
+#include "fe_settings.hpp"
 #include "fe_util.hpp"
 #include "fe_base.hpp"
 #include <SDL3_image/SDL_image.h>
@@ -1126,6 +1127,15 @@ namespace
 		return get_program_path();
 	}
 
+	std::string get_shader_cache_base_path()
+	{
+#if !defined( SFML_SYSTEM_WINDOWS )
+		return absolute_path( clean_path( std::string( FE_DEFAULT_CFG_PATH ) + FE_CACHE_SUBDIR ) );
+#else
+		return join_path( get_base_path(), FE_CACHE_SUBDIR );
+#endif
+	}
+
 	struct ShaderBlob
 	{
 		SDL_GPUShaderFormat format;
@@ -1238,7 +1248,7 @@ namespace
 			return !blob.code.empty();
 		}
 
-		std::string cache_root = join_path( get_base_path(), "cache/" );
+		std::string cache_root = get_shader_cache_base_path();
 		confirm_directory( cache_root, "" );
 		confirm_directory( cache_root, "shaders/" );
 		cache_root = join_path( cache_root, "shaders/" );
@@ -1531,21 +1541,17 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 	const char *debug_env = SDL_getenv( "FE_SDL3_GPU_DEBUG_LOG" );
 	m_debug_logging_enabled = debug_mode || ( debug_env && debug_env[0] && debug_env[0] != '0' );
 
-	if ( !m_sdl_ready )
-	{
-		if ( !SDL_InitSubSystem( SDL_INIT_VIDEO ) )
-			return false;
-
-		m_sdl_ready = true;
-	}
+	if ( !ensure_video_subsystem() )
+		return false;
 
 	const char *preferred_driver = get_default_driver_name( driver_name );
-	m_device = SDL_CreateGPUDevice( get_default_shader_formats(), debug_mode, preferred_driver );
+	const SDL_GPUShaderFormat shader_formats = get_default_shader_formats();
+	m_device = SDL_CreateGPUDevice( shader_formats, debug_mode, preferred_driver );
 	if ( !m_device && preferred_driver )
 	{
 		const std::string message = std::string( "initialize: preferred GPU driver failed: " ) + preferred_driver;
 		write_debug_log( message.c_str() );
-		m_device = SDL_CreateGPUDevice( get_default_shader_formats(), debug_mode, nullptr );
+		m_device = SDL_CreateGPUDevice( shader_formats, debug_mode, nullptr );
 	}
 	if ( !m_device )
 		write_debug_log( "initialize: SDL_CreateGPUDevice failed" );
@@ -1559,6 +1565,21 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 		write_debug_log( stream.str().c_str() );
 	}
 	return ( m_device != nullptr );
+}
+
+bool FeSdl3GpuContext::ensure_video_subsystem()
+{
+	if ( m_sdl_ready )
+		return true;
+
+	if ( !SDL_InitSubSystem( SDL_INIT_VIDEO ) )
+	{
+		FeLog() << "WARNING: SDL3 video initialization failed: " << SDL_GetError() << std::endl;
+		return false;
+	}
+
+	m_sdl_ready = true;
+	return true;
 }
 
 void FeSdl3GpuContext::shutdown()
@@ -1638,10 +1659,13 @@ bool FeSdl3GpuContext::claim_window( SDL_Window *window )
 	if ( !window )
 		return false;
 
-	if ( !initialize() )
-		return false;
-
 	m_window = window;
+	if ( !initialize() )
+	{
+		m_window = nullptr;
+		return false;
+	}
+
 	m_window_claimed = SDL_ClaimWindowForGPUDevice( m_device, m_window );
 	if ( !m_window_claimed )
 	{

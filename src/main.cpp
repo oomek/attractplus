@@ -165,6 +165,11 @@ int main(int argc, char *argv[])
 	FeWindow window( feSettings );
 	window.set_window_position( win_pos );
 	window.initial_create();
+	if ( !window.isOpen() )
+	{
+		FeLog() << "ERROR: Failed to create the frontend SDL window." << std::endl;
+		return 1;
+	}
 
 #ifdef WINDOWS_CONSOLE
 	if ( feSettings.get_hide_console() )

@@ -61,7 +61,7 @@
 #FE_DEBUG=1
 #VERBOSE=1
 
-override FE_VERSION := v3.2.3
+override FE_VERSION := v3.2.4
 
 CC ?= gcc
 CXX ?= g++

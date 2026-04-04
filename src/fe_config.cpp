@@ -1803,7 +1803,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	// convert AA setting from multiplier[0,2,4,8] to index[0,1,2,3] respectively
 	int aa_i = 0;
 	std::vector<std::string> aa_avail;
-	while ( FeSettings::antialiasingDispTokens[aa_i] != 0 && as_int( FeSettings::antialiasingTokens[aa_i] ) <= std::min( static_cast<int>( sf::RenderTexture::getMaximumAntiAliasingLevel() ), 8 ))
+	while ( FeSettings::antialiasingDispTokens[aa_i] != 0 && as_int( FeSettings::antialiasingTokens[aa_i] ) <= 8 )
 		aa_avail.push_back( FeSettings::antialiasingDispTokens[ aa_i++ ] );
 	std::vector<std::string> aa_modes = _( aa_avail );
 	std::string aa_mode = value_at( aa_modes, (int)std::max( log2( ctx.fe_settings.get_antialiasing() ), 0.0 ) );

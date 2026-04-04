@@ -42,6 +42,7 @@ public:
 	bool capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool save_screenshot( const std::string &filename );
 	void clear_layout_resources();
+	bool ensure_video_subsystem();
 	bool initialize( bool debug_mode = false, const char *driver_name = nullptr );
 	void shutdown();
 	bool wrap_native_window( void *native_window_handle, int width, int height );
