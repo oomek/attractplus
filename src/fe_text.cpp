@@ -164,9 +164,17 @@ void FeText::on_new_selection( FeSettings *feSettings )
 
 void FeText::set_scale_factor( float scale_x, float scale_y )
 {
-	m_scale_factor = ( scale_x > scale_y ) ? scale_x : scale_y;
+	const float new_scale_factor = ( scale_x > scale_y ) ? scale_x : scale_y;
+	if ( new_scale_factor == m_scale_factor )
+		return;
+
+	m_scale_factor = new_scale_factor;
 	if ( m_scale_factor <= 0.f )
 		m_scale_factor = 1.f;
+
+	update_font_size();
+	m_draw_text.setPosition( m_position );
+	m_draw_text.setSize( m_size );
 }
 
 void FeText::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const

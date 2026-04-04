@@ -576,6 +576,22 @@ namespace
 
 		return ( one->get_zorder() < two->get_zorder() );
 	}
+
+	void apply_geometry_transform( std::vector<FeRenderGeometry> &geometry, const sf::Transform &transform )
+	{
+		if ( transform == sf::Transform::Identity )
+			return;
+
+		for ( FeRenderGeometry &entry : geometry )
+		{
+			for ( FeRenderVertex &vertex : entry.vertices )
+			{
+				const sf::Vector2f p = transform.transformPoint( { vertex.x, vertex.y } );
+				vertex.x = p.x;
+				vertex.y = p.y;
+			}
+		}
+	}
 };
 
 void FePresent::sort_zorder()
@@ -595,8 +611,11 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 {
 	geometry.clear();
 
-	for ( const FeMonitor &monitor : m_mon )
+	for ( std::size_t monitor_index = 0; monitor_index < m_mon.size(); ++monitor_index )
 	{
+		const FeMonitor &monitor = m_mon[ monitor_index ];
+		std::vector<FeRenderGeometry> monitor_geometry;
+
 		for ( const FeBasePresentable *presentable : monitor.elements )
 		{
 			if ( !presentable || !presentable->get_visible() )
@@ -607,7 +626,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			{
 				FeRenderGeometry image_geometry;
 				if ( image->build_render_geometry( image_geometry ) )
-					geometry.push_back( image_geometry );
+					monitor_geometry.push_back( image_geometry );
 				continue;
 			}
 
@@ -616,21 +635,25 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			{
 				FeRenderGeometry rectangle_geometry;
 				if ( rectangle->build_render_geometry( rectangle_geometry ) )
-					geometry.push_back( rectangle_geometry );
+					monitor_geometry.push_back( rectangle_geometry );
 				continue;
 			}
 
 			const FeText *text = dynamic_cast<const FeText *>( presentable );
 			if ( text )
 			{
-				text->build_render_geometry( geometry );
+				text->build_render_geometry( monitor_geometry );
 				continue;
 			}
 
 			const FeListBox *listbox = dynamic_cast<const FeListBox *>( presentable );
 			if ( listbox )
-				listbox->build_render_geometry( geometry );
+				listbox->build_render_geometry( monitor_geometry );
 		}
+
+		const sf::Transform &transform = ( monitor_index == 0 ) ? m_layout_transform : monitor.transform;
+		apply_geometry_transform( monitor_geometry, transform );
+		geometry.insert( geometry.end(), monitor_geometry.begin(), monitor_geometry.end() );
 	}
 }
 
