@@ -1269,6 +1269,7 @@ void FeSettings::load_state()
 void FeSettings::reset_input()
 {
 	m_inputmap.clear_tracked_keys();
+	m_inputmap.suppress_pressed_inputs( m_joy_thresh );
 }
 
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )

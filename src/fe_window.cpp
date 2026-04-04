@@ -50,12 +50,153 @@
 #include <cstdlib>
 #include <cstdint>
 #include <fstream>
+#include <algorithm>
+#include <array>
 #include "nowide/fstream.hpp"
 
 #include <SFML/System/Sleep.hpp>
 
 namespace
 {
+	struct FeSdlJoystickSlot
+	{
+		SDL_JoystickID instance_id = 0;
+		SDL_Joystick *joystick = nullptr;
+		std::string name;
+	};
+
+	std::array<FeSdlJoystickSlot, sf::Joystick::Count> g_sdl_joystick_slots = {};
+	bool g_sdl_joysticks_initialized = false;
+
+	bool ensure_sdl_joystick_subsystems()
+	{
+		if ( g_sdl_joysticks_initialized )
+			return true;
+
+		if ( !SDL_InitSubSystem( SDL_INIT_JOYSTICK ) )
+			return false;
+
+		SDL_SetJoystickEventsEnabled( true );
+
+		if ( SDL_InitSubSystem( SDL_INIT_GAMEPAD ) )
+			SDL_SetGamepadEventsEnabled( true );
+
+		g_sdl_joysticks_initialized = true;
+		return true;
+	}
+
+	void clear_sdl_joystick_slot( FeSdlJoystickSlot &slot )
+	{
+		if ( slot.joystick )
+			SDL_CloseJoystick( slot.joystick );
+
+		slot.instance_id = 0;
+		slot.joystick = nullptr;
+		slot.name.clear();
+	}
+
+	int find_sdl_joystick_slot( SDL_JoystickID instance_id )
+	{
+		for ( std::size_t i = 0; i < g_sdl_joystick_slots.size(); ++i )
+		{
+			if ( g_sdl_joystick_slots[i].instance_id == instance_id )
+				return static_cast<int>( i );
+		}
+
+		return -1;
+	}
+
+	void sync_sdl_joystick_slots()
+	{
+		if ( !ensure_sdl_joystick_subsystems() )
+			return;
+
+		int joystick_count = 0;
+		SDL_JoystickID *joysticks = SDL_GetJoysticks( &joystick_count );
+		std::vector<SDL_JoystickID> active_ids;
+		if ( joysticks && joystick_count > 0 )
+			active_ids.assign( joysticks, joysticks + joystick_count );
+
+		for ( FeSdlJoystickSlot &slot : g_sdl_joystick_slots )
+		{
+			if ( slot.instance_id == 0 )
+				continue;
+
+			if ( std::find( active_ids.begin(), active_ids.end(), slot.instance_id ) == active_ids.end() )
+				clear_sdl_joystick_slot( slot );
+		}
+
+		for ( SDL_JoystickID instance_id : active_ids )
+		{
+			int slot_index = find_sdl_joystick_slot( instance_id );
+			if ( slot_index < 0 )
+			{
+				for ( std::size_t i = 0; i < g_sdl_joystick_slots.size(); ++i )
+				{
+					if ( g_sdl_joystick_slots[i].instance_id == 0 )
+					{
+						slot_index = static_cast<int>( i );
+						g_sdl_joystick_slots[i].instance_id = instance_id;
+						break;
+					}
+				}
+			}
+
+			if ( slot_index < 0 )
+				continue;
+
+			FeSdlJoystickSlot &slot = g_sdl_joystick_slots[slot_index];
+			if ( !slot.joystick )
+				slot.joystick = SDL_OpenJoystick( instance_id );
+
+			const char *name = slot.joystick
+				? SDL_GetJoystickName( slot.joystick )
+				: SDL_GetJoystickNameForID( instance_id );
+			slot.name = name ? name : "";
+		}
+
+		if ( joysticks )
+			SDL_free( joysticks );
+	}
+
+	int sdl_axis_index_from_sf( sf::Joystick::Axis axis )
+	{
+		switch ( axis )
+		{
+		case sf::Joystick::Axis::X: return 0;
+		case sf::Joystick::Axis::Y: return 1;
+		case sf::Joystick::Axis::Z: return 2;
+		case sf::Joystick::Axis::R: return 3;
+		case sf::Joystick::Axis::U: return 4;
+		case sf::Joystick::Axis::V: return 5;
+		case sf::Joystick::Axis::PovX: return 6;
+		case sf::Joystick::Axis::PovY: return 7;
+		default: return -1;
+		}
+	}
+
+	float normalize_sdl_axis_value( Sint16 value )
+	{
+		if ( value >= 0 )
+			return static_cast<float>( value ) * ( 100.0f / 32767.0f );
+
+		return static_cast<float>( value ) * ( 100.0f / 32768.0f );
+	}
+
+	sf::Joystick::Axis sdl_gamepad_axis_to_sf( Uint8 axis )
+	{
+		switch ( axis )
+		{
+		case SDL_GAMEPAD_AXIS_LEFTX: return sf::Joystick::Axis::X;
+		case SDL_GAMEPAD_AXIS_LEFTY: return sf::Joystick::Axis::Y;
+		case SDL_GAMEPAD_AXIS_RIGHTX: return sf::Joystick::Axis::Z;
+		case SDL_GAMEPAD_AXIS_RIGHTY: return sf::Joystick::Axis::R;
+		case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: return sf::Joystick::Axis::U;
+		case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: return sf::Joystick::Axis::V;
+		default: return sf::Joystick::Axis::X;
+		}
+	}
+
 	bool get_sdl_desktop_geometry( bool do_multimon, sf::VideoMode &mode, sf::Vector2i &position )
 	{
 		int display_count = 0;
@@ -524,35 +665,177 @@ namespace
 			};
 
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
+		{
+			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jaxis.which ) );
 			return sf::Event::JoystickMoved{
-				static_cast<unsigned int>( event.jaxis.which ),
+				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				sdl_joystick_axis_to_sf( event.jaxis.axis ),
-				static_cast<float>( event.jaxis.value ) * ( 100.0f / 32767.0f )
+				normalize_sdl_axis_value( event.jaxis.value )
 			};
+		}
 
 		case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+		{
+			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jbutton.which ) );
 			return sf::Event::JoystickButtonPressed{
-				static_cast<unsigned int>( event.jbutton.which ),
+				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				static_cast<unsigned int>( event.jbutton.button )
 			};
+		}
 
 		case SDL_EVENT_JOYSTICK_BUTTON_UP:
+		{
+			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jbutton.which ) );
 			return sf::Event::JoystickButtonReleased{
-				static_cast<unsigned int>( event.jbutton.which ),
+				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				static_cast<unsigned int>( event.jbutton.button )
 			};
+		}
 
 		case SDL_EVENT_JOYSTICK_ADDED:
-			return sf::Event::JoystickConnected{ static_cast<unsigned int>( event.jdevice.which ) };
+			fe_joystick_refresh_devices();
+			return sf::Event::JoystickConnected{ 0u };
 
 		case SDL_EVENT_JOYSTICK_REMOVED:
-			return sf::Event::JoystickDisconnected{ static_cast<unsigned int>( event.jdevice.which ) };
+			fe_joystick_refresh_devices();
+			return sf::Event::JoystickDisconnected{ 0u };
+
+		case SDL_EVENT_GAMEPAD_AXIS_MOTION:
+		{
+			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gaxis.which ) );
+			return sf::Event::JoystickMoved{
+				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
+				sdl_gamepad_axis_to_sf( event.gaxis.axis ),
+				normalize_sdl_axis_value( event.gaxis.value )
+			};
+		}
+
+		case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+		{
+			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gbutton.which ) );
+			return sf::Event::JoystickButtonPressed{
+				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
+				static_cast<unsigned int>( event.gbutton.button )
+			};
+		}
+
+		case SDL_EVENT_GAMEPAD_BUTTON_UP:
+		{
+			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gbutton.which ) );
+			return sf::Event::JoystickButtonReleased{
+				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
+				static_cast<unsigned int>( event.gbutton.button )
+			};
+		}
+
+		case SDL_EVENT_GAMEPAD_ADDED:
+			fe_joystick_refresh_devices();
+			return sf::Event::JoystickConnected{ 0u };
+
+		case SDL_EVENT_GAMEPAD_REMOVED:
+			fe_joystick_refresh_devices();
+			return sf::Event::JoystickDisconnected{ 0u };
+
+		case SDL_EVENT_GAMEPAD_REMAPPED:
+			fe_joystick_refresh_devices();
+			return sf::Event::JoystickConnected{ 0u };
 
 		default:
 			return {};
 		}
 	}
 
+}
+
+void fe_joystick_update()
+{
+	if ( ensure_sdl_joystick_subsystems() )
+		sync_sdl_joystick_slots();
+	else
+		sf::Joystick::update();
+}
+
+void fe_joystick_refresh_devices()
+{
+	fe_joystick_update();
+}
+
+void fe_joystick_shutdown()
+{
+	for ( FeSdlJoystickSlot &slot : g_sdl_joystick_slots )
+		clear_sdl_joystick_slot( slot );
+}
+
+bool fe_joystick_is_connected( unsigned int joystick_id )
+{
+	if ( ensure_sdl_joystick_subsystems() )
+	{
+		sync_sdl_joystick_slots();
+		return joystick_id < g_sdl_joystick_slots.size()
+			&& g_sdl_joystick_slots[joystick_id].instance_id != 0
+			&& g_sdl_joystick_slots[joystick_id].joystick != nullptr;
+	}
+
+	return ( joystick_id < sf::Joystick::Count ) && sf::Joystick::isConnected( joystick_id );
+}
+
+bool fe_joystick_is_button_pressed( unsigned int joystick_id, unsigned int button )
+{
+	if ( ensure_sdl_joystick_subsystems() )
+	{
+		sync_sdl_joystick_slots();
+		if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
+			return false;
+
+		return SDL_GetJoystickButton( g_sdl_joystick_slots[joystick_id].joystick, static_cast<int>( button ) );
+	}
+
+	return sf::Joystick::isButtonPressed( joystick_id, button );
+}
+
+float fe_joystick_get_axis_position( unsigned int joystick_id, sf::Joystick::Axis axis )
+{
+	if ( ensure_sdl_joystick_subsystems() )
+	{
+		sync_sdl_joystick_slots();
+		if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
+			return 0.0f;
+
+		const int axis_index = sdl_axis_index_from_sf( axis );
+		if ( axis_index < 0 )
+			return 0.0f;
+
+		return normalize_sdl_axis_value(
+			SDL_GetJoystickAxis( g_sdl_joystick_slots[joystick_id].joystick, axis_index ) );
+	}
+
+	return sf::Joystick::getAxisPosition( joystick_id, axis );
+}
+
+std::string fe_joystick_get_name( unsigned int joystick_id )
+{
+	if ( ensure_sdl_joystick_subsystems() )
+	{
+		sync_sdl_joystick_slots();
+		if ( joystick_id >= g_sdl_joystick_slots.size() )
+			return "";
+
+		return g_sdl_joystick_slots[joystick_id].name;
+	}
+
+	if ( joystick_id < sf::Joystick::Count && sf::Joystick::isConnected( joystick_id ) )
+		return sf::Joystick::getIdentification( joystick_id ).name.toAnsiString();
+
+	return "";
+}
+
+int fe_joystick_translate_sdl_instance_id( int instance_id )
+{
+	if ( !ensure_sdl_joystick_subsystems() )
+		return instance_id;
+
+	sync_sdl_joystick_slots();
+	return find_sdl_joystick_slot( static_cast<SDL_JoystickID>( instance_id ) );
 }
 
 #ifdef SFML_SYSTEM_WINDOWS
@@ -654,6 +937,8 @@ FeWindow::~FeWindow()
 
 	if ( m_window )
 		delete m_window;
+
+	fe_joystick_shutdown();
 }
 
 bool FeWindow::owns_sdl_window() const
@@ -879,6 +1164,8 @@ void FeWindow::initial_create()
 	m_win_mode = m_fes.get_window_mode();
 	const bool use_sdl_owned_window = true;
 	const bool sdl_video_ready = use_sdl_owned_window && m_gpu_context.ensure_video_subsystem();
+	if ( use_sdl_owned_window )
+		fe_joystick_refresh_devices();
 
 	sf::Vector2i wpos( 0, 0 );  // position to set window to
 	sf::VideoMode vm( { 1280u, 720u }, 32u ); // width/height/bpp of surface to create

@@ -1457,9 +1457,9 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 
 	for ( size_t i=0; i < sf::Joystick::Count; i++ )
 	{
-		if ( sf::Joystick::isConnected( i ) )
+		if ( fe_joystick_is_connected( i ) )
 		{
-			std::string temp = sf::Joystick::getIdentification( i ).name.toAnsiString();
+			std::string temp = fe_joystick_get_name( i );
 
 			if ( values_set.find( temp ) == values_set.end() )
 			{

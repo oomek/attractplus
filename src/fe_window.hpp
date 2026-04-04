@@ -161,4 +161,13 @@ public:
 	int get_window_mode() { return m_win_mode; }
 };
 
+void fe_joystick_update();
+void fe_joystick_refresh_devices();
+void fe_joystick_shutdown();
+bool fe_joystick_is_connected( unsigned int joystick_id );
+bool fe_joystick_is_button_pressed( unsigned int joystick_id, unsigned int button );
+float fe_joystick_get_axis_position( unsigned int joystick_id, sf::Joystick::Axis axis );
+std::string fe_joystick_get_name( unsigned int joystick_id );
+int fe_joystick_translate_sdl_instance_id( int instance_id );
+
 #endif

@@ -224,6 +224,8 @@ public:
 	void initialize_mappings();
 	// clear m_tracked_keys (call when focus is lost to prevent holding expired keys)
 	void clear_tracked_keys();
+	// suppress launch/focus activation inputs until they are released
+	void suppress_pressed_inputs( int joy_thresh );
 	// clear all mappings and tracked keys
 	void clear();
 
@@ -273,6 +275,8 @@ private:
 
 	// Used to track the keys that are currently "down" and of interest
 	mutable std::set< FeInputSingle > m_tracked_keys;
+	std::set< FeInputSingle > m_suppressed_inputs;
+	bool m_suppress_pressed_inputs;
 
 	// Config for mapping joysticks by name to specific id #s
 	std::vector< std::pair< int, std::string > > m_joy_config;

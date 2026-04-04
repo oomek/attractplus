@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
 		FeLog() << "ERROR: Failed to create the frontend SDL window." << std::endl;
 		return 1;
 	}
+	feSettings.reset_input();
 
 #ifdef WINDOWS_CONSOLE
 	if ( feSettings.get_hide_console() )
@@ -286,6 +287,7 @@ int main(int argc, char *argv[])
 				{
 					window.on_exit();
 					window.initial_create();
+					feSettings.reset_input();
 					feVM.init_monitors();
 				}
 
@@ -461,7 +463,7 @@ int main(int argc, char *argv[])
 				const auto* mov = joy_guard->getIf<sf::Event::JoystickMoved>();
 				if ( mov )
 				{
-					float pos = sf::Joystick::getAxisPosition( mov->joystickId, mov->axis );
+					float pos = fe_joystick_get_axis_position( mov->joystickId, mov->axis );
 					if ( std::abs( pos ) < feSettings.get_joy_thresh() )
 						joy_guard = std::nullopt;
 				}
@@ -1098,14 +1100,14 @@ int main(int argc, char *argv[])
 			else if ( move_event->is<sf::Event::JoystickButtonPressed>() )
 			{
 				const auto* btn = move_event->getIf<sf::Event::JoystickButtonPressed>();
-				if ( sf::Joystick::isButtonPressed( btn->joystickId, btn->button ))
+				if ( fe_joystick_is_button_pressed( btn->joystickId, btn->button ))
 					cont=true;
 			}
 
 			else if ( move_event->is<sf::Event::JoystickMoved>() )
 			{
 				const auto* mov = move_event->getIf<sf::Event::JoystickMoved>();
-				float pos = sf::Joystick::getAxisPosition( mov->joystickId,	mov->axis );
+				float pos = fe_joystick_get_axis_position( mov->joystickId,	mov->axis );
 				if ( std::abs( pos ) > feSettings.get_joy_thresh() )
 					cont=true;
 			}
