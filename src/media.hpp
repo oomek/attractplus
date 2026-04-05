@@ -23,22 +23,25 @@
 #ifndef MEDIA_HPP
 #define MEDIA_HPP
 
-#include <SFML/Audio.hpp>
 #include <cstddef>
 #include <vector>
 #include <string>
 #include <atomic>
 #include <mutex>
 #include <functional>
+#include <memory>
+#include "fe_time.hpp"
 #include "fe_audio_fx.hpp"
 
 class FeMediaImp;
 class FeAudioImp;
 class FeVideoImp;
+class FeMediaSoundStream;
 
-class FeMedia : private sf::SoundStream
+class FeMedia
 {
 friend class FeVideoImp;
+friend class FeMediaSoundStream;
 
 public:
 	enum Type
@@ -78,8 +81,8 @@ public:
 	bool copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
 	unsigned long long get_video_frame_serial() const;
 
-	sf::Time get_video_time();
-	sf::Time get_duration() const;
+	FeTime get_video_time();
+	FeTime get_duration() const;
 
 	// return true if the given filename is a media file that can be opened
 	//	by FeMedia
@@ -107,19 +110,14 @@ public:
 
 	FeAudioVisualiser* get_audio_visualiser() const;
 
-protected:
-	// overrides from base class
-	//
-	bool onGetData( Chunk &data ) override;
-	void onSeek( sf::Time timeOffset ) override;
-
+private:
 	bool read_packet();
 	bool end_of_file();
 
-private:
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
+	std::unique_ptr<FeMediaSoundStream> m_stream;
 	std::atomic<bool> m_alive{ true };
 	std::atomic<bool> m_ready{ false };
 	std::mutex m_callback_mutex;

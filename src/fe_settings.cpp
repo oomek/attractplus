@@ -42,7 +42,6 @@
 
 #include "language.h"
 
-#include <SFML/System/Clock.hpp>
 #include <SFML/Config.hpp>
 
 #ifndef NO_MOVIE

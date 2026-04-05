@@ -34,7 +34,7 @@
 #include <squirrel.h>
 #include <sqstdstring.h>
 
-#include <SFML/System/Clock.hpp>
+#include "fe_time.hpp"
 
 const char *FE_ROMLIST_FILE_EXTENSION	= ".txt";
 const char *FE_TAG_FILE_EXTENSION		= ".tag";
@@ -407,7 +407,7 @@ bool FeRomList::load_romlist(
 	m_group_clones = group_clones;
 	m_played_stats_checked = !load_stats;
 
-	sf::Clock load_timer;
+	FeClock load_timer;
 
 	bool test_available = display.test_for_targets({ FeRomInfo::FileIsAvailable });
 	bool test_stats = display.test_for_targets( std::set<FeRomInfo::Index>( FeRomInfo::Stats.begin(), FeRomInfo::Stats.end() ) );
@@ -613,7 +613,7 @@ void FeRomList::create_filters(
 	// - NOTE: this may also invalidate the globalfilter - but it is NOT reloaded at this time... (same as legacy)
 	FeCache::validate_display( display, *this );
 
-	sf::Clock load_timer;
+	FeClock load_timer;
 
 	// Prepare an indexed lookup for filter cache loading
 	std::map<int, FeRomInfo*> lookup;

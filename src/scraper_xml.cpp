@@ -32,7 +32,7 @@
 
 #include <expat.h>
 
-#include <SFML/System/Clock.hpp>
+#include "fe_time.hpp"
 
 //
 // Base XML Parser
@@ -757,7 +757,7 @@ bool FeListSoftwareParser::parse( const std::string &prog,
 	std::string system_name;
 	FeRomInfoListType::iterator itr;
 
-	sf::Clock my_timer;
+	FeClock my_timer;
 	int s = m_ctx.romlist.empty() ? 1 : m_ctx.romlist.size();
 	int c = 0;
 

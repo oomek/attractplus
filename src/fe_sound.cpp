@@ -228,9 +228,9 @@ void FeSound::set_playing( bool flag )
 	if ( m_sound.getStatus() == sf::SoundSource::Status::Playing )
 		m_sound.stop();
 	else if ( ended || (( m_sound.getStatus() == sf::SoundSource::Status::Stopped )
-		&& ( m_buffer.getDuration() > sf::Time::Zero )
+		&& ( m_buffer.getDuration().asMilliseconds() > 0 )
 		&& ( m_sound.getPlayingOffset() >= m_buffer.getDuration() )))
-		m_sound.setPlayingOffset( sf::Time::Zero );
+		m_sound.setPlayingOffset( {} );
 
 	m_sound.play();
 }
@@ -260,7 +260,7 @@ FePlaybackStatus FeSound::get_status()
 		return FePlaybackStatusPaused;
 	default:
 		if ( m_play_state
-			|| (( m_buffer.getDuration() > sf::Time::Zero )
+			|| (( m_buffer.getDuration().asMilliseconds() > 0 )
 				&& ( m_sound.getPlayingOffset() >= m_buffer.getDuration() )))
 			return FePlaybackStatusEnded;
 		return FePlaybackStatusStopped;

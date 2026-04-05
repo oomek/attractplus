@@ -27,6 +27,9 @@
 #include "fe_present.hpp"
 #include "fe_audio_fx.hpp"
 #include "fe_sdl3_gpu.hpp"
+#include "fe_time.hpp"
+
+#include <SFML/Audio.hpp>
 
 extern "C"
 {
@@ -51,6 +54,7 @@ extern "C"
 #include <condition_variable>
 #include <algorithm>
 #include <memory>
+#include <utility>
 
 #if ( LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
@@ -188,7 +192,7 @@ private:
 	FeMedia *m_parent;
 	std::uint8_t *rgba_buffer[4];
 	int rgba_linesize[4];
-	sf::Time half_frame_offset;
+	FeTime half_frame_offset;
 
 #if FE_HWACCEL
 	AVPixelFormat hwaccel_output_format;
@@ -197,9 +201,9 @@ private:
 
 public:
 	std::atomic<bool> run_video_thread;
-	sf::Time time_base;
-	sf::Time max_sleep;
-	sf::Clock video_timer;
+	FeTime time_base;
+	FeTime max_sleep;
+	FeClock video_timer;
 	int disptex_width;
 	int disptex_height;
 
@@ -225,6 +229,36 @@ public:
 	bool copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
 	bool copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
 	void video_thread();
+};
+
+using FeSfStreamTime = decltype( std::declval<sf::SoundStream &>().getPlayingOffset() );
+
+class FeMediaSoundStream : public sf::SoundStream // temporary sfml bridge until we migrate to SDL audio
+{
+public:
+	explicit FeMediaSoundStream( FeMedia &owner )
+		: m_owner( owner )
+	{
+	}
+
+	using sf::SoundStream::getPan;
+	using sf::SoundStream::getStatus;
+	using sf::SoundStream::getVolume;
+	using sf::SoundStream::initialize;
+	using sf::SoundStream::play;
+	using sf::SoundStream::setEffectProcessor;
+	using sf::SoundStream::setLooping;
+	using sf::SoundStream::setPan;
+	using sf::SoundStream::setSpatializationEnabled;
+	using sf::SoundStream::setVolume;
+	using sf::SoundStream::stop;
+
+protected:
+	bool onGetData( Chunk &data ) override;
+	void onSeek( FeSfStreamTime timeOffset ) override;
+
+private:
+	FeMedia &m_owner;
 };
 
 FeMediaImp::FeMediaImp( FeMedia::Type t )
@@ -476,7 +510,7 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 {
 	video_timer.reset();
 	FePresent *fep = FePresent::script_get_fep();
-	half_frame_offset = sf::milliseconds( 500 / fep->get_refresh_rate() );
+	half_frame_offset = fe_milliseconds( 500 / fep->get_refresh_rate() );
 }
 
 FeVideoImp::~FeVideoImp()
@@ -674,7 +708,7 @@ void FeVideoImp::video_thread()
 	int64_t prev_duration = 0;
 	SwsContext *sws_ctx = NULL;
 
-	sf::Time wait_time;
+	FeTime wait_time;
 
 	if ( !rgba_buffer[0] )
 	{
@@ -692,9 +726,9 @@ void FeVideoImp::video_thread()
 		// so we flag the video to be restarted on the next tick.
 		// This prevents displaying only keyframes for several seconds on wake.
 		//
-		if ( wait_time < sf::seconds( -5.0f ))
+		if ( wait_time < fe_seconds( -5.0 ) )
 		{
-			wait_time = sf::seconds( 0 );
+			wait_time = FeTime();
 			far_behind = true;
 			run_video_thread = false;
 			video_timer.stop();
@@ -706,17 +740,17 @@ void FeVideoImp::video_thread()
 		if ( detached_frame )
 		{
 
-			sf::Time frame_time;
+			FeTime frame_time;
 			{
 				std::lock_guard<std::recursive_mutex> l( m_parent->m_imp->m_read_mutex );
 				if ( m_parent->m_imp->m_format_ctx && stream_id >= 0 )
 				{
-					frame_time = sf::seconds( detached_frame->pts
+					frame_time = fe_seconds( detached_frame->pts
 						* av_q2d( m_parent->m_imp->m_format_ctx->streams[stream_id]->time_base ));
 				}
 				else
 				{
-					frame_time = sf::Time::Zero;
+					frame_time = FeTime();
 				}
 			}
 			wait_time = frame_time - m_parent->get_video_time() + half_frame_offset;
@@ -735,14 +769,14 @@ void FeVideoImp::video_thread()
 					set_avdiscard_from_qscore( codec_ctx, qscore );
 					degrading = true;
 				}
-				else if ( wait_time >= sf::Time::Zero )
+				else if ( wait_time >= FeTime() )
 				{
 					//
 					// We are ahead and can sleep until presentation time
 					//
-					sf::Clock clock;
+					FeClock clock;
 					while ( run_video_thread && clock.getElapsedTime() < wait_time )
-						sf::sleep( sf::milliseconds( 1 ));
+						fe_sleep( fe_milliseconds( 1 ) );
 
 					if ( !run_video_thread )
 						goto the_end;
@@ -928,9 +962,9 @@ void FeVideoImp::video_thread()
 				//
 				// full frame queue and nothing to display yet, so sleep
 				//
-				sf::Clock clock;
+				FeClock clock;
 				while ( run_video_thread && clock.getElapsedTime() < max_sleep )
-					sf::sleep( sf::milliseconds( 1 ));
+					fe_sleep( fe_milliseconds( 1 ) );
 			}
 		}
 	}
@@ -965,14 +999,14 @@ the_end:
 }
 
 FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
-	: sf::SoundStream(),
-	m_audio( NULL ),
+	: m_audio( NULL ),
 	m_video( NULL ),
+	m_stream( std::make_unique<FeMediaSoundStream>( *this ) ),
 	m_aspect_ratio( 1.0 ),
 	m_audio_effects( effects_manager )
 {
 	m_imp = new FeMediaImp( t );
-	sf::SoundStream::setSpatializationEnabled( false );
+	m_stream->setSpatializationEnabled( false );
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -995,7 +1029,7 @@ FeMedia::~FeMedia()
 
 void FeMedia::setup_effect_processor()
 {
-	setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
+	m_stream->setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
 	                            float *output_frames, unsigned int &output_frame_count,
 	                            unsigned int frame_channel_count )
 	{
@@ -1012,7 +1046,7 @@ void FeMedia::setup_effect_processor()
 	});
 }
 
-sf::Time FeMedia::get_video_time()
+FeTime FeMedia::get_video_time()
 {
 	//
 	// TODO: would like to sync movie time to audio, however using
@@ -1023,7 +1057,7 @@ sf::Time FeMedia::get_video_time()
 			? get_duration()
 			: m_video->video_timer.getElapsedTime();
 
-	return sf::Time::Zero;
+	return FeTime();
 }
 
 void FeMedia::play()
@@ -1034,7 +1068,7 @@ void FeMedia::play()
 			m_video->play();
 
 		if ( m_audio )
-			sf::SoundStream::play();
+			m_stream->play();
 	}
 }
 
@@ -1043,7 +1077,7 @@ void FeMedia::signal_stop()
 	m_alive.store( false, std::memory_order_release );
 
 	if ( m_audio )
-		sf::SoundStream::stop();
+		m_stream->stop();
 
 	if ( m_video )
 		m_video->signal_stop();
@@ -1053,7 +1087,7 @@ void FeMedia::stop()
 {
 	if ( m_audio )
 	{
-		sf::SoundStream::stop();
+		m_stream->stop();
 		m_audio->stop();
 
 		{
@@ -1126,12 +1160,12 @@ bool FeMedia::is_playing()
 	if (( m_video ) && ( !m_video->at_end ))
 		return ( m_video->run_video_thread );
 
-	return (( m_audio ) && (sf::SoundStream::getStatus() == sf::SoundStream::Status::Playing ));
+	return (( m_audio ) && ( m_stream->getStatus() == sf::SoundStream::Status::Playing ));
 }
 
 float FeMedia::getVolume() const
 {
-	return sf::SoundStream::getVolume();
+	return m_stream->getVolume();
 }
 
 void FeMedia::setVolume( float volume )
@@ -1145,7 +1179,7 @@ void FeMedia::setVolume( float volume )
 		m_audio->codec_ctx->skip_frame = d;
 	}
 
-	sf::SoundStream::setVolume( volume );
+	m_stream->setVolume( volume );
 
 	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
 	if ( normaliser )
@@ -1154,12 +1188,12 @@ void FeMedia::setVolume( float volume )
 
 float FeMedia::getPan() const
 {
-	return sf::SoundStream::getPan();
+	return m_stream->getPan();
 }
 
 void FeMedia::setPan( float pan )
 {
-	sf::SoundStream::setPan( pan );
+	m_stream->setPan( pan );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
@@ -1318,12 +1352,12 @@ bool FeMedia::open( const std::string &archive,
 					channelMap.push_back( sf::SoundChannel::FrontRight );
 				}
 
-				sf::SoundStream::initialize(
+				m_stream->initialize(
 					nb_channels,
 					codec_ctx->sample_rate,
 					channelMap );
 
-				sf::SoundStream::setLooping( false );
+				m_stream->setLooping( false );
 
 				setup_effect_processor();
 			}
@@ -1424,9 +1458,9 @@ bool FeMedia::open( const std::string &archive,
 				m_video->codec_ctx = codec_ctx;
 
 				m_video->codec = dec;
-				m_video->time_base = sf::seconds( av_q2d( m_imp->m_format_ctx->streams[stream_id]->time_base ));
+				m_video->time_base = fe_seconds( av_q2d( m_imp->m_format_ctx->streams[stream_id]->time_base ) );
 
-				m_video->max_sleep = sf::seconds( 0.5 / av_q2d( m_imp->m_format_ctx->streams[stream_id]->r_frame_rate ));
+				m_video->max_sleep = fe_seconds( 0.5 / av_q2d( m_imp->m_format_ctx->streams[stream_id]->r_frame_rate ) );
 
 				if ( codec_ctx->sample_aspect_ratio.num != 0 )
 					m_aspect_ratio = av_q2d( codec_ctx->sample_aspect_ratio );
@@ -1547,52 +1581,52 @@ unsigned long long FeMedia::get_video_frame_serial() const
 }
 
 
-bool FeMedia::onGetData( Chunk &data )
+bool FeMediaSoundStream::onGetData( Chunk &data )
 {
 	int offset=0;
 
 	data.samples = NULL;
 	data.sampleCount = 0;
 
-	if (( !m_audio ) || end_of_file() )
+	if (( !m_owner.m_audio ) || m_owner.end_of_file() )
 		return false;
 
-	std::lock_guard<std::mutex> l( m_callback_mutex );
+	std::lock_guard<std::mutex> l( m_owner.m_callback_mutex );
 
-	while ( offset < m_audio->codec_ctx->sample_rate )
+	while ( offset < m_owner.m_audio->codec_ctx->sample_rate )
 	{
-		if ( !m_alive.load( std::memory_order_acquire ))
+		if ( !m_owner.m_alive.load( std::memory_order_acquire ))
 			return false;
 
-		AVPacket *packet = m_audio->pop_packet();
-		while (( packet == NULL ) && ( !end_of_file() ))
+		AVPacket *packet = m_owner.m_audio->pop_packet();
+		while (( packet == NULL ) && ( !m_owner.end_of_file() ))
 		{
-			read_packet();
-			if ( !m_alive.load( std::memory_order_acquire ))
+			m_owner.read_packet();
+			if ( !m_owner.m_alive.load( std::memory_order_acquire ))
 			{
 				av_packet_free( &packet );
 				return false;
 			}
 
-			packet = m_audio->pop_packet();
+			packet = m_owner.m_audio->pop_packet();
 		}
 
 		if ( packet == NULL )
 		{
-			m_audio->at_end=true;
+			m_owner.m_audio->at_end=true;
 			if ( offset > 0 )
 				return true;
 			return false;
 		}
 
-		if ( !m_alive.load( std::memory_order_acquire ))
+		if ( !m_owner.m_alive.load( std::memory_order_acquire ))
 		{
 			FeLog() << "Error: Closing stream before avcodec_send_packet()" << std::endl;
 			av_packet_free( &packet );
 			return false;
 		}
 
-		int r = avcodec_send_packet( m_audio->codec_ctx, packet );
+		int r = avcodec_send_packet( m_owner.m_audio->codec_ctx, packet );
 		if (( r < 0 ) && ( r != AVERROR( EAGAIN )))
 		{
 			char buff[256];
@@ -1611,11 +1645,11 @@ bool FeMedia::onGetData( Chunk &data )
 		AVFrame *frame = av_frame_alloc();
 		do
 		{
-			r = avcodec_receive_frame( m_audio->codec_ctx, frame );
+			r = avcodec_receive_frame( m_owner.m_audio->codec_ctx, frame );
 
 			if ( r == 0 )
 			{
-				if ( !m_audio->process_frame( frame, data, offset ))
+				if ( !m_owner.m_audio->process_frame( frame, data, offset ))
 					return false;
 			}
 			else
@@ -1637,8 +1671,9 @@ bool FeMedia::onGetData( Chunk &data )
 	return true;
 }
 
-void FeMedia::onSeek( sf::Time timeOffset )
+void FeMediaSoundStream::onSeek( FeSfStreamTime timeOffset )
 {
+	(void)timeOffset;
 	// Not implemented
 }
 
@@ -1687,20 +1722,20 @@ float FeMedia::get_aspect_ratio() const
 	return m_aspect_ratio;
 }
 
-sf::Time FeMedia::get_duration() const
+FeTime FeMedia::get_duration() const
 {
 	if ( m_video && m_imp->m_format_ctx )
 	{
 		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
 		if ( m_imp->m_format_ctx && m_video->stream_id >= 0 )
 		{
-			return sf::seconds(
+			return fe_seconds(
 					av_q2d( m_imp->m_format_ctx->streams[m_video->stream_id]->time_base ) *
 							m_imp->m_format_ctx->streams[ m_video->stream_id ]->duration );
 		}
 	}
 
-	return sf::Time::Zero;
+	return FeTime();
 }
 
 #if FE_HWACCEL

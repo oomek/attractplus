@@ -178,7 +178,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_defaultFont( NULL ),
 	m_logo_image( NULL ),
 	m_logo_full_image( NULL ),
-	m_layout_time_old( sf::Time::Zero ),
+	m_layout_time_old(),
 	m_frame_time( 0.0f ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
@@ -1702,7 +1702,7 @@ void FePresent::load_layout( bool initial_load )
 	// Run the script which actually sets up the layout
 	//
 	m_layout_time.reset();
-	m_layout_time_old = sf::Time::Zero;
+	m_layout_time_old = FeTime();
 	m_layout_has_content = false;
 
 	on_new_layout();
@@ -1722,8 +1722,8 @@ void FePresent::load_layout( bool initial_load )
 
 bool FePresent::tick()
 {
-	sf::Time current_time = m_layout_time.getElapsedTime();
-	sf::Time delta_time = current_time - m_layout_time_old;
+	FeTime current_time = m_layout_time.getElapsedTime();
+	FeTime delta_time = current_time - m_layout_time_old;
 	m_layout_time_old = current_time;
 	m_frame_time = delta_time.asSeconds() * 1000.0f;
 
@@ -1796,15 +1796,15 @@ bool FePresent::saver_activation_check()
 	if ( !saver_active && ( saver_timeout > 0 ))
 	{
 		if ( ( m_layout_time.getElapsedTime() - m_lastInput )
-				> sf::seconds( saver_timeout ) )
+				> fe_seconds( saver_timeout ) )
 		{
 			load_screensaver();
 			return true;
 		}
 	}
 
-	// Protect against integer overflow of the layout time,  which is limited by our usage of
-	// sf::Time::asMilliseconds().  asMillseconds() returns sf::Int32, which maxes out at ~2billion
+	// Protect against integer overflow of the layout time. Some downstream paths
+	// still cast to 32-bit milliseconds, so force a layout reset before that wraps.
 	//
 	// THis means the layout is forced by AM to reset after about a month of running
 	//
@@ -2147,7 +2147,7 @@ int FePresent::get_layout_ms()
 	return m_layout_time.getElapsedTime().asMilliseconds();
 }
 
-sf::Time FePresent::get_layout_time()
+FeTime FePresent::get_layout_time()
 {
 	return m_layout_time.getElapsedTime();
 }
@@ -2245,7 +2245,7 @@ const sf::Vector2i FePresent::get_screen_size()
 }
 
 FeStableClock::FeStableClock()
-	: m_time( sf::Time::Zero )
+	: m_time()
 {
 	m_real_timer.stop();
 	m_real_timer.reset();
@@ -2259,7 +2259,7 @@ void FeStableClock::start()
 void FeStableClock::reset()
 {
 	m_real_timer.reset();
-	m_time = sf::Time::Zero;
+	m_time = FeTime();
 }
 
 void FeStableClock::tick()
@@ -2267,11 +2267,11 @@ void FeStableClock::tick()
 	if ( !m_real_timer.isRunning() )
 		m_real_timer.start();
 
-	sf::Time real_elapsed = m_real_timer.getElapsedTime();
+	FeTime real_elapsed = m_real_timer.getElapsedTime();
 	FePresent *fep = FePresent::script_get_fep();
-	sf::Time stable_increment = sf::microseconds( 1000000 / fep->get_refresh_rate() );
+	FeTime stable_increment = fe_microseconds( 1000000 / fep->get_refresh_rate() );
 
-	sf::Time new_time = m_time + stable_increment;
+	FeTime new_time = m_time + stable_increment;
 
 	// If the new time is lagging behind the real time, catch up.
 	if ( new_time < real_elapsed )
@@ -2280,12 +2280,12 @@ void FeStableClock::tick()
 	m_time = new_time;
 }
 
-sf::Time FeStableClock::getElapsedTime()
+FeTime FeStableClock::getElapsedTime()
 {
 	if ( !m_real_timer.isRunning() )
 		m_real_timer.start();
 
-	sf::Time real_elapsed = m_real_timer.getElapsedTime();
+	FeTime real_elapsed = m_real_timer.getElapsedTime();
 
 	// If the new time is lagging behind the real time, catch up.
 	if ( m_time < real_elapsed )

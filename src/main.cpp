@@ -266,10 +266,10 @@ int main(int argc, char *argv[])
 	// variables used to track movement when a key is held down
 	FeInputMap::Command move_state( FeInputMap::LAST_COMMAND ); // command mapped to the move
 	FeInputMap::Command move_triggered( FeInputMap::LAST_COMMAND ); // "repeatable" command triggered on move (if any)
-	sf::Clock move_timer;
+	FeClock move_timer;
 	std::optional<sf::Event> move_event;
 	int move_last_triggered( 0 );
-	sf::Clock command_timer;
+	FeClock command_timer;
 	command_timer.stop();
 
 	// the splash_logo will be displayed if there are no displays configured
@@ -1170,7 +1170,7 @@ int main(int argc, char *argv[])
 			if ( cont )
 			{
 				command_timer.restart();
-				int t = move_timer.getElapsedTime().asMilliseconds();
+				int t = static_cast<int>( move_timer.getElapsedTime().asMilliseconds() );
 				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() ))
 				{
 					if (( move_triggered == FeInputMap::LAST_COMMAND )
@@ -1352,7 +1352,7 @@ int main(int argc, char *argv[])
 			redraw=false;
 		}
 		else
-			sf::sleep( sf::milliseconds( 15 ) );
+			fe_sleep( fe_milliseconds( 15 ) );
 
 		soundsys.tick();
 	}

@@ -23,7 +23,6 @@
 #ifndef FE_AUDIO_FX_HPP
 #define FE_AUDIO_FX_HPP
 
-#include <SFML/System.hpp>
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -32,6 +31,7 @@
 #include <cmath>
 
 #include "meow_fft.h"
+#include "fe_time.hpp"
 
 class FeAudioEffect
 {
@@ -150,12 +150,10 @@ private:
 	mutable std::vector<float> m_fft_right_in;
 	mutable std::vector<float> m_fft_right_out;
 
-	mutable sf::Time m_last_frame_time;
-	mutable sf::Clock m_system_clock;
 	mutable bool m_vu_requested;
 	mutable bool m_fft_requested;
-	mutable sf::Time m_vu_request_time;
-	mutable sf::Time m_fft_request_time;
+	mutable FeTime m_vu_request_time;
+	mutable FeTime m_fft_request_time;
 	int m_fft_bands;
 
 	// Rolling buffer and resampling for FFT

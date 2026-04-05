@@ -54,8 +54,6 @@
 #include <array>
 #include "nowide/fstream.hpp"
 
-#include <SFML/System/Sleep.hpp>
-
 namespace
 {
 	struct FeSdlJoystickSlot
@@ -1101,7 +1099,7 @@ void FeWindow::check_for_sleep()
 		}
 
 		FeDebug() << "! NOTE: Resume from sleep detected. Resetting audio device" << std::endl;
-		sf::sleep( sf::milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
+		fe_sleep( fe_milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
 
 		std::optional<std::string> current_device = sf::PlaybackDevice::getDevice();
 		if ( current_device.has_value() )
@@ -1113,7 +1111,7 @@ void FeWindow::check_for_sleep()
 				if ( success )
 					break;
 				else
-					sf::sleep( sf::milliseconds( 100 ) );
+					fe_sleep( fe_milliseconds( 100 ) );
 			}
 			if ( !success )
 				FeLog() << "ERROR: Failed to reinitialize audio" << std::endl;
@@ -1543,7 +1541,7 @@ void launch_callback( void *o )
 		// from running on some systems...
 		//
 #if defined(USE_XLIB)
-		sf::sleep( sf::milliseconds( 1000 ) );
+		fe_sleep( fe_milliseconds( 1000 ) );
 #endif
 		FeDebug() << "Closing Attract-Mode Plus window" << std::endl;
 		win->close(); // this fixes raspi version (w/sfml-pi) obscuring daphne (and others?)
@@ -1584,7 +1582,7 @@ bool FeWindow::run()
 		sf::Mouse::setPosition( hide_pos );
 	}
 
-	sf::Clock timer;
+	FeClock timer;
 
 	// We need to get this variable before calling m_fes.prep_for_launch(),
 	// which goes and resets the last launch tracking to the current selection
@@ -1726,16 +1724,17 @@ bool FeWindow::run()
 			has_focus = hasFocus();
 #endif
 
-			if (( timer.getElapsedTime() >= sf::seconds( nbm_wait ) )
+			const FeTime elapsed_time = timer.getElapsedTime();
+			if (( elapsed_time >= fe_seconds( nbm_wait ) )
 				&& ( has_focus ))
 			{
 				FeDebug() << "Attract-Mode Plus has focus, stopped non-blocking wait after "
-					<< timer.getElapsedTime().asSeconds() << "s" << std::endl;
+					<< elapsed_time.asSeconds() << "s" << std::endl;
 
 				done_wait = true;
 			}
 			else
-				sf::sleep( sf::milliseconds( 25 ) );
+				fe_sleep( fe_milliseconds( 25 ) );
 		}
 	}
 

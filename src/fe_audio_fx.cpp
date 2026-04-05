@@ -176,11 +176,10 @@ FeAudioVisualiser::FeAudioVisualiser()
 	m_fft_left_out( FFT_BANDS_MAX, 0.0f ),
 	m_fft_right_in( FFT_BANDS_MAX, 0.0f ),
 	m_fft_right_out( FFT_BANDS_MAX, 0.0f ),
-	m_last_frame_time( sf::Time::Zero ),
 	m_vu_requested( false ),
 	m_fft_requested( false ),
-	m_vu_request_time( sf::Time::Zero ),
-	m_fft_request_time( sf::Time::Zero ),
+	m_vu_request_time(),
+	m_fft_request_time(),
 	m_fft_bands( 32 ),
 	m_rolling_buffer_mono( ROLLING_BUFFER_SIZE, 0.0f ),
 	m_rolling_buffer_left( ROLLING_BUFFER_SIZE, 0.0f ),
@@ -363,8 +362,8 @@ void FeAudioVisualiser::reset()
 	m_buffer_samples_count = 0;
 	m_phase_accumulator = 0.0;
 
-	m_vu_request_time = sf::Time::Zero;
-	m_fft_request_time = sf::Time::Zero;
+	m_vu_request_time = FeTime();
+	m_fft_request_time = FeTime();
 }
 
 void FeAudioVisualiser::update()
@@ -622,7 +621,7 @@ bool FeAudioVisualiser::resample_and_buffer_audio( const float* input_frames, un
 
 void FeAudioVisualiser::update_fall() const
 {
-	sf::Time current_time =  sf::Time::Zero;
+	FeTime current_time;
 	float frame_time = 0.0;
 
 	FePresent *fep = FePresent::script_get_fep();
@@ -652,8 +651,10 @@ void FeAudioVisualiser::update_fall() const
 
 	// Clear flags if 100ms has passed since last request
 	const float REQUEST_TIMEOUT_MS = 100.0f;
-	float vu_time_since_request = ( current_time - m_vu_request_time ).asMilliseconds();
-	float fft_time_since_request = ( current_time - m_fft_request_time ).asMilliseconds();
+	const float vu_time_since_request =
+		static_cast<float>( ( current_time - m_vu_request_time ).asMilliseconds() );
+	const float fft_time_since_request =
+		static_cast<float>( ( current_time - m_fft_request_time ).asMilliseconds() );
 
 	if ( vu_time_since_request > REQUEST_TIMEOUT_MS )
 		m_vu_requested = false;

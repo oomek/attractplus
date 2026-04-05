@@ -31,6 +31,7 @@
 #include "fe_music.hpp"
 #include "fe_sound.hpp"
 #include "fe_shader.hpp"
+#include "fe_time.hpp"
 #include "fe_window.hpp"
 
 class FeImage;
@@ -116,11 +117,11 @@ public:
 	void start();
 	void reset();
 	void tick();
-	sf::Time getElapsedTime();
+	FeTime getElapsedTime();
 
 private:
-	sf::Clock m_real_timer;
-	sf::Time m_time;
+	FeClock m_real_timer;
+	FeTime m_time;
 };
 
 class FePresent
@@ -146,9 +147,9 @@ protected:
 	sf::Image *m_logo_full_image;
 
 	FeStableClock m_layout_time;
-	sf::Time m_layout_time_old;
+	FeTime m_layout_time_old;
 	float m_frame_time;
-	sf::Time m_lastInput;
+	FeTime m_lastInput;
 
 	FeSettings::RotationState m_baseRotation;
 	FeSettings::RotationState m_toggleRotation;
@@ -311,7 +312,7 @@ public:
 	bool get_video_toggle() { return m_playMovies; };
 
 	int get_layout_ms();
-	sf::Time get_layout_time();
+	FeTime get_layout_time();
 	float get_layout_frame_time();
 	int get_refresh_rate();
 	bool get_mouse_pointer();

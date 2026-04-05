@@ -32,8 +32,6 @@
 
 #include <expat.h>
 
-#include <SFML/System/Clock.hpp>
-
 namespace {
 
 void fix_last_word( std::string &str, int pos )

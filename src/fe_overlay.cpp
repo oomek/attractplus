@@ -244,7 +244,7 @@ public:
 	int page_size;		// pagination size
 	int move_count;
 	std::optional<sf::Event> move_event;
-	sf::Clock move_timer;
+	FeClock move_timer;
 	FeInputMap::Command move_command;
 	FeInputMap::Command extra_exit;
 
@@ -903,7 +903,7 @@ void FeOverlay::input_map_dialog(
 
 	std::set < std::pair<int,int> > joystick_moves;
 	FeInputMapEntry entry;
-	sf::Clock timeout;
+	FeClock timeout;
 
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 	while ( m_wnd.isOpen() )
@@ -967,7 +967,7 @@ void FeOverlay::input_map_dialog(
 			}
 		}
 
-		if ( timeout.getElapsedTime() > sf::seconds( 6 ) )
+		if ( timeout.getElapsedTime() > fe_seconds( 6 ) )
 			done = true;
 
 		if ( done )
@@ -994,7 +994,7 @@ void FeOverlay::input_map_dialog(
 			redraw = false;
 		}
 		else
-			sf::sleep( sf::milliseconds( 30 ) );
+			fe_sleep( fe_milliseconds( 30 ) );
 	}
 }
 
@@ -1854,8 +1854,8 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 	//
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
-	sf::Clock timer;
-	while (( timer.getElapsedTime() < sf::seconds( 6 ) )
+	FeClock timer;
+	while (( timer.getElapsedTime() < fe_seconds( 6 ) )
 			&& ( m_feSettings.get_current_state( FeInputMap::Back )
 				|| m_feSettings.get_current_state( FeInputMap::ExitToDesktop )
 				|| m_feSettings.get_current_state( FeInputMap::Select ) ))
@@ -1879,7 +1879,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 			m_wnd.display();
 		}
 		else
-			sf::sleep( sf::milliseconds( 30 ) );
+			fe_sleep( fe_milliseconds( 30 ) );
 	}
 }
 
@@ -2014,7 +2014,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			redraw = false;
 		}
 		else
-			sf::sleep( sf::milliseconds( 30 ) );
+			fe_sleep( fe_milliseconds( 30 ) );
 
 		if ( ctx.move_command != FeInputMap::LAST_COMMAND )
 		{
@@ -2049,7 +2049,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 
 			if ( cont )
 			{
-				int t = ctx.move_timer.getElapsedTime().asMilliseconds();
+				int t = static_cast<int>( ctx.move_timer.getElapsedTime().asMilliseconds() );
 				if ( t > m_feSettings.selection_delay() + ctx.move_count * m_feSettings.selection_speed() )
 				{
 					int last_sel = ctx.sel;
@@ -2112,7 +2112,7 @@ public:
 bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *tp )
 {
-	sf::Clock cursor_timer;
+	FeClock cursor_timer;
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	sf::RectangleShape cursor;
@@ -2378,7 +2378,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 			m_wnd.draw( item, t );
 		draw_native_logo_if_needed();
 
-		int ms = cursor_timer.getElapsedTime().asMilliseconds();
+		int ms = static_cast<int>( cursor_timer.getElapsedTime().asMilliseconds() );
 		int cursor_fade = std::clamp( sin( ms / 500.0 * M_PI ) * 2.0 + 1.0, 0.0, 1.0 ) * 255;
 
 		cursor.setFillColor( m_text_color * sf::Color( 255, 255, 255, cursor_fade ));
@@ -2387,7 +2387,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 		m_wnd.display();
 
 		if ( !redraw && m_feSettings.get_info_bool( FeSettings::PowerSaving ) )
-			sf::sleep( sf::milliseconds( 30 ) );
+			fe_sleep( fe_milliseconds( 30 ) );
 
 		redraw = false;
 

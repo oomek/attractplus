@@ -200,9 +200,9 @@ void FeMusic::set_playing( bool state )
 
 	const sf::SoundSource::Status status = m_music.getStatus();
 	if ( ended || (( status == sf::SoundSource::Status::Stopped )
-		&& ( m_music.getDuration() > sf::Time::Zero )
+		&& ( m_music.getDuration().asMilliseconds() > 0 )
 		&& ( m_music.getPlayingOffset() >= m_music.getDuration() )))
-		m_music.setPlayingOffset( sf::Time::Zero );
+		m_music.setPlayingOffset( {} );
 
 	if ( status != sf::SoundSource::Status::Playing )
 		m_music.play();
@@ -228,7 +228,7 @@ FePlaybackStatus FeMusic::get_status()
 		return FePlaybackStatusPaused;
 	default:
 		if ( m_play_state
-			|| (( m_music.getDuration() > sf::Time::Zero )
+			|| (( m_music.getDuration().asMilliseconds() > 0 )
 				&& ( m_music.getPlayingOffset() >= m_music.getDuration() )))
 			return FePlaybackStatusEnded;
 		return FePlaybackStatusStopped;
@@ -316,7 +316,8 @@ int FeMusic::get_time()
 void FeMusic::set_time( int time )
 {
 	const int clamped_time = std::clamp( time, 0, get_duration() );
-	m_music.setPlayingOffset( sf::milliseconds( clamped_time ) );
+	m_music.setPlayingOffset(
+		sf::microseconds( static_cast<std::int64_t>( fe_milliseconds( clamped_time ).asMicroseconds() ) ) );
 
 	if ( m_music.getStatus() == sf::SoundSource::Status::Stopped )
 		m_play_state = (( get_duration() > 0 ) && ( clamped_time >= get_duration() ));

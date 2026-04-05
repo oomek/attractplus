@@ -409,7 +409,7 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 		if ( event.has_value() )
 		{
 			ev = event;
-			int t = m_layout_time.getElapsedTime().asMilliseconds();
+			const std::int64_t t = m_layout_time.getElapsedTime().asMilliseconds();
 
 			// Debounce to stop multiples when triggered by a key combo
 			//
@@ -433,7 +433,7 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 void FeVM::clear_handlers()
 {
 	FePresent::clear_layout();
-	m_last_ui_cmd = sf::Time();
+	m_last_ui_cmd = FeTime();
 	m_ticks.clear();
 	m_trans.clear();
 	m_sig_handlers.clear();
