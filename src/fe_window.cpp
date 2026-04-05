@@ -24,6 +24,7 @@
 #include "attractplus_icon.hpp"
 #endif
 #include "fe_util.hpp"
+#include "fe_input.hpp"
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
 #include "fe_present.hpp"
@@ -413,125 +414,17 @@ namespace
 		return 0;
 	}
 
-	sf::Keyboard::Key sdl_scancode_to_sf_key( SDL_Scancode scancode )
-	{
-		switch ( scancode )
-		{
-		case SDL_SCANCODE_A: return sf::Keyboard::Key::A;
-		case SDL_SCANCODE_B: return sf::Keyboard::Key::B;
-		case SDL_SCANCODE_C: return sf::Keyboard::Key::C;
-		case SDL_SCANCODE_D: return sf::Keyboard::Key::D;
-		case SDL_SCANCODE_E: return sf::Keyboard::Key::E;
-		case SDL_SCANCODE_F: return sf::Keyboard::Key::F;
-		case SDL_SCANCODE_G: return sf::Keyboard::Key::G;
-		case SDL_SCANCODE_H: return sf::Keyboard::Key::H;
-		case SDL_SCANCODE_I: return sf::Keyboard::Key::I;
-		case SDL_SCANCODE_J: return sf::Keyboard::Key::J;
-		case SDL_SCANCODE_K: return sf::Keyboard::Key::K;
-		case SDL_SCANCODE_L: return sf::Keyboard::Key::L;
-		case SDL_SCANCODE_M: return sf::Keyboard::Key::M;
-		case SDL_SCANCODE_N: return sf::Keyboard::Key::N;
-		case SDL_SCANCODE_O: return sf::Keyboard::Key::O;
-		case SDL_SCANCODE_P: return sf::Keyboard::Key::P;
-		case SDL_SCANCODE_Q: return sf::Keyboard::Key::Q;
-		case SDL_SCANCODE_R: return sf::Keyboard::Key::R;
-		case SDL_SCANCODE_S: return sf::Keyboard::Key::S;
-		case SDL_SCANCODE_T: return sf::Keyboard::Key::T;
-		case SDL_SCANCODE_U: return sf::Keyboard::Key::U;
-		case SDL_SCANCODE_V: return sf::Keyboard::Key::V;
-		case SDL_SCANCODE_W: return sf::Keyboard::Key::W;
-		case SDL_SCANCODE_X: return sf::Keyboard::Key::X;
-		case SDL_SCANCODE_Y: return sf::Keyboard::Key::Y;
-		case SDL_SCANCODE_Z: return sf::Keyboard::Key::Z;
-		case SDL_SCANCODE_1: return sf::Keyboard::Key::Num1;
-		case SDL_SCANCODE_2: return sf::Keyboard::Key::Num2;
-		case SDL_SCANCODE_3: return sf::Keyboard::Key::Num3;
-		case SDL_SCANCODE_4: return sf::Keyboard::Key::Num4;
-		case SDL_SCANCODE_5: return sf::Keyboard::Key::Num5;
-		case SDL_SCANCODE_6: return sf::Keyboard::Key::Num6;
-		case SDL_SCANCODE_7: return sf::Keyboard::Key::Num7;
-		case SDL_SCANCODE_8: return sf::Keyboard::Key::Num8;
-		case SDL_SCANCODE_9: return sf::Keyboard::Key::Num9;
-		case SDL_SCANCODE_0: return sf::Keyboard::Key::Num0;
-		case SDL_SCANCODE_ESCAPE: return sf::Keyboard::Key::Escape;
-		case SDL_SCANCODE_LCTRL: return sf::Keyboard::Key::LControl;
-		case SDL_SCANCODE_LSHIFT: return sf::Keyboard::Key::LShift;
-		case SDL_SCANCODE_LALT: return sf::Keyboard::Key::LAlt;
-		case SDL_SCANCODE_LGUI: return sf::Keyboard::Key::LSystem;
-		case SDL_SCANCODE_RCTRL: return sf::Keyboard::Key::RControl;
-		case SDL_SCANCODE_RSHIFT: return sf::Keyboard::Key::RShift;
-		case SDL_SCANCODE_RALT: return sf::Keyboard::Key::RAlt;
-		case SDL_SCANCODE_RGUI: return sf::Keyboard::Key::RSystem;
-		case SDL_SCANCODE_MENU: return sf::Keyboard::Key::Menu;
-		case SDL_SCANCODE_LEFTBRACKET: return sf::Keyboard::Key::LBracket;
-		case SDL_SCANCODE_RIGHTBRACKET: return sf::Keyboard::Key::RBracket;
-		case SDL_SCANCODE_SEMICOLON: return sf::Keyboard::Key::Semicolon;
-		case SDL_SCANCODE_COMMA: return sf::Keyboard::Key::Comma;
-		case SDL_SCANCODE_PERIOD: return sf::Keyboard::Key::Period;
-		case SDL_SCANCODE_APOSTROPHE: return sf::Keyboard::Key::Apostrophe;
-		case SDL_SCANCODE_SLASH: return sf::Keyboard::Key::Slash;
-		case SDL_SCANCODE_BACKSLASH: return sf::Keyboard::Key::Backslash;
-		case SDL_SCANCODE_GRAVE: return sf::Keyboard::Key::Grave;
-		case SDL_SCANCODE_EQUALS: return sf::Keyboard::Key::Equal;
-		case SDL_SCANCODE_MINUS: return sf::Keyboard::Key::Hyphen;
-		case SDL_SCANCODE_SPACE: return sf::Keyboard::Key::Space;
-		case SDL_SCANCODE_RETURN: return sf::Keyboard::Key::Enter;
-		case SDL_SCANCODE_BACKSPACE: return sf::Keyboard::Key::Backspace;
-		case SDL_SCANCODE_TAB: return sf::Keyboard::Key::Tab;
-		case SDL_SCANCODE_PAGEUP: return sf::Keyboard::Key::PageUp;
-		case SDL_SCANCODE_PAGEDOWN: return sf::Keyboard::Key::PageDown;
-		case SDL_SCANCODE_END: return sf::Keyboard::Key::End;
-		case SDL_SCANCODE_HOME: return sf::Keyboard::Key::Home;
-		case SDL_SCANCODE_INSERT: return sf::Keyboard::Key::Insert;
-		case SDL_SCANCODE_DELETE: return sf::Keyboard::Key::Delete;
-		case SDL_SCANCODE_KP_PLUS: return sf::Keyboard::Key::Add;
-		case SDL_SCANCODE_KP_MINUS: return sf::Keyboard::Key::Subtract;
-		case SDL_SCANCODE_KP_MULTIPLY: return sf::Keyboard::Key::Multiply;
-		case SDL_SCANCODE_KP_DIVIDE: return sf::Keyboard::Key::Divide;
-		case SDL_SCANCODE_LEFT: return sf::Keyboard::Key::Left;
-		case SDL_SCANCODE_RIGHT: return sf::Keyboard::Key::Right;
-		case SDL_SCANCODE_UP: return sf::Keyboard::Key::Up;
-		case SDL_SCANCODE_DOWN: return sf::Keyboard::Key::Down;
-		case SDL_SCANCODE_KP_0: return sf::Keyboard::Key::Numpad0;
-		case SDL_SCANCODE_KP_1: return sf::Keyboard::Key::Numpad1;
-		case SDL_SCANCODE_KP_2: return sf::Keyboard::Key::Numpad2;
-		case SDL_SCANCODE_KP_3: return sf::Keyboard::Key::Numpad3;
-		case SDL_SCANCODE_KP_4: return sf::Keyboard::Key::Numpad4;
-		case SDL_SCANCODE_KP_5: return sf::Keyboard::Key::Numpad5;
-		case SDL_SCANCODE_KP_6: return sf::Keyboard::Key::Numpad6;
-		case SDL_SCANCODE_KP_7: return sf::Keyboard::Key::Numpad7;
-		case SDL_SCANCODE_KP_8: return sf::Keyboard::Key::Numpad8;
-		case SDL_SCANCODE_KP_9: return sf::Keyboard::Key::Numpad9;
-		case SDL_SCANCODE_F1: return sf::Keyboard::Key::F1;
-		case SDL_SCANCODE_F2: return sf::Keyboard::Key::F2;
-		case SDL_SCANCODE_F3: return sf::Keyboard::Key::F3;
-		case SDL_SCANCODE_F4: return sf::Keyboard::Key::F4;
-		case SDL_SCANCODE_F5: return sf::Keyboard::Key::F5;
-		case SDL_SCANCODE_F6: return sf::Keyboard::Key::F6;
-		case SDL_SCANCODE_F7: return sf::Keyboard::Key::F7;
-		case SDL_SCANCODE_F8: return sf::Keyboard::Key::F8;
-		case SDL_SCANCODE_F9: return sf::Keyboard::Key::F9;
-		case SDL_SCANCODE_F10: return sf::Keyboard::Key::F10;
-		case SDL_SCANCODE_F11: return sf::Keyboard::Key::F11;
-		case SDL_SCANCODE_F12: return sf::Keyboard::Key::F12;
-		case SDL_SCANCODE_F13: return sf::Keyboard::Key::F13;
-		case SDL_SCANCODE_F14: return sf::Keyboard::Key::F14;
-		case SDL_SCANCODE_F15: return sf::Keyboard::Key::F15;
-		case SDL_SCANCODE_PAUSE: return sf::Keyboard::Key::Pause;
-		default: return sf::Keyboard::Key::Unknown;
-		}
-	}
-
-	sf::Mouse::Button sdl_mouse_button_to_sf( Uint8 button )
+	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
+	Uint8 sf_mouse_button_to_sdl( sf::Mouse::Button button )
 	{
 		switch ( button )
 		{
-		case SDL_BUTTON_LEFT: return sf::Mouse::Button::Left;
-		case SDL_BUTTON_RIGHT: return sf::Mouse::Button::Right;
-		case SDL_BUTTON_MIDDLE: return sf::Mouse::Button::Middle;
-		case SDL_BUTTON_X1: return sf::Mouse::Button::Extra1;
-		case SDL_BUTTON_X2: return sf::Mouse::Button::Extra2;
-		default: return sf::Mouse::Button::Left;
+		case sf::Mouse::Button::Left: return SDL_BUTTON_LEFT;
+		case sf::Mouse::Button::Right: return SDL_BUTTON_RIGHT;
+		case sf::Mouse::Button::Middle: return SDL_BUTTON_MIDDLE;
+		case sf::Mouse::Button::Extra1: return SDL_BUTTON_X1;
+		case sf::Mouse::Button::Extra2: return SDL_BUTTON_X2;
+		default: return 0;
 		}
 	}
 
@@ -624,7 +517,7 @@ namespace
 				return {};
 
 			const SDL_Keymod mods = SDL_GetModState();
-			const int key = static_cast<int>( sdl_scancode_to_sf_key( event.key.scancode ) );
+			const int key = static_cast<int>( event.key.scancode );
 			const bool alt = ( mods & SDL_KMOD_ALT ) != 0;
 			const bool control = ( mods & SDL_KMOD_CTRL ) != 0;
 			const bool shift = ( mods & SDL_KMOD_SHIFT ) != 0;
@@ -652,13 +545,13 @@ namespace
 
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			return FeEvent::MouseButtonPressed{
-				static_cast<int>( sdl_mouse_button_to_sf( event.button.button ) ),
+				static_cast<int>( event.button.button ),
 				{ static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) }
 			};
 
 		case SDL_EVENT_MOUSE_BUTTON_UP:
 			return FeEvent::MouseButtonReleased{
-				static_cast<int>( sdl_mouse_button_to_sf( event.button.button ) ),
+				static_cast<int>( event.button.button ),
 				{ static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) }
 			};
 
@@ -757,9 +650,9 @@ namespace
 		if ( const auto *text = event.getIf<sf::Event::TextEntered>() )
 			return FeEvent::TextEntered{ text->unicode };
 		if ( const auto *key = event.getIf<sf::Event::KeyPressed>() )
-			return FeEvent::KeyPressed{ static_cast<int>( key->code ), key->alt, key->control, key->shift, key->system };
+			return FeEvent::KeyPressed{ fe_key_from_legacy_sfml_code( static_cast<int>( key->code ) ), key->alt, key->control, key->shift, key->system };
 		if ( const auto *key = event.getIf<sf::Event::KeyReleased>() )
-			return FeEvent::KeyReleased{ static_cast<int>( key->code ), key->alt, key->control, key->shift, key->system };
+			return FeEvent::KeyReleased{ fe_key_from_legacy_sfml_code( static_cast<int>( key->code ) ), key->alt, key->control, key->shift, key->system };
 		if ( const auto *mouse = event.getIf<sf::Event::MouseMoved>() )
 			return FeEvent::MouseMoved{ { mouse->position.x, mouse->position.y } };
 		if ( const auto *wheel = event.getIf<sf::Event::MouseWheelScrolled>() )
@@ -769,9 +662,9 @@ namespace
 				{ wheel->position.x, wheel->position.y }
 			};
 		if ( const auto *button = event.getIf<sf::Event::MouseButtonPressed>() )
-			return FeEvent::MouseButtonPressed{ static_cast<int>( button->button ), { button->position.x, button->position.y } };
+			return FeEvent::MouseButtonPressed{ static_cast<int>( sf_mouse_button_to_sdl( button->button ) ), { button->position.x, button->position.y } };
 		if ( const auto *button = event.getIf<sf::Event::MouseButtonReleased>() )
-			return FeEvent::MouseButtonReleased{ static_cast<int>( button->button ), { button->position.x, button->position.y } };
+			return FeEvent::MouseButtonReleased{ static_cast<int>( sf_mouse_button_to_sdl( button->button ) ), { button->position.x, button->position.y } };
 		if ( const auto *joy = event.getIf<sf::Event::JoystickMoved>() )
 			return FeEvent::JoystickMoved{ joy->joystickId, static_cast<int>( joy->axis ), joy->position };
 		if ( const auto *joy = event.getIf<sf::Event::JoystickButtonPressed>() )

@@ -35,6 +35,10 @@
 
 class FeMapping;
 
+bool fe_key_is_pressed( int code );
+bool fe_mouse_is_button_pressed( int button );
+int fe_key_from_legacy_sfml_code( int legacy_code ); // Temporary SFML bridge until the fallback SFML window path is removed.
+
 class FeInputSingle
 {
 public:
@@ -66,14 +70,12 @@ public:
 		JoyButton0 // up to FeJoystick::ButtonCount buttons supported starting from JoyButton0
 	};
 
-	static const char *keyStrings[];
-
 	FeInputSingle();
 
 	// Construct from a known type and code
 	FeInputSingle( Type t, int code );
 
-	// Construct from an SFML event
+	// Construct from a frontend event
 	FeInputSingle( const FeEvent &ev, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
 
 	// Construct from a config string
@@ -112,16 +114,16 @@ private:
 class FeInputMouse
 {
 private:
-	static sf::Vector2i m_pos_last;
-	static sf::Vector2i m_pos_delta;
+	static FeEvent::Vector2i m_pos_last;
+	static FeEvent::Vector2i m_pos_delta;
 	static int m_wheel_delta;
 
 public:
 	static void clear();
 	static void set_wheel_delta( int delta );
 	static int get_wheel_delta();
-	static void set_pos_delta( sf::Vector2i p );
-	static sf::Vector2i get_pos_delta();
+	static void set_pos_delta( FeEvent::Vector2i p );
+	static FeEvent::Vector2i get_pos_delta();
 };
 
 class FeInputMapEntry;

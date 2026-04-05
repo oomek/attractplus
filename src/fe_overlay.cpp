@@ -26,6 +26,7 @@
 #include "fe_config.hpp"
 #include "fe_util.hpp"
 #include <SFML/Graphics.hpp>
+#include <SDL3/SDL.h>
 #include "base64.hpp"
 #include <cmath>
 #include <algorithm>
@@ -2022,13 +2023,13 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 
 			if ( const auto* key = ctx.move_event->getIf<FeEvent::KeyPressed>() )
 			{
-				if ( key && sf::Keyboard::isKeyPressed( static_cast<sf::Keyboard::Key>( key->code ) ) )
+				if ( key && fe_key_is_pressed( key->code ) )
 					cont=true;
 			}
 
 			else if ( const auto* btn = ctx.move_event->getIf<FeEvent::MouseButtonPressed>() )
 			{
-				if ( btn && sf::Mouse::isButtonPressed( static_cast<sf::Mouse::Button>( btn->button ) ) )
+				if ( btn && fe_mouse_is_button_pressed( btn->button ) )
 					cont=true;
 			}
 
@@ -2177,44 +2178,44 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 
 					switch ( key->code )
 					{
-					case static_cast<int>( sf::Keyboard::Key::Left ):
+					case SDL_SCANCODE_LEFT:
 						if ( cursor_pos > 0 )
 							cursor_pos--;
 
 						redraw = true;
 						break;
 
-					case static_cast<int>( sf::Keyboard::Key::Right ):
+					case SDL_SCANCODE_RIGHT:
 						if ( cursor_pos < (int)str.size() )
 							cursor_pos++;
 
 						redraw = true;
 						break;
 
-					case static_cast<int>( sf::Keyboard::Key::Enter ):
+					case SDL_SCANCODE_RETURN:
 						return true;
 
-					case static_cast<int>( sf::Keyboard::Key::Escape ):
+					case SDL_SCANCODE_ESCAPE:
 						return false;
 
-					case static_cast<int>( sf::Keyboard::Key::End ):
+					case SDL_SCANCODE_END:
 						cursor_pos = str.size();
 						redraw = true;
 						break;
 
-					case static_cast<int>( sf::Keyboard::Key::Home ):
+					case SDL_SCANCODE_HOME:
 						cursor_pos = 0;
 						redraw = true;
 						break;
 
-					case static_cast<int>( sf::Keyboard::Key::Delete ):
+					case SDL_SCANCODE_DELETE:
 						if ( cursor_pos < (int)str.size() )
 							str.erase( cursor_pos, 1 );
 
 						redraw = true;
 						break;
 
-					case static_cast<int>( sf::Keyboard::Key::V ):
+					case SDL_SCANCODE_V:
 	#ifdef SFML_SYSTEM_MACOS
 						if ( key->system )
 	#else

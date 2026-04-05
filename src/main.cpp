@@ -1141,14 +1141,14 @@ int main(int argc, char *argv[])
 			if ( move_event->is<FeEvent::KeyPressed>() )
 			{
 				const auto* key = move_event->getIf<FeEvent::KeyPressed>();
-				if ( key && sf::Keyboard::isKeyPressed( static_cast<sf::Keyboard::Key>( key->code ) ))
+				if ( key && fe_key_is_pressed( key->code ) )
 					cont=true;
 			}
 
 			else if ( move_event->is<FeEvent::MouseButtonPressed>() )
 			{
 				const auto* btn = move_event->getIf<FeEvent::MouseButtonPressed>();
-				if ( sf::Mouse::isButtonPressed( static_cast<sf::Mouse::Button>( btn->button ) ))
+				if ( btn && fe_mouse_is_button_pressed( btn->button ) )
 					cont=true;
 			}
 

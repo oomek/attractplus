@@ -31,12 +31,125 @@
 #include <cstring>
 #include <cmath>
 #include <set>
+#include <SDL3/SDL.h>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Touch.hpp>
 
 namespace
 {
+	struct FeKeyInfo
+	{
+		SDL_Scancode scancode;
+		const char *name;
+	};
+
+	const FeKeyInfo g_key_info[] =
+	{
+		{ SDL_SCANCODE_A, "A" },
+		{ SDL_SCANCODE_B, "B" },
+		{ SDL_SCANCODE_C, "C" },
+		{ SDL_SCANCODE_D, "D" },
+		{ SDL_SCANCODE_E, "E" },
+		{ SDL_SCANCODE_F, "F" },
+		{ SDL_SCANCODE_G, "G" },
+		{ SDL_SCANCODE_H, "H" },
+		{ SDL_SCANCODE_I, "I" },
+		{ SDL_SCANCODE_J, "J" },
+		{ SDL_SCANCODE_K, "K" },
+		{ SDL_SCANCODE_L, "L" },
+		{ SDL_SCANCODE_M, "M" },
+		{ SDL_SCANCODE_N, "N" },
+		{ SDL_SCANCODE_O, "O" },
+		{ SDL_SCANCODE_P, "P" },
+		{ SDL_SCANCODE_Q, "Q" },
+		{ SDL_SCANCODE_R, "R" },
+		{ SDL_SCANCODE_S, "S" },
+		{ SDL_SCANCODE_T, "T" },
+		{ SDL_SCANCODE_U, "U" },
+		{ SDL_SCANCODE_V, "V" },
+		{ SDL_SCANCODE_W, "W" },
+		{ SDL_SCANCODE_X, "X" },
+		{ SDL_SCANCODE_Y, "Y" },
+		{ SDL_SCANCODE_Z, "Z" },
+		{ SDL_SCANCODE_0, "Num0" },
+		{ SDL_SCANCODE_1, "Num1" },
+		{ SDL_SCANCODE_2, "Num2" },
+		{ SDL_SCANCODE_3, "Num3" },
+		{ SDL_SCANCODE_4, "Num4" },
+		{ SDL_SCANCODE_5, "Num5" },
+		{ SDL_SCANCODE_6, "Num6" },
+		{ SDL_SCANCODE_7, "Num7" },
+		{ SDL_SCANCODE_8, "Num8" },
+		{ SDL_SCANCODE_9, "Num9" },
+		{ SDL_SCANCODE_ESCAPE, "Escape" },
+		{ SDL_SCANCODE_LCTRL, "LControl" },
+		{ SDL_SCANCODE_LSHIFT, "LShift" },
+		{ SDL_SCANCODE_LALT, "LAlt" },
+		{ SDL_SCANCODE_LGUI, "LSystem" },
+		{ SDL_SCANCODE_RCTRL, "RControl" },
+		{ SDL_SCANCODE_RSHIFT, "RShift" },
+		{ SDL_SCANCODE_RALT, "RAlt" },
+		{ SDL_SCANCODE_RGUI, "RSystem" },
+		{ SDL_SCANCODE_MENU, "Menu" },
+		{ SDL_SCANCODE_LEFTBRACKET, "LBracket" },
+		{ SDL_SCANCODE_RIGHTBRACKET, "RBracket" },
+		{ SDL_SCANCODE_SEMICOLON, "Semicolon" },
+		{ SDL_SCANCODE_COMMA, "Comma" },
+		{ SDL_SCANCODE_PERIOD, "Period" },
+		{ SDL_SCANCODE_APOSTROPHE, "Quote" },
+		{ SDL_SCANCODE_SLASH, "Slash" },
+		{ SDL_SCANCODE_BACKSLASH, "Backslash" },
+		{ SDL_SCANCODE_GRAVE, "Tilde" },
+		{ SDL_SCANCODE_EQUALS, "Equal" },
+		{ SDL_SCANCODE_MINUS, "Dash" },
+		{ SDL_SCANCODE_SPACE, "Space" },
+		{ SDL_SCANCODE_RETURN, "Return" },
+		{ SDL_SCANCODE_BACKSPACE, "Backspace" },
+		{ SDL_SCANCODE_TAB, "Tab" },
+		{ SDL_SCANCODE_PAGEUP, "PageUp" },
+		{ SDL_SCANCODE_PAGEDOWN, "PageDown" },
+		{ SDL_SCANCODE_END, "End" },
+		{ SDL_SCANCODE_HOME, "Home" },
+		{ SDL_SCANCODE_INSERT, "Insert" },
+		{ SDL_SCANCODE_DELETE, "Delete" },
+		{ SDL_SCANCODE_KP_PLUS, "Add" },
+		{ SDL_SCANCODE_KP_MINUS, "Subtract" },
+		{ SDL_SCANCODE_KP_MULTIPLY, "Multiply" },
+		{ SDL_SCANCODE_KP_DIVIDE, "Divide" },
+		{ SDL_SCANCODE_LEFT, "Left" },
+		{ SDL_SCANCODE_RIGHT, "Right" },
+		{ SDL_SCANCODE_UP, "Up" },
+		{ SDL_SCANCODE_DOWN, "Down" },
+		{ SDL_SCANCODE_KP_0, "Numpad0" },
+		{ SDL_SCANCODE_KP_1, "Numpad1" },
+		{ SDL_SCANCODE_KP_2, "Numpad2" },
+		{ SDL_SCANCODE_KP_3, "Numpad3" },
+		{ SDL_SCANCODE_KP_4, "Numpad4" },
+		{ SDL_SCANCODE_KP_5, "Numpad5" },
+		{ SDL_SCANCODE_KP_6, "Numpad6" },
+		{ SDL_SCANCODE_KP_7, "Numpad7" },
+		{ SDL_SCANCODE_KP_8, "Numpad8" },
+		{ SDL_SCANCODE_KP_9, "Numpad9" },
+		{ SDL_SCANCODE_F1, "F1" },
+		{ SDL_SCANCODE_F2, "F2" },
+		{ SDL_SCANCODE_F3, "F3" },
+		{ SDL_SCANCODE_F4, "F4" },
+		{ SDL_SCANCODE_F5, "F5" },
+		{ SDL_SCANCODE_F6, "F6" },
+		{ SDL_SCANCODE_F7, "F7" },
+		{ SDL_SCANCODE_F8, "F8" },
+		{ SDL_SCANCODE_F9, "F9" },
+		{ SDL_SCANCODE_F10, "F10" },
+		{ SDL_SCANCODE_F11, "F11" },
+		{ SDL_SCANCODE_F12, "F12" },
+		{ SDL_SCANCODE_F13, "F13" },
+		{ SDL_SCANCODE_F14, "F14" },
+		{ SDL_SCANCODE_F15, "F15" },
+		{ SDL_SCANCODE_PAUSE, "Pause" },
+		{ SDL_SCANCODE_UNKNOWN, nullptr }
+	};
+
 	// globals to track when last touch event "began"
 	//
 	std::optional<FeEvent> g_last_touch;
@@ -138,6 +251,34 @@ namespace
 			|| e.is<FeEvent::JoystickButtonReleased>();
 	}
 
+	const char *fe_key_to_config_string_internal( int code )
+	{
+		for ( const FeKeyInfo &entry : g_key_info )
+		{
+			if ( entry.name == nullptr )
+				break;
+
+			if ( static_cast<int>( entry.scancode ) == code )
+				return entry.name;
+		}
+
+		return nullptr;
+	}
+
+	int fe_key_from_config_string_internal( const std::string &value )
+	{
+		for ( const FeKeyInfo &entry : g_key_info )
+		{
+			if ( entry.name == nullptr )
+				break;
+
+			if ( value == entry.name )
+				return static_cast<int>( entry.scancode );
+		}
+
+		return static_cast<int>( SDL_SCANCODE_UNKNOWN );
+	}
+
 	std::optional<FeInputSingle> get_release_match_input(
 		const FeEvent &e,
 		const sf::IntRect &mc_rect,
@@ -163,14 +304,48 @@ namespace
 	}
 };
 
-sf::Vector2i FeInputMouse::m_pos_last = { INT_MAX, INT_MAX };
-sf::Vector2i FeInputMouse::m_pos_delta = { 0, 0 };
+FeEvent::Vector2i FeInputMouse::m_pos_last = { INT_MAX, INT_MAX };
+FeEvent::Vector2i FeInputMouse::m_pos_delta = { 0, 0 };
 int FeInputMouse::m_wheel_delta = 0;
+
+bool fe_key_is_pressed( int code )
+{
+	if ( code == static_cast<int>( SDL_SCANCODE_UNKNOWN ) )
+		return false;
+
+	SDL_PumpEvents();
+
+	int key_count = 0;
+	const bool *keyboard_state = SDL_GetKeyboardState( &key_count );
+	return keyboard_state && code >= 0 && code < key_count && keyboard_state[code];
+}
+
+bool fe_mouse_is_button_pressed( int button )
+{
+	if ( button <= 0 || button > 32 )
+		return false;
+
+	SDL_PumpEvents();
+	return ( SDL_GetMouseState( nullptr, nullptr ) & SDL_BUTTON_MASK( button ) ) != 0;
+}
+
+int fe_key_from_legacy_sfml_code( int legacy_code )
+{
+	if ( legacy_code < 0 )
+		return static_cast<int>( SDL_SCANCODE_UNKNOWN );
+
+	const std::size_t index = static_cast<std::size_t>( legacy_code );
+	const std::size_t count = std::size( g_key_info ) - 1;
+	if ( index >= count )
+		return static_cast<int>( SDL_SCANCODE_UNKNOWN );
+
+	return static_cast<int>( g_key_info[index].scancode );
+}
 
 void FeInputMouse::clear()
 {
 	m_wheel_delta = 0;
-	m_pos_delta = sf::Vector2i( 0, 0 );
+	m_pos_delta = { 0, 0 };
 }
 
 void FeInputMouse::set_wheel_delta( int delta )
@@ -183,126 +358,20 @@ int FeInputMouse::get_wheel_delta()
 	return m_wheel_delta;
 }
 
-void FeInputMouse::set_pos_delta( sf::Vector2i p )
+void FeInputMouse::set_pos_delta( FeEvent::Vector2i p )
 {
 	if ( m_pos_last.x != INT_MAX && m_pos_last.y != INT_MAX )
-		m_pos_delta = p - m_pos_last;
+	{
+		m_pos_delta.x = p.x - m_pos_last.x;
+		m_pos_delta.y = p.y - m_pos_last.y;
+	}
 	m_pos_last = { p.x, p.y };
 }
 
-sf::Vector2i FeInputMouse::get_pos_delta()
+FeEvent::Vector2i FeInputMouse::get_pos_delta()
 {
 	return m_pos_delta;
 }
-
-
-// Needs to stay aligned with sf::Keyboard
-//
-const char *FeInputSingle::keyStrings[] =
-{
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K",
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z",
-	"Num0",
-	"Num1",
-	"Num2",
-	"Num3",
-	"Num4",
-	"Num5",
-	"Num6",
-	"Num7",
-	"Num8",
-	"Num9",
-	"Escape",
-	"LControl",
-	"LShift",
-	"LAlt",
-	"LSystem",
-	"RControl",
-	"RShift",
-	"RAlt",
-	"RSystem",
-	"Menu",
-	"LBracket",
-	"RBracket",
-	"Semicolon",
-	"Comma",
-	"Period",
-	"Quote",
-	"Slash",
-	"Backslash",
-	"Tilde", // Grave
-	"Equal",
-	"Dash",
-	"Space",
-	"Return", // Enter
-	"Backspace",
-	"Tab",
-	"PageUp",
-	"PageDown",
-	"End",
-	"Home",
-	"Insert",
-	"Delete",
-	"Add",
-	"Subtract",
-	"Multiply",
-	"Divide",
-	"Left",
-	"Right",
-	"Up",
-	"Down",
-	"Numpad0",
-	"Numpad1",
-	"Numpad2",
-	"Numpad3",
-	"Numpad4",
-	"Numpad5",
-	"Numpad6",
-	"Numpad7",
-	"Numpad8",
-	"Numpad9",
-	"F1",
-	"F2",
-	"F3",
-	"F4",
-	"F5",
-	"F6",
-	"F7",
-	"F8",
-	"F9",
-	"F10",
-	"F11",
-	"F12",
-	"F13",
-	"F14",
-	"F15",
-	"Pause",
-	NULL // needs to be last
-};
 
 const char *FeInputSingle::mouseStrings[] =
 {
@@ -371,7 +440,7 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, cons
 	if ( e.is<FeEvent::KeyPressed>() )
 	{
 		const auto* event = e.getIf<FeEvent::KeyPressed>();
-		if ( event && event->code != static_cast<int>( sf::Keyboard::Key::Unknown ) )
+		if ( event && event->code != static_cast<int>( SDL_SCANCODE_UNKNOWN ) )
 		{
 			m_type = Keyboard;
 			m_code = event->code;
@@ -455,7 +524,7 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, cons
 			sf::Vector2i p( event->position.x, event->position.y );
 			sf::Vector2i r1 = mc_rect.position;
 			sf::Vector2i r2 = r1 + mc_rect.size;
-			FeInputMouse::set_pos_delta( p );
+			FeInputMouse::set_pos_delta( { p.x, p.y } );
 
 			if ( p.x < r1.x )
 			{
@@ -498,11 +567,11 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, cons
 		{
 			switch ( event->button )
 			{
-				case static_cast<int>( sf::Mouse::Button::Left ):   m_code = MouseBLeft;   break;
-				case static_cast<int>( sf::Mouse::Button::Right ):  m_code = MouseBRight;  break;
-				case static_cast<int>( sf::Mouse::Button::Middle ): m_code = MouseBMiddle; break;
-				case static_cast<int>( sf::Mouse::Button::Extra1 ): m_code = MouseBX1;     break;
-				case static_cast<int>( sf::Mouse::Button::Extra2 ): m_code = MouseBX2;     break;
+				case SDL_BUTTON_LEFT:   m_code = MouseBLeft;   break;
+				case SDL_BUTTON_RIGHT:  m_code = MouseBRight;  break;
+				case SDL_BUTTON_MIDDLE: m_code = MouseBMiddle; break;
+				case SDL_BUTTON_X1:     m_code = MouseBX1;     break;
+				case SDL_BUTTON_X2:     m_code = MouseBX2;     break;
 				default:
 					ASSERT( 0 ); // unhandled mouse button encountered
 					return;
@@ -646,16 +715,11 @@ FeInputSingle::FeInputSingle( const std::string &str )
 	}
 	else
 	{
-		// key
-		while ( keyStrings[i] != NULL )
+		const int key_code = fe_key_from_config_string_internal( val );
+		if ( key_code != static_cast<int>( SDL_SCANCODE_UNKNOWN ) )
 		{
-			if ( val.compare( keyStrings[i] ) == 0 )
-			{
-				m_type = Keyboard;
-				m_code = i;
-				return;
-			}
-			i++;
+			m_type = Keyboard;
+			m_code = key_code;
 		}
 	}
 }
@@ -666,7 +730,8 @@ std::string FeInputSingle::as_string() const
 
 	if ( m_type == Keyboard )
 	{
-		temp = keyStrings[ m_code ];
+		if ( const char *name = fe_key_to_config_string_internal( m_code ) )
+			temp = name;
 	}
 	else if ( m_type == Mouse )
 	{
@@ -717,7 +782,7 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 	if ( m_type == Unsupported )
 		return false;
 	else if ( m_type == Keyboard )
-		return sf::Keyboard::isKeyPressed( static_cast<sf::Keyboard::Key>(m_code) );
+		return fe_key_is_pressed( m_code );
 	else if ( m_type == Mouse )
 	{
 		switch ( m_code )
@@ -728,11 +793,11 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 		case MouseRight: return FeInputMouse::get_pos_delta().x > 0;
 		case MouseWheelUp: return FeInputMouse::get_wheel_delta() > 0;
 		case MouseWheelDown: return FeInputMouse::get_wheel_delta() < 0;
-		case MouseBLeft: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Left );
-		case MouseBRight: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Right );
-		case MouseBMiddle: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Middle );
-		case MouseBX1: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Extra1 );
-		case MouseBX2: return sf::Mouse::isButtonPressed( sf::Mouse::Button::Extra2 );
+		case MouseBLeft: return fe_mouse_is_button_pressed( SDL_BUTTON_LEFT );
+		case MouseBRight: return fe_mouse_is_button_pressed( SDL_BUTTON_RIGHT );
+		case MouseBMiddle: return fe_mouse_is_button_pressed( SDL_BUTTON_MIDDLE );
+		case MouseBX1: return fe_mouse_is_button_pressed( SDL_BUTTON_X1 );
+		case MouseBX2: return fe_mouse_is_button_pressed( SDL_BUTTON_X2 );
 		default: return false;
 		}
 	}
@@ -1137,18 +1202,18 @@ void FeInputMap::initialize_mappings()
 		struct DefaultMappings { FeInputSingle::Type type; int code; Command comm; };
 		DefaultMappings dmap[] =
 		{
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Escape), Back },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_ESCAPE ), Back },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0+1, Back },
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Up), Up },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_UP ), Up },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyUp, Up },
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Down), Down },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_DOWN ), Down },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyDown, Down },
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Left), Left },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_LEFT ), Left },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyLeft, Left },
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Right), Right },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_RIGHT ), Right },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyRight, Right },
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::Enter), Select },
-			{ FeInputSingle::Keyboard,    static_cast<int>(sf::Keyboard::Key::LControl), Select },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_RETURN ), Select },
+			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_LCTRL ), Select },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0, Select },
 
 #ifdef SFML_SYSTEM_ANDROID
@@ -1159,7 +1224,7 @@ void FeInputMap::initialize_mappings()
 			{ FeInputSingle::Touch,       FeInputSingle::Tap,          Select },
 #endif
 
-			{ FeInputSingle::Unsupported, static_cast<int>(sf::Keyboard::Key::Unknown), LAST_COMMAND }	// keep as last
+			{ FeInputSingle::Unsupported, static_cast<int>( SDL_SCANCODE_UNKNOWN ), LAST_COMMAND }	// keep as last
 		};
 
 		int i=0;
