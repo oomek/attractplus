@@ -1977,22 +1977,7 @@ void FeWindow::set_view( const sf::View &view )
 
 bool FeWindow::save_screenshot( const std::string &filename )
 {
-	if ( m_gpu_context.get_window() )
-		return m_gpu_context.save_screenshot( filename );
-
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-	{
-		sf::Texture texture;
-		if ( texture.resize({ m_window->getSize().x, m_window->getSize().y }) )
-		{
-			texture.update( *m_window );
-			return texture.copyToImage().saveToFile( filename );
-		}
-	}
-#endif
-
-	return false;
+	return m_gpu_context.save_screenshot( filename );
 }
 
 void FeWindow::clear()

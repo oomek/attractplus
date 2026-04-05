@@ -206,7 +206,7 @@ void FeBaseTextureContainer::transition_swap( FeBaseTextureContainer *o )
 
 	//
 	// Now update the images to point at their new parent textures.
-	// texture_changed() will also cause them to update their sf::Sprite
+	// texture_changed() will also cause them to update their FeSprite
 	// accordingly
 	//
 	std::vector< FeImage * >::iterator itr;

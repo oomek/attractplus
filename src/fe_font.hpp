@@ -3,7 +3,6 @@
 
 #include <SFML/Graphics/Glyph.hpp>
 #include <SFML/Graphics/Rect.hpp>
-#include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/InputStream.hpp>
 
 #include <filesystem>

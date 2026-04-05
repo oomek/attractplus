@@ -19,6 +19,8 @@
 
 namespace
 {
+constexpr unsigned int FE_FONT_PAGE_MAX_SIZE = 16384;
+
 unsigned long ft_read( FT_Stream rec, unsigned long offset, unsigned char *buffer, unsigned long count )
 {
 	auto *stream = static_cast<sf::InputStream *>( rec->descriptor.pointer );
@@ -520,7 +522,7 @@ sf::IntRect FeFont::findGlyphRect( Page &page, sf::Vector2u size ) const
 		const unsigned int row_height = size.y + size.y / 10;
 		while ( ( page.nextRow + row_height >= page.height ) || ( size.x >= page.width ) )
 		{
-			const unsigned int max_size = sf::Texture::getMaximumSize();
+			const unsigned int max_size = FE_FONT_PAGE_MAX_SIZE;
 			if ( ( page.width * 2 <= max_size ) && ( page.height * 2 <= max_size ) )
 			{
 				if ( !resizePage( page, page.width * 2, page.height * 2 ) )
