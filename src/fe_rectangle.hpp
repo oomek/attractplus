@@ -24,6 +24,7 @@
 #define FE_RECTANGLE_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_types.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "fe_renderer.hpp"
@@ -51,12 +52,12 @@ public:
 	FeRectangle( FePresentableParent &p,
 		float x, float y, float w, float h );
 
-	sf::Vector2f getPosition() const;
-	void setPosition( const sf::Vector2f & );
-	void setPosition( float x, float y ) {return setPosition(sf::Vector2f(x,y));};
-	sf::Vector2f getSize() const;
-	void setSize( const sf::Vector2f & );
-	void setSize( float w, float h ) {return setSize(sf::Vector2f(w,h));};
+	Vec2f getPosition() const;
+	void setPosition( const Vec2f & );
+	void setPosition( float x, float y ) { return setPosition( Vec2f( x, y ) ); };
+	Vec2f getSize() const;
+	void setSize( const Vec2f & );
+	void setSize( float w, float h ) { return setSize( Vec2f( w, h ) ); };
 	float getRotation() const;
 	void setRotation( float );
 	sf::Color getColor() const;
@@ -123,19 +124,19 @@ private:
 	FeRectangle( const FeRectangle & );
 	FeRectangle &operator=( const FeRectangle & );
 
-	sf::Vector2f m_position;
-	sf::Vector2f m_size;
-	sf::Vector2f m_origin;
-	sf::Vector2f m_rotation_origin;
-	sf::Vector2f m_anchor;
+	Vec2f m_position;
+	Vec2f m_size;
+	Vec2f m_origin;
+	Vec2f m_rotation_origin;
+	Vec2f m_anchor;
 	FeRectangle::Alignment m_anchor_type;
 	FeRectangle::Alignment m_rotation_origin_type;
 	float m_rotation;
 
 	int m_corner_point_count;
 	int m_corner_point_actual;
-	sf::Vector2f m_corner_radius;
-	sf::Vector2f m_corner_ratio;
+	Vec2f m_corner_radius;
+	Vec2f m_corner_ratio;
 	bool m_corner_ratio_x;
 	bool m_corner_ratio_y;
 	bool m_corner_auto;
@@ -145,7 +146,7 @@ private:
 	void update_corner_radius();
 	void update_corner_ratio();
 	void update_corner_points();
-	sf::Vector2f alignTypeToVector( int a );
+	Vec2f alignTypeToVector( int a );
 };
 
 #endif

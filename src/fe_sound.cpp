@@ -214,7 +214,7 @@ void FeSound::set_playing( bool flag )
 	m_play_state = true;
 
 	m_sound.setLooping( m_loop );
-	m_sound.setPosition( m_position );
+	m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
 	m_sound.setPitch( m_pitch );
 
 	float vol = m_volume;
@@ -333,7 +333,7 @@ void FeSound::set_x( float p )
 	{
 		m_position.x = p;
 
-		m_sound.setPosition( m_position );
+		m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
 		m_sound.setSpatializationEnabled( true );
 	}
 }
@@ -344,7 +344,7 @@ void FeSound::set_y( float p )
 	{
 		m_position.y = p;
 
-		m_sound.setPosition( m_position );
+		m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
 		m_sound.setSpatializationEnabled( true );
 	}
 }
@@ -355,7 +355,7 @@ void FeSound::set_z( float p )
 	{
 		m_position.z = p;
 
-		m_sound.setPosition( m_position );
+		m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
 		m_sound.setSpatializationEnabled( true );
 	}
 }

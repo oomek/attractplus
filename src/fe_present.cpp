@@ -555,8 +555,8 @@ void FePresent::clear_layout()
 		m_layoutSize.y = m_mon[0].size.y;
 	}
 
-	m_layoutScale.x = 1.0;
-	m_layoutScale.y = 1.0;
+	m_layoutScale.x = 1.0f;
+	m_layoutScale.y = 1.0f;
 
 	FeBlend::clear_default_shaders();
 
@@ -586,7 +586,7 @@ namespace
 		{
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
-				const sf::Vector2f p = transform.transformPoint( { vertex.x, vertex.y } );
+				const auto p = transform.transformPoint( { vertex.x, vertex.y } );
 				vertex.x = p.x;
 				vertex.y = p.y;
 			}
@@ -2067,7 +2067,7 @@ void FePresent::set_transforms()
 		}
 	}
 
-	m_layout_transform.scale( m_layoutScale );
+	m_layout_transform.scale( { m_layoutScale.x, m_layoutScale.y } );
 
 	for ( std::vector<FeBasePresentable *>::iterator itr=m_mon[0].elements.begin();
 			itr!=m_mon[0].elements.end(); ++itr )
@@ -2236,10 +2236,10 @@ std::string FePresent::script_get_base_path()
 	return path;
 }
 
-const sf::Vector2i FePresent::get_screen_size()
+const Vec2i FePresent::get_screen_size()
 {
 	if ( get_actual_rotation() == FeSettings::RotateLeft || get_actual_rotation() == FeSettings::RotateRight )
-		return sf::Vector2i( m_mon[0].size.y, m_mon[0].size.x);
+		return Vec2i( m_mon[0].size.y, m_mon[0].size.x );
 	else
 		return m_mon[0].size;
 }

@@ -27,6 +27,7 @@
 #include "fe_info.hpp"
 #include "fe_romlist.hpp"
 #include "fe_input.hpp"
+#include "fe_types.hpp"
 #include "fe_util.hpp"
 #include "scraper_base.hpp"
 #include "path_cache.hpp"
@@ -236,7 +237,7 @@ private:
 	FeLayoutInfo m_intro_params;
 	FeLayoutInfo m_current_layout_params; // copy of current layout params (w/ per display params as well)
 	FeLayoutInfo m_display_menu_per_display_params; // stores only the 'per_display' params for the display menu
-	sf::IntRect m_mousecap_rect;
+	IntRect m_mousecap_rect;
 	FeWindow *m_rwnd;
 
 	int m_current_display; // The index of the current display, -1 if showing a custom displays_menu
@@ -357,7 +358,7 @@ public:
 	FeInputMap::Command map_input( const std::optional<FeEvent> &e );
 	void reset_input();
 
-	void get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh );
+	void get_input_config_metrics( IntRect &mousecap_rect, int &joy_thresh );
 	FeInputMap::Command input_conflict_check( const FeInputMapEntry &e );
 
 	// for use with Up, Down, Left, Right, Back commands to get what they are actually mapped to

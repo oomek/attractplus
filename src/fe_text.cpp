@@ -47,23 +47,23 @@ void FeText::setFont( const FeFont &f )
 	m_draw_text.setFont( f );
 }
 
-sf::Vector2f FeText::getPosition() const
+Vec2f FeText::getPosition() const
 {
 	return m_position;
 }
 
-void FeText::setPosition( const sf::Vector2f &p )
+void FeText::setPosition( const Vec2f &p )
 {
 	m_position = p;
 	FePresent::script_do_update( this );
 }
 
-sf::Vector2f FeText::getSize() const
+Vec2f FeText::getSize() const
 {
 	return m_size;
 }
 
-void FeText::setSize( const sf::Vector2f &s )
+void FeText::setSize( const Vec2f &s )
 {
 	m_size = s;
 	FePresent::script_do_update( this );
@@ -145,7 +145,7 @@ void FeText::update_font_size()
 	else if ( m_size.y > 12 )
 		char_size = ( m_size.y - 4 ) * m_scale_factor;
 
-	m_draw_text.setTextScale( sf::Vector2f( 1.f / m_scale_factor, 1.f / m_scale_factor ) );
+	m_draw_text.setTextScale( Vec2f( 1.f / m_scale_factor, 1.f / m_scale_factor ) );
 	m_draw_text.setCharacterSize( char_size );
 }
 

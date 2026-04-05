@@ -24,6 +24,7 @@
 #define FE_TEXT_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_types.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"
 #include "tp.hpp"
@@ -40,12 +41,12 @@ public:
 		const std::string &str, int x, int y, int w, int h );
 
 	void setFont( const FeFont & );
-	sf::Vector2f getPosition() const;
-	void setPosition( const sf::Vector2f & );
-	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};
-	sf::Vector2f getSize() const;
-	void setSize( const sf::Vector2f & );
-	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
+	Vec2f getPosition() const;
+	void setPosition( const Vec2f & );
+	void setPosition( int x, int y ) { return setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) ); };
+	Vec2f getSize() const;
+	void setSize( const Vec2f & );
+	void setSize( int w, int h ) { return setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
 	float getRotation() const;
 	void setRotation( float );
 	sf::Color getColor() const;
@@ -130,8 +131,8 @@ private:
 	int m_index_offset;
 	int m_filter_offset;
 	int m_user_charsize;	 	// -1 if no charsize specified
-	sf::Vector2f m_size;		// unscaled size
-	sf::Vector2f m_position;	// unscaled position
+	Vec2f m_size;		// unscaled size
+	Vec2f m_position;	// unscaled position
 	float m_scale_factor;
 };
 

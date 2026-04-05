@@ -1,9 +1,6 @@
 #ifndef FE_FONT_HPP
 #define FE_FONT_HPP
 
-#include <SFML/Graphics/Glyph.hpp>
-#include <SFML/Graphics/Rect.hpp>
-
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -13,6 +10,16 @@
 #include <cstddef>
 #include <cstdint>
 #include "fe_input_stream.hpp"
+#include "fe_types.hpp"
+
+struct FeGlyph
+{
+	float advance = 0.0f;
+	int lsbDelta = 0;
+	int rsbDelta = 0;
+	IntRect textureRect;
+	FloatRect bounds;
+};
 
 class FeFont
 {
@@ -31,7 +38,7 @@ public:
 	bool openFromStream( FeInputStream &stream );
 	void clear();
 
-	const sf::Glyph &getGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness = 0 ) const;
+	const FeGlyph &getGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness = 0 ) const;
 	bool hasGlyph( char32_t codePoint ) const;
 	float getKerning( std::uint32_t first, std::uint32_t second, unsigned int characterSize, bool bold = false ) const;
 	float getLineSpacing( unsigned int characterSize ) const;
@@ -57,7 +64,7 @@ private:
 		unsigned int height;
 	};
 
-	using GlyphTable = std::unordered_map<std::uint64_t, sf::Glyph>;
+	using GlyphTable = std::unordered_map<std::uint64_t, FeGlyph>;
 
 	struct Page
 	{
@@ -79,8 +86,8 @@ private:
 	void cleanup();
 	bool openFromStreamImpl( FeInputStream &stream, const std::string &type );
 	Page &loadPage( unsigned int characterSize ) const;
-	sf::Glyph loadGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const;
-	sf::IntRect findGlyphRect( Page &page, sf::Vector2u size ) const;
+	FeGlyph loadGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const;
+	IntRect findGlyphRect( Page &page, Vec2u size ) const;
 	bool setCurrentSize( unsigned int characterSize ) const;
 	bool resizePage( Page &page, unsigned int width, unsigned int height ) const;
 	void markPageDirty( Page &page ) const;

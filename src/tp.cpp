@@ -164,7 +164,7 @@ void FeTextPrimitive::fit_string(
 	int running_width( 0 );
 	int kerning( 0 );
 
-	const sf::Glyph *g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
+	const FeGlyph *g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
 
 	if ( font->getLineSpacing( spacing ) > spacing )
 		spacing = font->getLineSpacing( spacing );
@@ -267,7 +267,7 @@ void FeTextPrimitive::setString( const std::string &t )
 	setString( tmp );
 }
 
-sf::Vector2f FeTextPrimitive::setString(
+Vec2f FeTextPrimitive::setString(
 			const std::basic_string<std::uint32_t> &t,
 			int position )
 {
@@ -298,9 +298,11 @@ sf::Vector2f FeTextPrimitive::setString(
 	// Calculate the number of lines we can fit in our RectShape
 	//
 	const FeFont *font = getFont();
-	const sf::Glyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
+	const FeGlyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
 	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
-	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
+	const auto bg_position = m_bgRect.getPosition();
+	const auto bg_size = m_bgRect.getSize();
+	FloatRect rectSize( bg_position.x, bg_position.y, bg_size.x, bg_size.y );
 	int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
 
 	float margin = ( m_margin < 0 )
@@ -380,10 +382,13 @@ sf::Vector2f FeTextPrimitive::setString(
 		int kerning = font->getKerning( m_texts[0].getString()[std::max( 0, disp_cpos - 1 )],
 							            m_texts[0].getString()[disp_cpos],
 							            m_texts[0].getCharacterSize() ) * m_texts[0].getScale().x;
-		return m_texts[0].findCharacterPos( disp_cpos ) + sf::Vector2f( kerning, 0.0 );
+	{
+		const auto cursor_pos = m_texts[0].findCharacterPos( disp_cpos );
+		return Vec2f( cursor_pos.x + kerning, cursor_pos.y );
+	}
 	}
 	else
-		return sf::Vector2f( 0, 0 );
+		return Vec2f( 0.0f, 0.0f );
 }
 
 void FeTextPrimitive::set_positions() const
@@ -396,15 +401,17 @@ void FeTextPrimitive::set_positions() const
 	int margin = ( m_margin < 0 ) ? floorf( font->getLineSpacing( charSize ) / 2.0 ) : m_margin;
 	spacing = getLineSpacingFactored( font, spacing );
 
-	sf::Vector2f rectPos = m_bgRect.getPosition();
-	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
+	const auto bg_position = m_bgRect.getPosition();
+	const auto bg_size = m_bgRect.getSize();
+	Vec2f rectPos( bg_position.x, bg_position.y );
+	FloatRect rectSize( bg_position.x, bg_position.y, bg_size.x, bg_size.y );
 
 	for ( int i=0; i < (int)m_texts.size(); i++ )
 	{
-		sf::Vector2f textPos;
+		Vec2f textPos;
 
 		// we need to account for the scaling that we have applied to our text...
-		sf::FloatRect textSize = m_texts[i].getLocalBounds();
+		FloatRect textSize = m_texts[i].getLocalBounds();
 		textSize.size.x *= m_texts[i].getScale().x;
 		textSize.size.y *= m_texts[i].getScale().y;
 		textSize.position.x *= m_texts[i].getScale().x;
@@ -439,8 +446,9 @@ void FeTextPrimitive::set_positions() const
 		if ( m_align & Right ) textPos.x -= margin;
 
 		sf::Transform trans;
-		trans.rotate( m_bgRect.getRotation(), { rectPos.x, rectPos.y });
-		m_texts[i].setPosition( trans.transformPoint( textPos ) );
+		trans.rotate( m_bgRect.getRotation(), { rectPos.x, rectPos.y } );
+		const auto transformed = trans.transformPoint( { textPos.x, textPos.y } );
+		m_texts[i].setPosition( transformed );
 		m_texts[i].setRotation( m_bgRect.getRotation() );
 	}
 
@@ -453,7 +461,7 @@ int FeTextPrimitive::getActualWidth()
 
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 	{
-		sf::FloatRect textSize = m_texts[i].getLocalBounds();
+		FloatRect textSize = m_texts[i].getLocalBounds();
 		textSize.size.x = ceilf( textSize.size.x * m_texts[i].getScale().x );
 
 		if ( textSize.size.x > w )
@@ -469,8 +477,8 @@ int FeTextPrimitive::getActualHeight()
 
 	if ( m_texts.size() > 0 )
 	{
-		sf::FloatRect first = m_texts.front().getGlobalBounds();
-		sf::FloatRect last = m_texts.back().getGlobalBounds();
+		const FloatRect first = m_texts.front().getGlobalBounds();
+		const FloatRect last = m_texts.back().getGlobalBounds();
 		h = last.position.y + last.size.y - first.position.y;
 	}
 
@@ -484,7 +492,7 @@ namespace
 		const sf::VertexArray &vertices,
 		const sf::Transform &transform,
 		const FeFont::TexturePageId *texture,
-		const sf::Vector2u texture_size,
+		const Vec2u texture_size,
 		bool texture_smooth,
 		std::uint64_t texture_version,
 		float z )
@@ -511,7 +519,7 @@ namespace
 		for ( std::size_t i = 0; i < vertices.getVertexCount(); ++i )
 		{
 			const sf::Vertex &source = vertices[i];
-			const sf::Vector2f position = transform.transformPoint( source.position );
+			const auto position = transform.transformPoint( source.position );
 
 			FeRenderVertex vertex = {};
 			vertex.x = position.x;
@@ -552,13 +560,20 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 		background.texture_mipmap = false;
 		background.vertices.reserve( 6 );
 
-		const sf::Vector2f p0 = transform.transformPoint( { 0.0f, 0.0f } );
-		const sf::Vector2f p1 = transform.transformPoint( { m_bgRect.getSize().x, 0.0f } );
-		const sf::Vector2f p2 = transform.transformPoint( { 0.0f, m_bgRect.getSize().y } );
-		const sf::Vector2f p3 = transform.transformPoint( m_bgRect.getSize() );
-		const sf::Vector2f positions[6] = { p0, p1, p2, p2, p1, p3 };
+		const auto p0 = transform.transformPoint( { 0.0f, 0.0f } );
+		const auto p1 = transform.transformPoint( { m_bgRect.getSize().x, 0.0f } );
+		const auto p2 = transform.transformPoint( { 0.0f, m_bgRect.getSize().y } );
+		const auto p3 = transform.transformPoint( m_bgRect.getSize() );
+		const Vec2f positions[6] = {
+			Vec2f( p0.x, p0.y ),
+			Vec2f( p1.x, p1.y ),
+			Vec2f( p2.x, p2.y ),
+			Vec2f( p2.x, p2.y ),
+			Vec2f( p1.x, p1.y ),
+			Vec2f( p3.x, p3.y )
+		};
 
-		for ( const sf::Vector2f &position : positions )
+		for ( const Vec2f &position : positions )
 		{
 			FeRenderVertex vertex = {};
 			vertex.x = position.x;
@@ -579,7 +594,7 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 	for ( const sf::JustifyText &text : m_texts )
 	{
 		const FeFont::TexturePageId *texture = text.getTexturePageId();
-		const sf::Vector2u texture_size = text.getTextureSize();
+		const Vec2u texture_size = text.getTextureSize();
 		const bool texture_smooth = text.getFont().isSmooth();
 		const std::uint64_t texture_version = text.getTextureVersion();
 		append_render_vertices( geometry, text.getOutlineGeometry(), text.getTransform(), texture, texture_size, texture_smooth, texture_version, z );
@@ -600,9 +615,9 @@ const FeFont *FeTextPrimitive::getFont() const
 	return &m_texts[0].getFont();
 }
 
-sf::FloatRect FeTextPrimitive::getLocalBounds() const
+FloatRect FeTextPrimitive::getLocalBounds() const
 {
-	sf::FloatRect textSize = m_texts[0].getLocalBounds();
+	FloatRect textSize = m_texts[0].getLocalBounds();
 	textSize.size.x *= m_texts[0].getScale().x;
 	textSize.size.y *= m_texts[0].getScale().y;
 	textSize.position.x *= m_texts[0].getScale().x;
@@ -627,7 +642,7 @@ unsigned int FeTextPrimitive::getGlyphSize() const
 {
 	const FeFont *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
-	const sf::Glyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & sf::Text::Bold );
+	const FeGlyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & sf::Text::Bold );
 	return floorf(glyph->bounds.size.y * m_texts[0].getScale().y);
 }
 
@@ -660,25 +675,27 @@ int FeTextPrimitive::getLineSpacingFactored( const FeFont *font, int charsize ) 
 	return std::max( 1, (int)ceilf( font->getLineSpacing( charsize ) * m_line_spacing ));
 }
 
-sf::Vector2f FeTextPrimitive::getPosition() const
+Vec2f FeTextPrimitive::getPosition() const
 {
-	return m_bgRect.getPosition();
+	const auto position = m_bgRect.getPosition();
+	return Vec2f( position.x, position.y );
 }
 
-sf::Vector2f FeTextPrimitive::getSize() const
+Vec2f FeTextPrimitive::getSize() const
 {
-	return m_bgRect.getSize();
+	const auto size = m_bgRect.getSize();
+	return Vec2f( size.x, size.y );
 }
 
-void FeTextPrimitive::setPosition( const sf::Vector2f &p )
+void FeTextPrimitive::setPosition( const Vec2f &p )
 {
-	m_bgRect.setPosition( p );
+	m_bgRect.setPosition( { p.x, p.y } );
 	m_needs_pos_set = true;
 }
 
-void FeTextPrimitive::setSize( const sf::Vector2f &s )
+void FeTextPrimitive::setSize( const Vec2f &s )
 {
-	m_bgRect.setSize( s );
+	m_bgRect.setSize( { s.x, s.y } );
 	m_needs_pos_set = true;
 }
 
@@ -786,19 +803,20 @@ float FeTextPrimitive::getOutlineThickness()
 	return m_outline;
 }
 
-void FeTextPrimitive::setTextScale( const sf::Vector2f &s )
+void FeTextPrimitive::setTextScale( const Vec2f &s )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
-		m_texts[i].setScale( s );
+		m_texts[i].setScale( { s.x, s.y } );
 
 	// Re-apply outline since it relies on scale
 	setOutlineThickness( getOutlineThickness() );
 	m_needs_pos_set = true;
 }
 
-sf::Vector2f FeTextPrimitive::getTextScale() const
+Vec2f FeTextPrimitive::getTextScale() const
 {
-		return m_texts[0].getScale();
+	const auto scale = m_texts[0].getScale();
+	return Vec2f( scale.x, scale.y );
 }
 
 int FeTextPrimitive::getFirstLineHint() const

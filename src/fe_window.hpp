@@ -23,6 +23,8 @@
 #ifndef FE_WINDOW_HPP
 #define FE_WINDOW_HPP
 
+#include <SFML/Config.hpp>
+
 #ifdef SFML_SYSTEM_WINDOWS
 #include <windows.h>
 #endif
@@ -31,6 +33,7 @@
 #include <SFML/Graphics.hpp>
 #include "fe_event.hpp"
 #include "fe_joystick.hpp"
+#include "fe_types.hpp"
 #include "fe_sdl3_gpu.hpp"
 
 class FeSettings;
@@ -68,14 +71,14 @@ struct FeOverlayDrawItem
 class FeWindowPosition : public FeBaseConfigurable
 {
 public:
-	sf::Vector2i m_pos;
-	sf::Vector2u m_size;
+	Vec2i m_pos;
+	Vec2u m_size;
 	bool m_temporary;
 
 	FeWindowPosition();
 	FeWindowPosition(
-		const sf::Vector2i &pos,
-		const sf::Vector2u &size
+		const Vec2i &pos,
+		const Vec2u &size
 	);
 	int process_setting(
 		const std::string &setting,
@@ -138,10 +141,10 @@ public:
 	void save();
 	bool hasFocus();
 	bool isOpen();
-	sf::Vector2u get_size() const;
-	sf::Vector2i get_position() const;
-	sf::Vector2i get_mouse_position() const;
-	void set_mouse_position( const sf::Vector2i &pos );
+	Vec2u get_size() const;
+	Vec2i get_position() const;
+	Vec2i get_mouse_position() const;
+	void set_mouse_position( const Vec2i &pos );
 	void set_key_repeat_enabled( bool enabled );
 	void set_text_input_enabled( bool enabled );
 	void set_mouse_cursor_visible( bool visible );
@@ -156,7 +159,7 @@ public:
 	void draw( const FeListBox &listbox, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeText &text, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeRectangle &rect, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth = true, const sf::Color &color = sf::Color::White );
+	void draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth = true, const sf::Color &color = sf::Color::White );
 	std::optional<FeEvent> pollEvent();
 
 	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }

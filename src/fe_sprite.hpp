@@ -24,12 +24,11 @@
 #define FE_SPRITE_HPP
 
 #include <SFML/Graphics/Color.hpp>
-#include <SFML/System/Vector2.hpp>
-#include <SFML/System/Vector3.hpp>
 
 #include <vector>
 
 #include "fe_renderer.hpp"
+#include "fe_types.hpp"
 
 template <typename T>
 struct RectEdges
@@ -57,7 +56,7 @@ struct RectEdges
 	}
 
 	template <typename U>
-	RectEdges( const sf::Vector2<U> &pos, const sf::Vector2<U> &size )
+	RectEdges( const Vec2<U> &pos, const Vec2<U> &size )
 		: left( static_cast<T>( pos.x ) ),
 		  top( static_cast<T>( pos.y ) ),
 		  right( static_cast<T>( size.x ) ),
@@ -99,9 +98,9 @@ struct FeSpriteGeometry
 	FloatEdges crop;
 	IntEdges border;
 	IntEdges padding;
-	sf::Vector2f scale;
-	sf::Vector2f position;
-	sf::Vector3f origin;
+	Vec2f scale;
+	Vec2f position;
+	Vec3f origin;
 	sf::Color color;
 	float rotation_x;
 	float rotation_y;

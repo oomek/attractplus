@@ -24,6 +24,7 @@
 #define FE_OVERLAY_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_types.hpp"
 #include "fe_present.hpp"
 #include "fe_window.hpp"
 #include "fe_config.hpp"
@@ -58,9 +59,9 @@ private:
 	bool m_overlay_is_on;
 	int m_overlay_list_index;
 	int m_overlay_list_size;
-	sf::Vector2f m_screen_size;
-	sf::Vector2f m_screen_pos;
-	sf::Vector2f m_text_scale;
+	Vec2f m_screen_size;
+	Vec2f m_screen_pos;
+	Vec2f m_text_scale;
 	int m_index_width;
 	int m_list_char_size;
 	int m_header_char_size;
@@ -100,7 +101,7 @@ private:
 	FeTextPrimitive layout_footer();
 	FeTextPrimitive layout_message( int style = LayoutStyle::None );
 	FeTextPrimitive layout_index( int style = LayoutStyle::None );
-	sf::FloatRect layout_logo_bounds( const sf::Vector2u &logo_size, int style = LayoutStyle::None );
+	FloatRect layout_logo_bounds( const Vec2u &logo_size, int style = LayoutStyle::None );
 	FeListBox layout_list( int style = LayoutStyle::None );
 	void draw_native_logo_if_needed();
 
@@ -133,8 +134,8 @@ private:
 	FeOverlay &operator=( const FeOverlay & );
 
 	void get_common(
-		sf::Vector2i &size,
-		sf::Vector2f &text_scale,
+		Vec2i &size,
+		Vec2f &text_scale,
 		int &char_size ) const;
 
 	void input_map_dialog(

@@ -196,7 +196,7 @@ namespace
 		}
 	}
 
-	bool get_sdl_desktop_geometry( bool do_multimon, sf::VideoMode &mode, sf::Vector2i &position )
+	bool get_sdl_desktop_geometry( bool do_multimon, sf::VideoMode &mode, Vec2i &position )
 	{
 		int display_count = 0;
 		SDL_DisplayID *displays = SDL_GetDisplays( &display_count );
@@ -242,7 +242,7 @@ namespace
 
 			if ( have_bounds )
 			{
-				position = sf::Vector2i( left, top );
+				position = Vec2i( left, top );
 				mode.size.x = static_cast<unsigned int>( std::max( right - left, 1 ) );
 				mode.size.y = static_cast<unsigned int>( std::max( bottom - top, 1 ) );
 				success = true;
@@ -257,7 +257,7 @@ namespace
 
 			SDL_Rect rect = {};
 			if ( SDL_GetDisplayBounds( display, &rect ) )
-				position = sf::Vector2i( rect.x, rect.y );
+				position = Vec2i( rect.x, rect.y );
 
 			if ( const SDL_DisplayMode *desktop_mode = SDL_GetDesktopDisplayMode( display ) )
 			{
@@ -278,7 +278,7 @@ namespace
 	}
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	bool get_win32_desktop_geometry( bool do_multimon, sf::VideoMode &mode, sf::Vector2i &position )
+	bool get_win32_desktop_geometry( bool do_multimon, sf::VideoMode &mode, Vec2i &position )
 	{
 		if ( do_multimon )
 		{
@@ -305,7 +305,7 @@ namespace
 			}
 		}
 
-		position = sf::Vector2i( 0, 0 );
+		position = Vec2i( 0, 0 );
 		mode.size.x = static_cast<unsigned int>( std::max( GetSystemMetrics( SM_CXSCREEN ), 1 ) );
 		mode.size.y = static_cast<unsigned int>( std::max( GetSystemMetrics( SM_CYSCREEN ), 1 ) );
 		return true;
@@ -321,7 +321,7 @@ namespace
 		{
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
-				const sf::Vector2f p = transform.transformPoint( { vertex.x, vertex.y } );
+				const auto p = transform.transformPoint( { vertex.x, vertex.y } );
 				vertex.x = p.x;
 				vertex.y = p.y;
 			}
@@ -330,9 +330,9 @@ namespace
 
 	void append_solid_triangle(
 		FeRenderGeometry &geometry,
-		const sf::Vector2f &p0,
-		const sf::Vector2f &p1,
-		const sf::Vector2f &p2,
+		const Vec2f &p0,
+		const Vec2f &p1,
+		const Vec2f &p2,
 		const sf::Color &color )
 	{
 		FeRenderVertex v0 = {};
@@ -357,15 +357,19 @@ namespace
 		geometry.vertices.push_back( v2 );
 	}
 
-	void append_rect_fill( FeRenderGeometry &geometry, const sf::Transform &transform, const sf::Vector2f &size, const sf::Color &color )
+	void append_rect_fill( FeRenderGeometry &geometry, const sf::Transform &transform, const Vec2f &size, const sf::Color &color )
 	{
 		if ( color.a == 0 )
 			return;
 
-		const sf::Vector2f p0 = transform.transformPoint( { 0.0f, 0.0f } );
-		const sf::Vector2f p1 = transform.transformPoint( { size.x, 0.0f } );
-		const sf::Vector2f p2 = transform.transformPoint( { 0.0f, size.y } );
-		const sf::Vector2f p3 = transform.transformPoint( size );
+		const auto p0_sf = transform.transformPoint( { 0.0f, 0.0f } );
+		const auto p1_sf = transform.transformPoint( { size.x, 0.0f } );
+		const auto p2_sf = transform.transformPoint( { 0.0f, size.y } );
+		const auto p3_sf = transform.transformPoint( { size.x, size.y } );
+		const Vec2f p0( p0_sf.x, p0_sf.y );
+		const Vec2f p1( p1_sf.x, p1_sf.y );
+		const Vec2f p2( p2_sf.x, p2_sf.y );
+		const Vec2f p3( p3_sf.x, p3_sf.y );
 		append_solid_triangle( geometry, p0, p1, p2, color );
 		append_solid_triangle( geometry, p2, p1, p3, color );
 	}
@@ -379,10 +383,10 @@ namespace
 		if ( color.a == 0 || thickness <= 0.0f )
 			return;
 
-		const sf::Vector2f size = rect.getSize();
+		const Vec2f size( rect.getSize().x, rect.getSize().y );
 		const sf::Transform transform = rect.getTransform();
 
-		auto append_border = [&]( const sf::Vector2f &pos, const sf::Vector2f &border_size )
+		auto append_border = [&]( const Vec2f &pos, const Vec2f &border_size )
 		{
 			if ( border_size.x <= 0.0f || border_size.y <= 0.0f )
 				return;
@@ -393,7 +397,7 @@ namespace
 			border.texture_width = 1.0f;
 			border.texture_height = 1.0f;
 			border.zbuffer = false;
-			const sf::Transform local = transform * sf::Transform().translate( pos );
+			const sf::Transform local = transform * sf::Transform().translate( { pos.x, pos.y } );
 			append_rect_fill( border, local, border_size, color );
 			if ( !border.vertices.empty() )
 				geometry.push_back( border );
@@ -408,6 +412,7 @@ namespace
 	bool append_rectangle_shape_geometry( std::vector<FeRenderGeometry> &geometry, const sf::RectangleShape &rect )
 	{
 		const sf::Color fill = rect.getFillColor();
+		const Vec2f size( rect.getSize().x, rect.getSize().y );
 		if ( fill.a > 0 )
 		{
 			FeRenderGeometry background;
@@ -416,7 +421,7 @@ namespace
 			background.texture_width = 1.0f;
 			background.texture_height = 1.0f;
 			background.zbuffer = false;
-			append_rect_fill( background, rect.getTransform(), rect.getSize(), fill );
+			append_rect_fill( background, rect.getTransform(), size, fill );
 			if ( !background.vertices.empty() )
 				geometry.push_back( background );
 		}
@@ -449,15 +454,15 @@ namespace
 		return 0;
 	}
 
-	sf::Vector2i get_global_mouse_position()
+	Vec2i get_global_mouse_position()
 	{
 		float x = 0.0f;
 		float y = 0.0f;
 		SDL_GetGlobalMouseState( &x, &y );
-		return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
+		return Vec2i( static_cast<int>( x ), static_cast<int>( y ) );
 	}
 
-	void set_global_mouse_position( const sf::Vector2i &pos )
+	void set_global_mouse_position( const Vec2i &pos )
 	{
 		SDL_WarpMouseGlobal( static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
 	}
@@ -817,8 +822,8 @@ FeWindowPosition::FeWindowPosition():
 {}
 
 FeWindowPosition::FeWindowPosition(
-	const sf::Vector2i &pos,
-	const sf::Vector2u &size
+	const Vec2i &pos,
+	const Vec2u &size
 ):
 	m_pos( pos ),
 	m_size( size ),
@@ -902,7 +907,7 @@ bool FeWindow::owns_sdl_window() const
 const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const sf::Image &image )
 {
 	OverlayTextureEntry &entry = m_overlay_images[ &image ];
-	const sf::Vector2u size = image.getSize();
+	const auto size = image.getSize();
 	const std::size_t pixel_count =
 		static_cast<std::size_t>( size.x ) *
 		static_cast<std::size_t>( size.y ) * 4;
@@ -954,7 +959,7 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 	return true;
 }
 
-void FeWindow::draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth, const sf::Color &color )
+void FeWindow::draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth, const sf::Color &color )
 {
 	if ( !owns_sdl_window() )
 		return;
@@ -985,7 +990,7 @@ void FeWindow::draw_overlay_image( const sf::Image &image, const sf::FloatRect &
 	const float top = bounds.position.y;
 	const float right = bounds.position.x + bounds.size.x;
 	const float bottom = bounds.position.y + bounds.size.y;
-	const sf::Vector2f positions[6] = {
+	const Vec2f positions[6] = {
 		{ left, top },
 		{ right, top },
 		{ left, bottom },
@@ -993,7 +998,7 @@ void FeWindow::draw_overlay_image( const sf::Image &image, const sf::FloatRect &
 		{ right, top },
 		{ right, bottom }
 	};
-	const sf::Vector2f texcoords[6] = {
+	const Vec2f texcoords[6] = {
 		{ 0.0f, 0.0f },
 		{ static_cast<float>( source->width ), 0.0f },
 		{ 0.0f, static_cast<float>( source->height ) },
@@ -1090,7 +1095,7 @@ void FeWindow::initial_create()
 	if ( use_sdl_owned_window )
 		fe_joystick_refresh_devices();
 
-	sf::Vector2i wpos( 0, 0 );  // position to set window to
+	Vec2i wpos( 0, 0 );  // position to set window to
 	sf::VideoMode vm( { 1280u, 720u }, 32u ); // width/height/bpp of surface to create
 
 #if !defined(SFML_SYSTEM_WINDOWS)
@@ -1167,8 +1172,8 @@ void FeWindow::initial_create()
 
 	get_win32_desktop_geometry( do_multimon, vm, wpos );
 
-	const sf::Vector2i screen_pos = wpos;
-	const sf::Vector2u screen_size = vm.size;
+	const Vec2i screen_pos = wpos;
+	const Vec2u screen_size( vm.size.x, vm.size.y );
 
 	// Some Windows users are reporting emulators hanging/failing to get focus when launched
 	// from 'fullscreen' (fullscreen, fillscreen where window dimensions = screen dimensions)
@@ -1186,7 +1191,8 @@ void FeWindow::initial_create()
 		wpos = screen_pos;
 		wpos.x -= 1;
 		wpos.y -= 1;
-		vm.size = screen_size;
+		vm.size.x = screen_size.x;
+		vm.size.y = screen_size.y;
 		vm.size.x += 2;
 		vm.size.y += 2;
 	}
@@ -1208,8 +1214,8 @@ void FeWindow::initial_create()
 		// Load the parameters from the window.am file (uses given args if none)
 		if ( !m_win_pos.m_temporary )
 		{
-			m_win_pos.m_pos = sf::Vector2i( x, y );
-			m_win_pos.m_size = sf::Vector2u( w, h );
+			m_win_pos.m_pos = Vec2i( x, y );
+			m_win_pos.m_size = Vec2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) );
 			m_win_pos.load_from_file( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 		}
 
@@ -1217,16 +1223,25 @@ void FeWindow::initial_create()
 		m_win_pos.m_size.x = std::max( m_win_pos.m_size.x, (unsigned int)1 );
 		m_win_pos.m_size.y = std::max( m_win_pos.m_size.y, (unsigned int)1 );
 
-		sf::Rect<int> window_rect( m_win_pos.m_pos, sf::Vector2i( m_win_pos.m_size ) );
+		IntRect window_rect(
+			m_win_pos.m_pos.x,
+			m_win_pos.m_pos.y,
+			static_cast<int>( m_win_pos.m_size.x ),
+			static_cast<int>( m_win_pos.m_size.y ) );
 #if !defined(NO_MULTIMON) && defined(SFML_SYSTEM_WINDOWS)
 		// The window can be positioned anywhere in the virtual screen
-		sf::Rect<int> vm_rect(
-			{ GetSystemMetrics( SM_XVIRTUALSCREEN ), GetSystemMetrics( SM_YVIRTUALSCREEN ) },
-			{ GetSystemMetrics( SM_CXVIRTUALSCREEN ), GetSystemMetrics( SM_CYVIRTUALSCREEN ) }
-		);
+		IntRect vm_rect(
+			GetSystemMetrics( SM_XVIRTUALSCREEN ),
+			GetSystemMetrics( SM_YVIRTUALSCREEN ),
+			GetSystemMetrics( SM_CXVIRTUALSCREEN ),
+			GetSystemMetrics( SM_CYVIRTUALSCREEN ) );
 #else
 		// No multi-monitor support
-		sf::Rect<int> vm_rect( wpos, sf::Vector2i( vm.size ) );
+		IntRect vm_rect(
+			wpos.x,
+			wpos.y,
+			static_cast<int>( vm.size.x ),
+			static_cast<int>( vm.size.y ) );
 #endif
 
 		// Reset the window position if it's completely outside the virtual screen
@@ -1248,7 +1263,7 @@ void FeWindow::initial_create()
 		vm.size.y = m_win_pos.m_size.y;
 	}
 
-	sf::Vector2i wsize( vm.size.x, vm.size.y );
+	Vec2i wsize( static_cast<int>( vm.size.x ), static_cast<int>( vm.size.y ) );
 
 #if defined(SFML_SYSTEM_WINDOWS)
 
@@ -1262,7 +1277,7 @@ void FeWindow::initial_create()
 	// in window.am is set to be > 0 Windows will move this window to 0,0.
 	// In this case we simply set the window mode to Fullscreen to correctly trigger other logic.
 	//
-	if (( m_win_mode == FeSettings::WindowNoBorder ) && ( screen_size == vm.size ))
+	if (( m_win_mode == FeSettings::WindowNoBorder ) && ( screen_size == Vec2u( vm.size.x, vm.size.y ) ))
 	{
 		FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen." << std::endl;
 		m_win_mode = FeSettings::Fullscreen;
@@ -1277,8 +1292,8 @@ void FeWindow::initial_create()
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
 		m_blackout.create( sf::VideoMode({ 16, 16 }, 24 ), "", sf::Style::None );
-		m_blackout.setSize( sf::Vector2u( screen_size.x + 2, screen_size.y + 2 ));
-		m_blackout.setPosition( sf::Vector2i( screen_pos.x - 1, screen_pos.y - 1 ));
+		m_blackout.setSize( { screen_size.x + 2, screen_size.y + 2 } );
+		m_blackout.setPosition( { screen_pos.x - 1, screen_pos.y - 1 } );
 		m_blackout.setVerticalSyncEnabled(true);
 		m_blackout.setKeyRepeatEnabled(false);
 		m_blackout.setMouseCursorVisible(false);
@@ -1408,7 +1423,7 @@ void FeWindow::initial_create()
 
 	// Only mess with the mouse position if mouse moves mapped
 	if ( m_fes.has_mouse_moves() )
-		set_mouse_position( sf::Vector2i( wsize / 2 ) );
+		set_mouse_position( wsize / 2 );
 }
 
 void launch_callback( void *o )
@@ -1446,7 +1461,7 @@ void wait_callback( void *o )
 
 bool FeWindow::run()
 {
-	sf::Vector2i reset_pos;
+	Vec2i reset_pos;
 	bool windowed = is_windowed_mode( m_fes.get_window_mode() );
 
 	if ( !windowed && m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
@@ -1456,7 +1471,7 @@ bool FeWindow::run()
 		//
 		reset_pos = get_global_mouse_position();
 
-		sf::Vector2i hide_pos = get_position();
+		Vec2i hide_pos = get_position();
 		hide_pos.x += static_cast<int>( get_size().x ) - 1;
 		hide_pos.y += static_cast<int>( get_size().y ) - 1;
 
@@ -1715,7 +1730,7 @@ void FeWindow::save()
 			int h = 0;
 			SDL_GetWindowPosition( window, &x, &y );
 			SDL_GetWindowSize( window, &w, &h );
-			FeWindowPosition win_pos( sf::Vector2i( x, y ), sf::Vector2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) ) );
+			FeWindowPosition win_pos( Vec2i( x, y ), Vec2u( static_cast<unsigned int>( w ), static_cast<unsigned int>( h ) ) );
 			win_pos.save( m_fes.get_config_dir() + FE_CFG_SUBDIR + FE_WINDOW_FILE );
 		}
 	}
@@ -1743,46 +1758,46 @@ bool FeWindow::isOpen()
 	return false;
 }
 
-sf::Vector2u FeWindow::get_size() const
+Vec2u FeWindow::get_size() const
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
 		int width = 0;
 		int height = 0;
 		SDL_GetWindowSize( window, &width, &height );
-		return sf::Vector2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
+		return Vec2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
 	}
 
 	return {};
 }
 
-sf::Vector2i FeWindow::get_position() const
+Vec2i FeWindow::get_position() const
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
 		int x = 0;
 		int y = 0;
 		SDL_GetWindowPosition( window, &x, &y );
-		return sf::Vector2i( x, y );
+		return Vec2i( x, y );
 	}
 
 	return {};
 }
 
-sf::Vector2i FeWindow::get_mouse_position() const
+Vec2i FeWindow::get_mouse_position() const
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
 		float x = 0.0f;
 		float y = 0.0f;
 		SDL_GetMouseState( &x, &y );
-		return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
+		return Vec2i( static_cast<int>( x ), static_cast<int>( y ) );
 	}
 
 	return {};
 }
 
-void FeWindow::set_mouse_position( const sf::Vector2i &pos )
+void FeWindow::set_mouse_position( const Vec2i &pos )
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 		SDL_WarpMouseInWindow( window, static_cast<float>( pos.x ), static_cast<float>( pos.y ) );

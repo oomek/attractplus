@@ -57,7 +57,7 @@ class FeBaseTextureContainer
 public:
 	virtual ~FeBaseTextureContainer();
 
-	virtual sf::Vector2u get_texture_size() const=0;
+	virtual Vec2u get_texture_size() const=0;
 	virtual const void *get_texture_source_id() const;
 	virtual int get_texture_source_type() const;
 	virtual bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const;
@@ -152,7 +152,7 @@ public:
 
 	~FeTextureContainer();
 
-	sf::Vector2u get_texture_size() const override;
+	Vec2u get_texture_size() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 	bool get_visible() const;
@@ -258,7 +258,7 @@ private:
 	int m_fft_bands;
 	FeImageLoaderEntry *m_entry;
 	FeAudioEffectsManager m_audio_effects;
-	sf::Vector2u m_texture_size;
+	Vec2u m_texture_size;
 	bool m_repeat;
 	unsigned long long m_content_version;
 };
@@ -270,7 +270,7 @@ public:
 	FeSurfaceTextureContainer( int width, int height );
 	~FeSurfaceTextureContainer();
 
-	sf::Vector2u get_texture_size() const override;
+	Vec2u get_texture_size() const override;
 
 	void on_new_selection( FeSettings *feSettings );
 	void on_end_navigation( FeSettings *feSettings );
@@ -304,7 +304,7 @@ private:
 	bool m_mipmap;
 	bool m_repeat;
 	bool m_smooth;
-	sf::Vector2u m_texture_size;
+	Vec2u m_texture_size;
 
 public:
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
@@ -356,14 +356,14 @@ public:
 	bool fix_masked_image();
 	FePresentableParent *get_presentable_parent();
 	template <typename T>
-	void setSize( T w, T h ) { setSize( sf::Vector2f( w, h ) ); };
-	void setSize( const sf::Vector2f &s );
-	sf::Vector2f getSize() const;
+	void setSize( T w, T h ) { setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
+	void setSize( const Vec2f &s );
+	Vec2f getSize() const;
 
 	template <typename T>
-	void setPosition( T x, T y ) { setPosition( sf::Vector2f( x, y ) );};
-	void setPosition( const sf::Vector2f & );
-	sf::Vector2f getPosition() const;
+	void setPosition( T x, T y ) { setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) );};
+	void setPosition( const Vec2f & );
+	Vec2f getPosition() const;
 
 	void setRotation( float );
 	float getRotation() const;
@@ -379,9 +379,9 @@ public:
 	void rawset_filter_offset( int fo );
 	int getFilterOffset() const;
 
-	void setTextureRect( const sf::FloatRect &);
-	sf::FloatRect getTextureRect() const;
-	sf::Vector2u getTextureSize() const;
+	void setTextureRect( const FloatRect &);
+	FloatRect getTextureRect() const;
+	Vec2u getTextureSize() const;
 
 	// deprecated as of 1.3, use video_flags instead:
 	void setMovieEnabled( bool );
@@ -560,37 +560,37 @@ public:
 
 protected:
 	FeBaseTextureContainer *m_tex;
-	sf::Vector2f m_pos;
-	sf::Vector2f m_size;
-	sf::Vector2u m_auto_size;
+	Vec2f m_pos;
+	Vec2f m_size;
+	Vec2u m_auto_size;
 
-	sf::Vector3f m_origin;
-	sf::Vector2f m_transform_origin;
+	Vec3f m_origin;
+	Vec2f m_transform_origin;
 	FeImage::Alignment m_transform_origin_type;
 
-	sf::Vector3f m_anchor;
+	Vec3f m_anchor;
 	FeImage::Alignment m_anchor_type;
 
 	float m_rotation;
-	sf::Vector3f m_rotation_origin;
+	Vec3f m_rotation_origin;
 	FeImage::Alignment m_rotation_origin_type;
 
 	bool m_crop;
 	FeImage::Fit m_fit;
-	sf::Vector2f m_fit_anchor;
+	Vec2f m_fit_anchor;
 	FeImage::Alignment m_fit_anchor_type;
 
 	FeBlend::Mode m_blend_mode;
 	bool m_preserve_aspect_ratio;
 	float m_force_aspect_ratio;
 
-	sf::Vector2f m_scale;
-	sf::FloatRect m_fit_rect;
+	Vec2f m_scale;
+	FloatRect m_fit_rect;
 
 	void scale();
 	int resolveFit() const;
 	float resolveAspectRatio() const;
-	sf::Vector2f alignTypeToVector( int a );
+	Vec2f alignTypeToVector( int a );
 
 private:
 	FeSpriteGeometry build_sprite_geometry() const;
@@ -601,13 +601,13 @@ private:
 	mutable SqratArrayWrapper m_fft_array_wrapper;
 
 	sf::Color m_color;
-	sf::FloatRect m_texture_rect;
+	FloatRect m_texture_rect;
 	IntEdges m_border;
 	IntEdges m_padding;
 	float m_border_scale;
 	FloatEdges m_render_crop;
-	sf::Vector2f m_render_position;
-	sf::Vector3f m_render_origin;
+	Vec2f m_render_position;
+	Vec3f m_render_origin;
 
 };
 

@@ -23,7 +23,7 @@
 #ifndef FE_PRESENTABLE_HPP
 #define FE_PRESENTABLE_HPP
 
-#include <SFML/System/Vector2.hpp>
+#include "fe_types.hpp"
 #include <vector>
 
 class FeSettings;
@@ -67,10 +67,10 @@ public:
 	virtual void on_new_list( FeSettings * );
 	virtual void set_scale_factor( float, float );
 
-	virtual sf::Vector2f getPosition() const=0;
-	virtual void setPosition( const sf::Vector2f & )=0;
-	virtual sf::Vector2f getSize() const=0;
-	virtual void setSize( const sf::Vector2f & )=0;
+	virtual Vec2f getPosition() const=0;
+	virtual void setPosition( const Vec2f & )=0;
+	virtual Vec2f getSize() const=0;
+	virtual void setSize( const Vec2f & )=0;
 	virtual float getRotation() const=0;
 	virtual void setRotation( float )=0;
 	virtual sf::Color getColor() const=0;

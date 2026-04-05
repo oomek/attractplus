@@ -26,6 +26,7 @@
 #include "fe_music.hpp"
 #include <SFML/Audio.hpp>
 #include "media.hpp"
+#include "fe_types.hpp"
 #include <string>
 #include <deque>
 #include "fe_input.hpp"
@@ -47,7 +48,7 @@ private:
 	float m_pan;
 	float m_pitch;
 	bool m_loop;
-	sf::Vector3f m_position;
+	Vec3f m_position;
 
 public:
 	FeSound( bool loop=false );

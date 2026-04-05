@@ -233,7 +233,7 @@ bool FeFont::hasGlyph( char32_t codePoint ) const
 	return FT_Get_Char_Index( m_fontHandles ? m_fontHandles->face : nullptr, codePoint ) != 0;
 }
 
-const sf::Glyph &FeFont::getGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const
+const FeGlyph &FeFont::getGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const
 {
 	GlyphTable &glyphs = loadPage( characterSize ).glyphs;
 	const std::uint64_t key = combine_glyph_key(
@@ -245,7 +245,7 @@ const sf::Glyph &FeFont::getGlyph( char32_t codePoint, unsigned int characterSiz
 	if ( it != glyphs.end() )
 		return it->second;
 
-	const sf::Glyph glyph = loadGlyph( codePoint, characterSize, bold, outlineThickness );
+	const FeGlyph glyph = loadGlyph( codePoint, characterSize, bold, outlineThickness );
 	return glyphs.try_emplace( key, glyph ).first->second;
 }
 
@@ -370,9 +370,9 @@ FeFont::Page &FeFont::loadPage( unsigned int characterSize ) const
 	return m_pages.try_emplace( characterSize, m_isSmooth, this, characterSize ).first->second;
 }
 
-sf::Glyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const
+FeGlyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const
 {
-	sf::Glyph glyph;
+	FeGlyph glyph;
 	if ( !m_fontHandles || !m_fontHandles->face )
 		return glyph;
 
@@ -433,19 +433,31 @@ sf::Glyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, boo
 	glyph.lsbDelta = static_cast<int>( face->glyph->lsb_delta );
 	glyph.rsbDelta = static_cast<int>( face->glyph->rsb_delta );
 
-	sf::Vector2u size( bitmap.width, bitmap.rows );
+	Vec2u size( bitmap.width, bitmap.rows );
 	if ( size.x > 0 && size.y > 0 )
 	{
 		const unsigned int padding = 2;
-		size += 2u * sf::Vector2u( padding, padding );
+		size += 2u * Vec2u( padding, padding );
 
 		Page &page = loadPage( characterSize );
-		glyph.textureRect = findGlyphRect( page, size );
-		glyph.textureRect.position += sf::Vector2i( padding, padding );
-		glyph.textureRect.size -= 2 * sf::Vector2i( padding, padding );
+		const IntRect glyph_rect = findGlyphRect( page, size );
+		glyph.textureRect.position = {
+			glyph_rect.position.x + static_cast<int>( padding ),
+			glyph_rect.position.y + static_cast<int>( padding )
+		};
+		glyph.textureRect.size = {
+			glyph_rect.size.x - static_cast<int>( padding * 2 ),
+			glyph_rect.size.y - static_cast<int>( padding * 2 )
+		};
 
-		glyph.bounds.position = sf::Vector2f( sf::Vector2i( bitmap_glyph->left, -bitmap_glyph->top ) );
-		glyph.bounds.size = sf::Vector2f( sf::Vector2u( bitmap.width, bitmap.rows ) );
+		glyph.bounds.position = {
+			static_cast<float>( bitmap_glyph->left ),
+			static_cast<float>( -bitmap_glyph->top )
+		};
+		glyph.bounds.size = {
+			static_cast<float>( bitmap.width ),
+			static_cast<float>( bitmap.rows )
+		};
 
 		m_pixelBuffer.resize( static_cast<std::size_t>( size.x ) * static_cast<std::size_t>( size.y ) * 4 );
 		for ( std::size_t i = 0; i < m_pixelBuffer.size(); i += 4 )
@@ -483,8 +495,12 @@ sf::Glyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, boo
 			}
 		}
 
-		const sf::Vector2u dest = sf::Vector2u( glyph.textureRect.position ) - sf::Vector2u( padding, padding );
-		const sf::Vector2u update_size = sf::Vector2u( glyph.textureRect.size ) + 2u * sf::Vector2u( padding, padding );
+		const Vec2u dest(
+			static_cast<unsigned int>( glyph.textureRect.position.x - static_cast<int>( padding ) ),
+			static_cast<unsigned int>( glyph.textureRect.position.y - static_cast<int>( padding ) ) );
+		const Vec2u update_size(
+			static_cast<unsigned int>( glyph.textureRect.size.x + static_cast<int>( padding * 2 ) ),
+			static_cast<unsigned int>( glyph.textureRect.size.y + static_cast<int>( padding * 2 ) ) );
 		for ( unsigned int row = 0; row < update_size.y; ++row )
 		{
 			const std::size_t src_offset = static_cast<std::size_t>( row ) * update_size.x * 4;
@@ -498,7 +514,7 @@ sf::Glyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, boo
 	return glyph;
 }
 
-sf::IntRect FeFont::findGlyphRect( Page &page, sf::Vector2u size ) const
+IntRect FeFont::findGlyphRect( Page &page, Vec2u size ) const
 {
 	Row *row = nullptr;
 	float best_ratio = 0.0f;
@@ -526,13 +542,13 @@ sf::IntRect FeFont::findGlyphRect( Page &page, sf::Vector2u size ) const
 				if ( !resizePage( page, page.width * 2, page.height * 2 ) )
 				{
 					FeLog() << "Failed to create new page texture" << std::endl;
-					return { { 0, 0 }, { 2, 2 } };
+					return IntRect( 0, 0, 2, 2 );
 				}
 			}
 			else
 			{
 				FeLog() << "Failed to add a new character to the font: the maximum texture size has been reached" << std::endl;
-				return { { 0, 0 }, { 2, 2 } };
+				return IntRect( 0, 0, 2, 2 );
 			}
 		}
 
@@ -541,7 +557,11 @@ sf::IntRect FeFont::findGlyphRect( Page &page, sf::Vector2u size ) const
 		row = &page.rows.back();
 	}
 
-	sf::IntRect rect( sf::Rect<unsigned int>( { row->width, row->top }, size ) );
+	IntRect rect(
+		static_cast<int>( row->width ),
+		static_cast<int>( row->top ),
+		static_cast<int>( size.x ),
+		static_cast<int>( size.y ) );
 	row->width += size.x;
 	return rect;
 }

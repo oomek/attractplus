@@ -276,6 +276,7 @@ namespace
 	// been experienced at 2 when returning from games).
 	//
 	const int PLAY_COUNT=5;
+	constexpr float FE_DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
 };
 
 FeTextureContainer::FeTextureContainer(
@@ -507,7 +508,7 @@ bool FeTextureContainer::try_to_load(
 	return true;
 }
 
-sf::Vector2u FeTextureContainer::get_texture_size() const
+Vec2u FeTextureContainer::get_texture_size() const
 {
 #ifndef NO_MOVIE
 	if ( m_movie )
@@ -525,7 +526,7 @@ sf::Vector2u FeTextureContainer::get_texture_size() const
 	if ( m_texture_size.x > 0 && m_texture_size.y > 0 )
 		return m_texture_size;
 
-	return sf::Vector2u();
+	return Vec2u();
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -1235,7 +1236,7 @@ FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
 	}
 }
 
-sf::Vector2u FeSurfaceTextureContainer::get_texture_size() const
+Vec2u FeSurfaceTextureContainer::get_texture_size() const
 {
 	return m_texture_size;
 }
@@ -1365,7 +1366,7 @@ FeImage::FeImage(
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
 	m_color( sf::Color::White ),
-	m_texture_rect( sf::Vector2f( 0.f, 0.f ), sf::Vector2f( 0.f, 0.f ) ),
+	m_texture_rect( 0.f, 0.f, 0.f, 0.f ),
 	m_border( 0, 0, 0, 0 ),
 	m_padding( 0, 0, 0, 0 ),
 	m_border_scale( 1.f ),
@@ -1448,45 +1449,45 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 	if ( new_tex )
 		m_tex = new_tex;
 
-	const sf::Vector2u size = m_tex->get_texture_size();
-	m_texture_rect = sf::FloatRect({ 0, 0 }, { static_cast<float>( size.x ), static_cast<float>( size.y )});
+	const Vec2u size = m_tex->get_texture_size();
+	m_texture_rect = FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) );
 
 	scale();
 }
 
-sf::Vector2f FeImage::alignTypeToVector( int type )
+Vec2f FeImage::alignTypeToVector( int type )
 {
 	switch( type )
 	{
 		case Left:
-			return sf::Vector2f( 0.0f, 0.5f );
+			return Vec2f( 0.0f, 0.5f );
 
 		case Centre:
-			return sf::Vector2f( 0.5f, 0.5f );
+			return Vec2f( 0.5f, 0.5f );
 
 		case Right:
-			return sf::Vector2f( 1.0f, 0.5f );
+			return Vec2f( 1.0f, 0.5f );
 
 		case Top:
-			return sf::Vector2f( 0.5f, 0.0f );
+			return Vec2f( 0.5f, 0.0f );
 
 		case Bottom:
-			return sf::Vector2f( 0.5f, 1.0f );
+			return Vec2f( 0.5f, 1.0f );
 
 		case TopLeft:
-			return sf::Vector2f( 0.0f, 0.0f );
+			return Vec2f( 0.0f, 0.0f );
 
 		case TopRight:
-			return sf::Vector2f( 1.0f, 0.0f );
+			return Vec2f( 1.0f, 0.0f );
 
 		case BottomLeft:
-			return sf::Vector2f( 0.0f, 1.0f );
+			return Vec2f( 0.0f, 1.0f );
 
 		case BottomRight:
-			return sf::Vector2f( 1.0f, 1.0f );
+			return Vec2f( 1.0f, 1.0f );
 
 		default:
-			return sf::Vector2f( 0.0f, 0.0f );
+			return Vec2f( 0.0f, 0.0f );
 	}
 }
 
@@ -1529,7 +1530,7 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 {
 	geometry.clear();
 
-	const sf::Vector2u texture_size = m_tex->get_texture_size();
+	const Vec2u texture_size = m_tex->get_texture_size();
 	if ( texture_size.x == 0 || texture_size.y == 0 )
 		return false;
 
@@ -1586,10 +1587,10 @@ void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float zo
 void FeImage::scale()
 {
 	// The texture size is the actual pixel dimensions of the image
-	sf::FloatRect texture_rect = m_texture_rect;
-	sf::Vector2f tex_size = sf::Vector2f(
-		abs( texture_rect.size.x ),
-		abs( texture_rect.size.y )
+	FloatRect texture_rect = m_texture_rect;
+	Vec2f tex_size(
+		std::abs( texture_rect.size.x ),
+		std::abs( texture_rect.size.y )
 	);
 
 	// Exit early if the texture size is invalid
@@ -1597,16 +1598,16 @@ void FeImage::scale()
 		return;
 
 	// Prepare some ratios and sizes
-	sf::Vector2f size = sf::Vector2f( abs( m_size.x ), abs( m_size.y ) );
+	Vec2f size( std::abs( m_size.x ), std::abs( m_size.y ) );
 	float img_ratio = size.x / size.y;
 	float tex_ratio = tex_size.x / tex_size.y;
 	float par_ratio = resolveAspectRatio();
 
-	sf::Vector2f par_size = par_ratio > 1.0
-		? sf::Vector2f( tex_size.y * par_ratio, tex_size.y )
-		: sf::Vector2f( tex_size.x, tex_size.x / par_ratio );
+	Vec2f par_size = par_ratio > 1.0f
+		? Vec2f( tex_size.y * par_ratio, tex_size.y )
+		: Vec2f( tex_size.x, tex_size.x / par_ratio );
 
-	sf::Vector2f goal_size = m_preserve_aspect_ratio ? par_size : tex_size;
+	Vec2f goal_size = m_preserve_aspect_ratio ? par_size : tex_size;
 	float goal_ratio = m_preserve_aspect_ratio ? par_ratio : tex_ratio;
 
 	// Select the size according to the `fit` required
@@ -1642,7 +1643,7 @@ void FeImage::scale()
 	}
 
 	// Determine which way the image is flipped
-	sf::Vector2f flip = sf::Vector2f( m_size.x < 0 ? -1 : 1, m_size.y < 0 ? -1 : 1 );
+	Vec2f flip( m_size.x < 0 ? -1.0f : 1.0f, m_size.y < 0 ? -1.0f : 1.0f );
 	if ( m_auto_size.x && flip.y == -1 ) flip.x = -1;
 	if ( m_auto_size.y && flip.x == -1 ) flip.y = -1;
 
@@ -1650,7 +1651,7 @@ void FeImage::scale()
 	size.x *= flip.x;
 	size.y *= flip.y;
 
-	sf::Vector2f scale = sf::Vector2f(
+	Vec2f scale(
 		size.x / tex_size.x,
 		size.y / tex_size.y
 	);
@@ -1660,7 +1661,7 @@ void FeImage::scale()
 	if ( m_auto_size.y ) m_size.y = size.y;
 
 	// Anchor the texture, most common for Fit.Contain where the texture is smaller than the image
-	sf::Vector2f offset = sf::Vector2f(
+	Vec2f offset(
 		( m_size.x - size.x ) * m_fit_anchor.x,
 		( m_size.y - size.y ) * m_fit_anchor.y
 	);
@@ -1676,20 +1677,23 @@ void FeImage::scale()
 		);
 
 	// Translate the texture to match the desired position
-	sf::Transform t;
-	sf::Angle rotation = sf::degrees( m_rotation );
-	sf::Vector2f pos_rotation = offset.length()
-		? t.rotate( rotation ).transformPoint( offset )
-		: sf::Vector2f( 0, 0 );
+	const float radians = m_rotation * FE_DEGREES_TO_RADIANS;
+	const float cos_rotation = std::cos( radians );
+	const float sin_rotation = std::sin( radians );
+	Vec2f pos_rotation = offset.length() > 0.0
+		? Vec2f(
+			( offset.x * cos_rotation ) - ( offset.y * sin_rotation ),
+			( offset.x * sin_rotation ) + ( offset.y * cos_rotation ) )
+		: Vec2f( 0.0f, 0.0f );
 
-	sf::Vector2f pos = m_pos;
+	Vec2f pos = m_pos;
 	pos += pos_rotation;
-	pos += sf::Vector2f(
+	pos += Vec2f(
 		( m_rotation_origin.x - m_anchor.x ) * m_size.x,
 		( m_rotation_origin.y - m_anchor.y ) * m_size.y
 	);
 
-	sf::Vector3f origin = sf::Vector3f(
+	Vec3f origin(
 		( m_origin.x + m_rotation_origin.x * m_size.x ) / scale.x,
 		( m_origin.y + m_rotation_origin.y * m_size.y ) / scale.y,
 		m_origin.z + m_rotation_origin.z
@@ -1697,12 +1701,12 @@ void FeImage::scale()
 
 	// Populate the fit_rect so users can get the resulting image dimensions
 	IntEdges padding = m_padding;
-	m_fit_rect = sf::FloatRect(
-		sf::Vector2f(
+	m_fit_rect = FloatRect(
+		Vec2f(
 			pos.x - pos_rotation.x + offset.x - ( origin.x * scale.x ) + (( crop.left - padding.left ) * flip.x ) - m_pos.x,
 			pos.y - pos_rotation.y + offset.y - ( origin.y * scale.y ) + (( crop.top - padding.top ) * flip.y ) - m_pos.y
 		),
-		sf::Vector2f(
+		Vec2f(
 			( tex_size.x * scale.x ) + (( padding.left + padding.right - crop.left - crop.right ) * flip.x ),
 			( tex_size.y * scale.y ) + (( padding.top + padding.bottom - crop.top - crop.bottom ) * flip.y )
 		)
@@ -1715,14 +1719,14 @@ void FeImage::scale()
 	m_render_origin = origin;
 }
 
-sf::Vector2f FeImage::getPosition() const
+Vec2f FeImage::getPosition() const
 {
-	return m_pos;
+	return Vec2f( m_pos.x, m_pos.y );
 }
 
-sf::Vector2f FeImage::getSize() const
+Vec2f FeImage::getSize() const
 {
-	return m_size;
+	return Vec2f( m_size.x, m_size.y );
 }
 
 bool FeImage::get_auto_width() const
@@ -1784,9 +1788,9 @@ void FeImage::set_pos( float x, float y, float w, float h )
 	FeBasePresentable::set_pos( x, y, w, h );
 }
 
-void FeImage::setSize( const sf::Vector2f &s )
+void FeImage::setSize( const Vec2f &s )
 {
-	if ( s != m_size )
+	if ( s.x != m_size.x || s.y != m_size.y )
 	{
 		m_size = s;
 		scale();
@@ -1794,9 +1798,9 @@ void FeImage::setSize( const sf::Vector2f &s )
 	}
 }
 
-void FeImage::setPosition( const sf::Vector2f &p )
+void FeImage::setPosition( const Vec2f &p )
 {
-	if ( p != m_pos )
+	if ( p.x != m_pos.x || p.y != m_pos.y )
 	{
 		m_pos = p;
 		scale();
@@ -1833,17 +1837,17 @@ void FeImage::setColor( sf::Color c )
 	}
 }
 
-sf::Vector2u FeImage::getTextureSize() const
+Vec2u FeImage::getTextureSize() const
 {
 	return m_tex->get_texture_size();
 }
 
-sf::FloatRect FeImage::getTextureRect() const
+FloatRect FeImage::getTextureRect() const
 {
 	return m_texture_rect;
 }
 
-void FeImage::setTextureRect( const sf::FloatRect &r )
+void FeImage::setTextureRect( const FloatRect &r )
 {
 	if ( r != m_texture_rect )
 	{
@@ -2101,9 +2105,9 @@ void FeImage::set_transform_origin( float x, float y )
 		y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y
 	)
 	{
-		m_transform_origin = sf::Vector2f( x, y );
-		m_anchor = sf::Vector3f( x, y, m_anchor.z );
-		m_rotation_origin = sf::Vector3f( x, y, m_rotation_origin.z );
+		m_transform_origin = Vec2f( x, y );
+		m_anchor = Vec3f( x, y, m_anchor.z );
+		m_rotation_origin = Vec3f( x, y, m_rotation_origin.z );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2112,7 +2116,7 @@ void FeImage::set_transform_origin( float x, float y )
 void FeImage::set_transform_origin_type( int t )
 {
 	m_transform_origin_type = (FeImage::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	Vec2f a = alignTypeToVector( t );
 	set_transform_origin( a.x, a.y );
 }
 
@@ -2125,7 +2129,7 @@ void FeImage::set_anchor( float x, float y, float z )
 {
 	if ( x != m_anchor.x || y != m_anchor.y || z != m_anchor.z )
 	{
-		m_anchor = sf::Vector3f( x, y, z );
+		m_anchor = Vec3f( x, y, z );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2134,7 +2138,7 @@ void FeImage::set_anchor( float x, float y, float z )
 void FeImage::set_anchor_type( int t )
 {
 	m_anchor_type = (FeImage::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	Vec2f a = alignTypeToVector( t );
 	set_anchor( a.x, a.y, get_anchor_z() );
 }
 
@@ -2142,7 +2146,7 @@ void FeImage::set_fit_anchor( float x, float y )
 {
 	if ( x != m_fit_anchor.x || y != m_fit_anchor.y )
 	{
-		m_fit_anchor = sf::Vector2f( x, y );
+		m_fit_anchor = Vec2f( x, y );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2151,7 +2155,7 @@ void FeImage::set_fit_anchor( float x, float y )
 void FeImage::set_fit_anchor_type( int t )
 {
 	m_fit_anchor_type = (FeImage::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	Vec2f a = alignTypeToVector( t );
 	set_fit_anchor( a.x, a.y );
 }
 
@@ -2163,7 +2167,7 @@ void FeImage::set_rotation_origin( float x, float y )
 void FeImage::set_rotation_origin_type( int t )
 {
 	m_rotation_origin_type = (FeImage::Alignment)t;
-	sf::Vector2f o = alignTypeToVector( t );
+	Vec2f o = alignTypeToVector( t );
 	set_rotation_origin( o.x, o.y, get_rotation_origin_z() );
 }
 
@@ -2246,7 +2250,7 @@ void FeImage::set_rotation_origin( float x, float y, float z )
 {
 	if ( x != m_rotation_origin.x || y != m_rotation_origin.y || z != m_rotation_origin.z )
 	{
-		m_rotation_origin = sf::Vector3f( x, y, z );
+		m_rotation_origin = Vec3f( x, y, z );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2315,7 +2319,7 @@ float FeImage::resolveAspectRatio() const
 	if ( m_force_aspect_ratio )
 		return m_force_aspect_ratio;
 
-	sf::FloatRect r = getTextureRect();
+	FloatRect r = getTextureRect();
 	float tex_ratio = r.size.x / r.size.y;
 
 	if ( get_preserve_aspect_ratio() )
@@ -2341,28 +2345,28 @@ bool FeImage::get_preserve_aspect_ratio() const
 
 void FeImage::set_subimg_x( float x )
 {
-	sf::FloatRect r = getTextureRect();
+	FloatRect r = getTextureRect();
 	r.position.x=x;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_y( float y )
 {
-	sf::FloatRect r = getTextureRect();
+	FloatRect r = getTextureRect();
 	r.position.y=y;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_width( float w )
 {
-	sf::FloatRect r = getTextureRect();
+	FloatRect r = getTextureRect();
 	r.size.x=w;
 	setTextureRect( r );
 }
 
 void FeImage::set_subimg_height( float h )
 {
-	sf::FloatRect r = getTextureRect();
+	FloatRect r = getTextureRect();
 	r.size.y=h;
 	setTextureRect( r );
 }

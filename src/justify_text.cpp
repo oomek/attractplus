@@ -32,6 +32,7 @@
 // Headers
 ////////////////////////////////////////////////////////////
 #include "justify_text.hpp" // AM+
+#include "fe_types.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -64,22 +65,28 @@ void addLine(sf::VertexArray& vertices,
 }
 
 // Add a glyph quad to the vertex array
-void addGlyphQuad(sf::VertexArray& vertices, sf::Vector2f position, sf::Color color, const sf::Glyph& glyph, float italicShear)
+void addGlyphQuad( sf::VertexArray &vertices, const Vec2f &position, sf::Color color, const FeGlyph &glyph, float italicShear )
 {
-    const sf::Vector2f padding(1.f, 1.f);
+    const Vec2f padding(1.f, 1.f);
 
-    const sf::Vector2f p1 = glyph.bounds.position - padding;
-    const sf::Vector2f p2 = glyph.bounds.position + glyph.bounds.size + padding;
+    const Vec2f p1( glyph.bounds.position.x - padding.x, glyph.bounds.position.y - padding.y );
+    const Vec2f p2(
+        glyph.bounds.position.x + glyph.bounds.size.x + padding.x,
+        glyph.bounds.position.y + glyph.bounds.size.y + padding.y );
 
-    const auto uv1 = sf::Vector2f(glyph.textureRect.position) - padding;
-    const auto uv2 = sf::Vector2f(glyph.textureRect.position + glyph.textureRect.size) + padding;
+    const Vec2f uv1(
+        static_cast<float>( glyph.textureRect.position.x ) - padding.x,
+        static_cast<float>( glyph.textureRect.position.y ) - padding.y );
+    const Vec2f uv2(
+        static_cast<float>( glyph.textureRect.position.x + glyph.textureRect.size.x ) + padding.x,
+        static_cast<float>( glyph.textureRect.position.y + glyph.textureRect.size.y ) + padding.y );
 
-    vertices.append({position + sf::Vector2f(p1.x - italicShear * p1.y, p1.y), color, {uv1.x, uv1.y}});
-    vertices.append({position + sf::Vector2f(p2.x - italicShear * p1.y, p1.y), color, {uv2.x, uv1.y}});
-    vertices.append({position + sf::Vector2f(p1.x - italicShear * p2.y, p2.y), color, {uv1.x, uv2.y}});
-    vertices.append({position + sf::Vector2f(p1.x - italicShear * p2.y, p2.y), color, {uv1.x, uv2.y}});
-    vertices.append({position + sf::Vector2f(p2.x - italicShear * p1.y, p1.y), color, {uv2.x, uv1.y}});
-    vertices.append({position + sf::Vector2f(p2.x - italicShear * p2.y, p2.y), color, {uv2.x, uv2.y}});
+    vertices.append({{ position.x + p1.x - italicShear * p1.y, position.y + p1.y }, color, {uv1.x, uv1.y}});
+    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, color, {uv2.x, uv1.y}});
+    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, color, {uv1.x, uv2.y}});
+    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, color, {uv1.x, uv2.y}});
+    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, color, {uv2.x, uv1.y}});
+    vertices.append({{ position.x + p2.x - italicShear * p2.y, position.y + p2.y }, color, {uv2.x, uv2.y}});
 }
 } // namespace
 
@@ -308,7 +315,7 @@ float JustifyText::getOutlineThickness() const
 
 
 ////////////////////////////////////////////////////////////
-Vector2f JustifyText::findCharacterPos(std::size_t index) const
+::Vec2f JustifyText::findCharacterPos(std::size_t index) const
 {
     // Adjust the index if it's out of range
     index = std::min(index, m_string.getSize());
@@ -321,7 +328,7 @@ Vector2f JustifyText::findCharacterPos(std::size_t index) const
     const float lineSpacing = m_font->getLineSpacing(m_characterSize) * m_lineSpacingFactor;
 
     // Compute the position
-    Vector2f      position;
+    ::Vec2f       position;
     std::uint32_t prevChar = 0;
     for (std::size_t i = 0; i < index; ++i)
     {
@@ -351,12 +358,13 @@ Vector2f JustifyText::findCharacterPos(std::size_t index) const
     }
 
     // Transform the position to global coordinates
-    return getTransform().transformPoint(position);
+    const auto transformed = getTransform().transformPoint( { position.x, position.y } );
+    return ::Vec2f( transformed.x, transformed.y );
 }
 
 
 ////////////////////////////////////////////////////////////
-FloatRect JustifyText::getLocalBounds() const
+::FloatRect JustifyText::getLocalBounds() const
 {
     ensureGeometryUpdate();
 
@@ -365,9 +373,20 @@ FloatRect JustifyText::getLocalBounds() const
 
 
 ////////////////////////////////////////////////////////////
-FloatRect JustifyText::getGlobalBounds() const
+::FloatRect JustifyText::getGlobalBounds() const
 {
-    return getTransform().transformRect(getLocalBounds());
+    const ::FloatRect local = getLocalBounds();
+    const auto p0 = getTransform().transformPoint( { local.position.x, local.position.y } );
+    const auto p1 = getTransform().transformPoint( { local.position.x + local.size.x, local.position.y } );
+    const auto p2 = getTransform().transformPoint( { local.position.x, local.position.y + local.size.y } );
+    const auto p3 = getTransform().transformPoint( { local.position.x + local.size.x, local.position.y + local.size.y } );
+
+    const float min_x = std::min( std::min( p0.x, p1.x ), std::min( p2.x, p3.x ) );
+    const float min_y = std::min( std::min( p0.y, p1.y ), std::min( p2.y, p3.y ) );
+    const float max_x = std::max( std::max( p0.x, p1.x ), std::max( p2.x, p3.x ) );
+    const float max_y = std::max( std::max( p0.y, p1.y ), std::max( p2.y, p3.y ) );
+
+    return ::FloatRect( min_x, min_y, max_x - min_x, max_y - min_y );
 }
 
 
@@ -396,14 +415,14 @@ const FeFont::TexturePageId* JustifyText::getTexturePageId() const
 
 
 ////////////////////////////////////////////////////////////
-Vector2u JustifyText::getTextureSize() const
+::Vec2u JustifyText::getTextureSize() const
 {
     ensureGeometryUpdate();
 
     unsigned int width = 0;
     unsigned int height = 0;
     m_font->getTextureSize(m_characterSize, width, height);
-    return {width, height};
+    return ::Vec2u( width, height );
 }
 
 
@@ -458,9 +477,9 @@ void JustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, b
             maxX = std::max(maxX, x);
             continue;
         }
-        const Glyph& glyph = m_font->getGlyph(curChar, m_characterSize, isBold);
-        const Vector2f p1 = glyph.bounds.position;
-        const Vector2f p2 = glyph.bounds.position + glyph.bounds.size;
+        const FeGlyph &glyph = m_font->getGlyph(curChar, m_characterSize, isBold);
+        const ::Vec2f p1 = glyph.bounds.position;
+        const ::Vec2f p2 = glyph.bounds.position + glyph.bounds.size;
         minX = std::min(minX, x + p1.x - italicShear * p2.y);
         maxX = std::max(maxX, x + p2.x - italicShear * p1.y);
         x += glyph.advance + letterSpacing;
@@ -499,7 +518,7 @@ void JustifyText::ensureGeometryUpdate() const
     // Clear the previous geometry
     m_vertices.clear();
     m_outlineVertices.clear();
-    m_bounds = FloatRect();
+    m_bounds = ::FloatRect();
 
     // No text: nothing to draw
     if (m_string.isEmpty())
@@ -516,7 +535,9 @@ void JustifyText::ensureGeometryUpdate() const
     // Compute the location of the strike through dynamically
     // We use the center point of the lowercase 'x' glyph as the reference
     // We reuse the underline thickness as the thickness of the strike through as well
-    const float strikeThroughOffset = m_font->getGlyph(U'x', m_characterSize, isBold).bounds.getCenter().y;
+    const FeGlyph &strike_through_glyph = m_font->getGlyph(U'x', m_characterSize, isBold);
+    const float strikeThroughOffset =
+        strike_through_glyph.bounds.position.y + ( strike_through_glyph.bounds.size.y * 0.5f );
 
     // Precompute the variables needed by the algorithm
     float       whitespaceWidth = m_font->getGlyph(U' ', m_characterSize, isBold).advance;
@@ -603,21 +624,21 @@ void JustifyText::ensureGeometryUpdate() const
         // Apply the outline
         if (m_outlineThickness != 0)
         {
-            const Glyph& glyph = m_font->getGlyph(curChar, m_characterSize, isBold, m_outlineThickness);
+            const FeGlyph &glyph = m_font->getGlyph(curChar, m_characterSize, isBold, m_outlineThickness);
 
             // Add the outline glyph to the vertices
-            addGlyphQuad(m_outlineVertices, Vector2f(px, y), m_outlineColor, glyph, italicShear);
+            addGlyphQuad(m_outlineVertices, Vec2f(px, y), m_outlineColor, glyph, italicShear);
         }
 
         // Extract the current glyph's description
-        const Glyph& glyph = m_font->getGlyph(curChar, m_characterSize, isBold);
+        const FeGlyph &glyph = m_font->getGlyph(curChar, m_characterSize, isBold);
 
         // Add the glyph to the vertices
-        addGlyphQuad(m_vertices, Vector2f(px, y), m_fillColor, glyph, italicShear);
+        addGlyphQuad(m_vertices, Vec2f(px, y), m_fillColor, glyph, italicShear);
 
         // Update the current bounds
-        const Vector2f p1 = glyph.bounds.position;
-        const Vector2f p2 = glyph.bounds.position + glyph.bounds.size;
+        const ::Vec2f p1 = glyph.bounds.position;
+        const ::Vec2f p2 = glyph.bounds.position + glyph.bounds.size;
 
         minX = std::min(minX, x + p1.x - italicShear * p2.y);
         maxX = std::max(maxX, x + p2.x - italicShear * p1.y);
@@ -660,8 +681,8 @@ void JustifyText::ensureGeometryUpdate() const
     }
 
     // Update the bounding rectangle
-    m_bounds.position = Vector2f(minX, minY);
-    m_bounds.size     = Vector2f(maxX, maxY) - Vector2f(minX, minY);
+    m_bounds.position = ::Vec2f( minX, minY );
+    m_bounds.size = ::Vec2f( maxX - minX, maxY - minY );
 }
 
 } // namespace sf

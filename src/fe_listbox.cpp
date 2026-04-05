@@ -51,8 +51,8 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_custom_sel( -1 ),
 	m_has_custom_list( false )
 {
-	m_base_text.setPosition( sf::Vector2f( x, y ) );
-	m_base_text.setSize( sf::Vector2f( w, h ) );
+	m_base_text.setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) );
+	m_base_text.setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) );
 	m_base_text.setColor( sf::Color::White );
 	m_base_text.setBgColor( sf::Color::Transparent );
 }
@@ -99,12 +99,12 @@ void FeListBox::setFont( const FeFont &f )
 	m_base_text.setFont( f );
 }
 
-sf::Vector2f FeListBox::getPosition() const
+Vec2f FeListBox::getPosition() const
 {
 	return m_base_text.getPosition();
 }
 
-void FeListBox::setPosition( const sf::Vector2f &p )
+void FeListBox::setPosition( const Vec2f &p )
 {
 	if ( p == m_base_text.getPosition() )
 		return;
@@ -115,12 +115,12 @@ void FeListBox::setPosition( const sf::Vector2f &p )
 		FePresent::script_do_update( this );
 }
 
-sf::Vector2f FeListBox::getSize() const
+Vec2f FeListBox::getSize() const
 {
 	return m_base_text.getSize();
 }
 
-void FeListBox::setSize( const sf::Vector2f &s )
+void FeListBox::setSize( const Vec2f &s )
 {
 	if ( s == m_base_text.getSize() )
 		return;
@@ -221,15 +221,15 @@ void FeListBox::setSelOutlineColor( sf::Color c )
 
 void FeListBox::init_dimensions()
 {
-	sf::Vector2f size = getSize();
-	sf::Vector2f pos = getPosition();
+	Vec2f size = getSize();
+	Vec2f pos = getPosition();
 
 	int actual_spacing = (int)size.y / m_rows;
 	int char_size = ( m_userCharSize > 0 ) ? m_userCharSize
 		: ( actual_spacing > 12 ) ? actual_spacing - 4
 		: 8;
 
-	m_base_text.setTextScale( sf::Vector2f( 1.0, 1.0 ) / m_scale_factor );
+	m_base_text.setTextScale( Vec2f( 1.0f, 1.0f ) / m_scale_factor );
 	m_base_text.setCharacterSize( char_size * m_scale_factor );
 
 	// Add or remove text elements to match row count
@@ -245,7 +245,10 @@ void FeListBox::init_dimensions()
 	for ( int i=0; i< m_rows; i++ )
 	{
 		m_texts[i].setFrom( m_base_text );
-		m_texts[i].setPosition( rotater.transformPoint({ pos.x, pos.y + ( i * actual_spacing )}));
+		{
+			const auto text_position = rotater.transformPoint({ pos.x, pos.y + ( i * actual_spacing )});
+			m_texts[i].setPosition( Vec2f( text_position.x, text_position.y ) );
+		}
 		m_texts[i].setSize( size.x, actual_spacing );
 		m_texts[i].setRotation( m_rotation );
 	}
@@ -340,7 +343,7 @@ int FeListBox::getSelStyle()
 	return m_selStyle;
 }
 
-void FeListBox::setTextScale( const sf::Vector2f &scale )
+void FeListBox::setTextScale( const Vec2f &scale )
 {
 	m_base_text.setTextScale( scale );
 

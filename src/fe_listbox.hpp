@@ -24,6 +24,7 @@
 #define FE_LISTBOX_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_types.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"
 #include "tp.hpp"
@@ -68,12 +69,12 @@ public:
 	FeListBox &operator=( const FeListBox & );
 
 	void setFont( const FeFont & );
-	sf::Vector2f getPosition() const;
-	void setPosition( const sf::Vector2f & );
-	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};
-	sf::Vector2f getSize() const;
-	void setSize( const sf::Vector2f & );
-	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
+	Vec2f getPosition() const;
+	void setPosition( const Vec2f & );
+	void setPosition( int x, int y ) { return setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) ); };
+	Vec2f getSize() const;
+	void setSize( const Vec2f & );
+	void setSize( int w, int h ) { return setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
 	float getRotation() const;
 	sf::Color getColor() const;
 	sf::Color getOutlineColor() const;
@@ -92,7 +93,7 @@ public:
 	void setSelBgColor( sf::Color );
 	void setSelStyle( int );
 	int getSelStyle();
-	void setTextScale( const sf::Vector2f & );
+	void setTextScale( const Vec2f & );
 
 	bool getSelectedText( FeTextPrimitive* &sel );
 

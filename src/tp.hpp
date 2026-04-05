@@ -26,6 +26,7 @@
 #include "justify_text.hpp"
 #include "fe_renderer.hpp"
 #include "fe_font.hpp"
+#include "fe_types.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -65,7 +66,7 @@ public:
 	// that WordWrap is set to false (cursor positioning is not supported
 	// with // wordwrapping on)
 	//
-	sf::Vector2f setString( const std::basic_string<std::uint32_t> &t,
+	Vec2f setString( const std::basic_string<std::uint32_t> &t,
 					int cursor_string_pos=-1 ); // no utf-8 conversion
 
 	void setFont( const FeFont & );
@@ -73,10 +74,10 @@ public:
 	void setCharacterSpacing( float );
 	void setLineSpacing( float );
 	void setAlignment( Alignment );
-	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};
-	void setPosition( const sf::Vector2f & );
-	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
-	void setSize( const sf::Vector2f & );
+	void setPosition( int x, int y ) { return setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) ); };
+	void setPosition( const Vec2f & );
+	void setSize( int w, int h ) { return setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
+	void setSize( const Vec2f & );
 	void setStyle( int );
 	void setJustify( int );
 	void setRotation( float );
@@ -91,11 +92,11 @@ public:
 	int getMargin();
 	void setOutlineThickness( float );
 	float getOutlineThickness();
-	void setTextScale( const sf::Vector2f & );
+	void setTextScale( const Vec2f & );
 	void setFrom( const FeTextPrimitive &c );
 
 	const FeFont *getFont() const;
-	sf::FloatRect getLocalBounds() const;
+	FloatRect getLocalBounds() const;
 	sf::Color getColor() const;
 	sf::Color getBgColor() const;
 	sf::Color getOutlineColor() const;
@@ -106,15 +107,15 @@ public:
 	float getLineSpacing() const;
 	int getLineSpacingFactored( const FeFont *, int ) const;
 	Alignment getAlignment() const;
-	sf::Vector2f getPosition() const;
-	sf::Vector2f getSize() const;
+	Vec2f getPosition() const;
+	Vec2f getSize() const;
 	float getRotation() const;
 	int getStyle() const;
 	int getJustify() const;
 	int getFirstLineHint() const;
 	int getLines() const;
 	int getLinesTotal() const;
-	sf::Vector2f getTextScale() const;
+	Vec2f getTextScale() const;
 	std::string getStringWrapped();
 
 	int getActualWidth(); // return the width of the actual text

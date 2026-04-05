@@ -1284,7 +1284,7 @@ FeInputMap::Command FeSettings::input_conflict_check( const FeInputMapEntry &e )
 	return m_inputmap.input_conflict_check( e );
 }
 
-void FeSettings::get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh )
+void FeSettings::get_input_config_metrics( IntRect &mousecap_rect, int &joy_thresh )
 {
 	mousecap_rect = m_mousecap_rect;
 	joy_thresh = m_joy_thresh;
@@ -1312,8 +1312,8 @@ bool FeSettings::get_key_state( std::string key )
 
 void FeSettings::init_mouse_capture( FeWindow *window )
 {
-	sf::Vector2i size = sf::Vector2i( window->get_size() );
-	sf::Vector2i center = size / 2;
+	Vec2i size( static_cast<int>( window->get_size().x ), static_cast<int>( window->get_size().y ) );
+	Vec2i center = size / 2;
 	int radius = size.x * m_mouse_thresh / 400;
 
 	m_rwnd = window;
@@ -1329,16 +1329,17 @@ bool FeSettings::test_mouse_wrap() const
 	return (
 		has_mouse_moves()
 		&& m_rwnd->hasFocus()
-		&& !m_mousecap_rect.contains( m_rwnd->get_mouse_position() )
+		&& !m_mousecap_rect.contains( Vec2i( m_rwnd->get_mouse_position().x, m_rwnd->get_mouse_position().y ) )
 	);
 }
 
 // Wrap the mouse position to the capture rectangle
 void FeSettings::wrap_mouse()
 {
-	sf::Vector2i pos = m_rwnd->get_mouse_position();
-	sf::Vector2i center = sf::Vector2i( m_rwnd->get_size() ) / 2;
-	sf::Vector2i diff = pos - center;
+	Vec2i pos( m_rwnd->get_mouse_position().x, m_rwnd->get_mouse_position().y );
+	Vec2i center( static_cast<int>( m_rwnd->get_size().x ), static_cast<int>( m_rwnd->get_size().y ) );
+	center /= 2;
+	Vec2i diff = pos - center;
 
 	// A single axis gets wrapped at a time, which allows diagonals to register
 	if ( fabs( diff.x ) >= fabs( diff.y ) )

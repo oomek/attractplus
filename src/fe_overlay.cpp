@@ -322,8 +322,8 @@ FeOverlay::FeOverlay( FeWindow &wnd,
 
 void FeOverlay::init()
 {
-	m_screen_pos = sf::Vector2f( 0.0, 0.0 );
-	m_screen_size = sf::Vector2f( m_fePresent.get_screen_size() );
+	m_screen_pos = Vec2f( 0.0f, 0.0f );
+	m_screen_size = Vec2f( m_fePresent.get_screen_size() );
 	float screen_min = std::min( m_screen_size.x, m_screen_size.y );
 	float px = std::max( 1.0, screen_min / 240.0 ); // one pixel at 240p
 
@@ -439,7 +439,11 @@ void FeOverlay::splash_logo( const std::string &aux )
 	m_wnd.clear();
 	draw_overlay_scene_background( m_wnd, m_fePresent );
 	m_wnd.draw( bg, t );
-	m_wnd.draw_overlay_image( *logo_image, layout_logo_bounds( logo_image->getSize(), LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ) );
+	m_wnd.draw_overlay_image(
+		*logo_image,
+		layout_logo_bounds(
+			Vec2u( logo_image->getSize().x, logo_image->getSize().y ),
+			LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ) );
 	m_wnd.draw( extra, t );
 	m_wnd.display();
 }
@@ -882,7 +886,7 @@ void FeOverlay::input_map_dialog(
 	m_feSettings.init_mouse_capture( &m_wnd );
 
 	// Centre the mouse in case the user is mapping a mouse move event
-	m_wnd.set_mouse_position( sf::Vector2i( m_screen_size ) / 2 );
+	m_wnd.set_mouse_position( Vec2i( static_cast<int>( m_screen_size.x ), static_cast<int>( m_screen_size.y ) ) / 2 );
 
 	// empty the window event queue
 	while ( const std::optional ev = m_wnd.pollEvent() )
@@ -898,7 +902,7 @@ void FeOverlay::input_map_dialog(
 	bool multi_mode=false; // flag if we are checking for multiple inputs.
 	bool done=false;
 
-	sf::IntRect mc_rect;
+	IntRect mc_rect;
 	int joy_thresh;
 	m_feSettings.get_input_config_metrics( mc_rect, joy_thresh );
 
@@ -1154,8 +1158,8 @@ int FeOverlay::display_config_dialog(
 sf::RectangleShape FeOverlay::layout_background()
 {
 	sf::RectangleShape rect;
-	rect.setPosition( m_screen_pos );
-	rect.setSize( m_screen_size );
+	rect.setPosition( { m_screen_pos.x, m_screen_pos.y } );
+	rect.setSize( { m_screen_size.x, m_screen_size.y } );
 	rect.setFillColor( m_bg_color );
 	return rect;
 }
@@ -1175,8 +1179,9 @@ sf::RectangleShape FeOverlay::layout_letterbox( int style )
 	if ( style & LayoutStyle::Bottom ) height = m_letterbox_bottom_height;
 
 	sf::RectangleShape rect;
-	rect.setSize( sf::Vector2f( m_screen_size.x, height ) );
-	rect.setPosition( m_screen_pos + sf::Vector2f( 0, y ));
+	const Vec2f position = m_screen_pos + Vec2f( 0.0f, y );
+	rect.setSize( { m_screen_size.x, static_cast<float>( height ) } );
+	rect.setPosition( { position.x, position.y } );
 	theme_letterbox( rect );
 	return rect;
 }
@@ -1192,8 +1197,9 @@ sf::RectangleShape FeOverlay::layout_border( int style )
 	if ( style & LayoutStyle::Bottom ) y = m_screen_size.y - m_letterbox_bottom_height - m_border_thickness;
 
 	sf::RectangleShape rect;
-	rect.setSize( sf::Vector2f( m_screen_size.x, m_border_thickness ) );
-	rect.setPosition( m_screen_pos + sf::Vector2f( 0, y ) );
+	const Vec2f position = m_screen_pos + Vec2f( 0.0f, y );
+	rect.setSize( { m_screen_size.x, static_cast<float>( m_border_thickness ) } );
+	rect.setPosition( { position.x, position.y } );
 	theme_border( rect );
 	return rect;
 }
@@ -1211,8 +1217,11 @@ FeTextPrimitive FeOverlay::layout_header( int style )
 	FeTextPrimitive text;
 	text.setFont( *m_font );
 	text.setCharacterSize( m_header_char_size );
-	text.setPosition( m_screen_pos + sf::Vector2f( logo_padding, 0 ) );
-	text.setSize( sf::Vector2f( m_screen_size.x - 2 * logo_padding, m_letterbox_top_height ) );
+	{
+		const Vec2f position = m_screen_pos + Vec2f( static_cast<float>( logo_padding ), 0.0f );
+		text.setPosition( position );
+	}
+	text.setSize( Vec2f( m_screen_size.x - 2.0f * logo_padding, static_cast<float>( m_letterbox_top_height ) ) );
 	text.setMargin( 0 );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
@@ -1229,8 +1238,13 @@ FeTextPrimitive FeOverlay::layout_footer()
 	text.setFont( *m_font );
 	text.setCharacterSize( m_footer_char_size );
 	text.setWordWrap( true );
-	text.setPosition( m_screen_pos + sf::Vector2f( floor( ( m_screen_size.x - width ) / 2.0 ), m_screen_size.y - m_letterbox_bottom_height ) );
-	text.setSize( sf::Vector2f( width, m_letterbox_bottom_height ) );
+	{
+		const Vec2f position = m_screen_pos + Vec2f(
+			std::floor( ( m_screen_size.x - width ) / 2.0f ),
+			m_screen_size.y - m_letterbox_bottom_height );
+		text.setPosition( position );
+	}
+	text.setSize( Vec2f( width, static_cast<float>( m_letterbox_bottom_height ) ) );
 	text.setMargin( m_text_margin );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
@@ -1264,14 +1278,17 @@ FeTextPrimitive FeOverlay::layout_message( int style )
 	text.setWordWrap( true );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
-	text.setPosition( m_screen_pos + sf::Vector2f( x, y ) );
-	text.setSize( sf::Vector2f( width, height ) );
+	{
+		const Vec2f position = m_screen_pos + Vec2f( x, y );
+		text.setPosition( position );
+	}
+	text.setSize( Vec2f( width, height ) );
 	return text;
 }
 
 // Create the AM Logo sprite, sized to fit the header
 // - The texture must be created by the caller to control its lifetime
-sf::FloatRect FeOverlay::layout_logo_bounds( const sf::Vector2u &logo_size, int style )
+FloatRect FeOverlay::layout_logo_bounds( const Vec2u &logo_size, int style )
 {
 	int margin = ( m_letterbox_top_height - m_header_char_size ) / 2.0;
 
@@ -1288,7 +1305,7 @@ sf::FloatRect FeOverlay::layout_logo_bounds( const sf::Vector2u &logo_size, int 
 	if ( style & LayoutStyle::Centre ) x = ( m_screen_size.x - width ) / 2.0;
 	if ( style & LayoutStyle::Middle ) y = ( m_screen_size.y - height ) / 2.0;
 
-	return sf::FloatRect( m_screen_pos + sf::Vector2f( x, y ), sf::Vector2f( width, height ) );
+	return FloatRect( m_screen_pos + Vec2f( x, y ), Vec2f( width, height ) );
 }
 
 void FeOverlay::draw_native_logo_if_needed()
@@ -1298,7 +1315,9 @@ void FeOverlay::draw_native_logo_if_needed()
 
 	m_wnd.draw_overlay_image(
 		*m_native_logo_image,
-		layout_logo_bounds( m_native_logo_image->getSize(), m_native_logo_style ) );
+		layout_logo_bounds(
+			Vec2u( m_native_logo_image->getSize().x, m_native_logo_image->getSize().y ),
+			m_native_logo_style ) );
 }
 
 // Create a list index overlay for use with LayoutPreview lists
@@ -1323,8 +1342,11 @@ FeTextPrimitive FeOverlay::layout_index( int style )
 	FeTextPrimitive text;
 	text.setFont( *m_font );
 	text.setCharacterSize( charsize );
-	text.setPosition( m_screen_pos + sf::Vector2f( x, y ) );
-	text.setSize( sf::Vector2f( width, height ) );
+	{
+		const Vec2f position = m_screen_pos + Vec2f( static_cast<float>( x ), static_cast<float>( y ) );
+		text.setPosition( position );
+	}
+	text.setSize( Vec2f( static_cast<float>( width ), static_cast<float>( height ) ) );
 	text.setMargin( m_text_margin );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
@@ -1390,8 +1412,11 @@ FeListBox FeOverlay::layout_list( int style )
 	list.set_margin( m_text_margin );
 	list.setTextScale( m_text_scale );
 	list.set_rows( rows );
-	list.setPosition( m_screen_pos + sf::Vector2f( x, y ) );
-	list.setSize( sf::Vector2f( width, height ) );
+	{
+		const Vec2f position = m_screen_pos + Vec2f( static_cast<float>( x ), static_cast<float>( y ) );
+		list.setPosition( position );
+	}
+	list.setSize( Vec2f( static_cast<float>( width ), static_cast<float>( height ) ) );
 	list.init_dimensions();
 	theme_list( list );
 	return list;
@@ -2147,17 +2172,15 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 
 	auto update_cursor = [&]()
 	{
-		const sf::Vector2f cursor_anchor = tp->setString( str, cursor_pos );
-		const sf::FloatRect cursor_bounds = cursor.getLocalBounds();
-		cursor.setPosition({
+		const Vec2f cursor_anchor = tp->setString( str, cursor_pos );
+		const FloatRect cursor_bounds = cursor.getLocalBounds();
+		cursor.setPosition( Vec2f(
 			static_cast<float>(
 				cursor_anchor.x
 				- std::floor( cursor_bounds.size.x / 2.0f + cursor_bounds.position.x )
-				+ cursor_bounds.position.x
-			),
-			tp->getPosition().y
-		}); // x
-		cursor.setSize( { std::max( 1.0f, cursor_bounds.size.x ), tp->getSize().y } );
+				+ cursor_bounds.position.x ),
+			tp->getPosition().y ) );
+		cursor.setSize( Vec2f( std::max( 1.0f, cursor_bounds.size.x ), tp->getSize().y ) );
 	};
 
 	update_cursor();

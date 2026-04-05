@@ -410,7 +410,7 @@ public:
     /// \return Position of the character
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f findCharacterPos(std::size_t index) const;
+    [[nodiscard]] ::Vec2f findCharacterPos(std::size_t index) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the local bounding rectangle of the entity
@@ -424,7 +424,7 @@ public:
     /// \return Local bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getLocalBounds() const;
+    [[nodiscard]] ::FloatRect getLocalBounds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the global bounding rectangle of the entity
@@ -438,11 +438,11 @@ public:
     /// \return Global bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getGlobalBounds() const;
+    [[nodiscard]] ::FloatRect getGlobalBounds() const;
     [[nodiscard]] const VertexArray& getFillGeometry() const;
     [[nodiscard]] const VertexArray& getOutlineGeometry() const;
     [[nodiscard]] const FeFont::TexturePageId* getTexturePageId() const;
-    [[nodiscard]] Vector2u getTextureSize() const;
+    [[nodiscard]] ::Vec2u getTextureSize() const;
     [[nodiscard]] std::uint64_t getTextureVersion() const;
 
 private:
@@ -477,7 +477,7 @@ private:
     float                 m_outlineThickness{0.f};                     //!< Thickness of the text's outline
     mutable VertexArray   m_vertices{PrimitiveType::Triangles};        //!< Vertex array containing the fill geometry
     mutable VertexArray   m_outlineVertices{PrimitiveType::Triangles}; //!< Vertex array containing the outline geometry
-    mutable FloatRect     m_bounds;               //!< Bounding rectangle of the text (in local coordinates)
+    mutable ::FloatRect   m_bounds;               //!< Bounding rectangle of the text (in local coordinates)
     mutable bool          m_geometryNeedUpdate{}; //!< Does the geometry need to be recomputed?
     mutable std::uint64_t m_fontTextureId{};      //!< The font texture id
 };

@@ -96,12 +96,12 @@ float FeBasePresentable::get_z() const
 
 void FeBasePresentable::set_x( float x )
 {
-	setPosition( sf::Vector2f( x, get_y() ));
+	setPosition( Vec2f( x, get_y() ) );
 }
 
 void FeBasePresentable::set_y( float y )
 {
-	setPosition( sf::Vector2f( get_x(), y ));
+	setPosition( Vec2f( get_x(), y ) );
 }
 
 void FeBasePresentable::set_z( float z )
@@ -127,23 +127,23 @@ float FeBasePresentable::get_height() const
 
 void FeBasePresentable::set_width( float w )
 {
-	setSize( sf::Vector2f( w, get_height() ));
+	setSize( Vec2f( w, get_height() ) );
 }
 
 void FeBasePresentable::set_height( float h )
 {
-	setSize( sf::Vector2f( get_width(), h ) );
+	setSize( Vec2f( get_width(), h ) );
 }
 
 void FeBasePresentable::set_pos(float x, float y)
 {
-	setPosition( sf::Vector2f( x, y ) );
+	setPosition( Vec2f( x, y ) );
 }
 
 void FeBasePresentable::set_pos(float x, float y, float w, float h)
 {
-	setPosition( sf::Vector2f( x, y ) );
-	setSize( sf::Vector2f( w, h ) );
+	setPosition( Vec2f( x, y ) );
+	setSize( Vec2f( w, h ) );
 }
 
 int FeBasePresentable::get_r() const

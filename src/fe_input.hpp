@@ -23,10 +23,10 @@
 #ifndef FE_INPUT_HPP
 #define FE_INPUT_HPP
 
-#include <SFML/Graphics/Rect.hpp>
 #include "fe_event.hpp"
 #include "fe_base.hpp"
 #include "fe_joystick.hpp"
+#include "fe_types.hpp"
 #include "fe_window.hpp"
 #include <vector>
 #include <map>
@@ -76,7 +76,7 @@ public:
 	FeInputSingle( Type t, int code );
 
 	// Construct from a frontend event
-	FeInputSingle( const FeEvent &ev, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
+	FeInputSingle( const FeEvent &ev, const IntRect &mc_rect, const int joy_thresh, bool has_focus );
 
 	// Construct from a config string
 	FeInputSingle( const std::string &str );
@@ -210,7 +210,7 @@ public:
 
 	FeInputMap();
 
-	Command map_input( const FeEvent &, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
+	Command map_input( const FeEvent &, const IntRect &mc_rect, const int joy_thresh, bool has_focus );
 
 	Command input_conflict_check( const FeInputMapEntry &e );
 

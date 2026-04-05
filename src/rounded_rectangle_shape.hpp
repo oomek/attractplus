@@ -121,7 +121,7 @@ class RoundedRectangleShape : public sf::Shape
         /// \return Index-th point of the shape
         ///
         ////////////////////////////////////////////////////////////
-        virtual sf::Vector2f getPoint(std::size_t index) const;
+        virtual Vector2f getPoint(std::size_t index) const;
 
     private:
          ////////////////////////////////////////////////////////////
@@ -145,8 +145,8 @@ class RoundedRectangleShape : public sf::Shape
 /// Usage example:
 /// \code
 /// sf::RoundedRectangleShape roundedRectangle;
-/// rectangle.setSize(sf::Vector2f(100, 50));
-/// rectangle.setCornerRadius(sf::Vector2f(5, 5));
+/// rectangle.setSize(Vector2f(100, 50));
+/// rectangle.setCornerRadius(Vector2f(5, 5));
 /// rectangle.setOutlineThickness(5);
 /// rectangle.setPosition(10, 20);
 /// ...

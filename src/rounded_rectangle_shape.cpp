@@ -91,7 +91,7 @@ std::size_t RoundedRectangleShape::getPointCount() const
 }
 
 ////////////////////////////////////////////////////////////
-sf::Vector2f RoundedRectangleShape::getPoint(std::size_t index) const
+Vector2f RoundedRectangleShape::getPoint(std::size_t index) const
 {
     if(m_corner_point_count == 1)
     {
@@ -106,9 +106,9 @@ sf::Vector2f RoundedRectangleShape::getPoint(std::size_t index) const
     }
 
     if(index >= m_corner_point_count*4)
-        return sf::Vector2f(0,0);
+        return Vector2f(0,0);
 
-    sf::Vector2f center;
+    Vector2f center;
     unsigned int centerIndex = index/m_corner_point_count;
     static const float half_pi = 3.141592654f / 2.0f;
     float angle = (index-centerIndex) * half_pi / (m_corner_point_count-1);
@@ -121,7 +121,7 @@ sf::Vector2f RoundedRectangleShape::getPoint(std::size_t index) const
         case 3: center.x = m_size.x - m_radius.x; center.y = m_size.y - m_radius.y; break;
     }
 
-    return sf::Vector2f(m_radius.x*cos(angle)+center.x, -m_radius.y*sin(angle)+center.y);
+    return Vector2f(m_radius.x*cos(angle)+center.x, -m_radius.y*sin(angle)+center.y);
 }
 } // namespace sf
 

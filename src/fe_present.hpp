@@ -32,6 +32,7 @@
 #include "fe_sound.hpp"
 #include "fe_shader.hpp"
 #include "fe_time.hpp"
+#include "fe_types.hpp"
 #include "fe_window.hpp"
 
 class FeImage;
@@ -106,7 +107,7 @@ public:
 	int get_num();
 
 	sf::Transform transform;
-	sf::Vector2i size;
+	Vec2i size;
 	int num;
 };
 
@@ -171,8 +172,8 @@ protected:
 	bool m_mouse_pointer_visible;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
-	sf::Vector2i m_layoutSize;
-	sf::Vector2f m_layoutScale;
+	Vec2i m_layoutSize;
+	Vec2f m_layoutScale;
 
 	FeShader *m_emptyShader;
 
@@ -298,8 +299,8 @@ public:
 	const FeFontContainer *get_pooled_font( const std::vector < std::string > &l );
 	const FeFontContainer *get_pooled_font( const std::string &n );
 
-	const sf::Vector2i &get_layout_size() const { return m_layoutSize; }
-	const sf::Vector2i get_screen_size();
+	const Vec2i &get_layout_size() const { return m_layoutSize; }
+	const Vec2i get_screen_size();
 	FeShader *get_empty_shader();
 
 	// Returns true if a script has set custom overlay controls.

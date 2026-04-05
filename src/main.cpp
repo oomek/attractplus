@@ -151,8 +151,8 @@ int main(int argc, char *argv[])
 	if ( !window_args.empty() )
 	{
 		win_pos.m_temporary = true;
-		win_pos.m_pos = sf::Vector2i( window_args[0], window_args[1] );
-		win_pos.m_size = sf::Vector2u( window_args[2], window_args[3] );
+		win_pos.m_pos = Vec2i( window_args[0], window_args[1] );
+		win_pos.m_size = Vec2u( static_cast<unsigned int>( window_args[2] ), static_cast<unsigned int>( window_args[3] ) );
 	}
 
 #ifdef USE_LIBCURL
@@ -483,7 +483,9 @@ int main(int argc, char *argv[])
 					const auto* resize = ev->getIf<FeEvent::Resized>();
 					if ( resize )
 					{
-						window.set_view( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
+						window.set_view( sf::View(
+							{ static_cast<float>( resize->size.x ) / 2.0f, static_cast<float>( resize->size.y ) / 2.0f },
+							{ static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y ) } ) );
 						feVM.init_monitors();
 						feVM.load_layout();
 						redraw = true;

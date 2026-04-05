@@ -308,7 +308,7 @@ namespace
 
 	std::optional<FeInputSingle> get_release_match_input(
 		const FeEvent &e,
-		const sf::IntRect &mc_rect,
+		const IntRect &mc_rect,
 		int joy_thresh,
 		bool has_focus )
 	{
@@ -460,7 +460,7 @@ FeInputSingle::FeInputSingle( Type t, int c )
 {
 }
 
-FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
+FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const int joy_thresh, bool has_focus )
 	: m_type( Unsupported ),
 	m_code( 0 )
 {
@@ -548,9 +548,9 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, cons
 		const auto* event = e.getIf<FeEvent::MouseMoved>();
 		if ( event )
 		{
-			sf::Vector2i p( event->position.x, event->position.y );
-			sf::Vector2i r1 = mc_rect.position;
-			sf::Vector2i r2 = r1 + mc_rect.size;
+			Vec2i p( event->position.x, event->position.y );
+			Vec2i r1 = mc_rect.position;
+			Vec2i r2 = r1 + mc_rect.size;
 			FeInputMouse::set_pos_delta( { p.x, p.y } );
 
 			if ( p.x < r1.x )
@@ -1382,7 +1382,7 @@ void FeInputMap::clear()
 	m_mmove_count = 0;
 }
 
-FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
+FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const IntRect &mc_rect, const int joy_thresh, bool has_focus )
 {
 	FeInputSingle index( e, mc_rect, joy_thresh, has_focus );
 

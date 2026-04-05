@@ -220,7 +220,7 @@ void fe_sprite_append_render_vertices(
 {
 	out.clear();
 
-	const sf::Vector2f tex_size(
+	const Vec2f tex_size(
 		std::abs( geometry.texture_rect.right - geometry.texture_rect.left ),
 		std::abs( geometry.texture_rect.bottom - geometry.texture_rect.top ) );
 	if ( tex_size.x == 0.f || tex_size.y == 0.f )
@@ -228,7 +228,7 @@ void fe_sprite_append_render_vertices(
 
 	FloatEdges pos( 0.f, 0.f, tex_size.x, tex_size.y );
 	FloatEdges tex( geometry.texture_rect );
-	const sf::Vector2f scale_abs( fe_sprite_safe_abs( geometry.scale.x ), fe_sprite_safe_abs( geometry.scale.y ) );
+	const Vec2f scale_abs( fe_sprite_safe_abs( geometry.scale.x ), fe_sprite_safe_abs( geometry.scale.y ) );
 	const bool has_border =
 		geometry.border.left || geometry.border.top || geometry.border.right || geometry.border.bottom;
 
@@ -290,7 +290,7 @@ void fe_sprite_append_render_vertices(
 
 	if ( has_border )
 	{
-		const sf::Vector2f total_size( pos.right - pos.left, pos.bottom - pos.top );
+		const Vec2f total_size( pos.right - pos.left, pos.bottom - pos.top );
 		FloatEdges scaled_border(
 			static_cast<float>( geometry.border.left ) / scale_abs.x,
 			static_cast<float>( geometry.border.top ) / scale_abs.y,
@@ -310,7 +310,7 @@ void fe_sprite_append_render_vertices(
 			scaled_border.top * border_scale,
 			scaled_border.right * border_scale,
 			scaled_border.bottom * border_scale );
-		const sf::Vector2f grid_size(
+		const Vec2f grid_size(
 			std::max( 1.0f, total_size.x ),
 			std::max( 1.0f, total_size.y ) );
 		const float tx[4] = {
