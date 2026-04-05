@@ -415,17 +415,36 @@ namespace
 	}
 
 	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
-	Uint8 sf_mouse_button_to_sdl( sf::Mouse::Button button )
+	Uint8 legacy_sf_mouse_button_to_sdl( int legacy_button )
 	{
-		switch ( button )
+		switch ( legacy_button )
 		{
-		case sf::Mouse::Button::Left: return SDL_BUTTON_LEFT;
-		case sf::Mouse::Button::Right: return SDL_BUTTON_RIGHT;
-		case sf::Mouse::Button::Middle: return SDL_BUTTON_MIDDLE;
-		case sf::Mouse::Button::Extra1: return SDL_BUTTON_X1;
-		case sf::Mouse::Button::Extra2: return SDL_BUTTON_X2;
+		case 0: return SDL_BUTTON_LEFT;
+		case 1: return SDL_BUTTON_RIGHT;
+		case 2: return SDL_BUTTON_MIDDLE;
+		case 3: return SDL_BUTTON_X1;
+		case 4: return SDL_BUTTON_X2;
 		default: return 0;
 		}
+	}
+
+	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
+	FeEvent::MouseWheel legacy_sf_mouse_wheel_to_fe( int legacy_wheel )
+	{
+		return ( legacy_wheel == 1 ) ? FeEvent::MouseWheel::Horizontal : FeEvent::MouseWheel::Vertical;
+	}
+
+	sf::Vector2i get_global_mouse_position()
+	{
+		float x = 0.0f;
+		float y = 0.0f;
+		SDL_GetGlobalMouseState( &x, &y );
+		return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
+	}
+
+	void set_global_mouse_position( const sf::Vector2i &pos )
+	{
+		SDL_WarpMouseGlobal( static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
 	}
 
 	FeJoystick::Axis sdl_joystick_axis_to_fe( Uint8 axis )
@@ -694,14 +713,14 @@ namespace
 			return FeEvent::MouseMoved{ { mouse->position.x, mouse->position.y } };
 		if ( const auto *wheel = event.getIf<sf::Event::MouseWheelScrolled>() )
 			return FeEvent::MouseWheelScrolled{
-				wheel->wheel == sf::Mouse::Wheel::Horizontal ? FeEvent::MouseWheel::Horizontal : FeEvent::MouseWheel::Vertical,
+				legacy_sf_mouse_wheel_to_fe( static_cast<int>( wheel->wheel ) ),
 				wheel->delta,
 				{ wheel->position.x, wheel->position.y }
 			};
 		if ( const auto *button = event.getIf<sf::Event::MouseButtonPressed>() )
-			return FeEvent::MouseButtonPressed{ static_cast<int>( sf_mouse_button_to_sdl( button->button ) ), { button->position.x, button->position.y } };
+			return FeEvent::MouseButtonPressed{ static_cast<int>( legacy_sf_mouse_button_to_sdl( static_cast<int>( button->button ) ) ), { button->position.x, button->position.y } };
 		if ( const auto *button = event.getIf<sf::Event::MouseButtonReleased>() )
-			return FeEvent::MouseButtonReleased{ static_cast<int>( sf_mouse_button_to_sdl( button->button ) ), { button->position.x, button->position.y } };
+			return FeEvent::MouseButtonReleased{ static_cast<int>( legacy_sf_mouse_button_to_sdl( static_cast<int>( button->button ) ) ), { button->position.x, button->position.y } };
 		if ( const auto *joy = event.getIf<sf::Event::JoystickMoved>() )
 			return FeEvent::JoystickMoved{ joy->joystickId, static_cast<int>( joy->axis ), joy->position };
 		if ( const auto *joy = event.getIf<sf::Event::JoystickButtonPressed>() )
@@ -1539,13 +1558,13 @@ bool FeWindow::run()
 		// Move the mouse to the bottom right corner so it isn't visible
 		// when the emulator launches.
 		//
-		reset_pos = sf::Mouse::getPosition();
+		reset_pos = get_global_mouse_position();
 
 		sf::Vector2i hide_pos = get_position();
 		hide_pos.x += static_cast<int>( get_size().x ) - 1;
 		hide_pos.y += static_cast<int>( get_size().y ) - 1;
 
-		sf::Mouse::setPosition( hide_pos );
+		set_global_mouse_position( hide_pos );
 	}
 
 	FeClock timer;
@@ -1763,7 +1782,7 @@ bool FeWindow::run()
 #endif
 
 	if ( !windowed && m_fes.get_info_bool( FeSettings::MoveMouseOnLaunch ) )
-		sf::Mouse::setPosition( reset_pos );
+		set_global_mouse_position( reset_pos );
 
 	// Empty the window event queue, so we don't go triggering other
 	// right away after running an emulator
@@ -1900,7 +1919,7 @@ sf::Vector2i FeWindow::get_mouse_position() const
 
 #if !defined(SFML_SYSTEM_WINDOWS)
 	if ( m_window )
-		return sf::Mouse::getPosition( *m_window );
+		return get_global_mouse_position() - m_window->getPosition();
 #endif
 
 	return {};
@@ -1913,7 +1932,7 @@ void FeWindow::set_mouse_position( const sf::Vector2i &pos )
 #if !defined(SFML_SYSTEM_WINDOWS)
 	else
 	if ( m_window )
-		sf::Mouse::setPosition( pos, *m_window );
+		set_global_mouse_position( m_window->getPosition() + pos );
 #endif
 }
 
