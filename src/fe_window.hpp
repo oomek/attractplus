@@ -116,6 +116,7 @@ private:
 	std::unordered_map<const sf::Image *, OverlayTextureEntry> m_overlay_images;
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
+	bool m_key_repeat_enabled = false;
 
 	const FeRenderRawTextureSource *cache_overlay_image( const sf::Image &image );
 	bool append_native_overlay_item( const FeOverlayDrawItem &item, const sf::RenderStates &r );
@@ -142,6 +143,7 @@ public:
 	sf::Vector2i get_mouse_position() const;
 	void set_mouse_position( const sf::Vector2i &pos );
 	void set_key_repeat_enabled( bool enabled );
+	void set_text_input_enabled( bool enabled );
 	void set_mouse_cursor_visible( bool visible );
 	void set_view( const sf::View &view );
 	bool save_screenshot( const std::string &filename );

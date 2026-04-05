@@ -531,7 +531,7 @@ namespace
 		}
 	}
 
-	std::optional<FeEvent> translate_sdl_event( const SDL_Event &event, SDL_Window *window )
+	std::optional<FeEvent> translate_sdl_event( const SDL_Event &event, SDL_Window *window, bool key_repeat_enabled )
 	{
 		if ( !window )
 			return {};
@@ -573,7 +573,7 @@ namespace
 		case SDL_EVENT_KEY_DOWN:
 		case SDL_EVENT_KEY_UP:
 		{
-			if ( event.key.repeat )
+			if (( event.type == SDL_EVENT_KEY_DOWN ) && event.key.repeat && !key_repeat_enabled )
 				return {};
 
 			const SDL_Keymod mods = SDL_GetModState();
@@ -1790,7 +1790,18 @@ void FeWindow::set_mouse_position( const sf::Vector2i &pos )
 
 void FeWindow::set_key_repeat_enabled( bool enabled )
 {
-	(void)enabled;
+	m_key_repeat_enabled = enabled;
+}
+
+void FeWindow::set_text_input_enabled( bool enabled )
+{
+	if ( SDL_Window *window = m_gpu_context.get_window() )
+	{
+		if ( enabled )
+			SDL_StartTextInput( window );
+		else if ( SDL_TextInputActive( window ) )
+			SDL_StopTextInput( window );
+	}
 }
 
 void FeWindow::set_mouse_cursor_visible( bool visible )
@@ -1855,7 +1866,7 @@ std::optional<FeEvent> FeWindow::pollEvent()
 		SDL_Event event;
 		while ( SDL_PollEvent( &event ) )
 		{
-			if ( const auto translated = translate_sdl_event( event, window ) )
+			if ( const auto translated = translate_sdl_event( event, window, m_key_repeat_enabled ) )
 				return translated;
 		}
 

@@ -600,6 +600,16 @@ const FeFont *FeTextPrimitive::getFont() const
 	return &m_texts[0].getFont();
 }
 
+sf::FloatRect FeTextPrimitive::getLocalBounds() const
+{
+	sf::FloatRect textSize = m_texts[0].getLocalBounds();
+	textSize.size.x *= m_texts[0].getScale().x;
+	textSize.size.y *= m_texts[0].getScale().y;
+	textSize.position.x *= m_texts[0].getScale().x;
+	textSize.position.y *= m_texts[0].getScale().y;
+	return textSize;
+}
+
 void FeTextPrimitive::setCharacterSize( unsigned int size )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )

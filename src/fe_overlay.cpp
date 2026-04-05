@@ -2110,22 +2110,61 @@ public:
 	}
 };
 
+class FeTextInput
+{
+private:
+	FeWindow &m_wnd;
+public:
+	FeTextInput( FeWindow &wnd )
+		: m_wnd( wnd )
+	{
+		m_wnd.set_text_input_enabled( true );
+	}
+
+	~FeTextInput()
+	{
+		m_wnd.set_text_input_enabled( false );
+	}
+};
+
 bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *tp )
 {
 	FeClock cursor_timer;
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
-	sf::RectangleShape cursor;
-	cursor.setFillColor( tp->getColor() );
-	cursor.setSize( { std::max( 1.0f, std::round( tp->getTextScale().x ) ), static_cast<float>( tp->getGlyphSize() ) } );
-
+	FeTextPrimitive cursor(
+		tp->getFont(),
+		tp->getColor(),
+		sf::Color::Transparent,
+		static_cast<unsigned int>( tp->getCharacterSize() / tp->getTextScale().x ),
+		static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Left | FeTextPrimitive::Middle )
+	);
+	cursor.setTextScale( tp->getTextScale() );
+	cursor.setNoMargin( true );
+	cursor.setString( "|" );
 	int cursor_pos=str.size();
-	cursor.setPosition({ static_cast<float>( tp->setString( str, cursor_pos ).x - std::max( 1.0f, cursor.getSize().x ) / 2.0f ), 0 }); // x
-	cursor.setPosition({ cursor.getPosition().x, static_cast<float>( std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 ))}); // y
+
+	auto update_cursor = [&]()
+	{
+		const sf::Vector2f cursor_anchor = tp->setString( str, cursor_pos );
+		const sf::FloatRect cursor_bounds = cursor.getLocalBounds();
+		cursor.setPosition({
+			static_cast<float>(
+				cursor_anchor.x
+				- std::floor( cursor_bounds.size.x / 2.0f + cursor_bounds.position.x )
+				+ cursor_bounds.position.x
+			),
+			tp->getPosition().y
+		}); // x
+		cursor.setSize( { std::max( 1.0f, cursor_bounds.size.x ), tp->getSize().y } );
+	};
+
+	update_cursor();
 
 	bool redraw=true;
 	FeKeyRepeat key_repeat_enabler( m_wnd );
+	FeTextInput text_input_enabler( m_wnd );
 
 	std::optional<FeEvent> joy_guard;
 	bool did_delete( false ); // flag if the user just deleted a character using the UI controls
@@ -2192,7 +2231,18 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 						redraw = true;
 						break;
 
+					case SDL_SCANCODE_BACKSPACE:
+						if ( cursor_pos > 0 )
+						{
+							str.erase( cursor_pos - 1, 1 );
+							cursor_pos--;
+						}
+
+						redraw = true;
+						break;
+
 					case SDL_SCANCODE_RETURN:
+					case SDL_SCANCODE_KP_ENTER:
 						return true;
 
 					case SDL_SCANCODE_ESCAPE:
@@ -2356,8 +2406,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 
 			if ( redraw )
 			{
-				cursor.setPosition({ static_cast<float>( tp->setString( str, cursor_pos ).x - std::max( 1.0f, cursor.getSize().x ) / 2.0f ), 0 }); // x
-				cursor.setPosition({ cursor.getPosition().x, static_cast<float>( std::floor( tp->getPosition().y + ( tp->getSize().y + tp->getGlyphSize() - tp->getCharacterSize() * 2 + 0.5 ) / 2.0 ))}); // y
+				update_cursor();
 				cursor_timer.restart();
 			}
 		}
@@ -2382,7 +2431,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 		int ms = static_cast<int>( cursor_timer.getElapsedTime().asMilliseconds() );
 		int cursor_fade = std::clamp( sin( ms / 500.0 * M_PI ) * 2.0 + 1.0, 0.0, 1.0 ) * 255;
 
-		cursor.setFillColor( m_text_color * sf::Color( 255, 255, 255, cursor_fade ));
+		cursor.setColor( m_text_color * sf::Color( 255, 255, 255, cursor_fade ));
 
 		m_wnd.draw( cursor, t );
 		m_wnd.display();

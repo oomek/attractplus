@@ -95,6 +95,7 @@ public:
 	void setFrom( const FeTextPrimitive &c );
 
 	const FeFont *getFont() const;
+	sf::FloatRect getLocalBounds() const;
 	sf::Color getColor() const;
 	sf::Color getBgColor() const;
 	sf::Color getOutlineColor() const;
