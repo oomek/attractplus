@@ -1,7 +1,6 @@
 #include "fe_font.hpp"
 #include "fe_file.hpp"
-
-#include <SFML/System/Err.hpp>
+#include "fe_base.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -132,7 +131,7 @@ bool FeFont::openFromFile( const std::filesystem::path &filename )
 	const auto stream = std::make_shared<FeFileInputStream>( filename.string() );
 	if ( !stream->isOpen() )
 	{
-		sf::err() << "Failed to load font (failed to open file): " << std::strerror( errno ) << '\n'
+		FeLog() << "Failed to load font (failed to open file): " << std::strerror( errno ) << '\n'
 			<< filename.string() << std::endl;
 		return false;
 	}
@@ -143,7 +142,7 @@ bool FeFont::openFromFile( const std::filesystem::path &filename )
 		return true;
 	}
 
-	sf::err() << filename.string() << std::endl;
+	FeLog() << filename.string() << std::endl;
 	return false;
 }
 
@@ -152,7 +151,7 @@ bool FeFont::openFromMemory( const void *data, std::size_t size_in_bytes )
 	cleanup();
 	if ( !data )
 	{
-		sf::err() << "Failed to load font from memory (provided data pointer is null)" << std::endl;
+		FeLog() << "Failed to load font from memory (provided data pointer is null)" << std::endl;
 		return false;
 	}
 
@@ -170,7 +169,7 @@ bool FeFont::openFromStream( FeInputStream &stream )
 {
 	if ( !stream.seek( 0 ).has_value() )
 	{
-		sf::err() << "Failed to seek font stream" << std::endl;
+		FeLog() << "Failed to seek font stream" << std::endl;
 		return false;
 	}
 
@@ -184,7 +183,7 @@ bool FeFont::openFromStreamImpl( FeInputStream &stream, const std::string &type 
 	auto font_handles = std::make_shared<FontHandles>();
 	if ( FT_Init_FreeType( &font_handles->library ) != 0 )
 	{
-		sf::err() << "Failed to load font from " << type << " (failed to initialize FreeType)" << std::endl;
+		FeLog() << "Failed to load font from " << type << " (failed to initialize FreeType)" << std::endl;
 		return false;
 	}
 
@@ -201,19 +200,19 @@ bool FeFont::openFromStreamImpl( FeInputStream &stream, const std::string &type 
 
 	if ( FT_Open_Face( font_handles->library, &args, 0, &font_handles->face ) != 0 )
 	{
-		sf::err() << "Failed to load font from " << type << " (failed to create the font face)" << std::endl;
+		FeLog() << "Failed to load font from " << type << " (failed to create the font face)" << std::endl;
 		return false;
 	}
 
 	if ( FT_Stroker_New( font_handles->library, &font_handles->stroker ) != 0 )
 	{
-		sf::err() << "Failed to load font from " << type << " (failed to create the stroker)" << std::endl;
+		FeLog() << "Failed to load font from " << type << " (failed to create the stroker)" << std::endl;
 		return false;
 	}
 
 	if ( FT_Select_Charmap( font_handles->face, FT_ENCODING_UNICODE ) != 0 )
 	{
-		sf::err() << "Failed to load font from " << type << " (failed to set the Unicode character set)" << std::endl;
+		FeLog() << "Failed to load font from " << type << " (failed to set the Unicode character set)" << std::endl;
 		return false;
 	}
 
@@ -424,7 +423,7 @@ sf::Glyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, boo
 			FT_Bitmap_Embolden( m_fontHandles->library, &bitmap, weight, weight );
 
 		if ( outlineThickness != 0 )
-			sf::err() << "Failed to outline glyph (no fallback available)" << std::endl;
+			FeLog() << "Failed to outline glyph (no fallback available)" << std::endl;
 	}
 
 	glyph.advance = static_cast<float>( bitmap_glyph->root.advance.x >> 16 );
@@ -526,13 +525,13 @@ sf::IntRect FeFont::findGlyphRect( Page &page, sf::Vector2u size ) const
 			{
 				if ( !resizePage( page, page.width * 2, page.height * 2 ) )
 				{
-					sf::err() << "Failed to create new page texture" << std::endl;
+					FeLog() << "Failed to create new page texture" << std::endl;
 					return { { 0, 0 }, { 2, 2 } };
 				}
 			}
 			else
 			{
-				sf::err() << "Failed to add a new character to the font: the maximum texture size has been reached" << std::endl;
+				FeLog() << "Failed to add a new character to the font: the maximum texture size has been reached" << std::endl;
 				return { { 0, 0 }, { 2, 2 } };
 			}
 		}
@@ -561,17 +560,17 @@ bool FeFont::setCurrentSize( unsigned int characterSize ) const
 		{
 			if ( !FT_IS_SCALABLE( face ) )
 			{
-				sf::err() << "Failed to set bitmap font size to " << characterSize << '\n' << "Available sizes are: ";
+				FeLog() << "Failed to set bitmap font size to " << characterSize << '\n' << "Available sizes are: ";
 				for ( int i = 0; i < face->num_fixed_sizes; ++i )
 				{
 					const long size = ( face->available_sizes[ i ].y_ppem + 32 ) >> 6;
-					sf::err() << size << " ";
+					FeLog() << size << " ";
 				}
-				sf::err() << std::endl;
+				FeLog() << std::endl;
 			}
 			else
 			{
-				sf::err() << "Failed to set font size to " << characterSize << std::endl;
+				FeLog() << "Failed to set font size to " << characterSize << std::endl;
 			}
 		}
 

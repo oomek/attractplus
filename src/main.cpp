@@ -187,9 +187,6 @@ int main(int argc, char *argv[])
 	fe_print_version();
 	FeLog() << std::endl;
 
-	// Redirect SFML error buffer to FeLog
-	sf::err().rdbuf(FeLog().rdbuf());
-
 #ifdef SFML_SYSTEM_WINDOWS
 	FeWindowsAudioBootstrap windows_audio_bootstrap;
 #endif
