@@ -243,12 +243,12 @@ public:
 	int list_size;		// total number of options
 	int page_size;		// pagination size
 	int move_count;
-	std::optional<sf::Event> move_event;
+	std::optional<FeEvent> move_event;
 	FeClock move_timer;
 	FeInputMap::Command move_command;
 	FeInputMap::Command extra_exit;
 
-	void move_start( std::optional<sf::Event> ev, FeInputMap::Command c );
+	void move_start( std::optional<FeEvent> ev, FeInputMap::Command c );
 };
 
 FeEventLoopCtx::FeEventLoopCtx(
@@ -269,7 +269,7 @@ FeEventLoopCtx::FeEventLoopCtx(
 }
 
 // Begin a repeatable command
-void FeEventLoopCtx::move_start( std::optional<sf::Event> ev, FeInputMap::Command c )
+void FeEventLoopCtx::move_start( std::optional<FeEvent> ev, FeInputMap::Command c )
 {
 	move_event = ev;
 	move_command = c;
@@ -912,23 +912,23 @@ void FeOverlay::input_map_dialog(
 		{
 			if ( ev.has_value() )
 			{
-				if ( ev->is<sf::Event::Closed>() )
+				if ( ev->is<FeEvent::Closed>() )
 					return;
 
-				if ( multi_mode && (( ev->is<sf::Event::KeyReleased>() )
-						|| ( ev->is<sf::Event::JoystickButtonReleased>() )
-						|| ( ev->is<sf::Event::MouseButtonReleased>() )))
+				if ( multi_mode && (( ev->is<FeEvent::KeyReleased>() )
+						|| ( ev->is<FeEvent::JoystickButtonReleased>() )
+						|| ( ev->is<FeEvent::MouseButtonReleased>() )))
 					done = true;
 				else
 				{
 					FeInputSingle single( ev.value(), mc_rect, joy_thresh, m_wnd.hasFocus() );
 					if ( single.get_type() != FeInputSingle::Unsupported )
 					{
-						if (( ev->is<sf::Event::KeyPressed>() )
-								|| ( ev->is<sf::Event::JoystickButtonPressed>() )
-								|| ( ev->is<sf::Event::MouseButtonPressed>() ))
+						if (( ev->is<FeEvent::KeyPressed>() )
+								|| ( ev->is<FeEvent::JoystickButtonPressed>() )
+								|| ( ev->is<FeEvent::MouseButtonPressed>() ))
 							multi_mode = true;
-						else if ( const auto* mv = ev->getIf<sf::Event::JoystickMoved>() )
+						else if ( const auto* mv = ev->getIf<FeEvent::JoystickMoved>() )
 						{
 							multi_mode = true;
 							joystick_moves.insert( std::pair<int,int>( mv->joystickId, static_cast<int>( mv->axis )));
@@ -955,7 +955,7 @@ void FeOverlay::input_map_dialog(
 						if ( !multi_mode )
 							done = true;
 					}
-					else if ( const auto* mv = ev->getIf<sf::Event::JoystickMoved>() )
+					else if ( const auto* mv = ev->getIf<FeEvent::JoystickMoved>() )
 					{
 						// test if a joystick has been released
 						std::pair<int,int> test( mv->joystickId, static_cast<int>( mv->axis ));
@@ -1942,11 +1942,11 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 				case FeInputMap::Select:
 					return true;
 				case FeInputMap::PrevPage:
-					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
+					if ( ev->is<FeEvent::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<FeEvent::JoystickMoved>() )
 						return false;
 
 					ctx.sel -= ctx.page_size;
-					ctx.sel = ev->is<sf::Event::MouseMoved>()
+					ctx.sel = ev->is<FeEvent::MouseMoved>()
 						? std::max( ctx.sel, 0 )
 						: (ctx.sel + ctx.list_size) % ctx.list_size;
 
@@ -1954,11 +1954,11 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 					return false;
 
 				case FeInputMap::NextPage:
-					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
+					if ( ev->is<FeEvent::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<FeEvent::JoystickMoved>() )
 						return false;
 
 					ctx.sel += ctx.page_size;
-					ctx.sel = ev->is<sf::Event::MouseMoved>()
+					ctx.sel = ev->is<FeEvent::MouseMoved>()
 						? std::min( ctx.sel, ctx.list_size - 1 )
 						: (ctx.sel + ctx.list_size) % ctx.list_size;
 
@@ -1966,11 +1966,11 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 					return false;
 
 				case FeInputMap::Up:
-					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
+					if ( ev->is<FeEvent::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<FeEvent::JoystickMoved>() )
 						return false;
 
 					ctx.sel -= 1;
-					ctx.sel = ev->is<sf::Event::MouseMoved>()
+					ctx.sel = ev->is<FeEvent::MouseMoved>()
 						? std::max( ctx.sel, 0 )
 						: (ctx.sel + ctx.list_size) % ctx.list_size;
 
@@ -1978,11 +1978,11 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 					return false;
 
 				case FeInputMap::Down:
-					if ( ev->is<sf::Event::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<sf::Event::JoystickMoved>() )
+					if ( ev->is<FeEvent::JoystickMoved>() && ctx.move_event.has_value() && ctx.move_event->is<FeEvent::JoystickMoved>() )
 						return false;
 
 					ctx.sel += 1;
-					ctx.sel = ev->is<sf::Event::MouseMoved>()
+					ctx.sel = ev->is<FeEvent::MouseMoved>()
 						? std::min( ctx.sel, ctx.list_size - 1 )
 						: (ctx.sel + ctx.list_size) % ctx.list_size;
 
@@ -2020,28 +2020,28 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 		{
 			bool cont=false;
 
-			if ( const auto* key = ctx.move_event->getIf<sf::Event::KeyPressed>() )
+			if ( const auto* key = ctx.move_event->getIf<FeEvent::KeyPressed>() )
 			{
-				if ( key && sf::Keyboard::isKeyPressed( key->code ) )
+				if ( key && sf::Keyboard::isKeyPressed( static_cast<sf::Keyboard::Key>( key->code ) ) )
 					cont=true;
 			}
 
-			else if ( const auto* btn = ctx.move_event->getIf<sf::Event::MouseButtonPressed>() )
+			else if ( const auto* btn = ctx.move_event->getIf<FeEvent::MouseButtonPressed>() )
 			{
-				if ( btn && sf::Mouse::isButtonPressed( btn->button ) )
+				if ( btn && sf::Mouse::isButtonPressed( static_cast<sf::Mouse::Button>( btn->button ) ) )
 					cont=true;
 			}
 
-			else if ( const auto* btn = ctx.move_event->getIf<sf::Event::JoystickButtonPressed>() )
+			else if ( const auto* btn = ctx.move_event->getIf<FeEvent::JoystickButtonPressed>() )
 			{
 				if ( fe_joystick_is_button_pressed( btn->joystickId, btn->button ) )
 					cont=true;
 			}
 
-			else if ( const auto* mov = ctx.move_event->getIf<sf::Event::JoystickMoved>() )
+			else if ( const auto* mov = ctx.move_event->getIf<FeEvent::JoystickMoved>() )
 			{
 				{
-					float pos = fe_joystick_get_axis_position( mov->joystickId, mov->axis );
+					float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<sf::Joystick::Axis>( mov->axis ) );
 					if ( std::abs( pos ) > m_feSettings.get_joy_thresh() )
 						cont=true;
 				}
@@ -2126,7 +2126,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 	bool redraw=true;
 	FeKeyRepeat key_repeat_enabler( m_wnd );
 
-	std::optional<sf::Event> joy_guard;
+	std::optional<FeEvent> joy_guard;
 	bool did_delete( false ); // flag if the user just deleted a character using the UI controls
 
 	while ( m_wnd.isOpen() )
@@ -2135,10 +2135,10 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 		{
 			if ( ev.has_value() )
 			{
-				if ( ev->is<sf::Event::Closed>() )
+				if ( ev->is<FeEvent::Closed>() )
 					return false;
 
-				else if ( const auto* txt = ev->getIf<sf::Event::TextEntered>() )
+				else if ( const auto* txt = ev->getIf<FeEvent::TextEntered>() )
 				{
 
 					did_delete = false;
@@ -2171,50 +2171,50 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 					}
 				}
 
-				else if ( const auto* key = ev->getIf<sf::Event::KeyPressed>() )
+				else if ( const auto* key = ev->getIf<FeEvent::KeyPressed>() )
 				{
 					did_delete = false;
 
 					switch ( key->code )
 					{
-					case sf::Keyboard::Key::Left:
+					case static_cast<int>( sf::Keyboard::Key::Left ):
 						if ( cursor_pos > 0 )
 							cursor_pos--;
 
 						redraw = true;
 						break;
 
-					case sf::Keyboard::Key::Right:
+					case static_cast<int>( sf::Keyboard::Key::Right ):
 						if ( cursor_pos < (int)str.size() )
 							cursor_pos++;
 
 						redraw = true;
 						break;
 
-					case sf::Keyboard::Key::Enter:
+					case static_cast<int>( sf::Keyboard::Key::Enter ):
 						return true;
 
-					case sf::Keyboard::Key::Escape:
+					case static_cast<int>( sf::Keyboard::Key::Escape ):
 						return false;
 
-					case sf::Keyboard::Key::End:
+					case static_cast<int>( sf::Keyboard::Key::End ):
 						cursor_pos = str.size();
 						redraw = true;
 						break;
 
-					case sf::Keyboard::Key::Home:
+					case static_cast<int>( sf::Keyboard::Key::Home ):
 						cursor_pos = 0;
 						redraw = true;
 						break;
 
-					case sf::Keyboard::Key::Delete:
+					case static_cast<int>( sf::Keyboard::Key::Delete ):
 						if ( cursor_pos < (int)str.size() )
 							str.erase( cursor_pos, 1 );
 
 						redraw = true;
 						break;
 
-					case sf::Keyboard::Key::V:
+					case static_cast<int>( sf::Keyboard::Key::V ):
 	#ifdef SFML_SYSTEM_MACOS
 						if ( key->system )
 	#else
@@ -2243,8 +2243,8 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 						switch ( c )
 						{
 						case FeInputMap::Left:
-							if (( ev->is<sf::Event::JoystickMoved>() )
-									&& ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() ))
+							if (( ev->is<FeEvent::JoystickMoved>() )
+									&& ( joy_guard.has_value() && joy_guard->is<FeEvent::JoystickMoved>() ))
 								break;
 
 							did_delete = false;
@@ -2254,13 +2254,13 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 
 							redraw = true;
 
-							if ( ev->is<sf::Event::JoystickMoved>() )
+							if ( ev->is<FeEvent::JoystickMoved>() )
 								joy_guard = ev;
 							break;
 
 						case FeInputMap::Right:
-							if (( ev->is<sf::Event::JoystickMoved>() )
-									&& ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() ))
+							if (( ev->is<FeEvent::JoystickMoved>() )
+									&& ( joy_guard.has_value() && joy_guard->is<FeEvent::JoystickMoved>() ))
 								break;
 
 							did_delete = false;
@@ -2270,13 +2270,13 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 
 							redraw = true;
 
-							if ( ev->is<sf::Event::JoystickMoved>() )
+							if ( ev->is<FeEvent::JoystickMoved>() )
 								joy_guard = ev;
 							break;
 
 						case FeInputMap::Up:
-							if (( ev->is<sf::Event::JoystickMoved>() )
-									&& ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() ))
+							if (( ev->is<FeEvent::JoystickMoved>() )
+									&& ( joy_guard.has_value() && joy_guard->is<FeEvent::JoystickMoved>() ))
 								break;
 
 							if ( cursor_pos < (int)str.size() )
@@ -2306,13 +2306,13 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 								did_delete = false;
 							}
 
-							if ( ev->is<sf::Event::JoystickMoved>() )
+							if ( ev->is<FeEvent::JoystickMoved>() )
 								joy_guard = ev;
 							break;
 
 						case FeInputMap::Down:
-							if (( ev->is<sf::Event::JoystickMoved>() )
-									&& ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() ))
+							if (( ev->is<FeEvent::JoystickMoved>() )
+									&& ( joy_guard.has_value() && joy_guard->is<FeEvent::JoystickMoved>() ))
 								break;
 
 							if ( did_delete ) // force user to do something else to confirm delete
@@ -2337,7 +2337,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 								}
 							}
 
-							if ( ev->is<sf::Event::JoystickMoved>() )
+							if ( ev->is<FeEvent::JoystickMoved>() )
 								joy_guard = ev;
 							break;
 
@@ -2394,12 +2394,12 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 		//
 		// Check if previous joystick move is now done (in which case we clear the guard)
 		//
-		if ( joy_guard.has_value() && joy_guard->is<sf::Event::JoystickMoved>() )
+		if ( joy_guard.has_value() && joy_guard->is<FeEvent::JoystickMoved>() )
 		{
-			const auto* mov = joy_guard->getIf<sf::Event::JoystickMoved>();
+			const auto* mov = joy_guard->getIf<FeEvent::JoystickMoved>();
 			if ( mov )
 			{
-				float pos = fe_joystick_get_axis_position( mov->joystickId, mov->axis );
+				float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<sf::Joystick::Axis>( mov->axis ) );
 
 				if ( std::abs( pos ) < m_feSettings.get_joy_thresh() )
 					joy_guard = std::nullopt;

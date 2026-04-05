@@ -394,7 +394,7 @@ void FeVM::post_command( FeInputMap::Command c )
 	m_posted_commands.push( c );
 }
 
-bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, bool &from_ui )
+bool FeVM::poll_command( FeInputMap::Command &c, std::optional<FeEvent> &ev, bool &from_ui )
 {
 	from_ui = false;
 

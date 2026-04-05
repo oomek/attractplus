@@ -38,7 +38,7 @@ namespace
 {
 	// globals to track when last touch event "began"
 	//
-	std::optional<sf::Event> g_last_touch;
+	std::optional<FeEvent> g_last_touch;
 	bool g_touch_moved=false;
 
 	static std::vector< int > g_joyfemap( sf::Joystick::Count, 0 );
@@ -122,36 +122,36 @@ namespace
 				<< ")" << std::endl;
 	}
 
-	bool is_press_like_event( const sf::Event &e )
+	bool is_press_like_event( const FeEvent &e )
 	{
-		return e.is<sf::Event::KeyPressed>()
-			|| e.is<sf::Event::MouseButtonPressed>()
-			|| e.is<sf::Event::JoystickButtonPressed>()
-			|| e.is<sf::Event::JoystickMoved>()
-			|| e.is<sf::Event::TouchEnded>();
+		return e.is<FeEvent::KeyPressed>()
+			|| e.is<FeEvent::MouseButtonPressed>()
+			|| e.is<FeEvent::JoystickButtonPressed>()
+			|| e.is<FeEvent::JoystickMoved>()
+			|| e.is<FeEvent::TouchEnded>();
 	}
 
-	bool is_release_like_event( const sf::Event &e )
+	bool is_release_like_event( const FeEvent &e )
 	{
-		return e.is<sf::Event::KeyReleased>()
-			|| e.is<sf::Event::MouseButtonReleased>()
-			|| e.is<sf::Event::JoystickButtonReleased>();
+		return e.is<FeEvent::KeyReleased>()
+			|| e.is<FeEvent::MouseButtonReleased>()
+			|| e.is<FeEvent::JoystickButtonReleased>();
 	}
 
 	std::optional<FeInputSingle> get_release_match_input(
-		const sf::Event &e,
+		const FeEvent &e,
 		const sf::IntRect &mc_rect,
 		int joy_thresh,
 		bool has_focus )
 	{
-		sf::Event te = e;
+		FeEvent te = e;
 
-		if ( const auto *key = e.getIf<sf::Event::KeyReleased>() )
-			te = sf::Event::KeyPressed{ key->code };
-		else if ( const auto *joy = e.getIf<sf::Event::JoystickButtonReleased>() )
-			te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
-		else if ( const auto *mouse = e.getIf<sf::Event::MouseButtonReleased>() )
-			te = sf::Event::MouseButtonPressed{ mouse->button };
+		if ( const auto *key = e.getIf<FeEvent::KeyReleased>() )
+			te = FeEvent::KeyPressed{ key->code };
+		else if ( const auto *joy = e.getIf<FeEvent::JoystickButtonReleased>() )
+			te = FeEvent::JoystickButtonPressed{ joy->joystickId, joy->button };
+		else if ( const auto *mouse = e.getIf<FeEvent::MouseButtonReleased>() )
+			te = FeEvent::MouseButtonPressed{ mouse->button };
 		else
 			return std::nullopt;
 
@@ -364,23 +364,23 @@ FeInputSingle::FeInputSingle( Type t, int c )
 {
 }
 
-FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
+FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
 	: m_type( Unsupported ),
 	m_code( 0 )
 {
-	if ( e.is<sf::Event::KeyPressed>() )
+	if ( e.is<FeEvent::KeyPressed>() )
 	{
-		const auto* event = e.getIf<sf::Event::KeyPressed>();
-		if ( event && event->code != sf::Keyboard::Key::Unknown )
+		const auto* event = e.getIf<FeEvent::KeyPressed>();
+		if ( event && event->code != static_cast<int>( sf::Keyboard::Key::Unknown ) )
 		{
 			m_type = Keyboard;
-			m_code = static_cast<int>( event->code );
+			m_code = event->code;
 		}
 	}
 
-	else if ( e.is<sf::Event::JoystickButtonPressed>() )
+	else if ( e.is<FeEvent::JoystickButtonPressed>() )
 	{
-		const auto* event = e.getIf<sf::Event::JoystickButtonPressed>();
+		const auto* event = e.getIf<FeEvent::JoystickButtonPressed>();
 		if ( event )
 		{
 			m_type = static_cast<Type>( Joystick0 + joymap2feid( event->joystickId ));
@@ -388,12 +388,12 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( e.is<sf::Event::JoystickMoved>() )
+	else if ( e.is<FeEvent::JoystickMoved>() )
 	{
-		const auto* event = e.getIf<sf::Event::JoystickMoved>();
+		const auto* event = e.getIf<FeEvent::JoystickMoved>();
 		if ( event && std::abs( event->position ) > joy_thresh )
 		{
-			switch ( event->axis )
+			switch ( static_cast<sf::Joystick::Axis>( event->axis ) )
 			{
 				case sf::Joystick::Axis::X:
 					m_code = ( event->position > 0 ) ? JoyRight : JoyLeft;
@@ -409,7 +409,7 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 					if ( event->position < 0 )
 						return;
 
-					m_code = ( event->axis == sf::Joystick::Axis::Z )
+					m_code = ( static_cast<sf::Joystick::Axis>( event->axis ) == sf::Joystick::Axis::Z )
 						? JoyZPos : JoyRPos;
 					break;
 #else
@@ -447,12 +447,12 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( has_focus && e.is<sf::Event::MouseMoved>() )
+	else if ( has_focus && e.is<FeEvent::MouseMoved>() )
 	{
-		const auto* event = e.getIf<sf::Event::MouseMoved>();
+		const auto* event = e.getIf<FeEvent::MouseMoved>();
 		if ( event )
 		{
-			sf::Vector2i p = event->position;
+			sf::Vector2i p( event->position.x, event->position.y );
 			sf::Vector2i r1 = mc_rect.position;
 			sf::Vector2i r2 = r1 + mc_rect.size;
 			FeInputMouse::set_pos_delta( p );
@@ -480,9 +480,9 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( e.is<sf::Event::MouseWheelScrolled>() )
+	else if ( e.is<FeEvent::MouseWheelScrolled>() )
 	{
-		const auto* event = e.getIf<sf::Event::MouseWheelScrolled>();
+		const auto* event = e.getIf<FeEvent::MouseWheelScrolled>();
 		if ( event )
 		{
 			m_type = Mouse;
@@ -491,18 +491,18 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( e.is<sf::Event::MouseButtonPressed>() )
+	else if ( e.is<FeEvent::MouseButtonPressed>() )
 	{
-		const auto* event = e.getIf<sf::Event::MouseButtonPressed>();
+		const auto* event = e.getIf<FeEvent::MouseButtonPressed>();
 		if ( event )
 		{
 			switch ( event->button )
 			{
-				case sf::Mouse::Button::Left:   m_code = MouseBLeft;   break;
-				case sf::Mouse::Button::Right:  m_code = MouseBRight;  break;
-				case sf::Mouse::Button::Middle: m_code = MouseBMiddle; break;
-				case sf::Mouse::Button::Extra1: m_code = MouseBX1;     break;
-				case sf::Mouse::Button::Extra2: m_code = MouseBX2;     break;
+				case static_cast<int>( sf::Mouse::Button::Left ):   m_code = MouseBLeft;   break;
+				case static_cast<int>( sf::Mouse::Button::Right ):  m_code = MouseBRight;  break;
+				case static_cast<int>( sf::Mouse::Button::Middle ): m_code = MouseBMiddle; break;
+				case static_cast<int>( sf::Mouse::Button::Extra1 ): m_code = MouseBX1;     break;
+				case static_cast<int>( sf::Mouse::Button::Extra2 ): m_code = MouseBX2;     break;
 				default:
 					ASSERT( 0 ); // unhandled mouse button encountered
 					return;
@@ -511,12 +511,12 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( e.is<sf::Event::TouchMoved>() )
+	else if ( e.is<FeEvent::TouchMoved>() )
 	{
-		const auto* event = e.getIf<sf::Event::TouchMoved>();
+		const auto* event = e.getIf<FeEvent::TouchMoved>();
 		if ( event && g_last_touch.has_value() )
 		{
-			const auto* last = g_last_touch->getIf<sf::Event::TouchMoved>();
+			const auto* last = g_last_touch->getIf<FeEvent::TouchMoved>();
 			if ( !last )
 			{
 				g_last_touch = e;
@@ -557,9 +557,9 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( e.is<sf::Event::TouchBegan>() )
+	else if ( e.is<FeEvent::TouchBegan>() )
 	{
-		const auto* event = e.getIf<sf::Event::TouchBegan>();
+		const auto* event = e.getIf<FeEvent::TouchBegan>();
 		g_touch_moved = false;
 		if ( event )
 		{
@@ -567,7 +567,7 @@ FeInputSingle::FeInputSingle( const sf::Event &e, const sf::IntRect &mc_rect, co
 		}
 	}
 
-	else if ( e.is<sf::Event::TouchEnded>() )
+	else if ( e.is<FeEvent::TouchEnded>() )
 	{
 		if ( !g_touch_moved )
 		{
@@ -1290,15 +1290,15 @@ void FeInputMap::clear()
 	m_mmove_count = 0;
 }
 
-FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
+FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus )
 {
 	FeInputSingle index( e, mc_rect, joy_thresh, has_focus );
 
 	// Window focus has changed
-	if ( e.is<sf::Event::FocusLost>() || e.is<sf::Event::FocusGained>() )
+	if ( e.is<FeEvent::FocusLost>() || e.is<FeEvent::FocusGained>() )
 	{
 		clear_tracked_keys();
-		if ( e.is<sf::Event::FocusGained>() )
+		if ( e.is<FeEvent::FocusGained>() )
 			suppress_pressed_inputs( joy_thresh );
 		else
 		{
@@ -1308,7 +1308,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	}
 
 	// Window has closed
-	if ( e.is<sf::Event::Closed>() )
+	if ( e.is<FeEvent::Closed>() )
 	{
 		clear_tracked_keys();
 		return ExitToDesktop;
@@ -1316,13 +1316,13 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 
 	if ( m_suppress_pressed_inputs )
 	{
-		if ( e.is<sf::Event::JoystickMoved>() && ( index.get_type() == FeInputSingle::Unsupported ) )
+		if ( e.is<FeEvent::JoystickMoved>() && ( index.get_type() == FeInputSingle::Unsupported ) )
 		{
-			const auto *event = e.getIf<sf::Event::JoystickMoved>();
+			const auto *event = e.getIf<FeEvent::JoystickMoved>();
 			if ( event )
 			{
-				sf::Event pos = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
-				sf::Event neg = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
+				FeEvent pos = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
+				FeEvent neg = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
 				FeInputSingle pos_input( pos, mc_rect, joy_thresh, has_focus );
 				FeInputSingle neg_input( neg, mc_rect, joy_thresh, has_focus );
 				m_suppressed_inputs.erase( pos_input );
@@ -1357,19 +1357,19 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	}
 
 	// Joystick has moved
-	else if ( e.is<sf::Event::JoystickMoved>() )
+	else if ( e.is<FeEvent::JoystickMoved>() )
 	{
 		if ( !index.get_current_state( joy_thresh ) )
 		{
-			const auto* event = e.getIf<sf::Event::JoystickMoved>();
+			const auto* event = e.getIf<FeEvent::JoystickMoved>();
 
 			// Special - released joystick needs to check for tracked pos/neg keys, since index will be empty
-			sf::Event pos = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
+			FeEvent pos = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
 			FeInputSingle tt( pos, mc_rect, joy_thresh, has_focus );
 			std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 
 			if ( itr == m_tracked_keys.end() ) {
-				sf::Event neg = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
+				FeEvent neg = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
 				FeInputSingle tt( neg, mc_rect, joy_thresh, has_focus );
 				itr = m_tracked_keys.find( tt );
 			}
@@ -1385,10 +1385,10 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	}
 
 	// Keyboard key has been released
-	else if ( e.is<sf::Event::KeyReleased>() )
+	else if ( e.is<FeEvent::KeyReleased>() )
 	{
-		sf::Event te = e;
-		if ( const auto* key = e.getIf<sf::Event::KeyReleased>() ) te = sf::Event::KeyPressed{ key->code };
+		FeEvent te = e;
+		if ( const auto* key = e.getIf<FeEvent::KeyReleased>() ) te = FeEvent::KeyPressed{ key->code };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 		if ( itr != m_tracked_keys.end() )
@@ -1401,10 +1401,10 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	}
 
 	// Joystick button has been released
-	else if ( e.is<sf::Event::JoystickButtonReleased>() )
+	else if ( e.is<FeEvent::JoystickButtonReleased>() )
 	{
-		sf::Event te = e;
-		if ( const auto* joy = e.getIf<sf::Event::JoystickButtonReleased>() ) te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
+		FeEvent te = e;
+		if ( const auto* joy = e.getIf<FeEvent::JoystickButtonReleased>() ) te = FeEvent::JoystickButtonPressed{ joy->joystickId, joy->button };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 		if ( itr != m_tracked_keys.end() )
@@ -1417,10 +1417,10 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	}
 
 	// Mouse button has been released
-	else if ( e.is<sf::Event::MouseButtonReleased>() )
+	else if ( e.is<FeEvent::MouseButtonReleased>() )
 	{
-		sf::Event te = e;
-		if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() ) te = sf::Event::MouseButtonPressed{ mouse->button };
+		FeEvent te = e;
+		if ( const auto* mouse = e.getIf<FeEvent::MouseButtonReleased>() ) te = FeEvent::MouseButtonPressed{ mouse->button };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 		if ( itr != m_tracked_keys.end() )
@@ -1433,7 +1433,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	}
 
 	// Touch event has ended
-	else if ( e.is<sf::Event::TouchEnded>() )
+	else if ( e.is<FeEvent::TouchEnded>() )
 	{
 		if ( m_single_map.find( index ) != m_single_map.end() )
 		{

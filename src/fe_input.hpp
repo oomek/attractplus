@@ -23,8 +23,8 @@
 #ifndef FE_INPUT_HPP
 #define FE_INPUT_HPP
 
-#include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/Rect.hpp>
+#include "fe_event.hpp"
 #include "fe_base.hpp"
 #include "fe_window.hpp"
 #include <vector>
@@ -73,7 +73,7 @@ public:
 	FeInputSingle( Type t, int code );
 
 	// Construct from an SFML event
-	FeInputSingle( const sf::Event &ev, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
+	FeInputSingle( const FeEvent &ev, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
 
 	// Construct from a config string
 	FeInputSingle( const std::string &str );
@@ -207,7 +207,7 @@ public:
 
 	FeInputMap();
 
-	Command map_input( const sf::Event &, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
+	Command map_input( const FeEvent &, const sf::IntRect &mc_rect, const int joy_thresh, bool has_focus );
 
 	Command input_conflict_check( const FeInputMapEntry &e );
 

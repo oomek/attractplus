@@ -1271,7 +1271,7 @@ void FeSettings::reset_input()
 	m_inputmap.suppress_pressed_inputs( m_joy_thresh );
 }
 
-FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
+FeInputMap::Command FeSettings::map_input( const std::optional<FeEvent> &e )
 {
 	if ( e.has_value() )
 		return m_inputmap.map_input( e.value(), m_mousecap_rect, m_joy_thresh, m_rwnd->hasFocus() );

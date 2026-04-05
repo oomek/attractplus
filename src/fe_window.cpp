@@ -578,7 +578,7 @@ namespace
 		}
 	}
 
-	std::optional<sf::Event> translate_sdl_event( const SDL_Event &event, SDL_Window *window )
+	std::optional<FeEvent> translate_sdl_event( const SDL_Event &event, SDL_Window *window )
 	{
 		if ( !window )
 			return {};
@@ -593,27 +593,27 @@ namespace
 		switch ( event.type )
 		{
 		case SDL_EVENT_QUIT:
-			return sf::Event::Closed{};
+			return FeEvent::Closed{};
 
 		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-			return sf::Event::Closed{};
+			return FeEvent::Closed{};
 
 		case SDL_EVENT_WINDOW_FOCUS_GAINED:
-			return sf::Event::FocusGained{};
+			return FeEvent::FocusGained{};
 
 		case SDL_EVENT_WINDOW_FOCUS_LOST:
-			return sf::Event::FocusLost{};
+			return FeEvent::FocusLost{};
 
 		case SDL_EVENT_WINDOW_RESIZED:
 		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-			return sf::Event::Resized{ sf::Vector2u( static_cast<unsigned int>( event.window.data1 ),
-				static_cast<unsigned int>( event.window.data2 ) ) };
+			return FeEvent::Resized{ { static_cast<unsigned int>( event.window.data1 ),
+				static_cast<unsigned int>( event.window.data2 ) } };
 
 		case SDL_EVENT_TEXT_INPUT:
 		{
 			const char32_t unicode = decode_utf8_first_codepoint( event.text.text );
 			if ( unicode != 0 )
-				return sf::Event::TextEntered{ unicode };
+				return FeEvent::TextEntered{ unicode };
 			return {};
 		}
 
@@ -624,50 +624,50 @@ namespace
 				return {};
 
 			const SDL_Keymod mods = SDL_GetModState();
-			const auto key = sdl_scancode_to_sf_key( event.key.scancode );
+			const int key = static_cast<int>( sdl_scancode_to_sf_key( event.key.scancode ) );
 			const bool alt = ( mods & SDL_KMOD_ALT ) != 0;
 			const bool control = ( mods & SDL_KMOD_CTRL ) != 0;
 			const bool shift = ( mods & SDL_KMOD_SHIFT ) != 0;
 			const bool system = ( mods & SDL_KMOD_GUI ) != 0;
 
 			if ( event.type == SDL_EVENT_KEY_DOWN )
-				return sf::Event::KeyPressed{ key, sf::Keyboard::Scancode::Unknown, alt, control, shift, system };
+				return FeEvent::KeyPressed{ key, alt, control, shift, system };
 
-			return sf::Event::KeyReleased{ key, sf::Keyboard::Scancode::Unknown, alt, control, shift, system };
+			return FeEvent::KeyReleased{ key, alt, control, shift, system };
 		}
 
 		case SDL_EVENT_MOUSE_MOTION:
-			return sf::Event::MouseMoved{ sf::Vector2i( static_cast<int>( event.motion.x ), static_cast<int>( event.motion.y ) ) };
+			return FeEvent::MouseMoved{ { static_cast<int>( event.motion.x ), static_cast<int>( event.motion.y ) } };
 
 		case SDL_EVENT_MOUSE_WHEEL:
 		{
-			const sf::Mouse::Wheel wheel = ( event.wheel.x != 0.0f ) ? sf::Mouse::Wheel::Horizontal : sf::Mouse::Wheel::Vertical;
+			const FeEvent::MouseWheel wheel = ( event.wheel.x != 0.0f ) ? FeEvent::MouseWheel::Horizontal : FeEvent::MouseWheel::Vertical;
 			const float delta = ( event.wheel.x != 0.0f ) ? event.wheel.x : event.wheel.y;
-			return sf::Event::MouseWheelScrolled{
+			return FeEvent::MouseWheelScrolled{
 				wheel,
 				delta,
-				sf::Vector2i( static_cast<int>( event.wheel.mouse_x ), static_cast<int>( event.wheel.mouse_y ) )
+				{ static_cast<int>( event.wheel.mouse_x ), static_cast<int>( event.wheel.mouse_y ) }
 			};
 		}
 
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
-			return sf::Event::MouseButtonPressed{
-				sdl_mouse_button_to_sf( event.button.button ),
-				sf::Vector2i( static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) )
+			return FeEvent::MouseButtonPressed{
+				static_cast<int>( sdl_mouse_button_to_sf( event.button.button ) ),
+				{ static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) }
 			};
 
 		case SDL_EVENT_MOUSE_BUTTON_UP:
-			return sf::Event::MouseButtonReleased{
-				sdl_mouse_button_to_sf( event.button.button ),
-				sf::Vector2i( static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) )
+			return FeEvent::MouseButtonReleased{
+				static_cast<int>( sdl_mouse_button_to_sf( event.button.button ) ),
+				{ static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) }
 			};
 
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jaxis.which ) );
-			return sf::Event::JoystickMoved{
+			return FeEvent::JoystickMoved{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				sdl_joystick_axis_to_sf( event.jaxis.axis ),
+				static_cast<int>( sdl_joystick_axis_to_sf( event.jaxis.axis ) ),
 				normalize_sdl_axis_value( event.jaxis.value )
 			};
 		}
@@ -675,7 +675,7 @@ namespace
 		case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jbutton.which ) );
-			return sf::Event::JoystickButtonPressed{
+			return FeEvent::JoystickButtonPressed{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				static_cast<unsigned int>( event.jbutton.button )
 			};
@@ -684,7 +684,7 @@ namespace
 		case SDL_EVENT_JOYSTICK_BUTTON_UP:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jbutton.which ) );
-			return sf::Event::JoystickButtonReleased{
+			return FeEvent::JoystickButtonReleased{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				static_cast<unsigned int>( event.jbutton.button )
 			};
@@ -692,18 +692,18 @@ namespace
 
 		case SDL_EVENT_JOYSTICK_ADDED:
 			fe_joystick_refresh_devices();
-			return sf::Event::JoystickConnected{ 0u };
+			return FeEvent::JoystickConnected{ 0u };
 
 		case SDL_EVENT_JOYSTICK_REMOVED:
 			fe_joystick_refresh_devices();
-			return sf::Event::JoystickDisconnected{ 0u };
+			return FeEvent::JoystickDisconnected{ 0u };
 
 		case SDL_EVENT_GAMEPAD_AXIS_MOTION:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gaxis.which ) );
-			return sf::Event::JoystickMoved{
+			return FeEvent::JoystickMoved{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				sdl_gamepad_axis_to_sf( event.gaxis.axis ),
+				static_cast<int>( sdl_gamepad_axis_to_sf( event.gaxis.axis ) ),
 				normalize_sdl_axis_value( event.gaxis.value )
 			};
 		}
@@ -711,7 +711,7 @@ namespace
 		case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gbutton.which ) );
-			return sf::Event::JoystickButtonPressed{
+			return FeEvent::JoystickButtonPressed{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				static_cast<unsigned int>( event.gbutton.button )
 			};
@@ -720,7 +720,7 @@ namespace
 		case SDL_EVENT_GAMEPAD_BUTTON_UP:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gbutton.which ) );
-			return sf::Event::JoystickButtonReleased{
+			return FeEvent::JoystickButtonReleased{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
 				static_cast<unsigned int>( event.gbutton.button )
 			};
@@ -728,19 +728,68 @@ namespace
 
 		case SDL_EVENT_GAMEPAD_ADDED:
 			fe_joystick_refresh_devices();
-			return sf::Event::JoystickConnected{ 0u };
+			return FeEvent::JoystickConnected{ 0u };
 
 		case SDL_EVENT_GAMEPAD_REMOVED:
 			fe_joystick_refresh_devices();
-			return sf::Event::JoystickDisconnected{ 0u };
+			return FeEvent::JoystickDisconnected{ 0u };
 
 		case SDL_EVENT_GAMEPAD_REMAPPED:
 			fe_joystick_refresh_devices();
-			return sf::Event::JoystickConnected{ 0u };
+			return FeEvent::JoystickConnected{ 0u };
 
 		default:
 			return {};
 		}
+	}
+
+	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
+	std::optional<FeEvent> translate_sfml_event( const sf::Event &event )
+	{
+		if ( event.is<sf::Event::Closed>() )
+			return FeEvent::Closed{};
+		if ( event.is<sf::Event::FocusGained>() )
+			return FeEvent::FocusGained{};
+		if ( event.is<sf::Event::FocusLost>() )
+			return FeEvent::FocusLost{};
+		if ( const auto *resize = event.getIf<sf::Event::Resized>() )
+			return FeEvent::Resized{ { resize->size.x, resize->size.y } };
+		if ( const auto *text = event.getIf<sf::Event::TextEntered>() )
+			return FeEvent::TextEntered{ text->unicode };
+		if ( const auto *key = event.getIf<sf::Event::KeyPressed>() )
+			return FeEvent::KeyPressed{ static_cast<int>( key->code ), key->alt, key->control, key->shift, key->system };
+		if ( const auto *key = event.getIf<sf::Event::KeyReleased>() )
+			return FeEvent::KeyReleased{ static_cast<int>( key->code ), key->alt, key->control, key->shift, key->system };
+		if ( const auto *mouse = event.getIf<sf::Event::MouseMoved>() )
+			return FeEvent::MouseMoved{ { mouse->position.x, mouse->position.y } };
+		if ( const auto *wheel = event.getIf<sf::Event::MouseWheelScrolled>() )
+			return FeEvent::MouseWheelScrolled{
+				wheel->wheel == sf::Mouse::Wheel::Horizontal ? FeEvent::MouseWheel::Horizontal : FeEvent::MouseWheel::Vertical,
+				wheel->delta,
+				{ wheel->position.x, wheel->position.y }
+			};
+		if ( const auto *button = event.getIf<sf::Event::MouseButtonPressed>() )
+			return FeEvent::MouseButtonPressed{ static_cast<int>( button->button ), { button->position.x, button->position.y } };
+		if ( const auto *button = event.getIf<sf::Event::MouseButtonReleased>() )
+			return FeEvent::MouseButtonReleased{ static_cast<int>( button->button ), { button->position.x, button->position.y } };
+		if ( const auto *joy = event.getIf<sf::Event::JoystickMoved>() )
+			return FeEvent::JoystickMoved{ joy->joystickId, static_cast<int>( joy->axis ), joy->position };
+		if ( const auto *joy = event.getIf<sf::Event::JoystickButtonPressed>() )
+			return FeEvent::JoystickButtonPressed{ joy->joystickId, joy->button };
+		if ( const auto *joy = event.getIf<sf::Event::JoystickButtonReleased>() )
+			return FeEvent::JoystickButtonReleased{ joy->joystickId, joy->button };
+		if ( const auto *joy = event.getIf<sf::Event::JoystickConnected>() )
+			return FeEvent::JoystickConnected{ joy->joystickId };
+		if ( const auto *joy = event.getIf<sf::Event::JoystickDisconnected>() )
+			return FeEvent::JoystickDisconnected{ joy->joystickId };
+		if ( const auto *touch = event.getIf<sf::Event::TouchMoved>() )
+			return FeEvent::TouchMoved{ touch->finger, { touch->position.x, touch->position.y } };
+		if ( const auto *touch = event.getIf<sf::Event::TouchBegan>() )
+			return FeEvent::TouchBegan{ touch->finger, { touch->position.x, touch->position.y } };
+		if ( const auto *touch = event.getIf<sf::Event::TouchEnded>() )
+			return FeEvent::TouchEnded{ touch->finger, { touch->position.x, touch->position.y } };
+
+		return {};
 	}
 
 }
@@ -1557,7 +1606,7 @@ void wait_callback( void *o )
 	{
 		while ( const std::optional ev = win->pollEvent() )
 		{
-			if ( ev.has_value() && ev->is<sf::Event::Closed>() )
+			if ( ev.has_value() && ev->is<FeEvent::Closed>() )
 				return;
 		}
 	}
@@ -1714,7 +1763,7 @@ bool FeWindow::run()
 		{
 			while ( const std::optional ev = pollEvent() )
 			{
-				if ( ev.has_value() && ev->is<sf::Event::Closed>() )
+				if ( ev.has_value() && ev->is<FeEvent::Closed>() )
 					return false;
 			}
 
@@ -1804,7 +1853,7 @@ bool FeWindow::run()
 
 	while ( const std::optional ev = pollEvent() )
 	{
-		if ( ev->is<sf::Event::Closed>() )
+		if ( ev->is<FeEvent::Closed>() )
 			return false;
 	}
 
@@ -2026,7 +2075,7 @@ void FeWindow::draw( const FeRectangle &rect, const sf::RenderStates &r )
 	draw( FeOverlayDrawItem( rect ), r );
 }
 
-const std::optional<sf::Event> FeWindow::pollEvent()
+std::optional<FeEvent> FeWindow::pollEvent()
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
@@ -2042,7 +2091,10 @@ const std::optional<sf::Event> FeWindow::pollEvent()
 
 #if !defined(SFML_SYSTEM_WINDOWS)
 	if ( m_window )
-		return m_window->pollEvent();
+	{
+		if ( const std::optional event = m_window->pollEvent() )
+			return translate_sfml_event( *event );
+	}
 #endif
 
 	return {};

@@ -29,6 +29,7 @@
 
 #include <unordered_map>
 #include <SFML/Graphics.hpp>
+#include "fe_event.hpp"
 #include "fe_sdl3_gpu.hpp"
 
 class FeSettings;
@@ -154,7 +155,7 @@ public:
 	void draw( const FeText &text, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeRectangle &rect, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw_overlay_image( const sf::Image &image, const sf::FloatRect &bounds, bool smooth = true, const sf::Color &color = sf::Color::White );
-	const std::optional<sf::Event> pollEvent();
+	std::optional<FeEvent> pollEvent();
 
 	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }
 	const FeSdl3GpuContext &get_gpu_context() const { return m_gpu_context; }

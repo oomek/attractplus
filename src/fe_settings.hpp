@@ -354,7 +354,7 @@ public:
 	void save_state();
 	void migration_cleanup_dialog( FeOverlay *overlay );
 
-	FeInputMap::Command map_input( const std::optional<sf::Event> &e );
+	FeInputMap::Command map_input( const std::optional<FeEvent> &e );
 	void reset_input();
 
 	void get_input_config_metrics( sf::IntRect &mousecap_rect, int &joy_thresh );
