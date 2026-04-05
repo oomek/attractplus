@@ -93,7 +93,6 @@ class FeWindow
 	friend void wait_callback( void *o );
 
 protected:
-	sf::RenderWindow *m_window;
 	FeSettings &m_fes;
 	unsigned int m_running_pid;
 	void *m_running_wnd;

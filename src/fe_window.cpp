@@ -277,6 +277,41 @@ namespace
 		return success;
 	}
 
+#if defined(SFML_SYSTEM_WINDOWS)
+	bool get_win32_desktop_geometry( bool do_multimon, sf::VideoMode &mode, sf::Vector2i &position )
+	{
+		if ( do_multimon )
+		{
+			position.x = GetSystemMetrics( SM_XVIRTUALSCREEN );
+			position.y = GetSystemMetrics( SM_YVIRTUALSCREEN );
+			mode.size.x = static_cast<unsigned int>( std::max( GetSystemMetrics( SM_CXVIRTUALSCREEN ), 1 ) );
+			mode.size.y = static_cast<unsigned int>( std::max( GetSystemMetrics( SM_CYVIRTUALSCREEN ), 1 ) );
+			return true;
+		}
+
+		MONITORINFO monitor_info = {};
+		monitor_info.cbSize = sizeof( monitor_info );
+		if ( const HMONITOR monitor = MonitorFromPoint( POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY ) )
+		{
+			if ( GetMonitorInfo( monitor, &monitor_info ) )
+			{
+				const LONG width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+				const LONG height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+				position.x = monitor_info.rcMonitor.left;
+				position.y = monitor_info.rcMonitor.top;
+				mode.size.x = static_cast<unsigned int>( std::max<LONG>( width, 1 ) );
+				mode.size.y = static_cast<unsigned int>( std::max<LONG>( height, 1 ) );
+				return true;
+			}
+		}
+
+		position = sf::Vector2i( 0, 0 );
+		mode.size.x = static_cast<unsigned int>( std::max( GetSystemMetrics( SM_CXSCREEN ), 1 ) );
+		mode.size.y = static_cast<unsigned int>( std::max( GetSystemMetrics( SM_CYSCREEN ), 1 ) );
+		return true;
+	}
+#endif
+
 	void apply_overlay_transform( std::vector<FeRenderGeometry> &geometry, const sf::Transform &transform )
 	{
 		if ( transform == sf::Transform::Identity )
@@ -414,26 +449,6 @@ namespace
 		return 0;
 	}
 
-	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
-	Uint8 legacy_sf_mouse_button_to_sdl( int legacy_button )
-	{
-		switch ( legacy_button )
-		{
-		case 0: return SDL_BUTTON_LEFT;
-		case 1: return SDL_BUTTON_RIGHT;
-		case 2: return SDL_BUTTON_MIDDLE;
-		case 3: return SDL_BUTTON_X1;
-		case 4: return SDL_BUTTON_X2;
-		default: return 0;
-		}
-	}
-
-	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
-	FeEvent::MouseWheel legacy_sf_mouse_wheel_to_fe( int legacy_wheel )
-	{
-		return ( legacy_wheel == 1 ) ? FeEvent::MouseWheel::Horizontal : FeEvent::MouseWheel::Vertical;
-	}
-
 	sf::Vector2i get_global_mouse_position()
 	{
 		float x = 0.0f;
@@ -446,6 +461,14 @@ namespace
 	{
 		SDL_WarpMouseGlobal( static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
 	}
+
+#if defined(USE_XLIB)
+	unsigned long get_x11_window_number( const FeSdl3GpuContext &context )
+	{
+		return static_cast<unsigned long>(
+			reinterpret_cast<std::uintptr_t>( context.get_native_window_handle() ) );
+	}
+#endif
 
 	FeJoystick::Axis sdl_joystick_axis_to_fe( Uint8 axis )
 	{
@@ -692,55 +715,6 @@ namespace
 		}
 	}
 
-	// Temporary SFML bridge until the remaining fallback SFML window path is removed.
-	std::optional<FeEvent> translate_sfml_event( const sf::Event &event )
-	{
-		if ( event.is<sf::Event::Closed>() )
-			return FeEvent::Closed{};
-		if ( event.is<sf::Event::FocusGained>() )
-			return FeEvent::FocusGained{};
-		if ( event.is<sf::Event::FocusLost>() )
-			return FeEvent::FocusLost{};
-		if ( const auto *resize = event.getIf<sf::Event::Resized>() )
-			return FeEvent::Resized{ { resize->size.x, resize->size.y } };
-		if ( const auto *text = event.getIf<sf::Event::TextEntered>() )
-			return FeEvent::TextEntered{ text->unicode };
-		if ( const auto *key = event.getIf<sf::Event::KeyPressed>() )
-			return FeEvent::KeyPressed{ fe_key_from_legacy_sfml_code( static_cast<int>( key->code ) ), key->alt, key->control, key->shift, key->system };
-		if ( const auto *key = event.getIf<sf::Event::KeyReleased>() )
-			return FeEvent::KeyReleased{ fe_key_from_legacy_sfml_code( static_cast<int>( key->code ) ), key->alt, key->control, key->shift, key->system };
-		if ( const auto *mouse = event.getIf<sf::Event::MouseMoved>() )
-			return FeEvent::MouseMoved{ { mouse->position.x, mouse->position.y } };
-		if ( const auto *wheel = event.getIf<sf::Event::MouseWheelScrolled>() )
-			return FeEvent::MouseWheelScrolled{
-				legacy_sf_mouse_wheel_to_fe( static_cast<int>( wheel->wheel ) ),
-				wheel->delta,
-				{ wheel->position.x, wheel->position.y }
-			};
-		if ( const auto *button = event.getIf<sf::Event::MouseButtonPressed>() )
-			return FeEvent::MouseButtonPressed{ static_cast<int>( legacy_sf_mouse_button_to_sdl( static_cast<int>( button->button ) ) ), { button->position.x, button->position.y } };
-		if ( const auto *button = event.getIf<sf::Event::MouseButtonReleased>() )
-			return FeEvent::MouseButtonReleased{ static_cast<int>( legacy_sf_mouse_button_to_sdl( static_cast<int>( button->button ) ) ), { button->position.x, button->position.y } };
-		if ( const auto *joy = event.getIf<sf::Event::JoystickMoved>() )
-			return FeEvent::JoystickMoved{ joy->joystickId, static_cast<int>( joy->axis ), joy->position };
-		if ( const auto *joy = event.getIf<sf::Event::JoystickButtonPressed>() )
-			return FeEvent::JoystickButtonPressed{ joy->joystickId, joy->button };
-		if ( const auto *joy = event.getIf<sf::Event::JoystickButtonReleased>() )
-			return FeEvent::JoystickButtonReleased{ joy->joystickId, joy->button };
-		if ( const auto *joy = event.getIf<sf::Event::JoystickConnected>() )
-			return FeEvent::JoystickConnected{ joy->joystickId };
-		if ( const auto *joy = event.getIf<sf::Event::JoystickDisconnected>() )
-			return FeEvent::JoystickDisconnected{ joy->joystickId };
-		if ( const auto *touch = event.getIf<sf::Event::TouchMoved>() )
-			return FeEvent::TouchMoved{ touch->finger, { touch->position.x, touch->position.y } };
-		if ( const auto *touch = event.getIf<sf::Event::TouchBegan>() )
-			return FeEvent::TouchBegan{ touch->finger, { touch->position.x, touch->position.y } };
-		if ( const auto *touch = event.getIf<sf::Event::TouchEnded>() )
-			return FeEvent::TouchEnded{ touch->finger, { touch->position.x, touch->position.y } };
-
-		return {};
-	}
-
 }
 
 void fe_joystick_update()
@@ -905,8 +879,7 @@ LRESULT CALLBACK FeWindow::CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LP
 #endif
 
 FeWindow::FeWindow( FeSettings &fes )
-	: m_window( NULL ),
-	m_fes( fes ),
+	: m_fes( fes ),
 	m_running_pid( 0 ),
 	m_running_wnd( NULL ),
 	m_win_mode( 0 )
@@ -917,9 +890,6 @@ FeWindow::~FeWindow()
 {
 	if ( m_running_pid && process_exists( m_running_pid ) )
 		kill_program( m_running_pid );
-
-	if ( m_window )
-		delete m_window;
 
 	fe_joystick_shutdown();
 }
@@ -1053,12 +1023,8 @@ void FeWindow::draw_overlay_image( const sf::Image &image, const sf::FloatRect &
 void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
-	const bool legacy_window_open = m_window && m_window->isOpen();
 	if ( m_gpu_context.should_present() )
 		used_sdl_gpu_present = m_gpu_context.execute_frame( m_overlay_geometry.empty() ? nullptr : &m_overlay_geometry );
-
-	if ( !used_sdl_gpu_present && legacy_window_open )
-		m_window->display();
 
 	m_overlay_geometry.clear();
 	m_overlay_images.clear();
@@ -1077,12 +1043,6 @@ void FeWindow::check_for_sleep()
 {
 	if ( s_system_resumed )
 	{
-		if ( m_window && m_window->isOpen() )
-		{
-			m_window->clear();
-			m_window->display();
-		}
-
 		FeDebug() << "! NOTE: Resume from sleep detected. Resetting audio device" << std::endl;
 		fe_sleep( fe_milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
 
@@ -1117,31 +1077,11 @@ void FeWindow::set_window_position( const FeWindowPosition &pos )
 void FeWindow::initial_create()
 {
 	// If re-initialising save its position first
-	if ( m_window )
+	if ( owns_sdl_window() )
 		save();
 
 	if ( owns_sdl_window() )
-	{
-		delete m_window;
-		m_window = NULL;
 		m_gpu_context.release_window();
-	}
-
-	int style_map[4] =
-	{
-		sf::Style::None,       // FeSettings::Fillscreen
-		sf::Style::None,       // FeSettings::Fullscreen
-		sf::Style::Default,    // FeSettings::Window
-		sf::Style::None        // FeSettings::WindowNoBorder
-	};
-
-	sf::State state_map[4] =
-	{
-		sf::State::Windowed,   // FeSettings::Fillscreen
-		sf::State::Fullscreen, // FeSettings::Fullscreen
-		sf::State::Windowed,   // FeSettings::Window
-		sf::State::Windowed    // FeSettings::WindowNoBorder
-	};
 
 	bool do_multimon = is_multimon_config( m_fes );
 	m_win_mode = m_fes.get_window_mode();
@@ -1225,18 +1165,10 @@ void FeWindow::initial_create()
 		m_win_mode = FeSettings::Fillscreen;
 	}
 
-	// Cover all available monitors with our window in multimonitor config
-	//
-	if ( do_multimon )
-	{
-		wpos.x = GetSystemMetrics( SM_XVIRTUALSCREEN );
-		wpos.y = GetSystemMetrics( SM_YVIRTUALSCREEN );
+	get_win32_desktop_geometry( do_multimon, vm, wpos );
 
-		vm.size.x = GetSystemMetrics( SM_CXVIRTUALSCREEN );
-		vm.size.y = GetSystemMetrics( SM_CYVIRTUALSCREEN );
-	}
-
-	sf::Vector2u screen_size = vm.size;
+	const sf::Vector2i screen_pos = wpos;
+	const sf::Vector2u screen_size = vm.size;
 
 	// Some Windows users are reporting emulators hanging/failing to get focus when launched
 	// from 'fullscreen' (fullscreen, fillscreen where window dimensions = screen dimensions)
@@ -1251,8 +1183,10 @@ void FeWindow::initial_create()
 	//
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
+		wpos = screen_pos;
 		wpos.x -= 1;
 		wpos.y -= 1;
+		vm.size = screen_size;
 		vm.size.x += 2;
 		vm.size.y += 2;
 	}
@@ -1332,8 +1266,7 @@ void FeWindow::initial_create()
 	{
 		FeLog() << "Borderless window size matches the display resolution. Switching to Fullscreen." << std::endl;
 		m_win_mode = FeSettings::Fullscreen;
-		wpos.x = 0;
-		wpos.y = 0;
+		wpos = screen_pos;
 	}
 
 	// To avoid problems with black screen on launching games when window mode is set to Fullscreen
@@ -1344,8 +1277,8 @@ void FeWindow::initial_create()
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
 		m_blackout.create( sf::VideoMode({ 16, 16 }, 24 ), "", sf::Style::None );
-		m_blackout.setSize( sf::Vector2u( vm.size.x + 2, vm.size.y + 2 ));
-		m_blackout.setPosition( sf::Vector2i( -1, -1 ));
+		m_blackout.setSize( sf::Vector2u( screen_size.x + 2, screen_size.y + 2 ));
+		m_blackout.setPosition( sf::Vector2i( screen_pos.x - 1, screen_pos.y - 1 ));
 		m_blackout.setVerticalSyncEnabled(true);
 		m_blackout.setKeyRepeatEnabled(false);
 		m_blackout.setMouseCursorVisible(false);
@@ -1359,17 +1292,8 @@ void FeWindow::initial_create()
 	}
 #endif
 
-	//
-	// Create window
-	//
-	sf::ContextSettings ctx;
-	ctx.antiAliasingLevel = m_fes.get_antialiasing();
-
 	if ( use_sdl_owned_window )
 	{
-		delete m_window;
-		m_window = nullptr;
-
 		const auto try_create_sdl_window =
 			[&]( std::string *error_message ) -> bool
 			{
@@ -1438,28 +1362,6 @@ void FeWindow::initial_create()
 	// On Windows Vista and above all non fullscreen window modes
 	// go through DWM. We have to disable vsync
 	// when we rely solely on DwmFlush()
-	(void)ctx;
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-	{
-		m_window->setKeyRepeatEnabled(false);
-		m_window->setMouseCursorVisible( is_windowed_mode( m_win_mode ));
-		m_window->setJoystickThreshold( 1.0 );
-	}
-
-#ifndef SFML_SYSTEM_MACOS
-    sf::Image icon;
-    if ( m_window && icon.loadFromMemory( attractplus_icon, sizeof( attractplus_icon )))
-    	m_window->setIcon({ icon.getSize().y, icon.getSize().y }, icon.getPixelsPtr() );
-#endif
-	// We need to clear and display here before calling setSize and setPosition
-	// to avoid a white window flash on launch.
-	if ( m_window )
-	{
-		clear();
-		display();
-	}
-#endif
 
 #ifdef SFML_SYSTEM_MACOS
 	if ( m_win_mode == FeSettings::Fillscreen )
@@ -1472,16 +1374,10 @@ void FeWindow::initial_create()
 #if defined(USE_XLIB)
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
-		if ( m_window )
-			set_x11_fullscreen_state( m_window->getNativeHandle() );
+		if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
+			set_x11_fullscreen_state( window );
 	}
 #endif
-
-	// Known issue: Linux Mint 18.3 Cinnamon w/ SFML 2.5.1, position isn't being set
-	// (Window always winds up at 0,0)
-	// There is currently no way to create window at position, or create hidden then reveal
-	if ( m_window )
-		m_window->setPosition( wpos );
 
 	FeDebug() << "Created " << FE_NAME << " Window: " << wsize.x << "x" << wsize.y << " @ "
 		<< wpos.x << "," << wpos.y << " [OpenGL surface: "
@@ -1607,8 +1503,6 @@ bool FeWindow::run()
 	// On DRM/KMS we must fully release the SDL GPU device before the emulator starts,
 	// otherwise the frontend can keep the display path busy after the window is gone.
 	m_gpu_context.shutdown();
-	delete m_window;
-	m_window = NULL;
 #endif
 
 	bool have_paused_prog = m_running_pid && process_exists( m_running_pid );
@@ -1621,8 +1515,10 @@ bool FeWindow::run()
 
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
+		m_gpu_context.present_blank_frame();
 		if ( HWND hwnd = get_frontend_hwnd() )
 			set_win32_foreground_window( hwnd, HWND_BOTTOM );
+		m_blackout.clear();
 		m_blackout.display();
 		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
@@ -1635,8 +1531,7 @@ bool FeWindow::run()
 		if ( HWND hwnd = get_frontend_hwnd() )
 			set_win32_foreground_window( hwnd, HWND_TOP );
 		if ( !is_multimon_config( m_fes ))
-			clear();
-		display();
+			m_gpu_context.present_blank_frame();
 	}
 #endif
 
@@ -1748,8 +1643,8 @@ bool FeWindow::run()
  #endif
 	}
 #if defined(USE_XLIB)
-	if ( m_window )
-		set_x11_foreground_window( m_window->getNativeHandle() );
+	if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
+		set_x11_foreground_window( window );
  #endif
 
 #elif defined(SFML_SYSTEM_MACOS)
@@ -1757,6 +1652,7 @@ bool FeWindow::run()
 #elif defined(SFML_SYSTEM_WINDOWS)
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
+		m_blackout.clear();
 		m_blackout.display();
 		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
@@ -1767,10 +1663,7 @@ bool FeWindow::run()
 		// we need to clear the frames rendered ahead
 		// to avoid back buffer flashing on game launch/exit
 		for ( int i = 0; i < 3; i++ )
-		{
-			clear();
-			display();
-		}
+			m_gpu_context.present_blank_frame();
 		if ( HWND hwnd = get_frontend_hwnd() )
 			set_win32_foreground_window( hwnd, HWND_TOP );
 	}
@@ -1830,30 +1723,14 @@ void FeWindow::save()
 
 void FeWindow::close()
 {
-#if defined(SFML_SYSTEM_WINDOWS)
 	save();
 	m_gpu_context.release_window();
-#else
-	if ( m_window )
-	{
-		m_window->display(); // Crashing on Linux workaround
-		save();
-		m_window->close();
-	}
-
-	m_gpu_context.release_window();
-#endif
 }
 
 bool FeWindow::hasFocus()
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 		return ( SDL_GetKeyboardFocus() == window || SDL_GetMouseFocus() == window );
-
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-		return m_window->hasFocus();
-#endif
 
 	return false;
 }
@@ -1862,11 +1739,6 @@ bool FeWindow::isOpen()
 {
 	if ( m_gpu_context.get_window() )
 		return true;
-
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-		return m_window->isOpen();
-#endif
 
 	return false;
 }
@@ -1881,11 +1753,6 @@ sf::Vector2u FeWindow::get_size() const
 		return sf::Vector2u( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) );
 	}
 
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-		return m_window->getSize();
-#endif
-
 	return {};
 }
 
@@ -1898,11 +1765,6 @@ sf::Vector2i FeWindow::get_position() const
 		SDL_GetWindowPosition( window, &x, &y );
 		return sf::Vector2i( x, y );
 	}
-
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-		return m_window->getPosition();
-#endif
 
 	return {};
 }
@@ -1917,11 +1779,6 @@ sf::Vector2i FeWindow::get_mouse_position() const
 		return sf::Vector2i( static_cast<int>( x ), static_cast<int>( y ) );
 	}
 
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-		return get_global_mouse_position() - m_window->getPosition();
-#endif
-
 	return {};
 }
 
@@ -1929,34 +1786,22 @@ void FeWindow::set_mouse_position( const sf::Vector2i &pos )
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 		SDL_WarpMouseInWindow( window, static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
-#if !defined(SFML_SYSTEM_WINDOWS)
-	else
-	if ( m_window )
-		set_global_mouse_position( m_window->getPosition() + pos );
-#endif
 }
 
 void FeWindow::set_key_repeat_enabled( bool enabled )
 {
-	if ( m_window )
-		m_window->setKeyRepeatEnabled( enabled );
+	(void)enabled;
 }
 
 void FeWindow::set_mouse_cursor_visible( bool visible )
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 		visible ? SDL_ShowCursor() : SDL_HideCursor();
-#if !defined(SFML_SYSTEM_WINDOWS)
-	else
-	if ( m_window )
-		m_window->setMouseCursorVisible( visible );
-#endif
 }
 
 void FeWindow::set_view( const sf::View &view )
 {
-	if ( m_window )
-		m_window->setView( view );
+	(void)view;
 }
 
 bool FeWindow::save_screenshot( const std::string &filename )
@@ -1966,16 +1811,8 @@ bool FeWindow::save_screenshot( const std::string &filename )
 
 void FeWindow::clear()
 {
-	if ( owns_sdl_window() || !m_window )
-	{
 	m_overlay_geometry.clear();
 	m_overlay_images.clear();
-		return;
-	}
-
-#if !defined(SFML_SYSTEM_WINDOWS)
-	m_window->clear();
-#endif
 }
 
 void FeWindow::draw( const FeOverlayDrawItem &item, const sf::RenderStates &r )
@@ -2024,14 +1861,6 @@ std::optional<FeEvent> FeWindow::pollEvent()
 
 		return {};
 	}
-
-#if !defined(SFML_SYSTEM_WINDOWS)
-	if ( m_window )
-	{
-		if ( const std::optional event = m_window->pollEvent() )
-			return translate_sfml_event( *event );
-	}
-#endif
 
 	return {};
 }

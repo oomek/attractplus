@@ -579,6 +579,49 @@ void FeSdl3GpuContext::clear_layout_resources()
 	clear_textures();
 }
 
+bool FeSdl3GpuContext::present_blank_frame()
+{
+	if ( !is_available() )
+		return false;
+
+	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command_buffer )
+		return false;
+
+	SDL_GPUTexture *swapchain_texture = nullptr;
+	Uint32 swapchain_width = 0;
+	Uint32 swapchain_height = 0;
+	if ( !SDL_WaitAndAcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		return false;
+	}
+
+	if ( !swapchain_texture )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		return false;
+	}
+
+	SDL_GPUColorTargetInfo color_target = {};
+	color_target.texture = swapchain_texture;
+	color_target.mip_level = 0;
+	color_target.layer_or_depth_plane = 0;
+	color_target.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+	color_target.load_op = SDL_GPU_LOADOP_CLEAR;
+	color_target.store_op = SDL_GPU_STOREOP_STORE;
+
+	SDL_GPURenderPass *render_pass = SDL_BeginGPURenderPass( command_buffer, &color_target, 1, nullptr );
+	if ( !render_pass )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		return false;
+	}
+
+	SDL_EndGPURenderPass( render_pass );
+	return SDL_SubmitGPUCommandBuffer( command_buffer );
+}
+
 void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra_geometry )
 {
 	std::size_t geometry_count = m_frame.images.size();
@@ -3973,12 +4016,18 @@ void *FeSdl3GpuContext::get_native_window_handle() const
 	if ( !m_window )
 		return nullptr;
 
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SFML_SYSTEM_WINDOWS ) || defined( USE_XLIB )
 	SDL_PropertiesID props = SDL_GetWindowProperties( m_window );
 	if ( !props )
 		return nullptr;
 
+#if defined( SFML_SYSTEM_WINDOWS )
 	return SDL_GetPointerProperty( props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr );
+#else
+	return reinterpret_cast<void *>(
+		static_cast<std::uintptr_t>(
+			SDL_GetNumberProperty( props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0 ) ) );
+#endif
 #else
 	return nullptr;
 #endif
