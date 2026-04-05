@@ -34,7 +34,6 @@
 #include <SDL3/SDL.h>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/System/Vector2.hpp>
-#include <SFML/Window/Touch.hpp>
 
 namespace
 {
@@ -277,6 +276,34 @@ namespace
 		}
 
 		return static_cast<int>( SDL_SCANCODE_UNKNOWN );
+	}
+
+	bool fe_touch_is_down_internal()
+	{
+		int device_count = 0;
+		SDL_TouchID *devices = SDL_GetTouchDevices( &device_count );
+		if ( !devices || device_count <= 0 )
+		{
+			if ( devices )
+				SDL_free( devices );
+			return false;
+		}
+
+		bool is_down = false;
+
+		for ( int i = 0; i < device_count && !is_down; ++i )
+		{
+			int finger_count = 0;
+			SDL_Finger **fingers = SDL_GetTouchFingers( devices[i], &finger_count );
+			if ( fingers && finger_count > 0 )
+				is_down = true;
+
+			if ( fingers )
+				SDL_free( fingers );
+		}
+
+		SDL_free( devices );
+		return is_down;
 	}
 
 	std::optional<FeInputSingle> get_release_match_input(
@@ -802,7 +829,7 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 		}
 	}
 	else if ( m_type == Touch )
-		return sf::Touch::isDown( 0 );
+		return fe_touch_is_down_internal();
 	else // Joysticks
 	{
 		fe_joystick_update();

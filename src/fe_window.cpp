@@ -444,6 +444,19 @@ namespace
 		}
 	}
 
+	FeEvent::Vector2i sdl_touch_position_to_window( const SDL_TouchFingerEvent &event, SDL_Window *window )
+	{
+		int width = 0;
+		int height = 0;
+		if ( window )
+			SDL_GetWindowSize( window, &width, &height );
+
+		FeEvent::Vector2i position = {};
+		position.x = static_cast<int>( std::lround( event.x * static_cast<float>( std::max( width, 1 ) ) ) );
+		position.y = static_cast<int>( std::lround( event.y * static_cast<float>( std::max( height, 1 ) ) ) );
+		return position;
+	}
+
 	bool sdl_event_targets_window( const SDL_Event &event, Uint32 window_id )
 	{
 		switch ( event.type )
@@ -466,6 +479,11 @@ namespace
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 		case SDL_EVENT_MOUSE_BUTTON_UP:
 			return event.button.windowID == window_id;
+		case SDL_EVENT_FINGER_DOWN:
+		case SDL_EVENT_FINGER_UP:
+		case SDL_EVENT_FINGER_MOTION:
+		case SDL_EVENT_FINGER_CANCELED:
+			return event.tfinger.windowID == window_id;
 		default:
 			return true;
 		}
@@ -553,6 +571,25 @@ namespace
 			return FeEvent::MouseButtonReleased{
 				static_cast<int>( event.button.button ),
 				{ static_cast<int>( event.button.x ), static_cast<int>( event.button.y ) }
+			};
+
+		case SDL_EVENT_FINGER_MOTION:
+			return FeEvent::TouchMoved{
+				static_cast<unsigned int>( event.tfinger.fingerID ),
+				sdl_touch_position_to_window( event.tfinger, window )
+			};
+
+		case SDL_EVENT_FINGER_DOWN:
+			return FeEvent::TouchBegan{
+				static_cast<unsigned int>( event.tfinger.fingerID ),
+				sdl_touch_position_to_window( event.tfinger, window )
+			};
+
+		case SDL_EVENT_FINGER_UP:
+		case SDL_EVENT_FINGER_CANCELED:
+			return FeEvent::TouchEnded{
+				static_cast<unsigned int>( event.tfinger.fingerID ),
+				sdl_touch_position_to_window( event.tfinger, window )
 			};
 
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
