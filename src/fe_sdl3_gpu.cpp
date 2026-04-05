@@ -87,8 +87,36 @@ namespace
 		return true;
 	}
 
+	SDL_GPUBlendFactor to_sdl_blend_factor( FeBlend::Factor factor )
+	{
+		switch ( factor )
+		{
+			case FeBlend::Zero: return SDL_GPU_BLENDFACTOR_ZERO;
+			case FeBlend::One: return SDL_GPU_BLENDFACTOR_ONE;
+			case FeBlend::SrcAlpha: return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+			case FeBlend::OneMinusSrcAlpha: return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+			case FeBlend::SrcColor: return SDL_GPU_BLENDFACTOR_SRC_COLOR;
+			case FeBlend::OneMinusSrcColor: return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
+			case FeBlend::DstColor: return SDL_GPU_BLENDFACTOR_DST_COLOR;
+			default: return SDL_GPU_BLENDFACTOR_ONE;
+		}
+	}
+
+	SDL_GPUBlendOp to_sdl_blend_op( FeBlend::Equation equation )
+	{
+		switch ( equation )
+		{
+			case FeBlend::ReverseSubtractEquation: return SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
+			case FeBlend::AddEquation:
+			default:
+				return SDL_GPU_BLENDOP_ADD;
+		}
+	}
+
 	SDL_GPUColorTargetBlendState make_gpu_blend_state( int mode )
 	{
+		const FeBlend::State state = FeBlend::get_state( mode );
+
 		SDL_GPUColorTargetBlendState blend_state = {};
 		blend_state.color_write_mask =
 			SDL_GPU_COLORCOMPONENT_R |
@@ -96,62 +124,13 @@ namespace
 			SDL_GPU_COLORCOMPONENT_B |
 			SDL_GPU_COLORCOMPONENT_A;
 		blend_state.enable_color_write_mask = true;
-		blend_state.enable_blend = true;
-		blend_state.color_blend_op = SDL_GPU_BLENDOP_ADD;
-		blend_state.alpha_blend_op = SDL_GPU_BLENDOP_ADD;
-		blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-		blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-
-		switch ( mode )
-		{
-			case FeBlend::Add:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				break;
-			case FeBlend::Subtract:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.color_blend_op = SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
-				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.alpha_blend_op = SDL_GPU_BLENDOP_REVERSE_SUBTRACT;
-				break;
-			case FeBlend::Screen:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
-				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
-				break;
-			case FeBlend::Multiply:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-				break;
-			case FeBlend::Overlay:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_COLOR;
-				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_DST_COLOR;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_COLOR;
-				break;
-			case FeBlend::Premultiplied:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-				break;
-			case FeBlend::None:
-				blend_state.enable_blend = false;
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
-				blend_state.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE;
-				blend_state.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ZERO;
-				break;
-			case FeBlend::Alpha:
-			default:
-				blend_state.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA;
-				blend_state.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
-				break;
-		}
+		blend_state.enable_blend = state.enable_blend;
+		blend_state.src_color_blendfactor = to_sdl_blend_factor( state.src_color_factor );
+		blend_state.dst_color_blendfactor = to_sdl_blend_factor( state.dst_color_factor );
+		blend_state.color_blend_op = to_sdl_blend_op( state.color_equation );
+		blend_state.src_alpha_blendfactor = to_sdl_blend_factor( state.src_alpha_factor );
+		blend_state.dst_alpha_blendfactor = to_sdl_blend_factor( state.dst_alpha_factor );
+		blend_state.alpha_blend_op = to_sdl_blend_op( state.alpha_equation );
 
 		return blend_state;
 	}

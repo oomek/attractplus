@@ -23,8 +23,6 @@
 #ifndef FE_BLEND_HPP
 #define FE_BLEND_HPP
 
-#include <SFML/Graphics.hpp>
-
 class FeBlend
 {
 public:
@@ -40,7 +38,35 @@ public:
 		None
 	};
 
-	static sf::BlendMode get_blend_mode( int blend_mode );
+	enum Factor
+	{
+		Zero,
+		One,
+		SrcAlpha,
+		OneMinusSrcAlpha,
+		SrcColor,
+		OneMinusSrcColor,
+		DstColor
+	};
+
+	enum Equation
+	{
+		AddEquation,
+		ReverseSubtractEquation
+	};
+
+	struct State
+	{
+		bool enable_blend = true;
+		Factor src_color_factor = SrcAlpha;
+		Factor dst_color_factor = OneMinusSrcAlpha;
+		Equation color_equation = AddEquation;
+		Factor src_alpha_factor = One;
+		Factor dst_alpha_factor = OneMinusSrcAlpha;
+		Equation alpha_equation = AddEquation;
+	};
+
+	static State get_state( int blend_mode );
 	static bool uses_default_shader( int blend_mode );
 	static const char *get_default_shader_source( int blend_mode );
 

@@ -21,8 +21,6 @@
  */
 
 #include "fe_blend.hpp"
-#include "fe_util.hpp" // for FE_VERSION_INT macro
-#include "fe_base.hpp"
 
 namespace
 {
@@ -54,40 +52,66 @@ namespace
 		"gl_FragColor.xyz *= gl_Color.w;}";
 };
 
-sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
+FeBlend::State FeBlend::get_state( int blend_mode )
 {
+	State state;
+
 	switch( blend_mode )
 	{
 		case FeBlend::Add:
-			return sf::BlendAdd;
+			state.dst_color_factor = One;
+			state.dst_alpha_factor = One;
+			break;
 
 		case FeBlend::Subtract:
-			return sf::BlendMode(sf::BlendMode::Factor::SrcAlpha, sf::BlendMode::Factor::One, sf::BlendMode::Equation::ReverseSubtract,
-								 sf::BlendMode::Factor::One, sf::BlendMode::Factor::One, sf::BlendMode::Equation::ReverseSubtract);
+			state.dst_color_factor = One;
+			state.color_equation = ReverseSubtractEquation;
+			state.dst_alpha_factor = One;
+			state.alpha_equation = ReverseSubtractEquation;
+			break;
+
 		case FeBlend::Screen:
-			return sf::BlendMode(sf::BlendMode::Factor::One, sf::BlendMode::Factor::OneMinusSrcColor);
+			state.src_color_factor = One;
+			state.dst_color_factor = OneMinusSrcColor;
+			state.dst_alpha_factor = OneMinusSrcColor;
+			break;
 
 		case FeBlend::Multiply:
-			return sf::BlendMode(sf::BlendMode::Factor::DstColor, sf::BlendMode::Factor::OneMinusSrcAlpha);
+			state.src_color_factor = DstColor;
+			state.dst_color_factor = OneMinusSrcAlpha;
+			state.src_alpha_factor = DstColor;
+			break;
 
 		case FeBlend::Overlay:
-			return sf::BlendMode(sf::BlendMode::Factor::DstColor, sf::BlendMode::Factor::SrcColor);
+			state.src_color_factor = DstColor;
+			state.dst_color_factor = SrcColor;
+			state.src_alpha_factor = DstColor;
+			state.dst_alpha_factor = SrcColor;
+			break;
 
 		case FeBlend::Premultiplied:
-			return sf::BlendMode(sf::BlendMode::Factor::One, sf::BlendMode::Factor::OneMinusSrcAlpha);
+			state.src_color_factor = One;
+			break;
 
 		case FeBlend::None:
-			return sf::BlendNone;
+			state.enable_blend = false;
+			state.src_color_factor = One;
+			state.dst_color_factor = Zero;
+			state.src_alpha_factor = One;
+			state.dst_alpha_factor = Zero;
+			break;
 
 		case FeBlend::Alpha:
 		default:
-			return sf::BlendAlpha;
+			break;
 	}
+
+	return state;
 }
 
 bool FeBlend::uses_default_shader( int blend_mode )
 {
-	return ( get_default_shader_source( blend_mode ) != NULL );
+	return ( get_default_shader_source( blend_mode ) != nullptr );
 }
 
 const char *FeBlend::get_default_shader_source( int blend_mode )
@@ -104,7 +128,7 @@ const char *FeBlend::get_default_shader_source( int blend_mode )
 		case FeBlend::Premultiplied:
 			return DEFAULT_SHADER_GLSL_PREMULTIPLIED;
 		default:
-			return NULL;
+			return nullptr;
 	}
 }
 
