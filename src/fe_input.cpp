@@ -25,6 +25,7 @@
 #include "fe_settings.hpp"
 #include <iostream>
 #include <algorithm>
+#include <array>
 #include <iomanip>
 #include <limits.h>
 #include <cstring>
@@ -41,7 +42,7 @@ namespace
 	std::optional<FeEvent> g_last_touch;
 	bool g_touch_moved=false;
 
-	static std::vector< int > g_joyfemap( sf::Joystick::Count, 0 );
+	static std::vector< int > g_joyfemap( FeJoystick::Count, 0 );
 	int joymap2feid( int raw_id )
 	{
 		return g_joyfemap[ raw_id ];
@@ -49,7 +50,7 @@ namespace
 
 	int joymap2raw( int config_id )
 	{
-		for ( size_t i=0; i<sf::Joystick::Count; i++ )
+		for ( size_t i=0; i<FeJoystick::Count; i++ )
 		{
 			if ( g_joyfemap[i] == config_id )
 				return i;
@@ -63,13 +64,12 @@ namespace
 		size_t i=0;
 		std::vector < std::pair < int, std::string > >::iterator itr;
 		std::vector < std::pair < int, std::string  > > wl = joy_config;
-		bool mapped[ sf::Joystick::Count ];
+		std::array<bool, FeJoystick::Count> mapped = {};
 
 		// clear map structure
-		for ( i=0; i< sf::Joystick::Count; i++ )
+		for ( i=0; i< FeJoystick::Count; i++ )
 		{
-			g_joyfemap[i] = sf::Joystick::Count-1;
-			mapped[i] = false;
+			g_joyfemap[i] = static_cast<int>( FeJoystick::Count ) - 1;
 		}
 
 		// initialize structure telling us whether a slot is already mapped by the user
@@ -80,7 +80,7 @@ namespace
 
 		// update the map structure using supplied joy_config
 		//
-		for ( i=0; i< sf::Joystick::Count; i++ )
+		for ( i=0; i< FeJoystick::Count; i++ )
 		{
 			if ( fe_joystick_is_connected( i ) )
 			{
@@ -99,11 +99,11 @@ namespace
 		}
 
 		// Put any remaining unmapped joysticks in the lowest available "Default" slot
-		for ( i=0; i< sf::Joystick::Count; i++ )
+		for ( i=0; i< FeJoystick::Count; i++ )
 		{
-			if (( g_joyfemap[i] == sf::Joystick::Count-1 ) && ( fe_joystick_is_connected( i ) ))
+			if (( g_joyfemap[i] == static_cast<int>( FeJoystick::Count ) - 1 ) && ( fe_joystick_is_connected( i ) ))
 			{
-				for ( size_t j=0; j< sf::Joystick::Count; j++ )
+				for ( size_t j=0; j< FeJoystick::Count; j++ )
 				{
 					if ( !mapped[j] )
 					{
@@ -116,7 +116,7 @@ namespace
 		}
 
 		FeDebug() << "Joysticks after mapping: " << std::endl;
-		for ( i=0; i<sf::Joystick::Count; i++ )
+		for ( i=0; i<FeJoystick::Count; i++ )
 			FeDebug() << "ID: " << i << " => Joy" << g_joyfemap[i] << "("
 				<< fe_joystick_get_name( i )
 				<< ")" << std::endl;
@@ -393,48 +393,48 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const sf::IntRect &mc_rect, cons
 		const auto* event = e.getIf<FeEvent::JoystickMoved>();
 		if ( event && std::abs( event->position ) > joy_thresh )
 		{
-			switch ( static_cast<sf::Joystick::Axis>( event->axis ) )
+			switch ( static_cast<FeJoystick::Axis>( event->axis ) )
 			{
-				case sf::Joystick::Axis::X:
+				case FeJoystick::Axis::X:
 					m_code = ( event->position > 0 ) ? JoyRight : JoyLeft;
 					break;
 
-				case sf::Joystick::Axis::Y:
+				case FeJoystick::Axis::Y:
 					m_code = ( event->position > 0 ) ? JoyDown : JoyUp;
 					break;
 
 #ifdef SFML_SYSTEM_LINUX
-				case sf::Joystick::Axis::Z:
-				case sf::Joystick::Axis::R:
+				case FeJoystick::Axis::Z:
+				case FeJoystick::Axis::R:
 					if ( event->position < 0 )
 						return;
 
-					m_code = ( static_cast<sf::Joystick::Axis>( event->axis ) == sf::Joystick::Axis::Z )
+					m_code = ( static_cast<FeJoystick::Axis>( event->axis ) == FeJoystick::Axis::Z )
 						? JoyZPos : JoyRPos;
 					break;
 #else
-				case sf::Joystick::Axis::Z:
+				case FeJoystick::Axis::Z:
 					m_code = ( event->position > 0 ) ? JoyZPos : JoyZNeg;
 					break;
 
-				case sf::Joystick::Axis::R:
+				case FeJoystick::Axis::R:
 					m_code = ( event->position > 0 ) ? JoyRPos : JoyRNeg;
 					break;
 #endif
 
-				case sf::Joystick::Axis::U:
+				case FeJoystick::Axis::U:
 					m_code = ( event->position > 0 ) ? JoyUPos : JoyUNeg;
 					break;
 
-				case sf::Joystick::Axis::V:
+				case FeJoystick::Axis::V:
 					m_code = ( event->position > 0 ) ? JoyVPos : JoyVNeg;
 					break;
 
-				case sf::Joystick::Axis::PovX:
+				case FeJoystick::Axis::PovX:
 					m_code = ( event->position > 0 ) ? JoyPOVXPos : JoyPOVXNeg;
 					break;
 
-				case sf::Joystick::Axis::PovY:
+				case FeJoystick::Axis::PovY:
 					m_code = ( event->position > 0 ) ? JoyPOVYPos : JoyPOVYNeg;
 					break;
 
@@ -748,22 +748,22 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 		{
 			switch ( m_code )
 			{
-				case JoyLeft: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::X ) > joy_thresh );
-				case JoyRight: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::X ) > joy_thresh );
-				case JoyUp: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::Y ) > joy_thresh );
-				case JoyDown: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::Y ) > joy_thresh );
-				case JoyZPos: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::Z ) > joy_thresh );
-				case JoyZNeg: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::Z ) > joy_thresh );
-				case JoyRPos: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::R ) > joy_thresh );
-				case JoyRNeg: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::R ) > joy_thresh );
-				case JoyUPos: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::U ) > joy_thresh );
-				case JoyUNeg: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::U ) > joy_thresh );
-				case JoyVPos: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::V ) > joy_thresh );
-				case JoyVNeg: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::V ) > joy_thresh );
-				case JoyPOVXPos: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovX ) > joy_thresh );
-				case JoyPOVXNeg: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovX ) > joy_thresh );
-				case JoyPOVYPos: return ( fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovY ) > joy_thresh );
-				case JoyPOVYNeg: return ( -fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovY ) > joy_thresh );
+				case JoyLeft: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::X ) > joy_thresh );
+				case JoyRight: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::X ) > joy_thresh );
+				case JoyUp: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::Y ) > joy_thresh );
+				case JoyDown: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::Y ) > joy_thresh );
+				case JoyZPos: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::Z ) > joy_thresh );
+				case JoyZNeg: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::Z ) > joy_thresh );
+				case JoyRPos: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::R ) > joy_thresh );
+				case JoyRNeg: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::R ) > joy_thresh );
+				case JoyUPos: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::U ) > joy_thresh );
+				case JoyUNeg: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::U ) > joy_thresh );
+				case JoyVPos: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::V ) > joy_thresh );
+				case JoyVNeg: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::V ) > joy_thresh );
+				case JoyPOVXPos: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::PovX ) > joy_thresh );
+				case JoyPOVXNeg: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::PovX ) > joy_thresh );
+				case JoyPOVYPos: return ( fe_joystick_get_axis_position( id, FeJoystick::Axis::PovY ) > joy_thresh );
+				case JoyPOVYNeg: return ( -fe_joystick_get_axis_position( id, FeJoystick::Axis::PovY ) > joy_thresh );
 				default: return false;
 			}
 		}
@@ -793,22 +793,22 @@ int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 
 		switch ( m_code )
 		{
-			case JoyLeft: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::X ); break;
-			case JoyRight: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::X ); break;
-			case JoyUp: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::Y ); break;
-			case JoyDown: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::Y ); break;
-			case JoyZPos: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::Z ); break;
-			case JoyZNeg: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::Z ); break;
-			case JoyRPos: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::R ); break;
-			case JoyRNeg: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::R ); break;
-			case JoyUPos: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::U ); break;
-			case JoyUNeg: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::U ); break;
-			case JoyVPos: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::V ); break;
-			case JoyVNeg: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::V ); break;
-			case JoyPOVXPos: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovX ); break;
-			case JoyPOVXNeg: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovX ); break;
-			case JoyPOVYPos: temp = fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovY ); break;
-			case JoyPOVYNeg: temp = -fe_joystick_get_axis_position( id, sf::Joystick::Axis::PovY ); break;
+			case JoyLeft: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::X ); break;
+			case JoyRight: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::X ); break;
+			case JoyUp: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::Y ); break;
+			case JoyDown: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::Y ); break;
+			case JoyZPos: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::Z ); break;
+			case JoyZNeg: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::Z ); break;
+			case JoyRPos: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::R ); break;
+			case JoyRNeg: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::R ); break;
+			case JoyUPos: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::U ); break;
+			case JoyUNeg: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::U ); break;
+			case JoyVPos: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::V ); break;
+			case JoyVNeg: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::V ); break;
+			case JoyPOVXPos: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::PovX ); break;
+			case JoyPOVXNeg: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::PovX ); break;
+			case JoyPOVYPos: temp = fe_joystick_get_axis_position( id, FeJoystick::Axis::PovY ); break;
+			case JoyPOVYNeg: temp = -fe_joystick_get_axis_position( id, FeJoystick::Axis::PovY ); break;
 			default: break;
 		}
 
@@ -1649,7 +1649,7 @@ int FeInputMap::process_setting( const std::string &setting,
 			std::string joy_name;
 			token_helper( value, pos, joy_name );
 
-			if (( num >= 0 ) && ( num <= (int)sf::Joystick::Count ))
+			if (( num >= 0 ) && ( num <= static_cast<int>( FeJoystick::Count ) ))
 				m_joy_config.push_back( std::pair<int, std::string>( num, joy_name ) );
 		}
 

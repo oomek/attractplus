@@ -63,7 +63,7 @@ namespace
 		std::string name;
 	};
 
-	std::array<FeSdlJoystickSlot, sf::Joystick::Count> g_sdl_joystick_slots = {};
+	std::array<FeSdlJoystickSlot, FeJoystick::Count> g_sdl_joystick_slots = {};
 	bool g_sdl_joysticks_initialized = false;
 
 	bool ensure_sdl_joystick_subsystems()
@@ -157,18 +157,18 @@ namespace
 			SDL_free( joysticks );
 	}
 
-	int sdl_axis_index_from_sf( sf::Joystick::Axis axis )
+	int sdl_axis_index_from_fe( FeJoystick::Axis axis )
 	{
 		switch ( axis )
 		{
-		case sf::Joystick::Axis::X: return 0;
-		case sf::Joystick::Axis::Y: return 1;
-		case sf::Joystick::Axis::Z: return 2;
-		case sf::Joystick::Axis::R: return 3;
-		case sf::Joystick::Axis::U: return 4;
-		case sf::Joystick::Axis::V: return 5;
-		case sf::Joystick::Axis::PovX: return 6;
-		case sf::Joystick::Axis::PovY: return 7;
+		case FeJoystick::Axis::X: return 0;
+		case FeJoystick::Axis::Y: return 1;
+		case FeJoystick::Axis::Z: return 2;
+		case FeJoystick::Axis::R: return 3;
+		case FeJoystick::Axis::U: return 4;
+		case FeJoystick::Axis::V: return 5;
+		case FeJoystick::Axis::PovX: return 6;
+		case FeJoystick::Axis::PovY: return 7;
 		default: return -1;
 		}
 	}
@@ -181,17 +181,17 @@ namespace
 		return static_cast<float>( value ) * ( 100.0f / 32768.0f );
 	}
 
-	sf::Joystick::Axis sdl_gamepad_axis_to_sf( Uint8 axis )
+	FeJoystick::Axis sdl_gamepad_axis_to_fe( Uint8 axis )
 	{
 		switch ( axis )
 		{
-		case SDL_GAMEPAD_AXIS_LEFTX: return sf::Joystick::Axis::X;
-		case SDL_GAMEPAD_AXIS_LEFTY: return sf::Joystick::Axis::Y;
-		case SDL_GAMEPAD_AXIS_RIGHTX: return sf::Joystick::Axis::Z;
-		case SDL_GAMEPAD_AXIS_RIGHTY: return sf::Joystick::Axis::R;
-		case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: return sf::Joystick::Axis::U;
-		case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: return sf::Joystick::Axis::V;
-		default: return sf::Joystick::Axis::X;
+		case SDL_GAMEPAD_AXIS_LEFTX: return FeJoystick::Axis::X;
+		case SDL_GAMEPAD_AXIS_LEFTY: return FeJoystick::Axis::Y;
+		case SDL_GAMEPAD_AXIS_RIGHTX: return FeJoystick::Axis::Z;
+		case SDL_GAMEPAD_AXIS_RIGHTY: return FeJoystick::Axis::R;
+		case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: return FeJoystick::Axis::U;
+		case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: return FeJoystick::Axis::V;
+		default: return FeJoystick::Axis::X;
 		}
 	}
 
@@ -535,19 +535,19 @@ namespace
 		}
 	}
 
-	sf::Joystick::Axis sdl_joystick_axis_to_sf( Uint8 axis )
+	FeJoystick::Axis sdl_joystick_axis_to_fe( Uint8 axis )
 	{
 		switch ( axis )
 		{
-		case 0: return sf::Joystick::Axis::X;
-		case 1: return sf::Joystick::Axis::Y;
-		case 2: return sf::Joystick::Axis::Z;
-		case 3: return sf::Joystick::Axis::R;
-		case 4: return sf::Joystick::Axis::U;
-		case 5: return sf::Joystick::Axis::V;
-		case 6: return sf::Joystick::Axis::PovX;
-		case 7: return sf::Joystick::Axis::PovY;
-		default: return sf::Joystick::Axis::X;
+		case 0: return FeJoystick::Axis::X;
+		case 1: return FeJoystick::Axis::Y;
+		case 2: return FeJoystick::Axis::Z;
+		case 3: return FeJoystick::Axis::R;
+		case 4: return FeJoystick::Axis::U;
+		case 5: return FeJoystick::Axis::V;
+		case 6: return FeJoystick::Axis::PovX;
+		case 7: return FeJoystick::Axis::PovY;
+		default: return FeJoystick::Axis::X;
 		}
 	}
 
@@ -667,7 +667,7 @@ namespace
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jaxis.which ) );
 			return FeEvent::JoystickMoved{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				static_cast<int>( sdl_joystick_axis_to_sf( event.jaxis.axis ) ),
+				static_cast<int>( sdl_joystick_axis_to_fe( event.jaxis.axis ) ),
 				normalize_sdl_axis_value( event.jaxis.value )
 			};
 		}
@@ -703,7 +703,7 @@ namespace
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gaxis.which ) );
 			return FeEvent::JoystickMoved{
 				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				static_cast<int>( sdl_gamepad_axis_to_sf( event.gaxis.axis ) ),
+				static_cast<int>( sdl_gamepad_axis_to_fe( event.gaxis.axis ) ),
 				normalize_sdl_axis_value( event.gaxis.value )
 			};
 		}
@@ -798,8 +798,6 @@ void fe_joystick_update()
 {
 	if ( ensure_sdl_joystick_subsystems() )
 		sync_sdl_joystick_slots();
-	else
-		sf::Joystick::update();
 }
 
 void fe_joystick_refresh_devices()
@@ -815,65 +813,54 @@ void fe_joystick_shutdown()
 
 bool fe_joystick_is_connected( unsigned int joystick_id )
 {
-	if ( ensure_sdl_joystick_subsystems() )
-	{
-		sync_sdl_joystick_slots();
-		return joystick_id < g_sdl_joystick_slots.size()
-			&& g_sdl_joystick_slots[joystick_id].instance_id != 0
-			&& g_sdl_joystick_slots[joystick_id].joystick != nullptr;
-	}
+	if ( !ensure_sdl_joystick_subsystems() )
+		return false;
 
-	return ( joystick_id < sf::Joystick::Count ) && sf::Joystick::isConnected( joystick_id );
+	sync_sdl_joystick_slots();
+	return joystick_id < g_sdl_joystick_slots.size()
+		&& g_sdl_joystick_slots[joystick_id].instance_id != 0
+		&& g_sdl_joystick_slots[joystick_id].joystick != nullptr;
 }
 
 bool fe_joystick_is_button_pressed( unsigned int joystick_id, unsigned int button )
 {
-	if ( ensure_sdl_joystick_subsystems() )
-	{
-		sync_sdl_joystick_slots();
-		if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
-			return false;
+	if ( !ensure_sdl_joystick_subsystems() )
+		return false;
 
-		return SDL_GetJoystickButton( g_sdl_joystick_slots[joystick_id].joystick, static_cast<int>( button ) );
-	}
+	sync_sdl_joystick_slots();
+	if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
+		return false;
 
-	return sf::Joystick::isButtonPressed( joystick_id, button );
+	return SDL_GetJoystickButton( g_sdl_joystick_slots[joystick_id].joystick, static_cast<int>( button ) );
 }
 
-float fe_joystick_get_axis_position( unsigned int joystick_id, sf::Joystick::Axis axis )
+float fe_joystick_get_axis_position( unsigned int joystick_id, FeJoystick::Axis axis )
 {
-	if ( ensure_sdl_joystick_subsystems() )
-	{
-		sync_sdl_joystick_slots();
-		if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
-			return 0.0f;
+	if ( !ensure_sdl_joystick_subsystems() )
+		return 0.0f;
 
-		const int axis_index = sdl_axis_index_from_sf( axis );
-		if ( axis_index < 0 )
-			return 0.0f;
+	sync_sdl_joystick_slots();
+	if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
+		return 0.0f;
 
-		return normalize_sdl_axis_value(
-			SDL_GetJoystickAxis( g_sdl_joystick_slots[joystick_id].joystick, axis_index ) );
-	}
+	const int axis_index = sdl_axis_index_from_fe( axis );
+	if ( axis_index < 0 )
+		return 0.0f;
 
-	return sf::Joystick::getAxisPosition( joystick_id, axis );
+	return normalize_sdl_axis_value(
+		SDL_GetJoystickAxis( g_sdl_joystick_slots[joystick_id].joystick, axis_index ) );
 }
 
 std::string fe_joystick_get_name( unsigned int joystick_id )
 {
-	if ( ensure_sdl_joystick_subsystems() )
-	{
-		sync_sdl_joystick_slots();
-		if ( joystick_id >= g_sdl_joystick_slots.size() )
-			return "";
+	if ( !ensure_sdl_joystick_subsystems() )
+		return "";
 
-		return g_sdl_joystick_slots[joystick_id].name;
-	}
+	sync_sdl_joystick_slots();
+	if ( joystick_id >= g_sdl_joystick_slots.size() )
+		return "";
 
-	if ( joystick_id < sf::Joystick::Count && sf::Joystick::isConnected( joystick_id ) )
-		return sf::Joystick::getIdentification( joystick_id ).name.toAnsiString();
-
-	return "";
+	return g_sdl_joystick_slots[joystick_id].name;
 }
 
 int fe_joystick_translate_sdl_instance_id( int instance_id )

@@ -2041,7 +2041,7 @@ bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 			else if ( const auto* mov = ctx.move_event->getIf<FeEvent::JoystickMoved>() )
 			{
 				{
-					float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<sf::Joystick::Axis>( mov->axis ) );
+					float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<FeJoystick::Axis>( mov->axis ) );
 					if ( std::abs( pos ) > m_feSettings.get_joy_thresh() )
 						cont=true;
 				}
@@ -2399,7 +2399,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 			const auto* mov = joy_guard->getIf<FeEvent::JoystickMoved>();
 			if ( mov )
 			{
-				float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<sf::Joystick::Axis>( mov->axis ) );
+				float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<FeJoystick::Axis>( mov->axis ) );
 
 				if ( std::abs( pos ) < m_feSettings.get_joy_thresh() )
 					joy_guard = std::nullopt;

@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
 				const auto* mov = joy_guard->getIf<FeEvent::JoystickMoved>();
 				if ( mov )
 				{
-					float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<sf::Joystick::Axis>( mov->axis ) );
+					float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<FeJoystick::Axis>( mov->axis ) );
 					if ( std::abs( pos ) < feSettings.get_joy_thresh() )
 						joy_guard = std::nullopt;
 				}
@@ -1162,7 +1162,7 @@ int main(int argc, char *argv[])
 			else if ( move_event->is<FeEvent::JoystickMoved>() )
 			{
 				const auto* mov = move_event->getIf<FeEvent::JoystickMoved>();
-				float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<sf::Joystick::Axis>( mov->axis ) );
+				float pos = fe_joystick_get_axis_position( mov->joystickId, static_cast<FeJoystick::Axis>( mov->axis ) );
 				if ( std::abs( pos ) > feSettings.get_joy_thresh() )
 					cont=true;
 			}

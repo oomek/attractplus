@@ -26,6 +26,7 @@
 #include <SFML/Graphics/Rect.hpp>
 #include "fe_event.hpp"
 #include "fe_base.hpp"
+#include "fe_joystick.hpp"
 #include "fe_window.hpp"
 #include <vector>
 #include <map>
@@ -43,7 +44,7 @@ public:
 		Keyboard=0,
 		Mouse=1,
 		Touch=2,
-		Joystick0=3 // up to sf::Joystick::Count joysticks supported starting from Joystick0
+		Joystick0=3 // up to FeJoystick::Count joysticks supported starting from Joystick0
 	};
 
 	enum MouseCode
@@ -62,7 +63,7 @@ public:
 		JoyZPos, JoyZNeg, JoyRPos, JoyRNeg, JoyUPos, JoyUNeg, JoyVPos, JoyVNeg,
 		JoyPOVXPos, JoyPOVXNeg, JoyPOVYPos, JoyPOVYNeg,
 		JoyUp, JoyDown, JoyLeft, JoyRight,
-		JoyButton0 // up to sf::Joystick::ButtonCount buttons supported starting from JoyButton0
+		JoyButton0 // up to FeJoystick::ButtonCount buttons supported starting from JoyButton0
 	};
 
 	static const char *keyStrings[];

@@ -23,6 +23,7 @@
 #include "fe_config.hpp"
 #include "fe_info.hpp"
 #include "fe_settings.hpp"
+#include "fe_joystick.hpp"
 #include "fe_util.hpp"
 #include "fe_vm.hpp"
 #include "fe_cache.hpp"
@@ -1455,7 +1456,7 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 	std::string default_str = _( "Default" );
 	values.push_back( default_str ); // we assume this is the first entry in the vector
 
-	for ( size_t i=0; i < sf::Joystick::Count; i++ )
+	for ( size_t i=0; i < FeJoystick::Count; i++ )
 	{
 		if ( fe_joystick_is_connected( i ) )
 		{
@@ -1480,7 +1481,7 @@ void FeInputJoysticksMenu::get_options( FeConfigContext &ctx )
 		}
 	}
 
-	for ( int i=0; i < (int)sf::Joystick::Count; i++ )
+	for ( int i=0; i < static_cast<int>( FeJoystick::Count ); i++ )
 	{
 		std::string value = default_str;
 		std::string name = _( "Joystick $1", { as_str( i ) } );
@@ -1502,7 +1503,7 @@ bool FeInputJoysticksMenu::save( FeConfigContext &ctx )
 
 	joy_config.clear();
 
-	for ( size_t i=0; i < sf::Joystick::Count; i++ )
+	for ( size_t i=0; i < FeJoystick::Count; i++ )
 	{
 		if ( ctx.opt_list[ i].get_vindex() != 0 ) // we don't record anything if "Default" is selected for a slot
 			joy_config.push_back( std::pair < int, std::string >( i, ctx.opt_list[i].get_value() ) );
