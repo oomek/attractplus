@@ -25,11 +25,10 @@
 #include "fe_present.hpp"
 #include "fe_util.hpp"
 #include "fe_base.hpp"
-#include <SFML/System/InputStream.hpp>
 
 namespace
 {
-	bool read_stream_to_string( sf::InputStream &stream, std::string &out )
+	bool read_stream_to_string( FeInputStream &stream, std::string &out )
 	{
 		out.clear();
 
@@ -75,7 +74,7 @@ FeShader::FeShader()
 {
 }
 
-bool FeShader::load( sf::InputStream &vert, sf::InputStream &frag )
+bool FeShader::load( FeInputStream &vert, FeInputStream &frag )
 {
 	m_type = VertexAndFragment;
 	m_vertex_source_path.clear();
@@ -85,7 +84,7 @@ bool FeShader::load( sf::InputStream &vert, sf::InputStream &frag )
 		read_stream_to_string( frag, m_fragment_source_code );
 }
 
-bool FeShader::load( sf::InputStream &sh, Type t )
+bool FeShader::load( FeInputStream &sh, Type t )
 {
 	m_type = t;
 	m_vertex_source_path.clear();

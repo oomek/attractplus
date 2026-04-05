@@ -1,8 +1,7 @@
 #include "fe_font.hpp"
+#include "fe_file.hpp"
 
 #include <SFML/System/Err.hpp>
-#include <SFML/System/FileInputStream.hpp>
-#include <SFML/System/MemoryInputStream.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -23,7 +22,7 @@ constexpr unsigned int FE_FONT_PAGE_MAX_SIZE = 16384;
 
 unsigned long ft_read( FT_Stream rec, unsigned long offset, unsigned char *buffer, unsigned long count )
 {
-	auto *stream = static_cast<sf::InputStream *>( rec->descriptor.pointer );
+	auto *stream = static_cast<FeInputStream *>( rec->descriptor.pointer );
 	if ( stream->seek( offset ) == offset )
 	{
 		if ( count > 0 )
@@ -130,8 +129,8 @@ bool FeFont::openFromFile( const std::filesystem::path &filename )
 	using namespace std::string_view_literals;
 	cleanup();
 
-	const auto stream = std::make_shared<sf::FileInputStream>();
-	if ( !stream->open( filename ) )
+	const auto stream = std::make_shared<FeFileInputStream>( filename.string() );
+	if ( !stream->isOpen() )
 	{
 		sf::err() << "Failed to load font (failed to open file): " << std::strerror( errno ) << '\n'
 			<< filename.string() << std::endl;
@@ -157,7 +156,7 @@ bool FeFont::openFromMemory( const void *data, std::size_t size_in_bytes )
 		return false;
 	}
 
-	const auto memory_stream = std::make_shared<sf::MemoryInputStream>( data, size_in_bytes );
+	const auto memory_stream = std::make_shared<FeMemoryInputStream>( data, size_in_bytes );
 	if ( openFromStreamImpl( *memory_stream, "memory" ) )
 	{
 		m_stream = memory_stream;
@@ -167,7 +166,7 @@ bool FeFont::openFromMemory( const void *data, std::size_t size_in_bytes )
 	return false;
 }
 
-bool FeFont::openFromStream( sf::InputStream &stream )
+bool FeFont::openFromStream( FeInputStream &stream )
 {
 	if ( !stream.seek( 0 ).has_value() )
 	{
@@ -178,7 +177,7 @@ bool FeFont::openFromStream( sf::InputStream &stream )
 	return openFromStreamImpl( stream, "stream" );
 }
 
-bool FeFont::openFromStreamImpl( sf::InputStream &stream, const std::string &type )
+bool FeFont::openFromStreamImpl( FeInputStream &stream, const std::string &type )
 {
 	cleanup();
 

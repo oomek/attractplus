@@ -23,10 +23,10 @@
 #ifndef IMAGE_LOADER_HPP
 #define IMAGE_LOADER_HPP
 
-#include <SFML/System/InputStream.hpp>
 #include <SFML/System/Vector2.hpp>
 
 #include <atomic>
+#include "fe_input_stream.hpp"
 
 class FeImageLoader;
 class FeImageLoaderThread;
@@ -52,14 +52,14 @@ public:
 
 private:
 
-   sf::InputStream *m_stream;
+   FeInputStream *m_stream;
    std::atomic<int> m_ref_count;
    std::atomic<int> m_width;
    std::atomic<int> m_height;
    unsigned char *m_data;
    std::atomic<bool> m_loaded;
 
-   FeImageLoaderEntry( sf::InputStream *s );
+   FeImageLoaderEntry( FeInputStream *s );
    FeImageLoaderEntry( const FeImageLoaderEntry & );
    const FeImageLoaderEntry &operator=( const FeImageLoaderEntry & );
 
@@ -116,7 +116,7 @@ private:
 	FeImageLoader( const FeImageLoader & );
 	const FeImageLoader &operator=( const FeImageLoader & );
 
-	bool internal_load_image( const std::string &fn, sf::InputStream *stream, FeImageLoaderEntry **e );
+	bool internal_load_image( const std::string &fn, FeInputStream *stream, FeImageLoaderEntry **e );
 
 	FeImageLoaderImp *m_imp;
 };

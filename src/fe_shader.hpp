@@ -26,11 +26,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "fe_input_stream.hpp"
 class FeImage;
-namespace sf
-{
-	class InputStream;
-}
 
 bool fe_shaders_available();
 
@@ -46,8 +43,8 @@ public:
 	};
 
 	FeShader();
-	bool load( sf::InputStream &vert, sf::InputStream &frag );
-	bool load( sf::InputStream &sh, Type t );
+	bool load( FeInputStream &vert, FeInputStream &frag );
+	bool load( FeInputStream &sh, Type t );
 	bool load( const std::string &vert, const std::string &frag );
 	bool load( const std::string &sh, Type t );
 	bool loadFromMemory( const std::string &vert, const std::string &frag );

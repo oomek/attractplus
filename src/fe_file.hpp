@@ -24,19 +24,20 @@
 #define FE_FILE_HPP
 
 #include <string>
-#include <SFML/System/InputStream.hpp>
 #include <cstdio>
+#include "fe_input_stream.hpp"
 
-class FeFileInputStream : public sf::InputStream
+class FeFileInputStream : public FeInputStream
 {
 public:
 	FeFileInputStream( const std::string &fn );
 	~FeFileInputStream();
 
-	std::optional<std::size_t> read( void *data, std::size_t size );
-	std::optional<std::size_t> seek( std::size_t pos );
-	std::optional<std::size_t> tell();
-	std::optional<std::size_t> getSize();
+	bool isOpen() const;
+	std::optional<std::size_t> read( void *data, std::size_t size ) override;
+	std::optional<std::size_t> seek( std::size_t pos ) override;
+	std::optional<std::size_t> tell() override;
+	std::optional<std::size_t> getSize() override;
 
 private:
 	FILE *m_file;

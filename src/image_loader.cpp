@@ -20,8 +20,6 @@
  *
  */
 
-#include <SFML/System/InputStream.hpp>
-
 #include <list>
 #include <map>
 #include <queue>
@@ -46,24 +44,24 @@
 
 namespace
 {
-	// stb_image callbacks that operate on a sf::InputStream
+	// stb_image callbacks that operate on a FeInputStream
 	int read( void* user, char* data, int size )
 	{
-		sf::InputStream* stream = static_cast<sf::InputStream*>( user );
+		FeInputStream* stream = static_cast<FeInputStream*>( user );
 		auto result = stream->read( data, size );
 		return result.value_or(0);
 	}
 
 	void skip( void* user, int size )
 	{
-		sf::InputStream* stream = static_cast<sf::InputStream*>( user );
+		FeInputStream* stream = static_cast<FeInputStream*>( user );
 		auto position = stream->tell().value_or(0);
 		stream->seek( position + static_cast<std::size_t>( size ));
 	}
 
 	int eof( void* user )
 	{
-		sf::InputStream* stream = static_cast<sf::InputStream*>( user );
+		FeInputStream* stream = static_cast<FeInputStream*>( user );
 		auto pos = stream->tell().value_or(0);
 		auto size = stream->getSize().value_or(0);
 		return ( pos >= size ) ? 1 : 0;
@@ -297,8 +295,8 @@ void run_thread()
 			}
 
 			// Create file stream
-			sf::FileInputStream* fs = new sf::FileInputStream();
-			if ( !fs->open( filename ))
+			FeFileInputStream* fs = new FeFileInputStream( filename );
+			if ( !fs->isOpen() )
 			{
 				FeLog() << "Failed to open file: " << filename << std::endl;
 				delete fs;
@@ -457,7 +455,7 @@ public:
 	bool m_load_images_in_bg;
 };
 
-FeImageLoaderEntry::FeImageLoaderEntry( sf::InputStream *s )
+FeImageLoaderEntry::FeImageLoaderEntry( FeInputStream *s )
 		: m_stream( s ),
 		m_ref_count( 0 ),
 		m_width( 0 ),
@@ -544,8 +542,8 @@ bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEn
 	std::string file = fn;
 	std::replace( file.begin(), file.end(), '\\', '/' );
 
-	sf::FileInputStream* fs = new sf::FileInputStream();
-	if ( !fs->open( file ))
+	FeFileInputStream* fs = new FeFileInputStream( file );
+	if ( !fs->isOpen() )
 	{
 		FeLog() << "Failed to open file: " << file << std::endl;
 		return false;
@@ -554,7 +552,7 @@ bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEn
 	return internal_load_image( file, fs, e );
 }
 
-bool FeImageLoader::internal_load_image( const std::string &key, sf::InputStream *stream, FeImageLoaderEntry **e )
+bool FeImageLoader::internal_load_image( const std::string &key, FeInputStream *stream, FeImageLoaderEntry **e )
 {
 	FeImageLoaderEntry *temp_e( NULL );
 

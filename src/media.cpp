@@ -282,7 +282,7 @@ void FeMediaImp::close()
 	if ( m_io_ctx )
 	{
 		if ( m_io_ctx->opaque )
-			delete (FeFileInputStream *)( m_io_ctx->opaque );
+			delete static_cast<FeInputStream *>( m_io_ctx->opaque );
 
 		av_free( m_io_ctx->buffer );
 		av_free( m_io_ctx );
@@ -1198,7 +1198,7 @@ void FeMedia::setPan( float pan )
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
 {
-	sf::InputStream *z = (sf::InputStream *)opaque;
+	FeInputStream *z = static_cast<FeInputStream *>( opaque );
 
 	size_t bytes_read = z->read( buff, buff_size ).value_or(0);
 
@@ -1211,7 +1211,7 @@ int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
 // whence: SEEK_SET, SEEK_CUR, SEEK_END, and AVSEEK_SIZE
 size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 {
-	sf::InputStream *z = (sf::InputStream *)opaque;
+	FeInputStream *z = static_cast<FeInputStream *>( opaque );
 
 	switch ( whence )
 	{
@@ -1239,7 +1239,7 @@ size_t fe_media_seek( void *opaque, int64_t offset, int whence )
 bool FeMedia::open( const std::string &archive,
 	const std::string &name )
 {
-	FeFileInputStream *s = NULL;
+	FeInputStream *s = NULL;
 
 	if ( !archive.empty() )
 	{
@@ -1261,7 +1261,7 @@ bool FeMedia::open( const std::string &archive,
 			}
 		}
 
-		s = (FeFileInputStream *)z;
+		s = z;
 	}
 	else
 		s = new FeFileInputStream( name );

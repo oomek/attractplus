@@ -3,7 +3,6 @@
 
 #include <SFML/Graphics/Glyph.hpp>
 #include <SFML/Graphics/Rect.hpp>
-#include <SFML/System/InputStream.hpp>
 
 #include <filesystem>
 #include <memory>
@@ -13,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "fe_input_stream.hpp"
 
 class FeFont
 {
@@ -28,7 +28,7 @@ public:
 
 	bool openFromFile( const std::filesystem::path &filename );
 	bool openFromMemory( const void *data, std::size_t size_in_bytes );
-	bool openFromStream( sf::InputStream &stream );
+	bool openFromStream( FeInputStream &stream );
 	void clear();
 
 	const sf::Glyph &getGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness = 0 ) const;
@@ -77,7 +77,7 @@ private:
 	using PageTable = std::unordered_map<unsigned int, Page>;
 
 	void cleanup();
-	bool openFromStreamImpl( sf::InputStream &stream, const std::string &type );
+	bool openFromStreamImpl( FeInputStream &stream, const std::string &type );
 	Page &loadPage( unsigned int characterSize ) const;
 	sf::Glyph loadGlyph( char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness ) const;
 	sf::IntRect findGlyphRect( Page &page, sf::Vector2u size ) const;
@@ -89,7 +89,7 @@ private:
 	bool m_isSmooth;
 	mutable PageTable m_pages;
 	mutable std::vector<std::uint8_t> m_pixelBuffer;
-	std::shared_ptr<sf::InputStream> m_stream;
+	std::shared_ptr<FeInputStream> m_stream;
 };
 
 #endif

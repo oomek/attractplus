@@ -25,7 +25,7 @@
 
 #include <string>
 #include <vector>
-#include <SFML/System/InputStream.hpp>
+#include "fe_input_stream.hpp"
 
 typedef void *(*FE_ZIP_ALLOC_CALLBACK) ( size_t );
 bool fe_zip_open_to_buff(
@@ -63,7 +63,7 @@ bool get_archive_filename_with_base(
 extern const char *FE_ARCHIVE_EXT[];
 bool is_supported_archive( const std::string & );
 
-class FeZipStream : public sf::InputStream
+class FeZipStream : public FeInputStream
 {
 public:
 	FeZipStream();
@@ -72,10 +72,10 @@ public:
 	~FeZipStream();
 
 	bool open( const std::string &filename );
-	std::optional<std::size_t> read( void *data, size_t size ); // virtual
-	std::optional<std::size_t> seek( size_t position );
-	std::optional<std::size_t> tell();
-	std::optional<std::size_t> getSize();
+	std::optional<std::size_t> read( void *data, size_t size ) override;
+	std::optional<std::size_t> seek( size_t position ) override;
+	std::optional<std::size_t> tell() override;
+	std::optional<std::size_t> getSize() override;
 	void setArchive( const std::string &archive );
 	char *getData();
 
