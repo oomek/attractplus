@@ -28,9 +28,9 @@
 #include "fe_present.hpp"
 
 FeTextPrimitive::FeTextPrimitive( )
-	: m_texts( 1, sf::JustifyText( *FePresent::script_get_fep()->get_default_font() )),
+	: m_texts( 1, FeJustifyText( *FePresent::script_get_fep()->get_default_font() ) ),
 	m_align( Centre ),
-	m_justify( sf::JustifyText::None ),
+	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
 	m_lines_total( 1 ),
@@ -51,9 +51,9 @@ FeTextPrimitive::FeTextPrimitive(
 			sf::Color bgcolour,
 			unsigned int charactersize,
 			Alignment align )
-	: m_texts( 1, sf::JustifyText( *font )),
+	: m_texts( 1, FeJustifyText( *font ) ),
 	m_align( align ),
-	m_justify( sf::JustifyText::None ),
+	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
 	m_lines_total( 1 ),
@@ -164,7 +164,7 @@ void FeTextPrimitive::fit_string(
 	int running_width( 0 );
 	int kerning( 0 );
 
-	const FeGlyph *g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
+	const FeGlyph *g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & FeJustifyText::Bold );
 
 	if ( font->getLineSpacing( spacing ) > spacing )
 		spacing = font->getLineSpacing( spacing );
@@ -190,7 +190,7 @@ void FeTextPrimitive::fit_string(
 				running_total += kerning;
 			}
 
-			g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & sf::Text::Bold );
+			g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & FeJustifyText::Bold );
 			running_width = std::max( running_width, (int)( running_total + g->bounds.position.x + g->bounds.size.x ));
 			running_total += g->advance;
 
@@ -216,7 +216,7 @@ void FeTextPrimitive::fit_string(
 			j--;
 			kerning = font->getKerning( s[j], s[std::min( j + 1, (int)s.size() - 1 )], charsize );
 			running_total += kerning;
-			g = &font->getGlyph( s[j], charsize, m_texts[0].getStyle() & sf::Text::Bold );
+			g = &font->getGlyph( s[j], charsize, m_texts[0].getStyle() & FeJustifyText::Bold );
 			running_width = std::max( running_width, (int)( running_total + g->bounds.position.x + g->bounds.size.x ));
 			running_total += g->advance;
 		}
@@ -298,7 +298,7 @@ Vec2f FeTextPrimitive::setString(
 	// Calculate the number of lines we can fit in our RectShape
 	//
 	const FeFont *font = getFont();
-	const FeGlyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & sf::Text::Bold );
+	const FeGlyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & FeJustifyText::Bold );
 	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
 	const auto bg_position = m_bgRect.getPosition();
 	const auto bg_size = m_bgRect.getSize();
@@ -327,7 +327,7 @@ Vec2f FeTextPrimitive::setString(
 		position = -1;
 
 	if ( m_texts.size() > 1 )
-		m_texts.resize( 1, sf::JustifyText( *getFont() ));
+		m_texts.resize( 1, FeJustifyText( *getFont() ) );
 
 	//
 	// We cut the first line of text here
@@ -347,7 +347,7 @@ Vec2f FeTextPrimitive::setString(
 	}
 	m_texts[0].setString( sf::String::fromUtf32( t.data() + first_char, t.data() + first_char + ( last_char - first_char + 1 )));
 	m_texts[0].setWidth( fit_width );
-	m_texts[0].setJustify(( !newlines.empty() && newlines[0] ) ? sf::JustifyText::None : m_justify );
+	m_texts[0].setJustify(( !newlines.empty() && newlines[0] ) ? FeJustifyText::None : m_justify );
 
 	disp_cpos -= first_char;
 
@@ -367,11 +367,11 @@ Vec2f FeTextPrimitive::setString(
 			m_texts.push_back( m_texts[0] );
 			m_texts.back().setString( sf::String::fromUtf32( t.data() + first_char, t.data() + first_char + (last_char - first_char + 1 )));
 			m_texts.back().setWidth( fit_width );
-			m_texts.back().setJustify( newlines[i] ? sf::JustifyText::None : m_justify );
+			m_texts.back().setJustify( newlines[i] ? FeJustifyText::None : m_justify );
 			actual_line_count++;
 		}
 
-		m_texts.back().setJustify( sf::JustifyText::None ); // Don't justify last line
+		m_texts.back().setJustify( FeJustifyText::None ); // Don't justify last line
 	}
 
 	set_positions(); // We need to set the positions now for findCharacterPos() to work below
@@ -448,8 +448,8 @@ void FeTextPrimitive::set_positions() const
 		sf::Transform trans;
 		trans.rotate( m_bgRect.getRotation(), { rectPos.x, rectPos.y } );
 		const auto transformed = trans.transformPoint( { textPos.x, textPos.y } );
-		m_texts[i].setPosition( transformed );
-		m_texts[i].setRotation( m_bgRect.getRotation() );
+		m_texts[i].setPosition( transformed.x, transformed.y );
+		m_texts[i].setRotation( m_bgRect.getRotation().asDegrees() );
 	}
 
 	m_needs_pos_set = false;
@@ -490,7 +490,7 @@ namespace
 	void append_render_vertices(
 		std::vector<FeRenderGeometry> &geometry,
 		const sf::VertexArray &vertices,
-		const sf::Transform &transform,
+		const FeJustifyText &text,
 		const FeFont::TexturePageId *texture,
 		const Vec2u texture_size,
 		bool texture_smooth,
@@ -519,7 +519,7 @@ namespace
 		for ( std::size_t i = 0; i < vertices.getVertexCount(); ++i )
 		{
 			const sf::Vertex &source = vertices[i];
-			const auto position = transform.transformPoint( source.position );
+			const Vec2f position = text.transformPoint( Vec2f( source.position.x, source.position.y ) );
 
 			FeRenderVertex vertex = {};
 			vertex.x = position.x;
@@ -591,14 +591,14 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 		geometry.push_back( background );
 	}
 
-	for ( const sf::JustifyText &text : m_texts )
+	for ( const FeJustifyText &text : m_texts )
 	{
 		const FeFont::TexturePageId *texture = text.getTexturePageId();
 		const Vec2u texture_size = text.getTextureSize();
 		const bool texture_smooth = text.getFont().isSmooth();
 		const std::uint64_t texture_version = text.getTextureVersion();
-		append_render_vertices( geometry, text.getOutlineGeometry(), text.getTransform(), texture, texture_size, texture_smooth, texture_version, z );
-		append_render_vertices( geometry, text.getFillGeometry(), text.getTransform(), texture, texture_size, texture_smooth, texture_version, z );
+		append_render_vertices( geometry, text.getOutlineGeometry(), text, texture, texture_size, texture_smooth, texture_version, z );
+		append_render_vertices( geometry, text.getFillGeometry(), text, texture, texture_size, texture_smooth, texture_version, z );
 	}
 }
 
@@ -642,7 +642,7 @@ unsigned int FeTextPrimitive::getGlyphSize() const
 {
 	const FeFont *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
-	const FeGlyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & sf::Text::Bold );
+	const FeGlyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & FeJustifyText::Bold );
 	return floorf(glyph->bounds.size.y * m_texts[0].getScale().y);
 }
 

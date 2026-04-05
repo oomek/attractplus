@@ -23,7 +23,7 @@
 #ifndef TEXT_Primitive_HPP
 #define TEXT_Primitive_HPP
 
-#include "justify_text.hpp"
+#include "fe_justify_text.hpp"
 #include "fe_renderer.hpp"
 #include "fe_font.hpp"
 #include "fe_types.hpp"
@@ -124,7 +124,7 @@ public:
 
 private:
 	sf::RectangleShape m_bgRect;
-	mutable std::vector<sf::JustifyText> m_texts;
+	mutable std::vector<FeJustifyText> m_texts;
 	Alignment m_align;
 	int m_justify;
 

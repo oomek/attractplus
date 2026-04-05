@@ -1,37 +1,41 @@
-////////////////////////////////////////////////////////////
-//
-// SFML - Simple and Fast Multimedia Library
-// Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
-//
-// This software is provided 'as-is', without any express or implied warranty.
-// In no event will the authors be held liable for any damages arising from the use of this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it freely,
-// subject to the following restrictions:
-//
-// 1. The origin of this software must not be misrepresented;
-//    you must not claim that you wrote the original software.
-//    If you use this software in a product, an acknowledgment
-//    in the product documentation would be appreciated but is not required.
-//
-// 2. Altered source versions must be plainly marked as such,
-//    and must not be misrepresented as being the original software.
-//
-// 3. This notice may not be removed or altered from any source distribution.
-//
-////////////////////////////////////////////////////////////
+/*
+ *
+ *  Attract-Mode Plus frontend
+ *  Copyright (C) 2026 Chadnaut & Radek Dutkiewicz
+ *
+ *  This file is part of Attract-Mode Plus
+ *
+ *  Attract-Mode Plus is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Attract-Mode Plus is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Attract-Mode Plus.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
-//
-// Originally SFML 3.0.1 /include/SFML/Graphics/Text.cpp
-//
-// - Additions marked with 'AM+' comments
-//
-
-////////////////////////////////////////////////////////////
-// Headers
-////////////////////////////////////////////////////////////
-#include "justify_text.hpp" // AM+
+/*
+ * Adapted from SFML 3.0.1 Text.cpp.
+ * Original SFML notice:
+ *
+ * SFML - Simple and Fast Multimedia Library
+ * Copyright (C) 2007-2025 Laurent Gomila (laurent@sfml-dev.org)
+ *
+ * This software is provided 'as-is', without any express or implied warranty.
+ * In no event will the authors be held liable for any damages arising from
+ * the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the original SFML notice and restrictions.
+ */
+#include "fe_justify_text.hpp"
 #include "fe_types.hpp"
 
 #include <algorithm>
@@ -91,10 +95,8 @@ void addGlyphQuad( sf::VertexArray &vertices, const Vec2f &position, sf::Color c
 } // namespace
 
 
-namespace sf
-{
 ////////////////////////////////////////////////////////////
-JustifyText::JustifyText(const FeFont& font, String string, unsigned int characterSize) :
+FeJustifyText::FeJustifyText(const FeFont &font, sf::String string, unsigned int characterSize ) :
 m_string(std::move(string)),
 m_font(&font),
 m_characterSize(characterSize)
@@ -103,7 +105,7 @@ m_characterSize(characterSize)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setWidth(unsigned int width) // AM+
+void FeJustifyText::setWidth(unsigned int width) // AM+
 {
     if (m_width != width)
     {
@@ -114,7 +116,7 @@ void JustifyText::setWidth(unsigned int width) // AM+
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setJustify(std::uint32_t justify) // AM+
+void FeJustifyText::setJustify(std::uint32_t justify) // AM+
 {
     if (m_justify != justify)
     {
@@ -125,7 +127,7 @@ void JustifyText::setJustify(std::uint32_t justify) // AM+
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setString(const String& string)
+void FeJustifyText::setString( const sf::String &string )
 {
     if (m_string != string)
     {
@@ -136,7 +138,7 @@ void JustifyText::setString(const String& string)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setFont(const FeFont& font)
+void FeJustifyText::setFont(const FeFont& font)
 {
     if (m_font != &font)
     {
@@ -147,7 +149,7 @@ void JustifyText::setFont(const FeFont& font)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setCharacterSize(unsigned int size)
+void FeJustifyText::setCharacterSize(unsigned int size)
 {
     if (m_characterSize != size)
     {
@@ -158,7 +160,7 @@ void JustifyText::setCharacterSize(unsigned int size)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setLetterSpacing(float spacingFactor)
+void FeJustifyText::setLetterSpacing(float spacingFactor)
 {
     if (m_letterSpacingFactor != spacingFactor)
     {
@@ -169,7 +171,7 @@ void JustifyText::setLetterSpacing(float spacingFactor)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setLineSpacing(float spacingFactor)
+void FeJustifyText::setLineSpacing(float spacingFactor)
 {
     if (m_lineSpacingFactor != spacingFactor)
     {
@@ -180,7 +182,7 @@ void JustifyText::setLineSpacing(float spacingFactor)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setStyle(std::uint32_t style)
+void FeJustifyText::setStyle(std::uint32_t style)
 {
     if (m_style != style)
     {
@@ -191,7 +193,7 @@ void JustifyText::setStyle(std::uint32_t style)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setFillColor(Color color)
+void FeJustifyText::setFillColor( sf::Color color )
 {
     if (color != m_fillColor)
     {
@@ -209,7 +211,7 @@ void JustifyText::setFillColor(Color color)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setOutlineColor(Color color)
+void FeJustifyText::setOutlineColor( sf::Color color )
 {
     if (color != m_outlineColor)
     {
@@ -227,7 +229,7 @@ void JustifyText::setOutlineColor(Color color)
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::setOutlineThickness(float thickness)
+void FeJustifyText::setOutlineThickness(float thickness)
 {
     if (thickness != m_outlineThickness)
     {
@@ -238,84 +240,156 @@ void JustifyText::setOutlineThickness(float thickness)
 
 
 ////////////////////////////////////////////////////////////
-unsigned int JustifyText::getWidth() const // AM+
+unsigned int FeJustifyText::getWidth() const // AM+
 {
     return m_width;
 }
 
 
 ////////////////////////////////////////////////////////////
-std::uint32_t JustifyText::getJustify() const // AM+
+std::uint32_t FeJustifyText::getJustify() const // AM+
 {
     return m_justify;
 }
 
 
 ////////////////////////////////////////////////////////////
-const String& JustifyText::getString() const
+const sf::String &FeJustifyText::getString() const
 {
     return m_string;
 }
 
 
 ////////////////////////////////////////////////////////////
-const FeFont& JustifyText::getFont() const
+const FeFont& FeJustifyText::getFont() const
 {
     return *m_font;
 }
 
 
 ////////////////////////////////////////////////////////////
-unsigned int JustifyText::getCharacterSize() const
+unsigned int FeJustifyText::getCharacterSize() const
 {
     return m_characterSize;
 }
 
 
 ////////////////////////////////////////////////////////////
-float JustifyText::getLetterSpacing() const
+float FeJustifyText::getLetterSpacing() const
 {
     return m_letterSpacingFactor;
 }
 
 
 ////////////////////////////////////////////////////////////
-float JustifyText::getLineSpacing() const
+float FeJustifyText::getLineSpacing() const
 {
     return m_lineSpacingFactor;
 }
 
 
 ////////////////////////////////////////////////////////////
-std::uint32_t JustifyText::getStyle() const
+std::uint32_t FeJustifyText::getStyle() const
 {
     return m_style;
 }
 
 
 ////////////////////////////////////////////////////////////
-Color JustifyText::getFillColor() const
+sf::Color FeJustifyText::getFillColor() const
 {
     return m_fillColor;
 }
 
 
 ////////////////////////////////////////////////////////////
-Color JustifyText::getOutlineColor() const
+sf::Color FeJustifyText::getOutlineColor() const
 {
     return m_outlineColor;
 }
 
 
 ////////////////////////////////////////////////////////////
-float JustifyText::getOutlineThickness() const
+float FeJustifyText::getOutlineThickness() const
 {
     return m_outlineThickness;
 }
 
 
 ////////////////////////////////////////////////////////////
-::Vec2f JustifyText::findCharacterPos(std::size_t index) const
+void FeJustifyText::setPosition( const Vec2f &position )
+{
+	m_position = position;
+}
+
+
+////////////////////////////////////////////////////////////
+void FeJustifyText::setRotation( float angle )
+{
+	m_rotation = angle;
+}
+
+
+////////////////////////////////////////////////////////////
+void FeJustifyText::setScale( const Vec2f &scale )
+{
+	m_scale = scale;
+}
+
+
+////////////////////////////////////////////////////////////
+void FeJustifyText::setOrigin( const Vec2f &origin )
+{
+	m_origin = origin;
+}
+
+
+////////////////////////////////////////////////////////////
+Vec2f FeJustifyText::getPosition() const
+{
+	return m_position;
+}
+
+
+////////////////////////////////////////////////////////////
+float FeJustifyText::getRotation() const
+{
+	return m_rotation;
+}
+
+
+////////////////////////////////////////////////////////////
+Vec2f FeJustifyText::getScale() const
+{
+	return m_scale;
+}
+
+
+////////////////////////////////////////////////////////////
+Vec2f FeJustifyText::getOrigin() const
+{
+	return m_origin;
+}
+
+
+////////////////////////////////////////////////////////////
+Vec2f FeJustifyText::transformPoint( const Vec2f &point ) const
+{
+	const Vec2f local_point = point - m_origin;
+	const Vec2f scaled_point( local_point.x * m_scale.x, local_point.y * m_scale.y );
+
+	const float radians = m_rotation * ( 3.141592654f / 180.0f );
+	const float sine = std::sin( radians );
+	const float cosine = std::cos( radians );
+
+	return Vec2f(
+		( scaled_point.x * cosine ) - ( scaled_point.y * sine ) + m_position.x,
+		( scaled_point.x * sine ) + ( scaled_point.y * cosine ) + m_position.y );
+}
+
+
+////////////////////////////////////////////////////////////
+Vec2f FeJustifyText::findCharacterPos( std::size_t index ) const
 {
     // Adjust the index if it's out of range
     index = std::min(index, m_string.getSize());
@@ -328,7 +402,7 @@ float JustifyText::getOutlineThickness() const
     const float lineSpacing = m_font->getLineSpacing(m_characterSize) * m_lineSpacingFactor;
 
     // Compute the position
-    ::Vec2f       position;
+    Vec2f       position;
     std::uint32_t prevChar = 0;
     for (std::size_t i = 0; i < index; ++i)
     {
@@ -358,13 +432,12 @@ float JustifyText::getOutlineThickness() const
     }
 
     // Transform the position to global coordinates
-    const auto transformed = getTransform().transformPoint( { position.x, position.y } );
-    return ::Vec2f( transformed.x, transformed.y );
+    return transformPoint( position );
 }
 
 
 ////////////////////////////////////////////////////////////
-::FloatRect JustifyText::getLocalBounds() const
+FloatRect FeJustifyText::getLocalBounds() const
 {
     ensureGeometryUpdate();
 
@@ -373,25 +446,14 @@ float JustifyText::getOutlineThickness() const
 
 
 ////////////////////////////////////////////////////////////
-::FloatRect JustifyText::getGlobalBounds() const
+FloatRect FeJustifyText::getGlobalBounds() const
 {
-    const ::FloatRect local = getLocalBounds();
-    const auto p0 = getTransform().transformPoint( { local.position.x, local.position.y } );
-    const auto p1 = getTransform().transformPoint( { local.position.x + local.size.x, local.position.y } );
-    const auto p2 = getTransform().transformPoint( { local.position.x, local.position.y + local.size.y } );
-    const auto p3 = getTransform().transformPoint( { local.position.x + local.size.x, local.position.y + local.size.y } );
-
-    const float min_x = std::min( std::min( p0.x, p1.x ), std::min( p2.x, p3.x ) );
-    const float min_y = std::min( std::min( p0.y, p1.y ), std::min( p2.y, p3.y ) );
-    const float max_x = std::max( std::max( p0.x, p1.x ), std::max( p2.x, p3.x ) );
-    const float max_y = std::max( std::max( p0.y, p1.y ), std::max( p2.y, p3.y ) );
-
-    return ::FloatRect( min_x, min_y, max_x - min_x, max_y - min_y );
+	return transformRect( getLocalBounds() );
 }
 
 
 ////////////////////////////////////////////////////////////
-const VertexArray& JustifyText::getFillGeometry() const
+const sf::VertexArray &FeJustifyText::getFillGeometry() const
 {
     ensureGeometryUpdate();
     return m_vertices;
@@ -399,7 +461,7 @@ const VertexArray& JustifyText::getFillGeometry() const
 
 
 ////////////////////////////////////////////////////////////
-const VertexArray& JustifyText::getOutlineGeometry() const
+const sf::VertexArray &FeJustifyText::getOutlineGeometry() const
 {
     ensureGeometryUpdate();
     return m_outlineVertices;
@@ -407,7 +469,7 @@ const VertexArray& JustifyText::getOutlineGeometry() const
 
 
 ////////////////////////////////////////////////////////////
-const FeFont::TexturePageId* JustifyText::getTexturePageId() const
+const FeFont::TexturePageId* FeJustifyText::getTexturePageId() const
 {
     ensureGeometryUpdate();
     return m_font->getTexturePageId(m_characterSize);
@@ -415,19 +477,19 @@ const FeFont::TexturePageId* JustifyText::getTexturePageId() const
 
 
 ////////////////////////////////////////////////////////////
-::Vec2u JustifyText::getTextureSize() const
+Vec2u FeJustifyText::getTextureSize() const
 {
     ensureGeometryUpdate();
 
     unsigned int width = 0;
     unsigned int height = 0;
     m_font->getTextureSize(m_characterSize, width, height);
-    return ::Vec2u( width, height );
+    return Vec2u( width, height );
 }
 
 
 ////////////////////////////////////////////////////////////
-std::uint64_t JustifyText::getTextureVersion() const
+std::uint64_t FeJustifyText::getTextureVersion() const
 {
     ensureGeometryUpdate();
     return m_fontTextureId;
@@ -435,8 +497,25 @@ std::uint64_t JustifyText::getTextureVersion() const
 
 
 ////////////////////////////////////////////////////////////
+FloatRect FeJustifyText::transformRect( const FloatRect &rect ) const
+{
+	const Vec2f p0 = transformPoint( rect.position );
+	const Vec2f p1 = transformPoint( Vec2f( rect.position.x + rect.size.x, rect.position.y ) );
+	const Vec2f p2 = transformPoint( Vec2f( rect.position.x, rect.position.y + rect.size.y ) );
+	const Vec2f p3 = transformPoint( rect.position + rect.size );
+
+	const float min_x = std::min( std::min( p0.x, p1.x ), std::min( p2.x, p3.x ) );
+	const float min_y = std::min( std::min( p0.y, p1.y ), std::min( p2.y, p3.y ) );
+	const float max_x = std::max( std::max( p0.x, p1.x ), std::max( p2.x, p3.x ) );
+	const float max_y = std::max( std::max( p0.y, p1.y ), std::max( p2.y, p3.y ) );
+
+	return FloatRect( min_x, min_y, max_x - min_x, max_y - min_y );
+}
+
+
+////////////////////////////////////////////////////////////
 // Use the difference between bounds and width to update the spacing
-void JustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, bool isBold, float italicShear) const
+void FeJustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, bool isBold, float italicShear) const
 {
     if (m_width <= 0 ) return;
 
@@ -478,8 +557,8 @@ void JustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, b
             continue;
         }
         const FeGlyph &glyph = m_font->getGlyph(curChar, m_characterSize, isBold);
-        const ::Vec2f p1 = glyph.bounds.position;
-        const ::Vec2f p2 = glyph.bounds.position + glyph.bounds.size;
+        const Vec2f p1 = glyph.bounds.position;
+        const Vec2f p2 = glyph.bounds.position + glyph.bounds.size;
         minX = std::min(minX, x + p1.x - italicShear * p2.y);
         maxX = std::max(maxX, x + p2.x - italicShear * p1.y);
         x += glyph.advance + letterSpacing;
@@ -503,7 +582,7 @@ void JustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing, b
 
 
 ////////////////////////////////////////////////////////////
-void JustifyText::ensureGeometryUpdate() const
+void FeJustifyText::ensureGeometryUpdate() const
 {
     // Do nothing, if geometry has not changed and the font texture has not changed
     if (!m_geometryNeedUpdate && m_font->getTextureVersion(m_characterSize) == m_fontTextureId)
@@ -518,7 +597,7 @@ void JustifyText::ensureGeometryUpdate() const
     // Clear the previous geometry
     m_vertices.clear();
     m_outlineVertices.clear();
-    m_bounds = ::FloatRect();
+    m_bounds = FloatRect();
 
     // No text: nothing to draw
     if (m_string.isEmpty())
@@ -528,7 +607,7 @@ void JustifyText::ensureGeometryUpdate() const
     const bool  isBold             = m_style & Bold;
     const bool  isUnderlined       = m_style & Underlined;
     const bool  isStrikeThrough    = m_style & StrikeThrough;
-    const float italicShear        = (m_style & Italic) ? degrees(12).asRadians() : 0.f;
+    const float italicShear        = (m_style & Italic) ? sf::degrees( 12 ).asRadians() : 0.f;
     const float underlineOffset    = m_font->getUnderlinePosition(m_characterSize);
     const float underlineThickness = m_font->getUnderlineThickness(m_characterSize);
 
@@ -637,8 +716,8 @@ void JustifyText::ensureGeometryUpdate() const
         addGlyphQuad(m_vertices, Vec2f(px, y), m_fillColor, glyph, italicShear);
 
         // Update the current bounds
-        const ::Vec2f p1 = glyph.bounds.position;
-        const ::Vec2f p2 = glyph.bounds.position + glyph.bounds.size;
+        const Vec2f p1 = glyph.bounds.position;
+        const Vec2f p2 = glyph.bounds.position + glyph.bounds.size;
 
         minX = std::min(minX, x + p1.x - italicShear * p2.y);
         maxX = std::max(maxX, x + p2.x - italicShear * p1.y);
@@ -681,8 +760,7 @@ void JustifyText::ensureGeometryUpdate() const
     }
 
     // Update the bounding rectangle
-    m_bounds.position = ::Vec2f( minX, minY );
-    m_bounds.size = ::Vec2f( maxX - minX, maxY - minY );
+    m_bounds.position = Vec2f( minX, minY );
+    m_bounds.size = Vec2f( maxX - minX, maxY - minY );
 }
 
-} // namespace sf
