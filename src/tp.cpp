@@ -40,15 +40,15 @@ FeTextPrimitive::FeTextPrimitive( )
 	m_word_wrap( false ),
 	m_needs_pos_set( false )
 {
-	setColor( sf::Color::White );
-	setBgOutlineColor( sf::Color::Black );
-	setBgColor( sf::Color::Transparent );
+	setColor( Color::White );
+	setBgOutlineColor( Color::Black );
+	setBgColor( Color::Transparent );
 }
 
 FeTextPrimitive::FeTextPrimitive(
 			const FeFont *font,
-			sf::Color colour,
-			sf::Color bgcolour,
+			Color colour,
+			Color bgcolour,
 			unsigned int charactersize,
 			Alignment align )
 	: m_texts( 1, FeJustifyText( *font ) ),
@@ -89,46 +89,48 @@ void FeTextPrimitive::setFrom( const FeTextPrimitive &c )
 	m_needs_pos_set = c.m_needs_pos_set;
 }
 
-void FeTextPrimitive::setColor( sf::Color c )
+void FeTextPrimitive::setColor( Color c )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setFillColor( c );
 }
 
-sf::Color FeTextPrimitive::getColor() const
+Color FeTextPrimitive::getColor() const
 {
 	return m_texts[0].getFillColor();
 }
 
-void FeTextPrimitive::setBgColor( sf::Color c )
+void FeTextPrimitive::setBgColor( Color c )
 {
-	m_bgRect.setFillColor( c );
+	m_bgRect.setFillColor( sf::Color( c.r, c.g, c.b, c.a ) );
 }
 
-sf::Color FeTextPrimitive::getBgColor() const
+Color FeTextPrimitive::getBgColor() const
 {
-	return m_bgRect.getFillColor();
+	const sf::Color color = m_bgRect.getFillColor();
+	return Color( color.r, color.g, color.b, color.a );
 }
 
-void FeTextPrimitive::setOutlineColor( sf::Color c )
+void FeTextPrimitive::setOutlineColor( Color c )
 {
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 		m_texts[i].setOutlineColor( c );
 }
 
-sf::Color FeTextPrimitive::getOutlineColor() const
+Color FeTextPrimitive::getOutlineColor() const
 {
 	return m_texts[0].getOutlineColor();
 }
 
-void FeTextPrimitive::setBgOutlineColor( sf::Color c )
+void FeTextPrimitive::setBgOutlineColor( Color c )
 {
-	m_bgRect.setOutlineColor( c );
+	m_bgRect.setOutlineColor( sf::Color( c.r, c.g, c.b, c.a ) );
 }
 
-sf::Color FeTextPrimitive::getBgOutlineColor() const
+Color FeTextPrimitive::getBgOutlineColor() const
 {
-	return m_bgRect.getOutlineColor();
+	const sf::Color color = m_bgRect.getOutlineColor();
+	return Color( color.r, color.g, color.b, color.a );
 }
 
 void FeTextPrimitive::fit_string(
@@ -345,7 +347,10 @@ Vec2f FeTextPrimitive::setString(
 			actual_first_line++;
 		}
 	}
-	m_texts[0].setString( sf::String::fromUtf32( t.data() + first_char, t.data() + first_char + ( last_char - first_char + 1 )));
+	m_texts[0].setString(
+		std::basic_string<std::uint32_t>(
+			t.data() + first_char,
+			t.data() + first_char + ( last_char - first_char + 1 ) ) );
 	m_texts[0].setWidth( fit_width );
 	m_texts[0].setJustify(( !newlines.empty() && newlines[0] ) ? FeJustifyText::None : m_justify );
 
@@ -365,7 +370,10 @@ Vec2f FeTextPrimitive::setString(
 			if ( position >= (int)t.size() ) break;
 			fit_string( t, position, first_char, last_char, hard_wrap );
 			m_texts.push_back( m_texts[0] );
-			m_texts.back().setString( sf::String::fromUtf32( t.data() + first_char, t.data() + first_char + (last_char - first_char + 1 )));
+			m_texts.back().setString(
+				std::basic_string<std::uint32_t>(
+					t.data() + first_char,
+					t.data() + first_char + ( last_char - first_char + 1 ) ) );
 			m_texts.back().setWidth( fit_width );
 			m_texts.back().setJustify( newlines[i] ? FeJustifyText::None : m_justify );
 			actual_line_count++;
@@ -840,7 +848,7 @@ std::string FeTextPrimitive::getStringWrapped()
 
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
 	{
-		std::string utf8(reinterpret_cast<const char*>(m_texts[i].getString().toUtf8().data()), m_texts[i].getString().toUtf8().size());
+		const std::string utf8 = utf32_to_utf8( m_texts[i].getString() );
 		str += utf8;
 		str += "\n";
 	}

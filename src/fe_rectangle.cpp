@@ -54,7 +54,7 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_corner_auto( false ),
 	m_blend_mode( FeBlend::Alpha )
 {
-	setColor( sf::Color::White );
+	setColor( Color::White );
 	m_rect.setTextureRect( { { 0, 0 }, { 1, 1 } } );
 	scale();
 }
@@ -104,31 +104,35 @@ void FeRectangle::setRotation( float r )
 	}
 }
 
-sf::Color FeRectangle::getColor() const
+Color FeRectangle::getColor() const
 {
-	return m_rect.getFillColor();
+	const sf::Color fill = m_rect.getFillColor();
+	return Color( fill.r, fill.g, fill.b, fill.a );
 }
 
-sf::Color FeRectangle::getOutlineColor()
+Color FeRectangle::getOutlineColor()
 {
-	return m_rect.getOutlineColor();
+	const sf::Color outline = m_rect.getOutlineColor();
+	return Color( outline.r, outline.g, outline.b, outline.a );
 }
 
-void FeRectangle::setColor( sf::Color c )
+void FeRectangle::setColor( Color c )
 {
-	if ( c == m_rect.getFillColor() )
+	const sf::Color fill_color( c.r, c.g, c.b, c.a );
+	if ( fill_color == m_rect.getFillColor() )
 		return;
 
-	m_rect.setFillColor( c );
+	m_rect.setFillColor( fill_color );
 	FePresent::script_flag_redraw();
 }
 
-void FeRectangle::setOutlineColor( sf::Color c )
+void FeRectangle::setOutlineColor( Color c )
 {
-	if ( c == m_rect.getOutlineColor() )
+	const sf::Color outline_color( c.r, c.g, c.b, c.a );
+	if ( outline_color == m_rect.getOutlineColor() )
 		return;
 
-	m_rect.setOutlineColor( c );
+	m_rect.setOutlineColor( outline_color );
 	FePresent::script_flag_redraw();
 }
 
@@ -168,35 +172,35 @@ int FeRectangle::get_ola() const
 
 void FeRectangle::set_olr( int r )
 {
-	sf::Color c=getOutlineColor();
+	Color c=getOutlineColor();
 	c.r=r;
 	setOutlineColor(c);
 }
 
 void FeRectangle::set_olg( int g )
 {
-	sf::Color c=getOutlineColor();
+	Color c=getOutlineColor();
 	c.g=g;
 	setOutlineColor(c);
 }
 
 void FeRectangle::set_olb( int b )
 {
-	sf::Color c=getOutlineColor();
+	Color c=getOutlineColor();
 	c.b=b;
 	setOutlineColor(c);
 }
 
 void FeRectangle::set_ola( int a )
 {
-	sf::Color c=getOutlineColor();
+	Color c=getOutlineColor();
 	c.a=a;
 	setOutlineColor(c);
 }
 
 void FeRectangle::set_olrgb( int r, int g, int b )
 {
-	sf::Color c=getOutlineColor();
+	Color c=getOutlineColor();
 	c.r=r;
 	c.g=g;
 	c.b=b;

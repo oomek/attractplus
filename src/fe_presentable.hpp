@@ -30,11 +30,6 @@ class FeSettings;
 class FeShader;
 class FePresentableParent;
 
-namespace sf
-{
-	class Color;
-};
-
 class FeBasePresentable
 {
 public:
@@ -73,8 +68,8 @@ public:
 	virtual void setSize( const Vec2f & )=0;
 	virtual float getRotation() const=0;
 	virtual void setRotation( float )=0;
-	virtual sf::Color getColor() const=0;
-	virtual void setColor( sf::Color )=0;
+	virtual Color getColor() const=0;
+	virtual void setColor( Color )=0;
 	virtual int getIndexOffset() const;
 	virtual void setIndexOffset( int io );
 	virtual int getFilterOffset() const;

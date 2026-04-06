@@ -45,32 +45,31 @@
 #include <cstddef>
 #include <cstdint>
 
-
-namespace
-{
 // Add an underline or strikethrough line to the vertex array
 void addLine(sf::VertexArray& vertices,
              float            lineLength,
              float            lineTop,
-             sf::Color        color,
+             Color            color,
              float            offset,
              float            thickness,
              float            outlineThickness = 0)
 {
+    const sf::Color sf_color( color.r, color.g, color.b, color.a );
     const float top    = std::floor(lineTop + offset - (thickness / 2) + 0.5f);
     const float bottom = top + std::floor(thickness + 0.5f);
 
-    vertices.append({{-outlineThickness, top - outlineThickness}, color, {1.0f, 1.0f}});
-    vertices.append({{lineLength + outlineThickness, top - outlineThickness}, color, {1.0f, 1.0f}});
-    vertices.append({{-outlineThickness, bottom + outlineThickness}, color, {1.0f, 1.0f}});
-    vertices.append({{-outlineThickness, bottom + outlineThickness}, color, {1.0f, 1.0f}});
-    vertices.append({{lineLength + outlineThickness, top - outlineThickness}, color, {1.0f, 1.0f}});
-    vertices.append({{lineLength + outlineThickness, bottom + outlineThickness}, color, {1.0f, 1.0f}});
+    vertices.append({{-outlineThickness, top - outlineThickness}, sf_color, {1.0f, 1.0f}});
+    vertices.append({{lineLength + outlineThickness, top - outlineThickness}, sf_color, {1.0f, 1.0f}});
+    vertices.append({{-outlineThickness, bottom + outlineThickness}, sf_color, {1.0f, 1.0f}});
+    vertices.append({{-outlineThickness, bottom + outlineThickness}, sf_color, {1.0f, 1.0f}});
+    vertices.append({{lineLength + outlineThickness, top - outlineThickness}, sf_color, {1.0f, 1.0f}});
+    vertices.append({{lineLength + outlineThickness, bottom + outlineThickness}, sf_color, {1.0f, 1.0f}});
 }
 
 // Add a glyph quad to the vertex array
-void addGlyphQuad( sf::VertexArray &vertices, const Vec2f &position, sf::Color color, const FeGlyph &glyph, float italicShear )
+void addGlyphQuad( sf::VertexArray &vertices, const Vec2f &position, Color color, const FeGlyph &glyph, float italicShear )
 {
+    const sf::Color sf_color( color.r, color.g, color.b, color.a );
     const Vec2f padding(1.f, 1.f);
 
     const Vec2f p1( glyph.bounds.position.x - padding.x, glyph.bounds.position.y - padding.y );
@@ -85,18 +84,20 @@ void addGlyphQuad( sf::VertexArray &vertices, const Vec2f &position, sf::Color c
         static_cast<float>( glyph.textureRect.position.x + glyph.textureRect.size.x ) + padding.x,
         static_cast<float>( glyph.textureRect.position.y + glyph.textureRect.size.y ) + padding.y );
 
-    vertices.append({{ position.x + p1.x - italicShear * p1.y, position.y + p1.y }, color, {uv1.x, uv1.y}});
-    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, color, {uv2.x, uv1.y}});
-    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, color, {uv1.x, uv2.y}});
-    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, color, {uv1.x, uv2.y}});
-    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, color, {uv2.x, uv1.y}});
-    vertices.append({{ position.x + p2.x - italicShear * p2.y, position.y + p2.y }, color, {uv2.x, uv2.y}});
+    vertices.append({{ position.x + p1.x - italicShear * p1.y, position.y + p1.y }, sf_color, {uv1.x, uv1.y}});
+    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, sf_color, {uv2.x, uv1.y}});
+    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, sf_color, {uv1.x, uv2.y}});
+    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, sf_color, {uv1.x, uv2.y}});
+    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, sf_color, {uv2.x, uv1.y}});
+    vertices.append({{ position.x + p2.x - italicShear * p2.y, position.y + p2.y }, sf_color, {uv2.x, uv2.y}});
 }
-} // namespace
 
 
 ////////////////////////////////////////////////////////////
-FeJustifyText::FeJustifyText(const FeFont &font, sf::String string, unsigned int characterSize ) :
+FeJustifyText::FeJustifyText(
+	const FeFont &font,
+	std::basic_string<std::uint32_t> string,
+	unsigned int characterSize ) :
 m_string(std::move(string)),
 m_font(&font),
 m_characterSize(characterSize)
@@ -127,7 +128,7 @@ void FeJustifyText::setJustify(std::uint32_t justify) // AM+
 
 
 ////////////////////////////////////////////////////////////
-void FeJustifyText::setString( const sf::String &string )
+void FeJustifyText::setString( const std::basic_string<std::uint32_t> &string )
 {
     if (m_string != string)
     {
@@ -193,7 +194,7 @@ void FeJustifyText::setStyle(std::uint32_t style)
 
 
 ////////////////////////////////////////////////////////////
-void FeJustifyText::setFillColor( sf::Color color )
+void FeJustifyText::setFillColor( Color color )
 {
     if (color != m_fillColor)
     {
@@ -203,15 +204,16 @@ void FeJustifyText::setFillColor( sf::Color color )
         // (if geometry is updated anyway, we can skip this step)
         if (!m_geometryNeedUpdate)
         {
+            const sf::Color sf_color( m_fillColor.r, m_fillColor.g, m_fillColor.b, m_fillColor.a );
             for (std::size_t i = 0; i < m_vertices.getVertexCount(); ++i)
-                m_vertices[i].color = m_fillColor;
+                m_vertices[i].color = sf_color;
         }
     }
 }
 
 
 ////////////////////////////////////////////////////////////
-void FeJustifyText::setOutlineColor( sf::Color color )
+void FeJustifyText::setOutlineColor( Color color )
 {
     if (color != m_outlineColor)
     {
@@ -221,8 +223,9 @@ void FeJustifyText::setOutlineColor( sf::Color color )
         // (if geometry is updated anyway, we can skip this step)
         if (!m_geometryNeedUpdate)
         {
+            const sf::Color sf_color( m_outlineColor.r, m_outlineColor.g, m_outlineColor.b, m_outlineColor.a );
             for (std::size_t i = 0; i < m_outlineVertices.getVertexCount(); ++i)
-                m_outlineVertices[i].color = m_outlineColor;
+                m_outlineVertices[i].color = sf_color;
         }
     }
 }
@@ -254,7 +257,7 @@ std::uint32_t FeJustifyText::getJustify() const // AM+
 
 
 ////////////////////////////////////////////////////////////
-const sf::String &FeJustifyText::getString() const
+const std::basic_string<std::uint32_t> &FeJustifyText::getString() const
 {
     return m_string;
 }
@@ -296,14 +299,14 @@ std::uint32_t FeJustifyText::getStyle() const
 
 
 ////////////////////////////////////////////////////////////
-sf::Color FeJustifyText::getFillColor() const
+Color FeJustifyText::getFillColor() const
 {
     return m_fillColor;
 }
 
 
 ////////////////////////////////////////////////////////////
-sf::Color FeJustifyText::getOutlineColor() const
+Color FeJustifyText::getOutlineColor() const
 {
     return m_outlineColor;
 }
@@ -392,7 +395,7 @@ Vec2f FeJustifyText::transformPoint( const Vec2f &point ) const
 Vec2f FeJustifyText::findCharacterPos( std::size_t index ) const
 {
     // Adjust the index if it's out of range
-    index = std::min(index, m_string.getSize());
+    index = std::min(index, m_string.size());
 
     // Precompute the variables needed by the algorithm
     const bool  isBold          = m_style & Bold;
@@ -600,7 +603,7 @@ void FeJustifyText::ensureGeometryUpdate() const
     m_bounds = FloatRect();
 
     // No text: nothing to draw
-    if (m_string.isEmpty())
+    if (m_string.empty())
         return;
 
     // Compute values related to the text style
@@ -763,4 +766,3 @@ void FeJustifyText::ensureGeometryUpdate() const
     m_bounds.position = Vec2f( minX, minY );
     m_bounds.size = Vec2f( maxX - minX, maxY - minY );
 }
-

@@ -3518,7 +3518,7 @@ void FeVM::init_with_default_layout()
 
 	// Background movie artwork
 	FeImage *img = cb_add_artwork( "snap", 0, 0, flw, flh );
-	img->setColor( sf::Color( 255, 255, 255, 70 ) );
+	img->setColor( Color( 255, 255, 255, 70 ) );
 
 	// Game listbox
 	cb_add_listbox( 0, 0, flw, flh );

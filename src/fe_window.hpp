@@ -159,7 +159,7 @@ public:
 	void draw( const FeListBox &listbox, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeText &text, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeRectangle &rect, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth = true, const sf::Color &color = sf::Color::White );
+	void draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth = true, const Color &color = Color::White );
 	std::optional<FeEvent> pollEvent();
 
 	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }

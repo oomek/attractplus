@@ -3823,7 +3823,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case UIColor:
 	{
-		sf::Color col;
+		Color col;
 		if ( str_to_color( value, col ) )
 			color_to_rgb( col, m_ui_color );
 		break;

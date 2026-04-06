@@ -204,7 +204,7 @@ FeSpriteGeometry::FeSpriteGeometry()
 	  scale( 1.f, 1.f ),
 	  position( 0.f, 0.f ),
 	  origin( 0.f, 0.f, 0.f ),
-	  color( sf::Color::White ),
+	  color( Color::White ),
 	  rotation_x( 0.f ),
 	  rotation_y( 0.f ),
 	  rotation_z( 0.f ),

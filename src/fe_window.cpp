@@ -959,7 +959,7 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 	return true;
 }
 
-void FeWindow::draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth, const sf::Color &color )
+void FeWindow::draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth, const Color &color )
 {
 	if ( !owns_sdl_window() )
 		return;

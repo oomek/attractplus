@@ -42,10 +42,10 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/PrimitiveType.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
-#include <SFML/System/String.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "fe_font.hpp"
 #include "fe_types.hpp"
@@ -69,20 +69,26 @@ public:
 		Character = 2
 	};
 
-	explicit FeJustifyText( const FeFont &font, sf::String string = "", unsigned int characterSize = 30 );
-	FeJustifyText( const FeFont &&font, sf::String string = "", unsigned int characterSize = 30 ) = delete;
+	explicit FeJustifyText(
+		const FeFont &font,
+		std::basic_string<std::uint32_t> string = std::basic_string<std::uint32_t>(),
+		unsigned int characterSize = 30 );
+	FeJustifyText(
+		const FeFont &&font,
+		std::basic_string<std::uint32_t> string = std::basic_string<std::uint32_t>(),
+		unsigned int characterSize = 30 ) = delete;
 
 	void setWidth( unsigned int width );
 	void setJustify( std::uint32_t justify );
-	void setString( const sf::String &string );
+	void setString( const std::basic_string<std::uint32_t> &string );
 	void setFont( const FeFont &font );
 	void setFont( const FeFont &&font ) = delete;
 	void setCharacterSize( unsigned int size );
 	void setLetterSpacing( float spacingFactor );
 	void setLineSpacing( float spacingFactor );
 	void setStyle( std::uint32_t style );
-	void setFillColor( sf::Color color );
-	void setOutlineColor( sf::Color color );
+	void setFillColor( Color color );
+	void setOutlineColor( Color color );
 	void setOutlineThickness( float thickness );
 	void setPosition( const Vec2f &position );
 	void setPosition( float x, float y ) { setPosition( Vec2f( x, y ) ); }
@@ -94,14 +100,14 @@ public:
 
 	[[nodiscard]] unsigned int getWidth() const;
 	[[nodiscard]] std::uint32_t getJustify() const;
-	[[nodiscard]] const sf::String &getString() const;
+	[[nodiscard]] const std::basic_string<std::uint32_t> &getString() const;
 	[[nodiscard]] const FeFont &getFont() const;
 	[[nodiscard]] unsigned int getCharacterSize() const;
 	[[nodiscard]] float getLetterSpacing() const;
 	[[nodiscard]] float getLineSpacing() const;
 	[[nodiscard]] std::uint32_t getStyle() const;
-	[[nodiscard]] sf::Color getFillColor() const;
-	[[nodiscard]] sf::Color getOutlineColor() const;
+	[[nodiscard]] Color getFillColor() const;
+	[[nodiscard]] Color getOutlineColor() const;
 	[[nodiscard]] float getOutlineThickness() const;
 	[[nodiscard]] Vec2f getPosition() const;
 	[[nodiscard]] float getRotation() const;
@@ -124,14 +130,14 @@ private:
 
 	unsigned int m_width{ 0 };
 	std::uint32_t m_justify{ None };
-	sf::String m_string;
+	std::basic_string<std::uint32_t> m_string;
 	const FeFont *m_font{};
 	unsigned int m_characterSize{ 30 };
 	float m_letterSpacingFactor{ 1.0f };
 	float m_lineSpacingFactor{ 1.0f };
 	std::uint32_t m_style{ Regular };
-	sf::Color m_fillColor{ sf::Color::White };
-	sf::Color m_outlineColor{ sf::Color::Black };
+	Color m_fillColor{ Color::White };
+	Color m_outlineColor{ Color::Black };
 	float m_outlineThickness{ 0.0f };
 	mutable sf::VertexArray m_vertices{ sf::PrimitiveType::Triangles };
 	mutable sf::VertexArray m_outlineVertices{ sf::PrimitiveType::Triangles };

@@ -1365,7 +1365,7 @@ FeImage::FeImage(
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
-	m_color( sf::Color::White ),
+	m_color( Color::White ),
 	m_texture_rect( 0.f, 0.f, 0.f, 0.f ),
 	m_border( 0, 0, 0, 0 ),
 	m_padding( 0, 0, 0, 0 ),
@@ -1823,12 +1823,12 @@ void FeImage::setRotation( float r )
 	}
 }
 
-sf::Color FeImage::getColor() const
+Color FeImage::getColor() const
 {
 	return m_color;
 }
 
-void FeImage::setColor( sf::Color c )
+void FeImage::setColor( Color c )
 {
 	if ( c != m_color )
 	{

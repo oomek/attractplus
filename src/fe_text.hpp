@@ -49,8 +49,8 @@ public:
 	void setSize( int w, int h ) { return setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
 	float getRotation() const;
 	void setRotation( float );
-	sf::Color getColor() const;
-	void setColor( sf::Color );
+	Color getColor() const;
+	void setColor( Color );
 
 	// Overrides from base class:
 	//

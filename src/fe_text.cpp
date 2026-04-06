@@ -80,19 +80,19 @@ void FeText::setRotation( float r )
 	FePresent::script_do_update( this );
 }
 
-void FeText::setColor( sf::Color c )
+void FeText::setColor( Color c )
 {
 	if ( c != m_draw_text.getColor() )
 	{
 		m_draw_text.setColor( c );
-		sf::Color o = m_draw_text.getOutlineColor();
+		Color o = m_draw_text.getOutlineColor();
 		o.a = c.a;
 		m_draw_text.setOutlineColor( o );
 		FePresent::script_flag_redraw();
 	}
 }
 
-sf::Color FeText::getColor() const
+Color FeText::getColor() const
 {
 	return m_draw_text.getColor();
 }
@@ -372,7 +372,7 @@ const char *FeText::get_font()
 
 void FeText::set_bgr(int r)
 {
-	sf::Color c=m_draw_text.getBgColor();
+	Color c=m_draw_text.getBgColor();
 
 	if ( r != c.r )
 	{
@@ -384,7 +384,7 @@ void FeText::set_bgr(int r)
 
 void FeText::set_bgg(int g)
 {
-	sf::Color c=m_draw_text.getBgColor();
+	Color c=m_draw_text.getBgColor();
 
 	if ( g != c.g )
 	{
@@ -396,7 +396,7 @@ void FeText::set_bgg(int g)
 
 void FeText::set_bgb(int b)
 {
-	sf::Color c=m_draw_text.getBgColor();
+	Color c=m_draw_text.getBgColor();
 
 	if ( b != c.b )
 	{
@@ -408,13 +408,13 @@ void FeText::set_bgb(int b)
 
 void FeText::set_bga(int a)
 {
-	sf::Color c=m_draw_text.getBgColor();
+	Color c=m_draw_text.getBgColor();
 
 	if ( a != c.a )
 	{
 		c.a=a;
 		m_draw_text.setBgColor(c);
-		sf::Color o = m_draw_text.getBgOutlineColor();
+		Color o = m_draw_text.getBgOutlineColor();
 		o.a = c.a;
 		m_draw_text.setBgOutlineColor( o );
 		FePresent::script_flag_redraw();
@@ -423,7 +423,7 @@ void FeText::set_bga(int a)
 
 void FeText::set_bg_rgb(int r, int g, int b )
 {
-	sf::Color c=m_draw_text.getBgColor();
+	Color c=m_draw_text.getBgColor();
 
 	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
 	{
@@ -441,7 +441,7 @@ void FeText::set_bg_rgb(int r, int g, int b )
 
 void FeText::set_bg_outline_rgb(int r, int g, int b )
 {
-	sf::Color c=m_draw_text.getBgOutlineColor();
+	Color c=m_draw_text.getBgOutlineColor();
 
 	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
 	{
@@ -459,7 +459,7 @@ void FeText::set_bg_outline_rgb(int r, int g, int b )
 
 void FeText::set_outline_rgb(int r, int g, int b )
 {
-	sf::Color c=m_draw_text.getOutlineColor();
+	Color c=m_draw_text.getOutlineColor();
 
 	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
 	{

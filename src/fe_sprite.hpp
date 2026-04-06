@@ -23,8 +23,6 @@
 #ifndef FE_SPRITE_HPP
 #define FE_SPRITE_HPP
 
-#include <SFML/Graphics/Color.hpp>
-
 #include <vector>
 
 #include "fe_renderer.hpp"
@@ -101,7 +99,7 @@ struct FeSpriteGeometry
 	Vec2f scale;
 	Vec2f position;
 	Vec3f origin;
-	sf::Color color;
+	Color color;
 	float rotation_x;
 	float rotation_y;
 	float rotation_z;

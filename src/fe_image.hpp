@@ -368,8 +368,8 @@ public:
 	void setRotation( float );
 	float getRotation() const;
 
-	void setColor( sf::Color );
-	sf::Color getColor() const;
+	void setColor( Color );
+	Color getColor() const;
 
 	void setIndexOffset( int );
 	void rawset_index_offset( int io );
@@ -600,7 +600,7 @@ private:
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
 	mutable SqratArrayWrapper m_fft_array_wrapper;
 
-	sf::Color m_color;
+	Color m_color;
 	FloatRect m_texture_rect;
 	IntEdges m_border;
 	IntEdges m_padding;

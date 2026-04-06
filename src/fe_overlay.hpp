@@ -48,13 +48,13 @@ private:
 	FePresent &m_fePresent;
 	FeSoundSystem &m_soundSystem;
 
-	sf::Color m_bg_color;
-	sf::Color m_text_color;
-	sf::Color m_theme_color;
-	sf::Color m_letterbox_color;
-	sf::Color m_border_color;
-	sf::Color m_focus_color;
-	sf::Color m_blur_color;
+	Color m_bg_color;
+	Color m_text_color;
+	Color m_theme_color;
+	Color m_letterbox_color;
+	Color m_border_color;
+	Color m_focus_color;
+	Color m_blur_color;
 
 	bool m_overlay_is_on;
 	int m_overlay_list_index;
@@ -216,7 +216,7 @@ public:
 
 	void init();
 	void style_init();
-	void style_init( sf::Color theme_color );
+	void style_init( Color theme_color );
 
 };
 

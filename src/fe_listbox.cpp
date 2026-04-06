@@ -32,9 +32,9 @@ const std::string DEFAULT_FORMAT_STRING = "[Title]";
 
 FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	: FeBasePresentable( p ),
-	m_selColour( sf::Color::Yellow ),
-	m_selBg( sf::Color::Blue ),
-	m_selOutlineColour( sf::Color::Black ),
+	m_selColour( Color::Yellow ),
+	m_selBg( Color::Blue ),
+	m_selOutlineColour( Color::Black ),
 	m_selOutlineThickness( 0 ),
 	m_selStyle( FeJustifyText::Regular ),
 	m_rows( 11 ),
@@ -53,24 +53,24 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 {
 	m_base_text.setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) );
 	m_base_text.setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) );
-	m_base_text.setColor( sf::Color::White );
-	m_base_text.setBgColor( sf::Color::Transparent );
+	m_base_text.setColor( Color::White );
+	m_base_text.setBgColor( Color::Transparent );
 }
 
 FeListBox::FeListBox(
 		FePresentableParent &p,
 		const FeFont *font,
-		sf::Color colour,
-		sf::Color bgcolour,
-		sf::Color selcolour,
-		sf::Color selbgcolour,
+		Color colour,
+		Color bgcolour,
+		Color selcolour,
+		Color selbgcolour,
 		unsigned int charactersize,
 		int rows )
 	: FeBasePresentable( p ),
 	m_base_text( font, colour, bgcolour, charactersize, FeTextPrimitive::Centre ),
 	m_selColour( selcolour ),
 	m_selBg( selbgcolour ),
-	m_selOutlineColour( sf::Color::Black ),
+	m_selOutlineColour( Color::Black ),
 	m_selOutlineThickness( 0 ),
 	m_selStyle( FeJustifyText::Regular ),
 	m_rows( rows ),
@@ -136,7 +136,7 @@ float FeListBox::getRotation() const
 	return m_rotation;
 }
 
-sf::Color FeListBox::getColor() const
+Color FeListBox::getColor() const
 {
 	return m_base_text.getColor();
 }
@@ -160,15 +160,15 @@ float FeListBox::get_outline()
 void FeListBox::set_outline_rgb(int r, int g, int b )
 {
 	float a = getOutlineColor().a;
-	setOutlineColor( sf::Color( r, g, b, a ? a : 255 ) );
+	setOutlineColor( Color( r, g, b, a ? a : 255 ) );
 }
 
-sf::Color FeListBox::getOutlineColor() const
+Color FeListBox::getOutlineColor() const
 {
 	return m_base_text.getOutlineColor();
 }
 
-void FeListBox::setOutlineColor( sf::Color c )
+void FeListBox::setOutlineColor( Color c )
 {
 	if ( c == getOutlineColor() )
 		return;
@@ -198,15 +198,15 @@ float FeListBox::get_sel_outline()
 void FeListBox::set_sel_outline_rgb(int r, int g, int b )
 {
 	float a = getSelOutlineColor().a;
-	setSelOutlineColor( sf::Color( r, g, b, a ? a : 255 ) );
+	setSelOutlineColor( Color( r, g, b, a ? a : 255 ) );
 }
 
-sf::Color FeListBox::getSelOutlineColor() const
+Color FeListBox::getSelOutlineColor() const
 {
 	return m_selOutlineColour;
 }
 
-void FeListBox::setSelOutlineColor( sf::Color c )
+void FeListBox::setSelOutlineColor( Color c )
 {
 	if ( c == m_selOutlineColour )
 		return;
@@ -258,9 +258,9 @@ void FeListBox::init_dimensions()
 
 void FeListBox::update_styles()
 {
-	sf::Color color = m_base_text.getColor();
-	sf::Color bgColor = m_base_text.getBgColor();
-	sf::Color outlineColour = m_base_text.getOutlineColor();
+	Color color = m_base_text.getColor();
+	Color bgColor = m_base_text.getBgColor();
+	Color outlineColour = m_base_text.getOutlineColor();
 	float outlineThickness = m_base_text.getOutlineThickness();
 	int style = m_base_text.getStyle();
 
@@ -284,7 +284,7 @@ void FeListBox::update_styles()
 	}
 }
 
-void FeListBox::setColor( sf::Color c )
+void FeListBox::setColor( Color c )
 {
 	if ( c == m_base_text.getColor() )
 		return;
@@ -299,7 +299,7 @@ void FeListBox::setColor( sf::Color c )
 		FePresent::script_flag_redraw();
 }
 
-void FeListBox::setSelColor( sf::Color c )
+void FeListBox::setSelColor( Color c )
 {
 	if ( c == m_selColour )
 		return;
@@ -312,7 +312,7 @@ void FeListBox::setSelColor( sf::Color c )
 		FePresent::script_flag_redraw();
 }
 
-void FeListBox::setSelBgColor( sf::Color c )
+void FeListBox::setSelBgColor( Color c )
 {
 	if ( c == m_selBg )
 		return;
@@ -753,7 +753,7 @@ int FeListBox::get_margin()
 	return m_base_text.getMargin();
 }
 
-void FeListBox::setBgColor( sf::Color c )
+void FeListBox::setBgColor( Color c )
 {
 	if ( c == m_base_text.getBgColor() )
 		return;
@@ -769,35 +769,35 @@ void FeListBox::setBgColor( sf::Color c )
 
 void FeListBox::set_bgr(int r)
 {
-	sf::Color c=m_base_text.getBgColor();
+	Color c=m_base_text.getBgColor();
 	c.r=r;
 	setBgColor( c );
 }
 
 void FeListBox::set_bgg(int g)
 {
-	sf::Color c=m_base_text.getBgColor();
+	Color c=m_base_text.getBgColor();
 	c.g=g;
 	setBgColor( c );
 }
 
 void FeListBox::set_bgb(int b)
 {
-	sf::Color c=m_base_text.getBgColor();
+	Color c=m_base_text.getBgColor();
 	c.b=b;
 	setBgColor( c );
 }
 
 void FeListBox::set_bga(int a)
 {
-	sf::Color c=m_base_text.getBgColor();
+	Color c=m_base_text.getBgColor();
 	c.a=a;
 	setBgColor( c );
 }
 
 void FeListBox::set_bg_rgb(int r, int g, int b )
 {
-	sf::Color c=m_base_text.getBgColor();
+	Color c=m_base_text.getBgColor();
 	c.r=r;
 	c.g=g;
 	c.b=b;
@@ -920,35 +920,35 @@ int FeListBox::get_sela()
 
 void FeListBox::set_selr(int r)
 {
-	sf::Color c = m_selColour;
+	Color c = m_selColour;
 	c.r=r;
 	setSelColor( c );
 }
 
 void FeListBox::set_selg(int g)
 {
-	sf::Color c = m_selColour;
+	Color c = m_selColour;
 	c.g=g;
 	setSelColor( c );
 }
 
 void FeListBox::set_selb(int b)
 {
-	sf::Color c = m_selColour;
+	Color c = m_selColour;
 	c.b=b;
 	setSelColor( c );
 }
 
 void FeListBox::set_sela(int a)
 {
-	sf::Color c = m_selColour;
+	Color c = m_selColour;
 	c.a=a;
 	setSelColor( c );
 }
 
 void FeListBox::set_sel_rgb(int r, int g, int b )
 {
-	sf::Color c = m_selColour;
+	Color c = m_selColour;
 	c.r = r;
 	c.g = g;
 	c.b = b;
@@ -982,35 +982,35 @@ const char *FeListBox::get_font()
 
 void FeListBox::set_selbgr(int r)
 {
-	sf::Color c = m_selBg;
+	Color c = m_selBg;
 	c.r=r;
 	setSelBgColor( c );
 }
 
 void FeListBox::set_selbgg(int g)
 {
-	sf::Color c = m_selBg;
+	Color c = m_selBg;
 	c.g=g;
 	setSelBgColor( c );
 }
 
 void FeListBox::set_selbgb(int b)
 {
-	sf::Color c = m_selBg;
+	Color c = m_selBg;
 	c.b=b;
 	setSelBgColor( c );
 }
 
 void FeListBox::set_selbga(int a)
 {
-	sf::Color c = m_selBg;
+	Color c = m_selBg;
 	c.a=a;
 	setSelBgColor( c );
 }
 
 void FeListBox::set_selbg_rgb(int r, int g, int b )
 {
-	sf::Color c = m_selBg;
+	Color c = m_selBg;
 	c.r = r;
 	c.g = g;
 	c.b = b;

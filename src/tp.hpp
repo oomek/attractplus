@@ -45,17 +45,17 @@ public:
 	FeTextPrimitive();
 
 	FeTextPrimitive( const FeFont *font,
-			sf::Color colour,
-			sf::Color bgcolour,
+			Color colour,
+			Color bgcolour,
 			unsigned int charactersize,
 			Alignment align=Centre );
 
 	FeTextPrimitive( const FeTextPrimitive & );
 
-	void setColor( sf::Color );
-	void setBgColor( sf::Color );
-	void setOutlineColor( sf::Color );
-	void setBgOutlineColor( sf::Color );
+	void setColor( Color );
+	void setBgColor( Color );
+	void setOutlineColor( Color );
+	void setBgOutlineColor( Color );
 
 	void setString( const std::string & );	// does utf-8 conversion!
 
@@ -97,10 +97,10 @@ public:
 
 	const FeFont *getFont() const;
 	FloatRect getLocalBounds() const;
-	sf::Color getColor() const;
-	sf::Color getBgColor() const;
-	sf::Color getOutlineColor() const;
-	sf::Color getBgOutlineColor() const;
+	Color getColor() const;
+	Color getBgColor() const;
+	Color getOutlineColor() const;
+	Color getBgOutlineColor() const;
 	unsigned int getCharacterSize() const;
 	unsigned int getGlyphSize() const;
 	float getCharacterSpacing() const;

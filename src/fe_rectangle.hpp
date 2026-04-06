@@ -60,10 +60,10 @@ public:
 	void setSize( float w, float h ) { return setSize( Vec2f( w, h ) ); };
 	float getRotation() const;
 	void setRotation( float );
-	sf::Color getColor() const;
-	sf::Color getOutlineColor();
-	void setColor( sf::Color );
-	void setOutlineColor( sf::Color );
+	Color getColor() const;
+	Color getOutlineColor();
+	void setColor( Color );
+	void setOutlineColor( Color );
 
 	float get_outline();
 	void set_outline( float o );

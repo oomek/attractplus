@@ -374,21 +374,21 @@ void FeOverlay::init()
 void FeOverlay::style_init()
 {
 	// Defaults to the first uiColorTokens value, which is the class blue
-	sf::Color col;
+	Color col;
 	if ( !str_to_color( m_feSettings.get_info( FeSettings::UIColor ), col ))
 		str_to_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ], col );
 	style_init( col );
 }
 
-void FeOverlay::style_init( sf::Color theme_color )
+void FeOverlay::style_init( Color theme_color )
 {
 	m_theme_color = theme_color;
-	m_bg_color = sf::Color( 0, 0, 0, 230 );
-	m_text_color = sf::Color( 255, 255, 255, 255 );
-	m_letterbox_color = theme_color * sf::Color( 64, 64, 64, 255 );
-	m_border_color = theme_color * sf::Color( 192, 192, 192, 255 );
-	m_focus_color = theme_color * sf::Color( 160, 160, 160, 255 );
-	m_blur_color = theme_color * sf::Color( 88, 88, 88, 255 );
+	m_bg_color = Color( 0, 0, 0, 230 );
+	m_text_color = Color::White;
+	m_letterbox_color = theme_color * Color( 64, 64, 64, 255 );
+	m_border_color = theme_color * Color( 192, 192, 192, 255 );
+	m_focus_color = theme_color * Color( 160, 160, 160, 255 );
+	m_blur_color = theme_color * Color( 88, 88, 88, 255 );
 }
 
 // Simple overlay with message and footer
@@ -1160,7 +1160,7 @@ sf::RectangleShape FeOverlay::layout_background()
 	sf::RectangleShape rect;
 	rect.setPosition( { m_screen_pos.x, m_screen_pos.y } );
 	rect.setSize( { m_screen_size.x, m_screen_size.y } );
-	rect.setFillColor( m_bg_color );
+	rect.setFillColor( sf::Color( m_bg_color.r, m_bg_color.g, m_bg_color.b, m_bg_color.a ) );
 	return rect;
 }
 
@@ -1424,18 +1424,26 @@ FeListBox FeOverlay::layout_list( int style )
 
 void FeOverlay::theme_letterbox( sf::RectangleShape &rect )
 {
-	rect.setFillColor( m_letterbox_color );
+	rect.setFillColor( sf::Color(
+		m_letterbox_color.r,
+		m_letterbox_color.g,
+		m_letterbox_color.b,
+		m_letterbox_color.a ) );
 }
 
 void FeOverlay::theme_border( sf::RectangleShape &rect )
 {
-	rect.setFillColor( m_border_color );
+	rect.setFillColor( sf::Color(
+		m_border_color.r,
+		m_border_color.g,
+		m_border_color.b,
+		m_border_color.a ) );
 }
 
 void FeOverlay::theme_list( FeListBox &list )
 {
 	list.setColor( m_text_color );
-	list.setBgColor( sf::Color::Transparent );
+	list.setBgColor( Color::Transparent );
 	list.setSelColor( m_text_color );
 	list.setSelBgColor( m_focus_color );
 }
@@ -1752,7 +1760,7 @@ int FeOverlay::display_config_dialog(
 						// Special case for menu colour option only
 						if ( refresh_colour )
 						{
-							sf::Color col;
+							Color col;
 							str_to_color( FeSettings::uiColorTokens[ c.sel ], col );
 
 							style_init( col );
@@ -2161,7 +2169,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 	FeTextPrimitive cursor(
 		tp->getFont(),
 		tp->getColor(),
-		sf::Color::Transparent,
+		Color::Transparent,
 		static_cast<unsigned int>( tp->getCharacterSize() / tp->getTextScale().x ),
 		static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Left | FeTextPrimitive::Middle )
 	);
@@ -2454,7 +2462,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 		int ms = static_cast<int>( cursor_timer.getElapsedTime().asMilliseconds() );
 		int cursor_fade = std::clamp( sin( ms / 500.0 * M_PI ) * 2.0 + 1.0, 0.0, 1.0 ) * 255;
 
-		cursor.setColor( m_text_color * sf::Color( 255, 255, 255, cursor_fade ));
+		cursor.setColor( m_text_color * Color( 255, 255, 255, static_cast<std::uint8_t>( cursor_fade ) ) );
 
 		m_wnd.draw( cursor, t );
 		m_wnd.display();
