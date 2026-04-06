@@ -27,7 +27,6 @@
 #include "fe_renderer.hpp"
 #include "fe_font.hpp"
 #include "fe_types.hpp"
-#include <SFML/Graphics.hpp>
 #include <vector>
 
 class FeTextPrimitive
@@ -123,7 +122,12 @@ public:
 	void append_render_geometry( std::vector<FeRenderGeometry> &geometry, float z ) const;
 
 private:
-	sf::RectangleShape m_bgRect;
+	Vec2f m_bg_position;
+	Vec2f m_bg_size;
+	Color m_bg_color;
+	Color m_bg_outline_color;
+	float m_bg_outline_thickness;
+	float m_bg_rotation;
 	mutable std::vector<FeJustifyText> m_texts;
 	Alignment m_align;
 	int m_justify;

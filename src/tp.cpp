@@ -27,8 +27,34 @@
 
 #include "fe_present.hpp"
 
+namespace
+{
+	Vec2f rotate_point_around( const Vec2f &point, const Vec2f &origin, float degrees )
+	{
+		const float radians = degrees * ( 3.141592654f / 180.0f );
+		const float sine = std::sin( radians );
+		const float cosine = std::cos( radians );
+		const Vec2f offset = point - origin;
+
+		return Vec2f(
+			origin.x + ( offset.x * cosine ) - ( offset.y * sine ),
+			origin.y + ( offset.x * sine ) + ( offset.y * cosine ) );
+	}
+
+	Vec2f transform_bg_point( const Vec2f &position, float rotation, const Vec2f &local_point )
+	{
+		return rotate_point_around( position + local_point, position, rotation );
+	}
+}
+
 FeTextPrimitive::FeTextPrimitive( )
 	: m_texts( 1, FeJustifyText( *FePresent::script_get_fep()->get_default_font() ) ),
+	m_bg_position( 0.0f, 0.0f ),
+	m_bg_size( 0.0f, 0.0f ),
+	m_bg_color( Color::Transparent ),
+	m_bg_outline_color( Color::Black ),
+	m_bg_outline_thickness( 0.0f ),
+	m_bg_rotation( 0.0f ),
 	m_align( Centre ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
@@ -52,6 +78,12 @@ FeTextPrimitive::FeTextPrimitive(
 			unsigned int charactersize,
 			Alignment align )
 	: m_texts( 1, FeJustifyText( *font ) ),
+	m_bg_position( 0.0f, 0.0f ),
+	m_bg_size( 0.0f, 0.0f ),
+	m_bg_color( Color::Transparent ),
+	m_bg_outline_color( Color::Black ),
+	m_bg_outline_thickness( 0.0f ),
+	m_bg_rotation( 0.0f ),
 	m_align( align ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
@@ -75,7 +107,12 @@ FeTextPrimitive::FeTextPrimitive( const FeTextPrimitive &c )
 
 void FeTextPrimitive::setFrom( const FeTextPrimitive &c )
 {
-	m_bgRect = c.m_bgRect;
+	m_bg_position = c.m_bg_position;
+	m_bg_size = c.m_bg_size;
+	m_bg_color = c.m_bg_color;
+	m_bg_outline_color = c.m_bg_outline_color;
+	m_bg_outline_thickness = c.m_bg_outline_thickness;
+	m_bg_rotation = c.m_bg_rotation;
 	m_texts = c.m_texts;
 	m_align = c.m_align;
 	m_justify = c.m_justify,
@@ -102,13 +139,12 @@ Color FeTextPrimitive::getColor() const
 
 void FeTextPrimitive::setBgColor( Color c )
 {
-	m_bgRect.setFillColor( sf::Color( c.r, c.g, c.b, c.a ) );
+	m_bg_color = c;
 }
 
 Color FeTextPrimitive::getBgColor() const
 {
-	const sf::Color color = m_bgRect.getFillColor();
-	return Color( color.r, color.g, color.b, color.a );
+	return m_bg_color;
 }
 
 void FeTextPrimitive::setOutlineColor( Color c )
@@ -124,13 +160,12 @@ Color FeTextPrimitive::getOutlineColor() const
 
 void FeTextPrimitive::setBgOutlineColor( Color c )
 {
-	m_bgRect.setOutlineColor( sf::Color( c.r, c.g, c.b, c.a ) );
+	m_bg_outline_color = c;
 }
 
 Color FeTextPrimitive::getBgOutlineColor() const
 {
-	const sf::Color color = m_bgRect.getOutlineColor();
-	return Color( color.r, color.g, color.b, color.a );
+	return m_bg_outline_color;
 }
 
 void FeTextPrimitive::fit_string(
@@ -160,7 +195,7 @@ void FeTextPrimitive::fit_string(
 	const FeFont *font = getFont();
 	unsigned int charsize = m_texts[0].getCharacterSize();
 	unsigned int spacing = charsize;
-	float width = m_bgRect.getSize().x / m_texts[0].getScale().x;
+	float width = m_bg_size.x / m_texts[0].getScale().x;
 
 	int running_total( 0 );
 	int running_width( 0 );
@@ -302,16 +337,14 @@ Vec2f FeTextPrimitive::setString(
 	const FeFont *font = getFont();
 	const FeGlyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & FeJustifyText::Bold );
 	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
-	const auto bg_position = m_bgRect.getPosition();
-	const auto bg_size = m_bgRect.getSize();
-	FloatRect rectSize( bg_position.x, bg_position.y, bg_size.x, bg_size.y );
+	FloatRect rectSize( m_bg_position.x, m_bg_position.y, m_bg_size.x, m_bg_size.y );
 	int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
 
 	float margin = ( m_margin < 0 )
 		? font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y
 		: m_margin * 2.0;
 
-	float fit_width = m_bgRect.getSize().x - margin;
+	float fit_width = m_bg_size.x - margin;
 	float fit_height = ( m_align & ( Top | Bottom | Middle ))
 		? rectSize.size.y + spacing - glyphSize - margin
 		: rectSize.size.y;
@@ -409,10 +442,8 @@ void FeTextPrimitive::set_positions() const
 	int margin = ( m_margin < 0 ) ? floorf( font->getLineSpacing( charSize ) / 2.0 ) : m_margin;
 	spacing = getLineSpacingFactored( font, spacing );
 
-	const auto bg_position = m_bgRect.getPosition();
-	const auto bg_size = m_bgRect.getSize();
-	Vec2f rectPos( bg_position.x, bg_position.y );
-	FloatRect rectSize( bg_position.x, bg_position.y, bg_size.x, bg_size.y );
+	Vec2f rectPos( m_bg_position );
+	FloatRect rectSize( m_bg_position.x, m_bg_position.y, m_bg_size.x, m_bg_size.y );
 
 	for ( int i=0; i < (int)m_texts.size(); i++ )
 	{
@@ -453,11 +484,9 @@ void FeTextPrimitive::set_positions() const
 		if ( m_align & Left ) textPos.x += margin;
 		if ( m_align & Right ) textPos.x -= margin;
 
-		sf::Transform trans;
-		trans.rotate( m_bgRect.getRotation(), { rectPos.x, rectPos.y } );
-		const auto transformed = trans.transformPoint( { textPos.x, textPos.y } );
+		const Vec2f transformed = rotate_point_around( textPos, rectPos, m_bg_rotation );
 		m_texts[i].setPosition( transformed.x, transformed.y );
-		m_texts[i].setRotation( m_bgRect.getRotation().asDegrees() );
+		m_texts[i].setRotation( m_bg_rotation );
 	}
 
 	m_needs_pos_set = false;
@@ -497,7 +526,7 @@ namespace
 {
 	void append_render_vertices(
 		std::vector<FeRenderGeometry> &geometry,
-		const sf::VertexArray &vertices,
+		const std::vector<FeRenderVertex> &vertices,
 		const FeJustifyText &text,
 		const FeFont::TexturePageId *texture,
 		const Vec2u texture_size,
@@ -505,7 +534,7 @@ namespace
 		std::uint64_t texture_version,
 		float z )
 	{
-		if ( vertices.getVertexCount() == 0 )
+		if ( vertices.empty() )
 			return;
 
 		FeRenderGeometry drawable;
@@ -522,23 +551,22 @@ namespace
 		drawable.textured = ( texture != nullptr );
 		drawable.texture_dynamic = ( texture != nullptr );
 		drawable.texture_content_version = texture_version;
-		drawable.vertices.reserve( vertices.getVertexCount() );
+		drawable.vertices.reserve( vertices.size() );
 
-		for ( std::size_t i = 0; i < vertices.getVertexCount(); ++i )
+		for ( const FeRenderVertex &source : vertices )
 		{
-			const sf::Vertex &source = vertices[i];
-			const Vec2f position = text.transformPoint( Vec2f( source.position.x, source.position.y ) );
+			const Vec2f position = text.transformPoint( Vec2f( source.x, source.y ) );
 
 			FeRenderVertex vertex = {};
 			vertex.x = position.x;
 			vertex.y = position.y;
 			vertex.z = z;
-			vertex.u = source.texCoords.x;
-			vertex.v = source.texCoords.y;
-			vertex.r = source.color.r;
-			vertex.g = source.color.g;
-			vertex.b = source.color.b;
-			vertex.a = source.color.a;
+			vertex.u = source.u;
+			vertex.v = source.v;
+			vertex.r = source.r;
+			vertex.g = source.g;
+			vertex.b = source.b;
+			vertex.a = source.a;
 			drawable.vertices.push_back( vertex );
 		}
 
@@ -551,11 +579,8 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 	if ( m_needs_pos_set )
 		set_positions();
 
-	if ( m_bgRect.getFillColor().a > 0 )
+	if ( m_bg_color.a > 0 || ( m_bg_outline_thickness != 0.0f && m_bg_outline_color.a > 0 ) )
 	{
-		const sf::Transform transform = m_bgRect.getTransform();
-		const sf::Color color = m_bgRect.getFillColor();
-
 		FeRenderGeometry background;
 		background.texture_id = nullptr;
 		background.texture_width = 1.0f;
@@ -566,34 +591,65 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 		background.textured = false;
 		background.texture_dynamic = false;
 		background.texture_mipmap = false;
-		background.vertices.reserve( 6 );
-
-		const auto p0 = transform.transformPoint( { 0.0f, 0.0f } );
-		const auto p1 = transform.transformPoint( { m_bgRect.getSize().x, 0.0f } );
-		const auto p2 = transform.transformPoint( { 0.0f, m_bgRect.getSize().y } );
-		const auto p3 = transform.transformPoint( m_bgRect.getSize() );
-		const Vec2f positions[6] = {
-			Vec2f( p0.x, p0.y ),
-			Vec2f( p1.x, p1.y ),
-			Vec2f( p2.x, p2.y ),
-			Vec2f( p2.x, p2.y ),
-			Vec2f( p1.x, p1.y ),
-			Vec2f( p3.x, p3.y )
+		auto append_quad = [&]( const Vec2f &a, const Vec2f &b, const Vec2f &c, const Vec2f &d, const Color &color )
+		{
+			const Vec2f positions[6] = { a, b, c, c, b, d };
+			for ( const Vec2f &position : positions )
+			{
+				FeRenderVertex vertex = {};
+				vertex.x = position.x;
+				vertex.y = position.y;
+				vertex.z = z;
+				vertex.u = 0.0f;
+				vertex.v = 0.0f;
+				vertex.r = color.r;
+				vertex.g = color.g;
+				vertex.b = color.b;
+				vertex.a = color.a;
+				background.vertices.push_back( vertex );
+			}
 		};
 
-		for ( const Vec2f &position : positions )
+		if ( m_bg_outline_thickness != 0.0f && m_bg_outline_color.a > 0 )
 		{
-			FeRenderVertex vertex = {};
-			vertex.x = position.x;
-			vertex.y = position.y;
-			vertex.z = z;
-			vertex.u = 0.0f;
-			vertex.v = 0.0f;
-			vertex.r = color.r;
-			vertex.g = color.g;
-			vertex.b = color.b;
-			vertex.a = color.a;
-			background.vertices.push_back( vertex );
+			const float outline = std::abs( m_bg_outline_thickness );
+			if ( outline > 0.0f )
+			{
+				const bool outward = ( m_bg_outline_thickness > 0.0f );
+				const Vec2f outer_pos = outward ? Vec2f( -outline, -outline ) : Vec2f( 0.0f, 0.0f );
+				const Vec2f outer_size = outward
+					? Vec2f( m_bg_size.x + outline * 2.0f, m_bg_size.y + outline * 2.0f )
+					: m_bg_size;
+				const Vec2f inner_pos = outward ? Vec2f( 0.0f, 0.0f ) : Vec2f( outline, outline );
+				const Vec2f inner_size = outward
+					? m_bg_size
+					: Vec2f( std::max( 0.0f, m_bg_size.x - outline * 2.0f ), std::max( 0.0f, m_bg_size.y - outline * 2.0f ) );
+
+				const Vec2f o0 = transform_bg_point( m_bg_position, m_bg_rotation, outer_pos );
+				const Vec2f o1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( outer_pos.x + outer_size.x, outer_pos.y ) );
+				const Vec2f o2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( outer_pos.x, outer_pos.y + outer_size.y ) );
+				const Vec2f o3 = transform_bg_point( m_bg_position, m_bg_rotation, outer_pos + outer_size );
+				const Vec2f i0 = transform_bg_point( m_bg_position, m_bg_rotation, inner_pos );
+				const Vec2f i1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( inner_pos.x + inner_size.x, inner_pos.y ) );
+				const Vec2f i2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( inner_pos.x, inner_pos.y + inner_size.y ) );
+				const Vec2f i3 = transform_bg_point( m_bg_position, m_bg_rotation, inner_pos + inner_size );
+
+				background.vertices.reserve( background.vertices.size() + 24 );
+				append_quad( o0, o1, i0, i1, m_bg_outline_color );
+				append_quad( i2, i3, o2, o3, m_bg_outline_color );
+				append_quad( o0, i0, o2, i2, m_bg_outline_color );
+				append_quad( i1, o1, i3, o3, m_bg_outline_color );
+			}
+		}
+
+		if ( m_bg_color.a > 0 )
+		{
+			background.vertices.reserve( background.vertices.size() + 6 );
+			const Vec2f p0 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( 0.0f, 0.0f ) );
+			const Vec2f p1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( m_bg_size.x, 0.0f ) );
+			const Vec2f p2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( 0.0f, m_bg_size.y ) );
+			const Vec2f p3 = transform_bg_point( m_bg_position, m_bg_rotation, m_bg_size );
+			append_quad( p0, p1, p2, p3, m_bg_color );
 		}
 
 		geometry.push_back( background );
@@ -685,25 +741,23 @@ int FeTextPrimitive::getLineSpacingFactored( const FeFont *font, int charsize ) 
 
 Vec2f FeTextPrimitive::getPosition() const
 {
-	const auto position = m_bgRect.getPosition();
-	return Vec2f( position.x, position.y );
+	return m_bg_position;
 }
 
 Vec2f FeTextPrimitive::getSize() const
 {
-	const auto size = m_bgRect.getSize();
-	return Vec2f( size.x, size.y );
+	return m_bg_size;
 }
 
 void FeTextPrimitive::setPosition( const Vec2f &p )
 {
-	m_bgRect.setPosition( { p.x, p.y } );
+	m_bg_position = p;
 	m_needs_pos_set = true;
 }
 
 void FeTextPrimitive::setSize( const Vec2f &s )
 {
-	m_bgRect.setSize( { s.x, s.y } );
+	m_bg_size = s;
 	m_needs_pos_set = true;
 }
 
@@ -732,23 +786,23 @@ void FeTextPrimitive::setJustify( int j )
 
 void FeTextPrimitive::setBgOutlineThickness( float t )
 {
-	m_bgRect.setOutlineThickness( t );
+	m_bg_outline_thickness = t;
 }
 
 float FeTextPrimitive::getBgOutlineThickness()
 {
-	return m_bgRect.getOutlineThickness();
+	return m_bg_outline_thickness;
 }
 
 void FeTextPrimitive::setRotation( float r )
 {
-	m_bgRect.setRotation( sf::degrees( r ));
+	m_bg_rotation = r;
 	m_needs_pos_set = true;
 }
 
 float FeTextPrimitive::getRotation() const
 {
-	return m_bgRect.getRotation().asDegrees();
+	return m_bg_rotation;
 }
 
 int FeTextPrimitive::getStyle() const

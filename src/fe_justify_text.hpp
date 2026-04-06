@@ -39,15 +39,13 @@
 #ifndef FE_JUSTIFY_TEXT_HPP
 #define FE_JUSTIFY_TEXT_HPP
 
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/PrimitiveType.hpp>
-#include <SFML/Graphics/VertexArray.hpp>
-
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "fe_font.hpp"
+#include "fe_renderer.hpp"
 #include "fe_types.hpp"
 
 class FeJustifyText
@@ -116,8 +114,8 @@ public:
 	[[nodiscard]] Vec2f findCharacterPos( std::size_t index ) const;
 	[[nodiscard]] FloatRect getLocalBounds() const;
 	[[nodiscard]] FloatRect getGlobalBounds() const;
-	[[nodiscard]] const sf::VertexArray &getFillGeometry() const;
-	[[nodiscard]] const sf::VertexArray &getOutlineGeometry() const;
+	[[nodiscard]] const std::vector<FeRenderVertex> &getFillGeometry() const;
+	[[nodiscard]] const std::vector<FeRenderVertex> &getOutlineGeometry() const;
 	[[nodiscard]] const FeFont::TexturePageId *getTexturePageId() const;
 	[[nodiscard]] Vec2u getTextureSize() const;
 	[[nodiscard]] std::uint64_t getTextureVersion() const;
@@ -139,8 +137,8 @@ private:
 	Color m_fillColor{ Color::White };
 	Color m_outlineColor{ Color::Black };
 	float m_outlineThickness{ 0.0f };
-	mutable sf::VertexArray m_vertices{ sf::PrimitiveType::Triangles };
-	mutable sf::VertexArray m_outlineVertices{ sf::PrimitiveType::Triangles };
+	mutable std::vector<FeRenderVertex> m_vertices;
+	mutable std::vector<FeRenderVertex> m_outlineVertices;
 	mutable FloatRect m_bounds;
 	mutable bool m_geometryNeedUpdate{};
 	mutable std::uint64_t m_fontTextureId{};

@@ -45,51 +45,76 @@
 #include <cstddef>
 #include <cstdint>
 
-// Add an underline or strikethrough line to the vertex array
-void addLine(sf::VertexArray& vertices,
-             float            lineLength,
-             float            lineTop,
-             Color            color,
-             float            offset,
-             float            thickness,
-             float            outlineThickness = 0)
+void append_vertex(
+	std::vector<FeRenderVertex> &vertices,
+	float x,
+	float y,
+	const Color &color,
+	float u,
+	float v )
 {
-    const sf::Color sf_color( color.r, color.g, color.b, color.a );
-    const float top    = std::floor(lineTop + offset - (thickness / 2) + 0.5f);
-    const float bottom = top + std::floor(thickness + 0.5f);
+	FeRenderVertex vertex = {};
+	vertex.x = x;
+	vertex.y = y;
+	vertex.z = 0.0f;
+	vertex.u = u;
+	vertex.v = v;
+	vertex.r = color.r;
+	vertex.g = color.g;
+	vertex.b = color.b;
+	vertex.a = color.a;
+	vertices.push_back( vertex );
+}
 
-    vertices.append({{-outlineThickness, top - outlineThickness}, sf_color, {1.0f, 1.0f}});
-    vertices.append({{lineLength + outlineThickness, top - outlineThickness}, sf_color, {1.0f, 1.0f}});
-    vertices.append({{-outlineThickness, bottom + outlineThickness}, sf_color, {1.0f, 1.0f}});
-    vertices.append({{-outlineThickness, bottom + outlineThickness}, sf_color, {1.0f, 1.0f}});
-    vertices.append({{lineLength + outlineThickness, top - outlineThickness}, sf_color, {1.0f, 1.0f}});
-    vertices.append({{lineLength + outlineThickness, bottom + outlineThickness}, sf_color, {1.0f, 1.0f}});
+// Add an underline or strikethrough line to the vertex array
+void addLine(
+	std::vector<FeRenderVertex> &vertices,
+	float lineLength,
+	float lineTop,
+	Color color,
+	float offset,
+	float thickness,
+	float outlineThickness = 0)
+{
+	const float top = std::floor( lineTop + offset - ( thickness / 2 ) + 0.5f );
+	const float bottom = top + std::floor( thickness + 0.5f );
+
+	append_vertex( vertices, -outlineThickness, top - outlineThickness, color, 1.0f, 1.0f );
+	append_vertex( vertices, lineLength + outlineThickness, top - outlineThickness, color, 1.0f, 1.0f );
+	append_vertex( vertices, -outlineThickness, bottom + outlineThickness, color, 1.0f, 1.0f );
+	append_vertex( vertices, -outlineThickness, bottom + outlineThickness, color, 1.0f, 1.0f );
+	append_vertex( vertices, lineLength + outlineThickness, top - outlineThickness, color, 1.0f, 1.0f );
+	append_vertex( vertices, lineLength + outlineThickness, bottom + outlineThickness, color, 1.0f, 1.0f );
 }
 
 // Add a glyph quad to the vertex array
-void addGlyphQuad( sf::VertexArray &vertices, const Vec2f &position, Color color, const FeGlyph &glyph, float italicShear )
+void addGlyphQuad(
+	std::vector<FeRenderVertex> &vertices,
+	const Vec2f &position,
+	Color color,
+	const FeGlyph &glyph,
+	float italicShear )
 {
-    const sf::Color sf_color( color.r, color.g, color.b, color.a );
-    const Vec2f padding(1.f, 1.f);
+	const Vec2f padding( 1.f, 1.f );
 
-    const Vec2f p1( glyph.bounds.position.x - padding.x, glyph.bounds.position.y - padding.y );
-    const Vec2f p2(
-        glyph.bounds.position.x + glyph.bounds.size.x + padding.x,
-        glyph.bounds.position.y + glyph.bounds.size.y + padding.y );
+	const Vec2f p1( glyph.bounds.position.x - padding.x, glyph.bounds.position.y - padding.y );
+	const Vec2f p2(
+		glyph.bounds.position.x + glyph.bounds.size.x + padding.x,
+		glyph.bounds.position.y + glyph.bounds.size.y + padding.y );
 
-    const Vec2f uv1(
-        static_cast<float>( glyph.textureRect.position.x ) - padding.x,
-        static_cast<float>( glyph.textureRect.position.y ) - padding.y );
-    const Vec2f uv2(
-        static_cast<float>( glyph.textureRect.position.x + glyph.textureRect.size.x ) + padding.x,
-        static_cast<float>( glyph.textureRect.position.y + glyph.textureRect.size.y ) + padding.y );
+	const Vec2f uv1(
+		static_cast<float>( glyph.textureRect.position.x ) - padding.x,
+		static_cast<float>( glyph.textureRect.position.y ) - padding.y );
+	const Vec2f uv2(
+		static_cast<float>( glyph.textureRect.position.x + glyph.textureRect.size.x ) + padding.x,
+		static_cast<float>( glyph.textureRect.position.y + glyph.textureRect.size.y ) + padding.y );
 
-    vertices.append({{ position.x + p1.x - italicShear * p1.y, position.y + p1.y }, sf_color, {uv1.x, uv1.y}});
-    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, sf_color, {uv2.x, uv1.y}});
-    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, sf_color, {uv1.x, uv2.y}});
-    vertices.append({{ position.x + p1.x - italicShear * p2.y, position.y + p2.y }, sf_color, {uv1.x, uv2.y}});
-    vertices.append({{ position.x + p2.x - italicShear * p1.y, position.y + p1.y }, sf_color, {uv2.x, uv1.y}});
-    vertices.append({{ position.x + p2.x - italicShear * p2.y, position.y + p2.y }, sf_color, {uv2.x, uv2.y}});
+	append_vertex( vertices, position.x + p1.x - italicShear * p1.y, position.y + p1.y, color, uv1.x, uv1.y );
+	append_vertex( vertices, position.x + p2.x - italicShear * p1.y, position.y + p1.y, color, uv2.x, uv1.y );
+	append_vertex( vertices, position.x + p1.x - italicShear * p2.y, position.y + p2.y, color, uv1.x, uv2.y );
+	append_vertex( vertices, position.x + p1.x - italicShear * p2.y, position.y + p2.y, color, uv1.x, uv2.y );
+	append_vertex( vertices, position.x + p2.x - italicShear * p1.y, position.y + p1.y, color, uv2.x, uv1.y );
+	append_vertex( vertices, position.x + p2.x - italicShear * p2.y, position.y + p2.y, color, uv2.x, uv2.y );
 }
 
 
@@ -204,9 +229,13 @@ void FeJustifyText::setFillColor( Color color )
         // (if geometry is updated anyway, we can skip this step)
         if (!m_geometryNeedUpdate)
         {
-            const sf::Color sf_color( m_fillColor.r, m_fillColor.g, m_fillColor.b, m_fillColor.a );
-            for (std::size_t i = 0; i < m_vertices.getVertexCount(); ++i)
-                m_vertices[i].color = sf_color;
+            for ( FeRenderVertex &vertex : m_vertices )
+            {
+                vertex.r = m_fillColor.r;
+                vertex.g = m_fillColor.g;
+                vertex.b = m_fillColor.b;
+                vertex.a = m_fillColor.a;
+            }
         }
     }
 }
@@ -223,9 +252,13 @@ void FeJustifyText::setOutlineColor( Color color )
         // (if geometry is updated anyway, we can skip this step)
         if (!m_geometryNeedUpdate)
         {
-            const sf::Color sf_color( m_outlineColor.r, m_outlineColor.g, m_outlineColor.b, m_outlineColor.a );
-            for (std::size_t i = 0; i < m_outlineVertices.getVertexCount(); ++i)
-                m_outlineVertices[i].color = sf_color;
+            for ( FeRenderVertex &vertex : m_outlineVertices )
+            {
+                vertex.r = m_outlineColor.r;
+                vertex.g = m_outlineColor.g;
+                vertex.b = m_outlineColor.b;
+                vertex.a = m_outlineColor.a;
+            }
         }
     }
 }
@@ -456,7 +489,7 @@ FloatRect FeJustifyText::getGlobalBounds() const
 
 
 ////////////////////////////////////////////////////////////
-const sf::VertexArray &FeJustifyText::getFillGeometry() const
+const std::vector<FeRenderVertex> &FeJustifyText::getFillGeometry() const
 {
     ensureGeometryUpdate();
     return m_vertices;
@@ -464,7 +497,7 @@ const sf::VertexArray &FeJustifyText::getFillGeometry() const
 
 
 ////////////////////////////////////////////////////////////
-const sf::VertexArray &FeJustifyText::getOutlineGeometry() const
+const std::vector<FeRenderVertex> &FeJustifyText::getOutlineGeometry() const
 {
     ensureGeometryUpdate();
     return m_outlineVertices;
@@ -610,7 +643,7 @@ void FeJustifyText::ensureGeometryUpdate() const
     const bool  isBold             = m_style & Bold;
     const bool  isUnderlined       = m_style & Underlined;
     const bool  isStrikeThrough    = m_style & StrikeThrough;
-    const float italicShear        = (m_style & Italic) ? sf::degrees( 12 ).asRadians() : 0.f;
+    const float italicShear        = (m_style & Italic) ? ( 12.0f * ( 3.141592654f / 180.0f ) ) : 0.f;
     const float underlineOffset    = m_font->getUnderlinePosition(m_characterSize);
     const float underlineThickness = m_font->getUnderlineThickness(m_characterSize);
 
