@@ -345,7 +345,7 @@ namespace
 		const Vec2f &p0,
 		const Vec2f &p1,
 		const Vec2f &p2,
-		const sf::Color &color )
+		const Color &color )
 	{
 		FeRenderVertex v0 = {};
 		v0.x = p0.x;
@@ -369,7 +369,7 @@ namespace
 		geometry.vertices.push_back( v2 );
 	}
 
-	void append_rect_fill( FeRenderGeometry &geometry, const sf::Transform &transform, const Vec2f &size, const sf::Color &color )
+	void append_rect_fill( FeRenderGeometry &geometry, const sf::Transform &transform, const Vec2f &size, const Color &color )
 	{
 		if ( color.a == 0 )
 			return;
@@ -386,60 +386,25 @@ namespace
 		append_solid_triangle( geometry, p2, p1, p3, color );
 	}
 
-	void append_rect_outline(
-		std::vector<FeRenderGeometry> &geometry,
-		const sf::RectangleShape &rect )
+	bool append_overlay_rect_geometry( std::vector<FeRenderGeometry> &geometry, const FeOverlayRect &rect )
 	{
-		const sf::Color color = rect.getOutlineColor();
-		const float thickness = std::abs( rect.getOutlineThickness() );
-		if ( color.a == 0 || thickness <= 0.0f )
-			return;
+		if ( rect.color.a == 0 || rect.size.x <= 0.0f || rect.size.y <= 0.0f )
+			return false;
 
-		const Vec2f size( rect.getSize().x, rect.getSize().y );
-		const sf::Transform transform = rect.getTransform();
+		FeRenderGeometry fill;
+		fill.clear();
+		fill.textured = false;
+		fill.texture_width = 1.0f;
+		fill.texture_height = 1.0f;
+		fill.zbuffer = false;
 
-		auto append_border = [&]( const Vec2f &pos, const Vec2f &border_size )
-		{
-			if ( border_size.x <= 0.0f || border_size.y <= 0.0f )
-				return;
+		const sf::Transform transform = sf::Transform().translate( { rect.position.x, rect.position.y } );
+		append_rect_fill( fill, transform, rect.size, rect.color );
+		if ( fill.vertices.empty() )
+			return false;
 
-			FeRenderGeometry border;
-			border.clear();
-			border.textured = false;
-			border.texture_width = 1.0f;
-			border.texture_height = 1.0f;
-			border.zbuffer = false;
-			const sf::Transform local = transform * sf::Transform().translate( { pos.x, pos.y } );
-			append_rect_fill( border, local, border_size, color );
-			if ( !border.vertices.empty() )
-				geometry.push_back( border );
-		};
-
-		append_border( { -thickness, -thickness }, { size.x + thickness * 2.0f, thickness } );
-		append_border( { -thickness, size.y }, { size.x + thickness * 2.0f, thickness } );
-		append_border( { -thickness, 0.0f }, { thickness, size.y } );
-		append_border( { size.x, 0.0f }, { thickness, size.y } );
-	}
-
-	bool append_rectangle_shape_geometry( std::vector<FeRenderGeometry> &geometry, const sf::RectangleShape &rect )
-	{
-		const sf::Color fill = rect.getFillColor();
-		const Vec2f size( rect.getSize().x, rect.getSize().y );
-		if ( fill.a > 0 )
-		{
-			FeRenderGeometry background;
-			background.clear();
-			background.textured = false;
-			background.texture_width = 1.0f;
-			background.texture_height = 1.0f;
-			background.zbuffer = false;
-			append_rect_fill( background, rect.getTransform(), size, fill );
-			if ( !background.vertices.empty() )
-				geometry.push_back( background );
-		}
-
-		append_rect_outline( geometry, rect );
-		return !geometry.empty();
+		geometry.push_back( std::move( fill ) );
+		return true;
 	}
 
 	char32_t decode_utf8_first_codepoint( const char *text )
@@ -943,8 +908,8 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 
 	switch ( item.type )
 	{
-	case FeOverlayDrawItem::RectangleShape:
-		if ( !append_rectangle_shape_geometry( geometry, *static_cast<const sf::RectangleShape *>( item.item ) ) )
+	case FeOverlayDrawItem::OverlayRect:
+		if ( !append_overlay_rect_geometry( geometry, *static_cast<const FeOverlayRect *>( item.item ) ) )
 			return true;
 		break;
 	case FeOverlayDrawItem::TextPrimitive:
@@ -1864,7 +1829,7 @@ void FeWindow::draw( const FeOverlayDrawItem &item, const sf::RenderStates &r )
 	append_native_overlay_item( item, r );
 }
 
-void FeWindow::draw( const sf::RectangleShape &rect, const sf::RenderStates &r )
+void FeWindow::draw( const FeOverlayRect &rect, const sf::RenderStates &r )
 {
 	draw( FeOverlayDrawItem( rect ), r );
 }

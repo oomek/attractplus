@@ -95,9 +95,9 @@ private:
 		Single	= 1 << 9
 	};
 
-	sf::RectangleShape layout_background();
-	sf::RectangleShape layout_letterbox( int style = LayoutStyle::None );
-	sf::RectangleShape layout_border( int style = LayoutStyle::None );
+	FeOverlayRect layout_background();
+	FeOverlayRect layout_letterbox( int style = LayoutStyle::None );
+	FeOverlayRect layout_border( int style = LayoutStyle::None );
 	FeTextPrimitive layout_header( int style = LayoutStyle::None );
 	FeTextPrimitive layout_footer();
 	FeTextPrimitive layout_message( int style = LayoutStyle::None );
@@ -106,8 +106,8 @@ private:
 	FeListBox layout_list( int style = LayoutStyle::None );
 	void draw_native_logo_if_needed();
 
-	void theme_letterbox( sf::RectangleShape &rect );
-	void theme_border( sf::RectangleShape &rect );
+	void theme_letterbox( FeOverlayRect &rect );
+	void theme_border( FeOverlayRect &rect );
 	void theme_list( FeListBox &list );
 
 	int list_row_height( int style );

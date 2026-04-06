@@ -397,7 +397,7 @@ void FeOverlay::style_init( Color theme_color )
 //
 void FeOverlay::splash_message( const std::string &msg, const std::string &aux )
 {
-	sf::RectangleShape bg = layout_background();
+	FeOverlayRect bg = layout_background();
 	FeTextPrimitive message = layout_message( LayoutStyle::Middle );
 	FeTextPrimitive extra = layout_footer();
 
@@ -422,7 +422,7 @@ void FeOverlay::splash_message( const std::string &msg, const std::string &aux )
 
 void FeOverlay::splash_logo( const std::string &aux )
 {
-	sf::RectangleShape bg = layout_background();
+	FeOverlayRect bg = layout_background();
 	FeTextPrimitive extra = layout_footer();
 	const SDL_Surface *logo_image = FePresent::script_get_fep()->get_logo_full_image();
 
@@ -541,9 +541,9 @@ int FeOverlay::common_list_dialog(
 		//
 		// Use the default built-in controls
 		//
-		sf::RectangleShape bg = layout_background();
-		sf::RectangleShape letterbox = layout_letterbox( LayoutStyle::Top );
-		sf::RectangleShape border = layout_border( LayoutStyle::Top );
+		FeOverlayRect bg = layout_background();
+		FeOverlayRect letterbox = layout_letterbox( LayoutStyle::Top );
+		FeOverlayRect border = layout_border( LayoutStyle::Top );
 		FeTextPrimitive header = layout_header( LayoutStyle::Centre );
 		FeListBox dialog = layout_list( LayoutStyle::Body | LayoutStyle::Large );
 
@@ -633,7 +633,7 @@ int FeOverlay::languages_dialog()
 
 	int sel = current_i;
 
-	sf::RectangleShape bg = layout_background();
+	FeOverlayRect bg = layout_background();
 	FeListBox dialog = layout_list( LayoutStyle::Full | LayoutStyle::Large );
 	std::vector<FeOverlayDrawItem> draw_list = { FeOverlayDrawItem( bg ), FeOverlayDrawItem( dialog ) };
 
@@ -802,7 +802,7 @@ int FeOverlay::common_basic_dialog(
 		//
 		// Use the default built-in controls
 		//
-		sf::RectangleShape bg = layout_background();
+		FeOverlayRect bg = layout_background();
 		FeTextPrimitive message = layout_message( LayoutStyle::Top );
 		FeListBox dialog = layout_list( LayoutStyle::Bottom | LayoutStyle::Large );
 
@@ -845,7 +845,7 @@ bool FeOverlay::edit_dialog(
 	const std::string &msg_str,
 	std::string &text )
 {
-	sf::RectangleShape bg = layout_background();
+	FeOverlayRect bg = layout_background();
 	FeTextPrimitive message = layout_message( LayoutStyle::Top );
 	FeTextPrimitive tp = layout_message( LayoutStyle::Bottom );
 
@@ -878,7 +878,7 @@ void FeOverlay::input_map_dialog(
 			FeInputMapEntry &res,
 			FeInputMap::Command &conflict )
 {
-	sf::RectangleShape bg = layout_background();
+	FeOverlayRect bg = layout_background();
 	FeTextPrimitive message = layout_message( LayoutStyle::Middle );
 
 	message.setString( msg_str );
@@ -1158,12 +1158,12 @@ int FeOverlay::display_config_dialog(
 // -------------------------------------------------------------------------------------
 
 // Create a background curtain, used to obscure the layout below
-sf::RectangleShape FeOverlay::layout_background()
+FeOverlayRect FeOverlay::layout_background()
 {
-	sf::RectangleShape rect;
-	rect.setPosition( { m_screen_pos.x, m_screen_pos.y } );
-	rect.setSize( { m_screen_size.x, m_screen_size.y } );
-	rect.setFillColor( sf::Color( m_bg_color.r, m_bg_color.g, m_bg_color.b, m_bg_color.a ) );
+	FeOverlayRect rect;
+	rect.position = m_screen_pos;
+	rect.size = m_screen_size;
+	rect.color = m_bg_color;
 	return rect;
 }
 
@@ -1171,7 +1171,7 @@ sf::RectangleShape FeOverlay::layout_background()
 // Style uses LayoutStyle enum:
 // - Top - Position at top of screen
 // - Bottom - Position at bottom of screen
-sf::RectangleShape FeOverlay::layout_letterbox( int style )
+FeOverlayRect FeOverlay::layout_letterbox( int style )
 {
 	float y;
 	if ( style & LayoutStyle::Top ) y = 0;
@@ -1181,10 +1181,10 @@ sf::RectangleShape FeOverlay::layout_letterbox( int style )
 	if ( style & LayoutStyle::Top ) height = m_letterbox_top_height;
 	if ( style & LayoutStyle::Bottom ) height = m_letterbox_bottom_height;
 
-	sf::RectangleShape rect;
+	FeOverlayRect rect;
 	const Vec2f position = m_screen_pos + Vec2f( 0.0f, y );
-	rect.setSize( { m_screen_size.x, static_cast<float>( height ) } );
-	rect.setPosition( { position.x, position.y } );
+	rect.size = Vec2f( m_screen_size.x, static_cast<float>( height ) );
+	rect.position = position;
 	theme_letterbox( rect );
 	return rect;
 }
@@ -1193,16 +1193,16 @@ sf::RectangleShape FeOverlay::layout_letterbox( int style )
 // Style uses LayoutStyle enum:
 // - Top - Position on top letterbox (bottom edge)
 // - Bottom - Position on bottom letterbox (top edge)
-sf::RectangleShape FeOverlay::layout_border( int style )
+FeOverlayRect FeOverlay::layout_border( int style )
 {
 	float y;
 	if ( style & LayoutStyle::Top ) y = m_letterbox_top_height;
 	if ( style & LayoutStyle::Bottom ) y = m_screen_size.y - m_letterbox_bottom_height - m_border_thickness;
 
-	sf::RectangleShape rect;
+	FeOverlayRect rect;
 	const Vec2f position = m_screen_pos + Vec2f( 0.0f, y );
-	rect.setSize( { m_screen_size.x, static_cast<float>( m_border_thickness ) } );
-	rect.setPosition( { position.x, position.y } );
+	rect.size = Vec2f( m_screen_size.x, static_cast<float>( m_border_thickness ) );
+	rect.position = position;
 	theme_border( rect );
 	return rect;
 }
@@ -1425,22 +1425,14 @@ FeListBox FeOverlay::layout_list( int style )
 	return list;
 }
 
-void FeOverlay::theme_letterbox( sf::RectangleShape &rect )
+void FeOverlay::theme_letterbox( FeOverlayRect &rect )
 {
-	rect.setFillColor( sf::Color(
-		m_letterbox_color.r,
-		m_letterbox_color.g,
-		m_letterbox_color.b,
-		m_letterbox_color.a ) );
+	rect.color = m_letterbox_color;
 }
 
-void FeOverlay::theme_border( sf::RectangleShape &rect )
+void FeOverlay::theme_border( FeOverlayRect &rect )
 {
-	rect.setFillColor( sf::Color(
-		m_border_color.r,
-		m_border_color.g,
-		m_border_color.b,
-		m_border_color.a ) );
+	rect.color = m_border_color;
 }
 
 void FeOverlay::theme_list( FeListBox &list )
@@ -1544,11 +1536,11 @@ int FeOverlay::display_config_dialog(
 	//
 	// Set up display objects
 	//
-	sf::RectangleShape bg = layout_background();
-	sf::RectangleShape letterbox_top = layout_letterbox( LayoutStyle::Top );
-	sf::RectangleShape letterbox_bottom = layout_letterbox( LayoutStyle::Bottom );
-	sf::RectangleShape border_top = layout_border( LayoutStyle::Top );
-	sf::RectangleShape border_bottom = layout_border( LayoutStyle::Bottom );
+	FeOverlayRect bg = layout_background();
+	FeOverlayRect letterbox_top = layout_letterbox( LayoutStyle::Top );
+	FeOverlayRect letterbox_bottom = layout_letterbox( LayoutStyle::Bottom );
+	FeOverlayRect border_top = layout_border( LayoutStyle::Top );
+	FeOverlayRect border_bottom = layout_border( LayoutStyle::Bottom );
 	FeTextPrimitive header = layout_header( LayoutStyle::Left );
 	FeTextPrimitive footer = layout_footer();
 	const SDL_Surface *logo_image = FePresent::script_get_fep()->get_logo_image();

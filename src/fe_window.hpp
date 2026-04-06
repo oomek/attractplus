@@ -43,11 +43,25 @@ class FeText;
 class FeRectangle;
 struct SDL_Surface;
 
+struct FeOverlayRect
+{
+	Vec2f position;
+	Vec2f size;
+	Color color;
+
+	FeOverlayRect()
+		: position( 0.0f, 0.0f ),
+		size( 0.0f, 0.0f ),
+		color( Color::Transparent )
+	{
+	}
+};
+
 struct FeOverlayDrawItem
 {
 	enum Type
 	{
-		RectangleShape,
+		OverlayRect,
 		TextPrimitive,
 		ListBox,
 		Text,
@@ -57,8 +71,8 @@ struct FeOverlayDrawItem
 	Type type;
 	const void *item;
 
-	explicit FeOverlayDrawItem( const sf::RectangleShape &rect )
-		: type( RectangleShape ), item( &rect ) {}
+	explicit FeOverlayDrawItem( const FeOverlayRect &rect )
+		: type( OverlayRect ), item( &rect ) {}
 	explicit FeOverlayDrawItem( const FeTextPrimitive &text )
 		: type( TextPrimitive ), item( &text ) {}
 	explicit FeOverlayDrawItem( const FeListBox &listbox )
@@ -155,7 +169,7 @@ public:
 
 	void clear();
 	void draw( const FeOverlayDrawItem &item, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw( const sf::RectangleShape &rect, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeOverlayRect &rect, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeTextPrimitive &text, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeListBox &listbox, const sf::RenderStates &t=sf::RenderStates::Default );
 	void draw( const FeText &text, const sf::RenderStates &t=sf::RenderStates::Default );
