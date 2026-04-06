@@ -57,6 +57,18 @@
 
 namespace
 {
+	struct FeVideoMode
+	{
+		Vec2u size;
+		unsigned int bits_per_pixel;
+
+		FeVideoMode( unsigned int width = 1280u, unsigned int height = 720u, unsigned int bpp = 32u )
+			: size( width, height ),
+			bits_per_pixel( bpp )
+		{
+		}
+	};
+
 	struct FeSdlJoystickSlot
 	{
 		SDL_JoystickID instance_id = 0;
@@ -196,7 +208,7 @@ namespace
 		}
 	}
 
-	bool get_sdl_desktop_geometry( bool do_multimon, sf::VideoMode &mode, Vec2i &position )
+	bool get_sdl_desktop_geometry( bool do_multimon, FeVideoMode &mode, Vec2i &position )
 	{
 		int display_count = 0;
 		SDL_DisplayID *displays = SDL_GetDisplays( &display_count );
@@ -278,7 +290,7 @@ namespace
 	}
 
 #if defined(SFML_SYSTEM_WINDOWS)
-	bool get_win32_desktop_geometry( bool do_multimon, sf::VideoMode &mode, Vec2i &position )
+	bool get_win32_desktop_geometry( bool do_multimon, FeVideoMode &mode, Vec2i &position )
 	{
 		if ( do_multimon )
 		{
@@ -1099,7 +1111,7 @@ void FeWindow::initial_create()
 		fe_joystick_refresh_devices();
 
 	Vec2i wpos( 0, 0 );  // position to set window to
-	sf::VideoMode vm( { 1280u, 720u }, 32u ); // width/height/bpp of surface to create
+	FeVideoMode vm( 1280u, 720u, 32u ); // width/height/bpp of surface to create
 
 #if !defined(SFML_SYSTEM_WINDOWS)
 	if ( sdl_video_ready )
@@ -1294,7 +1306,7 @@ void FeWindow::initial_create()
 	//
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
-		m_blackout.create( sf::VideoMode({ 16, 16 }, 24 ), "", sf::Style::None );
+		m_blackout.create( sf::VideoMode( { 16u, 16u }, 24u ), "", sf::Style::None );
 		m_blackout.setSize( { screen_size.x + 2, screen_size.y + 2 } );
 		m_blackout.setPosition( { screen_pos.x - 1, screen_pos.y - 1 } );
 		m_blackout.setVerticalSyncEnabled(true);
@@ -1399,7 +1411,7 @@ void FeWindow::initial_create()
 
 	FeDebug() << "Created " << FE_NAME << " Window: " << wsize.x << "x" << wsize.y << " @ "
 		<< wpos.x << "," << wpos.y << " [OpenGL surface: "
-		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bitsPerPixel << "]" << std::endl;
+		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bits_per_pixel << "]" << std::endl;
 
 #if defined(SFML_SYSTEM_WINDOWS)
 	HWND hwnd = nullptr;
@@ -1828,9 +1840,9 @@ void FeWindow::set_mouse_cursor_visible( bool visible )
 		visible ? SDL_ShowCursor() : SDL_HideCursor();
 }
 
-void FeWindow::set_view( const sf::View &view )
+void FeWindow::on_resize( const Vec2u &size )
 {
-	(void)view;
+	(void)size;
 }
 
 bool FeWindow::save_screenshot( const std::string &filename )

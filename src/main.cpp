@@ -483,9 +483,7 @@ int main(int argc, char *argv[])
 					const auto* resize = ev->getIf<FeEvent::Resized>();
 					if ( resize )
 					{
-						window.set_view( sf::View(
-							{ static_cast<float>( resize->size.x ) / 2.0f, static_cast<float>( resize->size.y ) / 2.0f },
-							{ static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y ) } ) );
+						window.on_resize( Vec2u( resize->size.x, resize->size.y ) );
 						feVM.init_monitors();
 						feVM.load_layout();
 						redraw = true;

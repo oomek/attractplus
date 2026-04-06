@@ -149,7 +149,7 @@ public:
 	void set_key_repeat_enabled( bool enabled );
 	void set_text_input_enabled( bool enabled );
 	void set_mouse_cursor_visible( bool visible );
-	void set_view( const sf::View &view );
+	void on_resize( const Vec2u &size );
 	bool save_screenshot( const std::string &filename );
 	bool owns_sdl_window() const;
 

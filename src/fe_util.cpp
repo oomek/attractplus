@@ -37,6 +37,7 @@
 #include <cctype>
 #include <cstring>
 #include <regex>
+#include <SDL3/SDL.h>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -1861,12 +1862,18 @@ std::string name_with_brackets_stripped( const std::string &name )
 
 std::string clipboard_get_content()
 {
-	return sf::Clipboard::getString();
+	char *text = SDL_GetClipboardText();
+	if ( !text )
+		return "";
+
+	const std::string value( text );
+	SDL_free( text );
+	return value;
 }
 
 void clipboard_set_content( const std::string &value )
 {
-	sf::Clipboard::setString( value );
+	SDL_SetClipboardText( value.c_str() );
 }
 
 #if defined(USE_XLIB)
