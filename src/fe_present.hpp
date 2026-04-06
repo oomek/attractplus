@@ -49,6 +49,8 @@ namespace sf
 	class InputStream;
 };
 
+struct SDL_Surface;
+
 enum FeTransitionType
 {
 	StartLayout      = 1<<0,  // var: FromToScreenSaver, FromToFrontend or FromToNoValue
@@ -144,8 +146,8 @@ protected:
 	const FeFontContainer *m_layoutFont;
 	FeFontContainer *m_defaultFont;
 	std::string m_layoutFontName;
-	sf::Image *m_logo_image;
-	sf::Image *m_logo_full_image;
+	SDL_Surface *m_logo_image;
+	SDL_Surface *m_logo_full_image;
 
 	FeStableClock m_layout_time;
 	FeTime m_layout_time_old;
@@ -289,8 +291,8 @@ public:
 	const FeFont *get_layout_font();
 	const FeFont *get_default_font();
 	const FeFontContainer *get_default_font_container();
-	const sf::Image *get_logo_image();
-	const sf::Image *get_logo_full_image();
+	const SDL_Surface *get_logo_image();
+	const SDL_Surface *get_logo_full_image();
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;

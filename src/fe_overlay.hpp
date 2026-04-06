@@ -35,6 +35,7 @@ class FeSettings;
 class FeInputMapEntry;
 class FeBaseConfigMenu;
 class FeTextPrimitive;
+struct SDL_Surface;
 
 class FeEventLoopCtx;
 
@@ -77,7 +78,7 @@ private:
 	int m_disable_alpha;
 	const FeFont *m_font;
 	FeInputMap::Command m_menu_command;
-	const sf::Image *m_native_logo_image;
+	const SDL_Surface *m_native_logo_image;
 	int m_native_logo_style;
 
 	enum LayoutStyle {

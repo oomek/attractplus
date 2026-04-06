@@ -44,6 +44,8 @@
 #include <cstring>
 #include <algorithm>
 
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <SFML/Audio.hpp>
 
 
@@ -96,6 +98,40 @@ BOOL CALLBACK my_mon_enum_proc( HMONITOR, HDC, LPRECT mon_rect, LPARAM data )
 	return TRUE;
 }
 #endif
+
+namespace
+{
+	SDL_Surface *load_embedded_png_surface( const char *data_uri )
+	{
+		const std::vector<unsigned char> png_data = base64_decode( data_uri );
+		if ( png_data.empty() )
+			return nullptr;
+
+		SDL_IOStream *stream = SDL_IOFromConstMem( png_data.data(), png_data.size() );
+		if ( !stream )
+		{
+			FeLog() << "Failed to create SDL IO stream for embedded PNG: " << SDL_GetError() << std::endl;
+			return nullptr;
+		}
+
+		SDL_Surface *surface = IMG_Load_IO( stream, true );
+		if ( !surface )
+		{
+			FeLog() << "Failed to decode embedded PNG with SDL3_image: " << SDL_GetError() << std::endl;
+			return nullptr;
+		}
+
+		SDL_Surface *rgba_surface = SDL_ConvertSurface( surface, SDL_PIXELFORMAT_RGBA32 );
+		SDL_DestroySurface( surface );
+		if ( !rgba_surface )
+		{
+			FeLog() << "Failed to convert embedded PNG surface to RGBA32: " << SDL_GetError() << std::endl;
+			return nullptr;
+		}
+
+		return rgba_surface;
+	}
+}
 
 FeFontContainer::FeFontContainer()
 	: m_needs_reload( false )
@@ -176,8 +212,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_window( wnd ),
 	m_layoutFont( NULL ),
 	m_defaultFont( NULL ),
-	m_logo_image( NULL ),
-	m_logo_full_image( NULL ),
+	m_logo_image( nullptr ),
+	m_logo_full_image( nullptr ),
 	m_layout_time_old(),
 	m_frame_time( 0.0f ),
 	m_baseRotation( FeSettings::RotateNone ),
@@ -456,9 +492,9 @@ void FePresent::clear_resources()
 	clear_layout();
 	delete m_defaultFont;
 	m_defaultFont = NULL;
-	delete m_logo_image;
+	SDL_DestroySurface( m_logo_image );
 	m_logo_image = NULL;
-	delete m_logo_full_image;
+	SDL_DestroySurface( m_logo_full_image );
 	m_logo_full_image = NULL;
 }
 
@@ -1947,23 +1983,19 @@ const FeFontContainer *FePresent::get_default_font_container()
 	return m_defaultFont;
 }
 
-const sf::Image *FePresent::get_logo_image()
+const SDL_Surface *FePresent::get_logo_image()
 {
 	if ( !m_logo_image )
-	{
-		std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_png );
-		m_logo_image = new sf::Image( logo_data.data(), logo_data.size() );
-	}
+		m_logo_image = load_embedded_png_surface( _binary_resources_images_Logo_png );
+
 	return m_logo_image;
 }
 
-const sf::Image *FePresent::get_logo_full_image()
+const SDL_Surface *FePresent::get_logo_full_image()
 {
 	if ( !m_logo_full_image )
-	{
-		std::vector<unsigned char> logo_data = base64_decode( _binary_resources_images_Logo_Full_White_png );
-		m_logo_full_image = new sf::Image( logo_data.data(), logo_data.size() );
-	}
+		m_logo_full_image = load_embedded_png_surface( _binary_resources_images_Logo_Full_White_png );
+
 	return m_logo_full_image;
 }
 

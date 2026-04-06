@@ -904,21 +904,24 @@ bool FeWindow::owns_sdl_window() const
 	return m_gpu_context.get_window() != nullptr;
 }
 
-const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const sf::Image &image )
+const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const SDL_Surface &image )
 {
 	OverlayTextureEntry &entry = m_overlay_images[ &image ];
-	const auto size = image.getSize();
-	const std::size_t pixel_count =
-		static_cast<std::size_t>( size.x ) *
-		static_cast<std::size_t>( size.y ) * 4;
-	const std::uint8_t *pixels = image.getPixelsPtr();
-	if ( !pixels || pixel_count == 0 )
+	if ( !image.pixels || image.w <= 0 || image.h <= 0 )
 		return nullptr;
 
-	entry.pixels.assign( pixels, pixels + pixel_count );
+	const std::size_t row_size = static_cast<std::size_t>( image.w ) * 4;
+	entry.pixels.resize( static_cast<std::size_t>( image.h ) * row_size );
+	for ( int y = 0; y < image.h; ++y )
+	{
+		const std::uint8_t *src = static_cast<const std::uint8_t *>( image.pixels ) + ( static_cast<std::size_t>( y ) * image.pitch );
+		std::uint8_t *dst = entry.pixels.data() + ( static_cast<std::size_t>( y ) * row_size );
+		std::memcpy( dst, src, row_size );
+	}
+
 	entry.source.pixels = entry.pixels.data();
-	entry.source.width = size.x;
-	entry.source.height = size.y;
+	entry.source.width = static_cast<unsigned int>( image.w );
+	entry.source.height = static_cast<unsigned int>( image.h );
 	return &entry.source;
 }
 
@@ -959,7 +962,7 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 	return true;
 }
 
-void FeWindow::draw_overlay_image( const sf::Image &image, const FloatRect &bounds, bool smooth, const Color &color )
+void FeWindow::draw_overlay_image( const SDL_Surface &image, const FloatRect &bounds, bool smooth, const Color &color )
 {
 	if ( !owns_sdl_window() )
 		return;

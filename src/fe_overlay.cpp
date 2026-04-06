@@ -424,7 +424,7 @@ void FeOverlay::splash_logo( const std::string &aux )
 {
 	sf::RectangleShape bg = layout_background();
 	FeTextPrimitive extra = layout_footer();
-	const sf::Image *logo_image = FePresent::script_get_fep()->get_logo_full_image();
+	const SDL_Surface *logo_image = FePresent::script_get_fep()->get_logo_full_image();
 
 	extra.setString( aux );
 
@@ -439,11 +439,14 @@ void FeOverlay::splash_logo( const std::string &aux )
 	m_wnd.clear();
 	draw_overlay_scene_background( m_wnd, m_fePresent );
 	m_wnd.draw( bg, t );
-	m_wnd.draw_overlay_image(
-		*logo_image,
-		layout_logo_bounds(
-			Vec2u( logo_image->getSize().x, logo_image->getSize().y ),
-			LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ) );
+	if ( logo_image )
+	{
+		m_wnd.draw_overlay_image(
+			*logo_image,
+			layout_logo_bounds(
+				Vec2u( static_cast<unsigned int>( logo_image->w ), static_cast<unsigned int>( logo_image->h ) ),
+				LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ) );
+	}
 	m_wnd.draw( extra, t );
 	m_wnd.display();
 }
@@ -1316,7 +1319,7 @@ void FeOverlay::draw_native_logo_if_needed()
 	m_wnd.draw_overlay_image(
 		*m_native_logo_image,
 		layout_logo_bounds(
-			Vec2u( m_native_logo_image->getSize().x, m_native_logo_image->getSize().y ),
+			Vec2u( static_cast<unsigned int>( m_native_logo_image->w ), static_cast<unsigned int>( m_native_logo_image->h ) ),
 			m_native_logo_style ) );
 }
 
@@ -1548,7 +1551,7 @@ int FeOverlay::display_config_dialog(
 	sf::RectangleShape border_bottom = layout_border( LayoutStyle::Bottom );
 	FeTextPrimitive header = layout_header( LayoutStyle::Left );
 	FeTextPrimitive footer = layout_footer();
-	const sf::Image *logo_image = FePresent::script_get_fep()->get_logo_image();
+	const SDL_Surface *logo_image = FePresent::script_get_fep()->get_logo_image();
 	FeListBox sdialog = layout_list(( is_edit ? LayoutStyle::Left : LayoutStyle::Centre ) | ( is_preview ? LayoutStyle::Single : LayoutStyle::Middle ));
 	FeListBox vdialog = layout_list(( is_edit ? LayoutStyle::Right : LayoutStyle::Centre ) | ( is_preview ? LayoutStyle::Single : LayoutStyle::Middle ));
 	FeTextPrimitive sindex = layout_index( LayoutStyle::Left );
@@ -1592,7 +1595,7 @@ int FeOverlay::display_config_dialog(
 	struct NativeLogoGuard
 	{
 		FeOverlay &overlay;
-		const sf::Image *previous_image;
+		const SDL_Surface *previous_image;
 		int previous_style;
 
 		~NativeLogoGuard()
