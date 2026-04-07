@@ -263,6 +263,8 @@ FeEmulatorEditMenu::FeEmulatorEditMenu()
 void FeEmulatorEditMenu::get_options( FeConfigContext &ctx )
 {
 	ctx.set_style( FeConfigContext::EditList, _( "Emulator Options" ) );
+	const bool supports_nbm_wait = fe_runtime_supports_nbm_wait();
+	const bool supports_pause_hotkey = fe_runtime_supports_pause_hotkey();
 
 	if ( m_emulator )
 	{
@@ -272,14 +274,10 @@ void FeEmulatorEditMenu::get_options( FeConfigContext &ctx )
 
 		for ( int i=1; i < FeEmulatorInfo::LAST_INDEX; i++ )
 		{
-#if defined(NO_NBM_WAIT)
-			if ( i == (int)FeEmulatorInfo::NBM_wait )
+			if ( !supports_nbm_wait && ( i == (int)FeEmulatorInfo::NBM_wait ))
 				continue;
-#endif
-#if defined(NO_PAUSE_HOTKEY)
-			if ( i == (int)FeEmulatorInfo::Pause_hotkey )
+			if ( !supports_pause_hotkey && ( i == (int)FeEmulatorInfo::Pause_hotkey ))
 				continue;
-#endif
 			std::string help = _( "_help_emu_" + as_str( FeEmulatorInfo::indexStrings[i] ));
 			std::string label = _( FeEmulatorInfo::indexDispStrings[i] );
 			std::string value = m_emulator->get_info( (FeEmulatorInfo::Index)i );
@@ -379,14 +377,10 @@ bool FeEmulatorEditMenu::on_option_select(
 			int j=0;
 			for ( int i=0; i < FeEmulatorInfo::LAST_INDEX; i++ )
 			{
-#if defined(NO_NBM_WAIT)
-				if ( i == (int)FeEmulatorInfo::NBM_wait )
+				if ( !fe_runtime_supports_nbm_wait() && ( i == (int)FeEmulatorInfo::NBM_wait ))
 					continue;
-#endif
-#if defined(NO_PAUSE_HOTKEY)
-				if ( i == (int)FeEmulatorInfo::Pause_hotkey )
+				if ( !fe_runtime_supports_pause_hotkey() && ( i == (int)FeEmulatorInfo::Pause_hotkey ))
 					continue;
-#endif
 				m_emulator->set_info( (FeEmulatorInfo::Index)i,
 						ctx.opt_list[j++].get_value() );
 			}
@@ -512,14 +506,10 @@ bool FeEmulatorEditMenu::save( FeConfigContext &ctx )
 	int j=0;
 	for ( int i=0; i < FeEmulatorInfo::LAST_INDEX; i++ )
 	{
-#if defined(NO_NBM_WAIT)
-		if ( i == (int)FeEmulatorInfo::NBM_wait )
+		if ( !fe_runtime_supports_nbm_wait() && ( i == (int)FeEmulatorInfo::NBM_wait ))
 			continue;
-#endif
-#if defined(NO_PAUSE_HOTKEY)
-		if ( i == (int)FeEmulatorInfo::Pause_hotkey )
+		if ( !fe_runtime_supports_pause_hotkey() && ( i == (int)FeEmulatorInfo::Pause_hotkey ))
 			continue;
-#endif
 		m_emulator->set_info( (FeEmulatorInfo::Index)i,
 				ctx.opt_list[j++].get_value() );
 	}
@@ -1776,11 +1766,12 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 
 	// ---------------------------------------------------------------------------------
 
-#if !defined(FORCE_FULLSCREEN)
-	std::vector<std::string> win_modes = _( FeSettings::windowModeDispTokens );
-	std::string win_mode = value_at( win_modes, ctx.fe_settings.get_window_mode() );
-	ctx.add_opt( Opt::LIST, _( "Window Mode" ), win_mode, _( "_help_misc_window_mode" ) )->append_vlist( win_modes );
-#endif
+	if ( !fe_runtime_force_fullscreen() )
+	{
+		std::vector<std::string> win_modes = _( FeSettings::windowModeDispTokens );
+		std::string win_mode = value_at( win_modes, ctx.fe_settings.get_window_mode() );
+		ctx.add_opt( Opt::LIST, _( "Window Mode" ), win_mode, _( "_help_misc_window_mode" ) )->append_vlist( win_modes );
+	}
 
 	std::vector<std::string> startup_modes = _( FeSettings::startupDispTokens );
 	std::string startup_mode = value_at( startup_modes, ctx.fe_settings.get_startup_mode() );
@@ -1815,9 +1806,8 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::string af_mode = value_at( af_modes, (int)std::max( log2( ctx.fe_settings.get_anisotropic() ), 0.0 ) );
 	ctx.add_opt( Opt::LIST, _( "Anisotropic Filtering" ), af_mode, _( "_help_misc_anisotropic_filtering" ) )->append_vlist( af_modes );
 
-#if !defined(NO_MULTIMON)
-	ctx.add_opt( Opt::TOGGLE, _( "Multiple Monitors" ), ctx.fe_settings.get_multimon(), _( "_help_misc_multiple_monitors" ) );
-#endif
+	if ( fe_runtime_supports_multimon() )
+		ctx.add_opt( Opt::TOGGLE, _( "Multiple Monitors" ), ctx.fe_settings.get_multimon(), _( "_help_misc_multiple_monitors" ) );
 
 	std::vector<std::string> rot_modes = _( FeSettings::screenRotationDispTokens );
 	std::string rot_mode = value_at( rot_modes, ctx.fe_settings.get_screen_rotation() );
@@ -1855,9 +1845,8 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	int i=0;
 	ctx.fe_settings.set_language( m_languages[ ctx.opt_list[i++].get_vindex() ].language );
 	ctx.fe_settings.set_info( FeSettings::UIColor, FeSettings::uiColorTokens[ ctx.opt_list[i++].get_vindex() ] );
-#if !defined(FORCE_FULLSCREEN)
-	ctx.fe_settings.set_info( FeSettings::WindowMode, FeSettings::windowModeTokens[ ctx.opt_list[i++].get_vindex() ] );
-#endif
+	if ( !fe_runtime_force_fullscreen() )
+		ctx.fe_settings.set_info( FeSettings::WindowMode, FeSettings::windowModeTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::StartupMode, FeSettings::startupTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::GroupClones, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::TrackUsage, ctx.opt_list[i++].get_bool() );
@@ -1870,9 +1859,8 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 
 	ctx.fe_settings.set_info( FeSettings::AntiAliasing, FeSettings::antialiasingTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::Anisotropic, FeSettings::anisotropicTokens[ ctx.opt_list[i++].get_vindex() ] );
-#if !defined(NO_MULTIMON)
-	ctx.fe_settings.set_info( FeSettings::MultiMon, ctx.opt_list[i++].get_bool() );
-#endif
+	if ( fe_runtime_supports_multimon() )
+		ctx.fe_settings.set_info( FeSettings::MultiMon, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ScreenRotation, FeSettings::screenRotationTokens[ ctx.opt_list[i++].get_vindex() ] );
 	ctx.fe_settings.set_info( FeSettings::ImageCacheMBytes, ctx.opt_list[i++].get_value() );
 	ctx.fe_settings.set_info( FeSettings::VideoDecoder, ctx.opt_list[i++].get_value() );

@@ -4027,7 +4027,7 @@ void *FeSdl3GpuContext::get_native_window_handle() const
 	if ( !m_window )
 		return nullptr;
 
-#if defined( SFML_SYSTEM_WINDOWS ) || defined( USE_XLIB )
+#if defined( SFML_SYSTEM_WINDOWS ) || defined( SFML_SYSTEM_LINUX )
 	SDL_PropertiesID props = SDL_GetWindowProperties( m_window );
 	if ( !props )
 		return nullptr;

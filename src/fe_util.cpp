@@ -76,12 +76,9 @@
 #include "fe_util_android.hpp"
 #endif
 
-#ifdef USE_XLIB
+#ifdef SFML_SYSTEM_LINUX
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
- #ifdef USE_XINERAMA
- #include <X11/extensions/Xinerama.h>
- #endif
 #endif
 
 namespace
@@ -1561,7 +1558,7 @@ void unix_wait_process( unsigned int pid, run_program_options_class *opt )
 				FeLog() << " - Pause Hotkey pressed, sending SIGSTOP signal to process " << pid << std::endl;
 
 				// TODO: OS X - implement finding and hiding of foreground window
-#if defined( USE_XLIB )
+#if defined( SFML_SYSTEM_LINUX )
 				Window wnd( 0 );
 				int revert;
 
@@ -1875,7 +1872,7 @@ void resume_program(
 	CloseHandle( hp );
 #else
 	// TODO: OS X - implement setting of foreground window
-#if defined ( USE_XLIB )
+#if defined ( SFML_SYSTEM_LINUX )
 	set_x11_foreground_window( (unsigned long)wnd );
 #endif
 
@@ -1960,66 +1957,64 @@ void clipboard_set_content( const std::string &value )
 	SDL_SetClipboardText( value.c_str() );
 }
 
-#if defined(USE_XLIB)
-void get_x11_multimon_geometry( int &x, int &y, unsigned int &width, unsigned int &height )
+std::string fe_get_sdl_video_driver_name()
 {
-	x=0;
-	y=0;
-	width=0;
-	height=0;
+	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) == 0 )
+		return "";
 
-#ifdef USE_XINERAMA
-	::Display *xdisp = XOpenDisplay( NULL );
-	int num=0;
+	const char *driver = SDL_GetCurrentVideoDriver();
+	return driver ? driver : "";
+}
 
-	XineramaScreenInfo *si=XineramaQueryScreens( xdisp, &num );
-	if ( num > 0 ) // num is 0 if xinerama is not active
-	{
-		if ( num > 1 )
-		{
-			x=-si[0].x_org;
-			y=-si[0].y_org;
-		}
+bool fe_is_sdl_backend_x11()
+{
+	return fe_get_sdl_video_driver_name() == "x11";
+}
 
-		for ( int i=0; i<num; i++ )
-		{
-			width = std::max( (int)width, si[i].x_org + si[i].width );
-			height = std::max( (int)height, si[i].y_org + si[i].height );
-		}
-	}
-	else
-		get_x11_primary_screen_size( width, height );
+bool fe_is_sdl_backend_kmsdrm()
+{
+	return fe_get_sdl_video_driver_name() == "kmsdrm";
+}
 
-	XFree( si );
-	XCloseDisplay( xdisp );
+bool fe_runtime_force_fullscreen()
+{
+#if defined(SFML_SYSTEM_LINUX)
+	return fe_is_sdl_backend_kmsdrm();
 #else
-	get_x11_primary_screen_size( width, height );
+	return false;
 #endif
 }
 
-void get_x11_primary_screen_size( unsigned int &width, unsigned int &height )
+bool fe_runtime_supports_multimon()
 {
-	::Display *xdisp = XOpenDisplay( NULL );
-	::Screen *xscreen = XDefaultScreenOfDisplay( xdisp );
-
-	width = XWidthOfScreen( xscreen );
-	height = XHeightOfScreen( xscreen );
-
-#ifdef USE_XINERAMA
-	int num=0;
-	XineramaScreenInfo *si=XineramaQueryScreens( xdisp, &num );
-
-	if ( num > 0 )
-	{
-		width = si[0].width;
-		height = si[0].height;
-	}
-
-	XFree( si );
+#ifdef SFML_SYSTEM_MACOS
+	return false;
+#else
+	return true;
 #endif
-	XCloseDisplay( xdisp );
 }
 
+bool fe_runtime_supports_nbm_wait()
+{
+#if defined(SFML_SYSTEM_LINUX)
+	return !fe_is_sdl_backend_kmsdrm();
+#else
+	return true;
+#endif
+}
+
+bool fe_runtime_supports_pause_hotkey()
+{
+#ifdef SFML_SYSTEM_MACOS
+	return false;
+#elif defined(SFML_SYSTEM_LINUX)
+	return !fe_is_sdl_backend_kmsdrm();
+#else
+	return true;
+#endif
+}
+
+#if defined(SFML_SYSTEM_LINUX)
 void set_x11_foreground_window( unsigned long w )
 {
 	::Display *xdisp = XOpenDisplay( NULL );
@@ -2271,7 +2266,7 @@ std::string get_focus_process()
 	CloseHandle( snap );
 	retval += " (" + as_str( (int)focus_pid ) + ")";
 
-#elif defined( USE_XLIB )
+#elif defined( SFML_SYSTEM_LINUX )
 
 	::Display *xdisp = XOpenDisplay( NULL );
 	Atom _NET_WM_PID = XInternAtom( xdisp, "_NET_WM_PID", True );
@@ -2424,7 +2419,7 @@ bool get_capslock_state()
 		return osx_get_capslock();
 	#endif
 
-	#ifdef USE_XLIB
+	#ifdef SFML_SYSTEM_LINUX
 		::Display *xdisp = XOpenDisplay( NULL );
 		if (!xdisp) return false;
 

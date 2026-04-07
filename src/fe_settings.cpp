@@ -382,7 +382,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_quick_menu( true ),
 	m_track_usage( true ),
 	m_multimon( false ),
-#if defined(SFML_SYSTEM_LINUX) || defined(FORCE_FULLSCREEN)
+#if defined(SFML_SYSTEM_LINUX)
 	m_window_mode( Fullscreen ),
 #else
 	m_window_mode( Fillscreen ),
@@ -3665,13 +3665,11 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case WindowMode:
-#if !defined(FORCE_FULLSCREEN)
 		{
 			int i = get_token_index( windowModeTokens, value );
 			if (i == -1) return false;
 			m_window_mode = (WindowType)i;
 		}
-#endif
 		break;
 
 	case ScreenRotation:
@@ -3725,9 +3723,8 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case MultiMon:
-#if !defined(NO_MULTIMON)
-		m_multimon = config_str_to_bool( value );
-#endif
+		if ( fe_runtime_supports_multimon() )
+			m_multimon = config_str_to_bool( value );
 		break;
 
 	case SmoothImages:

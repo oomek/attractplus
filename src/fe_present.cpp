@@ -48,23 +48,6 @@
 #include <SDL3_image/SDL_image.h>
 #include <SFML/Audio.hpp>
 
-
-#ifdef USE_XLIB
-#include <X11/extensions/Xrandr.h>
-#endif
-
-#ifdef USE_XINERAMA
-#include <X11/extensions/Xinerama.h>
-#endif
-
-#ifdef USE_DRM
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
-#endif
-
 #ifdef SFML_SYSTEM_MACOS
 #include <CoreVideo/CoreVideo.h>
 #endif
@@ -265,64 +248,23 @@ void FePresent::init_monitors()
 		m_refresh_rate = refresh_rate;
 #endif
 
-#if defined(USE_DRM)
+#if defined(SFML_SYSTEM_LINUX)
+	SDL_DisplayID current_display = 0;
 	if ( m_window.owns_sdl_window() )
 	{
 		if ( SDL_Window *window = m_window.get_gpu_context().get_window() )
-		{
-			const SDL_DisplayID display = SDL_GetDisplayForWindow( window );
-			if ( display )
-			{
-				if ( const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode( display ) )
-					m_refresh_rate = static_cast<int>( mode->refresh_rate + 0.5f );
-				else if ( const SDL_DisplayMode *desktop_mode = SDL_GetDesktopDisplayMode( display ) )
-					m_refresh_rate = static_cast<int>( desktop_mode->refresh_rate + 0.5f );
-			}
-		}
+			current_display = SDL_GetDisplayForWindow( window );
 	}
-	else
+
+	if ( !current_display )
+		current_display = SDL_GetPrimaryDisplay();
+
+	if ( current_display )
 	{
-	#define MAX_DRM_DEVICES 64
-
-	drmDevicePtr devices[MAX_DRM_DEVICES] = { NULL };
-	int num_devices, fd = -1;
-
-	num_devices = drmGetDevices2( 0, devices, MAX_DRM_DEVICES );
-	for ( int i = 0; i < num_devices; i++ )
-	{
-		drmDevicePtr device = devices[i];
-		int ret;
-
-		if ( !( device->available_nodes & ( 1 << DRM_NODE_PRIMARY )))
-			continue;
-
-		int drm_fd = open( device->nodes[DRM_NODE_PRIMARY], O_RDWR | O_CLOEXEC );
-		drmModeRes *p_res = drmModeGetResources( drm_fd );
-
-		if ( p_res )
-			for ( int j = 0; j < p_res->count_connectors; j++ )
-			{
-				drmModeConnector *p_connector = drmModeGetConnector( drm_fd, p_res->connectors[j] );
-				drmModeEncoder *encoder;
-				drmModeCrtc *crtc;
-				encoder = drmModeGetEncoder( drm_fd, p_connector->encoder_id );
-				drmModeModeInfo mode_info;
-				memset( &mode_info, 0, sizeof( drmModeModeInfo ));
-				if ( encoder != NULL )
-				{
-					crtc = drmModeGetCrtc( drm_fd, encoder->crtc_id );
-					drmModeFreeEncoder( encoder );
-					if ( crtc != NULL )
-					{
-						if ( crtc->mode_valid )
-							m_refresh_rate = crtc->mode.vrefresh;
-						drmModeFreeCrtc( crtc );
-					}
-				}
-			}
-		close( drm_fd );
-	}
-	drmFreeDevices( devices, num_devices );
+		if ( const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode( current_display ) )
+			m_refresh_rate = static_cast<int>( mode->refresh_rate + 0.5f );
+		else if ( const SDL_DisplayMode *desktop_mode = SDL_GetDesktopDisplayMode( current_display ) )
+			m_refresh_rate = static_cast<int>( desktop_mode->refresh_rate + 0.5f );
 	}
 #endif
 
@@ -362,88 +304,71 @@ void FePresent::init_monitors()
 			(*itr).transform *= correction;
 	}
 	else
-#elif defined(USE_XLIB)
-
-	Display *xdisp = XOpenDisplay( NULL );
-	if ( !xdisp )
+#elif defined(SFML_SYSTEM_LINUX)
+	if ( m_feSettings->get_multimon() && !is_windowed_mode( m_window.get_window_mode() ) )
 	{
-		FeLog() << "Unable to open x display" << std::endl;
-	}
-	else
-	{
-		Window root = RootWindow( xdisp, 0 );
-		XRRScreenResources *res = XRRGetScreenResources( xdisp, root );
-		if ( res )
+		int display_count = 0;
+		SDL_DisplayID *displays = SDL_GetDisplays( &display_count );
+		if ( displays && display_count > 0 )
 		{
-			for ( int i = 0; i < res->noutput && m_refresh_rate == 0; i++ )
+			std::vector<SDL_DisplayID> ordered_displays( displays, displays + display_count );
+			SDL_free( displays );
+
+			if ( current_display )
 			{
-				XRROutputInfo *output_info = XRRGetOutputInfo( xdisp, res, res->outputs[i] );
-				if ( output_info && output_info->connection == RR_Connected )
-				{
-					XRRCrtcInfo *crtc_info = XRRGetCrtcInfo( xdisp, res, output_info->crtc );
-					if ( crtc_info )
-					{
-						for ( int k = 0; k < res->nmode; k++ )
-						{
-							if ( res->modes[k].id == crtc_info->mode )
-							{
-								double refresh = (double)res->modes[k].dotClock / ( res->modes[k].hTotal * res->modes[k].vTotal );
-								m_refresh_rate = (int)( refresh + 0.5 );
-								break;
-							}
-						}
-						XRRFreeCrtcInfo( crtc_info );
-					}
-				}
-				if ( output_info )
-					XRRFreeOutputInfo( output_info );
+				const auto preferred = std::find( ordered_displays.begin(), ordered_displays.end(), current_display );
+				if ( preferred != ordered_displays.end() )
+					std::rotate( ordered_displays.begin(), preferred, ordered_displays.end() );
 			}
-			XRRFreeScreenResources( res );
-		}
-	}
 
- #if !defined(USE_XINERAMA)
-	XCloseDisplay( xdisp );
- #else
-	bool set_first=true;
-	if ( xdisp && m_feSettings->get_multimon() && !is_windowed_mode( m_window.get_window_mode() ) )
-	{
-		int num = 0;
-		XineramaScreenInfo *si = XineramaQueryScreens( xdisp, &num );
+			bool have_bounds = false;
+			int left = 0;
+			int top = 0;
+			std::vector<SDL_Rect> rects;
+			rects.reserve( ordered_displays.size() );
 
-		if ( !si )
-		{
-			FeLog() << "Unable to query Xinerama screens" << std::endl;
-			set_first=true;
-		}
-		else
-		{
-			for ( int i=0; i<num; i++ )
+			for ( SDL_DisplayID display : ordered_displays )
 			{
+				SDL_Rect rect = {};
+				if ( !SDL_GetDisplayBounds( display, &rect ) )
+					continue;
+
+				rects.push_back( rect );
+
+				if ( !have_bounds )
+				{
+					left = rect.x;
+					top = rect.y;
+					have_bounds = true;
+				}
+				else
+				{
+					left = std::min( left, rect.x );
+					top = std::min( top, rect.y );
+				}
+			}
+
+			for ( std::size_t i = 0; i < rects.size(); ++i )
+			{
+				const SDL_Rect &rect = rects[i];
 				FeMonitor mon(
-					si[i].screen_number,
-					si[i].width,
-					si[i].height );
+					static_cast<int>( i ),
+					rect.w,
+					rect.h );
 
 				mon.transform = FeTransform().translate(
-					{ static_cast<float>( si[i].x_org ), static_cast<float>( si[i].y_org ) } );
+					{ static_cast<float>( rect.x - left ), static_cast<float>( rect.y - top ) } );
 
-				FeDebug() << "Multimon: monitor #" << si[i].screen_number
+				FeDebug() << "Multimon: monitor #" << i
 					<< ": " << mon.size.x << "x" << mon.size.y << " @ "
-					<< si[i].x_org << "," << si[i].y_org << std::endl;
+					<< rect.x << "," << rect.y << std::endl;
 
 				m_mon.push_back( mon );
 			}
-			set_first=false;
-			XFree( si );
 		}
+		else if ( displays )
+			SDL_free( displays );
 	}
-
-	if ( xdisp )
-		XCloseDisplay( xdisp );
-
-	if ( set_first )
- #endif
 #endif
 	{
 		FeMonitor mc( 0, m_window.get_size().x, m_window.get_size().y );
@@ -484,7 +409,7 @@ FePresent::~FePresent()
 
 //
 // Clears common resources as well as layout-specific ones
-// - DRM builds close the window before launching the emulator
+// - The KMSDRM backend closes the window before launching the emulator
 // - This requires the release of additional resources
 //
 void FePresent::clear_resources()
@@ -1915,9 +1840,8 @@ void FePresent::post_run()
 	m_layout_time.tick();
 	m_layout_time_old = m_layout_time.getElapsedTime();
 
-#if !defined(USE_DRM)
-	on_transition( FromGame, FromToNoValue );
-#endif
+	if ( !fe_is_sdl_backend_kmsdrm() )
+		on_transition( FromGame, FromToNoValue );
 
 	m_feSettings->reset_input();
 	reset_screen_saver();

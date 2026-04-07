@@ -406,7 +406,7 @@ namespace
 		SDL_WarpMouseGlobal( static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
 	}
 
-#if defined(USE_XLIB)
+#if defined(SFML_SYSTEM_LINUX)
 	unsigned long get_x11_window_number( const FeSdl3GpuContext &context )
 	{
 		return static_cast<unsigned long>(
@@ -1098,10 +1098,16 @@ void FeWindow::initial_create()
 	if ( owns_sdl_window() )
 		m_gpu_context.release_window();
 
-	bool do_multimon = is_multimon_config( m_fes );
 	m_win_mode = m_fes.get_window_mode();
 	const bool use_sdl_owned_window = true;
 	const bool sdl_video_ready = use_sdl_owned_window && m_gpu_context.ensure_video_subsystem();
+	if ( fe_runtime_force_fullscreen() && ( m_win_mode != FeSettings::Fullscreen ) )
+	{
+		FeLog() << " ! NOTE: Switching to 'Fullscreen' window mode (required for the active SDL video backend)." << std::endl;
+		m_win_mode = FeSettings::Fullscreen;
+		m_fes.set_info( FeSettings::WindowMode, FeSettings::windowModeTokens[ m_win_mode ] );
+	}
+	bool do_multimon = m_fes.get_multimon() && !is_windowed_mode( m_win_mode );
 	if ( use_sdl_owned_window )
 		fe_joystick_refresh_devices();
 
@@ -1111,26 +1117,6 @@ void FeWindow::initial_create()
 #if !defined(SFML_SYSTEM_WINDOWS)
 	if ( sdl_video_ready )
 		get_sdl_desktop_geometry( do_multimon, vm, wpos );
-#endif
-
-#if defined(USE_XLIB)
-
-	if ( !do_multimon && ( m_win_mode != FeSettings::Fullscreen ))
-	{
-		// If we aren't doing multimonitor mode (it isn't configured or we are in a window)
-		// then use the primary screen size as our render surface size and 'fillscreen' window
-		// size.
-		//
-		// We don't do this on "Fullscreen", which has to be set to a valid fullscreen videomode.
-		get_x11_primary_screen_size( vm.size.x, vm.size.y );
-	}
-	else
-	{
-		// Query the full X11 virtual desktop so multimon window positioning stays anchored to the
-		// same desktop bounds across window managers.
-		get_x11_multimon_geometry( wpos.x, wpos.y, vm.size.x, vm.size.y );
-	}
-
 #elif defined(SFML_SYSTEM_WINDOWS)
 
 	//
@@ -1223,7 +1209,7 @@ void FeWindow::initial_create()
 			m_win_pos.m_pos.y,
 			static_cast<int>( m_win_pos.m_size.x ),
 			static_cast<int>( m_win_pos.m_size.y ) );
-#if !defined(NO_MULTIMON) && defined(SFML_SYSTEM_WINDOWS)
+#if defined(SFML_SYSTEM_WINDOWS)
 		// The window can be positioned anywhere in the virtual screen
 		IntRect vm_rect(
 			GetSystemMetrics( SM_XVIRTUALSCREEN ),
@@ -1369,7 +1355,7 @@ void FeWindow::initial_create()
 	}
 #endif
 
-#if defined(USE_XLIB)
+#if defined(SFML_SYSTEM_LINUX)
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
 		if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
@@ -1419,7 +1405,7 @@ void launch_callback( void *o )
 		// On X11 Linux, fullscreen is confirmed to block the emulator
 		// from running on some systems...
 		//
-#if defined(USE_XLIB)
+#if defined(SFML_SYSTEM_LINUX)
 		fe_sleep( fe_milliseconds( 1000 ) );
 #endif
 		FeDebug() << "Closing Attract-Mode Plus window" << std::endl;
@@ -1485,23 +1471,20 @@ bool FeWindow::run()
 	opt.exit_hotkey = emu->get_info( FeEmulatorInfo::Exit_hotkey );
 	opt.pause_hotkey = emu->get_info( FeEmulatorInfo::Pause_hotkey );
 	opt.joy_thresh = m_fes.get_joy_thresh();
-#if defined (USE_DRM)
-	opt.launch_cb = NULL; // In DRM we're closing the window before launching the emulator
-#else
-	opt.launch_cb = (( nbm_wait <= 0 ) ? launch_callback : NULL );
-#endif
+	opt.launch_cb = ( fe_is_sdl_backend_kmsdrm() ? NULL : (( nbm_wait <= 0 ) ? launch_callback : NULL ) );
 	opt.wait_cb = wait_callback;
 	opt.launch_opaque = this;
 
-#if defined(USE_DRM)
-	FePresent *fep = FePresent::script_get_fep();
-	fep->clear_resources();
+	if ( fe_is_sdl_backend_kmsdrm() )
+	{
+		FePresent *fep = FePresent::script_get_fep();
+		fep->clear_resources();
 
-	close();
-	// On DRM/KMS we must fully release the SDL GPU device before the emulator starts,
-	// otherwise the frontend can keep the display path busy after the window is gone.
-	m_gpu_context.shutdown();
-#endif
+		close();
+		// On KMSDRM we must fully release the SDL GPU device before the emulator starts,
+		// otherwise the frontend can keep the display path busy after the window is gone.
+		m_gpu_context.shutdown();
+	}
 
 	bool have_paused_prog = m_running_pid && process_exists( m_running_pid );
 
@@ -1626,24 +1609,25 @@ bool FeWindow::run()
 #if defined(SFML_SYSTEM_LINUX)
 	if ( m_fes.get_window_mode() == FeSettings::Fullscreen )
 	{
- #if defined(USE_XLIB)
 		//
 		// On X11 Linux fullscreen we might have forcibly closed our window after launching the
-		// emulator. Recreate it now if we did.
+		// emulator. Recreate it now if we did. On KMSDRM we always recreate after handing the
+		// display off to the emulator.
 		//
-		// Note that simply hiding and then showing the window again doesn't work right... focus
-		// doesn't come back
-		//
-		if ( !isOpen() )
+		if ( fe_is_sdl_backend_x11() )
+		{
+			if ( !isOpen() )
+				initial_create();
+		}
+		else
 			initial_create();
- #else
-		initial_create(); // On raspberry pi or with DRM, we have forcibly closed the window, so recreate it now
- #endif
 	}
-#if defined(USE_XLIB)
-	if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
-		set_x11_foreground_window( window );
- #endif
+
+	if ( fe_is_sdl_backend_x11() )
+	{
+		if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
+			set_x11_foreground_window( window );
+	}
 
 #elif defined(SFML_SYSTEM_MACOS)
 	osx_take_focus();

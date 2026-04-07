@@ -184,10 +184,17 @@ int main(int argc, char *argv[])
 	//
 	// Run the front-end
 	//
+	bool version_init_video = false;
 	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) == 0 )
+	{
 		SDL_InitSubSystem( SDL_INIT_VIDEO );
+		version_init_video = true;
+	}
 
 	fe_print_version();
+
+	if ( version_init_video )
+		SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
 #ifdef SFML_SYSTEM_WINDOWS
 	FeWindowsAudioBootstrap windows_audio_bootstrap;
@@ -428,13 +435,13 @@ int main(int argc, char *argv[])
 				soundsys.sound_event( FeInputMap::EventGameReturn );
 				soundsys.play_ambient();
 
-#ifdef USE_DRM
-				feSettings.switch_from_clone_group();
-				feVM.load_layout();
-#else
-				if ( feSettings.switch_from_clone_group() )
+				if ( fe_is_sdl_backend_kmsdrm() )
+				{
+					feSettings.switch_from_clone_group();
+					feVM.load_layout();
+				}
+				else if ( feSettings.switch_from_clone_group() )
 					feVM.update_to_new_list( 0, true );
-#endif
 
 				has_focus=true;
 			}

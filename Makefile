@@ -23,9 +23,6 @@
 #
 # BUILD CONFIGURATION OPTIONS:
 #
-# Uncomment the next line to build the DRM/KMS version (alternative to X11)
-#USE_DRM=1
-#
 # Uncomment next line to disable movie support (i.e. no FFmpeg).
 #NO_MOVIE=1
 #
@@ -282,18 +279,6 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    override B64FLAGS = -b 0 -i
    LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL
   else
-   ifeq ($(USE_DRM),1)
-   else
-    #
-    # Test for Xlib and Xinerama...
-    #
-    ifeq ($(shell $(PKG_CONFIG) --exists x11 && echo "1" || echo "0"), 1)
-     USE_XLIB=1
-     ifeq ($(shell $(PKG_CONFIG) --exists xinerama && echo "1" || echo "0"), 1)
-      USE_XINERAMA=1
-     endif
-    endif
-   endif
   endif
  endif
 endif
@@ -363,6 +348,14 @@ endif
 CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SDL3_IMAGE_PKG))
 LIBS += $(shell $(PKG_CONFIG) --libs $(SDL3_IMAGE_PKG))
 
+ifneq ($(FE_WINDOWS_COMPILE),1)
+ ifneq ($(FE_MACOSX_COMPILE),1)
+  ifneq ($(shell $(PKG_CONFIG) --exists x11 xi xcursor xrandr && echo 1 || echo 0),1)
+   $(error X11/XRandR development files are required through pkg-config)
+  endif
+ endif
+endif
+
 #
 # Check whether optional libs should be enabled
 #
@@ -388,21 +381,10 @@ ifeq ($(USE_MMAL),1)
  FE_FLAGS += -DUSE_MMAL
 endif
 
-ifeq ($(USE_XLIB),1)
- FE_FLAGS += -DUSE_XLIB
- LIBS += -lX11 -lXi -lXrandr -lXcursor
-
-ifeq ($(USE_XINERAMA),1)
-  FE_FLAGS += -DUSE_XINERAMA
-  LIBS += -lXinerama
+ifneq ($(FE_WINDOWS_COMPILE),1)
+ ifneq ($(FE_MACOSX_COMPILE),1)
+ LIBS += -lX11 -lXi -lXcursor -lXrandr
  endif
-
-endif
-
-ifeq ($(USE_DRM),1)
- PKG_CONFIG_LIBS += libdrm gbm
- FE_FLAGS += -DUSE_DRM
- LIBS += -lEGL
 endif
 
 ifeq ($(FE_HWACCEL_VAAPI),1)
@@ -453,11 +435,6 @@ else ifeq ($(FE_MACOSX_COMPILE),1)
  BUILD_OBJ_TAG := macos
 else
  BUILD_OBJ_TAG := linux
- ifeq ($(USE_DRM),1)
-  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-drm
- else
-  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-x11
- endif
 endif
 ifeq ($(USE_SYSTEM_SFML),1)
  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-sys-sfml
@@ -586,9 +563,6 @@ ifeq ($(FE_WINDOWS_COMPILE),1)
 endif
 else
 	$(eval SFML_FLAGS += -DBUILD_SHARED_LIBS=TRUE)
-endif
-ifeq ($(USE_DRM),1)
-	$(eval SFML_FLAGS += -DSFML_USE_DRM=1)
 endif
 ifeq ($(FE_MACOSX_COMPILE),1)
 	$(eval SFML_FLAGS += -DSFML_USE_SYSTEM_DEPS=1)

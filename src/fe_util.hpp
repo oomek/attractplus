@@ -409,10 +409,15 @@ std::string clipboard_get_content();
 //
 void clipboard_set_content( const std::string & );
 
-#if defined(USE_XLIB)
-void get_x11_multimon_geometry( int &x, int &y, unsigned int &width, unsigned int &height );
-void get_x11_primary_screen_size( unsigned int &width, unsigned int &height );
+std::string fe_get_sdl_video_driver_name();
+bool fe_is_sdl_backend_x11();
+bool fe_is_sdl_backend_kmsdrm();
+bool fe_runtime_force_fullscreen();
+bool fe_runtime_supports_multimon();
+bool fe_runtime_supports_nbm_wait();
+bool fe_runtime_supports_pause_hotkey();
 
+#if defined(SFML_SYSTEM_LINUX)
 // set foreground window to the specified window.
 void set_x11_foreground_window( unsigned long w );
 

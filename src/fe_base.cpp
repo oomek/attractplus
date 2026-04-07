@@ -175,9 +175,6 @@ void fe_print_version()
 	}
 
 	FeLog()
-#ifdef USE_XINERAMA
-		<< ", Xinerama"
-#endif
 #ifdef USE_LIBARCHIVE
 		<< ", 7z"
 #endif
