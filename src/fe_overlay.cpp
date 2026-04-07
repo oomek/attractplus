@@ -2291,7 +2291,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 						break;
 
 					case SDL_SCANCODE_V:
-	#ifdef SFML_SYSTEM_MACOS
+	#ifdef SDL_PLATFORM_MACOS
 						if ( key->system )
 	#else
 						if ( key->control )

@@ -44,14 +44,14 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#include <SFML/Config.hpp>
+#include <SDL3/SDL_platform_defines.h>
 #include "fe_time.hpp"
 
 #ifdef USE_LIBARCHIVE
 #include <zlib.h>
 #endif
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <io.h>
@@ -68,15 +68,15 @@
 #include <utime.h>
 #endif
 
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 #include "fe_util_osx.hpp"
 #endif
 
-#ifdef SFML_SYSTEM_ANDROID
+#ifdef SDL_PLATFORM_ANDROID
 #include "fe_util_android.hpp"
 #endif
 
-#ifdef SFML_SYSTEM_LINUX
+#ifdef SDL_PLATFORM_LINUX
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #endif
@@ -95,7 +95,7 @@ namespace
 			s += c;
 	}
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 
 	std::string get_home_dir()
 	{
@@ -106,7 +106,7 @@ namespace
 		return retval;
 	}
 
-#elif !defined(SFML_SYSTEM_ANDROID)
+#elif !defined(SDL_PLATFORM_ANDROID)
 
 	std::string get_home_dir()
 	{
@@ -276,7 +276,7 @@ std::string sanitize_filename( const std::string &file )
 // Returns modified time of file
 time_t get_file_mtime( const std::string &file )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	// Use GetFileTime API to avoid timezone/DST issues with stat()
 	HANDLE hFile = CreateFileW(
 		nowide::widen( file ).c_str(),
@@ -313,7 +313,7 @@ time_t get_file_mtime( const std::string &file )
 
 bool set_file_mtime( const std::string &file, time_t mtime )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	HANDLE hFile = CreateFileW(
 		nowide::widen( file ).c_str(),
 		FILE_WRITE_ATTRIBUTES,
@@ -438,7 +438,7 @@ int check_path( const std::string &path )
 	if (( p.back() == '\\' || p.back() == '/' ))
 		p.pop_back();
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	std::wstring wide_path = FeUtil::widen( p );
 	_WDIR* dir = _wopendir( wide_path.c_str() );
 	if ( dir )
@@ -465,7 +465,7 @@ bool is_relative_path( const std::string &n )
 {
 	std::string name = clean_path( n );
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	if (( name.size() > 2 )
 			&& ( isalpha( name[0] ) )
 			&& ( name[1] == ':' )
@@ -488,7 +488,7 @@ std::string clean_path( const std::string &path, bool add_trailing_slash )
 	if ( retval.empty() )
 		return retval;
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	size_t pos = 0;
 	while ( pos < retval.length() )
 	{
@@ -530,7 +530,7 @@ std::string clean_path( const std::string &path, bool add_trailing_slash )
 		retval.replace( 0, 8, get_program_path() );
 
 	if (( add_trailing_slash )
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 			&& (retval[retval.size()-1] != '\\')
 #endif
 			&& (retval[retval.size()-1] != '/'))
@@ -542,7 +542,7 @@ std::string clean_path( const std::string &path, bool add_trailing_slash )
 std::string get_program_path()
 {
 	std::string path;
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	wchar_t result[ MAX_PATH ];
 	std::basic_string<wchar_t> s( result, GetModuleFileNameW( NULL, result, MAX_PATH ) );
 	path = FeUtil::narrow( s );
@@ -557,7 +557,7 @@ std::string get_program_path()
 
 std::string absolute_path( const std::string &path )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 
 	const int BUFF_SIZE = 512;
 	wchar_t buff[ BUFF_SIZE + 1 ];
@@ -578,7 +578,7 @@ std::string absolute_path( const std::string &path )
 
 		return retval;
 	}
-#endif // SFML_SYSTEM_WINDOWS
+#endif // SDL_PLATFORM_WINDOWS
 
 	return path;
 }
@@ -630,7 +630,7 @@ bool get_subdirectories(
 			std::vector<std::string> &list,
 			const std::string &path )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	std::string temp = path + "*";
 
 	struct _wfinddata_t t;
@@ -688,7 +688,7 @@ bool get_basename_from_extension(
 			const std::string &extension,
 			bool strip_extension )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	std::string temp = path;
 	if ( !path.empty()
 			&& ( path[path.size()-1] != '/' )
@@ -743,7 +743,7 @@ bool get_basename_from_extension(
 				list.push_back( what );
 
 		}
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	} while ( _wfindnext( srch, &t ) == 0 );
 	_findclose( srch );
 #else
@@ -761,7 +761,7 @@ bool get_filename_from_base(
 	const std::string &base_name,
 	const char **filter )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	std::string temp = path + base_name + "*";
 
 	struct _wfinddata_t t;
@@ -798,7 +798,7 @@ bool get_filename_from_base(
 				&& ( what_len >= base_len )
 				&& ( strncasecmp( what, base_name.c_str(), base_len ) == 0 ))
 		{
-#endif // SFML_SYSTEM_WINDOWS
+#endif // SDL_PLATFORM_WINDOWS
 			if ( filter )
 			{
 				bool add=false;
@@ -823,7 +823,7 @@ bool get_filename_from_base(
 			}
 			else
 				in_list.push_back( path + what );
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 		}
 	} while ( _wfindnext( srch, &t ) == 0 );
 	_findclose( srch );
@@ -831,7 +831,7 @@ bool get_filename_from_base(
 		}
 	}
 	closedir( dir );
-#endif // SFML_SYSTEM_WINDOWS
+#endif // SDL_PLATFORM_WINDOWS
 
 	return !(in_list.empty());
 }
@@ -1066,11 +1066,11 @@ void delete_file( const std::string &file )
 
 bool make_dir( const std::string &dir )
 {
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	_wmkdir( FeUtil::widen( dir ).c_str() );
 #else
 	mkdir( dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH  );
-#endif // SFML_SYSTEM_WINDOWS
+#endif // SDL_PLATFORM_WINDOWS
 	return true; // assume success
 }
 
@@ -1092,7 +1092,7 @@ void delete_dir( const std::string &path )
 			delete_file( file );
 	}
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	_wrmdir( FeUtil::widen( path ).c_str() );
 #else
 	rmdir( path.c_str() );
@@ -1357,15 +1357,15 @@ bool config_str_to_bool( const std::string &s, bool permissive )
 
 const char *get_OS_string()
 {
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	return "Windows";
-#elif defined(SFML_SYSTEM_MACOS)
+#elif defined(SDL_PLATFORM_MACOS)
 	return "OSX";
-#elif defined(SFML_SYSTEM_FREEBSD)
+#elif defined(SDL_PLATFORM_FREEBSD)
 	return "FreeBSD";
-#elif defined(SFML_SYSTEM_LINUX)
+#elif defined(SDL_PLATFORM_LINUX)
 	return "Linux";
-#elif defined(SFML_SYSTEM_ANDROID)
+#elif defined(SDL_PLATFORM_ANDROID)
 	return "Android";
 #else
 	return "Unknown";
@@ -1414,7 +1414,7 @@ run_program_options_class::run_program_options_class()
 
 const int POLL_FOR_EXIT_MS=20;
 
-#if defined ( SFML_SYSTEM_WINDOWS )
+#if defined ( SDL_PLATFORM_WINDOWS )
 
 typedef LONG (NTAPI *NtSuspendProcess)(IN HANDLE ProcessHandle );
 typedef LONG (NTAPI *NtResumeProcess)(IN HANDLE ProcessHandle );
@@ -1558,7 +1558,7 @@ void unix_wait_process( unsigned int pid, run_program_options_class *opt )
 				FeLog() << " - Pause Hotkey pressed, sending SIGSTOP signal to process " << pid << std::endl;
 
 				// TODO: OS X - implement finding and hiding of foreground window
-#if defined( SFML_SYSTEM_LINUX )
+#if defined( SDL_PLATFORM_LINUX )
 				Window wnd( 0 );
 				int revert;
 
@@ -1617,7 +1617,7 @@ bool run_program( const std::string &prog,
 	if ( !opt )
 		opt = &default_opt;
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	HANDLE child_output_read=NULL;
 	HANDLE child_output_write=NULL;
 
@@ -1837,7 +1837,7 @@ bool run_program( const std::string &prog,
 			unix_wait_process( pid, opt );
 		}
 	}
-#endif // SFML_SYSTEM_WINDOWS
+#endif // SDL_PLATFORM_WINDOWS
 	return true;
 }
 
@@ -1846,7 +1846,7 @@ void resume_program(
 	void *wnd,
 	run_program_options_class *opt )
 {
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 	HANDLE hp = OpenProcess( PROCESS_ALL_ACCESS, FALSE, pid );
 
 	// Undocumented Windows system call
@@ -1872,7 +1872,7 @@ void resume_program(
 	CloseHandle( hp );
 #else
 	// TODO: OS X - implement setting of foreground window
-#if defined ( SFML_SYSTEM_LINUX )
+#if defined ( SDL_PLATFORM_LINUX )
 	set_x11_foreground_window( (unsigned long)wnd );
 #endif
 
@@ -1887,7 +1887,7 @@ void resume_program(
 
 void kill_program( unsigned int pid )
 {
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 	HANDLE hp = OpenProcess( PROCESS_TERMINATE, FALSE, pid );
 
 	if ( hp )
@@ -1906,7 +1906,7 @@ void kill_program( unsigned int pid )
 bool process_exists(
 	unsigned int pid )
 {
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 	HANDLE pss = CreateToolhelp32Snapshot( TH32CS_SNAPALL, 0 );
 	PROCESSENTRY32 pe = {0};
 	pe.dwSize = sizeof( pe );
@@ -1978,7 +1978,7 @@ bool fe_is_sdl_backend_kmsdrm()
 
 bool fe_runtime_force_fullscreen()
 {
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	return fe_is_sdl_backend_kmsdrm();
 #else
 	return false;
@@ -1987,7 +1987,7 @@ bool fe_runtime_force_fullscreen()
 
 bool fe_runtime_supports_multimon()
 {
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 	return false;
 #else
 	return true;
@@ -1996,7 +1996,7 @@ bool fe_runtime_supports_multimon()
 
 bool fe_runtime_supports_nbm_wait()
 {
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	return !fe_is_sdl_backend_kmsdrm();
 #else
 	return true;
@@ -2005,16 +2005,16 @@ bool fe_runtime_supports_nbm_wait()
 
 bool fe_runtime_supports_pause_hotkey()
 {
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 	return false;
-#elif defined(SFML_SYSTEM_LINUX)
+#elif defined(SDL_PLATFORM_LINUX)
 	return !fe_is_sdl_backend_kmsdrm();
 #else
 	return true;
 #endif
 }
 
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 void set_x11_foreground_window( unsigned long w )
 {
 	::Display *xdisp = XOpenDisplay( NULL );
@@ -2069,7 +2069,7 @@ void set_x11_fullscreen_state( unsigned long w )
 }
 #endif
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 void hide_console()
 {
 	STARTUPINFO si = { sizeof(STARTUPINFO) };
@@ -2211,7 +2211,7 @@ bool get_console_stdin( std::string &str )
 // TODO: Implement non-blocking console input read on Windows
 // PeekNamedPipe() and ReadFile() ??
 //
-#ifndef SFML_SYSTEM_WINDOWS
+#ifndef SDL_PLATFORM_WINDOWS
 	int count=0;
 	ioctl( fileno(stdin), FIONREAD, &count );
 
@@ -2235,7 +2235,7 @@ std::string get_focus_process()
 {
 	std::string retval( "Unknown" );
 
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 	HWND focus_wnd = GetForegroundWindow();
 	if ( !focus_wnd )
 		return "None";
@@ -2266,7 +2266,7 @@ std::string get_focus_process()
 	CloseHandle( snap );
 	retval += " (" + as_str( (int)focus_pid ) + ")";
 
-#elif defined( SFML_SYSTEM_LINUX )
+#elif defined( SDL_PLATFORM_LINUX )
 
 	::Display *xdisp = XOpenDisplay( NULL );
 	Atom _NET_WM_PID = XInternAtom( xdisp, "_NET_WM_PID", True );
@@ -2411,15 +2411,15 @@ int get_token_index( const char *tokens[], const std::string &token )
 
 bool get_capslock_state()
 {
-	#ifdef SFML_SYSTEM_WINDOWS
+	#ifdef SDL_PLATFORM_WINDOWS
 		return (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 	#endif
 
-	#ifdef SFML_SYSTEM_MACOS
+	#ifdef SDL_PLATFORM_MACOS
 		return osx_get_capslock();
 	#endif
 
-	#ifdef SFML_SYSTEM_LINUX
+	#ifdef SDL_PLATFORM_LINUX
 		::Display *xdisp = XOpenDisplay( NULL );
 		if (!xdisp) return false;
 

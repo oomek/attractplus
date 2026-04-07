@@ -20,7 +20,7 @@
  *
  */
 
-#ifndef SFML_SYSTEM_MACOS
+#ifndef SDL_PLATFORM_MACOS
 #include "attractplus_icon.hpp"
 #endif
 #include "fe_util.hpp"
@@ -34,16 +34,16 @@
 #include "tp.hpp"
 #include "base64.hpp"
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dwmapi.h>
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
-#endif // SFML_SYSTEM_WINDOWS
+#endif // SDL_PLATFORM_WINDOWS
 
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 #include "fe_util_osx.hpp"
 #endif // SFM_SYSTEM_MACOS
 
@@ -289,7 +289,7 @@ namespace
 		return success;
 	}
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	bool get_win32_desktop_geometry( bool do_multimon, FeVideoMode &mode, Vec2i &position )
 	{
 		if ( do_multimon )
@@ -406,7 +406,7 @@ namespace
 		SDL_WarpMouseGlobal( static_cast<float>( pos.x ), static_cast<float>( pos.y ) );
 	}
 
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	unsigned long get_x11_window_number( const FeSdl3GpuContext &context )
 	{
 		return static_cast<unsigned long>(
@@ -739,7 +739,7 @@ int fe_joystick_translate_sdl_instance_id( int instance_id )
 	return find_sdl_joystick_slot( static_cast<SDL_JoystickID>( instance_id ) );
 }
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 void set_win32_foreground_window( HWND hwnd, HWND order )
 {
 	HWND hCurWnd = GetForegroundWindow();
@@ -811,7 +811,7 @@ bool is_multimon_config( FeSettings &fes )
 	return fes.get_multimon() && !is_windowed_mode( fes.get_window_mode() );
 }
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 LRESULT CALLBACK FeWindow::CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
 	if ( msg == WM_POWERBROADCAST )
@@ -835,7 +835,7 @@ FeWindow::~FeWindow()
 	if ( m_running_pid && process_exists( m_running_pid ) )
 		kill_program( m_running_pid );
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	close_blackout();
 #endif
 	fe_joystick_shutdown();
@@ -977,14 +977,14 @@ void FeWindow::display()
 
 	// Starting from Windows Vista non fullscreen window modes
 	// should be synced by DWM, instead of v-sync
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	if ( !used_sdl_gpu_present && ( m_win_mode != FeSettings::Fullscreen ) )
 		DwmFlush();
 	check_for_sleep();
 #endif
 }
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 HWND FeWindow::get_blackout_hwnd() const
 {
 	if ( !m_blackout )
@@ -1114,10 +1114,10 @@ void FeWindow::initial_create()
 	Vec2i wpos( 0, 0 );  // position to set window to
 	FeVideoMode vm( 1280u, 720u, 32u ); // width/height/bpp of surface to create
 
-#if !defined(SFML_SYSTEM_WINDOWS)
+#if !defined(SDL_PLATFORM_WINDOWS)
 	if ( sdl_video_ready )
 		get_sdl_desktop_geometry( do_multimon, vm, wpos );
-#elif defined(SFML_SYSTEM_WINDOWS)
+#elif defined(SDL_PLATFORM_WINDOWS)
 
 	//
 	// Windows General Notes:
@@ -1209,7 +1209,7 @@ void FeWindow::initial_create()
 			m_win_pos.m_pos.y,
 			static_cast<int>( m_win_pos.m_size.x ),
 			static_cast<int>( m_win_pos.m_size.y ) );
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 		// The window can be positioned anywhere in the virtual screen
 		IntRect vm_rect(
 			GetSystemMetrics( SM_XVIRTUALSCREEN ),
@@ -1246,7 +1246,7 @@ void FeWindow::initial_create()
 
 	Vec2i wsize( static_cast<int>( vm.size.x ), static_cast<int>( vm.size.y ) );
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 
 	// If the window mode is set to Borderless Window and the values in window.am
 	// match the display resolution we treat it as if it was Fullscreen
@@ -1282,7 +1282,7 @@ void FeWindow::initial_create()
 			[&]( std::string *error_message ) -> bool
 			{
 				SDL_WindowFlags flags = 0;
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_HIDDEN );
 #else
 				flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_VULKAN );
@@ -1305,7 +1305,7 @@ void FeWindow::initial_create()
 
 				if ( m_win_mode == FeSettings::Window )
 					SDL_SetWindowPosition( sdl_window, wpos.x, wpos.y );
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 				else
 					SDL_SetWindowPosition( sdl_window, wpos.x, wpos.y );
 #endif
@@ -1319,7 +1319,7 @@ void FeWindow::initial_create()
 					return false;
 				}
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 				void *native_handle = m_gpu_context.get_native_window_handle();
 				if ( !native_handle )
 				{
@@ -1347,7 +1347,7 @@ void FeWindow::initial_create()
 	// go through DWM. We have to disable vsync
 	// when we rely solely on DwmFlush()
 
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
 		// note ordering req: pretty sure this needs to be before the setPosition() call below
@@ -1355,7 +1355,7 @@ void FeWindow::initial_create()
 	}
 #endif
 
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
 		if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
@@ -1367,7 +1367,7 @@ void FeWindow::initial_create()
 		<< wpos.x << "," << wpos.y << " [OpenGL surface: "
 		<< vm.size.x << "x" << vm.size.y << " bpp=" << vm.bits_per_pixel << "]" << std::endl;
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	HWND hwnd = nullptr;
 	hwnd = static_cast<HWND>( m_gpu_context.get_native_window_handle() );
 	if ( hwnd )
@@ -1397,7 +1397,7 @@ void FeWindow::initial_create()
 
 void launch_callback( void *o )
 {
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	FeWindow *win = (FeWindow *)o;
 	if ( win->m_fes.get_window_mode() == FeSettings::Fullscreen )
 	{
@@ -1405,7 +1405,7 @@ void launch_callback( void *o )
 		// On X11 Linux, fullscreen is confirmed to block the emulator
 		// from running on some systems...
 		//
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 		fe_sleep( fe_milliseconds( 1000 ) );
 #endif
 		FeDebug() << "Closing Attract-Mode Plus window" << std::endl;
@@ -1488,7 +1488,7 @@ bool FeWindow::run()
 
 	bool have_paused_prog = m_running_pid && process_exists( m_running_pid );
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	auto get_frontend_hwnd = [&]() -> HWND
 	{
 		return static_cast<HWND>( m_gpu_context.get_native_window_handle() );
@@ -1579,7 +1579,7 @@ bool FeWindow::run()
 					return false;
 			}
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 			has_focus = hasFocus() || blackout_has_focus();
 #else
 			has_focus = hasFocus();
@@ -1606,7 +1606,7 @@ bool FeWindow::run()
 		fep->on_transition( ToNewList, 0 );
 	}
 
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	if ( m_fes.get_window_mode() == FeSettings::Fullscreen )
 	{
 		//
@@ -1629,9 +1629,9 @@ bool FeWindow::run()
 			set_x11_foreground_window( window );
 	}
 
-#elif defined(SFML_SYSTEM_MACOS)
+#elif defined(SDL_PLATFORM_MACOS)
 	osx_take_focus();
-#elif defined(SFML_SYSTEM_WINDOWS)
+#elif defined(SDL_PLATFORM_WINDOWS)
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
 		clear_blackout();
@@ -1674,7 +1674,7 @@ bool FeWindow::run()
 
 void FeWindow::on_exit()
 {
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	close_blackout();
 #endif
 }

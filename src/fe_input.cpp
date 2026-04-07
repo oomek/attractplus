@@ -484,7 +484,7 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 					m_code = ( event->position > 0 ) ? JoyDown : JoyUp;
 					break;
 
-#ifdef SFML_SYSTEM_LINUX
+#ifdef SDL_PLATFORM_LINUX
 				case FeJoystick::Axis::Z:
 				case FeJoystick::Axis::R:
 					if ( event->position < 0 )
@@ -1228,7 +1228,7 @@ void FeInputMap::initialize_mappings()
 			{ FeInputSingle::Keyboard,    static_cast<int>( SDL_SCANCODE_LCTRL ), Select },
 			{ FeInputSingle::Joystick0,   FeInputSingle::JoyButton0, Select },
 
-#ifdef SFML_SYSTEM_ANDROID
+#ifdef SDL_PLATFORM_ANDROID
 			{ FeInputSingle::Touch,       FeInputSingle::SwipeUp,      Up },
 			{ FeInputSingle::Touch,       FeInputSingle::SwipeDown,    Down },
 			{ FeInputSingle::Touch,       FeInputSingle::SwipeLeft,    Left },

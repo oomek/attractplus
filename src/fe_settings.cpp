@@ -42,17 +42,17 @@
 
 #include "language.h"
 
-#include <SFML/Config.hpp>
+#include <SDL3/SDL_platform_defines.h>
 
 #ifndef NO_MOVIE
 #include "media.hpp" // for FeMedia::is_supported_media(), get/set_current_decoder()
 #endif
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 const char *FE_DEFAULT_CFG_PATH		= "./";
-#elif defined(SFML_SYSTEM_MACOS)
+#elif defined(SDL_PLATFORM_MACOS)
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/.attract/";
-#elif defined(SFML_SYSTEM_ANDROID)
+#elif defined(SDL_PLATFORM_ANDROID)
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/";
 #else
 const char *FE_DEFAULT_CFG_PATH		= "$HOME/.attract/";
@@ -382,7 +382,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_quick_menu( true ),
 	m_track_usage( true ),
 	m_multimon( false ),
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	m_window_mode( Fullscreen ),
 #else
 	m_window_mode( Fillscreen ),
@@ -393,7 +393,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_selection_delay( 400 ),
 	m_selection_speed( 40 ),
 	m_image_cache_mbytes( 100 ),
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 	m_move_mouse_on_launch( false ), // hotcorners
 #else
 	m_move_mouse_on_launch( true ),
@@ -405,7 +405,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_scrape_fanart( false ),
 	m_scrape_vids( false ),
 	m_scrape_overview( true ),
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	m_hide_console( false ),
 #endif
 	m_power_saving( false ),
@@ -426,7 +426,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 
 	// absolute_path can drop the trailing slash
 	if (
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 			(m_config_path[m_config_path.size()-1] != '\\') &&
 #endif
 			(m_config_path[m_config_path.size()-1] != '/') )
@@ -606,7 +606,7 @@ const char *FeSettings::configSettingStrings[] =
 	"thegamesdb_key",
 	"power_saving",
 	"check_for_updates",
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	"hide_console",
 #endif
 	"video_decoder",
@@ -3497,7 +3497,7 @@ const std::string FeSettings::get_info( int index ) const
 	case ScrapeOverview:
 	case PowerSaving:
 	case CheckForUpdates:
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	case HideConsole:
 #endif
 		return ( get_info_bool( index ) ? FE_CFG_YES_STR : FE_CFG_NO_STR );
@@ -3571,7 +3571,7 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_power_saving;
 	case CheckForUpdates:
 		return m_check_for_updates;
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	case HideConsole:
 		return m_hide_console;
 #endif
@@ -3794,7 +3794,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_check_for_updates = config_str_to_bool( value );
 		break;
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	case HideConsole:
 		m_hide_console = config_str_to_bool( value );
 		break;

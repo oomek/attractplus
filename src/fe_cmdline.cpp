@@ -326,7 +326,7 @@ void process_args( int argc, char *argv[],
 			if ( window_args.size() != 4 )
 				window_args.clear();
 		}
-#ifndef SFML_SYSTEM_WINDOWS
+#ifndef SDL_PLATFORM_WINDOWS
 		else if (( strcmp( argv[next_arg], "-n" ) == 0 )
 				|| ( strcmp( argv[next_arg], "--console" ) == 0 ))
 		{
@@ -363,7 +363,7 @@ void process_args( int argc, char *argv[],
 			write_section( "Options" );
 			write_option( "-l, --loglevel (silent|info|debug)", "Set the logging level" );
 			write_option( "-g, --logfile <file>", "Write log output to the given file" );
-#ifndef SFML_SYSTEM_WINDOWS
+#ifndef SDL_PLATFORM_WINDOWS
 			write_option( "-n, --console", "Enable script console" );
 #endif
 			write_option( "-c, --config <dir>", "Set the directory containing attract.cfg" );

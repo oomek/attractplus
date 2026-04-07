@@ -1829,7 +1829,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	ctx.add_opt( Opt::TOGGLE, _( "Layout Preview" ), ctx.fe_settings.get_info_bool( FeSettings::LayoutPreview ), _( "_help_misc_layout_preview" ) );
 	ctx.add_opt( Opt::TOGGLE, _( "Power Saving" ), ctx.fe_settings.get_info_bool( FeSettings::PowerSaving ), _( "_help_misc_power_saving" ) );
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	ctx.add_opt( Opt::TOGGLE, _( "Hide Console" ), ctx.fe_settings.get_hide_console(), _( "_help_misc_hide_console" ) );
 #endif
 
@@ -1867,7 +1867,7 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	ctx.fe_settings.set_info( FeSettings::QuickMenu, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::LayoutPreview, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::PowerSaving, ctx.opt_list[i++].get_bool() );
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	ctx.fe_settings.set_info( FeSettings::HideConsole, ctx.opt_list[i++].get_bool() );
 #endif
 	ctx.fe_settings.set_info( FeSettings::CheckForUpdates, ctx.opt_list[i++].get_bool() );

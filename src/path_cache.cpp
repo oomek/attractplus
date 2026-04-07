@@ -94,7 +94,7 @@ std::vector < std::string > &FePathCache::get_cache( const std::string &path )
 	std::vector < std::string > temp;
 	temp.reserve(100);  // Reserve some space to avoid small reallocations
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	std::string search_path = path + "*";
 
 	struct _wfinddata_t t;

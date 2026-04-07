@@ -171,7 +171,7 @@ public:
 		ThegamesdbKey,
 		PowerSaving,
 		CheckForUpdates,
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 		HideConsole,
 #endif
 		VideoDecoder,
@@ -275,7 +275,7 @@ private:
 	bool m_scrape_fanart;
 	bool m_scrape_vids;
 	bool m_scrape_overview;
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	bool m_hide_console;
 #endif
 	bool m_power_saving;
@@ -492,7 +492,7 @@ public:
 	void set_window_topmost( bool window_topmost ) { m_window_topmost = window_topmost; }
 	bool get_window_topmost() const { return m_window_topmost; }
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	bool get_hide_console() const { return m_hide_console; };
 #endif
 

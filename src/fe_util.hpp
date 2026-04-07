@@ -26,7 +26,7 @@
 #include <vector>
 #include <string>
 #include <set>
-#include <SFML/Config.hpp>
+#include <SDL3/SDL_platform_defines.h>
 #include "fe_types.hpp"
 #include "nowide/fstream.hpp"
 
@@ -417,7 +417,7 @@ bool fe_runtime_supports_multimon();
 bool fe_runtime_supports_nbm_wait();
 bool fe_runtime_supports_pause_hotkey();
 
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 // set foreground window to the specified window.
 void set_x11_foreground_window( unsigned long w );
 
@@ -468,7 +468,7 @@ bool get_console_stdin( std::string &str );
 //
 // Windows systems: Hide the console window if not launched from the command line
 //
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 void hide_console();
 #endif
 

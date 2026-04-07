@@ -47,11 +47,11 @@
 #include "nowide/args.hpp"
 #include <SFML/Audio.hpp>
 
-#ifdef SFML_SYSTEM_ANDROID
+#ifdef SDL_PLATFORM_ANDROID
 #include "fe_util_android.hpp"
 #endif
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 #include <windows.h>
 #include "nvapi.hpp"
 
@@ -73,7 +73,7 @@ void process_args( int argc, char *argv[],
 			bool &window_topmost,
 			std::vector<int> &window_args );
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 namespace
 {
 	class FeWindowsAudioBootstrap
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
 	//
 	// Setup logging
 	//
-#if defined(SFML_SYSTEM_WINDOWS) && !defined(WINDOWS_CONSOLE)
+#if defined(SDL_PLATFORM_WINDOWS) && !defined(WINDOWS_CONSOLE)
 	if ( log_file.empty() ) // on windows non-console version, write log to "last_run.log" by default
 	{
 		log_file = feSettings.get_config_dir();
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 	if ( version_init_video )
 		SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	FeWindowsAudioBootstrap windows_audio_bootstrap;
 #endif
 
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	// Detect an nvidia card and if it's found create an nvidia profile for optimizations
 	if ( nvapi_init() > 0 )
 		FeLog() << "Nvidia GPU detected. Attract-Mode Plus profile was not found so it has been created.\n"
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 
 	if ( feSettings.get_info( FeSettings::Language ).empty() )
 	{
-#ifdef SFML_SYSTEM_ANDROID
+#ifdef SDL_PLATFORM_ANDROID
 		android_copy_assets();
 #endif
 		// If our language isn't set at this point, we want to prompt the user for the language

@@ -1152,7 +1152,7 @@ namespace
 
 	std::string get_shader_cache_base_path()
 	{
-#if !defined( SFML_SYSTEM_WINDOWS )
+#if !defined( SDL_PLATFORM_WINDOWS )
 		return absolute_path( clean_path( std::string( FE_DEFAULT_CFG_PATH ) + FE_CACHE_SUBDIR ) );
 #else
 		return join_path( get_base_path(), FE_CACHE_SUBDIR );
@@ -1200,9 +1200,9 @@ namespace
 	{
 		SDL_GPUShaderFormat formats = SDL_GPU_SHADERFORMAT_SPIRV;
 
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 		formats |= SDL_GPU_SHADERFORMAT_DXIL;
-#elif defined( SFML_SYSTEM_MACOS )
+#elif defined( SDL_PLATFORM_MACOS )
 		formats |= SDL_GPU_SHADERFORMAT_MSL | SDL_GPU_SHADERFORMAT_METALLIB;
 #endif
 
@@ -1214,7 +1214,7 @@ namespace
 		if ( driver_name && driver_name[0] )
 			return driver_name;
 
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 		return "vulkan";
 #else
 		return nullptr;
@@ -1657,7 +1657,7 @@ bool FeSdl3GpuContext::wrap_native_window( void *native_window_handle, int width
 
 	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width );
 	SDL_SetNumberProperty( props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height );
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 	SDL_SetPointerProperty( props, SDL_PROP_WINDOW_CREATE_WIN32_HWND_POINTER, native_window_handle );
 #else
 	SDL_DestroyProperties( props );
@@ -4027,12 +4027,12 @@ void *FeSdl3GpuContext::get_native_window_handle() const
 	if ( !m_window )
 		return nullptr;
 
-#if defined( SFML_SYSTEM_WINDOWS ) || defined( SFML_SYSTEM_LINUX )
+#if defined( SDL_PLATFORM_WINDOWS ) || defined( SDL_PLATFORM_LINUX )
 	SDL_PropertiesID props = SDL_GetWindowProperties( m_window );
 	if ( !props )
 		return nullptr;
 
-#if defined( SFML_SYSTEM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS )
 	return SDL_GetPointerProperty( props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr );
 #else
 	return reinterpret_cast<void *>(

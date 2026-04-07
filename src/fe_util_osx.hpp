@@ -25,7 +25,7 @@
 
 #include <string>
 #include "fe_util.hpp"
-#include <SFML/Config.hpp>
+#include <SDL3/SDL_platform_defines.h>
 
 //
 // Hide the OS X menu bar.

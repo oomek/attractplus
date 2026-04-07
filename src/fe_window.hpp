@@ -23,9 +23,9 @@
 #ifndef FE_WINDOW_HPP
 #define FE_WINDOW_HPP
 
-#include <SFML/Config.hpp>
+#include <SDL3/SDL_platform_defines.h>
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 #include <windows.h>
 #endif
 
@@ -99,7 +99,7 @@ protected:
 	void *m_running_wnd;
 
 private:
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	SDL_Window *m_blackout = nullptr;
 	static inline bool s_system_resumed = false;
 	static inline WNDPROC s_window_wnd_proc = nullptr;

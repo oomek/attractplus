@@ -48,11 +48,11 @@
 #include <SDL3_image/SDL_image.h>
 #include <SFML/Audio.hpp>
 
-#ifdef SFML_SYSTEM_MACOS
+#ifdef SDL_PLATFORM_MACOS
 #include <CoreVideo/CoreVideo.h>
 #endif
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 
 #include <windows.h>
 
@@ -231,7 +231,7 @@ void FePresent::init_monitors()
 	// We also determine display's refresh rate here
 	//
 
-#if defined(SFML_SYSTEM_MACOS)
+#if defined(SDL_PLATFORM_MACOS)
 	CGDirectDisplayID display_id = CGMainDisplayID();
 	CGDisplayModeRef display_mode = CGDisplayCopyDisplayMode( display_id );
 	size_t refresh_rate = CGDisplayModeGetRefreshRate( display_mode );
@@ -248,7 +248,7 @@ void FePresent::init_monitors()
 		m_refresh_rate = refresh_rate;
 #endif
 
-#if defined(SFML_SYSTEM_LINUX)
+#if defined(SDL_PLATFORM_LINUX)
 	SDL_DisplayID current_display = 0;
 	if ( m_window.owns_sdl_window() )
 	{
@@ -268,7 +268,7 @@ void FePresent::init_monitors()
 	}
 #endif
 
-#if defined(SFML_SYSTEM_WINDOWS)
+#if defined(SDL_PLATFORM_WINDOWS)
 	DEVMODE devMode;
 	memset( &devMode, 0, sizeof(DEVMODE) );
 	devMode.dmSize = sizeof(DEVMODE);
@@ -304,7 +304,7 @@ void FePresent::init_monitors()
 			(*itr).transform *= correction;
 	}
 	else
-#elif defined(SFML_SYSTEM_LINUX)
+#elif defined(SDL_PLATFORM_LINUX)
 	if ( m_feSettings->get_multimon() && !is_windowed_mode( m_window.get_window_mode() ) )
 	{
 		int display_count = 0;
@@ -373,7 +373,7 @@ void FePresent::init_monitors()
 	{
 		FeMonitor mc( 0, m_window.get_size().x, m_window.get_size().y );
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 		//
 		// On Windows 'Fill screen' mode our window is offscreen 1 pixel in each direction, so correct
 		// for that here to align draw area with screen.

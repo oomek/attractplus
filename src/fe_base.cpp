@@ -23,6 +23,7 @@
 #include "fe_base.hpp"
 #include "fe_util.hpp"
 #include "base64.hpp"
+#include <SFML/Config.hpp>
 
 #ifndef NO_MOVIE
 extern "C"
@@ -76,7 +77,7 @@ const std::uint32_t FE_CACHE_VERSION = FE_CACHE_VERSION_D;
 
 namespace {
 	nowide::ofstream g_logfile;
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	nowide::ofstream g_nullstream( "NUL" );
 #else
 	nowide::ofstream g_nullstream( "/dev/null" );

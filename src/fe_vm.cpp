@@ -61,7 +61,7 @@
 #include <algorithm>
 #include <cmath>
 
-#ifndef SFML_SYSTEM_WINDOWS
+#ifndef SDL_PLATFORM_WINDOWS
 #include <sys/stat.h>
 #include <errno.h>
 #endif
@@ -3063,7 +3063,7 @@ bool FeVM::cb_make_dir( const char *path )
 
 	full_path = clean_path( full_path );
 
-#ifdef SFML_SYSTEM_WINDOWS
+#ifdef SDL_PLATFORM_WINDOWS
 	std::wstring wide_path = nowide::widen( full_path );
 
 	if ( CreateDirectoryW( wide_path.c_str(), NULL ) != 0 )
