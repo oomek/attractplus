@@ -42,6 +42,9 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_origin( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
+	m_render_position( x, y ),
+	m_render_size( w, h ),
+	m_render_origin( 0.f, 0.f ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_rotation ( 0.0 ),
@@ -592,7 +595,10 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 	if ( point_count < 3 )
 		return false;
 
-	const sf::Transform transform = m_rect.getTransform();
+	const FeTransform transform = FeTransform()
+		.translate( m_render_position )
+		.rotate( m_rotation )
+		.translate( -m_render_origin );
 	const sf::Color fill_color = m_rect.getFillColor();
 	const Vec2f rect_size( m_rect.getSize().x, m_rect.getSize().y );
 
@@ -640,19 +646,16 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 
 	const auto first_local_sf = m_rect.getPoint( 0 );
 	const Vec2f first_local( first_local_sf.x, first_local_sf.y );
-	const auto first_sf = transform.transformPoint( first_local_sf );
-	const Vec2f first( first_sf.x, first_sf.y );
+	const Vec2f first = transform.transformPoint( first_local );
 
 	for ( std::size_t i = 1; i + 1 < point_count; ++i )
 	{
 		const auto second_local_sf = m_rect.getPoint( i );
 		const auto third_local_sf = m_rect.getPoint( i + 1 );
-		const auto second_sf = transform.transformPoint( second_local_sf );
-		const auto third_sf = transform.transformPoint( third_local_sf );
-		const Vec2f second( second_sf.x, second_sf.y );
-		const Vec2f third( third_sf.x, third_sf.y );
 		const Vec2f second_local( second_local_sf.x, second_local_sf.y );
 		const Vec2f third_local( third_local_sf.x, third_local_sf.y );
+		const Vec2f second = transform.transformPoint( second_local );
+		const Vec2f third = transform.transformPoint( third_local );
 		const Vec2f uv0 = normalized_uv( first_local );
 		const Vec2f uv1 = normalized_uv( second_local );
 		const Vec2f uv2 = normalized_uv( third_local );
@@ -685,14 +688,10 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 			const Vec2f outer_local_0( outer_local_0_sf.x - outline_offset.x, outer_local_0_sf.y - outline_offset.y );
 			const Vec2f outer_local_1( outer_local_1_sf.x - outline_offset.x, outer_local_1_sf.y - outline_offset.y );
 
-			const auto inner_0_sf = transform.transformPoint( { inner_local_0.x, inner_local_0.y } );
-			const auto inner_1_sf = transform.transformPoint( { inner_local_1.x, inner_local_1.y } );
-			const auto outer_0_sf = transform.transformPoint( { outer_local_0.x, outer_local_0.y } );
-			const auto outer_1_sf = transform.transformPoint( { outer_local_1.x, outer_local_1.y } );
-			const Vec2f inner_0( inner_0_sf.x, inner_0_sf.y );
-			const Vec2f inner_1( inner_1_sf.x, inner_1_sf.y );
-			const Vec2f outer_0( outer_0_sf.x, outer_0_sf.y );
-			const Vec2f outer_1( outer_1_sf.x, outer_1_sf.y );
+			const Vec2f inner_0 = transform.transformPoint( inner_local_0 );
+			const Vec2f inner_1 = transform.transformPoint( inner_local_1 );
+			const Vec2f outer_0 = transform.transformPoint( outer_local_0 );
+			const Vec2f outer_1 = transform.transformPoint( outer_local_1 );
 
 			append_triangle(
 				outer_0,
@@ -747,9 +746,11 @@ void FeRectangle::scale()
 		( m_rotation_origin.x - m_anchor.x ) * size.x,
 		( m_rotation_origin.y -  m_anchor.y ) * size.y );
 
-	m_rect.setPosition( { pos.x, pos.y } );
-	m_rect.setRotation( sf::degrees( m_rotation ));
 	m_rect.setSize( { size.x, size.y } );
-	m_rect.setOrigin({( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y )});
+	m_render_position = pos;
+	m_render_size = size;
+	m_render_origin = Vec2f(
+		m_origin.x + m_rotation_origin.x * size.x,
+		m_origin.y + m_rotation_origin.y * size.y );
 
 }

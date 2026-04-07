@@ -24,6 +24,7 @@
 #include "fe_shader.hpp"
 #include "fe_util.hpp"
 #include <iostream>
+#include <iomanip>
 #include <cstring>
 #include <sstream>
 #include <SFML/Window/Context.hpp>

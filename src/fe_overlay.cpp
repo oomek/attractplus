@@ -404,7 +404,7 @@ void FeOverlay::splash_message( const std::string &msg, const std::string &aux )
 	message.setString( msg );
 	extra.setString( aux );
 
-	const sf::Transform &t = m_fePresent.get_ui_transform();
+	const FeTransform &t = m_fePresent.get_ui_transform();
 
 	// Process tick only when Layout is fully loaded
 	if ( m_fePresent.is_layout_loaded() )
@@ -428,7 +428,7 @@ void FeOverlay::splash_logo( const std::string &aux )
 
 	extra.setString( aux );
 
-	const sf::Transform &t = m_fePresent.get_ui_transform();
+	const FeTransform &t = m_fePresent.get_ui_transform();
 
 	// Process tick only when Layout is fully loaded
 	if ( m_fePresent.is_layout_loaded() )
@@ -913,7 +913,7 @@ void FeOverlay::input_map_dialog(
 	FeInputMapEntry entry;
 	FeClock timeout;
 
-	const sf::Transform &t = m_fePresent.get_ui_transform();
+	const FeTransform &t = m_fePresent.get_ui_transform();
 	while ( m_wnd.isOpen() )
 	{
 		while ( const std::optional ev = m_wnd.pollEvent() )
@@ -1881,7 +1881,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 	// Make sure the Back and Select buttons are NOT down, to avoid immediately
 	// triggering an exit/selection
 	//
-	const sf::Transform &t = m_fePresent.get_ui_transform();
+	const FeTransform &t = m_fePresent.get_ui_transform();
 
 	FeClock timer;
 	while (( timer.getElapsedTime() < fe_seconds( 6 ) )
@@ -1918,7 +1918,7 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 //
 bool FeOverlay::event_loop( FeEventLoopCtx &ctx )
 {
-	const sf::Transform &t = m_fePresent.get_ui_transform();
+	const FeTransform &t = m_fePresent.get_ui_transform();
 
 	clear_menu_command();
 	bool quick_menu = m_feSettings.get_info_bool( FeSettings::QuickMenu );
@@ -2159,7 +2159,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *tp )
 {
 	FeClock cursor_timer;
-	const sf::Transform &t = m_fePresent.get_ui_transform();
+	const FeTransform &t = m_fePresent.get_ui_transform();
 
 	FeTextPrimitive cursor(
 		tp->getFont(),

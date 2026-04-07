@@ -30,9 +30,9 @@
 #endif
 
 #include <unordered_map>
-#include <SFML/Graphics.hpp>
 #include "fe_event.hpp"
 #include "fe_joystick.hpp"
+#include "fe_transform.hpp"
 #include "fe_types.hpp"
 #include "fe_sdl3_gpu.hpp"
 
@@ -45,6 +45,7 @@ struct SDL_Surface;
 
 struct FeOverlayRect
 {
+	// Temporary overlay-only bridge until these simple rectangles move onto FeRectangle.
 	Vec2f position;
 	Vec2f size;
 	Color color;
@@ -117,11 +118,16 @@ protected:
 
 private:
 #ifdef SFML_SYSTEM_WINDOWS
-	sf::RenderWindow m_blackout;
+	SDL_Window *m_blackout = nullptr;
 	static inline bool s_system_resumed = false;
-	static inline WNDPROC s_sfml_wnd_proc = nullptr;
+	static inline WNDPROC s_window_wnd_proc = nullptr;
 	static LRESULT CALLBACK CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam );
 	void check_for_sleep();
+	bool ensure_blackout_window( const Vec2i &screen_pos, const Vec2u &screen_size );
+	void clear_blackout();
+	void close_blackout();
+	bool blackout_has_focus() const;
+	HWND get_blackout_hwnd() const;
 #endif
 	int m_win_mode;
 	bool m_mouse_outside = true;
@@ -137,7 +143,7 @@ private:
 	bool m_key_repeat_enabled = false;
 
 	const FeRenderRawTextureSource *cache_overlay_image( const SDL_Surface &image );
-	bool append_native_overlay_item( const FeOverlayDrawItem &item, const sf::RenderStates &r );
+	bool append_native_overlay_item( const FeOverlayDrawItem &item, const FeTransform &transform );
 
 public:
 	FeWindow( FeSettings &fes );
@@ -168,12 +174,12 @@ public:
 	bool owns_sdl_window() const;
 
 	void clear();
-	void draw( const FeOverlayDrawItem &item, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw( const FeOverlayRect &rect, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw( const FeTextPrimitive &text, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw( const FeListBox &listbox, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw( const FeText &text, const sf::RenderStates &t=sf::RenderStates::Default );
-	void draw( const FeRectangle &rect, const sf::RenderStates &t=sf::RenderStates::Default );
+	void draw( const FeOverlayDrawItem &item, const FeTransform &t = FeTransform::identity() );
+	void draw( const FeOverlayRect &rect, const FeTransform &t = FeTransform::identity() );
+	void draw( const FeTextPrimitive &text, const FeTransform &t = FeTransform::identity() );
+	void draw( const FeListBox &listbox, const FeTransform &t = FeTransform::identity() );
+	void draw( const FeText &text, const FeTransform &t = FeTransform::identity() );
+	void draw( const FeRectangle &rect, const FeTransform &t = FeTransform::identity() );
 	void draw_overlay_image( const SDL_Surface &image, const FloatRect &bounds, bool smooth = true, const Color &color = Color::White );
 	std::optional<FeEvent> pollEvent();
 

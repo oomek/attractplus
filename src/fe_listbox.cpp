@@ -24,6 +24,7 @@
 #include "fe_settings.hpp"
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
+#include "fe_transform.hpp"
 #include "fe_util.hpp"
 #include <iostream>
 #include <algorithm>
@@ -238,16 +239,16 @@ void FeListBox::init_dimensions()
 	while ( getRowCount() > m_rows )
 		m_texts.pop_back();
 
-	sf::Transform rotater;
-	rotater.rotate( sf::degrees( m_rotation ), { pos.x, pos.y });
+	FeTransform rotater;
+	rotater.rotate( m_rotation, pos );
 
 	// Re-position text elements
 	for ( int i=0; i< m_rows; i++ )
 	{
 		m_texts[i].setFrom( m_base_text );
 		{
-			const auto text_position = rotater.transformPoint({ pos.x, pos.y + ( i * actual_spacing )});
-			m_texts[i].setPosition( Vec2f( text_position.x, text_position.y ) );
+			const Vec2f text_position = rotater.transformPoint( { pos.x, pos.y + ( i * actual_spacing ) } );
+			m_texts[i].setPosition( text_position );
 		}
 		m_texts[i].setSize( size.x, actual_spacing );
 		m_texts[i].setRotation( m_rotation );

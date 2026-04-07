@@ -82,7 +82,7 @@ BOOL CALLBACK my_mon_enum_proc( HMONITOR, HDC, LPRECT mon_rect, LPARAM data )
 		mon_rect->right - mon_rect->left,
 		mon_rect->bottom - mon_rect->top );
 
-	mon.transform = sf::Transform().translate({ static_cast<float>( mon_rect->left ), static_cast<float>( mon_rect->top )});
+	mon.transform = FeTransform().translate( { static_cast<float>( mon_rect->left ), static_cast<float>( mon_rect->top ) } );
 
 	FeDebug() << "Multimon: monitor #" << monitors->size()
 		<< ": " << mon.size.x << "x" << mon.size.y << " @ "
@@ -356,7 +356,7 @@ void FePresent::init_monitors()
 			translate_y += 1;
 		}
 
-		sf::Transform correction = sf::Transform().translate({ static_cast<float>( translate_x ), static_cast<float>( translate_y )});
+		FeTransform correction = FeTransform().translate( { static_cast<float>( translate_x ), static_cast<float>( translate_y ) } );
 
 		for ( std::vector<FeMonitor>::iterator itr=m_mon.begin(); itr!=m_mon.end(); ++itr )
 			(*itr).transform *= correction;
@@ -425,8 +425,8 @@ void FePresent::init_monitors()
 					si[i].width,
 					si[i].height );
 
-				mon.transform = sf::Transform().translate(
-					{ si[i].x_org, si[i].y_org });
+				mon.transform = FeTransform().translate(
+					{ static_cast<float>( si[i].x_org ), static_cast<float>( si[i].y_org ) } );
 
 				FeDebug() << "Multimon: monitor #" << si[i].screen_number
 					<< ": " << mon.size.x << "x" << mon.size.y << " @ "
@@ -457,7 +457,7 @@ void FePresent::init_monitors()
 		{
 			mc.size.x -= 2;
 			mc.size.y -= 2;
-			mc.transform = sf::Transform().translate({ 1, 1 });
+			mc.transform = FeTransform().translate( { 1.0f, 1.0f } );
 		}
 #endif
 
@@ -512,8 +512,8 @@ void FePresent::clear_layout()
 	// mute and toggle rotation are kept whenever the layout is changed
 	//
 	m_listBox=NULL; // listbox gets deleted with the m_mon.elements below
-	m_layout_transform = sf::Transform();
-	m_ui_transform = sf::Transform();
+	m_layout_transform = FeTransform();
+	m_ui_transform = FeTransform();
 	m_layoutFont = NULL;
 	m_layoutFontName = "";
 	m_user_page_size = -1;
@@ -613,16 +613,16 @@ namespace
 		return ( one->get_zorder() < two->get_zorder() );
 	}
 
-	void apply_geometry_transform( std::vector<FeRenderGeometry> &geometry, const sf::Transform &transform )
+	void apply_geometry_transform( std::vector<FeRenderGeometry> &geometry, const FeTransform &transform )
 	{
-		if ( transform == sf::Transform::Identity )
+		if ( transform.isIdentity() )
 			return;
 
 		for ( FeRenderGeometry &entry : geometry )
 		{
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
-				const auto p = transform.transformPoint( { vertex.x, vertex.y } );
+				const Vec2f p = transform.transformPoint( { vertex.x, vertex.y } );
 				vertex.x = p.x;
 				vertex.y = p.y;
 			}
@@ -687,7 +687,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 				listbox->build_render_geometry( monitor_geometry );
 		}
 
-		const sf::Transform &transform = ( monitor_index == 0 ) ? m_layout_transform : monitor.transform;
+		const FeTransform &transform = ( monitor_index == 0 ) ? m_layout_transform : monitor.transform;
 		apply_geometry_transform( monitor_geometry, transform );
 		geometry.insert( geometry.end(), monitor_geometry.begin(), monitor_geometry.end() );
 	}
@@ -1950,12 +1950,12 @@ void FePresent::set_audio_loudness( bool enabled )
 				normaliser->set_enabled( enabled );
 }
 
-const sf::Transform &FePresent::get_transform() const
+const FeTransform &FePresent::get_transform() const
 {
 	return m_layout_transform;
 }
 
-const sf::Transform &FePresent::get_ui_transform() const
+const FeTransform &FePresent::get_ui_transform() const
 {
 	return m_ui_transform;
 }
@@ -2042,7 +2042,7 @@ void FePresent::set_transforms()
 				float adjust_x = std::floor( std::abs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2 + 0.5 );
 				float adjust_y = std::floor( std::abs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2 + 0.5 );
 				m_layout_transform.translate({ m_mon[0].size.x - adjust_x, adjust_y });
-				m_layout_transform.rotate( sf::degrees( 90 ));
+				m_layout_transform.rotate( 90.0f );
 				break;
 			}
 
@@ -2052,7 +2052,7 @@ void FePresent::set_transforms()
 				float adjust_x = std::floor( std::fabs( m_layoutSize.y * m_layoutScale.x - m_mon[0].size.x ) / 2 + 0.5 );
 				float adjust_y = std::floor( std::fabs( m_layoutSize.x * m_layoutScale.y - m_mon[0].size.y ) / 2 + 0.5 );
 				m_layout_transform.translate({ adjust_x, m_mon[0].size.y - adjust_y });
-				m_layout_transform.rotate( sf::degrees( 270 ));
+				m_layout_transform.rotate( 270.0f );
 				break;
 			}
 
@@ -2062,7 +2062,7 @@ void FePresent::set_transforms()
 				float adjust_x = std::floor(( m_layoutSize.x * m_layoutScale.x - m_mon[0].size.x ) / 2.0 + 0.5 );
 				float adjust_y = std::floor(( m_layoutSize.y * m_layoutScale.y - m_mon[0].size.y ) / 2.0 + 0.5 );
 				m_layout_transform.translate({ m_mon[0].size.x + adjust_x, m_mon[0].size.y + adjust_y });
-				m_layout_transform.rotate( sf::degrees( 180 ));
+				m_layout_transform.rotate( 180.0f );
 				break;
 			}
 		}
@@ -2080,21 +2080,21 @@ void FePresent::set_transforms()
 				m_layout_transform.translate({ static_cast<float>( m_mon[0].size.x ), 0 });
 				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
 				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
-				m_layout_transform.rotate( sf::degrees( 90 ));
+				m_layout_transform.rotate( 90.0f );
 				break;
 
 			case FeSettings::RotateLeft:
 				m_layout_transform.translate({ 0, static_cast<float>( m_mon[0].size.y )});
 				m_layoutScale.x = (float) m_mon[0].size.y / m_layoutSize.x;
 				m_layoutScale.y = (float) m_mon[0].size.x / m_layoutSize.y;
-				m_layout_transform.rotate(sf::degrees( 270 ));
+				m_layout_transform.rotate( 270.0f );
 				break;
 
 			case FeSettings::RotateFlip:
 				m_layout_transform.translate({ static_cast<float>( m_mon[0].size.x ), static_cast<float>( m_mon[0].size.y )});
 				m_layoutScale.x = (float) m_mon[0].size.x / m_layoutSize.x;
 				m_layoutScale.y = (float) m_mon[0].size.y / m_layoutSize.y;
-				m_layout_transform.rotate( sf::degrees( 180 ));
+				m_layout_transform.rotate( 180.0f );
 				break;
 		}
 	}
@@ -2116,17 +2116,17 @@ void FePresent::set_transforms()
 
 		case FeSettings::RotateRight:
 			m_ui_transform.translate({ static_cast<float>( m_mon[0].size.x ), 0 });
-			m_ui_transform.rotate( sf::degrees( 90 ));
+			m_ui_transform.rotate( 90.0f );
 			break;
 
 		case FeSettings::RotateLeft:
 			m_ui_transform.translate({ 0, static_cast<float>( m_mon[0].size.y )});
-			m_ui_transform.rotate( sf::degrees( 270 ));
+			m_ui_transform.rotate( 270.0f );
 			break;
 
 		case FeSettings::RotateFlip:
 			m_ui_transform.translate({ static_cast<float>( m_mon[0].size.x ), static_cast<float>( m_mon[0].size.y )});
-			m_ui_transform.rotate( sf::degrees( 180 ));
+			m_ui_transform.rotate( 180.0f );
 			break;
 	}
 }

@@ -1222,14 +1222,98 @@ std::string clean_str( const std::string &value )
 std::basic_string<std::uint32_t> utf8_to_utf32( const std::string &utf8 )
 {
 	std::basic_string<std::uint32_t> utf32;
-	sf::Utf8::toUtf32( utf8.begin(), utf8.end(), std::back_inserter( utf32 ) );
+
+	for ( std::size_t i = 0; i < utf8.size(); )
+	{
+		const unsigned char c0 = static_cast<unsigned char>( utf8[i] );
+		std::uint32_t codepoint = 0;
+		std::size_t advance = 1;
+
+		if (( c0 & 0x80 ) == 0x00 )
+		{
+			codepoint = c0;
+		}
+		else if (( c0 & 0xE0 ) == 0xC0 && ( i + 1 ) < utf8.size() )
+		{
+			const unsigned char c1 = static_cast<unsigned char>( utf8[i + 1] );
+			if (( c1 & 0xC0 ) == 0x80 )
+			{
+				codepoint = ( ( c0 & 0x1F ) << 6 ) | ( c1 & 0x3F );
+				advance = 2;
+			}
+			else
+				codepoint = 0xFFFD;
+		}
+		else if (( c0 & 0xF0 ) == 0xE0 && ( i + 2 ) < utf8.size() )
+		{
+			const unsigned char c1 = static_cast<unsigned char>( utf8[i + 1] );
+			const unsigned char c2 = static_cast<unsigned char>( utf8[i + 2] );
+			if (( c1 & 0xC0 ) == 0x80 && ( c2 & 0xC0 ) == 0x80 )
+			{
+				codepoint = ( ( c0 & 0x0F ) << 12 ) | ( ( c1 & 0x3F ) << 6 ) | ( c2 & 0x3F );
+				advance = 3;
+			}
+			else
+				codepoint = 0xFFFD;
+		}
+		else if (( c0 & 0xF8 ) == 0xF0 && ( i + 3 ) < utf8.size() )
+		{
+			const unsigned char c1 = static_cast<unsigned char>( utf8[i + 1] );
+			const unsigned char c2 = static_cast<unsigned char>( utf8[i + 2] );
+			const unsigned char c3 = static_cast<unsigned char>( utf8[i + 3] );
+			if (( c1 & 0xC0 ) == 0x80 && ( c2 & 0xC0 ) == 0x80 && ( c3 & 0xC0 ) == 0x80 )
+			{
+				codepoint = ( ( c0 & 0x07 ) << 18 ) | ( ( c1 & 0x3F ) << 12 ) | ( ( c2 & 0x3F ) << 6 ) | ( c3 & 0x3F );
+				advance = 4;
+			}
+			else
+				codepoint = 0xFFFD;
+		}
+		else
+		{
+			codepoint = 0xFFFD;
+		}
+
+		utf32.push_back( codepoint );
+		i += advance;
+	}
+
 	return utf32;
 }
 
 std::string utf32_to_utf8( const std::basic_string<std::uint32_t> &utf32 )
 {
 	std::string utf8;
-	sf::Utf32::toUtf8( utf32.begin(), utf32.end(), std::back_inserter( utf8 ) );
+	for ( std::uint32_t codepoint : utf32 )
+	{
+		if ( codepoint <= 0x7F )
+		{
+			utf8.push_back( static_cast<char>( codepoint ) );
+		}
+		else if ( codepoint <= 0x7FF )
+		{
+			utf8.push_back( static_cast<char>( 0xC0 | ( ( codepoint >> 6 ) & 0x1F ) ) );
+			utf8.push_back( static_cast<char>( 0x80 | ( codepoint & 0x3F ) ) );
+		}
+		else if ( codepoint <= 0xFFFF )
+		{
+			utf8.push_back( static_cast<char>( 0xE0 | ( ( codepoint >> 12 ) & 0x0F ) ) );
+			utf8.push_back( static_cast<char>( 0x80 | ( ( codepoint >> 6 ) & 0x3F ) ) );
+			utf8.push_back( static_cast<char>( 0x80 | ( codepoint & 0x3F ) ) );
+		}
+		else if ( codepoint <= 0x10FFFF )
+		{
+			utf8.push_back( static_cast<char>( 0xF0 | ( ( codepoint >> 18 ) & 0x07 ) ) );
+			utf8.push_back( static_cast<char>( 0x80 | ( ( codepoint >> 12 ) & 0x3F ) ) );
+			utf8.push_back( static_cast<char>( 0x80 | ( ( codepoint >> 6 ) & 0x3F ) ) );
+			utf8.push_back( static_cast<char>( 0x80 | ( codepoint & 0x3F ) ) );
+		}
+		else
+		{
+			utf8.append( "\xEF\xBF\xBD" );
+		}
+	}
+
 	return utf8;
 }
 

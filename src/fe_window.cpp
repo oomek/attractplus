@@ -324,16 +324,16 @@ namespace
 	}
 #endif
 
-	void apply_overlay_transform( std::vector<FeRenderGeometry> &geometry, const sf::Transform &transform )
+	void apply_overlay_transform( std::vector<FeRenderGeometry> &geometry, const FeTransform &transform )
 	{
-		if ( transform == sf::Transform::Identity )
+		if ( transform.isIdentity() )
 			return;
 
 		for ( FeRenderGeometry &entry : geometry )
 		{
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
-				const auto p = transform.transformPoint( { vertex.x, vertex.y } );
+				const Vec2f p = transform.transformPoint( { vertex.x, vertex.y } );
 				vertex.x = p.x;
 				vertex.y = p.y;
 			}
@@ -369,19 +369,15 @@ namespace
 		geometry.vertices.push_back( v2 );
 	}
 
-	void append_rect_fill( FeRenderGeometry &geometry, const sf::Transform &transform, const Vec2f &size, const Color &color )
+	void append_rect_fill( FeRenderGeometry &geometry, const FeTransform &transform, const Vec2f &size, const Color &color )
 	{
 		if ( color.a == 0 )
 			return;
 
-		const auto p0_sf = transform.transformPoint( { 0.0f, 0.0f } );
-		const auto p1_sf = transform.transformPoint( { size.x, 0.0f } );
-		const auto p2_sf = transform.transformPoint( { 0.0f, size.y } );
-		const auto p3_sf = transform.transformPoint( { size.x, size.y } );
-		const Vec2f p0( p0_sf.x, p0_sf.y );
-		const Vec2f p1( p1_sf.x, p1_sf.y );
-		const Vec2f p2( p2_sf.x, p2_sf.y );
-		const Vec2f p3( p3_sf.x, p3_sf.y );
+		const Vec2f p0 = transform.transformPoint( { 0.0f, 0.0f } );
+		const Vec2f p1 = transform.transformPoint( { size.x, 0.0f } );
+		const Vec2f p2 = transform.transformPoint( { 0.0f, size.y } );
+		const Vec2f p3 = transform.transformPoint( { size.x, size.y } );
 		append_solid_triangle( geometry, p0, p1, p2, color );
 		append_solid_triangle( geometry, p2, p1, p3, color );
 	}
@@ -398,7 +394,7 @@ namespace
 		fill.texture_height = 1.0f;
 		fill.zbuffer = false;
 
-		const sf::Transform transform = sf::Transform().translate( { rect.position.x, rect.position.y } );
+		const FeTransform transform = FeTransform().translate( { rect.position.x, rect.position.y } );
 		append_rect_fill( fill, transform, rect.size, rect.color );
 		if ( fill.vertices.empty() )
 			return false;
@@ -856,7 +852,7 @@ LRESULT CALLBACK FeWindow::CustomWndProc( HWND hwnd, UINT msg, WPARAM wParam, LP
 		if ( wParam == PBT_APMRESUMEAUTOMATIC || wParam == PBT_APMRESUMESUSPEND )
 			FeWindow::s_system_resumed = true;
 
-	return CallWindowProc( s_sfml_wnd_proc, hwnd, msg, wParam, lParam );
+	return CallWindowProc( s_window_wnd_proc, hwnd, msg, wParam, lParam );
 }
 #endif
 
@@ -873,6 +869,9 @@ FeWindow::~FeWindow()
 	if ( m_running_pid && process_exists( m_running_pid ) )
 		kill_program( m_running_pid );
 
+#if defined(SFML_SYSTEM_WINDOWS)
+	close_blackout();
+#endif
 	fe_joystick_shutdown();
 }
 
@@ -902,7 +901,7 @@ const FeRenderRawTextureSource *FeWindow::cache_overlay_image( const SDL_Surface
 	return &entry.source;
 }
 
-bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const sf::RenderStates &r )
+bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const FeTransform &transform )
 {
 	std::vector<FeRenderGeometry> geometry;
 
@@ -932,7 +931,7 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 		break;
 	}
 
-	apply_overlay_transform( geometry, r.transform );
+	apply_overlay_transform( geometry, transform );
 	for ( FeRenderGeometry &entry : geometry )
 		entry.zbuffer = false;
 	m_overlay_geometry.insert( m_overlay_geometry.end(), geometry.begin(), geometry.end() );
@@ -1024,6 +1023,75 @@ void FeWindow::display()
 }
 
 #ifdef SFML_SYSTEM_WINDOWS
+HWND FeWindow::get_blackout_hwnd() const
+{
+	if ( !m_blackout )
+		return nullptr;
+
+	const SDL_PropertiesID props = SDL_GetWindowProperties( m_blackout );
+	if ( !props )
+		return nullptr;
+
+	return static_cast<HWND>( SDL_GetPointerProperty( props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr ) );
+}
+
+bool FeWindow::ensure_blackout_window( const Vec2i &screen_pos, const Vec2u &screen_size )
+{
+	close_blackout();
+
+	m_blackout = SDL_CreateWindow( "", 16, 16, SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN );
+	if ( !m_blackout )
+	{
+		FeLog() << "WARNING: Failed to create blackout SDL window: " << SDL_GetError() << std::endl;
+		return false;
+	}
+
+	SDL_SetWindowSize(
+		m_blackout,
+		static_cast<int>( screen_size.x + 2u ),
+		static_cast<int>( screen_size.y + 2u ) );
+	SDL_SetWindowPosition( m_blackout, screen_pos.x - 1, screen_pos.y - 1 );
+
+	if ( const HWND hwnd = get_blackout_hwnd() )
+	{
+		const LONG_PTR style = GetWindowLongPtr( hwnd, GWL_EXSTYLE );
+		SetWindowLongPtr( hwnd, GWL_EXSTYLE, style | WS_EX_TOOLWINDOW );
+	}
+
+	SDL_ShowWindow( m_blackout );
+	clear_blackout();
+	return true;
+}
+
+void FeWindow::clear_blackout()
+{
+	if ( const HWND hwnd = get_blackout_hwnd() )
+	{
+		RECT rect = {};
+		GetClientRect( hwnd, &rect );
+		if ( HDC dc = GetDC( hwnd ) )
+		{
+			FillRect( dc, &rect, static_cast<HBRUSH>( GetStockObject( BLACK_BRUSH ) ) );
+			ReleaseDC( hwnd, dc );
+		}
+		UpdateWindow( hwnd );
+	}
+}
+
+void FeWindow::close_blackout()
+{
+	if ( m_blackout )
+	{
+		SDL_DestroyWindow( m_blackout );
+		m_blackout = nullptr;
+	}
+}
+
+bool FeWindow::blackout_has_focus() const
+{
+	return m_blackout && ( SDL_GetKeyboardFocus() == m_blackout || SDL_GetMouseFocus() == m_blackout );
+}
+
 void FeWindow::check_for_sleep()
 {
 	if ( s_system_resumed )
@@ -1270,21 +1338,9 @@ void FeWindow::initial_create()
 	// from treating it as exclusive borderless.
 	//
 	if ( m_win_mode == FeSettings::Fullscreen )
-	{
-		m_blackout.create( sf::VideoMode( { 16u, 16u }, 24u ), "", sf::Style::None );
-		m_blackout.setSize( { screen_size.x + 2, screen_size.y + 2 } );
-		m_blackout.setPosition( { screen_pos.x - 1, screen_pos.y - 1 } );
-		m_blackout.setVerticalSyncEnabled(true);
-		m_blackout.setKeyRepeatEnabled(false);
-		m_blackout.setMouseCursorVisible(false);
-
-
-		// We hide the black window from the task bar and the alt+tab switcher
-		int style = GetWindowLongPtr(m_blackout.getNativeHandle(), GWL_EXSTYLE );
-		SetWindowLongPtr( m_blackout.getNativeHandle(), GWL_EXSTYLE, style | WS_EX_TOOLWINDOW );
-		m_blackout.clear();
-		m_blackout.display();
-	}
+		ensure_blackout_window( screen_pos, screen_size );
+	else
+		close_blackout();
 #endif
 
 	if ( use_sdl_owned_window )
@@ -1389,7 +1445,7 @@ void FeWindow::initial_create()
 		BOOL value = TRUE;
 		DwmSetWindowAttribute( hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof( value ));
 
-		s_sfml_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
+		s_window_wnd_proc = reinterpret_cast<WNDPROC>( GetWindowLongPtr( hwnd, GWLP_WNDPROC ));
 		SetWindowLongPtr( hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>( CustomWndProc ));
 
 		// Trigger title bar redraw to fix Win10 dark-mode (initially draws in light-mode)
@@ -1513,13 +1569,13 @@ bool FeWindow::run()
 		m_gpu_context.present_blank_frame();
 		if ( HWND hwnd = get_frontend_hwnd() )
 			set_win32_foreground_window( hwnd, HWND_BOTTOM );
-		m_blackout.clear();
-		m_blackout.display();
+		clear_blackout();
 		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
 			SDL_HideWindow( window );
 		}
-		set_win32_foreground_window( m_blackout.getNativeHandle(), HWND_TOP );
+		if ( const HWND blackout_hwnd = get_blackout_hwnd() )
+			set_win32_foreground_window( blackout_hwnd, HWND_TOP );
 	}
 	else
 	{
@@ -1594,7 +1650,7 @@ bool FeWindow::run()
 			}
 
 #if defined(SFML_SYSTEM_WINDOWS)
-			has_focus = hasFocus() || m_blackout.hasFocus();
+			has_focus = hasFocus() || blackout_has_focus();
 #else
 			has_focus = hasFocus();
 #endif
@@ -1647,8 +1703,7 @@ bool FeWindow::run()
 #elif defined(SFML_SYSTEM_WINDOWS)
 	if ( m_win_mode == FeSettings::Fullscreen )
 	{
-		m_blackout.clear();
-		m_blackout.display();
+		clear_blackout();
 		if ( SDL_Window *window = m_gpu_context.get_window() )
 		{
 			SDL_ShowWindow( window );
@@ -1689,7 +1744,7 @@ bool FeWindow::run()
 void FeWindow::on_exit()
 {
 #if defined(SFML_SYSTEM_WINDOWS)
-	m_blackout.close();
+	close_blackout();
 #endif
 }
 
@@ -1821,7 +1876,7 @@ void FeWindow::clear()
 	m_overlay_images.clear();
 }
 
-void FeWindow::draw( const FeOverlayDrawItem &item, const sf::RenderStates &r )
+void FeWindow::draw( const FeOverlayDrawItem &item, const FeTransform &r )
 {
 	if ( !owns_sdl_window() )
 		return;
@@ -1829,27 +1884,27 @@ void FeWindow::draw( const FeOverlayDrawItem &item, const sf::RenderStates &r )
 	append_native_overlay_item( item, r );
 }
 
-void FeWindow::draw( const FeOverlayRect &rect, const sf::RenderStates &r )
+void FeWindow::draw( const FeOverlayRect &rect, const FeTransform &r )
 {
 	draw( FeOverlayDrawItem( rect ), r );
 }
 
-void FeWindow::draw( const FeTextPrimitive &text, const sf::RenderStates &r )
+void FeWindow::draw( const FeTextPrimitive &text, const FeTransform &r )
 {
 	draw( FeOverlayDrawItem( text ), r );
 }
 
-void FeWindow::draw( const FeListBox &listbox, const sf::RenderStates &r )
+void FeWindow::draw( const FeListBox &listbox, const FeTransform &r )
 {
 	draw( FeOverlayDrawItem( listbox ), r );
 }
 
-void FeWindow::draw( const FeText &text, const sf::RenderStates &r )
+void FeWindow::draw( const FeText &text, const FeTransform &r )
 {
 	draw( FeOverlayDrawItem( text ), r );
 }
 
-void FeWindow::draw( const FeRectangle &rect, const sf::RenderStates &r )
+void FeWindow::draw( const FeRectangle &rect, const FeTransform &r )
 {
 	draw( FeOverlayDrawItem( rect ), r );
 }

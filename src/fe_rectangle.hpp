@@ -28,6 +28,7 @@
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "fe_renderer.hpp"
+#include "fe_transform.hpp"
 #include "rounded_rectangle_shape.hpp"
 
 class FeSettings;
@@ -129,6 +130,9 @@ private:
 	Vec2f m_origin;
 	Vec2f m_rotation_origin;
 	Vec2f m_anchor;
+	Vec2f m_render_position;
+	Vec2f m_render_size;
+	Vec2f m_render_origin;
 	FeRectangle::Alignment m_anchor_type;
 	FeRectangle::Alignment m_rotation_origin_type;
 	float m_rotation;

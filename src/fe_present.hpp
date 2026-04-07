@@ -31,6 +31,7 @@
 #include "fe_music.hpp"
 #include "fe_sound.hpp"
 #include "fe_shader.hpp"
+#include "fe_transform.hpp"
 #include "fe_time.hpp"
 #include "fe_types.hpp"
 #include "fe_window.hpp"
@@ -108,7 +109,7 @@ public:
 	int get_height();
 	int get_num();
 
-	sf::Transform transform;
+	FeTransform transform;
 	Vec2i size;
 	int num;
 };
@@ -156,8 +157,8 @@ protected:
 
 	FeSettings::RotationState m_baseRotation;
 	FeSettings::RotationState m_toggleRotation;
-	sf::Transform m_layout_transform;
-	sf::Transform m_ui_transform;
+	FeTransform m_layout_transform;
+	FeTransform m_ui_transform;
 	FePerspectiveCamera m_layout_camera;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
@@ -285,8 +286,8 @@ public:
 	int get_page_size() const;
 	void set_page_size( int );
 
-	const sf::Transform &get_transform() const;
-	const sf::Transform &get_ui_transform() const;
+	const FeTransform &get_transform() const;
+	const FeTransform &get_ui_transform() const;
 	const FePerspectiveCamera &get_layout_camera() const { return m_layout_camera; }
 	const FeFont *get_layout_font();
 	const FeFont *get_default_font();

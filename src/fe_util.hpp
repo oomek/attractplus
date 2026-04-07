@@ -27,8 +27,6 @@
 #include <string>
 #include <set>
 #include <SFML/Config.hpp>
-#include <SFML/Graphics.hpp>
-#include <SFML/Window/Clipboard.hpp>
 #include "fe_types.hpp"
 #include "nowide/fstream.hpp"
 

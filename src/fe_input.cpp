@@ -32,8 +32,6 @@
 #include <cmath>
 #include <set>
 #include <SDL3/SDL.h>
-#include <SFML/Window/VideoMode.hpp>
-#include <SFML/System/Vector2.hpp>
 
 namespace
 {

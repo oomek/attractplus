@@ -154,6 +154,7 @@ _DEP =\
 	fe_settings.hpp \
 	fe_config.hpp \
 	fe_presentable.hpp \
+	fe_transform.hpp \
 	fe_renderer.hpp \
 	fe_present.hpp \
 	fe_sdl3_gpu.hpp \

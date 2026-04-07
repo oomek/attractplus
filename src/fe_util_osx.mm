@@ -22,7 +22,6 @@
 
 #include "fe_util_osx.hpp"
 #include <Cocoa/Cocoa.h>
-#include <SFML/System/Utf.hpp>
 
 namespace
 {
