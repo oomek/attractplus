@@ -25,7 +25,6 @@
 #include "fe_settings.hpp"
 #include "fe_config.hpp"
 #include "fe_util.hpp"
-#include <SFML/Graphics.hpp>
 #include <SDL3/SDL.h>
 #include "base64.hpp"
 #include <cmath>

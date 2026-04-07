@@ -25,7 +25,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <SFML/Graphics.hpp>
 #include <sqrat.h>
 #include "fe_sprite.hpp"
 #include "fe_renderer.hpp"

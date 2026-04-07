@@ -23,7 +23,6 @@
 #ifndef FE_PRESENT_HPP
 #define FE_PRESENT_HPP
 
-#include <SFML/Graphics.hpp>
 #include "fe_font.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"

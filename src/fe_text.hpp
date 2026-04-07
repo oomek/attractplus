@@ -23,7 +23,6 @@
 #ifndef FE_TEXT_HPP
 #define FE_TEXT_HPP
 
-#include <SFML/Graphics.hpp>
 #include "fe_types.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"

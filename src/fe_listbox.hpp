@@ -23,7 +23,6 @@
 #ifndef FE_LISTBOX_HPP
 #define FE_LISTBOX_HPP
 
-#include <SFML/Graphics.hpp>
 #include "fe_types.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"

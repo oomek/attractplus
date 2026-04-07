@@ -23,8 +23,6 @@
 #ifndef IMAGE_LOADER_HPP
 #define IMAGE_LOADER_HPP
 
-#include <SFML/System/Vector2.hpp>
-
 #include <atomic>
 #include "fe_input_stream.hpp"
 
