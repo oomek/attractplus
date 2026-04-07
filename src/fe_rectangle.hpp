@@ -23,13 +23,11 @@
 #ifndef FE_RECTANGLE_HPP
 #define FE_RECTANGLE_HPP
 
-#include <SFML/Graphics.hpp>
 #include "fe_types.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "fe_renderer.hpp"
 #include "fe_transform.hpp"
-#include "rounded_rectangle_shape.hpp"
 
 class FeSettings;
 
@@ -52,6 +50,8 @@ public:
 
 	FeRectangle( FePresentableParent &p,
 		float x, float y, float w, float h );
+	FeRectangle( FePresentableParent &p );
+	FeRectangle( const FeRectangle & );
 
 	Vec2f getPosition() const;
 	void setPosition( const Vec2f & );
@@ -121,8 +121,6 @@ public:
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
 
 private:
-	sf::RoundedRectangleShape m_rect;
-	FeRectangle( const FeRectangle & );
 	FeRectangle &operator=( const FeRectangle & );
 
 	Vec2f m_position;
@@ -133,14 +131,18 @@ private:
 	Vec2f m_render_position;
 	Vec2f m_render_size;
 	Vec2f m_render_origin;
+	Vec2f m_corner_radius_actual;
 	FeRectangle::Alignment m_anchor_type;
 	FeRectangle::Alignment m_rotation_origin_type;
 	float m_rotation;
+	float m_outline_thickness;
 
 	int m_corner_point_count;
 	int m_corner_point_actual;
 	Vec2f m_corner_radius;
 	Vec2f m_corner_ratio;
+	Color m_fill_color;
+	Color m_outline_color;
 	bool m_corner_ratio_x;
 	bool m_corner_ratio_y;
 	bool m_corner_auto;
@@ -151,6 +153,9 @@ private:
 	void update_corner_ratio();
 	void update_corner_points();
 	Vec2f alignTypeToVector( int a );
+	std::size_t get_shape_point_count() const;
+	Vec2f get_shape_point( std::size_t index ) const;
+	static Vec2f get_shape_point( std::size_t index, const Vec2f &size, const Vec2f &radius, unsigned int corner_point_count );
 };
 
 #endif

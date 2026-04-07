@@ -25,6 +25,7 @@
 #include "fe_util.hpp"
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace
@@ -36,7 +37,6 @@ namespace
 FeRectangle::FeRectangle( FePresentableParent &p,
 	float x, float y, float w, float h )
 	: FeBasePresentable( p ),
-	m_rect( { w, h }, { 0.0f, 0.0f }, 1 ),
 	m_position( x, y ),
 	m_size( w, h ),
 	m_origin( 0.f, 0.f ),
@@ -45,22 +45,31 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_render_position( x, y ),
 	m_render_size( w, h ),
 	m_render_origin( 0.f, 0.f ),
+	m_corner_radius_actual( 0.f, 0.f ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_rotation ( 0.0 ),
+	m_outline_thickness( 0.0f ),
 	m_corner_point_count( 12 ),
 	m_corner_point_actual( -1 ),
 	m_corner_radius( 0.f, 0.f ),
 	m_corner_ratio( 0.f, 0.f ),
+	m_fill_color( Color::White ),
+	m_outline_color( Color::White ),
 	m_corner_ratio_x( false ),
 	m_corner_ratio_y( false ),
 	m_corner_auto( false ),
 	m_blend_mode( FeBlend::Alpha )
 {
-	setColor( Color::White );
-	m_rect.setTextureRect( { { 0, 0 }, { 1, 1 } } );
 	scale();
 }
+
+FeRectangle::FeRectangle( FePresentableParent &p )
+	: FeRectangle( p, 0.0f, 0.0f, 0.0f, 0.0f )
+{
+}
+
+FeRectangle::FeRectangle( const FeRectangle & ) = default;
 
 Vec2f FeRectangle::getPosition() const
 {
@@ -109,68 +118,64 @@ void FeRectangle::setRotation( float r )
 
 Color FeRectangle::getColor() const
 {
-	const sf::Color fill = m_rect.getFillColor();
-	return Color( fill.r, fill.g, fill.b, fill.a );
+	return m_fill_color;
 }
 
 Color FeRectangle::getOutlineColor()
 {
-	const sf::Color outline = m_rect.getOutlineColor();
-	return Color( outline.r, outline.g, outline.b, outline.a );
+	return m_outline_color;
 }
 
 void FeRectangle::setColor( Color c )
 {
-	const sf::Color fill_color( c.r, c.g, c.b, c.a );
-	if ( fill_color == m_rect.getFillColor() )
+	if ( c == m_fill_color )
 		return;
 
-	m_rect.setFillColor( fill_color );
+	m_fill_color = c;
 	FePresent::script_flag_redraw();
 }
 
 void FeRectangle::setOutlineColor( Color c )
 {
-	const sf::Color outline_color( c.r, c.g, c.b, c.a );
-	if ( outline_color == m_rect.getOutlineColor() )
+	if ( c == m_outline_color )
 		return;
 
-	m_rect.setOutlineColor( outline_color );
+	m_outline_color = c;
 	FePresent::script_flag_redraw();
 }
 
 float FeRectangle::get_outline()
 {
-	return m_rect.getOutlineThickness();
+	return m_outline_thickness;
 }
 
 void FeRectangle::set_outline( float o )
 {
-	if ( o != m_rect.getOutlineThickness() )
+	if ( o != m_outline_thickness )
 	{
-		m_rect.setOutlineThickness( o );
+		m_outline_thickness = o;
 		FePresent::script_flag_redraw();
 	}
 }
 
 int FeRectangle::get_olr() const
 {
-	return m_rect.getOutlineColor().r;
+	return m_outline_color.r;
 }
 
 int FeRectangle::get_olg() const
 {
-	return m_rect.getOutlineColor().g;
+	return m_outline_color.g;
 }
 
 int FeRectangle::get_olb() const
 {
-	return m_rect.getOutlineColor().b;
+	return m_outline_color.b;
 }
 
 int FeRectangle::get_ola() const
 {
-	return m_rect.getOutlineColor().a;
+	return m_outline_color.a;
 }
 
 void FeRectangle::set_olr( int r )
@@ -496,11 +501,7 @@ void FeRectangle::update_corner_points()
 	// Reduce to a single corner if x or y radius is zero
 	int n = ( m_corner_radius.x != 0 && m_corner_radius.y != 0 && m_corner_point_count > 0 ) ? m_corner_point_count : 1;
 	if ( n > MAX_CORNER_POINTS ) n = MAX_CORNER_POINTS;
-	if ( m_corner_point_actual != n )
-	{
-		m_corner_point_actual = n;
-		m_rect.setCornerPointCount( m_corner_point_actual );
-	}
+	m_corner_point_actual = n;
 }
 
 void FeRectangle::update_corner_radius()
@@ -521,7 +522,7 @@ void FeRectangle::update_corner_radius()
 	if ( m_size.x < 0 ) rx = -rx;
 	if ( m_size.y < 0 ) ry = -ry;
 
-	m_rect.setCornerRadius( { rx, ry } );
+	m_corner_radius_actual = Vec2f( rx, ry );
 	update_corner_points();
 }
 
@@ -586,12 +587,64 @@ Vec2f FeRectangle::alignTypeToVector( int type )
 	}
 }
 
+std::size_t FeRectangle::get_shape_point_count() const
+{
+	return static_cast<std::size_t>( m_corner_point_actual ) * 4u;
+}
+
+Vec2f FeRectangle::get_shape_point( std::size_t index ) const
+{
+	return get_shape_point(
+		index,
+		m_render_size,
+		m_corner_radius_actual,
+		static_cast<unsigned int>( m_corner_point_actual ) );
+}
+
+Vec2f FeRectangle::get_shape_point( std::size_t index, const Vec2f &size, const Vec2f &radius, unsigned int corner_point_count )
+{
+	if ( corner_point_count <= 1u )
+	{
+		switch ( index )
+		{
+			default:
+			case 0: return Vec2f( 0.0f, 0.0f );
+			case 1: return Vec2f( size.x, 0.0f );
+			case 2: return Vec2f( size.x, size.y );
+			case 3: return Vec2f( 0.0f, size.y );
+		}
+	}
+
+	const std::size_t point_count = static_cast<std::size_t>( corner_point_count ) * 4u;
+	if ( index >= point_count )
+		return Vec2f( 0.0f, 0.0f );
+
+	Vec2f center;
+	const unsigned int center_index = static_cast<unsigned int>( index / corner_point_count );
+	static const float half_pi = 3.141592654f / 2.0f;
+	const float angle = ( static_cast<float>( index ) - static_cast<float>( center_index ) )
+		* half_pi / static_cast<float>( corner_point_count - 1u );
+
+	switch ( center_index )
+	{
+		case 0: center = Vec2f( size.x - radius.x, radius.y ); break;
+		case 1: center = Vec2f( radius.x, radius.y ); break;
+		case 2: center = Vec2f( radius.x, size.y - radius.y ); break;
+		case 3: center = Vec2f( size.x - radius.x, size.y - radius.y ); break;
+		default: center = Vec2f( 0.0f, 0.0f ); break;
+	}
+
+	return Vec2f(
+		radius.x * std::cos( angle ) + center.x,
+		-radius.y * std::sin( angle ) + center.y );
+}
+
 bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 {
 	geometry.clear();
 	geometry.zbuffer = get_zbuffer();
 
-	const std::size_t point_count = m_rect.getPointCount();
+	const std::size_t point_count = get_shape_point_count();
 	if ( point_count < 3 )
 		return false;
 
@@ -599,8 +652,8 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		.translate( m_render_position )
 		.rotate( m_rotation )
 		.translate( -m_render_origin );
-	const sf::Color fill_color = m_rect.getFillColor();
-	const Vec2f rect_size( m_rect.getSize().x, m_rect.getSize().y );
+	const Color fill_color = m_fill_color;
+	const Vec2f rect_size = m_render_size;
 
 	auto normalized_uv = [&]( const Vec2f &point )
 	{
@@ -614,7 +667,7 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		const Vec2f &uv0,
 		const Vec2f &uv1,
 		const Vec2f &uv2,
-		const sf::Color &color )
+		const Color &color )
 	{
 		FeRenderVertex v0 = {};
 		v0.x = p0.x;
@@ -644,16 +697,13 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		geometry.vertices.push_back( v2 );
 	};
 
-	const auto first_local_sf = m_rect.getPoint( 0 );
-	const Vec2f first_local( first_local_sf.x, first_local_sf.y );
+	const Vec2f first_local = get_shape_point( 0 );
 	const Vec2f first = transform.transformPoint( first_local );
 
 	for ( std::size_t i = 1; i + 1 < point_count; ++i )
 	{
-		const auto second_local_sf = m_rect.getPoint( i );
-		const auto third_local_sf = m_rect.getPoint( i + 1 );
-		const Vec2f second_local( second_local_sf.x, second_local_sf.y );
-		const Vec2f third_local( third_local_sf.x, third_local_sf.y );
+		const Vec2f second_local = get_shape_point( i );
+		const Vec2f third_local = get_shape_point( i + 1 );
 		const Vec2f second = transform.transformPoint( second_local );
 		const Vec2f third = transform.transformPoint( third_local );
 		const Vec2f uv0 = normalized_uv( first_local );
@@ -663,30 +713,24 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		append_triangle( first, second, third, uv0, uv1, uv2, fill_color );
 	}
 
-	const float outline = m_rect.getOutlineThickness();
-	const sf::Color outline_color = m_rect.getOutlineColor();
+	const float outline = m_outline_thickness;
+	const Color outline_color = m_outline_color;
 	if ( outline > 0.0f && outline_color.a > 0 )
 	{
-		const unsigned int corner_points = static_cast<unsigned int>( point_count / 4 );
-		sf::RoundedRectangleShape outer_rect(
-			{ rect_size.x + outline * 2.0f, rect_size.y + outline * 2.0f },
-			{
-				std::max( 0.0f, m_rect.getCornerRadius().x + outline ),
-				std::max( 0.0f, m_rect.getCornerRadius().y + outline ) },
-			corner_points );
+		const unsigned int corner_points = static_cast<unsigned int>( m_corner_point_actual );
+		const Vec2f outer_size( rect_size.x + outline * 2.0f, rect_size.y + outline * 2.0f );
+		const Vec2f outer_radius(
+			std::max( 0.0f, m_corner_radius_actual.x + outline ),
+			std::max( 0.0f, m_corner_radius_actual.y + outline ) );
 		const Vec2f outline_offset( outline, outline );
 
 		for ( std::size_t i = 0; i < point_count; ++i )
 		{
 			const std::size_t next = ( i + 1 ) % point_count;
-			const auto inner_local_0_sf = m_rect.getPoint( i );
-			const auto inner_local_1_sf = m_rect.getPoint( next );
-			const auto outer_local_0_sf = outer_rect.getPoint( i );
-			const auto outer_local_1_sf = outer_rect.getPoint( next );
-			const Vec2f inner_local_0( inner_local_0_sf.x, inner_local_0_sf.y );
-			const Vec2f inner_local_1( inner_local_1_sf.x, inner_local_1_sf.y );
-			const Vec2f outer_local_0( outer_local_0_sf.x - outline_offset.x, outer_local_0_sf.y - outline_offset.y );
-			const Vec2f outer_local_1( outer_local_1_sf.x - outline_offset.x, outer_local_1_sf.y - outline_offset.y );
+			const Vec2f inner_local_0 = get_shape_point( i );
+			const Vec2f inner_local_1 = get_shape_point( next );
+			const Vec2f outer_local_0 = get_shape_point( i, outer_size, outer_radius, corner_points ) - outline_offset;
+			const Vec2f outer_local_1 = get_shape_point( next, outer_size, outer_radius, corner_points ) - outline_offset;
 
 			const Vec2f inner_0 = transform.transformPoint( inner_local_0 );
 			const Vec2f inner_1 = transform.transformPoint( inner_local_1 );
@@ -746,7 +790,6 @@ void FeRectangle::scale()
 		( m_rotation_origin.x - m_anchor.x ) * size.x,
 		( m_rotation_origin.y -  m_anchor.y ) * size.y );
 
-	m_rect.setSize( { size.x, size.y } );
 	m_render_position = pos;
 	m_render_size = size;
 	m_render_origin = Vec2f(

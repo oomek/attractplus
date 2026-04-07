@@ -23,13 +23,14 @@
 #ifndef FE_OVERLAY_HPP
 #define FE_OVERLAY_HPP
 
-#include <SFML/Graphics.hpp>
 #include "fe_types.hpp"
+#include "fe_presentable.hpp"
 #include "fe_present.hpp"
 #include "fe_window.hpp"
 #include "fe_config.hpp"
 #include "fe_text.hpp"
 #include "fe_listbox.hpp"
+#include "fe_rectangle.hpp"
 
 class FeSettings;
 class FeInputMapEntry;
@@ -48,6 +49,7 @@ private:
 	FeSettings &m_feSettings;
 	FePresent &m_fePresent;
 	FeSoundSystem &m_soundSystem;
+	FePresentableParent m_overlay_parent;
 
 	Color m_bg_color;
 	Color m_text_color;
@@ -95,9 +97,9 @@ private:
 		Single	= 1 << 9
 	};
 
-	FeOverlayRect layout_background();
-	FeOverlayRect layout_letterbox( int style = LayoutStyle::None );
-	FeOverlayRect layout_border( int style = LayoutStyle::None );
+	FeRectangle layout_background();
+	FeRectangle layout_letterbox( int style = LayoutStyle::None );
+	FeRectangle layout_border( int style = LayoutStyle::None );
 	FeTextPrimitive layout_header( int style = LayoutStyle::None );
 	FeTextPrimitive layout_footer();
 	FeTextPrimitive layout_message( int style = LayoutStyle::None );
@@ -106,8 +108,8 @@ private:
 	FeListBox layout_list( int style = LayoutStyle::None );
 	void draw_native_logo_if_needed();
 
-	void theme_letterbox( FeOverlayRect &rect );
-	void theme_border( FeOverlayRect &rect );
+	void theme_letterbox( FeRectangle &rect );
+	void theme_border( FeRectangle &rect );
 	void theme_list( FeListBox &list );
 
 	int list_row_height( int style );

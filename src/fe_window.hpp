@@ -43,26 +43,10 @@ class FeText;
 class FeRectangle;
 struct SDL_Surface;
 
-struct FeOverlayRect
-{
-	// Temporary overlay-only bridge until these simple rectangles move onto FeRectangle.
-	Vec2f position;
-	Vec2f size;
-	Color color;
-
-	FeOverlayRect()
-		: position( 0.0f, 0.0f ),
-		size( 0.0f, 0.0f ),
-		color( Color::Transparent )
-	{
-	}
-};
-
 struct FeOverlayDrawItem
 {
 	enum Type
 	{
-		OverlayRect,
 		TextPrimitive,
 		ListBox,
 		Text,
@@ -72,8 +56,6 @@ struct FeOverlayDrawItem
 	Type type;
 	const void *item;
 
-	explicit FeOverlayDrawItem( const FeOverlayRect &rect )
-		: type( OverlayRect ), item( &rect ) {}
 	explicit FeOverlayDrawItem( const FeTextPrimitive &text )
 		: type( TextPrimitive ), item( &text ) {}
 	explicit FeOverlayDrawItem( const FeListBox &listbox )
@@ -175,7 +157,6 @@ public:
 
 	void clear();
 	void draw( const FeOverlayDrawItem &item, const FeTransform &t = FeTransform::identity() );
-	void draw( const FeOverlayRect &rect, const FeTransform &t = FeTransform::identity() );
 	void draw( const FeTextPrimitive &text, const FeTransform &t = FeTransform::identity() );
 	void draw( const FeListBox &listbox, const FeTransform &t = FeTransform::identity() );
 	void draw( const FeText &text, const FeTransform &t = FeTransform::identity() );

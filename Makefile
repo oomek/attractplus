@@ -171,7 +171,6 @@ _DEP =\
 	fe_text.hpp \
 	fe_listbox.hpp \
 	fe_justify_text.hpp \
-	rounded_rectangle_shape.hpp \
 	fe_rectangle.hpp \
 	fe_vm.hpp \
 	fe_blend.hpp \
@@ -219,7 +218,6 @@ _OBJ =\
 	fe_text.o \
 	fe_listbox.o \
 	fe_justify_text.o \
-	rounded_rectangle_shape.o \
 	fe_rectangle.o \
 	fe_vm.o \
 	fe_blend.o \

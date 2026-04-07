@@ -369,40 +369,6 @@ namespace
 		geometry.vertices.push_back( v2 );
 	}
 
-	void append_rect_fill( FeRenderGeometry &geometry, const FeTransform &transform, const Vec2f &size, const Color &color )
-	{
-		if ( color.a == 0 )
-			return;
-
-		const Vec2f p0 = transform.transformPoint( { 0.0f, 0.0f } );
-		const Vec2f p1 = transform.transformPoint( { size.x, 0.0f } );
-		const Vec2f p2 = transform.transformPoint( { 0.0f, size.y } );
-		const Vec2f p3 = transform.transformPoint( { size.x, size.y } );
-		append_solid_triangle( geometry, p0, p1, p2, color );
-		append_solid_triangle( geometry, p2, p1, p3, color );
-	}
-
-	bool append_overlay_rect_geometry( std::vector<FeRenderGeometry> &geometry, const FeOverlayRect &rect )
-	{
-		if ( rect.color.a == 0 || rect.size.x <= 0.0f || rect.size.y <= 0.0f )
-			return false;
-
-		FeRenderGeometry fill;
-		fill.clear();
-		fill.textured = false;
-		fill.texture_width = 1.0f;
-		fill.texture_height = 1.0f;
-		fill.zbuffer = false;
-
-		const FeTransform transform = FeTransform().translate( { rect.position.x, rect.position.y } );
-		append_rect_fill( fill, transform, rect.size, rect.color );
-		if ( fill.vertices.empty() )
-			return false;
-
-		geometry.push_back( std::move( fill ) );
-		return true;
-	}
-
 	char32_t decode_utf8_first_codepoint( const char *text )
 	{
 		if ( !text )
@@ -907,10 +873,6 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 
 	switch ( item.type )
 	{
-	case FeOverlayDrawItem::OverlayRect:
-		if ( !append_overlay_rect_geometry( geometry, *static_cast<const FeOverlayRect *>( item.item ) ) )
-			return true;
-		break;
 	case FeOverlayDrawItem::TextPrimitive:
 		static_cast<const FeTextPrimitive *>( item.item )->append_render_geometry( geometry, 0.0f );
 		break;
@@ -1882,11 +1844,6 @@ void FeWindow::draw( const FeOverlayDrawItem &item, const FeTransform &r )
 		return;
 
 	append_native_overlay_item( item, r );
-}
-
-void FeWindow::draw( const FeOverlayRect &rect, const FeTransform &r )
-{
-	draw( FeOverlayDrawItem( rect ), r );
 }
 
 void FeWindow::draw( const FeTextPrimitive &text, const FeTransform &r )
