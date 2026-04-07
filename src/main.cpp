@@ -43,6 +43,7 @@
 #include <future>
 #include <mutex>
 #include <thread>
+#include <SDL3/SDL.h>
 #include "nowide/args.hpp"
 #include <SFML/Audio.hpp>
 
@@ -183,9 +184,10 @@ int main(int argc, char *argv[])
 	//
 	// Run the front-end
 	//
-	FeLog() << "--------------------------------------------------------------------------------" << std::endl;
+	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) == 0 )
+		SDL_InitSubSystem( SDL_INIT_VIDEO );
+
 	fe_print_version();
-	FeLog() << std::endl;
 
 #ifdef SFML_SYSTEM_WINDOWS
 	FeWindowsAudioBootstrap windows_audio_bootstrap;
@@ -217,6 +219,7 @@ int main(int argc, char *argv[])
 	FeWindow window( feSettings );
 	window.set_window_position( win_pos );
 	window.initial_create();
+
 	if ( !window.isOpen() )
 	{
 		FeLog() << "ERROR: Failed to create the frontend SDL window." << std::endl;

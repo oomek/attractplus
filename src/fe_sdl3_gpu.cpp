@@ -448,6 +448,7 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_frame_stats.last_viewport_height = 0;
 
 	m_sdl_ready = false;
+	m_owns_sdl_video = false;
 	m_window_claimed = false;
 	m_window = nullptr;
 	m_device = nullptr;
@@ -1594,6 +1595,13 @@ bool FeSdl3GpuContext::ensure_video_subsystem()
 	if ( m_sdl_ready )
 		return true;
 
+	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) != 0 )
+	{
+		m_sdl_ready = true;
+		m_owns_sdl_video = false;
+		return true;
+	}
+
 	if ( !SDL_InitSubSystem( SDL_INIT_VIDEO ) )
 	{
 		FeLog() << "WARNING: SDL3 video initialization failed: " << SDL_GetError() << std::endl;
@@ -1601,6 +1609,7 @@ bool FeSdl3GpuContext::ensure_video_subsystem()
 	}
 
 	m_sdl_ready = true;
+	m_owns_sdl_video = true;
 	return true;
 }
 
@@ -1623,11 +1632,13 @@ void FeSdl3GpuContext::shutdown()
 
 	m_debug_logging_enabled = false;
 
-	if ( m_sdl_ready )
+	if ( m_sdl_ready && m_owns_sdl_video )
 	{
 		SDL_QuitSubSystem( SDL_INIT_VIDEO );
-		m_sdl_ready = false;
 	}
+
+	m_sdl_ready = false;
+	m_owns_sdl_video = false;
 }
 
 bool FeSdl3GpuContext::wrap_native_window( void *native_window_handle, int width, int height )

@@ -237,6 +237,7 @@ private:
 	std::unordered_map<std::string, std::string> m_custom_shader_sources;
 	std::unordered_map<int, BuiltinShaderEntry> m_builtin_shaders;
 	bool m_sdl_ready;
+	bool m_owns_sdl_video;
 	bool m_window_claimed;
 	SDL_Window *m_window;
 	SDL_GPUDevice *m_device;

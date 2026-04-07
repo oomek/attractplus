@@ -34,6 +34,7 @@ extern "C"
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <SDL3/SDL.h>
 #include "nowide/fstream.hpp"
 #include "nowide/iostream.hpp"
 
@@ -155,18 +156,33 @@ const char *fe_get_log_level_string()
 
 void fe_print_version()
 {
+	const int sdl_version = SDL_GetVersion();
+
+	FeLog() << "--------------------------------------------------------------------------------" << std::endl;
 	FeLog() << FE_NAME << " " << FE_VERSION << " " << FE_BUILD_NUMBER << "("
 		<< get_OS_string()
 		<< ", SFML " << SFML_VERSION_MAJOR << '.' << SFML_VERSION_MINOR
 		<< "." << SFML_VERSION_PATCH
+		<< ", SDL "
+		<< SDL_VERSIONNUM_MAJOR( sdl_version ) << '.'
+		<< SDL_VERSIONNUM_MINOR( sdl_version ) << '.'
+		<< SDL_VERSIONNUM_MICRO( sdl_version );
+
+	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) != 0 )
+	{
+		if ( const char *driver = SDL_GetCurrentVideoDriver() )
+			FeLog() << " [" << driver << ']';
+	}
+
+	FeLog()
 #ifdef USE_XINERAMA
-		<< " +Xinerama"
+		<< ", Xinerama"
 #endif
 #ifdef USE_LIBARCHIVE
-		<< " +7z"
+		<< ", 7z"
 #endif
 #ifdef USE_LIBCURL
-		<< " +Curl"
+		<< ", Curl"
 #endif
 		<< ")" << std::endl;
 #ifdef NO_MOVIE
@@ -174,7 +190,7 @@ void fe_print_version()
 #else
 	print_ffmpeg_version_info();
 #endif
-
+	FeLog() << std::endl;
 }
 
 void FeBaseConfigurable::invalid_setting(
