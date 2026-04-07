@@ -25,12 +25,10 @@
 #include "base64.hpp"
 #include <SFML/Config.hpp>
 
-#ifndef NO_MOVIE
 extern "C"
 {
 #include <libavutil/log.h>
 }
-#endif
 
 #include <string>
 #include <sstream>
@@ -84,7 +82,6 @@ namespace {
 #endif
 	enum FeLogLevel g_log_level=FeLog_Info;
 
-#ifndef NO_MOVIE
 	void ffmpeg_log_callback( void *ptr, int level, const char *fmt, va_list vargs )
 	{
 		if ( level <= av_log_get_level() )
@@ -94,7 +91,6 @@ namespace {
 			FeLog() << "FFmpeg: " << buff;
 		}
 	}
-#endif
 };
 
 std::ostream &FeDebug()
@@ -127,9 +123,6 @@ void fe_set_log_file( const std::string &fn )
 void fe_set_log_level( enum FeLogLevel f )
 {
 	g_log_level = f;
-
-
-#ifndef NO_MOVIE
 	if ( f == FeLog_Silent )
 		av_log_set_callback( NULL );
 	else
@@ -137,7 +130,6 @@ void fe_set_log_level( enum FeLogLevel f )
 		av_log_set_callback( ffmpeg_log_callback );
 		av_log_set_level( ( f == FeLog_Debug ) ? AV_LOG_VERBOSE : AV_LOG_ERROR );
 	}
-#endif
 }
 
 const char *fe_get_log_level_string()
@@ -183,11 +175,7 @@ void fe_print_version()
 		<< ", Curl"
 #endif
 		<< ")" << std::endl;
-#ifdef NO_MOVIE
-	FeLog() << "No Video, using SFML for Audio." << std::endl;
-#else
 	print_ffmpeg_version_info();
-#endif
 	FeLog() << std::endl;
 }
 

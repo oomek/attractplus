@@ -37,9 +37,7 @@
 #include <cmath>
 #include <utility>
 
-#ifndef NO_MOVIE
 #include "media.hpp"
-#endif
 
 FeBaseTextureContainer::FeBaseTextureContainer()
 {
@@ -301,7 +299,6 @@ FeTextureContainer::FeTextureContainer(
 	m_entry( NULL ),
 	m_content_version( 1 )
 {
-#ifndef NO_MOVIE
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
@@ -315,7 +312,6 @@ FeTextureContainer::FeTextureContainer(
 	}
 
 	m_audio_effects.set_ready_for_processing();
-#endif
 
 	if ( is_artwork )
 	{
@@ -333,13 +329,11 @@ FeTextureContainer::FeTextureContainer(
 
 FeTextureContainer::~FeTextureContainer()
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		delete m_movie;
 		m_movie=NULL;
 	}
-#endif
 
 	if ( m_entry )
 	{
@@ -398,7 +392,6 @@ bool FeTextureContainer::fix_masked_image()
 struct RGBAPixel { std::uint8_t r,g,b,a; };
 static std::vector<RGBAPixel> s_black_pixels;
 
-#ifndef NO_MOVIE
 bool FeTextureContainer::load_with_ffmpeg(
 	const std::string &filename,
 	bool is_image )
@@ -464,7 +457,6 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	return true;
 }
-#endif
 
 bool FeTextureContainer::try_to_load(
 	const std::string &filename,
@@ -472,10 +464,8 @@ bool FeTextureContainer::try_to_load(
 {
 	std::string loaded_name;
 
-#ifndef NO_MOVIE
 	if ( !is_image && FeMedia::is_supported_media_file( filename ) )
 		return load_with_ffmpeg( filename, false );
-#endif
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	unsigned char *data = NULL;
@@ -510,7 +500,6 @@ bool FeTextureContainer::try_to_load(
 
 Vec2u FeTextureContainer::get_texture_size() const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		unsigned int width = 0;
@@ -518,7 +507,6 @@ Vec2u FeTextureContainer::get_texture_size() const
 		if ( m_movie->get_video_frame_dimensions( width, height ) && width > 0 && height > 0 )
 			return { width, height };
 	}
-#endif
 
 	if ( m_entry && m_entry->is_loaded() )
 		return { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
@@ -606,7 +594,6 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	bool loaded=false;
 	std::vector<std::string>::iterator itr;
 
-#ifndef NO_MOVIE
 	if ( m_video_flags & VF_DisableVideo )
 		vid_list.clear();
 
@@ -620,7 +607,6 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			break;
 		}
 	}
-#endif
 
 	if ( !loaded )
 	{
@@ -673,7 +659,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
 
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		// VF_NoAudio flag overrides volume setting
@@ -723,14 +708,12 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			return true;
 		}
 	}
-#endif
 
 	return false;
 }
 
 void FeTextureContainer::set_play_state( bool play )
 {
-#ifndef NO_MOVIE
 	if (m_movie)
 	{
 		if ( play == get_play_state() )
@@ -760,12 +743,10 @@ void FeTextureContainer::set_play_state( bool play )
 				m_movie_status = 0;
 		}
 	}
-#endif
 }
 
 bool FeTextureContainer::get_play_state() const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		if ( m_movie_status > PLAY_COUNT )
@@ -774,7 +755,6 @@ bool FeTextureContainer::get_play_state() const
 			// if status > 0, we are in the process of starting to play
 			return ( m_movie_status > 0 );
 	}
-#endif
 
 	return false;
 }
@@ -815,13 +795,11 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 {
 	m_video_flags = f;
 
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		if ( m_movie_status > 0 && m_video_flags & VF_NoAutoStart )
 			m_movie_status = 0;
 	}
-#endif
 }
 
 FeVideoFlags FeTextureContainer::get_video_flags() const
@@ -831,20 +809,16 @@ FeVideoFlags FeTextureContainer::get_video_flags() const
 
 int FeTextureContainer::get_video_duration() const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 		return m_movie->get_duration().asMilliseconds();
-#endif
 
 	return 0;
 }
 
 int FeTextureContainer::get_video_time() const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 		return m_movie->get_video_time().asMilliseconds();
-#endif
 
 	return 0;
 }
@@ -913,7 +887,6 @@ void FeTextureContainer::clear()
 	m_texture_size = { 0, 0 };
 	++m_content_version;
 
-#ifndef NO_MOVIE
 	// If a movie is running, close it...
 	if ( m_movie )
 	{
@@ -921,7 +894,6 @@ void FeTextureContainer::clear()
 		il.reap_video( m_movie );
 		m_movie=NULL;
 	}
-#endif
 
 	if ( m_entry )
 	{
@@ -932,10 +904,8 @@ void FeTextureContainer::clear()
 
 bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const
 {
-#ifndef NO_MOVIE
 	if ( m_movie && m_movie->copy_video_frame_rgba( pixels, width, height ) )
 		return true;
-#endif
 
 	if ( m_entry && m_entry->is_loaded() )
 	{
@@ -969,7 +939,6 @@ bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, u
 
 bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 	{
 		if ( !pixels )
@@ -977,7 +946,6 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 
 		return m_movie->copy_video_frame_rgba_to( pixels, pixel_count, width, height );
 	}
-#endif
 
 	if ( m_entry && m_entry->is_loaded() )
 	{
@@ -1098,38 +1066,26 @@ int FeTextureContainer::get_fft_bands() const
 
 float FeTextureContainer::get_sample_aspect_ratio() const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 		return m_movie->get_aspect_ratio();
-#endif
 		return 1.0;
 }
 
 bool FeTextureContainer::is_volatile_texture() const
 {
-#ifndef NO_MOVIE
 	return ( m_movie != NULL );
-#else
-	return false;
-#endif
 }
 
 unsigned long long FeTextureContainer::get_texture_content_version() const
 {
-#ifndef NO_MOVIE
 	if ( m_movie )
 		return m_movie->get_video_frame_serial();
-#endif
 	return m_content_version;
 }
 
 FeMedia *FeTextureContainer::get_media() const
 {
-#ifndef NO_MOVIE
 	return m_movie;
-#else
-	return NULL;
-#endif
 }
 
 void FeTextureContainer::release_audio( bool state )

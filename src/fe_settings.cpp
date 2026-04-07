@@ -44,9 +44,7 @@
 
 #include <SDL3/SDL_platform_defines.h>
 
-#ifndef NO_MOVIE
 #include "media.hpp" // for FeMedia::is_supported_media(), get/set_current_decoder()
-#endif
 
 #if defined(SDL_PLATFORM_WINDOWS)
 const char *FE_DEFAULT_CFG_PATH		= "./";
@@ -3502,11 +3500,7 @@ const std::string FeSettings::get_info( int index ) const
 #endif
 		return ( get_info_bool( index ) ? FE_CFG_YES_STR : FE_CFG_NO_STR );
 	case VideoDecoder:
-#ifdef NO_MOVIE
-		return "software";
-#else
 		return FeMedia::get_current_decoder();
-#endif
 
 	case MenuPrompt:
 		return m_menu_prompt;
@@ -3801,9 +3795,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 #endif
 
 	case VideoDecoder:
-#ifndef NO_MOVIE
 		FeMedia::set_current_decoder( value );
-#endif
 		break;
 
 	case MenuLayout:
@@ -4484,9 +4476,6 @@ bool gather_artwork_filenames(
 				FE_ART_EXTENSIONS );
 		}
 
-#ifdef NO_MOVIE
-		vid_contents.clear();
-#else
 		for ( std::vector<std::string>::iterator itn = vid_contents.begin();
 				itn != vid_contents.end(); )
 		{
@@ -4495,7 +4484,6 @@ bool gather_artwork_filenames(
 			else
 				itn = vid_contents.erase( itn );
 		}
-#endif
 
 		if ( !img_contents.empty() || !vid_contents.empty() )
 		{
@@ -4521,9 +4509,6 @@ bool gather_artwork_filenames(
 				"",
 				FE_ART_EXTENSIONS );
 
-#ifdef NO_MOVIE
-			vid_contents.clear();
-#else
 			for ( std::vector<std::string>::iterator itn = vid_contents.begin();
 					itn != vid_contents.end(); )
 			{
@@ -4532,7 +4517,6 @@ bool gather_artwork_filenames(
 				else
 					itn = vid_contents.erase( itn );
 			}
-#endif
 
 			std::shuffle( vid_contents.begin(), vid_contents.end(), rnd );
 			std::shuffle( img_contents.begin(), img_contents.end(), rnd );

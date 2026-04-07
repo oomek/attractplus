@@ -35,6 +35,7 @@
 #include "fe_overlay.hpp"
 #include "fe_window.hpp"
 #include "fe_blend.hpp"
+#include "media.hpp"
 
 #ifdef USE_LIBCURL
 #include "fe_net.hpp"
@@ -2986,11 +2987,7 @@ bool FeVM::cb_path_test( const char *path, int flag )
 		return is_supported_archive( p );
 
 	case IsSupportedMedia:
-#ifndef NO_MOVIE
 		return FeMedia::is_supported_media_file( p );
-#else
-		return ( tail_compare( p, FE_ART_EXTENSIONS ) );
-#endif
 
 	default:
 		FeLog() << "Error, unrecognized path_test flag: " << flag << std::endl;

@@ -23,9 +23,6 @@
 #
 # BUILD CONFIGURATION OPTIONS:
 #
-# Uncomment next line to disable movie support (i.e. no FFmpeg).
-#NO_MOVIE=1
-#
 # Uncomment the next line to enable the use of MMAL video decoder
 #USE_MMAL=1
 #
@@ -410,18 +407,9 @@ ifeq ($(USE_LIBCURL),1)
  _OBJ += fe_net.o
 endif
 
-ifeq ($(NO_MOVIE),1)
- FE_FLAGS += -DNO_MOVIE
- ifeq ($(WINDOWS_STATIC),1)
-  LIBS += -lsfml-audio-s
- else
-  LIBS += -lsfml-audio
- endif
-else
- PKG_CONFIG_LIBS += libavformat libavcodec libavutil libswscale libswresample
- _DEP += media.hpp
- _OBJ += media.o
-endif
+PKG_CONFIG_LIBS += libavformat libavcodec libavutil libswscale libswresample
+_DEP += media.hpp
+_OBJ += media.o
 
 ifeq ($(origin OBJ_DIR), undefined)
 BUILD_OBJ_TAG :=

@@ -1821,7 +1821,6 @@ void FePresent::post_run()
 
 	std::vector<FeSound *>::iterator its;
 
-#ifndef NO_MOVIE
 	//
 	// Re-establish openAL stuff now that we are back from the emulator
 	//
@@ -1833,7 +1832,6 @@ void FePresent::post_run()
 
 	for ( its=m_sounds.begin(); its != m_sounds.end(); ++its )
 		(*its)->release_audio( false );
-#endif
 
 	set_video_play_state( m_playMovies );
 

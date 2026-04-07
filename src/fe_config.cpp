@@ -28,9 +28,7 @@
 #include "fe_vm.hpp"
 #include "fe_cache.hpp"
 
-#ifndef NO_MOVIE
 #include "media.hpp"
-#endif
 
 #include <iostream>
 #include <cmath>
@@ -1637,7 +1635,6 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 	std::vector<std::string> sound_list;
 	ctx.fe_settings.get_sounds_list( sound_list );
 
-#ifndef NO_MOVIE
 	for ( std::vector<std::string>::iterator itr=sound_list.begin(); itr != sound_list.end(); )
 	{
 		if ( !FeMedia::is_supported_media_file( *itr ) )
@@ -1645,7 +1642,6 @@ void FeSoundMenu::get_options( FeConfigContext &ctx )
 		else
 			itr++;
 	}
-#endif
 
 	sound_list.push_back( "" );
 
@@ -1815,14 +1811,8 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 
 	ctx.add_opt( Opt::EDIT, _( "Image Cache Size" ), ctx.fe_settings.get_info( FeSettings::ImageCacheMBytes ), _( "_help_misc_image_cache_mbytes" ) );
 	std::vector<std::string> decoders;
-	std::string vid_dec;
-#ifdef NO_MOVIE
-	vid_dec = "software";
-	decoders.push_back( vid_dec );
-#else
-	vid_dec = FeMedia::get_current_decoder();
+	std::string vid_dec = FeMedia::get_current_decoder();
 	FeMedia::get_decoder_list( decoders );
-#endif
 	ctx.add_opt( Opt::LIST, _( "Video Decoder" ), vid_dec, _( "_help_misc_video_decoder" ) )->append_vlist( decoders );
 
 	ctx.add_opt( Opt::TOGGLE, _( "Menu Toggle" ), ctx.fe_settings.get_info_bool( FeSettings::QuickMenu ), _( "_help_misc_quick_menu" ) );
