@@ -354,19 +354,6 @@ bool fe_mouse_is_button_pressed( int button )
 	return ( SDL_GetMouseState( nullptr, nullptr ) & SDL_BUTTON_MASK( button ) ) != 0;
 }
 
-int fe_key_from_legacy_sfml_code( int legacy_code )
-{
-	if ( legacy_code < 0 )
-		return static_cast<int>( SDL_SCANCODE_UNKNOWN );
-
-	const std::size_t index = static_cast<std::size_t>( legacy_code );
-	const std::size_t count = std::size( g_key_info ) - 1;
-	if ( index >= count )
-		return static_cast<int>( SDL_SCANCODE_UNKNOWN );
-
-	return static_cast<int>( g_key_info[index].scancode );
-}
-
 void FeInputMouse::clear()
 {
 	m_wheel_delta = 0;

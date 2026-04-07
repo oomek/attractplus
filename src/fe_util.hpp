@@ -409,11 +409,6 @@ std::string clipboard_get_content();
 //
 void clipboard_set_content( const std::string & );
 
-//
-// We use this in fe_window but implement it here because the XWindows
-// namespace (Window, etc) clashes with the SFML namespace used in fe_window
-// (sf::Window)
-//
 #if defined(USE_XLIB)
 void get_x11_multimon_geometry( int &x, int &y, unsigned int &width, unsigned int &height );
 void get_x11_primary_screen_size( unsigned int &width, unsigned int &height );

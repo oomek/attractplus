@@ -37,7 +37,6 @@ class FeMapping;
 
 bool fe_key_is_pressed( int code );
 bool fe_mouse_is_button_pressed( int button );
-int fe_key_from_legacy_sfml_code( int legacy_code ); // Temporary SFML bridge until the fallback SFML window path is removed.
 
 class FeInputSingle
 {

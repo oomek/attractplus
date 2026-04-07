@@ -1961,11 +1961,6 @@ void clipboard_set_content( const std::string &value )
 }
 
 #if defined(USE_XLIB)
-//
-// We use this in fe_window but implement it here because the XWindows
-// namespace (Window, etc) clashes with the SFML namespace used in fe_window
-// (sf::Window)
-//
 void get_x11_multimon_geometry( int &x, int &y, unsigned int &width, unsigned int &height )
 {
 	x=0;

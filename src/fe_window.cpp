@@ -1118,26 +1118,16 @@ void FeWindow::initial_create()
 	if ( !do_multimon && ( m_win_mode != FeSettings::Fullscreen ))
 	{
 		// If we aren't doing multimonitor mode (it isn't configured or we are in a window)
-		// then use the primary screen size as our OpenGL surface size and 'fillscreen' window
+		// then use the primary screen size as our render surface size and 'fillscreen' window
 		// size.
 		//
-		// We don't do this on "Fullscreen", which has to be set to a valid videomode
-		// returned by SFML.
-
-		// Known issue: Linux Mint 18.3 Cinnamon w/ SFML 2.5.1, w/ fullscreen and multimon disabled:
-		// SFML fullscreen is extended across all monitors but positioned incorrectly
-		// (it is positioned to accomodate window decoration that isn't there).  setPosition()
-		// doesn't work
-		//
+		// We don't do this on "Fullscreen", which has to be set to a valid fullscreen videomode.
 		get_x11_primary_screen_size( vm.size.x, vm.size.y );
 	}
 	else
 	{
-		// In testing on Linux Mint Cinnamon 18.3 w/ SFML 2.5.1, this call to get_x11_multimon_geometry()
-		// isn't needed and multimon works without any further repositioning of our window.  I'm
-		// keeping it though because it has been needed historically (earlier versions of SFML,
-		// other window managers etc) and it seems to lead to the same results
-		//
+		// Query the full X11 virtual desktop so multimon window positioning stays anchored to the
+		// same desktop bounds across window managers.
 		get_x11_multimon_geometry( wpos.x, wpos.y, vm.size.x, vm.size.y );
 	}
 
@@ -1146,8 +1136,8 @@ void FeWindow::initial_create()
 	//
 	// Windows General Notes:
 	//
-	// Out present strategy with Windows is to stick with the WS_POPUP window style for our
-	// window.  SFML seems to always create windows with this style
+	// Our present strategy on Windows is to stick with the WS_POPUP window style for the
+	// frontend window.
 	//
 	// In previous FE versions, the WS_POPUP style was causing grief switching to MAME.
 	// It also looked clunky/flickery when transitioning between frontend and emulator.
@@ -1169,13 +1159,8 @@ void FeWindow::initial_create()
 			&& ( m_win_mode == FeSettings::Fullscreen )
 			&& ( GetSystemMetrics( SM_CMONITORS ) > 1 ) )
 	{
-		//
-		// Tested on Windows 10 w/ SFML 2.5.1 - SFML seems to be forcing the window to being the primary
-		// monitor size notwithstanding that we tell it to use bigger (i.e. full multimon desktop) dimensions.
-		//
-		// As a workaround we force 'Fill Screen' mode here, since the user seems to want multimon to work and we
-		// have detected that multiple monitors are available
-		//
+		// Fullscreen on multi-monitor Windows setups is handled through Fill Screen so the
+		// frontend can span the virtual desktop instead of collapsing to a single monitor.
 		FeLog() << " ! NOTE: Switching to 'Fill Screen' window mode (required for multiple monitor support)." << std::endl;
 		m_win_mode = FeSettings::Fillscreen;
 	}

@@ -1765,7 +1765,8 @@ void FeVM::on_transition(
 			//
 			// Empty the event buffer during a blocked transition
 			// - Otherwise keypresses bank up and are dumped on the frontend when the worklist is complete
-			// - Also fixes Linux SFML 2.2-2.3 flicker on multi monitor setup during animated transitions.
+			// - Historically this also avoided flicker on some Linux multi-monitor setups during
+			//   animated transitions.
 			//
 			while ( const std::optional ev = m_window.pollEvent() ) {}
 		}

@@ -292,7 +292,7 @@ void FeTextPrimitive::setString( const std::string &t )
 {
 	//
 	// UTF-8 character encoding is assumed.
-	// Need to convert to UTF-32 before giving string to SFML
+	// Convert to UTF-32 before handing the string to the text layout engine.
 	//
 	std::basic_string<std::uint32_t> tmp = utf8_to_utf32( t );
 

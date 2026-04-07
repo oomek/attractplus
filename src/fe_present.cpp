@@ -340,8 +340,8 @@ void FePresent::init_monitors()
 		EnumDisplayMonitors( NULL, NULL, my_mon_enum_proc, (LPARAM)&m_mon );
 
 		//
-		// The Windows virtual screen can have a negative valued top left corner, whereas in SFML we
-		// always have a 0,0 top left.  So we correct the transforms in m_mon to SFML's coordinates now.
+		// The Windows virtual screen can have a negative valued top left corner. Normalize the
+		// monitor transforms into our local 0,0-based desktop coordinate space now.
 		//
 		int translate_x = -GetSystemMetrics( SM_XVIRTUALSCREEN );
 		int translate_y = -GetSystemMetrics( SM_YVIRTUALSCREEN );
