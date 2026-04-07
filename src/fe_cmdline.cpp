@@ -21,16 +21,60 @@
  */
 
 #include "fe_settings.hpp"
+#include "fe_sdl3_gpu.hpp"
 #include "fe_shader.hpp"
 #include "fe_util.hpp"
 #include <iostream>
 #include <iomanip>
 #include <cstring>
 #include <sstream>
-#include <SFML/Window/Context.hpp>
+#include <SDL3/SDL.h>
 
-#include <SFML/OpenGL.hpp>
-#define GL_SHADING_LANGUAGE_VERSION    0x8B8C
+namespace
+{
+	void log_version_info()
+	{
+		FeSdl3GpuContext gpu_context;
+		const bool gpu_available = gpu_context.initialize();
+		const char *gpu_error = gpu_available ? nullptr : SDL_GetError();
+
+		fe_print_version();
+
+		if ( !gpu_error && gpu_context.get_device() )
+		{
+			SDL_GPUDevice *device = gpu_context.get_device();
+			const char *driver = SDL_GetGPUDeviceDriver( device );
+			const SDL_PropertiesID props = SDL_GetGPUDeviceProperties( device );
+			const char *device_name = SDL_GetStringProperty( props, SDL_PROP_GPU_DEVICE_NAME_STRING, "" );
+			const char *driver_name = SDL_GetStringProperty( props, SDL_PROP_GPU_DEVICE_DRIVER_NAME_STRING, "" );
+			const char *driver_info = SDL_GetStringProperty( props, SDL_PROP_GPU_DEVICE_DRIVER_INFO_STRING, "" );
+			const char *driver_version = SDL_GetStringProperty( props, SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING, "" );
+
+			FeLog() << "SDL GPU Driver: " << ( driver && driver[0] ? driver : "unknown" ) << std::endl;
+			if ( device_name[0] )
+				FeLog() << "Device: " << device_name << std::endl;
+			if ( driver_info[0] )
+				FeLog() << "Driver: " << driver_name << " " << driver_info << std::endl;
+			else if ( driver_name[0] || driver_version[0] )
+				FeLog() << "Driver: " << driver_name << ( driver_name[0] && driver_version[0] ? " " : "" ) << driver_version << std::endl;
+			FeLog() << std::endl;
+		}
+		else
+		{
+			FeLog() << "SDL GPU information unavailable";
+			if ( gpu_error && gpu_error[0] )
+				FeLog() << ": " << gpu_error;
+			FeLog() << std::endl << std::endl;
+		}
+
+		if ( fe_shaders_available() )
+			FeLog() << "Shaders are available." << std::endl;
+		else
+			FeLog() << "Shaders are not available." << std::endl;
+
+		gpu_context.shutdown();
+	}
+}
 
 void write_section( std::string title )
 {
@@ -271,21 +315,7 @@ void process_args( int argc, char *argv[],
 		else if (( strcmp( argv[next_arg], "-v" ) == 0 )
 				|| ( strcmp( argv[next_arg], "--version" ) == 0 ))
 		{
-			fe_print_version();
-			FeLog() << std::endl;
-
-			sf::Context c; // initializes GL so glGetString() call will work
-
-			FeLog() << "OpenGL " << glGetString( GL_VERSION ) << std::endl
-				<< " - vendor  : " << glGetString( GL_VENDOR ) << std::endl
-				<< " - renderer: " << glGetString( GL_RENDERER ) << std::endl
-				<< " - shader  : " << glGetString( GL_SHADING_LANGUAGE_VERSION ) << std::endl << std::endl;
-
-			if ( fe_shaders_available() )
-				FeLog() << "Shaders are available." << std::endl;
-			else
-				FeLog() << "Shaders are not available." << std::endl;
-
+			log_version_info();
 			exit(0);
 		}
 		else if (( strcmp( argv[next_arg], "-t" ) == 0 )
