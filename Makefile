@@ -129,12 +129,6 @@ RES_FONTS_DIR=$(RES_DIR)/fonts
 RES_IMGS_DIR=$(RES_DIR)/images
 RES_LANGUAGE_DIR=$(RES_DIR)/language
 RES_LANGUAGE_FILE=$(RES_LANGUAGE_DIR)/language.h
-SDL3_SHADER_DIR=config/shaders/sdl3
-SDL3_SHADER_COMPILER ?= glslangValidator
-SDL3_SHADER_SPV = \
-	$(SDL3_SHADER_DIR)/image.vert.spv \
-	$(SDL3_SHADER_DIR)/image.frag.spv
-
 _DEP =\
 	fe_base.hpp \
 	fe_file.cpp \
@@ -350,6 +344,10 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
   ifneq ($(shell $(PKG_CONFIG) --exists x11 xi xcursor xrandr && echo 1 || echo 0),1)
    $(error X11/XRandR development files are required through pkg-config)
   endif
+  ifneq ($(shell $(PKG_CONFIG) --exists shaderc && echo 1 || echo 0),1)
+   $(error shaderc development files are required through pkg-config on Linux)
+  endif
+  PKG_CONFIG_LIBS += shaderc
  endif
 endif
 
@@ -525,18 +523,6 @@ endif
 .PHONY: clean
 .PHONY: install
 .PHONY: sfml sfmlbuild
-.PHONY: sdl3-shaders
-
-sdl3-shaders: $(SDL3_SHADER_SPV)
-
-$(SDL3_SHADER_DIR)/%.vert.spv: $(SDL3_SHADER_DIR)/%.vert.glsl
-	$(info Compiling $< to $@...)
-	$(SILENT)$(SDL3_SHADER_COMPILER) -V -S vert -o $@ $<
-
-$(SDL3_SHADER_DIR)/%.frag.spv: $(SDL3_SHADER_DIR)/%.frag.glsl
-	$(info Compiling $< to $@...)
-	$(SILENT)$(SDL3_SHADER_COMPILER) -V -S frag -o $@ $<
-
 SFML_FLAGS =
 ifneq ($(USE_SYSTEM_SFML),1)
 sfmlbuild:

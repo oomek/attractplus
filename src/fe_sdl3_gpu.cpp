@@ -17,12 +17,16 @@
 #include <regex>
 #include <set>
 #include <sstream>
+#if defined( SDL_PLATFORM_LINUX )
+#include <shaderc/shaderc.h>
+#endif
 
 namespace
 {
 	const int FE_MAX_CUSTOM_SHADER_UNIFORMS = 32;
 	std::string join_path( const std::string &base, const std::string &suffix );
 	std::string get_base_path();
+	bool read_binary_file( const std::string &path, std::vector<Uint8> &code );
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
@@ -73,6 +77,81 @@ namespace
 	{
 		std::ostringstream stream;
 	};
+
+	struct ShaderBlob
+	{
+		SDL_GPUShaderFormat format;
+		std::vector<Uint8> code;
+		const char *entrypoint;
+	};
+
+#if defined( SDL_PLATFORM_LINUX )
+	bool compile_shader_blob_with_shaderc(
+		const std::string &source_id,
+		const std::string &translated_source,
+		bool vertex_stage,
+		ShaderBlob &blob,
+		ShaderCompileLogCapture *capture )
+	{
+		shaderc_compiler_t compiler = shaderc_compiler_initialize();
+		shaderc_compile_options_t options = shaderc_compile_options_initialize();
+		if ( !compiler || !options )
+		{
+			if ( options )
+				shaderc_compile_options_release( options );
+			if ( compiler )
+				shaderc_compiler_release( compiler );
+			return false;
+		}
+
+		shaderc_compile_options_set_target_env( options, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3 );
+		shaderc_compile_options_set_target_spirv( options, shaderc_spirv_version_1_6 );
+
+		const shaderc_shader_kind shader_kind =
+			vertex_stage ? shaderc_vertex_shader : shaderc_fragment_shader;
+		shaderc_compilation_result_t result = shaderc_compile_into_spv(
+			compiler,
+			translated_source.c_str(),
+			translated_source.size(),
+			shader_kind,
+			source_id.c_str(),
+			"main",
+			options );
+
+		shaderc_compile_options_release( options );
+		shaderc_compiler_release( compiler );
+
+		if ( !result )
+			return false;
+
+		const shaderc_compilation_status status = shaderc_result_get_compilation_status( result );
+		if ( status != shaderc_compilation_status_success )
+		{
+			if ( capture )
+			{
+				const char *message = shaderc_result_get_error_message( result );
+				if ( message && message[0] )
+					capture->stream << message;
+			}
+			shaderc_result_release( result );
+			return false;
+		}
+
+		const char *bytes = shaderc_result_get_bytes( result );
+		const size_t length = shaderc_result_get_length( result );
+		if ( !bytes || length == 0 )
+		{
+			shaderc_result_release( result );
+			return false;
+		}
+
+		blob.code.assign( reinterpret_cast<const Uint8 *>( bytes ), reinterpret_cast<const Uint8 *>( bytes ) + length );
+		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
+		blob.entrypoint = "main";
+		shaderc_result_release( result );
+		return true;
+	}
+#endif
 
 	bool shader_compile_output_callback( const char *line, void *opaque )
 	{
@@ -1159,13 +1238,6 @@ namespace
 #endif
 	}
 
-	struct ShaderBlob
-	{
-		SDL_GPUShaderFormat format;
-		std::vector<Uint8> code;
-		const char *entrypoint;
-	};
-
 	struct ShaderCompileCacheEntry
 	{
 		bool compile_failed;
@@ -1281,11 +1353,37 @@ namespace
 		const std::string cache_name =
 			sanitize_filename( source_id ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
 		const std::string stage_name = vertex_stage ? "vert" : "frag";
-		const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
 		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
 
 		if ( !file_exists( spirv_path ) )
 		{
+			ShaderCompileLogCapture capture = {};
+
+#if defined( SDL_PLATFORM_LINUX )
+			if ( compile_shader_blob_with_shaderc( source_id, translated_source, vertex_stage, blob, &capture ) )
+			{
+				if ( !write_file_content( spirv_path, std::string(
+						reinterpret_cast<const char *>( blob.code.data() ),
+						blob.code.size() ) ) )
+					FeLog() << "shader_blob: failed to write compiled shader " << spirv_path << std::endl;
+			}
+			else
+			{
+				FeLog() << "shader_blob: shaderc compile failed for " << source_id << std::endl;
+				FeLog() << "FeSdl3GpuContext: "
+					<< ( vertex_stage ? "vertex" : "fragment" )
+					<< " shader compile failed: "
+					<< source_id
+					<< std::endl;
+				if ( !capture.stream.str().empty() )
+					FeLog() << capture.stream.str();
+				cache[ cache_key ].compile_failed = true;
+				return false;
+			}
+#else
+			const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
+			const std::string args =
+				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
 			if ( !write_file_content( glsl_path, translated_source ) )
 			{
 				FeLog() << "shader_blob: failed to write translated shader " << glsl_path << std::endl;
@@ -1296,9 +1394,6 @@ namespace
 			const char *compiler = SDL_getenv( "FE_SDL3_GPU_GLSLANG" );
 			const std::string compiler_name =
 				( compiler && compiler[ 0 ] ) ? compiler : "glslangValidator";
-			const std::string args =
-				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
-			ShaderCompileLogCapture capture = {};
 
 			FeLog() << "shader_blob: compiling " << source_id << std::endl;
 			if ( !run_program( compiler_name, args, cache_root, shader_compile_output_callback, &capture, true, nullptr ) )
@@ -1314,9 +1409,10 @@ namespace
 				cache[ cache_key ].compile_failed = true;
 				return false;
 			}
+#endif
 		}
 
-		if ( !read_binary_file( spirv_path, blob.code ) || blob.code.empty() )
+		if ( blob.code.empty() && ( !read_binary_file( spirv_path, blob.code ) || blob.code.empty() ) )
 		{
 			cache[ cache_key ].compile_failed = true;
 			return false;
@@ -2432,14 +2528,11 @@ FeSdl3GpuContext::BuiltinShaderEntry *FeSdl3GpuContext::get_fast_builtin_shader_
 
 bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, BuiltinShaderEntry &entry )
 {
-	const std::string source_code = build_fast_builtin_fragment_shader( blend_mode );
-	if ( source_code.empty() )
-		return false;
-
 	entry.source_id = "__builtin_fast_blend_" + std::to_string( blend_mode ) + "__";
 
 	ShaderBlob fragment_blob = {};
-	if ( !compile_shader_blob( entry.source_id, source_code, false, fragment_blob ) )
+	const std::string source_code = build_fast_builtin_fragment_shader( blend_mode );
+	if ( source_code.empty() || !compile_shader_blob( entry.source_id, source_code, false, fragment_blob ) )
 		return false;
 
 	SDL_GPUShaderCreateInfo fragment_info = {};

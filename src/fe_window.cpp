@@ -969,7 +969,7 @@ void FeWindow::draw_overlay_image( const SDL_Surface &image, const FloatRect &bo
 void FeWindow::display()
 {
 	bool used_sdl_gpu_present = false;
-	if ( m_gpu_context.should_present() )
+	if ( m_gpu_context.is_available() && ( m_gpu_context.should_present() || !m_overlay_geometry.empty() ) )
 		used_sdl_gpu_present = m_gpu_context.execute_frame( m_overlay_geometry.empty() ? nullptr : &m_overlay_geometry );
 
 	m_overlay_geometry.clear();
@@ -1289,9 +1289,17 @@ void FeWindow::initial_create()
 #endif
 				if ( m_win_mode == FeSettings::Window )
 					flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_RESIZABLE );
-				else if ( m_win_mode == FeSettings::Fullscreen )
+				else if (
+#if defined(SDL_PLATFORM_LINUX)
+					( fe_get_sdl_video_driver_name() != "wayland" ) &&
+#endif
+					( m_win_mode == FeSettings::Fullscreen ) )
 					flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_FULLSCREEN );
-				else
+				else if (
+#if defined(SDL_PLATFORM_LINUX)
+					( fe_get_sdl_video_driver_name() != "wayland" ) &&
+#endif
+					( m_win_mode != FeSettings::Window ) )
 					flags = static_cast<SDL_WindowFlags>( flags | SDL_WINDOW_BORDERLESS );
 
 				SDL_Window *sdl_window = SDL_CreateWindow( FE_NAME, static_cast<int>( vm.size.x ), static_cast<int>( vm.size.y ), flags );
@@ -1303,7 +1311,7 @@ void FeWindow::initial_create()
 					return false;
 				}
 
-				if ( m_win_mode == FeSettings::Window )
+				if ( is_windowed_mode( m_win_mode ) )
 					SDL_SetWindowPosition( sdl_window, wpos.x, wpos.y );
 #if defined(SDL_PLATFORM_WINDOWS)
 				else
@@ -1328,6 +1336,27 @@ void FeWindow::initial_create()
 					FeLog() << "WARNING: SDL3 GPU native window handle lookup failed." << std::endl;
 					m_gpu_context.release_window();
 					return false;
+				}
+#endif
+
+#if defined(SDL_PLATFORM_LINUX)
+				if ( fe_get_sdl_video_driver_name() == "wayland" )
+				{
+					if ( m_win_mode == FeSettings::Fullscreen )
+					{
+						if ( !SDL_SetWindowFullscreen( sdl_window, true ) )
+							FeLog() << "WARNING: SDL3 fullscreen request failed on Wayland: " << SDL_GetError() << std::endl;
+					}
+					else if ( m_win_mode != FeSettings::Window )
+					{
+						if ( !SDL_SetWindowBordered( sdl_window, false ) )
+							FeLog() << "WARNING: SDL3 borderless request failed on Wayland: " << SDL_GetError() << std::endl;
+						if ( !SDL_SetWindowResizable( sdl_window, false ) )
+							FeLog() << "WARNING: SDL3 resizable-state request failed on Wayland: " << SDL_GetError() << std::endl;
+					}
+
+					if ( !SDL_SyncWindow( sdl_window ) )
+						FeLog() << "WARNING: SDL3 window sync failed on Wayland: " << SDL_GetError() << std::endl;
 				}
 #endif
 
@@ -1356,7 +1385,7 @@ void FeWindow::initial_create()
 #endif
 
 #if defined(SDL_PLATFORM_LINUX)
-	if ( m_win_mode == FeSettings::Fillscreen )
+	if ( fe_is_sdl_backend_x11() && ( m_win_mode == FeSettings::Fillscreen ) )
 	{
 		if ( const unsigned long window = get_x11_window_number( m_gpu_context ) )
 			set_x11_fullscreen_state( window );

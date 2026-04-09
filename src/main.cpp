@@ -142,6 +142,11 @@ int main(int argc, char *argv[])
 #endif
 
 	nowide::args a( argc, argv );
+
+#ifdef SDL_PLATFORM_LINUX
+	SDL_SetHintWithPriority( SDL_HINT_VIDEO_DRIVER, "x11,wayland,kmsdrm", SDL_HINT_NORMAL );
+#endif
+
 	process_args( argc, argv, config_path, process_console, startup_display, startup_filter, log_file, log_level, window_topmost, window_args );
 
 	FeSettings feSettings( config_path );
