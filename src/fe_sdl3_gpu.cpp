@@ -70,10 +70,6 @@ namespace
 		}
 	}
 
-	struct ShaderCompileLogCapture
-	{
-		std::ostringstream stream;
-	};
 
 	struct ShaderBlob
 	{
@@ -83,16 +79,8 @@ namespace
 	};
 
 
-	bool shader_compile_output_callback( const char *line, void *opaque )
+	bool shader_compile_output_callback( const char *, void * )
 	{
-		if ( line && line[0] )
-		{
-			const std::string message = trim( line );
-			FeLog() << "shader_compile: " << message << std::endl;
-			ShaderCompileLogCapture *capture = static_cast<ShaderCompileLogCapture *>( opaque );
-			if ( capture )
-				capture->stream << message << "\n";
-		}
 		return true;
 	}
 
@@ -1285,30 +1273,24 @@ namespace
 		const std::string stage_name = vertex_stage ? "vert" : "frag";
 		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
 
+		const std::string shader_name = path_filename( source_id );
+		bool compiled = false;
 		if ( !file_exists( spirv_path ) )
 		{
-			ShaderCompileLogCapture capture = {};
 			const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
 			const std::string args =
 				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
 			if ( !write_file_content( glsl_path, translated_source ) )
 			{
-				FeLog() << "shader_blob: failed to write translated shader " << glsl_path << std::endl;
+				FeLog() << "shader_compile: error " << shader_name << std::endl;
 				cache[ cache_key ].compile_failed = true;
 				return false;
 			}
 
-			FeLog() << "shader_blob: compiling " << source_id << std::endl;
-			if ( !run_program( "glslangValidator", args, cache_root, shader_compile_output_callback, &capture, true, nullptr ) )
+			compiled = true;
+			if ( !run_program( "glslangValidator", args, cache_root, shader_compile_output_callback, nullptr, true, nullptr ) )
 			{
-				FeLog() << "shader_blob: glslang compile failed for " << source_id << std::endl;
-				FeLog() << "FeSdl3GpuContext: "
-					<< ( vertex_stage ? "vertex" : "fragment" )
-					<< " shader compile failed: "
-					<< source_id
-					<< std::endl;
-				if ( !capture.stream.str().empty() )
-					FeLog() << capture.stream.str();
+				FeLog() << "shader_compile: error " << shader_name << std::endl;
 				cache[ cache_key ].compile_failed = true;
 				return false;
 			}
@@ -1316,9 +1298,14 @@ namespace
 
 		if ( blob.code.empty() && ( !read_binary_file( spirv_path, blob.code ) || blob.code.empty() ) )
 		{
+			if ( compiled )
+				FeLog() << "shader_compile: error " << shader_name << std::endl;
 			cache[ cache_key ].compile_failed = true;
 			return false;
 		}
+
+		if ( compiled )
+			FeLog() << "shader_compile: ok " << shader_name << std::endl;
 
 		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
 		blob.entrypoint = "main";
