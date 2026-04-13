@@ -146,6 +146,7 @@ _DEP =\
 	fe_renderer.hpp \
 	fe_present.hpp \
 	fe_sdl3_gpu.hpp \
+	fe_glslang.hpp \
 	fe_sprite.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
@@ -193,6 +194,7 @@ _OBJ =\
 	fe_renderer.o \
 	fe_present.o \
 	fe_sdl3_gpu.o \
+	fe_glslang.o \
 	fe_sprite.o \
 	fe_image.o \
 	fe_sound.o \
@@ -284,6 +286,9 @@ SFML_PKG_CONFIG_PATH=$(ROOT_DIR)/$(SFML_OBJ_DIR)/install/lib/pkgconfig
 LIBS += -L$(SFML_LIB_DIR)
 SFML_PC="sfml-system sfml-window sfml-audio sfml-graphics"
 SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
+GLSLANG_OBJ_DIR = $(OBJ_DIR)/glslang
+GLSLANG_LIB_DIR=$(GLSLANG_OBJ_DIR)/install/lib/
+GLSLANG_TOKEN=$(GLSLANG_OBJ_DIR)/.glslangok
 
 
 ifeq ($(FE_MACOSX_COMPILE),1)
@@ -519,6 +524,7 @@ endif
 .PHONY: clean
 .PHONY: install
 .PHONY: sfml sfmlbuild
+.PHONY: glslang glslangbuild
 SFML_FLAGS =
 ifneq ($(USE_SYSTEM_SFML),1)
 sfmlbuild:
@@ -570,6 +576,23 @@ else
 endif
 	$(eval override LIBS = $(SFML_LIBS) $(LIBS))
 
+glslangbuild:
+ifneq ("$(wildcard $(GLSLANG_TOKEN))","")
+	$(info glslang is already built)
+else
+	$(info Building glslang...)
+	$(SILENT)$(MD) $(GLSLANG_OBJ_DIR)
+	$(SILENT)$(CMAKE) -S extlibs/glslang -B $(GLSLANG_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(GLSLANG_OBJ_DIR)/install -DBUILD_SHARED_LIBS=FALSE -DGLSLANG_ENABLE_INSTALL=ON -DENABLE_GLSLANG_BINARIES=OFF -DENABLE_HLSL=OFF -DENABLE_OPT=OFF
+	+$(SILENT)$(CMAKE) --build $(GLSLANG_OBJ_DIR) --config Release --target install
+	touch $(GLSLANG_TOKEN)
+endif
+
+glslang: glslangbuild
+	$(eval CFLAGS += -I$(ROOT_DIR)/$(GLSLANG_OBJ_DIR)/install/include)
+	$(eval GLSLANG_LIBS += -L$(GLSLANG_LIB_DIR))
+	$(eval GLSLANG_LIBS += -lglslang -lMachineIndependent -lOSDependent -lSPIRV -lGenericCodeGen -lglslang-default-resource-limits)
+	$(eval override LIBS = $(GLSLANG_LIBS) $(LIBS))
+
 # .WAIT is supported from make 4.4, not yet standard sadly. So the all target appreared
 #$(OBJ_DIR) : sfml .WAIT headerinfo
 $(OBJ_DIR): headerinfo
@@ -590,7 +613,7 @@ $(RES_LANGUAGE_FILE): $(_LANGUAGE) $(RES_LANGUAGE_DIR)
 	$(foreach f,$(_LANGUAGE),$(shell (echo '$(OPEN_BRACE) "$(word 3,$(subst ., ,$(subst /, ,$f)));$(subst #@,,$(shell (sed 1q $f)))", "$(shell base64 $(B64FLAGS) $f)" $(CLOSE_BRACE),' >> $(RES_LANGUAGE_FILE))))
 	$(shell (echo '$(CLOSE_BRACE);') >> $(RES_LANGUAGE_FILE))
 
-headerinfo: sfml
+headerinfo: sfml glslang
 	$(info flags: $(CFLAGS) $(FE_FLAGS))
 	$(info libs: $(LIBS))
 
@@ -708,4 +731,4 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h
 
 clean:
-	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(GLSLANG_OBJ_DIR)/* $(GLSLANG_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core

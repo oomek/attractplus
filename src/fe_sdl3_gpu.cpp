@@ -1,4 +1,5 @@
 #include "fe_sdl3_gpu.hpp"
+#include "fe_glslang.hpp"
 #include "fe_image.hpp"
 #include "fe_font.hpp"
 #include "media.hpp"
@@ -24,6 +25,7 @@ namespace
 	std::string join_path( const std::string &base, const std::string &suffix );
 	std::string get_base_path();
 	bool read_binary_file( const std::string &path, std::vector<Uint8> &code );
+	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code );
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
@@ -78,11 +80,6 @@ namespace
 		const char *entrypoint;
 	};
 
-
-	bool shader_compile_output_callback( const char *, void * )
-	{
-		return true;
-	}
 	const char *get_builtin_image_fragment_shader_name( int mode )
 	{
 		switch ( mode )
@@ -1250,6 +1247,19 @@ namespace
 		return stream.good();
 	}
 
+	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code )
+	{
+		if ( code.empty() )
+			return false;
+
+		std::ofstream stream( path.c_str(), std::ios::binary | std::ios::trunc );
+		if ( !stream )
+			return false;
+
+		stream.write( reinterpret_cast<const char *>( code.data() ), static_cast<std::streamsize>( code.size() ) );
+		return stream.good();
+	}
+
 	std::unordered_map<std::string, ShaderCompileCacheEntry> &get_shader_compile_cache()
 	{
 		static std::unordered_map<std::string, ShaderCompileCacheEntry> cache;
@@ -1292,33 +1302,25 @@ namespace
 		const std::string stage_name = vertex_stage ? "vert" : "frag";
 		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
 		bool compiled = false;
-		if ( !file_exists( spirv_path ) )
+		if ( !file_exists( spirv_path ) || !read_binary_file( spirv_path, blob.code ) || blob.code.empty() )
 		{
-			const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
-			const std::string args =
-				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
-			if ( !write_file_content( glsl_path, translated_source ) )
-			{
-				FeLog() << "shader_compile: error " << shader_name << std::endl;
-				cache[ cache_key ].compile_failed = true;
-				return false;
-			}
-
+			std::string diagnostics;
+			blob.code.clear();
 			compiled = true;
-			if ( !run_program( "glslangValidator", args, cache_root, shader_compile_output_callback, nullptr, true, nullptr ) )
+
+			if ( !fe_glslang_compile_to_spirv( shader_name, translated_source, vertex_stage, blob.code, diagnostics ) || blob.code.empty() )
 			{
 				FeLog() << "shader_compile: error " << shader_name << std::endl;
+				if ( !diagnostics.empty() )
+					FeDebug() << diagnostics << std::endl;
 				cache[ cache_key ].compile_failed = true;
 				return false;
 			}
-		}
 
-		if ( blob.code.empty() && ( !read_binary_file( spirv_path, blob.code ) || blob.code.empty() ) )
-		{
-			if ( compiled )
-				FeLog() << "shader_compile: error " << shader_name << std::endl;
-			cache[ cache_key ].compile_failed = true;
-			return false;
+			if ( !diagnostics.empty() )
+				FeDebug() << diagnostics << std::endl;
+
+			write_binary_file( spirv_path, blob.code );
 		}
 
 		if ( compiled )
