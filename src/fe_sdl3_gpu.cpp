@@ -1290,7 +1290,7 @@ namespace
 			ShaderCompileLogCapture capture = {};
 			const std::string glsl_path = join_path( cache_root, cache_name + "." + stage_name + ".glsl" );
 			const std::string args =
-				"-V -S " + stage_name + " -o "" + spirv_path + "" "" + glsl_path + """;
+				"-V -S " + stage_name + " -o \"" + spirv_path + "\" \"" + glsl_path + "\"";
 			if ( !write_file_content( glsl_path, translated_source ) )
 			{
 				FeLog() << "shader_blob: failed to write translated shader " << glsl_path << std::endl;
@@ -1299,7 +1299,7 @@ namespace
 			}
 
 			FeLog() << "shader_blob: compiling " << source_id << std::endl;
-			if ( !run_program( FE_SHADER_COMPILER, args, cache_root, shader_compile_output_callback, &capture, true, nullptr ) )
+			if ( !run_program( "glslangValidator", args, cache_root, shader_compile_output_callback, &capture, true, nullptr ) )
 			{
 				FeLog() << "shader_blob: glslang compile failed for " << source_id << std::endl;
 				FeLog() << "FeSdl3GpuContext: "
