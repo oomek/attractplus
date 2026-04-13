@@ -186,6 +186,35 @@ int main(int argc, char *argv[])
 	//
 	fe_set_log_level( log_level );
 
+	bool shader_compiler_found = false;
+	{
+		const char *path_env = SDL_getenv( "PATH" );
+		std::string path_list = path_env ? path_env : "";
+		size_t path_pos = 0;
+		std::string dir;
+#ifdef SDL_PLATFORM_WINDOWS
+		const char *path_sep = ";";
+		const char dir_sep = '\\';
+#else
+		const char *path_sep = ":";
+		const char dir_sep = '/';
+#endif
+		while ( !shader_compiler_found && token_helper( path_list, path_pos, dir, path_sep ) )
+		{
+			if ( dir.empty() )
+				dir = ".";
+			if (( dir.back() != '/' ) && ( dir.back() != '\\' ) )
+				dir += dir_sep;
+			shader_compiler_found = file_exists( dir + FE_SHADER_COMPILER );
+		}
+	}
+
+	if ( !shader_compiler_found )
+	{
+		FeLog() << "Error, glslangValidator was not found in PATH." << std::endl;
+		return 1;
+	}
+
 	//
 	// Run the front-end
 	//

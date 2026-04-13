@@ -344,10 +344,6 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
   ifneq ($(shell $(PKG_CONFIG) --exists x11 xi xcursor xrandr && echo 1 || echo 0),1)
    $(error X11/XRandR development files are required through pkg-config)
   endif
-  ifneq ($(shell $(PKG_CONFIG) --exists shaderc && echo 1 || echo 0),1)
-   $(error shaderc development files are required through pkg-config on Linux)
-  endif
-  PKG_CONFIG_LIBS += shaderc
  endif
 endif
 

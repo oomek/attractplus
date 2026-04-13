@@ -38,6 +38,12 @@
 
 extern const char *FE_WHITESPACE;
 
+#ifdef SDL_PLATFORM_WINDOWS
+inline constexpr char FE_SHADER_COMPILER[] = "glslangValidator.exe";
+#else
+inline constexpr char FE_SHADER_COMPILER[] = "glslangValidator";
+#endif
+
 namespace FeUtil
 {
     std::string narrow( const std::wstring& s );
