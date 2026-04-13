@@ -83,6 +83,21 @@ namespace
 	{
 		return true;
 	}
+	const char *get_builtin_image_fragment_shader_name( int mode )
+	{
+		switch ( mode )
+		{
+			case FeBlend::Alpha: return "__alpha_fragment__";
+			case FeBlend::Add: return "__add_fragment__";
+			case FeBlend::Subtract: return "__subtract_fragment__";
+			case FeBlend::Screen: return "__screen_fragment__";
+			case FeBlend::Multiply: return "__multiply_fragment__";
+			case FeBlend::Overlay: return "__overlay_fragment__";
+			case FeBlend::Premultiplied: return "__premultiplied_fragment__";
+			case FeBlend::None: return "__none_fragment__";
+			default: return "__fragment__";
+		}
+	}
 
 	SDL_GPUBlendFactor to_sdl_blend_factor( FeBlend::Factor factor )
 	{
@@ -1268,12 +1283,14 @@ namespace
 		confirm_directory( cache_root, "sdl3/" );
 		cache_root = join_path( cache_root, "sdl3/" );
 
+		std::string shader_name = path_filename( source_id );
+		if ( shader_name.empty() )
+			shader_name = source_id;
+
 		const std::string cache_name =
-			sanitize_filename( source_id ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
+			sanitize_filename( shader_name ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
 		const std::string stage_name = vertex_stage ? "vert" : "frag";
 		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
-
-		const std::string shader_name = path_filename( source_id );
 		bool compiled = false;
 		if ( !file_exists( spirv_path ) )
 		{
@@ -1305,7 +1322,7 @@ namespace
 		}
 
 		if ( compiled )
-			FeLog() << "shader_compile: ok " << shader_name << std::endl;
+			FeDebug() << "shader_compile: ok " << shader_name << std::endl;
 
 		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
 		blob.entrypoint = "main";
@@ -3770,13 +3787,13 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	ShaderBlob vertex_blob = {};
 	ShaderBlob alpha_prepass_blob = {};
 	ShaderBlob fragment_blobs[FeBlend::None + 1] = {};
-	if ( !compile_shader_blob( "__builtin_image_vertex__", build_builtin_vertex_shader(), true, vertex_blob ) )
+	if ( !compile_shader_blob( "__vertex__", build_builtin_vertex_shader(), true, vertex_blob ) )
 	{
 		write_debug_log( "initialize_image_pipeline: failed to compile internal vertex shader" );
 		return false;
 	}
 
-	if ( !compile_shader_blob( "__builtin_image_alpha_prepass__", build_alpha_prepass_fragment_shader(), false, alpha_prepass_blob ) )
+	if ( !compile_shader_blob( "__alpha_prepass_fragment__", build_alpha_prepass_fragment_shader(), false, alpha_prepass_blob ) )
 	{
 		write_debug_log( "initialize_image_pipeline: failed to compile internal alpha prepass shader" );
 		return false;
@@ -3792,7 +3809,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 
 		if ( fragment_source.empty() ||
 			!compile_shader_blob(
-				std::string( "__builtin_image_fragment_" ) + std::to_string( mode ) + "__",
+				get_builtin_image_fragment_shader_name( mode ),
 				fragment_source,
 				false,
 				fragment_blobs[ mode ] ) )
