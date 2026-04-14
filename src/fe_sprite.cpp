@@ -196,6 +196,65 @@ namespace
 	}
 }
 
+FeSpriteTextureRect::FeSpriteTextureRect()
+	: rect( 0.f, 0.f, 0.f, 0.f ),
+	  x_set( false ),
+	  y_set( false ),
+	  width_set( false ),
+	  height_set( false )
+{
+}
+
+FloatRect FeSpriteTextureRect::get_rect() const
+{
+	return rect;
+}
+
+void FeSpriteTextureRect::set_rect( const FloatRect &value )
+{
+	rect = value;
+	x_set = true;
+	y_set = true;
+	width_set = true;
+	height_set = true;
+}
+
+void FeSpriteTextureRect::set_x( float x )
+{
+	rect.position.x = x;
+	x_set = true;
+}
+
+void FeSpriteTextureRect::set_y( float y )
+{
+	rect.position.y = y;
+	y_set = true;
+}
+
+void FeSpriteTextureRect::set_width( float w )
+{
+	rect.size.x = w;
+	width_set = true;
+}
+
+void FeSpriteTextureRect::set_height( float h )
+{
+	rect.size.y = h;
+	height_set = true;
+}
+
+void FeSpriteTextureRect::sync_texture_size( const Vec2u &size )
+{
+	if ( !x_set )
+		rect.position.x = 0.f;
+	if ( !y_set )
+		rect.position.y = 0.f;
+	if ( !width_set )
+		rect.size.x = static_cast<float>( size.x );
+	if ( !height_set )
+		rect.size.y = static_cast<float>( size.y );
+}
+
 FeSpriteGeometry::FeSpriteGeometry()
 	: texture_rect(),
 	  crop(),
