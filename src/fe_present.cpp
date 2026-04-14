@@ -796,7 +796,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			}
 		}
 
-		if ( !frame.clear && frame.redraw )
+		if ( frame.redraw )
 			frame.dynamic_content = true;
 
 		std::sort( dependencies.begin(), dependencies.end() );

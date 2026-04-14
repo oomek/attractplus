@@ -3612,9 +3612,10 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 
 			const bool needs_render =
 				!entry.rendered_once ||
-				surface.dynamic_content ||
-				( entry.last_signature != surface.content_signature ) ||
-				( surface.redraw && !surface.clear );
+				( surface.redraw &&
+					( surface.dynamic_content ||
+					( entry.last_signature != surface.content_signature ) ||
+					!surface.clear ) );
 
 			if ( needs_render )
 			{
@@ -3700,9 +3701,10 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 
 				const bool needs_render =
 					!entry.rendered_once ||
-					surface.dynamic_content ||
-					( entry.last_signature != surface.content_signature ) ||
-					( surface.redraw && !surface.clear );
+					( surface.redraw &&
+						( surface.dynamic_content ||
+						( entry.last_signature != surface.content_signature ) ||
+						!surface.clear ) );
 
 				if ( needs_render )
 				{
