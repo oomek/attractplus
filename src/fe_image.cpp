@@ -1308,6 +1308,7 @@ FeImage::FeImage(
 ):
 	FeBasePresentable( p ),
 	m_tex( tc ),
+	m_sprite(),
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_auto_size( w == 0, h == 0 ),
@@ -1326,14 +1327,6 @@ FeImage::FeImage(
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
-	m_color( Color::White ),
-	m_texture_rect(),
-	m_border( 0, 0, 0, 0 ),
-	m_padding( 0, 0, 0, 0 ),
-	m_border_scale( 1.f ),
-	m_render_crop( 0.f, 0.f, 0.f, 0.f ),
-	m_render_position( 0.f, 0.f ),
-	m_render_origin( 0.f, 0.f, 0.f ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -1346,6 +1339,7 @@ FeImage::FeImage(
 FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	FeBasePresentable( p ),
 	m_tex( o->m_tex ),
+	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_auto_size( o->m_auto_size ),
@@ -1364,14 +1358,6 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_blend_mode( o->m_blend_mode ),
 	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio ),
 	m_force_aspect_ratio( o->m_force_aspect_ratio ),
-	m_color( o->m_color ),
-	m_texture_rect( o->m_texture_rect ),
-	m_border( o->m_border ),
-	m_padding( o->m_padding ),
-	m_border_scale( o->m_border_scale ),
-	m_render_crop( o->m_render_crop ),
-	m_render_position( o->m_render_position ),
-	m_render_origin( o->m_render_origin ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -1386,7 +1372,6 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	set_zbuffer( o->get_zbuffer() );
 	set_smooth( o->get_smooth() );
 	m_tex->register_image( this );
-	texture_changed();
 }
 
 FeImage::~FeImage() {}
@@ -1411,9 +1396,16 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 		m_tex = new_tex;
 
 	const Vec2u size = m_tex->get_texture_size();
-	m_texture_rect.setTextureRect( FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) ) );
+	m_sprite.setTextureRect( FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) ) );
 
 	scale();
+}
+
+void FeImage::on_transform_update()
+{
+	m_sprite.setRotationX( get_rotation_x() );
+	m_sprite.setRotationY( get_rotation_y() );
+	m_sprite.setRotationOrder( get_rotation_order() );
 }
 
 Vec2f FeImage::alignTypeToVector( int type )
@@ -1495,7 +1487,7 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	if ( texture_size.x == 0 || texture_size.y == 0 )
 		return false;
 
-	append_render_vertices( geometry.vertices, get_z() );
+	m_sprite.append_render_vertices( geometry.vertices, get_z() - m_anchor.z );
 
 	if ( geometry.vertices.empty() )
 		return false;
@@ -1517,39 +1509,10 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	return true;
 }
 
-FeSpriteGeometry FeImage::build_sprite_geometry() const
-{
-	FeSpriteGeometry geometry;
-	const FloatRect texture_rect = m_texture_rect.getTextureRect();
-	geometry.texture_rect = FloatEdges(
-		texture_rect.position.x,
-		texture_rect.position.y,
-		texture_rect.position.x + texture_rect.size.x,
-		texture_rect.position.y + texture_rect.size.y );
-	geometry.crop = m_render_crop;
-	geometry.border = m_border;
-	geometry.padding = m_padding;
-	geometry.scale = m_scale;
-	geometry.position = m_render_position;
-	geometry.origin = m_render_origin;
-	geometry.color = m_color;
-	geometry.rotation_x = get_rotation_x();
-	geometry.rotation_y = get_rotation_y();
-	geometry.rotation_z = m_rotation;
-	geometry.rotation_order = get_rotation_order();
-	geometry.border_scale = m_border_scale;
-	return geometry;
-}
-
-void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const
-{
-	fe_sprite_append_render_vertices( out, build_sprite_geometry(), zorder - m_anchor.z );
-}
-
 void FeImage::scale()
 {
 	// The texture size is the actual pixel dimensions of the image
-	FloatRect texture_rect = m_texture_rect.getTextureRect();
+	FloatRect texture_rect = m_sprite.getTextureRect();
 	Vec2f tex_size(
 		std::abs( texture_rect.size.x ),
 		std::abs( texture_rect.size.y )
@@ -1662,7 +1625,7 @@ void FeImage::scale()
 	);
 
 	// Populate the fit_rect so users can get the resulting image dimensions
-	IntEdges padding = m_padding;
+	IntEdges padding = m_sprite.getPadding();
 	m_fit_rect = FloatRect(
 		Vec2f(
 			pos.x - pos_rotation.x + offset.x - ( origin.x * scale.x ) + (( crop.left - padding.left ) * flip.x ) - m_pos.x,
@@ -1675,10 +1638,14 @@ void FeImage::scale()
 	);
 
 	// Apply the transformations
-	m_render_crop = crop;
-	m_scale = scale;
-	m_render_position = pos;
-	m_render_origin = origin;
+	m_sprite.setCrop( crop );
+	m_sprite.setScale( scale );
+	m_sprite.setPosition( pos );
+	m_sprite.setRotation( m_rotation );
+	m_sprite.setRotationX( get_rotation_x() );
+	m_sprite.setRotationY( get_rotation_y() );
+	m_sprite.setRotationOrder( get_rotation_order() );
+	m_sprite.setOrigin( origin );
 }
 
 Vec2f FeImage::getPosition() const
@@ -1787,14 +1754,14 @@ void FeImage::setRotation( float r )
 
 Color FeImage::getColor() const
 {
-	return m_color;
+	return m_sprite.getColor();
 }
 
 void FeImage::setColor( Color c )
 {
-	if ( c != m_color )
+	if ( c != m_sprite.getColor() )
 	{
-		m_color = c;
+		m_sprite.setColor( c );
 		FePresent::script_flag_redraw();
 	}
 }
@@ -1806,13 +1773,14 @@ Vec2u FeImage::getTextureSize() const
 
 FloatRect FeImage::getTextureRect() const
 {
-	return m_texture_rect.getTextureRect();
+	return m_sprite.getTextureRect();
 }
 
 void FeImage::setTextureRect( const FloatRect &r )
 {
-	if ( m_texture_rect.setTextureRect( r ) )
+	if ( r != m_sprite.getTextureRect() )
 	{
+		m_sprite.setTextureRect( r );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -1963,7 +1931,7 @@ int FeImage::resolveFit() const
 		return Fill;
 
 	// When using border Fill must be used to correctly position the texture
-	IntEdges b = m_border;
+	IntEdges b = m_sprite.getBorder();
 	if ( b.left || b.top || b.right || b.bottom )
 		return Fill;
 
@@ -2604,9 +2572,9 @@ FePresentableParent *FeImage::get_presentable_parent()
 void FeImage::set_border( int l, int t, int r, int b )
 {
 	IntEdges border( std::max(0, l), std::max(0, t), std::max(0, r), std::max(0, b) );
-	if ( border != m_border )
+	if ( border != m_sprite.getBorder() )
 	{
-		m_border = border;
+		m_sprite.setBorder( border );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2615,9 +2583,9 @@ void FeImage::set_border( int l, int t, int r, int b )
 void FeImage::set_padding( int l, int t, int r, int b )
 {
 	IntEdges padding( l, t, r, b );
-	if ( padding != m_padding )
+	if ( padding != m_sprite.getPadding() )
 	{
-		m_padding = padding;
+		m_sprite.setPadding( padding );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2625,9 +2593,9 @@ void FeImage::set_padding( int l, int t, int r, int b )
 
 void FeImage::set_border_scale( float s )
 {
-	if ( s != m_border_scale )
+	if ( s != m_sprite.getBorderScale() )
 	{
-		m_border_scale = s;
+		m_sprite.setBorderScale( s );
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2635,95 +2603,95 @@ void FeImage::set_border_scale( float s )
 
 int FeImage::get_padding_left() const
 {
-	return m_padding.left;
+	return m_sprite.getPadding().left;
 }
 
 int FeImage::get_padding_top() const
 {
-	return m_padding.top;
+	return m_sprite.getPadding().top;
 }
 
 int FeImage::get_padding_right() const
 {
-	return m_padding.right;
+	return m_sprite.getPadding().right;
 }
 
 int FeImage::get_padding_bottom() const
 {
-	return m_padding.bottom;
+	return m_sprite.getPadding().bottom;
 }
 
 void FeImage::set_padding_left( int l )
 {
-	IntEdges padding = m_padding;
+	IntEdges padding = m_sprite.getPadding();
 	set_padding( l, padding.top, padding.right, padding.bottom );
 }
 
 void FeImage::set_padding_top( int t )
 {
-	IntEdges padding = m_padding;
+	IntEdges padding = m_sprite.getPadding();
 	set_padding( padding.left, t, padding.right, padding.bottom );
 }
 
 void FeImage::set_padding_right( int r )
 {
-	IntEdges padding = m_padding;
+	IntEdges padding = m_sprite.getPadding();
 	set_padding( padding.left, padding.top, r, padding.bottom );
 }
 
 void FeImage::set_padding_bottom( int b )
 {
-	IntEdges padding = m_padding;
+	IntEdges padding = m_sprite.getPadding();
 	set_padding( padding.left, padding.top, padding.right, b );
 }
 
 int FeImage::get_border_left() const
 {
-	return m_border.left;
+	return m_sprite.getBorder().left;
 }
 
 int FeImage::get_border_top() const
 {
-	return m_border.top;
+	return m_sprite.getBorder().top;
 }
 
 int FeImage::get_border_right() const
 {
-	return m_border.right;
+	return m_sprite.getBorder().right;
 }
 
 int FeImage::get_border_bottom() const
 {
-	return m_border.bottom;
+	return m_sprite.getBorder().bottom;
 }
 
 void FeImage::set_border_left( int l )
 {
-	IntEdges border = m_border;
+	IntEdges border = m_sprite.getBorder();
 	set_border( l, border.top, border.right, border.bottom );
 }
 
 void FeImage::set_border_top( int t )
 {
-	IntEdges border = m_border;
+	IntEdges border = m_sprite.getBorder();
 	set_border( border.left, t, border.right, border.bottom );
 }
 
 void FeImage::set_border_right( int r )
 {
-	IntEdges border = m_border;
+	IntEdges border = m_sprite.getBorder();
 	set_border( border.left, border.top, r, border.bottom );
 }
 
 void FeImage::set_border_bottom( int b )
 {
-	IntEdges border = m_border;
+	IntEdges border = m_sprite.getBorder();
 	set_border( border.left, border.top, border.right, b );
 }
 
 float FeImage::get_border_scale() const
 {
-	return m_border_scale;
+	return m_sprite.getBorderScale();
 }
 
 void FeImage::set_fft_bands( int count )

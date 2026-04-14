@@ -61,6 +61,10 @@ void FeBasePresentable::set_scale_factor( float, float )
 {
 }
 
+void FeBasePresentable::on_transform_update()
+{
+}
+
 int FeBasePresentable::getIndexOffset() const
 {
 	return 0;
@@ -263,6 +267,7 @@ void FeBasePresentable::set_rotation_x( float rotation )
 		return;
 
 	m_rotation_x = rotation;
+	on_transform_update();
 	FePresent::script_flag_redraw();
 }
 
@@ -277,6 +282,7 @@ void FeBasePresentable::set_rotation_y( float rotation )
 		return;
 
 	m_rotation_y = rotation;
+	on_transform_update();
 	FePresent::script_flag_redraw();
 }
 
@@ -305,6 +311,7 @@ void FeBasePresentable::set_rotation_order( int order )
 		return;
 
 	m_rotation_order = new_order;
+	on_transform_update();
 	FePresent::script_flag_redraw();
 }
 

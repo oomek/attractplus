@@ -557,6 +557,7 @@ public:
 
 protected:
 	FeBaseTextureContainer *m_tex;
+	FeSprite m_sprite;
 	Vec2f m_pos;
 	Vec2f m_size;
 	Vec2u m_auto_size;
@@ -581,30 +582,18 @@ protected:
 	bool m_preserve_aspect_ratio;
 	float m_force_aspect_ratio;
 
-	Vec2f m_scale;
 	FloatRect m_fit_rect;
 
+	void on_transform_update() override;
 	void scale();
 	int resolveFit() const;
 	float resolveAspectRatio() const;
 	Vec2f alignTypeToVector( int a );
 
 private:
-	FeSpriteGeometry build_sprite_geometry() const;
-	void append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const;
-
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
 	mutable SqratArrayWrapper m_fft_array_wrapper;
-
-	Color m_color;
-	FeSpriteTextureRect m_texture_rect;
-	IntEdges m_border;
-	IntEdges m_padding;
-	float m_border_scale;
-	FloatEdges m_render_crop;
-	Vec2f m_render_position;
-	Vec3f m_render_origin;
 
 };
 

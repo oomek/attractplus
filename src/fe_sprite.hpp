@@ -90,39 +90,71 @@ struct RectEdges
 using IntEdges = RectEdges<int>;
 using FloatEdges = RectEdges<float>;
 
-struct FeSpriteTextureRect
+class FeSprite
 {
-	FeSpriteTextureRect();
+public:
+	FeSprite();
 
+	void setTextureRect( const FloatRect &rectangle );
 	const FloatRect &getTextureRect() const;
-	bool setTextureRect( const FloatRect &rectangle );
+
+	void setColor( Color color );
+	Color getColor() const;
+
+	IntRect getLocalBounds() const;
+
+	void setCrop( FloatEdges crop );
+	FloatEdges getCrop() const;
+
+	const IntEdges &getBorder() const;
+	void setBorder( const IntEdges &border );
+
+	const IntEdges &getPadding() const;
+	void setPadding( const IntEdges &padding );
+
+	void setScale( const Vec2f &scale );
+	const Vec2f &getScale() const;
+
+	void setPosition( const Vec2f &position );
+	const Vec2f &getPosition() const;
+
+	void setOrigin( const Vec3f &origin );
+	const Vec3f &getOrigin() const;
+
+	void setRotation( float rotation );
+	float getRotation() const;
+
+	void setRotationX( float rotation );
+	float getRotationX() const;
+
+	void setRotationY( float rotation );
+	float getRotationY() const;
+
+	void setRotationOrder( int order );
+	int getRotationOrder() const;
+
+	void setBorderScale( float scale );
+	float getBorderScale() const;
+
+	void append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const;
 
 private:
+	void updateGeometry();
+
+	std::vector<FeRenderVertex> m_vertices;
 	FloatRect m_textureRect;
+	FloatEdges m_crop;
+	IntEdges m_border;
+	IntEdges m_padding;
+	Vec2f m_scale;
+	Vec2f m_position;
+	Vec3f m_origin;
+	Color m_color;
+	float m_rotation_x;
+	float m_rotation_y;
+	float m_rotation_z;
+	int m_rotation_order;
+	float m_border_scale;
 };
-
-struct FeSpriteGeometry
-{
-	FloatEdges texture_rect;
-	FloatEdges crop;
-	IntEdges border;
-	IntEdges padding;
-	Vec2f scale;
-	Vec2f position;
-	Vec3f origin;
-	Color color;
-	float rotation_x;
-	float rotation_y;
-	float rotation_z;
-	int rotation_order;
-	float border_scale;
-
-	FeSpriteGeometry();
-};
-
-void fe_sprite_append_render_vertices(
-	std::vector<FeRenderVertex> &out,
-	const FeSpriteGeometry &geometry,
-	float zorder );
 
 #endif

@@ -62,6 +62,10 @@ public:
 	virtual void on_new_list( FeSettings * );
 	virtual void set_scale_factor( float, float );
 
+protected:
+	virtual void on_transform_update();
+
+public:
 	virtual Vec2f getPosition() const=0;
 	virtual void setPosition( const Vec2f & )=0;
 	virtual Vec2f getSize() const=0;
