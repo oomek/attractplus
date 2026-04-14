@@ -306,34 +306,34 @@ namespace
 		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
 	}
 
-	std::uint64_t compute_draw_data_hash( const std::vector<FeRenderGeometry> &geometry )
+	std::uint64_t compute_geometry_signature( const std::vector<FeRenderGeometry> &geometry )
 	{
-		std::uint64_t hash = 1469598103934665603ULL;
+		std::uint64_t signature = 1469598103934665603ULL;
 		for ( const FeRenderGeometry &image : geometry )
 		{
-			hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.texture_id ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.texture_source_type ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.texture_repeated ? 1 : 0 ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.texture_smooth ? 1 : 0 ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.blend_mode ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.custom_shader ? 1 : 0 ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.vertices.size() ) );
+			signature = hash_combine_u64( signature, reinterpret_cast<std::uint64_t>( image.texture_id ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_source_type ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_repeated ? 1 : 0 ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_smooth ? 1 : 0 ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.blend_mode ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.custom_shader ? 1 : 0 ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.vertices.size() ) );
 
 			for ( const FeRenderVertex &vertex : image.vertices )
 			{
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.r ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.g ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.b ) );
-				hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.a ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.r ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.g ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.b ) );
+				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.a ) );
 			}
 		}
-		return hash;
+		return signature;
 	}
 
 	Uint32 get_mip_level_count( Uint32 width, Uint32 height )
@@ -463,7 +463,7 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_device = nullptr;
 	m_vertex_buffer = nullptr;
 	m_vertex_buffer_size = 0;
-	m_vertex_buffer_hash = 0;
+	m_vertex_buffer_signature = 0;
 	m_vertex_shader = nullptr;
 	m_alpha_prepass_shader = nullptr;
 	for ( int i = 0; i <= FeBlend::None; ++i )
@@ -944,11 +944,11 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 				width,
 				height,
 				m_frame.images,
-				compute_draw_data_hash( m_frame.images ),
+				compute_geometry_signature( m_frame.images ),
 				true,
 				&m_vertex_buffer,
 				&m_vertex_buffer_size,
-				&m_vertex_buffer_hash,
+				&m_vertex_buffer_signature,
 				drew_anything ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
@@ -1451,11 +1451,11 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				m_frame.viewport_width,
 				m_frame.viewport_height,
 				m_frame.images,
-				compute_draw_data_hash( m_frame.images ),
+				compute_geometry_signature( m_frame.images ),
 				true,
 				&m_vertex_buffer,
 				&m_vertex_buffer_size,
-				&m_vertex_buffer_hash,
+				&m_vertex_buffer_signature,
 				m_frame_stats.draw_ready ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
@@ -1475,7 +1475,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				m_frame.viewport_width,
 				m_frame.viewport_height,
 				*overlay_geometry,
-				compute_draw_data_hash( *overlay_geometry ),
+				compute_geometry_signature( *overlay_geometry ),
 				false,
 				nullptr,
 				nullptr,
@@ -2064,7 +2064,7 @@ void FeSdl3GpuContext::release_vertex_buffer()
 		m_vertex_buffer_size = 0;
 	}
 
-	m_vertex_buffer_hash = 0;
+	m_vertex_buffer_signature = 0;
 }
 
 void FeSdl3GpuContext::release_image_pipeline()
@@ -2273,8 +2273,8 @@ void FeSdl3GpuContext::release_surface_target( SurfaceEntry &entry )
 	entry.width = 0;
 	entry.height = 0;
 	entry.rendered_once = false;
-	entry.vertex_buffer_hash = 0;
-	entry.last_surface_output_hash = 0;
+	entry.vertex_signature = 0;
+	entry.last_signature = 0;
 
 	if ( entry.vertex_buffer )
 	{
@@ -3099,8 +3099,8 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 	entry.height = surface.height;
 	entry.mipmapped = surface.mipmapped;
 	entry.rendered_once = false;
-	entry.vertex_buffer_hash = 0;
-	entry.last_surface_output_hash = 0;
+	entry.vertex_signature = 0;
+	entry.last_signature = 0;
 	return true;
 }
 
@@ -3196,11 +3196,11 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	int viewport_width,
 	int viewport_height,
 	const std::vector<FeRenderGeometry> &geometry,
-	std::uint64_t draw_data_hash,
+	std::uint64_t geometry_signature,
 	bool use_surface_targets,
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
-	std::uint64_t *cached_vertex_buffer_hash,
+	std::uint64_t *cached_vertex_signature,
 	bool &drew_anything )
 {
 	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || geometry.empty() )
@@ -3283,19 +3283,19 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	SDL_GPUBuffer *vertex_buffer = nullptr;
 	Uint32 vertex_buffer_size = 0;
 	const bool use_cached_vertex_buffer =
-		cached_vertex_buffer && cached_vertex_buffer_size && cached_vertex_buffer_hash;
+		cached_vertex_buffer && cached_vertex_buffer_size && cached_vertex_signature;
 	if ( use_cached_vertex_buffer )
 	{
 		vertex_buffer = *cached_vertex_buffer;
 		vertex_buffer_size = *cached_vertex_buffer_size;
-		if ( !vertex_buffer || ( *cached_vertex_buffer_hash != draw_data_hash ) )
+		if ( !vertex_buffer || ( *cached_vertex_signature != geometry_signature ) )
 		{
 			if ( !upload_vertex_buffer( vertex_stream, vertex_buffer, vertex_buffer_size ) )
 				return false;
 
 			*cached_vertex_buffer = vertex_buffer;
 			*cached_vertex_buffer_size = vertex_buffer_size;
-			*cached_vertex_buffer_hash = draw_data_hash;
+			*cached_vertex_signature = geometry_signature;
 		}
 	}
 	else if ( !upload_vertex_buffer( vertex_stream, vertex_buffer, vertex_buffer_size ) )
@@ -3613,7 +3613,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 			const bool needs_render =
 				!entry.rendered_once ||
 				surface.dynamic_content ||
-				( entry.last_surface_output_hash != surface.surface_output_hash ) ||
+				( entry.last_signature != surface.content_signature ) ||
 				( surface.redraw && !surface.clear );
 
 			if ( needs_render )
@@ -3655,11 +3655,11 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					surface.width,
 					surface.height,
 					surface.geometry,
-					surface.draw_data_hash,
+					surface.geometry_signature,
 					true,
 					&entry.vertex_buffer,
 					&entry.vertex_buffer_size,
-					&entry.vertex_buffer_hash,
+					&entry.vertex_signature,
 					drew_anything );
 				SDL_EndGPURenderPass( render_pass );
 
@@ -3670,7 +3670,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					SDL_GenerateMipmapsForGPUTexture( command_buffer, entry.color_texture );
 
 				entry.rendered_once = true;
-				entry.last_surface_output_hash = surface.surface_output_hash;
+				entry.last_signature = surface.content_signature;
 			}
 
 			rendered[surface_index] = true;
@@ -3701,7 +3701,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 				const bool needs_render =
 					!entry.rendered_once ||
 					surface.dynamic_content ||
-					( entry.last_surface_output_hash != surface.surface_output_hash ) ||
+					( entry.last_signature != surface.content_signature ) ||
 					( surface.redraw && !surface.clear );
 
 				if ( needs_render )
@@ -3743,11 +3743,11 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						surface.width,
 						surface.height,
 						surface.geometry,
-						surface.draw_data_hash,
+						surface.geometry_signature,
 						true,
 						&entry.vertex_buffer,
 						&entry.vertex_buffer_size,
-						&entry.vertex_buffer_hash,
+						&entry.vertex_signature,
 						drew_anything );
 					SDL_EndGPURenderPass( render_pass );
 
@@ -3758,7 +3758,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						SDL_GenerateMipmapsForGPUTexture( command_buffer, entry.color_texture );
 
 					entry.rendered_once = true;
-					entry.last_surface_output_hash = surface.surface_output_hash;
+					entry.last_signature = surface.content_signature;
 				}
 
 				rendered[surface_index] = true;

@@ -96,8 +96,8 @@ FeRenderSurfaceFrame::FeRenderSurfaceFrame()
 	clear( true ),
 	  redraw( true ),
 	  dynamic_content( false ),
-	  draw_data_hash( 0 ),
-	  surface_output_hash( 0 )
+	  geometry_signature( 0 ),
+	  content_signature( 0 )
 {
 }
 
@@ -116,8 +116,8 @@ void FeRenderSurfaceFrame::clear_frame()
 	clear = true;
 	redraw = true;
 	dynamic_content = false;
-	draw_data_hash = 0;
-	surface_output_hash = 0;
+	geometry_signature = 0;
+	content_signature = 0;
 }
 
 FeRenderFrame::FeRenderFrame()

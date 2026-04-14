@@ -90,8 +90,8 @@ struct FeRenderSurfaceFrame
 	bool clear;
 	bool redraw;
 	bool dynamic_content;
-	std::uint64_t draw_data_hash;
-	std::uint64_t surface_output_hash;
+	std::uint64_t geometry_signature;
+	std::uint64_t content_signature;
 
 	FeRenderSurfaceFrame();
 	void clear_frame();

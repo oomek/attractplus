@@ -508,13 +508,8 @@ Vec2u FeTextureContainer::get_texture_size() const
 			return { width, height };
 	}
 
-	if ( m_entry )
-	{
-		const int width = m_entry->get_width();
-		const int height = m_entry->get_height();
-		if ( width > 0 && height > 0 )
-			return { static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) };
-	}
+	if ( m_entry && m_entry->is_loaded() )
+		return { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
 
 	if ( m_texture_size.x > 0 && m_texture_size.y > 0 )
 		return m_texture_size;
@@ -653,7 +648,6 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
 			m_pixel_cache_valid = true;
 			++m_content_version;
-			notify_texture_change();
 
 			il.release_entry( &m_entry );
 			return true;
@@ -1328,7 +1322,7 @@ FeImage::FeImage(
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
 	m_color( Color::White ),
-	m_texture_rect(),
+	m_texture_rect( 0.f, 0.f, 0.f, 0.f ),
 	m_border( 0, 0, 0, 0 ),
 	m_padding( 0, 0, 0, 0 ),
 	m_border_scale( 1.f ),
@@ -1411,7 +1405,9 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 	if ( new_tex )
 		m_tex = new_tex;
 
-	m_texture_rect.sync_texture_size( m_tex->get_texture_size() );
+	const Vec2u size = m_tex->get_texture_size();
+	m_texture_rect = FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) );
+
 	scale();
 }
 
@@ -1519,12 +1515,11 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 FeSpriteGeometry FeImage::build_sprite_geometry() const
 {
 	FeSpriteGeometry geometry;
-	const FloatRect texture_rect = m_texture_rect.get_rect();
 	geometry.texture_rect = FloatEdges(
-		texture_rect.position.x,
-		texture_rect.position.y,
-		texture_rect.position.x + texture_rect.size.x,
-		texture_rect.position.y + texture_rect.size.y );
+		m_texture_rect.position.x,
+		m_texture_rect.position.y,
+		m_texture_rect.position.x + m_texture_rect.size.x,
+		m_texture_rect.position.y + m_texture_rect.size.y );
 	geometry.crop = m_render_crop;
 	geometry.border = m_border;
 	geometry.padding = m_padding;
@@ -1548,7 +1543,7 @@ void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float zo
 void FeImage::scale()
 {
 	// The texture size is the actual pixel dimensions of the image
-	FloatRect texture_rect = m_texture_rect.get_rect();
+	FloatRect texture_rect = m_texture_rect;
 	Vec2f tex_size(
 		std::abs( texture_rect.size.x ),
 		std::abs( texture_rect.size.y )
@@ -1805,15 +1800,14 @@ Vec2u FeImage::getTextureSize() const
 
 FloatRect FeImage::getTextureRect() const
 {
-	return m_texture_rect.get_rect();
+	return m_texture_rect;
 }
 
 void FeImage::setTextureRect( const FloatRect &r )
 {
-	const FloatRect previous = m_texture_rect.get_rect();
-	m_texture_rect.set_rect( r );
-	if ( previous != m_texture_rect.get_rect() )
+	if ( r != m_texture_rect )
 	{
+		m_texture_rect = r;
 		scale();
 		FePresent::script_flag_redraw();
 	}
@@ -2307,46 +2301,30 @@ bool FeImage::get_preserve_aspect_ratio() const
 
 void FeImage::set_subimg_x( float x )
 {
-	const FloatRect previous = m_texture_rect.get_rect();
-	m_texture_rect.set_x( x );
-	if ( previous != m_texture_rect.get_rect() )
-	{
-		scale();
-		FePresent::script_flag_redraw();
-	}
+	FloatRect r = getTextureRect();
+	r.position.x=x;
+	setTextureRect( r );
 }
 
 void FeImage::set_subimg_y( float y )
 {
-	const FloatRect previous = m_texture_rect.get_rect();
-	m_texture_rect.set_y( y );
-	if ( previous != m_texture_rect.get_rect() )
-	{
-		scale();
-		FePresent::script_flag_redraw();
-	}
+	FloatRect r = getTextureRect();
+	r.position.y=y;
+	setTextureRect( r );
 }
 
 void FeImage::set_subimg_width( float w )
 {
-	const FloatRect previous = m_texture_rect.get_rect();
-	m_texture_rect.set_width( w );
-	if ( previous != m_texture_rect.get_rect() )
-	{
-		scale();
-		FePresent::script_flag_redraw();
-	}
+	FloatRect r = getTextureRect();
+	r.size.x=w;
+	setTextureRect( r );
 }
 
 void FeImage::set_subimg_height( float h )
 {
-	const FloatRect previous = m_texture_rect.get_rect();
-	m_texture_rect.set_height( h );
-	if ( previous != m_texture_rect.get_rect() )
-	{
-		scale();
-		FePresent::script_flag_redraw();
-	}
+	FloatRect r = getTextureRect();
+	r.size.y=h;
+	setTextureRect( r );
 }
 
 void FeImage::set_force_aspect_ratio( float r )

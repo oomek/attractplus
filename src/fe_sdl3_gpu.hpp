@@ -82,8 +82,8 @@ private:
 		int height;
 		bool mipmapped;
 		bool rendered_once;
-		std::uint64_t vertex_buffer_hash;
-		std::uint64_t last_surface_output_hash;
+		std::uint64_t vertex_signature;
+		std::uint64_t last_signature;
 		SDL_GPUTexture *color_texture;
 		SDL_GPUTexture *depth_texture;
 		SDL_GPUBuffer *vertex_buffer;
@@ -218,11 +218,11 @@ private:
 		int viewport_width,
 		int viewport_height,
 		const std::vector<FeRenderGeometry> &geometry,
-		std::uint64_t draw_data_hash,
+		std::uint64_t geometry_signature,
 		bool use_surface_targets,
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
-		std::uint64_t *cached_vertex_buffer_hash,
+		std::uint64_t *cached_vertex_signature,
 		bool &drew_anything );
 	void release_image_pipeline();
 	bool initialize_image_pipeline( SDL_GPUTextureFormat swapchain_format );
@@ -243,7 +243,7 @@ private:
 	SDL_GPUDevice *m_device;
 	SDL_GPUBuffer *m_vertex_buffer;
 	Uint32 m_vertex_buffer_size;
-	std::uint64_t m_vertex_buffer_hash;
+	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
 	SDL_GPUShader *m_alpha_prepass_shader;
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
