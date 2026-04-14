@@ -90,6 +90,17 @@ struct RectEdges
 using IntEdges = RectEdges<int>;
 using FloatEdges = RectEdges<float>;
 
+struct FeSpriteTextureRect
+{
+	FeSpriteTextureRect();
+
+	const FloatRect &getTextureRect() const;
+	bool setTextureRect( const FloatRect &rectangle );
+
+private:
+	FloatRect m_textureRect;
+};
+
 struct FeSpriteGeometry
 {
 	FloatEdges texture_rect;

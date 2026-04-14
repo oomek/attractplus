@@ -1322,7 +1322,7 @@ FeImage::FeImage(
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
 	m_color( Color::White ),
-	m_texture_rect( 0.f, 0.f, 0.f, 0.f ),
+	m_texture_rect(),
 	m_border( 0, 0, 0, 0 ),
 	m_padding( 0, 0, 0, 0 ),
 	m_border_scale( 1.f ),
@@ -1406,7 +1406,7 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 		m_tex = new_tex;
 
 	const Vec2u size = m_tex->get_texture_size();
-	m_texture_rect = FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) );
+	m_texture_rect.setTextureRect( FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) ) );
 
 	scale();
 }
@@ -1515,11 +1515,12 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 FeSpriteGeometry FeImage::build_sprite_geometry() const
 {
 	FeSpriteGeometry geometry;
+	const FloatRect texture_rect = m_texture_rect.getTextureRect();
 	geometry.texture_rect = FloatEdges(
-		m_texture_rect.position.x,
-		m_texture_rect.position.y,
-		m_texture_rect.position.x + m_texture_rect.size.x,
-		m_texture_rect.position.y + m_texture_rect.size.y );
+		texture_rect.position.x,
+		texture_rect.position.y,
+		texture_rect.position.x + texture_rect.size.x,
+		texture_rect.position.y + texture_rect.size.y );
 	geometry.crop = m_render_crop;
 	geometry.border = m_border;
 	geometry.padding = m_padding;
@@ -1543,7 +1544,7 @@ void FeImage::append_render_vertices( std::vector<FeRenderVertex> &out, float zo
 void FeImage::scale()
 {
 	// The texture size is the actual pixel dimensions of the image
-	FloatRect texture_rect = m_texture_rect;
+	FloatRect texture_rect = m_texture_rect.getTextureRect();
 	Vec2f tex_size(
 		std::abs( texture_rect.size.x ),
 		std::abs( texture_rect.size.y )
@@ -1800,14 +1801,13 @@ Vec2u FeImage::getTextureSize() const
 
 FloatRect FeImage::getTextureRect() const
 {
-	return m_texture_rect;
+	return m_texture_rect.getTextureRect();
 }
 
 void FeImage::setTextureRect( const FloatRect &r )
 {
-	if ( r != m_texture_rect )
+	if ( m_texture_rect.setTextureRect( r ) )
 	{
-		m_texture_rect = r;
 		scale();
 		FePresent::script_flag_redraw();
 	}

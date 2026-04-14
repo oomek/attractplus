@@ -196,6 +196,27 @@ namespace
 	}
 }
 
+FeSpriteTextureRect::FeSpriteTextureRect()
+	: m_textureRect( 0.f, 0.f, 0.f, 0.f )
+{
+}
+
+const FloatRect &FeSpriteTextureRect::getTextureRect() const
+{
+	return m_textureRect;
+}
+
+bool FeSpriteTextureRect::setTextureRect( const FloatRect &rectangle )
+{
+	if ( rectangle != m_textureRect )
+	{
+		m_textureRect = rectangle;
+		return true;
+	}
+
+	return false;
+}
+
 FeSpriteGeometry::FeSpriteGeometry()
 	: texture_rect(),
 	  crop(),

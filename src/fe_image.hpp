@@ -598,7 +598,7 @@ private:
 	mutable SqratArrayWrapper m_fft_array_wrapper;
 
 	Color m_color;
-	FloatRect m_texture_rect;
+	FeSpriteTextureRect m_texture_rect;
 	IntEdges m_border;
 	IntEdges m_padding;
 	float m_border_scale;
