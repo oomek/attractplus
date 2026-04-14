@@ -508,8 +508,13 @@ Vec2u FeTextureContainer::get_texture_size() const
 			return { width, height };
 	}
 
-	if ( m_entry && m_entry->is_loaded() )
-		return { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
+	if ( m_entry )
+	{
+		const unsigned int width = static_cast<unsigned int>( m_entry->get_width() );
+		const unsigned int height = static_cast<unsigned int>( m_entry->get_height() );
+		if ( width > 0 && height > 0 )
+			return { width, height };
+	}
 
 	if ( m_texture_size.x > 0 && m_texture_size.y > 0 )
 		return m_texture_size;
