@@ -28,6 +28,7 @@
 #include "fe_settings.hpp"
 #include "fe_window.hpp"
 #include "fe_present.hpp"
+#include "fe_audio_sdl.hpp"
 #include "fe_text.hpp"
 #include "fe_listbox.hpp"
 #include "fe_rectangle.hpp"
@@ -1059,26 +1060,8 @@ void FeWindow::check_for_sleep()
 	if ( s_system_resumed )
 	{
 		FeDebug() << "! NOTE: Resume from sleep detected. Resetting audio device" << std::endl;
-		fe_sleep( fe_milliseconds( 2000 ) ); // Wait 2 seconds to allow audio devices to wake up
-
-		std::optional<std::string> current_device = sf::PlaybackDevice::getDevice();
-		if ( current_device.has_value() )
-		{
-			bool success = false;
-			for ( int attempt = 0; attempt < 20; ++attempt )
-			{
-				success = sf::PlaybackDevice::setDevice( *current_device );
-				if ( success )
-					break;
-				else
-					fe_sleep( fe_milliseconds( 100 ) );
-			}
-			if ( !success )
-				FeLog() << "ERROR: Failed to reinitialize audio" << std::endl;
-		}
-		else
-			FeLog() << "ERROR: No current audio device" << std::endl;
-
+		fe_sleep( fe_milliseconds( 2000 ) );
+		FeSdlAudioBackend::get().note_system_resume();
 		s_system_resumed = false;
 	}
 }

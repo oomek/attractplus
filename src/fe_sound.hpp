@@ -24,7 +24,6 @@
 #define FE_SOUND_HPP
 
 #include "fe_music.hpp"
-#include <SFML/Audio.hpp>
 #include "media.hpp"
 #include "fe_types.hpp"
 #include <string>
@@ -39,16 +38,23 @@ private:
 	FeSound( const FeSound & );
 	FeSound &operator=( const FeSound & );
 
-	sf::SoundBuffer m_buffer;
-	sf::Sound m_sound;
+	FeAudioSampleBuffer m_buffer;
+	FeSdlAudioStream m_stream;
 	std::string m_file_name;
-	bool m_play_state;
 	bool m_rewind;
 	float m_volume;
 	float m_pan;
 	float m_pitch;
 	bool m_loop;
 	Vec3f m_position;
+	bool m_spatialization_enabled;
+	FePlaybackStatus m_status;
+	std::uint64_t m_current_frame;
+	std::uint64_t m_source_frame;
+	std::uint64_t m_total_frames_written;
+	float m_applied_pan;
+	Vec3f m_applied_position;
+	bool m_applied_spatialization_enabled;
 
 public:
 	FeSound( bool loop=false );
@@ -90,6 +96,12 @@ public:
 	int get_time();
 
 	void release_audio( bool );
+
+private:
+	bool ensure_stream();
+	void sync_playback_position();
+	void restart_stream();
+	void pump_audio();
 };
 
 class FeSoundSystem

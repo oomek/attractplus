@@ -31,6 +31,12 @@
 #include <iostream>
 #include <cstring>
 
+namespace
+{
+	constexpr int FE_SOUND_QUEUE_TARGET_FRAMES = 960;
+	constexpr int FE_SOUND_QUEUE_CHUNK_FRAMES = 480;
+}
+
 FeSoundSystem::FeSoundSystem( FeSettings *fes )
 	: m_event_sound( false ),
 	m_ambient_sound( true, FeSoundInfo::Ambient ),
@@ -91,66 +97,209 @@ void FeSoundSystem::stop()
 
 void FeSoundSystem::tick()
 {
+	m_event_sound.tick();
 	m_ambient_sound.tick();
 }
 
 void FeSoundSystem::release_audio( bool state )
 {
 	m_event_sound.release_audio( state );
+	m_ambient_sound.release_audio( state );
 }
 
 FeSound::FeSound( bool loop )
 	: m_buffer(),
-	m_sound( m_buffer ),
+	m_stream(),
 	m_file_name( "" ),
-	m_play_state( false ),
 	m_rewind( true ),
-	m_volume( 100.0 ),
-	m_pan( 0.0 ),
-	m_pitch( 1.0 ),
+	m_volume( 100.0f ),
+	m_pan( 0.0f ),
+	m_pitch( 1.0f ),
 	m_loop( loop ),
-	m_position( 0.0, 0.0, 0.0 )
+	m_position( 0.0f, 0.0f, 0.0f ),
+	m_spatialization_enabled( false ),
+	m_status( FePlaybackStatusStopped ),
+	m_current_frame( 0 ),
+	m_source_frame( 0 ),
+	m_total_frames_written( 0 ),
+	m_applied_pan( 0.0f ),
+	m_applied_position( 0.0f, 0.0f, 0.0f ),
+	m_applied_spatialization_enabled( false )
 {
-	m_sound.setSpatializationEnabled( false );
 }
 
 FeSound::~FeSound()
 {
+	release_audio( true );
+}
+
+bool FeSound::ensure_stream()
+{
+	if ( !m_stream.ensure_open() )
+		return false;
+
+	float vol = m_volume;
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0f;
+
+	std::ignore = m_stream.set_gain( vol / 100.0f );
+	std::ignore = m_stream.set_pitch( m_pitch );
+	return true;
+}
+
+void FeSound::sync_playback_position()
+{
+	const std::uint64_t total_frames = m_buffer.frame_count();
+	if ( total_frames == 0 )
+	{
+		m_current_frame = 0;
+		return;
+	}
+
+	const int queued_frames = m_stream.queued_frames();
+	const std::uint64_t played_frames = ( m_total_frames_written >= static_cast<std::uint64_t>( queued_frames ) )
+		? ( m_total_frames_written - static_cast<std::uint64_t>( queued_frames ) )
+		: 0;
+
+	if ( m_loop )
+		m_current_frame = played_frames % total_frames;
+	else
+		m_current_frame = std::min<std::uint64_t>( played_frames, total_frames );
+
+	if ( !m_loop && ( m_status == FePlaybackStatusPlaying ) && ( m_total_frames_written >= total_frames ) && ( queued_frames == 0 ) )
+		m_status = FePlaybackStatusEnded;
+}
+
+void FeSound::restart_stream()
+{
+	if ( m_status != FePlaybackStatusPlaying )
+		return;
+
+	sync_playback_position();
+	m_stream.clear();
+	m_source_frame = m_current_frame;
+	m_total_frames_written = m_current_frame;
+	pump_audio();
+}
+
+void FeSound::pump_audio()
+{
+	if ( m_status != FePlaybackStatusPlaying || m_buffer.empty() )
+		return;
+
+	if ( !ensure_stream() )
+		return;
+
+	const std::uint64_t total_frames = m_buffer.frame_count();
+	std::vector<float> chunk;
+
+	while ( m_stream.queued_frames() < FE_SOUND_QUEUE_TARGET_FRAMES )
+	{
+		if ( !m_loop && ( m_source_frame >= total_frames ) )
+			break;
+
+		const std::uint64_t start_frame = m_loop ? ( m_source_frame % total_frames ) : m_source_frame;
+		const std::uint64_t remaining_frames = total_frames - start_frame;
+		const std::uint64_t chunk_frames = std::min<std::uint64_t>( FE_SOUND_QUEUE_CHUNK_FRAMES, remaining_frames );
+		if ( chunk_frames == 0 )
+		{
+			if ( m_loop )
+			{
+				m_source_frame = 0;
+				continue;
+			}
+			break;
+		}
+
+		const std::size_t first_sample = static_cast<std::size_t>( start_frame ) * m_buffer.channel_count;
+		const std::size_t sample_count = static_cast<std::size_t>( chunk_frames ) * m_buffer.channel_count;
+		chunk.assign( m_buffer.samples.begin() + first_sample, m_buffer.samples.begin() + first_sample + sample_count );
+		fe_audio_apply_balance( chunk, m_pan, m_spatialization_enabled, m_position );
+
+		if ( !m_stream.queue_frames( chunk.data(), static_cast<int>( chunk_frames ) ) )
+		{
+			m_status = FePlaybackStatusStopped;
+			return;
+		}
+
+		m_source_frame += chunk_frames;
+		m_total_frames_written += chunk_frames;
+		m_applied_pan = m_pan;
+		m_applied_position = m_position;
+		m_applied_spatialization_enabled = m_spatialization_enabled;
+
+		if ( m_loop && ( m_source_frame >= total_frames ) )
+			m_source_frame %= total_frames;
+	}
+
+	sync_playback_position();
 }
 
 void FeSound::release_audio( bool state )
 {
-	// fix our state if sound is being stopped...
 	if ( state )
-		set_playing( false );
+	{
+		sync_playback_position();
+		m_stream.destroy();
+	}
 }
 
 void FeSound::tick()
 {
+	if ( m_stream.is_stale() )
+	{
+		sync_playback_position();
+		m_stream.destroy();
+		m_source_frame = m_current_frame;
+		m_total_frames_written = m_current_frame;
+	}
+
 	float vol = m_volume;
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
-		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
+		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0f;
 
-	if ( vol != m_sound.getVolume() )
-		m_sound.setVolume( vol );
+	if ( m_stream.is_open() )
+	{
+		std::ignore = m_stream.set_gain( vol / 100.0f );
+		std::ignore = m_stream.set_pitch( m_pitch );
+	}
 
-	if ( m_pan != m_sound.getPan() )
-		m_sound.setPan( m_pan );
+	if (( m_status == FePlaybackStatusPlaying )
+		&& (( m_pan != m_applied_pan )
+			|| ( m_spatialization_enabled != m_applied_spatialization_enabled )
+			|| ( m_position.x != m_applied_position.x )
+			|| ( m_position.y != m_applied_position.y )
+			|| ( m_position.z != m_applied_position.z )))
+	{
+		restart_stream();
+	}
+	else
+		pump_audio();
 }
 
 void FeSound::load( const std::string &fn )
 {
-	if ( !m_buffer.loadFromFile( fn ))
+	if ( !fe_decode_audio_file_to_buffer( fn, m_buffer ) )
 	{
 		FeLog() << "Error loading sound file: " << fn << std::endl;
 		m_file_name = "";
-		m_play_state = false;
+		m_status = FePlaybackStatusStopped;
+		m_current_frame = 0;
+		m_source_frame = 0;
+		m_total_frames_written = 0;
+		m_stream.clear();
 		return;
 	}
+
 	m_file_name = fn;
-	m_play_state = false;
+	m_status = FePlaybackStatusStopped;
+	m_current_frame = 0;
+	m_source_frame = 0;
+	m_total_frames_written = 0;
+	m_stream.clear();
 }
 
 void FeSound::set_file_name( const char *n )
@@ -172,8 +321,8 @@ void FeSound::set_volume( float v )
 {
 	if ( v != m_volume )
 	{
-		if ( v > 100.0 ) v = 100.0;
-		else if ( v < 0.0 ) v = 0.0;
+		if ( v > 100.0f ) v = 100.0f;
+		else if ( v < 0.0f ) v = 0.0f;
 
 		m_volume = v;
 	}
@@ -194,50 +343,52 @@ void FeSound::set_playing( bool flag )
 {
 	if ( !flag )
 	{
-		m_play_state = false;
-
 		if ( m_rewind )
-			m_sound.stop();
+		{
+			m_stream.clear();
+			m_current_frame = 0;
+			m_source_frame = 0;
+			m_total_frames_written = 0;
+			m_status = FePlaybackStatusStopped;
+		}
 		else
-			m_sound.pause();
+		{
+			sync_playback_position();
+			m_stream.clear();
+			m_source_frame = m_current_frame;
+			m_total_frames_written = m_current_frame;
+			m_status = FePlaybackStatusPaused;
+		}
 
 		return;
 	}
 
-	if ( m_file_name == "" )
+	if ( m_file_name.empty() || m_buffer.empty() )
 	{
-		m_play_state = false;
+		m_status = FePlaybackStatusStopped;
 		return;
 	}
 
 	const bool ended = ( get_status() == FePlaybackStatusEnded );
-	m_play_state = true;
+	if (( m_status == FePlaybackStatusPlaying ) || ended || ( m_current_frame >= m_buffer.frame_count() ))
+		m_current_frame = 0;
 
-	m_sound.setLooping( m_loop );
-	m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
-	m_sound.setPitch( m_pitch );
+	if ( !ensure_stream() )
+	{
+		m_status = FePlaybackStatusStopped;
+		return;
+	}
 
-	float vol = m_volume;
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep )
-		vol = vol * fep->get_fes()->get_play_volume( FeSoundInfo::Sound ) / 100.0;
-
-	m_sound.setVolume( vol );
-	m_sound.setPan( m_pan );
-
-	if ( m_sound.getStatus() == sf::SoundSource::Status::Playing )
-		m_sound.stop();
-	else if ( ended || (( m_sound.getStatus() == sf::SoundSource::Status::Stopped )
-		&& ( m_buffer.getDuration().asMilliseconds() > 0 )
-		&& ( m_sound.getPlayingOffset() >= m_buffer.getDuration() )))
-		m_sound.setPlayingOffset( {} );
-
-	m_sound.play();
+	m_stream.clear();
+	m_source_frame = m_current_frame;
+	m_total_frames_written = m_current_frame;
+	m_status = FePlaybackStatusPlaying;
+	pump_audio();
 }
 
 bool FeSound::get_playing()
 {
-	return ( m_sound.getStatus() == sf::SoundSource::Status::Playing ) ? true : false;
+	return get_status() == FePlaybackStatusPlaying;
 }
 
 bool FeSound::get_rewind()
@@ -252,19 +403,8 @@ void FeSound::set_rewind( bool rewind )
 
 FePlaybackStatus FeSound::get_status()
 {
-	switch ( m_sound.getStatus() )
-	{
-	case sf::SoundSource::Status::Playing:
-		return FePlaybackStatusPlaying;
-	case sf::SoundSource::Status::Paused:
-		return FePlaybackStatusPaused;
-	default:
-		if ( m_play_state
-			|| (( m_buffer.getDuration().asMilliseconds() > 0 )
-				&& ( m_sound.getPlayingOffset() >= m_buffer.getDuration() )))
-			return FePlaybackStatusEnded;
-		return FePlaybackStatusStopped;
-	}
+	sync_playback_position();
+	return m_status;
 }
 
 std::string FeSound::get_status_msg()
@@ -290,11 +430,7 @@ float FeSound::get_pitch()
 void FeSound::set_pitch( float p )
 {
 	if ( p != m_pitch )
-	{
 		m_pitch = p;
-
-		m_sound.setPitch( p );
-	}
 }
 
 bool FeSound::get_loop()
@@ -304,12 +440,7 @@ bool FeSound::get_loop()
 
 void FeSound::set_loop( bool l )
 {
-	if ( l != m_loop )
-	{
-		m_loop = l;
-
-		m_sound.setLooping( l );
-	}
+	m_loop = l;
 }
 
 float FeSound::get_x()
@@ -332,9 +463,7 @@ void FeSound::set_x( float p )
 	if ( p != m_position.x )
 	{
 		m_position.x = p;
-
-		m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
-		m_sound.setSpatializationEnabled( true );
+		m_spatialization_enabled = true;
 	}
 }
 
@@ -343,9 +472,7 @@ void FeSound::set_y( float p )
 	if ( p != m_position.y )
 	{
 		m_position.y = p;
-
-		m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
-		m_sound.setSpatializationEnabled( true );
+		m_spatialization_enabled = true;
 	}
 }
 
@@ -354,18 +481,17 @@ void FeSound::set_z( float p )
 	if ( p != m_position.z )
 	{
 		m_position.z = p;
-
-		m_sound.setPosition( { m_position.x, m_position.y, m_position.z } );
-		m_sound.setSpatializationEnabled( true );
+		m_spatialization_enabled = true;
 	}
 }
 
 int FeSound::get_duration()
 {
-	return m_buffer.getDuration().asMilliseconds();
+	return m_buffer.duration_ms();
 }
 
 int FeSound::get_time()
 {
-	return m_sound.getPlayingOffset().asMilliseconds();
+	sync_playback_position();
+	return fe_audio_frames_to_ms( m_current_frame );
 }

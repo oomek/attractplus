@@ -26,22 +26,19 @@
 #include <cstddef>
 #include <vector>
 #include <string>
-#include <atomic>
-#include <mutex>
 #include <functional>
 #include <memory>
 #include "fe_time.hpp"
 #include "fe_audio_fx.hpp"
+#include "fe_audio_sdl.hpp"
 
 class FeMediaImp;
 class FeAudioImp;
 class FeVideoImp;
-class FeMediaSoundStream;
 
 class FeMedia
 {
 friend class FeVideoImp;
-friend class FeMediaSoundStream;
 
 public:
 	enum Type
@@ -84,16 +81,8 @@ public:
 	FeTime get_video_time();
 	FeTime get_duration() const;
 
-	// return true if the given filename is a media file that can be opened
-	//	by FeMedia
-	//
 	static bool is_supported_media_file( const std::string &filename );
-
-	//
 	static void get_decoder_list( std::vector < std::string > &l );
-
-	// get/set video decoder to be used (if available)
-	//
 	static std::string get_current_decoder();
 	static void set_current_decoder( const std::string & );
 
@@ -113,22 +102,25 @@ public:
 private:
 	bool read_packet();
 	bool end_of_file();
+	bool ensure_audio_stream();
+	bool pump_audio();
 
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
-	std::unique_ptr<FeMediaSoundStream> m_stream;
-	std::atomic<bool> m_alive{ true };
-	std::atomic<bool> m_ready{ false };
-	std::mutex m_callback_mutex;
-	std::mutex m_closing_mutex;
-
+	FeSdlAudioStream m_audio_stream;
 	FeAudioEffectsManager &m_audio_effects;
-	void setup_effect_processor();
+	float m_aspect_ratio;
+	float m_volume;
+	float m_pan;
+	std::uint64_t m_audio_source_frame;
+	std::uint64_t m_audio_total_frames_written;
+	bool m_audio_playing;
+	std::vector<float> m_audio_pending_samples;
+	std::size_t m_audio_pending_offset;
 
 	FeMedia( const FeMedia & );
 	FeMedia &operator=( const FeMedia & );
-	float m_aspect_ratio;
 };
 
 #endif

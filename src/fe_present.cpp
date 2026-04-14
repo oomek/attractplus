@@ -46,7 +46,6 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-#include <SFML/Audio.hpp>
 
 #ifdef SDL_PLATFORM_MACOS
 #include <CoreVideo/CoreVideo.h>
@@ -1806,28 +1805,29 @@ void FePresent::pre_run()
 
 	for ( std::vector<FeSound *>::iterator its=m_sounds.begin();
 				its != m_sounds.end(); ++its )
+	{
 		(*its)->set_playing( false );
+		(*its)->release_audio( true );
+	}
 
 	for ( std::vector<FeMusic *>::iterator its=m_musics.begin();
 				its != m_musics.end(); ++its )
+	{
 		(*its)->set_playing( false );
-
-	sf::PlaybackDevice::setDeviceToNull();
+		(*its)->release_audio( true );
+	}
 }
 
 void FePresent::post_run()
 {
-	sf::PlaybackDevice::setDeviceToDefault();
-
 	std::vector<FeSound *>::iterator its;
-
-	//
-	// Re-establish openAL stuff now that we are back from the emulator
-	//
-	// sf::AudioDevice::release_audio( false );
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )
+		(*itm)->release_audio( false );
+
+	for ( std::vector<FeMusic *>::iterator itm=m_musics.begin();
+				itm != m_musics.end(); ++itm )
 		(*itm)->release_audio( false );
 
 	for ( its=m_sounds.begin(); its != m_sounds.end(); ++its )

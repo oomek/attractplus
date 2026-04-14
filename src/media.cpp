@@ -29,7 +29,6 @@
 #include "fe_sdl3_gpu.hpp"
 #include "fe_time.hpp"
 
-#include <SFML/Audio.hpp>
 
 extern "C"
 {
@@ -75,6 +74,20 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec );
 
 namespace
 {
+	constexpr int FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES = 960;
+	constexpr int FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES = 480;
+
+	bool fe_is_attached_picture_stream( const AVStream *stream )
+	{
+		if ( !stream )
+			return false;
+
+		if ( stream->disposition & AV_DISPOSITION_ATTACHED_PIC )
+			return true;
+
+		return stream->attached_pic.size > 0;
+	}
+
 	std::string g_decoder;
 
 #if FE_HWACCEL
@@ -169,18 +182,13 @@ class FeAudioImp : public FeBaseStream
 {
 public:
 	SwrContext *resample_ctx;
-	std::int16_t *audio_buff;
-	std::recursive_mutex audio_buff_mutex;
 
 	FeAudioImp();
 	~FeAudioImp();
 
-	bool process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, int &offset );
+	bool process_frame( AVFrame *frame, std::vector<float> &samples );
 };
 
-//
-// Container for our implementation of the video component
-//
 class FeVideoImp : public FeBaseStream
 {
 private:
@@ -229,36 +237,6 @@ public:
 	bool copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
 	bool copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
 	void video_thread();
-};
-
-using FeSfStreamTime = decltype( std::declval<sf::SoundStream &>().getPlayingOffset() );
-
-class FeMediaSoundStream : public sf::SoundStream // temporary sfml bridge until we migrate to SDL audio
-{
-public:
-	explicit FeMediaSoundStream( FeMedia &owner )
-		: m_owner( owner )
-	{
-	}
-
-	using sf::SoundStream::getPan;
-	using sf::SoundStream::getStatus;
-	using sf::SoundStream::getVolume;
-	using sf::SoundStream::initialize;
-	using sf::SoundStream::play;
-	using sf::SoundStream::setEffectProcessor;
-	using sf::SoundStream::setLooping;
-	using sf::SoundStream::setPan;
-	using sf::SoundStream::setSpatializationEnabled;
-	using sf::SoundStream::setVolume;
-	using sf::SoundStream::stop;
-
-protected:
-	bool onGetData( Chunk &data ) override;
-	void onSeek( FeSfStreamTime timeOffset ) override;
-
-private:
-	FeMedia &m_owner;
 };
 
 FeMediaImp::FeMediaImp( FeMedia::Type t )
@@ -353,142 +331,91 @@ void FeBaseStream::push_packet( AVPacket *pkt )
 
 FeAudioImp::FeAudioImp()
 	: FeBaseStream(),
-	resample_ctx( NULL ),
-	audio_buff( NULL )
+	resample_ctx( NULL )
 {
 }
 
 FeAudioImp::~FeAudioImp()
 {
-	std::lock_guard<std::recursive_mutex> l( audio_buff_mutex );
-
 	if ( resample_ctx )
 	{
 		swr_free( &resample_ctx );
 		resample_ctx = NULL;
 	}
-
-	if ( audio_buff )
-	{
-		av_free( audio_buff );
-		audio_buff=NULL;
-	}
 }
 
-bool FeAudioImp::process_frame( AVFrame *frame, sf::SoundStream::Chunk &data, int &offset )
+bool FeAudioImp::process_frame( AVFrame *frame, std::vector<float> &samples )
 {
-#if HAVE_CH_LAYOUT
-	int nb_channels = codec_ctx->ch_layout.nb_channels;
-#else
-	int nb_channels = codec_ctx->channels;
-#endif
-
-	int data_size = av_samples_get_buffer_size(
-		NULL,
-		nb_channels,
-		frame->nb_samples,
-		codec_ctx->sample_fmt, 1 );
-
-	if ( codec_ctx->sample_fmt == AV_SAMPLE_FMT_S16 )
+	if ( !resample_ctx )
 	{
-		std::lock_guard<std::recursive_mutex> l( audio_buff_mutex );
-
-		memcpy(( audio_buff + offset ), frame->data[0], data_size );
-		offset += data_size / sizeof( std::int16_t );
-		data.sampleCount += data_size / sizeof( std::int16_t );
-		data.samples = audio_buff;
-	}
-	else
-	{
-		std::lock_guard<std::recursive_mutex> l( audio_buff_mutex );
-
+		resample_ctx = swr_alloc();
 		if ( !resample_ctx )
 		{
-			resample_ctx = swr_alloc();
-			if ( !resample_ctx )
-			{
-				FeLog() << "Error allocating audio format converter." << std::endl;
-				return false;
-			}
-
-#if HAVE_CH_LAYOUT
-			AVChannelLayout layout = AV_CHANNEL_LAYOUT_MASK( 0, 0 );
-			av_channel_layout_copy( &layout, &frame->ch_layout );
-			if ( !av_channel_layout_check( &layout ))
-			{
-				av_channel_layout_uninit( &layout );
-				av_channel_layout_default( &layout, codec_ctx->ch_layout.nb_channels );
-			}
-			av_opt_set_chlayout( resample_ctx, "in_chlayout", &layout, 0 );
-			av_opt_set_chlayout( resample_ctx, "out_chlayout", &layout, 0 );
-			av_channel_layout_uninit( &layout );
-#else
-			int64_t channel_layout = frame->channel_layout;
-			if ( !channel_layout )
-			{
-				channel_layout = av_get_default_channel_layout( codec_ctx->channels );
-			}
-			av_opt_set_int( resample_ctx, "in_channel_layout", channel_layout, 0 );
-			av_opt_set_int( resample_ctx, "out_channel_layout", channel_layout, 0 );
-#endif
-
-			av_opt_set_int( resample_ctx, "in_sample_fmt", frame->format, 0 );
-			av_opt_set_int( resample_ctx, "in_sample_rate", frame->sample_rate, 0 );
-			av_opt_set_int( resample_ctx, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0 );
-			av_opt_set_int( resample_ctx, "out_sample_rate", frame->sample_rate, 0 );
-
-			FeDebug() << "Initializing resampler: in_sample_fmt="
-				<< av_get_sample_fmt_name( (AVSampleFormat)frame->format )
-				<< ", in_sample_rate=" << frame->sample_rate
-				<< ", out_sample_fmt=" << av_get_sample_fmt_name( AV_SAMPLE_FMT_S16 )
-				<< ", out_sample_rate=" << frame->sample_rate << std::endl;
-
-			if ( swr_init( resample_ctx ) < 0 )
-			{
-				FeLog() << "Error initializing audio format converter, input format="
-					<< av_get_sample_fmt_name( (AVSampleFormat)frame->format )
-					<< ", input sample rate=" << frame->sample_rate << std::endl;
-				swr_free( &resample_ctx );
-				resample_ctx = NULL;
-				return false;
-			}
+			FeLog() << "Error allocating audio format converter." << std::endl;
+			return false;
 		}
-		if ( resample_ctx )
-		{
-			int out_linesize;
+
 #if HAVE_CH_LAYOUT
-			int nb_channels = codec_ctx->ch_layout.nb_channels;
+		AVChannelLayout layout = AV_CHANNEL_LAYOUT_MASK( 0, 0 );
+		av_channel_layout_copy( &layout, &codec_ctx->ch_layout );
+		if ( !av_channel_layout_check( &layout ) )
+			av_channel_layout_default( &layout, codec_ctx->ch_layout.nb_channels );
+
+		AVChannelLayout out_layout = AV_CHANNEL_LAYOUT_STEREO;
+		av_opt_set_chlayout( resample_ctx, "in_chlayout", &layout, 0 );
+		av_opt_set_chlayout( resample_ctx, "out_chlayout", &out_layout, 0 );
+		av_channel_layout_uninit( &layout );
 #else
-			int nb_channels = codec_ctx->channels;
+		int64_t channel_layout = codec_ctx->channel_layout;
+		if ( !channel_layout )
+			channel_layout = av_get_default_channel_layout( codec_ctx->channels );
+		av_opt_set_int( resample_ctx, "in_channel_layout", channel_layout, 0 );
+		av_opt_set_int( resample_ctx, "out_channel_layout", AV_CH_LAYOUT_STEREO, 0 );
 #endif
 
-			av_samples_get_buffer_size(
-				&out_linesize,
-				nb_channels,
-				frame->nb_samples,
-				AV_SAMPLE_FMT_S16, 0 );
+		av_opt_set_int( resample_ctx, "in_sample_fmt", codec_ctx->sample_fmt, 0 );
+		av_opt_set_int( resample_ctx, "in_sample_rate", codec_ctx->sample_rate, 0 );
+		av_opt_set_int( resample_ctx, "out_sample_fmt", AV_SAMPLE_FMT_FLT, 0 );
+		av_opt_set_int( resample_ctx, "out_sample_rate", FeSdlAudioBackend::get().sample_rate(), 0 );
 
-			uint8_t *tmp_ptr = (uint8_t *)( audio_buff + offset );
-
-			int out_samples = swr_convert(
-				resample_ctx,
-				&tmp_ptr,
-				frame->nb_samples,
-				(const uint8_t **)frame->data,
-				frame->nb_samples );
-
-			if ( out_samples < 0 )
-			{
-				FeLog() << "Error performing audio conversion." << std::endl;
-				return false;
-			}
-
-			offset += out_samples * nb_channels;
-			data.sampleCount += out_samples * nb_channels;
-			data.samples = audio_buff;
+		if ( swr_init( resample_ctx ) < 0 )
+		{
+			FeLog() << "Error initializing media audio converter." << std::endl;
+			swr_free( &resample_ctx );
+			return false;
 		}
 	}
 
+	const int in_sample_rate = frame->sample_rate > 0 ? frame->sample_rate : codec_ctx->sample_rate;
+	const int max_out_samples = av_rescale_rnd(
+		swr_get_delay( resample_ctx, in_sample_rate ) + frame->nb_samples,
+		FeSdlAudioBackend::get().sample_rate(),
+		in_sample_rate,
+		AV_ROUND_UP );
+	if ( max_out_samples <= 0 )
+		return true;
+
+	std::vector<float> converted_samples( static_cast<std::size_t>( max_out_samples ) * FeSdlAudioBackend::get().channel_count() );
+	uint8_t *output_data[1] =
+	{
+		reinterpret_cast<uint8_t *>( converted_samples.data() )
+	};
+
+	const int out_samples = swr_convert(
+		resample_ctx,
+		output_data,
+		max_out_samples,
+		const_cast<const uint8_t **>( frame->extended_data ),
+		frame->nb_samples );
+
+	if ( out_samples < 0 )
+	{
+		FeLog() << "Error performing media audio conversion." << std::endl;
+		return false;
+	}
+
+	converted_samples.resize( static_cast<std::size_t>( out_samples ) * FeSdlAudioBackend::get().channel_count() );
+	samples.insert( samples.end(), converted_samples.begin(), converted_samples.end() );
 	return true;
 }
 
@@ -1001,12 +928,18 @@ the_end:
 FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
 	: m_audio( NULL ),
 	m_video( NULL ),
-	m_stream( std::make_unique<FeMediaSoundStream>( *this ) ),
-	m_aspect_ratio( 1.0 ),
-	m_audio_effects( effects_manager )
+	m_audio_stream(),
+	m_audio_effects( effects_manager ),
+	m_aspect_ratio( 1.0f ),
+	m_volume( 100.0f ),
+	m_pan( 0.0f ),
+	m_audio_source_frame( 0 ),
+	m_audio_total_frames_written( 0 ),
+	m_audio_playing( false ),
+	m_audio_pending_samples(),
+	m_audio_pending_offset( 0 )
 {
 	m_imp = new FeMediaImp( t );
-	m_stream->setSpatializationEnabled( false );
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -1015,43 +948,28 @@ FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
 		if ( normaliser )
 			normaliser->set_enabled( fep->get_fes()->get_loudness() );
 	}
-
-	// Mark FeMedia object as ready for audio callbacks
-	m_ready.store( true, std::memory_order_release );
 }
 
 FeMedia::~FeMedia()
 {
 	close();
-
 	delete m_imp;
 }
 
-void FeMedia::setup_effect_processor()
+bool FeMedia::ensure_audio_stream()
 {
-	m_stream->setEffectProcessor( [this]( const float *input_frames, unsigned int &input_frame_count,
-	                            float *output_frames, unsigned int &output_frame_count,
-	                            unsigned int frame_channel_count )
-	{
-		if ( !m_alive.load( std::memory_order_acquire ))
-			return;
+	if ( !m_audio )
+		return false;
 
-		if ( !m_ready.load( std::memory_order_acquire ))
-			return;
+	if ( !m_audio_stream.ensure_open() )
+		return false;
 
-		std::lock_guard<std::mutex> l( m_closing_mutex );
-
-		m_audio_effects.process_all( input_frames, output_frames, input_frame_count, frame_channel_count );
-		output_frame_count = input_frame_count;
-	});
+	std::ignore = m_audio_stream.set_gain( m_volume / 100.0f );
+	return true;
 }
 
 FeTime FeMedia::get_video_time()
 {
-	//
-	// TODO: would like to sync movie time to audio, however using
-	// getPlayingOffset() here noticably slows things down on my system.
-	//
 	if ( m_video )
 		return m_video->at_end
 			? get_duration()
@@ -1068,16 +986,18 @@ void FeMedia::play()
 			m_video->play();
 
 		if ( m_audio )
-			m_stream->play();
+		{
+			m_audio_playing = true;
+			std::ignore = ensure_audio_stream();
+			std::ignore = pump_audio();
+		}
 	}
 }
 
 void FeMedia::signal_stop()
 {
-	m_alive.store( false, std::memory_order_release );
-
-	if ( m_audio )
-		m_stream->stop();
+	m_audio_playing = false;
+	m_audio_stream.clear();
 
 	if ( m_video )
 		m_video->signal_stop();
@@ -1087,15 +1007,20 @@ void FeMedia::stop()
 {
 	if ( m_audio )
 	{
-		m_stream->stop();
+		m_audio_playing = false;
+		m_audio_stream.clear();
+		m_audio_stream.destroy();
 		m_audio->stop();
+		m_audio->at_end = false;
+		m_audio_source_frame = 0;
+		m_audio_total_frames_written = 0;
+		m_audio_effects.reset_all();
 
 		{
 			std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
 			if ( m_imp->m_format_ctx )
 			{
-				av_seek_frame( m_imp->m_format_ctx, m_audio->stream_id, 0,
-									AVSEEK_FLAG_BACKWARD );
+				av_seek_frame( m_imp->m_format_ctx, m_audio->stream_id, 0, AVSEEK_FLAG_BACKWARD );
 			}
 		}
 
@@ -1110,8 +1035,7 @@ void FeMedia::stop()
 			std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
 			if ( m_imp->m_format_ctx )
 			{
-				av_seek_frame( m_imp->m_format_ctx, m_video->stream_id, 0,
-									AVSEEK_FLAG_BACKWARD );
+				av_seek_frame( m_imp->m_format_ctx, m_video->stream_id, 0, AVSEEK_FLAG_BACKWARD );
 			}
 		}
 
@@ -1126,50 +1050,44 @@ void FeMedia::stop()
 
 void FeMedia::close()
 {
-
-	{ // Wait for getData() callback
-		std::lock_guard<std::mutex> callback_mutex( m_callback_mutex );
-	} // Release the mutex
-
-	{ // Wait for setEffectsProcessor() callback
-		std::lock_guard<std::mutex> closing_mutex( m_closing_mutex );
-	} // Release the mutex
-
 	stop();
 
 	if ( m_audio )
 	{
 		delete m_audio;
-		m_audio=NULL;
+		m_audio = NULL;
 	}
 
 	if ( m_video )
 	{
 		delete m_video;
-		m_video=NULL;
+		m_video = NULL;
 	}
 
+	m_audio_stream.destroy();
 	m_imp->close();
 }
 
 bool FeMedia::is_playing()
 {
-	if (( m_video ) && ( m_video->far_behind ))
+	if (( m_video ) && ( m_video->far_behind ) )
 		return false;
 
-	if (( m_video ) && ( !m_video->at_end ))
+	if (( m_video ) && ( !m_video->at_end ) )
 		return ( m_video->run_video_thread );
 
-	return (( m_audio ) && ( m_stream->getStatus() == sf::SoundStream::Status::Playing ));
+	return m_audio && m_audio_playing && (( m_audio_stream.queued_frames() > 0 ) || ( !m_audio->at_end && !end_of_file() ));
 }
 
 float FeMedia::getVolume() const
 {
-	return m_stream->getVolume();
+	return m_volume;
 }
 
 void FeMedia::setVolume( float volume )
 {
+	m_volume = volume;
+
 	if ( m_audio )
 	{
 		AVDiscard d =( volume <= 0.f ) ? AVDISCARD_ALL : AVDISCARD_DEFAULT;
@@ -1179,7 +1097,8 @@ void FeMedia::setVolume( float volume )
 		m_audio->codec_ctx->skip_frame = d;
 	}
 
-	m_stream->setVolume( volume );
+	if ( m_audio_stream.is_open() )
+		std::ignore = m_audio_stream.set_gain( volume / 100.0f );
 
 	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
 	if ( normaliser )
@@ -1188,12 +1107,12 @@ void FeMedia::setVolume( float volume )
 
 float FeMedia::getPan() const
 {
-	return m_stream->getPan();
+	return m_pan;
 }
 
 void FeMedia::setPan( float pan )
 {
-	m_stream->setPan( pan );
+	m_pan = std::clamp( pan, -1.0f, 1.0f );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
@@ -1313,8 +1232,6 @@ bool FeMedia::open( const std::string &archive,
 
 			avcodec_parameters_to_context( codec_ctx, m_imp->m_format_ctx->streams[stream_id]->codecpar );
 
-			codec_ctx->request_sample_fmt = AV_SAMPLE_FMT_S16;
-
 			if ( avcodec_open2( codec_ctx, dec, NULL ) < 0 )
 			{
 				FeLog() << "Could not open audio decoder for file: "
@@ -1327,39 +1244,11 @@ bool FeMedia::open( const std::string &archive,
 				m_audio->stream_id = stream_id;
 				m_audio->codec_ctx = codec_ctx;
 				m_audio->codec = dec;
-
-				//
-				// TODO: Fix buffer sizing, we allocate way
-				// more than we use
-				//
-				m_audio->audio_buff = (std::int16_t *)av_malloc(
-					MAX_AUDIO_FRAME_SIZE
-					+ AV_INPUT_BUFFER_PADDING_SIZE
-					+ codec_ctx->sample_rate );
-
-#if HAVE_CH_LAYOUT
-				int nb_channels = codec_ctx->ch_layout.nb_channels;
-#else
-				int nb_channels = codec_ctx->channels;
-#endif
-
-				std::vector<sf::SoundChannel> channelMap;
-				if ( nb_channels == 1 )
-					channelMap.push_back( sf::SoundChannel::Mono );
-				else
-				{
-					channelMap.push_back( sf::SoundChannel::FrontLeft );
-					channelMap.push_back( sf::SoundChannel::FrontRight );
-				}
-
-				m_stream->initialize(
-					nb_channels,
-					codec_ctx->sample_rate,
-					channelMap );
-
-				m_stream->setLooping( false );
-
-				setup_effect_processor();
+				m_audio->at_end = false;
+				m_audio_source_frame = 0;
+				m_audio_total_frames_written = 0;
+				m_audio_pending_samples.clear();
+				m_audio_pending_offset = 0;
 			}
 		}
 	}
@@ -1390,6 +1279,11 @@ bool FeMedia::open( const std::string &archive,
 				if ( libvpx_dec ) dec = libvpx_dec;
 			}
 
+		}
+
+		if (( stream_id >= 0 ) && fe_is_attached_picture_stream( m_imp->m_format_ctx->streams[stream_id] ))
+		{
+			stream_id = -1;
 		}
 
 		if ( stream_id < 0 )
@@ -1538,10 +1432,149 @@ bool FeMedia::read_packet()
 	return true;
 }
 
+bool FeMedia::pump_audio()
+{
+	if ( !m_audio || !m_audio_playing )
+		return false;
+
+	if ( m_audio_stream.is_stale() )
+		m_audio_stream.destroy();
+
+	if ( !ensure_audio_stream() )
+		return false;
+
+	const std::size_t channel_count = static_cast<std::size_t>( FeSdlAudioBackend::get().channel_count() );
+	std::vector<float> processed_samples;
+
+	auto queue_pending_audio = [&]() -> bool
+	{
+		while (( m_audio_pending_offset < m_audio_pending_samples.size() )
+			&& ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES ))
+		{
+			const std::size_t remaining_frames = ( m_audio_pending_samples.size() - m_audio_pending_offset ) / channel_count;
+			const int queue_headroom = FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES - m_audio_stream.queued_frames();
+			const unsigned int frame_count = static_cast<unsigned int>( std::min<std::size_t>(
+				FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES,
+				std::min<std::size_t>( remaining_frames, static_cast<std::size_t>( std::max( 1, queue_headroom ) ) ) ) );
+
+			if ( frame_count == 0 )
+				break;
+
+			processed_samples.resize( static_cast<std::size_t>( frame_count ) * channel_count );
+			m_audio_effects.process_all( m_audio_pending_samples.data() + m_audio_pending_offset, processed_samples.data(), frame_count, FeSdlAudioBackend::get().channel_count() );
+			fe_audio_apply_balance( processed_samples, m_pan, false, Vec3f() );
+
+			if ( !m_audio_stream.queue_frames( processed_samples.data(), static_cast<int>( frame_count ) ) )
+				return false;
+
+			m_audio_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
+			m_audio_source_frame += frame_count;
+			m_audio_total_frames_written += frame_count;
+		}
+
+		if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
+		{
+			m_audio_pending_samples.clear();
+			m_audio_pending_offset = 0;
+		}
+
+		return true;
+	};
+
+	while ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
+	{
+		if ( !m_audio_pending_samples.empty() )
+		{
+			if ( !queue_pending_audio() )
+				return false;
+
+			if ( m_audio_stream.queued_frames() >= FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
+				break;
+		}
+
+		AVPacket *packet = m_audio->pop_packet();
+		while (( packet == NULL ) && ( !end_of_file() ))
+		{
+			if ( !read_packet() )
+				break;
+			packet = m_audio->pop_packet();
+		}
+
+		if ( packet == NULL )
+		{
+			m_audio->at_end = true;
+			break;
+		}
+
+		int send_result = avcodec_send_packet( m_audio->codec_ctx, packet );
+		av_packet_free( &packet );
+		if (( send_result < 0 ) && ( send_result != AVERROR( EAGAIN ) ))
+		{
+			char buff[256];
+			av_strerror( send_result, buff, 256 );
+			FeLog() << "Error decoding audio (sending packet): " << buff << std::endl;
+			break;
+		}
+
+		AVFrame *frame = av_frame_alloc();
+		if ( !frame )
+			break;
+
+		int receive_result = AVERROR( EAGAIN );
+		do
+		{
+			receive_result = avcodec_receive_frame( m_audio->codec_ctx, frame );
+			if ( receive_result == 0 )
+			{
+				std::vector<float> decoded_samples;
+				if ( !m_audio->process_frame( frame, decoded_samples ) )
+				{
+					av_frame_free( &frame );
+					return false;
+				}
+
+				if ( !decoded_samples.empty() )
+				{
+					if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
+					{
+						m_audio_pending_samples.clear();
+						m_audio_pending_offset = 0;
+					}
+					m_audio_pending_samples.insert( m_audio_pending_samples.end(), decoded_samples.begin(), decoded_samples.end() );
+					if ( !queue_pending_audio() )
+					{
+						av_frame_free( &frame );
+						return false;
+					}
+				}
+			}
+			else if ( receive_result != AVERROR( EAGAIN ) )
+			{
+				char buff[256];
+				av_strerror( receive_result, buff, 256 );
+				FeLog() << "Error decoding audio (receiving frame): " << buff << std::endl;
+			}
+
+			av_frame_unref( frame );
+		}
+		while ( receive_result != AVERROR( EAGAIN ) );
+
+		av_frame_free( &frame );
+	}
+
+	if ( m_audio->at_end && m_audio_pending_samples.empty() && ( m_audio_stream.queued_frames() == 0 ) )
+		m_audio_playing = false;
+
+	return m_audio_stream.queued_frames() > 0;
+}
+
 bool FeMedia::tick()
 {
 	if (( !m_video ) && ( !m_audio ))
 		return false;
+
+	if ( m_audio )
+		pump_audio();
 
 	if ( m_video )
 	{
@@ -1581,101 +1614,7 @@ unsigned long long FeMedia::get_video_frame_serial() const
 }
 
 
-bool FeMediaSoundStream::onGetData( Chunk &data )
-{
-	int offset=0;
 
-	data.samples = NULL;
-	data.sampleCount = 0;
-
-	if (( !m_owner.m_audio ) || m_owner.end_of_file() )
-		return false;
-
-	std::lock_guard<std::mutex> l( m_owner.m_callback_mutex );
-
-	while ( offset < m_owner.m_audio->codec_ctx->sample_rate )
-	{
-		if ( !m_owner.m_alive.load( std::memory_order_acquire ))
-			return false;
-
-		AVPacket *packet = m_owner.m_audio->pop_packet();
-		while (( packet == NULL ) && ( !m_owner.end_of_file() ))
-		{
-			m_owner.read_packet();
-			if ( !m_owner.m_alive.load( std::memory_order_acquire ))
-			{
-				av_packet_free( &packet );
-				return false;
-			}
-
-			packet = m_owner.m_audio->pop_packet();
-		}
-
-		if ( packet == NULL )
-		{
-			m_owner.m_audio->at_end=true;
-			if ( offset > 0 )
-				return true;
-			return false;
-		}
-
-		if ( !m_owner.m_alive.load( std::memory_order_acquire ))
-		{
-			FeLog() << "Error: Closing stream before avcodec_send_packet()" << std::endl;
-			av_packet_free( &packet );
-			return false;
-		}
-
-		int r = avcodec_send_packet( m_owner.m_audio->codec_ctx, packet );
-		if (( r < 0 ) && ( r != AVERROR( EAGAIN )))
-		{
-			char buff[256];
-			av_strerror( r, buff, 256 );
-			FeLog() << "Error decoding audio (sending packet): " << buff << std::endl;
-		}
-
-		av_packet_free( &packet );
-
-		r = AVERROR( EAGAIN );
-
-		//
-		// Note that avcodec_receive_frame() may need to return multiple frames per packet
-		// depending on the audio codec.
-		//
-		AVFrame *frame = av_frame_alloc();
-		do
-		{
-			r = avcodec_receive_frame( m_owner.m_audio->codec_ctx, frame );
-
-			if ( r == 0 )
-			{
-				if ( !m_owner.m_audio->process_frame( frame, data, offset ))
-					return false;
-			}
-			else
-			{
-				if ( r != AVERROR( EAGAIN ))
-				{
-					char buff[256];
-					av_strerror( r, buff, 256 );
-					FeLog() << "Error decoding audio (receiving frame): " << buff << std::endl;
-				}
-			}
-			av_frame_unref( frame );
-
-		} while ( r != AVERROR( EAGAIN ));
-
-		av_frame_free( &frame );
-	}
-
-	return true;
-}
-
-void FeMediaSoundStream::onSeek( FeSfStreamTime timeOffset )
-{
-	(void)timeOffset;
-	// Not implemented
-}
 
 bool FeMedia::is_supported_media_file( const std::string &filename )
 {

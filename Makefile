@@ -152,6 +152,7 @@ _DEP =\
 	fe_sound.hpp \
 	fe_music.hpp \
 	fe_audio_fx.hpp \
+	fe_audio_sdl.hpp \
 	fe_shader.hpp \
 	fe_font.hpp \
 	fe_overlay.hpp \
@@ -200,6 +201,7 @@ _OBJ =\
 	fe_sound.o \
 	fe_music.o \
 	fe_audio_fx.o \
+	fe_audio_sdl.o \
 	fe_shader.o \
 	fe_font.o \
 	fe_overlay.o \
@@ -270,7 +272,7 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
    _DEP += fe_util_osx.hpp
    _OBJ += fe_util_osx.o
    override B64FLAGS = -b 0 -i
-   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo -framework OpenAL
+   LIBS += -framework Cocoa -framework Carbon -framework IOKit -framework CoreVideo
   else
   endif
  endif
@@ -284,7 +286,7 @@ SFML_OBJ_DIR = $(OBJ_DIR)/sfml
 SFML_LIB_DIR=$(SFML_OBJ_DIR)/install/lib/
 SFML_PKG_CONFIG_PATH=$(ROOT_DIR)/$(SFML_OBJ_DIR)/install/lib/pkgconfig
 LIBS += -L$(SFML_LIB_DIR)
-SFML_PC="sfml-system sfml-window sfml-audio sfml-graphics"
+SFML_PC="sfml-system sfml-window sfml-graphics"
 SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
 GLSLANG_OBJ_DIR = $(OBJ_DIR)/glslang
 GLSLANG_LIB_DIR=$(GLSLANG_OBJ_DIR)/install/lib/
@@ -301,12 +303,11 @@ endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
-  LIBS += -ldl -lGL -lpthread -lFLAC -logg -lvorbis -lvorbisfile -lvorbisenc -lopenal
+  LIBS += -ldl -lGL -lpthread
  endif
 else
  LIBS += -lopengl32 -lgdi32
- LIBS += -L$(EXTLIBS_DIR)/openal-soft
- LIBS += -lopengl32 -lFLAC -lvorbisfile -lopenal32-s -lwinmm
+ LIBS += -lopengl32 -lwinmm
 endif
 
 
@@ -544,7 +545,7 @@ ifeq ($(FE_MACOSX_COMPILE),1)
 	$(eval SFML_FLAGS += -DSFML_USE_SYSTEM_DEPS=1)
 endif
 	$(SILENT)$(MD) $(SFML_OBJ_DIR)
-	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE $(SFML_FLAGS)
+	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE -DSFML_BUILD_AUDIO=FALSE $(SFML_FLAGS)
 	+$(SILENT)$(CMAKE) --build $(SFML_OBJ_DIR) --config Release --target install
 	touch $(SFML_TOKEN)
 endif
@@ -557,7 +558,7 @@ sfml: sfmlbuild
 ifeq ($(STATIC),1)
 	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --static --libs-only-L $(SFML_PC)))
 	$(info Manually adding sfml libs as pkg-config has no --static version)
-	$(eval SFML_LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-audio-s -lsfml-system-s)
+	$(eval SFML_LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s)
 	$(eval CFLAGS += -DSFML_STATIC $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --static --cflags $(SFML_PC)))
 ifeq ($(FE_WINDOWS_COMPILE),1)
 else ifeq ($(FE_MACOSX_COMPILE),1)

@@ -23,10 +23,16 @@
 #ifndef FE_MUSIC_HPP
 #define FE_MUSIC_HPP
 
-#include <SFML/Audio.hpp>
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <sqrat.h>
+
 #include "fe_audio_fx.hpp"
+#include "fe_audio_sdl.hpp"
 #include "sqrat_array_wrapper.hpp"
 #include "fe_input.hpp"
 
@@ -43,16 +49,29 @@ class FeMusic
 private:
 	FeMusic( const FeMusic & );
 	FeMusic &operator=( const FeMusic & );
-	sf::Music m_music;
 
+	FeSdlAudioStream m_stream;
+	std::unique_ptr<FeAudioFileDecoder> m_decoder;
 	std::string m_file_name;
-	bool m_play_state;
 	bool m_rewind;
+	bool m_loop;
 	float m_volume;
 	float m_pan;
+	float m_pitch;
+	Vec3f m_position;
+	bool m_spatialization_enabled;
 	FeSoundInfo::SoundType m_sound_type;
-
 	FeAudioEffectsManager m_audio_effects;
+	FePlaybackStatus m_status;
+	std::uint64_t m_current_frame;
+	std::uint64_t m_source_frame;
+	std::uint64_t m_total_frames_written;
+	int m_duration_ms;
+	std::vector<float> m_pending_samples;
+	std::size_t m_pending_offset;
+	float m_applied_pan;
+	Vec3f m_applied_position;
+	bool m_applied_spatialization_enabled;
 
 public:
 	FeMusic( bool loop=false, FeSoundInfo::SoundType st=FeSoundInfo::Sound );
@@ -60,7 +79,7 @@ public:
 
 	void load( const std::string &fn );
 
-    void set_file_name( const char * );
+	void set_file_name( const char * );
 	const char *get_file_name();
 
 	float get_volume();
@@ -76,7 +95,7 @@ public:
 	FePlaybackStatus get_status();
 	std::string get_status_msg();
 
-    float get_pitch();
+	float get_pitch();
 	void set_pitch( float );
 
 	bool get_loop();
@@ -95,6 +114,7 @@ public:
 	const char *get_metadata( const char * );
 
 	void tick();
+	void release_audio( bool );
 
 	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
 	FeAudioVisualiser* get_audio_visualiser() const;
@@ -109,10 +129,14 @@ public:
 	int get_fft_bands() const;
 
 private:
+	bool ensure_stream();
+	void sync_playback_position();
+	void restart_stream();
+	void pump_audio();
+
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
 	mutable SqratArrayWrapper m_fft_array_wrapper;
-
 };
 
 #endif // FE_MUSIC_HPP

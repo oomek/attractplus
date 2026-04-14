@@ -39,13 +39,8 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
-#include <condition_variable>
-#include <future>
-#include <mutex>
-#include <thread>
 #include <SDL3/SDL.h>
 #include "nowide/args.hpp"
-#include <SFML/Audio.hpp>
 
 #ifdef SDL_PLATFORM_ANDROID
 #include "fe_util_android.hpp"
@@ -73,52 +68,6 @@ void process_args( int argc, char *argv[],
 			bool &window_topmost,
 			std::vector<int> &window_args );
 
-#ifdef SDL_PLATFORM_WINDOWS
-namespace
-{
-	class FeWindowsAudioBootstrap
-	{
-	public:
-		FeWindowsAudioBootstrap()
-		{
-			std::promise<void> ready_promise;
-			std::future<void> ready_future = ready_promise.get_future();
-
-			m_thread = std::thread(
-				[this, ready = std::move( ready_promise )]() mutable
-				{
-					// Keep one SFML audio resource alive on this thread so the shared
-					// AudioDevice is created and later destroyed on the same COM apartment.
-					sf::Music bootstrap_music;
-					ready.set_value();
-
-					std::unique_lock<std::mutex> lock( m_mutex );
-					m_cv.wait( lock, [this]() { return m_stop; } );
-				} );
-
-			ready_future.wait();
-		}
-
-		~FeWindowsAudioBootstrap()
-		{
-			{
-				std::lock_guard<std::mutex> lock( m_mutex );
-				m_stop = true;
-			}
-			m_cv.notify_one();
-
-			if ( m_thread.joinable() )
-				m_thread.join();
-		}
-
-	private:
-		std::thread m_thread;
-		std::mutex m_mutex;
-		std::condition_variable m_cv;
-		bool m_stop = false;
-	};
-}
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -202,9 +151,6 @@ int main(int argc, char *argv[])
 	if ( version_init_video )
 		SDL_QuitSubSystem( SDL_INIT_VIDEO );
 
-#ifdef SDL_PLATFORM_WINDOWS
-	FeWindowsAudioBootstrap windows_audio_bootstrap;
-#endif
 
 	if ( !fe_shaders_available() )
 	{

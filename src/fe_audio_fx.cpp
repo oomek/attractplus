@@ -42,8 +42,7 @@ static constexpr float NORMALISE_DECREASE_TIME_MS = 2.0f;
 #include "fe_audio_fx.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
-
-#include <SFML/Audio/PlaybackDevice.hpp>
+#include "fe_audio_sdl.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
@@ -55,8 +54,7 @@ static constexpr float NORMALISE_DECREASE_TIME_MS = 2.0f;
 
 FeAudioEffect::FeAudioEffect()
 {
-	const std::optional<std::uint32_t> device_sample_rate = sf::PlaybackDevice::getDeviceSampleRate();
-	m_device_sample_rate = static_cast<float>( device_sample_rate.value_or( 48000.0f ));
+	m_device_sample_rate = static_cast<float>( FeSdlAudioBackend::get().sample_rate() );
 }
 
 FeAudioEffectsManager::FeAudioEffectsManager()
