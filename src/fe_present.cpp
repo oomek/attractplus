@@ -1741,6 +1741,7 @@ void FePresent::submit_render_frame()
 	frame.camera = m_layout_camera;
 	frame.viewport_width = m_mon[0].size.x;
 	frame.viewport_height = m_mon[0].size.y;
+	frame.antialiasing = m_feSettings->get_antialiasing();
 	frame.frame_number = ++m_render_frame_serial;
 	build_render_geometry( frame.images );
 	build_render_surface_frames( frame.surfaces );

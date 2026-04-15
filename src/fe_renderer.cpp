@@ -123,6 +123,7 @@ void FeRenderSurfaceFrame::clear_frame()
 FeRenderFrame::FeRenderFrame()
 	: viewport_width( 0 ),
 	  viewport_height( 0 ),
+	  antialiasing( 0 ),
 	  frame_number( 0 ),
 	  image_count( 0 )
 {
@@ -135,6 +136,7 @@ void FeRenderFrame::clear()
 	surfaces.clear();
 	viewport_width = 0;
 	viewport_height = 0;
+	antialiasing = 0;
 	frame_number = 0;
 	image_count = 0;
 }

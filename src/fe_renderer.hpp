@@ -104,6 +104,7 @@ struct FeRenderFrame
 	std::vector<FeRenderSurfaceFrame> surfaces;
 	int viewport_width;
 	int viewport_height;
+	int antialiasing;
 	unsigned long long frame_number;
 	unsigned long long image_count;
 

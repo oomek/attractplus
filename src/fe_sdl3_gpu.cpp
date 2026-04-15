@@ -478,10 +478,14 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_nearest_sampler = nullptr;
 	m_nearest_repeat_sampler = nullptr;
 	m_white_texture = nullptr;
+	m_color_target_texture = nullptr;
+	m_color_target_width = 0;
+	m_color_target_height = 0;
 	m_depth_texture = nullptr;
 	m_depth_format = SDL_GPU_TEXTUREFORMAT_INVALID;
 	m_depth_width = 0;
 	m_depth_height = 0;
+	m_sample_count = SDL_GPU_SAMPLECOUNT_1;
 	m_swapchain_format = SDL_GPU_TEXTUREFORMAT_INVALID;
 	m_pipeline_attempted = false;
 	m_present_disabled = false;
@@ -837,16 +841,21 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		return false;
 	}
 
-	if ( !ensure_depth_target( width, height ) )
-		return false;
+	const bool sample_count_changed = update_sample_count( target_format );
 
-	if (( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
+	if ( sample_count_changed || ( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
 	{
+		release_surfaces();
 		release_custom_shaders();
 		release_image_pipeline();
+		release_color_target();
+		release_depth_target();
 		m_swapchain_format = target_format;
 		m_pipeline_attempted = false;
 	}
+
+	if ( !ensure_depth_target( width, height ) )
+		return false;
 
 	if ( !m_pipeline_attempted )
 	{
@@ -873,6 +882,21 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !color_texture )
 		return false;
 
+	SDL_GPUTexture *msaa_color_texture = nullptr;
+	if ( uses_multisampling() )
+	{
+		SDL_GPUTextureCreateInfo msaa_texture_info = texture_info;
+		msaa_texture_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+		msaa_texture_info.sample_count = m_sample_count;
+
+		msaa_color_texture = SDL_CreateGPUTexture( m_device, &msaa_texture_info );
+		if ( !msaa_color_texture )
+		{
+			SDL_ReleaseGPUTexture( m_device, color_texture );
+			return false;
+		}
+	}
+
 	SDL_GPUTransferBufferCreateInfo transfer_info = {};
 	transfer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD;
 	transfer_info.size = static_cast<Uint32>( width * height * 4 );
@@ -880,6 +904,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
 	if ( !transfer_buffer )
 	{
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -888,6 +914,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !command_buffer )
 	{
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -896,17 +924,22 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	{
 		SDL_CancelGPUCommandBuffer( command_buffer );
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
 
 	SDL_GPUColorTargetInfo color_target = {};
-	color_target.texture = color_texture;
+	color_target.texture = uses_multisampling() ? msaa_color_texture : color_texture;
 	color_target.mip_level = 0;
 	color_target.layer_or_depth_plane = 0;
 	color_target.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
 	color_target.load_op = SDL_GPU_LOADOP_CLEAR;
-	color_target.store_op = SDL_GPU_STOREOP_STORE;
+	color_target.store_op = uses_multisampling() ? SDL_GPU_STOREOP_RESOLVE : SDL_GPU_STOREOP_STORE;
+	color_target.resolve_texture = uses_multisampling() ? color_texture : nullptr;
+	color_target.resolve_mip_level = 0;
+	color_target.resolve_layer = 0;
 
 	SDL_GPUDepthStencilTargetInfo depth_target = {};
 	if ( m_depth_texture )
@@ -930,6 +963,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	{
 		SDL_CancelGPUCommandBuffer( command_buffer );
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -954,6 +989,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 			SDL_EndGPURenderPass( render_pass );
 			SDL_CancelGPUCommandBuffer( command_buffer );
 			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+			if ( msaa_color_texture )
+				SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 			SDL_ReleaseGPUTexture( m_device, color_texture );
 			return false;
 		}
@@ -966,6 +1003,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	{
 		SDL_CancelGPUCommandBuffer( command_buffer );
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -993,6 +1032,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -1000,6 +1041,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !SDL_WaitForGPUIdle( m_device ) )
 	{
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -1008,6 +1051,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !mapped )
 	{
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		if ( msaa_color_texture )
+			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
@@ -1032,6 +1077,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 
 	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
 	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+	if ( msaa_color_texture )
+		SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 	SDL_ReleaseGPUTexture( m_device, color_texture );
 
 	return true;
@@ -1382,14 +1429,26 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	m_frame_stats.last_viewport_width = static_cast<int>( swapchain_width );
 	m_frame_stats.last_viewport_height = static_cast<int>( swapchain_height );
 	const SDL_GPUTextureFormat swapchain_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
-	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
+	const bool sample_count_changed = update_sample_count( swapchain_format );
 
-	if ( ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
+	if ( sample_count_changed || ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
 	{
+		release_surfaces();
 		release_custom_shaders();
 		release_image_pipeline();
+		release_color_target();
+		release_depth_target();
 		m_swapchain_format = swapchain_format;
 		m_pipeline_attempted = false;
+	}
+
+	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) )
+		&& ensure_color_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
+	if ( !m_frame_stats.depth_ready )
+	{
+		write_debug_log( "execute_frame: render targets not ready" );
+		m_failed_present_frames++;
+		return false;
 	}
 
 	if ( !m_pipeline_attempted )
@@ -1410,12 +1469,15 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	}
 
 	SDL_GPUColorTargetInfo color_target = {};
-	color_target.texture = swapchain_texture;
+	color_target.texture = uses_multisampling() ? m_color_target_texture : swapchain_texture;
 	color_target.mip_level = 0;
 	color_target.layer_or_depth_plane = 0;
 	color_target.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
 	color_target.load_op = SDL_GPU_LOADOP_CLEAR;
-	color_target.store_op = SDL_GPU_STOREOP_STORE;
+	color_target.store_op = uses_multisampling() ? SDL_GPU_STOREOP_RESOLVE : SDL_GPU_STOREOP_STORE;
+	color_target.resolve_texture = uses_multisampling() ? swapchain_texture : nullptr;
+	color_target.resolve_mip_level = 0;
+	color_target.resolve_layer = 0;
 
 	SDL_GPUDepthStencilTargetInfo depth_target = {};
 	if ( m_depth_texture )
@@ -1624,6 +1686,7 @@ void FeSdl3GpuContext::shutdown()
 	clear_textures();
 	release_white_texture();
 	release_vertex_buffer();
+	release_color_target();
 	release_depth_target();
 	release_custom_shaders();
 	release_image_pipeline();
@@ -2212,6 +2275,108 @@ void FeSdl3GpuContext::release_custom_shaders()
 	m_custom_shader_sources.clear();
 }
 
+SDL_GPUSampleCount FeSdl3GpuContext::get_requested_sample_count() const
+{
+	switch ( m_frame.antialiasing )
+	{
+	case 8:
+		return SDL_GPU_SAMPLECOUNT_8;
+	case 4:
+		return SDL_GPU_SAMPLECOUNT_4;
+	case 2:
+		return SDL_GPU_SAMPLECOUNT_2;
+	default:
+		return SDL_GPU_SAMPLECOUNT_1;
+	}
+}
+
+SDL_GPUSampleCount FeSdl3GpuContext::pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const
+{
+	if ( !m_device || swapchain_format == SDL_GPU_TEXTUREFORMAT_INVALID )
+		return SDL_GPU_SAMPLECOUNT_1;
+
+	SDL_GPUSampleCount sample_count = get_requested_sample_count();
+	while ( sample_count != SDL_GPU_SAMPLECOUNT_1 )
+	{
+		if ( SDL_GPUTextureSupportsSampleCount( m_device, swapchain_format, sample_count )
+			&& SDL_GPUTextureSupportsSampleCount( m_device, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, sample_count )
+			&& SDL_GPUTextureSupportsSampleCount( m_device, SDL_GPU_TEXTUREFORMAT_D32_FLOAT, sample_count ) )
+		{
+			return sample_count;
+		}
+
+		sample_count =
+			( sample_count == SDL_GPU_SAMPLECOUNT_8 ) ? SDL_GPU_SAMPLECOUNT_4 :
+			( sample_count == SDL_GPU_SAMPLECOUNT_4 ) ? SDL_GPU_SAMPLECOUNT_2 :
+			SDL_GPU_SAMPLECOUNT_1;
+	}
+
+	return SDL_GPU_SAMPLECOUNT_1;
+}
+
+bool FeSdl3GpuContext::update_sample_count( SDL_GPUTextureFormat swapchain_format )
+{
+	const SDL_GPUSampleCount sample_count = pick_sample_count( swapchain_format );
+	if ( m_sample_count == sample_count )
+		return false;
+
+	m_sample_count = sample_count;
+	return true;
+}
+
+bool FeSdl3GpuContext::uses_multisampling() const
+{
+	return m_sample_count != SDL_GPU_SAMPLECOUNT_1;
+}
+
+void FeSdl3GpuContext::release_color_target()
+{
+	if ( m_color_target_texture )
+	{
+		SDL_ReleaseGPUTexture( m_device, m_color_target_texture );
+		m_color_target_texture = nullptr;
+	}
+
+	m_color_target_width = 0;
+	m_color_target_height = 0;
+}
+
+bool FeSdl3GpuContext::ensure_color_target( int width, int height )
+{
+	if ( !uses_multisampling() )
+	{
+		release_color_target();
+		return true;
+	}
+
+	if ( !m_device || width <= 0 || height <= 0 || m_swapchain_format == SDL_GPU_TEXTUREFORMAT_INVALID )
+		return false;
+
+	if ( m_color_target_texture && m_color_target_width == width && m_color_target_height == height )
+		return true;
+
+	release_color_target();
+
+	SDL_GPUTextureCreateInfo texture_info = {};
+	texture_info.type = SDL_GPU_TEXTURETYPE_2D;
+	texture_info.format = m_swapchain_format;
+	texture_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+	texture_info.width = static_cast<Uint32>( width );
+	texture_info.height = static_cast<Uint32>( height );
+	texture_info.layer_count_or_depth = 1;
+	texture_info.num_levels = 1;
+	texture_info.sample_count = m_sample_count;
+	texture_info.props = 0;
+
+	m_color_target_texture = SDL_CreateGPUTexture( m_device, &texture_info );
+	if ( !m_color_target_texture )
+		return false;
+
+	m_color_target_width = width;
+	m_color_target_height = height;
+	return true;
+}
+
 void FeSdl3GpuContext::release_depth_target()
 {
 	if ( m_depth_texture )
@@ -2243,7 +2408,7 @@ bool FeSdl3GpuContext::ensure_depth_target( int width, int height )
 	texture_info.height = static_cast<Uint32>( height );
 	texture_info.layer_count_or_depth = 1;
 	texture_info.num_levels = 1;
-	texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	texture_info.sample_count = m_sample_count;
 	texture_info.props = 0;
 
 	m_depth_texture = SDL_CreateGPUTexture( m_device, &texture_info );
@@ -2264,6 +2429,12 @@ void FeSdl3GpuContext::release_surface_target( SurfaceEntry &entry )
 		entry.color_texture = nullptr;
 	}
 
+	if ( entry.msaa_color_texture )
+	{
+		SDL_ReleaseGPUTexture( m_device, entry.msaa_color_texture );
+		entry.msaa_color_texture = nullptr;
+	}
+
 	if ( entry.depth_texture )
 	{
 		SDL_ReleaseGPUTexture( m_device, entry.depth_texture );
@@ -2272,6 +2443,7 @@ void FeSdl3GpuContext::release_surface_target( SurfaceEntry &entry )
 
 	entry.width = 0;
 	entry.height = 0;
+	entry.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	entry.rendered_once = false;
 	entry.vertex_signature = 0;
 	entry.last_signature = 0;
@@ -2494,7 +2666,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
 	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 	pipeline_info.rasterizer_state.enable_depth_clip = true;
-	pipeline_info.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	pipeline_info.multisample_state.sample_count = m_sample_count;
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
@@ -2620,7 +2792,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
 	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 	pipeline_info.rasterizer_state.enable_depth_clip = true;
-	pipeline_info.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	pipeline_info.multisample_state.sample_count = m_sample_count;
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
@@ -2727,7 +2899,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
 	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 	pipeline_info.rasterizer_state.enable_depth_clip = true;
-	pipeline_info.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	pipeline_info.multisample_state.sample_count = m_sample_count;
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
@@ -3052,7 +3224,9 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 		entry.depth_texture &&
 		entry.width == surface.width &&
 		entry.height == surface.height &&
-		entry.mipmapped == surface.mipmapped )
+		entry.mipmapped == surface.mipmapped &&
+		entry.sample_count == m_sample_count &&
+		( uses_multisampling() ? ( entry.msaa_color_texture != nullptr ) : ( entry.msaa_color_texture == nullptr ) ) )
 		return true;
 
 	release_surface_target( entry );
@@ -3077,6 +3251,21 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 		return false;
 	}
 
+	if ( uses_multisampling() )
+	{
+		SDL_GPUTextureCreateInfo msaa_color_info = color_info;
+		msaa_color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+		msaa_color_info.num_levels = 1;
+		msaa_color_info.sample_count = m_sample_count;
+
+		entry.msaa_color_texture = SDL_CreateGPUTexture( m_device, &msaa_color_info );
+		if ( !entry.msaa_color_texture )
+		{
+			release_surface_target( entry );
+			return false;
+		}
+	}
+
 	SDL_GPUTextureCreateInfo depth_info = {};
 	depth_info.type = SDL_GPU_TEXTURETYPE_2D;
 	depth_info.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
@@ -3085,7 +3274,7 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 	depth_info.height = static_cast<Uint32>( surface.height );
 	depth_info.layer_count_or_depth = 1;
 	depth_info.num_levels = 1;
-	depth_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	depth_info.sample_count = m_sample_count;
 	depth_info.props = 0;
 
 	entry.depth_texture = SDL_CreateGPUTexture( m_device, &depth_info );
@@ -3098,6 +3287,7 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 	entry.width = surface.width;
 	entry.height = surface.height;
 	entry.mipmapped = surface.mipmapped;
+	entry.sample_count = m_sample_count;
 	entry.rendered_once = false;
 	entry.vertex_signature = 0;
 	entry.last_signature = 0;
@@ -3620,7 +3810,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 			if ( needs_render )
 			{
 				SDL_GPUColorTargetInfo color_target = {};
-				color_target.texture = entry.color_texture;
+				color_target.texture = entry.msaa_color_texture ? entry.msaa_color_texture : entry.color_texture;
 				color_target.mip_level = 0;
 				color_target.layer_or_depth_plane = 0;
 				color_target.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 0.0f };
@@ -3628,7 +3818,13 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					( surface.clear || !entry.rendered_once )
 						? SDL_GPU_LOADOP_CLEAR
 						: SDL_GPU_LOADOP_LOAD;
-				color_target.store_op = SDL_GPU_STOREOP_STORE;
+				color_target.store_op =
+					entry.msaa_color_texture
+						? ( ( !surface.clear && entry.rendered_once ) ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_RESOLVE )
+						: SDL_GPU_STOREOP_STORE;
+				color_target.resolve_texture = entry.msaa_color_texture ? entry.color_texture : nullptr;
+				color_target.resolve_mip_level = 0;
+				color_target.resolve_layer = 0;
 
 				SDL_GPUDepthStencilTargetInfo depth_target = {};
 				depth_target.texture = entry.depth_texture;
@@ -3709,7 +3905,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 				if ( needs_render )
 				{
 					SDL_GPUColorTargetInfo color_target = {};
-					color_target.texture = entry.color_texture;
+					color_target.texture = entry.msaa_color_texture ? entry.msaa_color_texture : entry.color_texture;
 					color_target.mip_level = 0;
 					color_target.layer_or_depth_plane = 0;
 					color_target.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 0.0f };
@@ -3717,7 +3913,13 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						( surface.clear || !entry.rendered_once )
 							? SDL_GPU_LOADOP_CLEAR
 							: SDL_GPU_LOADOP_LOAD;
-					color_target.store_op = SDL_GPU_STOREOP_STORE;
+					color_target.store_op =
+						entry.msaa_color_texture
+							? ( ( !surface.clear && entry.rendered_once ) ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_RESOLVE )
+							: SDL_GPU_STOREOP_STORE;
+					color_target.resolve_texture = entry.msaa_color_texture ? entry.color_texture : nullptr;
+					color_target.resolve_mip_level = 0;
+					color_target.resolve_layer = 0;
 
 					SDL_GPUDepthStencilTargetInfo depth_target = {};
 					depth_target.texture = entry.depth_texture;
@@ -3968,7 +4170,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
 	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
 	pipeline_info.rasterizer_state.enable_depth_clip = true;
-	pipeline_info.multisample_state.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	pipeline_info.multisample_state.sample_count = m_sample_count;
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;

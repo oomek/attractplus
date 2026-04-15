@@ -85,7 +85,9 @@ private:
 		std::uint64_t vertex_signature;
 		std::uint64_t last_signature;
 		SDL_GPUTexture *color_texture;
+		SDL_GPUTexture *msaa_color_texture;
 		SDL_GPUTexture *depth_texture;
+		SDL_GPUSampleCount sample_count;
 		SDL_GPUBuffer *vertex_buffer;
 		Uint32 vertex_buffer_size;
 	};
@@ -175,6 +177,12 @@ private:
 	void release_vertex_buffer();
 	bool upload_vertex_buffer();
 	bool upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
+	SDL_GPUSampleCount get_requested_sample_count() const;
+	SDL_GPUSampleCount pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const;
+	bool update_sample_count( SDL_GPUTextureFormat swapchain_format );
+	bool uses_multisampling() const;
+	void release_color_target();
+	bool ensure_color_target( int width, int height );
 	void release_depth_target();
 	bool ensure_depth_target( int width, int height );
 	void release_surfaces();
@@ -254,10 +262,14 @@ private:
 	SDL_GPUGraphicsPipeline *m_blend_pipelines[3][FeBlend::None + 1];
 	SDL_GPUGraphicsPipeline *m_alpha_prepass_pipeline;
 	SDL_GPUTexture *m_white_texture;
+	SDL_GPUTexture *m_color_target_texture;
+	int m_color_target_width;
+	int m_color_target_height;
 	SDL_GPUTexture *m_depth_texture;
 	SDL_GPUTextureFormat m_depth_format;
 	int m_depth_width;
 	int m_depth_height;
+	SDL_GPUSampleCount m_sample_count;
 	SDL_GPUTextureFormat m_swapchain_format;
 	bool m_pipeline_attempted;
 	bool m_present_disabled;
