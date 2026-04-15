@@ -643,6 +643,8 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.texture_id ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_source_type ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_repeated ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_smooth ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_mipmap ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
@@ -1742,6 +1744,7 @@ void FePresent::submit_render_frame()
 	frame.viewport_width = m_mon[0].size.x;
 	frame.viewport_height = m_mon[0].size.y;
 	frame.antialiasing = m_feSettings->get_antialiasing();
+	frame.anisotropic = m_feSettings->get_anisotropic();
 	frame.frame_number = ++m_render_frame_serial;
 	build_render_geometry( frame.images );
 	build_render_surface_frames( frame.surfaces );

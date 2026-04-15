@@ -105,6 +105,7 @@ struct FeRenderFrame
 	int viewport_width;
 	int viewport_height;
 	int antialiasing;
+	int anisotropic;
 	unsigned long long frame_number;
 	unsigned long long image_count;
 

@@ -315,6 +315,7 @@ namespace
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_source_type ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_repeated ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_smooth ? 1 : 0 ) );
+			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_mipmap ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.blend_mode ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
 			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.custom_shader ? 1 : 0 ) );
@@ -475,8 +476,12 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_alpha_prepass_pipeline = nullptr;
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
+	m_linear_mipmap_sampler = nullptr;
+	m_linear_mipmap_repeat_sampler = nullptr;
 	m_nearest_sampler = nullptr;
 	m_nearest_repeat_sampler = nullptr;
+	m_nearest_mipmap_sampler = nullptr;
+	m_nearest_mipmap_repeat_sampler = nullptr;
 	m_white_texture = nullptr;
 	m_color_target_texture = nullptr;
 	m_color_target_width = 0;
@@ -485,6 +490,7 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_depth_format = SDL_GPU_TEXTUREFORMAT_INVALID;
 	m_depth_width = 0;
 	m_depth_height = 0;
+	m_anisotropy = 0;
 	m_sample_count = SDL_GPU_SAMPLECOUNT_1;
 	m_swapchain_format = SDL_GPU_TEXTUREFORMAT_INVALID;
 	m_pipeline_attempted = false;
@@ -842,8 +848,9 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	}
 
 	const bool sample_count_changed = update_sample_count( target_format );
+	const bool anisotropy_changed = update_anisotropy();
 
-	if ( sample_count_changed || ( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
+	if ( sample_count_changed || anisotropy_changed || ( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
 	{
 		release_surfaces();
 		release_custom_shaders();
@@ -1430,8 +1437,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	m_frame_stats.last_viewport_height = static_cast<int>( swapchain_height );
 	const SDL_GPUTextureFormat swapchain_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
 	const bool sample_count_changed = update_sample_count( swapchain_format );
+	const bool anisotropy_changed = update_anisotropy();
 
-	if ( sample_count_changed || ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
+	if ( sample_count_changed || anisotropy_changed || ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
 	{
 		release_surfaces();
 		release_custom_shaders();
@@ -2164,6 +2172,18 @@ void FeSdl3GpuContext::release_image_pipeline()
 		m_linear_repeat_sampler = nullptr;
 	}
 
+	if ( m_linear_mipmap_sampler )
+	{
+		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_sampler );
+		m_linear_mipmap_sampler = nullptr;
+	}
+
+	if ( m_linear_mipmap_repeat_sampler )
+	{
+		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_repeat_sampler );
+		m_linear_mipmap_repeat_sampler = nullptr;
+	}
+
 	if ( m_nearest_sampler )
 	{
 		SDL_ReleaseGPUSampler( m_device, m_nearest_sampler );
@@ -2174,6 +2194,18 @@ void FeSdl3GpuContext::release_image_pipeline()
 	{
 		SDL_ReleaseGPUSampler( m_device, m_nearest_repeat_sampler );
 		m_nearest_repeat_sampler = nullptr;
+	}
+
+	if ( m_nearest_mipmap_sampler )
+	{
+		SDL_ReleaseGPUSampler( m_device, m_nearest_mipmap_sampler );
+		m_nearest_mipmap_sampler = nullptr;
+	}
+
+	if ( m_nearest_mipmap_repeat_sampler )
+	{
+		SDL_ReleaseGPUSampler( m_device, m_nearest_mipmap_repeat_sampler );
+		m_nearest_mipmap_repeat_sampler = nullptr;
 	}
 
 	for ( int i = 0; i <= FeBlend::None; ++i )
@@ -2273,6 +2305,83 @@ void FeSdl3GpuContext::release_custom_shaders()
 
 	m_custom_shaders.clear();
 	m_custom_shader_sources.clear();
+}
+
+int FeSdl3GpuContext::get_requested_anisotropy() const
+{
+	if ( m_frame.anisotropic >= 2 )
+		return std::min( m_frame.anisotropic, 16 );
+
+	return 0;
+}
+
+bool FeSdl3GpuContext::update_anisotropy()
+{
+	const int anisotropy = get_requested_anisotropy();
+	if ( m_anisotropy == anisotropy )
+		return false;
+
+	m_anisotropy = anisotropy;
+	return true;
+}
+
+SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
+	SDL_GPUFilter filter,
+	SDL_GPUSamplerMipmapMode mipmap_mode,
+	SDL_GPUSamplerAddressMode address_mode,
+	bool mipmapped,
+	bool smooth )
+{
+	SDL_GPUSamplerCreateInfo sampler_info = {};
+	sampler_info.min_filter = filter;
+	sampler_info.mag_filter = filter;
+	sampler_info.mipmap_mode = mipmapped ? mipmap_mode : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
+	sampler_info.address_mode_u = address_mode;
+	sampler_info.address_mode_v = address_mode;
+	sampler_info.address_mode_w = address_mode;
+	sampler_info.mip_lod_bias = 0.0f;
+	sampler_info.max_anisotropy = 1.0f;
+	sampler_info.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
+	sampler_info.min_lod = 0.0f;
+	sampler_info.max_lod = mipmapped ? 1000.0f : 0.0f;
+	sampler_info.enable_anisotropy = false;
+	sampler_info.enable_compare = false;
+	sampler_info.padding1 = 0;
+	sampler_info.padding2 = 0;
+	sampler_info.props = 0;
+
+	if ( smooth && mipmapped && m_anisotropy > 1 )
+	{
+		for ( int anisotropy = m_anisotropy; anisotropy >= 2; anisotropy /= 2 )
+		{
+			sampler_info.enable_anisotropy = true;
+			sampler_info.max_anisotropy = static_cast<float>( anisotropy );
+			SDL_GPUSampler *sampler = SDL_CreateGPUSampler( m_device, &sampler_info );
+			if ( sampler )
+				return sampler;
+		}
+
+		sampler_info.enable_anisotropy = false;
+		sampler_info.max_anisotropy = 1.0f;
+	}
+
+	return SDL_CreateGPUSampler( m_device, &sampler_info );
+}
+
+SDL_GPUSampler *FeSdl3GpuContext::get_image_sampler( bool smooth, bool repeated, bool mipmapped ) const
+{
+	if ( smooth )
+	{
+		if ( mipmapped )
+			return repeated ? m_linear_mipmap_repeat_sampler : m_linear_mipmap_sampler;
+
+		return repeated ? m_linear_repeat_sampler : m_linear_sampler;
+	}
+
+	if ( mipmapped )
+		return repeated ? m_nearest_mipmap_repeat_sampler : m_nearest_mipmap_sampler;
+
+	return repeated ? m_nearest_repeat_sampler : m_nearest_sampler;
 }
 
 SDL_GPUSampleCount FeSdl3GpuContext::get_requested_sample_count() const
@@ -3410,6 +3519,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		bool translucent_depth;
 		bool texture_repeated;
 		bool texture_smooth;
+		bool texture_mipmap;
 		CustomShaderEntry *custom_shader;
 		BuiltinShaderEntry *builtin_shader;
 	};
@@ -3427,6 +3537,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		prepared.translucent_depth = geometry_uses_translucent_depth_pipeline( image );
 		prepared.texture_repeated = image.texture_repeated;
 		prepared.texture_smooth = image.texture_smooth;
+		prepared.texture_mipmap = image.texture_mipmap;
 		prepared.custom_shader = nullptr;
 		prepared.builtin_shader = nullptr;
 
@@ -3521,10 +3632,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			if ( image.texture_smooth )
-				sampler_binding.sampler = image.texture_repeated ? m_linear_repeat_sampler : m_linear_sampler;
-			else
-				sampler_binding.sampler = image.texture_repeated ? m_nearest_repeat_sampler : m_nearest_sampler;
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 			SDL_DrawGPUPrimitives(
 				render_pass,
@@ -3631,10 +3739,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		{
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			if ( image.texture_smooth )
-				sampler_binding.sampler = image.texture_repeated ? m_linear_repeat_sampler : m_linear_sampler;
-			else
-				sampler_binding.sampler = image.texture_repeated ? m_nearest_repeat_sampler : m_nearest_sampler;
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
 		else if ( image.custom_shader && !image.custom_shader->fragment_samplers.empty() )
@@ -3646,6 +3751,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 				SDL_GPUTexture *sampler_texture = nullptr;
 				bool sampler_repeated = image.texture_repeated;
 				bool sampler_smooth = image.texture_smooth;
+				bool sampler_mipmap = image.texture_mipmap;
 				const bool shader_uses_current_texture =
 					image.geometry && image.geometry->shader
 						? image.geometry->shader->uses_current_texture( sampler.name.c_str() )
@@ -3693,6 +3799,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 
 						sampler_repeated = container->get_repeat();
 						sampler_smooth = container->get_smooth();
+						sampler_mipmap = container->get_mipmap();
 					}
 				}
 
@@ -3704,10 +3811,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 
 				SDL_GPUTextureSamplerBinding sampler_binding = {};
 				sampler_binding.texture = sampler_texture;
-				if ( sampler_smooth )
-					sampler_binding.sampler = sampler_repeated ? m_linear_repeat_sampler : m_linear_sampler;
-				else
-					sampler_binding.sampler = sampler_repeated ? m_nearest_repeat_sampler : m_nearest_sampler;
+				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap );
 				sampler_bindings[sampler.slot] = sampler_binding;
 			}
 
@@ -3724,10 +3828,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		{
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			if ( image.texture_smooth )
-				sampler_binding.sampler = image.texture_repeated ? m_linear_repeat_sampler : m_linear_sampler;
-			else
-				sampler_binding.sampler = image.texture_repeated ? m_nearest_repeat_sampler : m_nearest_sampler;
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
 		SDL_DrawGPUPrimitives(
@@ -4076,18 +4177,12 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		}
 	}
 
-	SDL_GPUSamplerCreateInfo sampler_info = {};
-	sampler_info.min_filter = SDL_GPU_FILTER_LINEAR;
-	sampler_info.mag_filter = SDL_GPU_FILTER_LINEAR;
-	sampler_info.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-	sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	sampler_info.max_anisotropy = 1.0f;
-	sampler_info.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
-	sampler_info.min_lod = 0.0f;
-	sampler_info.max_lod = 1000.0f;
-	m_linear_sampler = SDL_CreateGPUSampler( m_device, &sampler_info );
+	m_linear_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		false,
+		true );
 	if ( !m_linear_sampler )
 	{
 		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear sampler" );
@@ -4095,10 +4190,12 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
-	sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
-	sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
-	sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
-	m_linear_repeat_sampler = SDL_CreateGPUSampler( m_device, &sampler_info );
+	m_linear_repeat_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		false,
+		true );
 	if ( !m_linear_repeat_sampler )
 	{
 		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear repeat sampler" );
@@ -4106,12 +4203,38 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
-	sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
-	sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
-	sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	m_nearest_sampler = SDL_CreateGPUSampler( m_device, &sampler_info );
+	m_linear_mipmap_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		true,
+		true );
+	if ( !m_linear_mipmap_sampler )
+	{
+		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap sampler" );
+		release_image_pipeline();
+		return false;
+	}
+
+	m_linear_mipmap_repeat_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		true,
+		true );
+	if ( !m_linear_mipmap_repeat_sampler )
+	{
+		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap repeat sampler" );
+		release_image_pipeline();
+		return false;
+	}
+
+	m_nearest_sampler = create_sampler(
+		SDL_GPU_FILTER_NEAREST,
+		SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		false,
+		false );
 	if ( !m_nearest_sampler )
 	{
 		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest sampler" );
@@ -4119,13 +4242,41 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
-	sampler_info.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
-	sampler_info.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
-	sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT;
-	m_nearest_repeat_sampler = SDL_CreateGPUSampler( m_device, &sampler_info );
+	m_nearest_repeat_sampler = create_sampler(
+		SDL_GPU_FILTER_NEAREST,
+		SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		false,
+		false );
 	if ( !m_nearest_repeat_sampler )
 	{
 		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest repeat sampler" );
+		release_image_pipeline();
+		return false;
+	}
+
+	m_nearest_mipmap_sampler = create_sampler(
+		SDL_GPU_FILTER_NEAREST,
+		SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		true,
+		false );
+	if ( !m_nearest_mipmap_sampler )
+	{
+		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest mipmap sampler" );
+		release_image_pipeline();
+		return false;
+	}
+
+	m_nearest_mipmap_repeat_sampler = create_sampler(
+		SDL_GPU_FILTER_NEAREST,
+		SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		true,
+		false );
+	if ( !m_nearest_mipmap_repeat_sampler )
+	{
+		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest mipmap repeat sampler" );
 		release_image_pipeline();
 		return false;
 	}

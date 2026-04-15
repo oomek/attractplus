@@ -177,6 +177,10 @@ private:
 	void release_vertex_buffer();
 	bool upload_vertex_buffer();
 	bool upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
+	int get_requested_anisotropy() const;
+	bool update_anisotropy();
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth );
+	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped ) const;
 	SDL_GPUSampleCount get_requested_sample_count() const;
 	SDL_GPUSampleCount pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const;
 	bool update_sample_count( SDL_GPUTextureFormat swapchain_format );
@@ -257,8 +261,12 @@ private:
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUSampler *m_linear_sampler;
 	SDL_GPUSampler *m_linear_repeat_sampler;
+	SDL_GPUSampler *m_linear_mipmap_sampler;
+	SDL_GPUSampler *m_linear_mipmap_repeat_sampler;
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
+	SDL_GPUSampler *m_nearest_mipmap_sampler;
+	SDL_GPUSampler *m_nearest_mipmap_repeat_sampler;
 	SDL_GPUGraphicsPipeline *m_blend_pipelines[3][FeBlend::None + 1];
 	SDL_GPUGraphicsPipeline *m_alpha_prepass_pipeline;
 	SDL_GPUTexture *m_white_texture;
@@ -269,6 +277,7 @@ private:
 	SDL_GPUTextureFormat m_depth_format;
 	int m_depth_width;
 	int m_depth_height;
+	int m_anisotropy;
 	SDL_GPUSampleCount m_sample_count;
 	SDL_GPUTextureFormat m_swapchain_format;
 	bool m_pipeline_attempted;
