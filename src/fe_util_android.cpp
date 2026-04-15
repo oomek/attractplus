@@ -21,10 +21,11 @@
  */
 
 #include <android/log.h>
-#include <android/native_activity.h>
 #include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 
-#include <SFML/System/NativeActivity.hpp>
+#include <jni.h>
+#include <SDL3/SDL_system.h>
 #include <unistd.h>
 #include <string>
 #include <sstream>
@@ -111,17 +112,75 @@ namespace {
 			old_pos = new_pos;
 		}
 	}
+
+	AAssetManager *get_android_asset_manager()
+	{
+		JNIEnv *env = static_cast<JNIEnv *>( SDL_GetAndroidJNIEnv() );
+		if ( !env )
+		{
+			FeLog() << "Unable to get Android JNI environment: " << SDL_GetError() << std::endl;
+			return nullptr;
+		}
+
+		jobject activity = static_cast<jobject>( SDL_GetAndroidActivity() );
+		if ( !activity )
+		{
+			FeLog() << "Unable to get Android activity: " << SDL_GetError() << std::endl;
+			return nullptr;
+		}
+
+		jclass activity_class = env->GetObjectClass( activity );
+		if ( !activity_class )
+		{
+			env->DeleteLocalRef( activity );
+			FeLog() << "Unable to get Android activity class" << std::endl;
+			return nullptr;
+		}
+
+		jmethodID get_assets = env->GetMethodID( activity_class, "getAssets", "()Landroid/content/res/AssetManager;" );
+		if ( !get_assets )
+		{
+			env->DeleteLocalRef( activity_class );
+			env->DeleteLocalRef( activity );
+			FeLog() << "Unable to find Android getAssets()" << std::endl;
+			return nullptr;
+		}
+
+		jobject asset_manager_object = env->CallObjectMethod( activity, get_assets );
+		AAssetManager *asset_manager = asset_manager_object ? AAssetManager_fromJava( env, asset_manager_object ) : nullptr;
+
+		if ( asset_manager_object )
+			env->DeleteLocalRef( asset_manager_object );
+		env->DeleteLocalRef( activity_class );
+		env->DeleteLocalRef( activity );
+
+		if ( !asset_manager )
+			FeLog() << "Unable to get Android asset manager" << std::endl;
+
+		return asset_manager;
+	}
 };
 
 std::string get_home_dir()
 {
-	ANativeActivity *na = sf::getNativeActivity();
-	return na->internalDataPath;
+	if ( const char *path = SDL_GetAndroidInternalStoragePath() )
+		return path;
+
+	return "";
 }
 
 void android_copy_assets()
 {
-	ANativeActivity *na = sf::getNativeActivity();
+	AAssetManager *asset_manager = get_android_asset_manager();
+	if ( !asset_manager )
+		return;
+
+	const char *internal_storage_path = SDL_GetAndroidInternalStoragePath();
+	if ( !internal_storage_path )
+	{
+		FeLog() << "Unable to get Android internal storage path: " << SDL_GetError() << std::endl;
+		return;
+	}
 
 	//
 	// Copy all assets listed in manifest.txt to our "internal data path" on android
@@ -131,7 +190,7 @@ void android_copy_assets()
 
 	// Fill manifest_data
 	//
-	AAsset *manifest = AAssetManager_open( na->assetManager, "manifest.txt",
+	AAsset *manifest = AAssetManager_open( asset_manager, "manifest.txt",
 		AASSET_MODE_STREAMING );
 
 	if ( !manifest )
@@ -155,14 +214,14 @@ void android_copy_assets()
 
 	while ( std::getline( f, entry ) )
 	{
-		AAsset *asset = AAssetManager_open( na->assetManager, entry.c_str(),
+		AAsset *asset = AAssetManager_open( asset_manager, entry.c_str(),
 			AASSET_MODE_STREAMING );
 
 		if ( !asset )
 			FeLog() << "Unable to open asset '" << entry << "'" << std::endl;
 		else
 		{
-			std::string target = na->internalDataPath;
+			std::string target = internal_storage_path;
 			target += "/";
 			confirm_subdirectories( target, entry );
 
