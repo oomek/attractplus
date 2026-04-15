@@ -933,8 +933,6 @@ FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
 	m_aspect_ratio( 1.0f ),
 	m_volume( 100.0f ),
 	m_pan( 0.0f ),
-	m_audio_source_frame( 0 ),
-	m_audio_total_frames_written( 0 ),
 	m_audio_playing( false ),
 	m_audio_pending_samples(),
 	m_audio_pending_offset( 0 )
@@ -965,6 +963,55 @@ bool FeMedia::ensure_audio_stream()
 		return false;
 
 	std::ignore = m_audio_stream.set_gain( m_volume / 100.0f );
+	return true;
+}
+
+void FeMedia::clear_pending_audio()
+{
+	m_audio_pending_samples.clear();
+	m_audio_pending_offset = 0;
+}
+
+void FeMedia::append_pending_audio( const std::vector<float> &samples )
+{
+	if ( samples.empty() )
+		return;
+
+	if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
+		clear_pending_audio();
+
+	m_audio_pending_samples.insert( m_audio_pending_samples.end(), samples.begin(), samples.end() );
+}
+
+bool FeMedia::queue_pending_audio( std::vector<float> &processed_samples )
+{
+	const std::size_t channel_count = static_cast<std::size_t>( FeSdlAudioBackend::get().channel_count() );
+
+	while (( m_audio_pending_offset < m_audio_pending_samples.size() )
+		&& ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES ))
+	{
+		const std::size_t remaining_frames = ( m_audio_pending_samples.size() - m_audio_pending_offset ) / channel_count;
+		const int queue_headroom = FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES - m_audio_stream.queued_frames();
+		const unsigned int frame_count = static_cast<unsigned int>( std::min<std::size_t>(
+			FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES,
+			std::min<std::size_t>( remaining_frames, static_cast<std::size_t>( std::max( 1, queue_headroom ) ) ) ) );
+
+		if ( frame_count == 0 )
+			break;
+
+		processed_samples.resize( static_cast<std::size_t>( frame_count ) * channel_count );
+		m_audio_effects.process_all( m_audio_pending_samples.data() + m_audio_pending_offset, processed_samples.data(), frame_count, FeSdlAudioBackend::get().channel_count() );
+		fe_audio_apply_balance( processed_samples, m_pan, false, Vec3f() );
+
+		if ( !m_audio_stream.queue_frames( processed_samples.data(), static_cast<int>( frame_count ) ) )
+			return false;
+
+		m_audio_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
+	}
+
+	if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
+		clear_pending_audio();
+
 	return true;
 }
 
@@ -1012,8 +1059,7 @@ void FeMedia::stop()
 		m_audio_stream.destroy();
 		m_audio->stop();
 		m_audio->at_end = false;
-		m_audio_source_frame = 0;
-		m_audio_total_frames_written = 0;
+		clear_pending_audio();
 		m_audio_effects.reset_all();
 
 		{
@@ -1245,10 +1291,7 @@ bool FeMedia::open( const std::string &archive,
 				m_audio->codec_ctx = codec_ctx;
 				m_audio->codec = dec;
 				m_audio->at_end = false;
-				m_audio_source_frame = 0;
-				m_audio_total_frames_written = 0;
-				m_audio_pending_samples.clear();
-				m_audio_pending_offset = 0;
+				clear_pending_audio();
 			}
 		}
 	}
@@ -1443,49 +1486,13 @@ bool FeMedia::pump_audio()
 	if ( !ensure_audio_stream() )
 		return false;
 
-	const std::size_t channel_count = static_cast<std::size_t>( FeSdlAudioBackend::get().channel_count() );
 	std::vector<float> processed_samples;
-
-	auto queue_pending_audio = [&]() -> bool
-	{
-		while (( m_audio_pending_offset < m_audio_pending_samples.size() )
-			&& ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES ))
-		{
-			const std::size_t remaining_frames = ( m_audio_pending_samples.size() - m_audio_pending_offset ) / channel_count;
-			const int queue_headroom = FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES - m_audio_stream.queued_frames();
-			const unsigned int frame_count = static_cast<unsigned int>( std::min<std::size_t>(
-				FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES,
-				std::min<std::size_t>( remaining_frames, static_cast<std::size_t>( std::max( 1, queue_headroom ) ) ) ) );
-
-			if ( frame_count == 0 )
-				break;
-
-			processed_samples.resize( static_cast<std::size_t>( frame_count ) * channel_count );
-			m_audio_effects.process_all( m_audio_pending_samples.data() + m_audio_pending_offset, processed_samples.data(), frame_count, FeSdlAudioBackend::get().channel_count() );
-			fe_audio_apply_balance( processed_samples, m_pan, false, Vec3f() );
-
-			if ( !m_audio_stream.queue_frames( processed_samples.data(), static_cast<int>( frame_count ) ) )
-				return false;
-
-			m_audio_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
-			m_audio_source_frame += frame_count;
-			m_audio_total_frames_written += frame_count;
-		}
-
-		if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
-		{
-			m_audio_pending_samples.clear();
-			m_audio_pending_offset = 0;
-		}
-
-		return true;
-	};
 
 	while ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
 	{
 		if ( !m_audio_pending_samples.empty() )
 		{
-			if ( !queue_pending_audio() )
+			if ( !queue_pending_audio( processed_samples ) )
 				return false;
 
 			if ( m_audio_stream.queued_frames() >= FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
@@ -1535,13 +1542,8 @@ bool FeMedia::pump_audio()
 
 				if ( !decoded_samples.empty() )
 				{
-					if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
-					{
-						m_audio_pending_samples.clear();
-						m_audio_pending_offset = 0;
-					}
-					m_audio_pending_samples.insert( m_audio_pending_samples.end(), decoded_samples.begin(), decoded_samples.end() );
-					if ( !queue_pending_audio() )
+					append_pending_audio( decoded_samples );
+					if ( !queue_pending_audio( processed_samples ) )
 					{
 						av_frame_free( &frame );
 						return false;

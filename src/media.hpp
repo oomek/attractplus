@@ -103,6 +103,9 @@ private:
 	bool read_packet();
 	bool end_of_file();
 	bool ensure_audio_stream();
+	void clear_pending_audio();
+	void append_pending_audio( const std::vector<float> &samples );
+	bool queue_pending_audio( std::vector<float> &processed_samples );
 	bool pump_audio();
 
 	FeMediaImp *m_imp;
@@ -113,8 +116,6 @@ private:
 	float m_aspect_ratio;
 	float m_volume;
 	float m_pan;
-	std::uint64_t m_audio_source_frame;
-	std::uint64_t m_audio_total_frames_written;
 	bool m_audio_playing;
 	std::vector<float> m_audio_pending_samples;
 	std::size_t m_audio_pending_offset;

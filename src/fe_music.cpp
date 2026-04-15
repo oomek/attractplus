@@ -61,7 +61,6 @@ FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	m_audio_effects(),
 	m_status( FePlaybackStatusStopped ),
 	m_current_frame( 0 ),
-	m_source_frame( 0 ),
 	m_total_frames_written( 0 ),
 	m_duration_ms( 0 ),
 	m_pending_samples(),
@@ -108,6 +107,59 @@ bool FeMusic::ensure_stream()
 	return true;
 }
 
+void FeMusic::clear_pending_audio()
+{
+	m_pending_samples.clear();
+	m_pending_offset = 0;
+}
+
+void FeMusic::append_pending_audio( const std::vector<float> &samples )
+{
+	if ( samples.empty() )
+		return;
+
+	if ( m_pending_offset >= m_pending_samples.size() )
+		clear_pending_audio();
+
+	m_pending_samples.insert( m_pending_samples.end(), samples.begin(), samples.end() );
+}
+
+bool FeMusic::queue_pending_audio( std::vector<float> &processed_samples )
+{
+	const std::size_t channel_count = static_cast<std::size_t>( FeSdlAudioBackend::get().channel_count() );
+
+	while (( m_pending_offset < m_pending_samples.size() )
+		&& ( m_stream.queued_frames() < FE_MUSIC_QUEUE_TARGET_FRAMES ))
+	{
+		const std::size_t remaining_frames = ( m_pending_samples.size() - m_pending_offset ) / channel_count;
+		const int queue_headroom = FE_MUSIC_QUEUE_TARGET_FRAMES - m_stream.queued_frames();
+		const unsigned int frame_count = static_cast<unsigned int>( std::min<std::size_t>(
+			FE_MUSIC_PROCESS_CHUNK_FRAMES,
+			std::min<std::size_t>( remaining_frames, static_cast<std::size_t>( std::max( 1, queue_headroom ) ) ) ) );
+
+		if ( frame_count == 0 )
+			break;
+
+		processed_samples.resize( static_cast<std::size_t>( frame_count ) * channel_count );
+		m_audio_effects.process_all( m_pending_samples.data() + m_pending_offset, processed_samples.data(), frame_count, FeSdlAudioBackend::get().channel_count() );
+		fe_audio_apply_balance( processed_samples, m_pan, m_spatialization_enabled, m_position );
+
+		if ( !m_stream.queue_frames( processed_samples.data(), static_cast<int>( frame_count ) ) )
+			return false;
+
+		m_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
+		m_total_frames_written += frame_count;
+		m_applied_pan = m_pan;
+		m_applied_position = m_position;
+		m_applied_spatialization_enabled = m_spatialization_enabled;
+	}
+
+	if ( m_pending_offset >= m_pending_samples.size() )
+		clear_pending_audio();
+
+	return true;
+}
+
 void FeMusic::sync_playback_position()
 {
 	const std::uint64_t total_frames = fe_audio_ms_to_frames( m_duration_ms );
@@ -144,7 +196,6 @@ void FeMusic::restart_stream()
 	}
 
 	m_stream.clear();
-	m_source_frame = m_current_frame;
 	m_total_frames_written = m_current_frame;
 	pump_audio();
 }
@@ -159,55 +210,11 @@ void FeMusic::pump_audio()
 
 	std::vector<float> decoded;
 	std::vector<float> processed;
-	const std::uint64_t total_frames = fe_audio_ms_to_frames( m_duration_ms );
-	const std::size_t channel_count = static_cast<std::size_t>( FeSdlAudioBackend::get().channel_count() );
-
-	auto queue_pending_audio = [&]() -> bool
-	{
-		while (( m_pending_offset < m_pending_samples.size() )
-			&& ( m_stream.queued_frames() < FE_MUSIC_QUEUE_TARGET_FRAMES ))
-		{
-			const std::size_t remaining_frames = ( m_pending_samples.size() - m_pending_offset ) / channel_count;
-			const int queue_headroom = FE_MUSIC_QUEUE_TARGET_FRAMES - m_stream.queued_frames();
-			const unsigned int frame_count = static_cast<unsigned int>( std::min<std::size_t>(
-				FE_MUSIC_PROCESS_CHUNK_FRAMES,
-				std::min<std::size_t>( remaining_frames, static_cast<std::size_t>( std::max( 1, queue_headroom ) ) ) ) );
-
-			if ( frame_count == 0 )
-				break;
-
-			processed.resize( static_cast<std::size_t>( frame_count ) * channel_count );
-			m_audio_effects.process_all( m_pending_samples.data() + m_pending_offset, processed.data(), frame_count, FeSdlAudioBackend::get().channel_count() );
-			fe_audio_apply_balance( processed, m_pan, m_spatialization_enabled, m_position );
-
-			if ( !m_stream.queue_frames( processed.data(), static_cast<int>( frame_count ) ) )
-				return false;
-
-			m_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
-			m_source_frame += frame_count;
-			m_total_frames_written += frame_count;
-			m_applied_pan = m_pan;
-			m_applied_position = m_position;
-			m_applied_spatialization_enabled = m_spatialization_enabled;
-
-			if ( m_loop && ( total_frames > 0 ) )
-				m_source_frame %= total_frames;
-		}
-
-		if ( m_pending_offset >= m_pending_samples.size() )
-		{
-			m_pending_samples.clear();
-			m_pending_offset = 0;
-		}
-
-		return true;
-	};
-
 	while ( m_stream.queued_frames() < FE_MUSIC_QUEUE_TARGET_FRAMES )
 	{
 		if ( !m_pending_samples.empty() )
 		{
-			if ( !queue_pending_audio() )
+			if ( !queue_pending_audio( processed ) )
 			{
 				m_status = FePlaybackStatusStopped;
 				return;
@@ -225,14 +232,12 @@ void FeMusic::pump_audio()
 				if ( m_loop )
 				{
 					m_audio_effects.reset_all();
-					m_pending_samples.clear();
-					m_pending_offset = 0;
+					clear_pending_audio();
 					if ( !m_decoder->seek_ms( 0 ) )
 					{
 						m_status = FePlaybackStatusStopped;
 						return;
 					}
-					m_source_frame = 0;
 					continue;
 				}
 
@@ -244,13 +249,8 @@ void FeMusic::pump_audio()
 
 		if ( !decoded.empty() )
 		{
-			if ( m_pending_offset >= m_pending_samples.size() )
-			{
-				m_pending_samples.clear();
-				m_pending_offset = 0;
-			}
-			m_pending_samples.insert( m_pending_samples.end(), decoded.begin(), decoded.end() );
-			if ( !queue_pending_audio() )
+			append_pending_audio( decoded );
+			if ( !queue_pending_audio( processed ) )
 			{
 				m_status = FePlaybackStatusStopped;
 				return;
@@ -282,10 +282,8 @@ void FeMusic::load( const std::string &fn )
 		m_status = FePlaybackStatusStopped;
 		m_duration_ms = 0;
 		m_current_frame = 0;
-		m_source_frame = 0;
 		m_total_frames_written = 0;
-		m_pending_samples.clear();
-		m_pending_offset = 0;
+		clear_pending_audio();
 		m_stream.clear();
 		return;
 	}
@@ -294,10 +292,8 @@ void FeMusic::load( const std::string &fn )
 	m_status = FePlaybackStatusStopped;
 	m_duration_ms = m_decoder->duration_ms();
 	m_current_frame = 0;
-	m_source_frame = 0;
 	m_total_frames_written = 0;
-	m_pending_samples.clear();
-	m_pending_offset = 0;
+	clear_pending_audio();
 	m_stream.clear();
 	m_audio_effects.reset_all();
 }
@@ -365,7 +361,6 @@ void FeMusic::set_playing( bool state )
 		{
 			m_stream.clear();
 			m_current_frame = 0;
-			m_source_frame = 0;
 			m_total_frames_written = 0;
 			m_status = FePlaybackStatusStopped;
 		}
@@ -373,7 +368,6 @@ void FeMusic::set_playing( bool state )
 		{
 			sync_playback_position();
 			m_stream.clear();
-			m_source_frame = m_current_frame;
 			m_total_frames_written = m_current_frame;
 			m_pending_samples.clear();
 			m_pending_offset = 0;
@@ -409,10 +403,8 @@ void FeMusic::set_playing( bool state )
 	}
 
 	m_stream.clear();
-	m_source_frame = m_current_frame;
 	m_total_frames_written = m_current_frame;
-	m_pending_samples.clear();
-	m_pending_offset = 0;
+	clear_pending_audio();
 	m_status = FePlaybackStatusPlaying;
 	pump_audio();
 }
@@ -516,10 +508,8 @@ void FeMusic::set_time( int time )
 {
 	const int clamped_time = std::clamp( time, 0, get_duration() );
 	m_current_frame = fe_audio_ms_to_frames( clamped_time );
-	m_source_frame = m_current_frame;
 	m_total_frames_written = m_current_frame;
-	m_pending_samples.clear();
-	m_pending_offset = 0;
+	clear_pending_audio();
 
 	if ( m_decoder )
 		std::ignore = m_decoder->seek_ms( clamped_time );
@@ -572,10 +562,8 @@ void FeMusic::tick()
 		m_stream.destroy();
 		if ( m_decoder )
 			std::ignore = m_decoder->seek_ms( fe_audio_frames_to_ms( m_current_frame ) );
-		m_source_frame = m_current_frame;
 		m_total_frames_written = m_current_frame;
-		m_pending_samples.clear();
-		m_pending_offset = 0;
+		clear_pending_audio();
 	}
 
 	float vol = m_volume;

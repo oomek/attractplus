@@ -64,7 +64,6 @@ private:
 	FeAudioEffectsManager m_audio_effects;
 	FePlaybackStatus m_status;
 	std::uint64_t m_current_frame;
-	std::uint64_t m_source_frame;
 	std::uint64_t m_total_frames_written;
 	int m_duration_ms;
 	std::vector<float> m_pending_samples;
@@ -130,6 +129,9 @@ public:
 
 private:
 	bool ensure_stream();
+	void clear_pending_audio();
+	void append_pending_audio( const std::vector<float> &samples );
+	bool queue_pending_audio( std::vector<float> &processed_samples );
 	void sync_playback_position();
 	void restart_stream();
 	void pump_audio();
