@@ -3675,7 +3675,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 		break;
 
 	case AntiAliasing:
-		// Keep startup independent from SFML graphics capability probes.
+		// Keep startup independent from renderer capability probes.
 		m_antialiasing = std::min( as_int( value ), 8 );
 
 		// Check if it's a power of 2 and if it's greater than 1

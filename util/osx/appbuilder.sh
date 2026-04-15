@@ -49,16 +49,6 @@ resolve_links() {
   while IFS= read -r lib; do
     local resolved=""
 
-    # --- Special case: @rpath/libsfml* -> am/obj/sfml/install/lib ---
-    if [[ "$lib" == @rpath/libsfml* ]]; then
-      local libfile="${lib#@rpath/}"
-      local sfml_candidate="$basedir/obj/sfml/install/lib/$libfile"
-      if [[ -f "$sfml_candidate" ]]; then
-        resolved="$sfml_candidate"
-        echo "Resolved SFML override: $lib -> $resolved"
-      fi
-    fi
-
     # --- Try pkg-config if still unresolved and lib is @rpath/... ---
     if [[ -z "$resolved" && "$lib" == @rpath/* ]]; then
       local libfile="${lib#@rpath/}"

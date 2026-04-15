@@ -497,7 +497,7 @@ Compile a GLSL shader from the given file(s) for use in the layout. Also see [`f
 
 **GLSL Shaders**
 
--  Shaders are implemented using the SFML API. For more information please see http://www.sfml-dev.org/tutorials/2.1/graphics-shader.php
+-  Shaders are implemented with AM+ shader support. See the current shader examples in the repo layouts and config assets.
 -  The minimal vertex shader expected is as follows:
 
    ```glsl

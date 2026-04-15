@@ -18,8 +18,8 @@ These instructions assume that you have the GNU C/C++ compilers and basic build 
 1. Install the following _development_ libraries on your system:
 
    -  Required:
-      -  SFML SDK version 2.x http://sfml-dev.org
-      -  OpenAL
+      -  SDL3
+      -  SDL3_image
       -  Zlib
       -  FreeType 2
       -  The following FFmpeg libraries (required for videos):
@@ -77,11 +77,11 @@ These instructions assume that you have X Code installed.
    ruby -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
    ```
 
-2. Install the "pkg-config", "ffmpeg", "sfml" and "libarchive" homebrew recipes:
+2. Install the "pkg-config", "ffmpeg", "sdl3", "sdl3_image" and "libarchive" homebrew recipes:
 
    ```sh
    brew update
-   brew install pkg-config ffmpeg sfml libarchive
+   brew install pkg-config ffmpeg sdl3 sdl3_image libarchive
    ```
 
 3. Extract the Attract-Mode Plus source to your system.
@@ -112,16 +112,16 @@ The recommended way to build Windows binaries for Attract-Mode Plus is to cross 
 
 1. Follow the steps in the mxe tutorial to set up mxe on your system: http://mxe.cc/#tutorial
 
-2. Make mxe's sfml, ffmpeg, libarchive and curl packages:
+2. Make mxe's sdl3, sdl3-image, ffmpeg, libarchive and curl packages:
 
    ```sh
-   make ffmpeg sfml libarchive curl
+   make ffmpeg sdl3 sdl3-image libarchive curl
    ```
 
-   the above command will make 32-bit versions of ffmpeg, sfml, libarchive and curl (and anything else that they depend on). To make the 64-bit version use the following:
+   the above command will make 32-bit versions of ffmpeg, sdl3, sdl3-image, libarchive and curl (and anything else that they depend on). To make the 64-bit version use the following:
 
    ```sh
-   make MXE_TARGETS='x86_64-w64-mingw32.static' ffmpeg sfml libarchive curl
+   make MXE_TARGETS='x86_64-w64-mingw32.static' ffmpeg sdl3 sdl3-image libarchive curl
    ```
 
 3. Extract the Attract-Mode Plus source to your system.
@@ -163,7 +163,7 @@ The recommended way to build Windows binaries for Attract-Mode Plus is to cross 
 4. Install required packages. (optionally use the mingw-w64-i686-toolchain instead for 32-bit windows architectures), install "all" (by default) :
 
    ```sh
-   pacman -S git mingw-w64-x86_64-toolchain msys/make mingw64/mingw-w64-x86_64-sfml mingw64/mingw-w64-x86_64-ffmpeg mingw64/mingw-w64-x86_64-libarchive
+   pacman -S git mingw-w64-x86_64-toolchain msys/make mingw64/mingw-w64-x86_64-SDL3 mingw64/mingw-w64-x86_64-SDL3_image mingw64/mingw-w64-x86_64-ffmpeg mingw64/mingw-w64-x86_64-libarchive
    ```
 
 5. Clone and make Attract-Mode Plus

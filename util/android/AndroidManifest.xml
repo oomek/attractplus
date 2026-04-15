@@ -17,12 +17,11 @@
                  android:hasCode="false"
                  android:allowBackup="true">
 
-    <activity android:name="android.app.NativeActivity"
+    <activity android:name="org.libsdl.app.SDLActivity"
               android:label="Attract-Mode Plus"
               android:configChanges="keyboardHidden|orientation|screenSize">
 
-        <meta-data android:name="android.app.lib_name" android:value="sfml-activity" />
-        <meta-data android:name="sfml.app.lib_name" android:value="attract" />
+        <meta-data android:name="android.app.lib_name" android:value="main" />
 
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />

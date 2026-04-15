@@ -38,12 +38,9 @@ makedepends:ubuntu=(
     "libarchive-dev"
     "libfreetype6-dev"
     "libglu1-mesa-dev"
-    "libopenal-dev"
     "libxinerama-dev"
     "libcurl4-gnutls-dev"
     "libudev-dev"
-    "libvorbis-dev"
-    "libflac-dev"
     "libfreetype6-dev"
     "libjpeg-dev"
     "libdrm-dev"
@@ -57,11 +54,9 @@ makedepends:ubuntu=(
 
 makedepends:archlinux=(
     "pkg-config"
-    "sfml"
     "ffmpeg"
     "libarchive"
     "freetype2"
-    "openal"
     "libxinerama"
     "curl"
 )
@@ -74,7 +69,6 @@ depends:ubuntu-noble=(
 	"libswresample4"
 	"libfreetype6"
 	"libglu1-mesa"
-	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg-turbo8"
@@ -91,7 +85,6 @@ depends:ubuntu-jammy=(
 	"libswresample3"
 	"libfreetype6"
 	"libglu1-mesa"
-	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg-turbo8"
@@ -101,10 +94,6 @@ depends:ubuntu-jammy=(
 )
 
 depends:ubuntu-bionic=(
-	"libsfml-graphics2.4"
-	"libsfml-window2.4"
-	"libsfml-network2.4"
-	"libsfml-system2.4"
 	"libavutil55"
 	"libavcodec57"
 	"libavformat57"
@@ -112,7 +101,6 @@ depends:ubuntu-bionic=(
 	"libavresample3"
 	"libfreetype6"
 	"libglu1-mesa"
-	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg-turbo8"
@@ -126,7 +114,6 @@ depends:debian-buster=(
 	"libavresample2"
 	"libfreetype6"
 	"libglu1-mesa"
-	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg62-turbo"
@@ -140,7 +127,6 @@ depends:debian-bookworm=(
 	"libswresample4"
 	"libfreetype6"
 	"libglu1-mesa"
-	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg62-turbo"
@@ -154,7 +140,6 @@ depends:debian-bullseye=(
 	"libavresample4"
 	"libfreetype6"
 	"libglu1-mesa"
-	"libopenal1"
 	"libxinerama1"
 	"libcurl4"
 	"libjpeg62-turbo"
@@ -172,7 +157,7 @@ build() {
     export GOPATH="${srcdir}/go"
     mv "${pkgname}-${pkgver}" "go/src"
     cd "go/src/${pkgname}-${pkgver}"
-    make -j8 STATIC=1 USE_DRM=1
+    make -j8 STATIC=1
 }
 
 package() {

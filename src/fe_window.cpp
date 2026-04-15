@@ -1421,7 +1421,7 @@ void launch_callback( void *o )
 		fe_sleep( fe_milliseconds( 1000 ) );
 #endif
 		FeDebug() << "Closing Attract-Mode Plus window" << std::endl;
-		win->close(); // this fixes raspi version (w/sfml-pi) obscuring daphne (and others?)
+		win->close(); // this fixes the raspi path obscuring daphne (and others?)
 	}
 #endif
 }

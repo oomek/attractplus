@@ -23,7 +23,6 @@
 #include "fe_base.hpp"
 #include "fe_util.hpp"
 #include "base64.hpp"
-#include <SFML/Config.hpp>
 
 extern "C"
 {
@@ -154,8 +153,6 @@ void fe_print_version()
 	FeLog() << "--------------------------------------------------------------------------------" << std::endl;
 	FeLog() << FE_NAME << " " << FE_VERSION << " " << FE_BUILD_NUMBER << "("
 		<< get_OS_string()
-		<< ", SFML " << SFML_VERSION_MAJOR << '.' << SFML_VERSION_MINOR
-		<< "." << SFML_VERSION_PATCH
 		<< ", SDL "
 		<< SDL_VERSIONNUM_MAJOR( sdl_version ) << '.'
 		<< SDL_VERSIONNUM_MINOR( sdl_version ) << '.'

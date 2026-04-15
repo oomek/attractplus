@@ -46,10 +46,6 @@
 #FE_HWACCEL_VAAPI=1
 #FE_HWACCEL_VDPAU=1
 #
-# If you set this to 1, AM+ will link the system SFML version
-# If left to blank, AM+ will build and link the extlib/SFML version
-#USE_SYSTEM_SFML=1
-#
 ###############################
 
 #FE_DEBUG=1
@@ -278,16 +274,8 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
  endif
 endif
 
-#
-# Deal with SFML
-#
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-SFML_OBJ_DIR = $(OBJ_DIR)/sfml
-SFML_LIB_DIR=$(SFML_OBJ_DIR)/install/lib/
-SFML_PKG_CONFIG_PATH=$(ROOT_DIR)/$(SFML_OBJ_DIR)/install/lib/pkgconfig
-LIBS += -L$(SFML_LIB_DIR)
-SFML_PC="sfml-system sfml-window sfml-graphics"
-SFML_TOKEN=$(SFML_OBJ_DIR)/.sfmlok
+CFLAGS += $(shell $(PKG_CONFIG) --cflags freetype2)
 GLSLANG_OBJ_DIR = $(OBJ_DIR)/glslang
 GLSLANG_LIB_DIR=$(GLSLANG_OBJ_DIR)/install/lib/
 GLSLANG_TOKEN=$(GLSLANG_OBJ_DIR)/.glslangok
@@ -424,11 +412,6 @@ else ifeq ($(FE_MACOSX_COMPILE),1)
 else
  BUILD_OBJ_TAG := linux
 endif
-ifeq ($(USE_SYSTEM_SFML),1)
- BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-sys-sfml
-else
- BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-ext-sfml
-endif
 ifeq ($(STATIC),1)
  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-static
 else
@@ -524,58 +507,7 @@ endif
 
 .PHONY: clean
 .PHONY: install
-.PHONY: sfml sfmlbuild
 .PHONY: glslang glslangbuild
-SFML_FLAGS =
-ifneq ($(USE_SYSTEM_SFML),1)
-sfmlbuild:
-ifneq ("$(wildcard $(SFML_TOKEN))","")
-	$(info SFML is already built)
-else
-	$(info Building SFML...)
-ifeq ($(STATIC),1)
-	$(eval SFML_FLAGS += -DBUILD_SHARED_LIBS=FALSE)
-ifeq ($(FE_WINDOWS_COMPILE),1)
-	$(eval SFML_FLAGS += -DCMAKE_CXX_FLAGS="-DAL_LIBTYPE_STATIC=TRUE")
-endif
-else
-	$(eval SFML_FLAGS += -DBUILD_SHARED_LIBS=TRUE)
-endif
-ifeq ($(FE_MACOSX_COMPILE),1)
-	$(eval SFML_FLAGS += -DSFML_USE_SYSTEM_DEPS=1)
-endif
-	$(SILENT)$(MD) $(SFML_OBJ_DIR)
-	$(SILENT)$(CMAKE) -S extlibs/SFML -B $(SFML_OBJ_DIR) -DCMAKE_INSTALL_PREFIX=$(SFML_OBJ_DIR)/install -DOpenGL_GL_PREFERENCE=GLVND -DSFML_INSTALL_PKGCONFIG_FILES=TRUE -DSFML_BUILD_NETWORK=FALSE -DSFML_BUILD_AUDIO=FALSE $(SFML_FLAGS)
-	+$(SILENT)$(CMAKE) --build $(SFML_OBJ_DIR) --config Release --target install
-	touch $(SFML_TOKEN)
-endif
-else
-sfmlbuild:
-
-endif
-
-sfml: sfmlbuild
-ifeq ($(STATIC),1)
-	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --static --libs-only-L $(SFML_PC)))
-	$(info Manually adding sfml libs as pkg-config has no --static version)
-	$(eval SFML_LIBS += -lsfml-graphics-s -lsfml-window-s -lsfml-system-s)
-	$(eval CFLAGS += -DSFML_STATIC $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --static --cflags $(SFML_PC)))
-ifeq ($(FE_WINDOWS_COMPILE),1)
-else ifeq ($(FE_MACOSX_COMPILE),1)
-else
-		$(eval SFML_LIBS += -lGL -lGLU -lm -lz -ludev -lrt)
-endif
-else ifneq ($(USE_SYSTEM_SFML), 1)
-	# SFML may not generate .pc files, so manually add libs
-	$(eval CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $(SFML_PC)))
-	$(eval SFML_LIBS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SFML_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $(SFML_PC)))
-	#LIBS += -lsfml-graphics -lsfml-window -lsfml-system
-else
-	$(eval CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SFML_PC)))
-	$(eval SFML_LIBS += $(shell $(PKG_CONFIG) --libs $(SFML_PC)))
-	$(info SFML_lIBS=$(SFML_LIBS))
-endif
-	$(eval override LIBS = $(SFML_LIBS) $(LIBS))
 
 glslangbuild:
 ifneq ("$(wildcard $(GLSLANG_TOKEN))","")
@@ -595,7 +527,7 @@ glslang: glslangbuild
 	$(eval override LIBS = $(GLSLANG_LIBS) $(LIBS))
 
 # .WAIT is supported from make 4.4, not yet standard sadly. So the all target appreared
-#$(OBJ_DIR) : sfml .WAIT headerinfo
+#$(OBJ_DIR) : headerinfo
 $(OBJ_DIR): headerinfo
 	$(MD) $@
 
@@ -614,7 +546,7 @@ $(RES_LANGUAGE_FILE): $(_LANGUAGE) $(RES_LANGUAGE_DIR)
 	$(foreach f,$(_LANGUAGE),$(shell (echo '$(OPEN_BRACE) "$(word 3,$(subst ., ,$(subst /, ,$f)));$(subst #@,,$(shell (sed 1q $f)))", "$(shell base64 $(B64FLAGS) $f)" $(CLOSE_BRACE),' >> $(RES_LANGUAGE_FILE))))
 	$(shell (echo '$(CLOSE_BRACE);') >> $(RES_LANGUAGE_FILE))
 
-headerinfo: sfml glslang
+headerinfo: glslang
 	$(info flags: $(CFLAGS) $(FE_FLAGS))
 	$(info libs: $(LIBS))
 
@@ -693,7 +625,7 @@ $(SQSTDLIB_OBJ_DIR)/%.o: $(EXTLIBS_DIR)/squirrel/sqstdlib/%.cpp | $(SQSTDLIB_OBJ
 	$(CC_MSG)
 	$(SILENT)$(CXX) -c $< -o $@ $(CFLAGS) $(SQUIRREL_FLAGS)
 
-$(SQSTDLIB_OBJ_DIR): sfml
+$(SQSTDLIB_OBJ_DIR):
 	$(MD) $@
 
 #
@@ -732,4 +664,4 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h
 
 clean:
-	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(GLSLANG_OBJ_DIR)/* $(GLSLANG_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(GLSLANG_OBJ_DIR)/* $(GLSLANG_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core

@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)/../../..
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE    := attract
+LOCAL_MODULE    := main
 
 LOCAL_CPP_FEATURES := exceptions rtti
 
@@ -70,16 +70,14 @@ LOCAL_SRC_FILES := \
         extlibs/expat/xmltok.c
 
 LOCAL_SHARED_LIBRARIES := freetype
-LOCAL_SHARED_LIBRARIES += openal
 LOCAL_SHARED_LIBRARIES += jpeg
-LOCAL_SHARED_LIBRARIES += sfml-system
-LOCAL_SHARED_LIBRARIES += sfml-window
-LOCAL_SHARED_LIBRARIES += sfml-graphics
-LOCAL_SHARED_LIBRARIES += sfml-audio
-LOCAL_SHARED_LIBRARIES += sfml-network
-LOCAL_SHARED_LIBRARIES += sfml-activity
-LOCAL_WHOLE_STATIC_LIBRARIES := sfml-main
+LOCAL_SHARED_LIBRARIES += SDL3
+LOCAL_SHARED_LIBRARIES += SDL3-Headers
+LOCAL_SHARED_LIBRARIES += SDL3_image
 
 include $(BUILD_SHARED_LIBRARY)
 
-$(call import-module,sfml)
+# https://google.github.io/prefab/build-systems.html
+$(call import-add-path,/out)
+$(call import-module,prefab/SDL3)
+$(call import-module,prefab/SDL3_image)

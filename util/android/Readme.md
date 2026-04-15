@@ -1,15 +1,11 @@
-To build:
+Android support now needs the SDL3 Android project flow.
 
-1. setup an Android NDK build environment and build SFML, per the tutorial on the SFML wiki:
+Build guidance:
 
-      https://github.com/SFML/SFML/wiki/Tutorial%3A-Building-SFML-for-Android
+1. Start from the official SDL3 Android project or AAR/prefab workflow:
 
-2. from the Attract-Mode Plus util/android directory, run the following commands:
+      https://wiki.libsdl.org/SDL3/README-android
 
-      android update project --target "android-25" --path .
+2. If you keep using the legacy ndk-build helper in this directory, update it against the SDL3 Android project skeleton before building.
 
-      ndk-build APP_BUILD_SCRIPT=./jni/Android.mk APP_ABI=x86 APP_STL=c++_shared
-
-      ant debug
-
-3. This will create the AttractMode-debug.apk file in the bin directory.
+3. Build the APK from the generated SDL3 Android project.
