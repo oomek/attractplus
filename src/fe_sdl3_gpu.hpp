@@ -55,6 +55,9 @@ public:
 	void write_debug_log( const char *message ) const;
 
 private:
+	struct CustomShaderEntry;
+	struct BuiltinShaderEntry;
+
 	struct TextureEntry
 	{
 		float width;
@@ -69,10 +72,17 @@ private:
 	struct PreparedImage
 	{
 		const FeRenderGeometry *geometry;
+		SDL_GPUTexture *gpu_texture;
 		std::size_t first_vertex;
 		std::size_t vertex_count;
 		int blend_mode;
-		SDL_GPUTexture *gpu_texture;
+		bool zbuffer;
+		bool translucent_depth;
+		bool texture_repeated;
+		bool texture_smooth;
+		bool texture_mipmap;
+		CustomShaderEntry *custom_shader;
+		BuiltinShaderEntry *builtin_shader;
 	};
 
 	struct SurfaceEntry
@@ -170,6 +180,11 @@ private:
 	void sync_textures( const std::vector<FeRenderGeometry> *extra_geometry = nullptr );
 	void clear_textures();
 	void build_prepared_images();
+	void prepare_geometry_batch(
+		const std::vector<FeRenderGeometry> &geometry,
+		bool use_surface_targets,
+		std::vector<PreparedImage> &prepared_images,
+		std::vector<FeRenderVertex> &vertex_stream );
 	void release_texture( TextureEntry &entry );
 	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry );
 	void release_white_texture();
@@ -223,6 +238,18 @@ private:
 		const std::vector<CustomUniformBinding> &uniforms,
 		std::vector<float> &data ) const;
 	bool render_surface_frames( SDL_GPUCommandBuffer *command_buffer );
+	bool render_prepared_geometry_batch(
+		SDL_GPURenderPass *render_pass,
+		SDL_GPUCommandBuffer *command_buffer,
+		const FePerspectiveCamera &camera,
+		int viewport_width,
+		int viewport_height,
+		const std::vector<PreparedImage> &prepared_images,
+		const std::vector<FeRenderVertex> &vertex_stream,
+		SDL_GPUBuffer **cached_vertex_buffer,
+		Uint32 *cached_vertex_buffer_size,
+		std::uint64_t *cached_vertex_signature,
+		bool &drew_anything );
 	bool render_geometry_batch(
 		SDL_GPURenderPass *render_pass,
 		SDL_GPUCommandBuffer *command_buffer,
@@ -230,7 +257,6 @@ private:
 		int viewport_width,
 		int viewport_height,
 		const std::vector<FeRenderGeometry> &geometry,
-		std::uint64_t geometry_signature,
 		bool use_surface_targets,
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,

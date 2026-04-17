@@ -306,35 +306,23 @@ namespace
 		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
 	}
 
-	std::uint64_t compute_geometry_signature( const std::vector<FeRenderGeometry> &geometry )
+	std::uint64_t compute_vertex_stream_hash( const std::vector<FeRenderVertex> &vertices )
 	{
-		std::uint64_t signature = 1469598103934665603ULL;
-		for ( const FeRenderGeometry &image : geometry )
+		std::uint64_t hash = 1469598103934665603ULL;
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertices.size() ) );
+		for ( const FeRenderVertex &vertex : vertices )
 		{
-			signature = hash_combine_u64( signature, reinterpret_cast<std::uint64_t>( image.texture_id ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_source_type ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_repeated ? 1 : 0 ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_smooth ? 1 : 0 ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.texture_mipmap ? 1 : 0 ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.blend_mode ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.custom_shader ? 1 : 0 ) );
-			signature = hash_combine_u64( signature, static_cast<std::uint64_t>( image.vertices.size() ) );
-
-			for ( const FeRenderVertex &vertex : image.vertices )
-			{
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.r ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.g ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.b ) );
-				signature = hash_combine_u64( signature, static_cast<std::uint64_t>( vertex.a ) );
-			}
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.r ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.g ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.b ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.a ) );
 		}
-		return signature;
+		return hash;
 	}
 
 	Uint32 get_mip_level_count( Uint32 width, Uint32 height )
@@ -510,13 +498,8 @@ void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
 {
 	m_frame = frame;
 	m_has_submitted_frame = true;
-	if ( m_debug_logging_enabled )
-		build_prepared_images();
-	else
-	{
-		m_prepared_images.clear();
-		m_vertex_stream.clear();
-	}
+	m_prepared_images.clear();
+	m_vertex_stream.clear();
 
 	if ( m_debug_logging_enabled )
 	{
@@ -553,8 +536,6 @@ void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
 			<< " images=" << m_frame.images.size()
 			<< " surfaces=" << m_frame.surfaces.size()
 			<< " surface_geometry=" << surface_geometry_count
-			<< " prepared_images=" << m_prepared_images.size()
-			<< " vertices=" << m_vertex_stream.size()
 			<< " custom_shaders=" << custom_shader_count
 			<< " surface_custom_shaders=" << surface_custom_shader_count
 			<< " viewport=" << m_frame.viewport_width << "x" << m_frame.viewport_height;
@@ -751,23 +732,44 @@ void FeSdl3GpuContext::clear_textures()
 
 void FeSdl3GpuContext::build_prepared_images()
 {
-	m_prepared_images.clear();
-	m_vertex_stream.clear();
-	m_prepared_images.reserve( m_frame.images.size() );
+	prepare_geometry_batch( m_frame.images, true, m_prepared_images, m_vertex_stream );
+}
 
-	for ( const FeRenderGeometry &image : m_frame.images )
+void FeSdl3GpuContext::prepare_geometry_batch(
+	const std::vector<FeRenderGeometry> &geometry,
+	bool use_surface_targets,
+	std::vector<PreparedImage> &prepared_images,
+	std::vector<FeRenderVertex> &vertex_stream )
+{
+	prepared_images.clear();
+	vertex_stream.clear();
+	prepared_images.reserve( geometry.size() );
+	vertex_stream.reserve( geometry.size() * 6 );
+
+	for ( const FeRenderGeometry &image : geometry )
 	{
 		PreparedImage prepared = {};
 		prepared.geometry = &image;
-		prepared.first_vertex = m_vertex_stream.size();
+		prepared.gpu_texture = nullptr;
+		prepared.first_vertex = vertex_stream.size();
 		prepared.vertex_count = image.vertices.size();
 		prepared.blend_mode = image.blend_mode;
+		prepared.zbuffer = image.zbuffer;
+		prepared.translucent_depth = geometry_uses_translucent_depth_pipeline( image );
+		prepared.texture_repeated = image.texture_repeated;
+		prepared.texture_smooth = image.texture_smooth;
+		prepared.texture_mipmap = image.texture_mipmap;
+		prepared.custom_shader = nullptr;
+		prepared.builtin_shader = nullptr;
+
 		if ( image.textured )
 		{
-			prepared.gpu_texture = nullptr;
-			auto surface_it = m_surfaces.find( image.texture_id );
-			if ( surface_it != m_surfaces.end() )
-				prepared.gpu_texture = surface_it->second.color_texture;
+			if ( use_surface_targets )
+			{
+				auto surface_it = m_surfaces.find( image.texture_id );
+				if ( surface_it != m_surfaces.end() )
+					prepared.gpu_texture = surface_it->second.color_texture;
+			}
 
 			if ( !prepared.gpu_texture )
 			{
@@ -778,9 +780,26 @@ void FeSdl3GpuContext::build_prepared_images()
 		else
 			prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
 
-		m_vertex_stream.insert( m_vertex_stream.end(), image.vertices.begin(), image.vertices.end() );
+		if ( image.custom_shader )
+			prepared.custom_shader = get_custom_shader_entry( image );
+		else if ( image.textured &&
+			( image.blend_mode == FeBlend::Screen ||
+				image.blend_mode == FeBlend::Multiply ||
+				image.blend_mode == FeBlend::Overlay ||
+				image.blend_mode == FeBlend::Premultiplied ) )
+			prepared.builtin_shader = get_fast_builtin_shader_entry( image.blend_mode );
 
-		m_prepared_images.push_back( prepared );
+		for ( FeRenderVertex vertex : image.vertices )
+		{
+			if ( prepared.custom_shader && image.textured && image.texture_width > 0.0f && image.texture_height > 0.0f )
+			{
+				vertex.u /= image.texture_width;
+				vertex.v /= image.texture_height;
+			}
+			vertex_stream.push_back( vertex );
+		}
+
+		prepared_images.push_back( prepared );
 	}
 }
 
@@ -873,8 +892,6 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
 		return false;
 
-	build_prepared_images();
-
 	SDL_GPUTextureCreateInfo texture_info = {};
 	texture_info.type = SDL_GPU_TEXTURETYPE_2D;
 	texture_info.format = target_format;
@@ -937,6 +954,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		return false;
 	}
 
+	build_prepared_images();
+
 	SDL_GPUColorTargetInfo color_target = {};
 	color_target.texture = uses_multisampling() ? msaa_color_texture : color_texture;
 	color_target.mip_level = 0;
@@ -979,15 +998,14 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	bool drew_anything = false;
 	if ( !m_frame.images.empty() )
 	{
-		if ( !render_geometry_batch(
+		if ( !render_prepared_geometry_batch(
 				render_pass,
 				command_buffer,
 				m_frame.camera,
 				width,
 				height,
-				m_frame.images,
-				compute_geometry_signature( m_frame.images ),
-				true,
+				m_prepared_images,
+				m_vertex_stream,
 				&m_vertex_buffer,
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
@@ -1514,15 +1532,15 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	if ( m_blend_pipelines[0][FeBlend::Alpha] && !m_frame.images.empty() )
 	{
-		if ( !render_geometry_batch(
+		build_prepared_images();
+		if ( !render_prepared_geometry_batch(
 				render_pass,
 				command_buffer,
 				m_frame.camera,
 				m_frame.viewport_width,
 				m_frame.viewport_height,
-				m_frame.images,
-				compute_geometry_signature( m_frame.images ),
-				true,
+				m_prepared_images,
+				m_vertex_stream,
 				&m_vertex_buffer,
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
@@ -1545,7 +1563,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				m_frame.viewport_width,
 				m_frame.viewport_height,
 				*overlay_geometry,
-				compute_geometry_signature( *overlay_geometry ),
 				false,
 				nullptr,
 				nullptr,
@@ -3488,115 +3505,39 @@ bool FeSdl3GpuContext::upload_vertex_buffer()
 	return upload_vertex_buffer( m_vertex_stream, m_vertex_buffer, m_vertex_buffer_size );
 }
 
-bool FeSdl3GpuContext::render_geometry_batch(
+bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	SDL_GPURenderPass *render_pass,
 	SDL_GPUCommandBuffer *command_buffer,
 	const FePerspectiveCamera &camera,
 	int viewport_width,
 	int viewport_height,
-	const std::vector<FeRenderGeometry> &geometry,
-	std::uint64_t geometry_signature,
-	bool use_surface_targets,
+	const std::vector<PreparedImage> &prepared_images,
+	const std::vector<FeRenderVertex> &vertex_stream,
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
 	std::uint64_t *cached_vertex_signature,
 	bool &drew_anything )
 {
-	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || geometry.empty() )
+	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || prepared_images.empty() || vertex_stream.empty() )
 		return true;
-
-	std::vector<FeRenderVertex> vertex_stream;
-	vertex_stream.reserve( geometry.size() * 6 );
-
-	struct LocalPreparedImage
-	{
-		const FeRenderGeometry *geometry;
-		SDL_GPUTexture *gpu_texture;
-		std::size_t first_vertex;
-		std::size_t vertex_count;
-		int blend_mode;
-		bool zbuffer;
-		bool translucent_depth;
-		bool texture_repeated;
-		bool texture_smooth;
-		bool texture_mipmap;
-		CustomShaderEntry *custom_shader;
-		BuiltinShaderEntry *builtin_shader;
-	};
-	std::vector<LocalPreparedImage> prepared_images;
-	prepared_images.reserve( geometry.size() );
-
-	for ( const FeRenderGeometry &image : geometry )
-	{
-		LocalPreparedImage prepared = {};
-		prepared.geometry = &image;
-		prepared.first_vertex = vertex_stream.size();
-		prepared.vertex_count = image.vertices.size();
-		prepared.blend_mode = image.blend_mode;
-		prepared.zbuffer = image.zbuffer;
-		prepared.translucent_depth = geometry_uses_translucent_depth_pipeline( image );
-		prepared.texture_repeated = image.texture_repeated;
-		prepared.texture_smooth = image.texture_smooth;
-		prepared.texture_mipmap = image.texture_mipmap;
-		prepared.custom_shader = nullptr;
-		prepared.builtin_shader = nullptr;
-
-		if ( image.textured )
-		{
-			prepared.gpu_texture = nullptr;
-			if ( use_surface_targets )
-			{
-				auto surface_it = m_surfaces.find( image.texture_id );
-				if ( surface_it != m_surfaces.end() )
-					prepared.gpu_texture = surface_it->second.color_texture;
-			}
-
-			if ( !prepared.gpu_texture )
-			{
-				auto it = m_textures.find( image.texture_id );
-				prepared.gpu_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
-			}
-		}
-		else
-			prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
-
-		if ( image.custom_shader )
-			prepared.custom_shader = get_custom_shader_entry( image );
-		else if ( image.textured &&
-			( image.blend_mode == FeBlend::Screen ||
-				image.blend_mode == FeBlend::Multiply ||
-				image.blend_mode == FeBlend::Overlay ||
-				image.blend_mode == FeBlend::Premultiplied ) )
-			prepared.builtin_shader = get_fast_builtin_shader_entry( image.blend_mode );
-
-		for ( FeRenderVertex vertex : image.vertices )
-		{
-			if ( prepared.custom_shader && image.textured && image.texture_width > 0.0f && image.texture_height > 0.0f )
-			{
-				vertex.u /= image.texture_width;
-				vertex.v /= image.texture_height;
-			}
-			vertex_stream.push_back( vertex );
-		}
-		prepared_images.push_back( prepared );
-	}
 
 	SDL_GPUBuffer *vertex_buffer = nullptr;
 	Uint32 vertex_buffer_size = 0;
 	const bool use_cached_vertex_buffer =
 		cached_vertex_buffer && cached_vertex_buffer_size && cached_vertex_signature;
+	const std::uint64_t vertex_stream_hash = compute_vertex_stream_hash( vertex_stream );
 	if ( use_cached_vertex_buffer )
 	{
 		vertex_buffer = *cached_vertex_buffer;
 		vertex_buffer_size = *cached_vertex_buffer_size;
-		if ( !vertex_buffer || ( *cached_vertex_signature != geometry_signature ) )
+		if ( !vertex_buffer || ( *cached_vertex_signature != vertex_stream_hash ) )
 		{
 			if ( !upload_vertex_buffer( vertex_stream, vertex_buffer, vertex_buffer_size ) )
 				return false;
 
 			*cached_vertex_buffer = vertex_buffer;
 			*cached_vertex_buffer_size = vertex_buffer_size;
-			*cached_vertex_signature = geometry_signature;
+			*cached_vertex_signature = vertex_stream_hash;
 		}
 	}
 	else if ( !upload_vertex_buffer( vertex_stream, vertex_buffer, vertex_buffer_size ) )
@@ -3625,7 +3566,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	{
 		SDL_BindGPUGraphicsPipeline( render_pass, m_alpha_prepass_pipeline );
 
-		for ( const LocalPreparedImage &image : prepared_images )
+		for ( const PreparedImage &image : prepared_images )
 		{
 			if ( !image.translucent_depth || !image.gpu_texture || image.vertex_count == 0 || image.custom_shader )
 				continue;
@@ -3643,7 +3584,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		}
 	}
 
-	for ( const LocalPreparedImage &image : prepared_images )
+	for ( const PreparedImage &image : prepared_images )
 	{
 		if ( !image.gpu_texture || image.vertex_count == 0 )
 			continue;
@@ -3846,6 +3787,39 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	return true;
 }
 
+bool FeSdl3GpuContext::render_geometry_batch(
+	SDL_GPURenderPass *render_pass,
+	SDL_GPUCommandBuffer *command_buffer,
+	const FePerspectiveCamera &camera,
+	int viewport_width,
+	int viewport_height,
+	const std::vector<FeRenderGeometry> &geometry,
+	bool use_surface_targets,
+	SDL_GPUBuffer **cached_vertex_buffer,
+	Uint32 *cached_vertex_buffer_size,
+	std::uint64_t *cached_vertex_signature,
+	bool &drew_anything )
+{
+	if ( geometry.empty() )
+		return true;
+
+	std::vector<PreparedImage> prepared_images;
+	std::vector<FeRenderVertex> vertex_stream;
+	prepare_geometry_batch( geometry, use_surface_targets, prepared_images, vertex_stream );
+	return render_prepared_geometry_batch(
+		render_pass,
+		command_buffer,
+		camera,
+		viewport_width,
+		viewport_height,
+		prepared_images,
+		vertex_stream,
+		cached_vertex_buffer,
+		cached_vertex_buffer_size,
+		cached_vertex_signature,
+		drew_anything );
+}
+
 bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buffer )
 {
 	if ( !command_buffer || !m_blend_pipelines[0][ FeBlend::Alpha ] )
@@ -3953,7 +3927,6 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					surface.width,
 					surface.height,
 					surface.geometry,
-					surface.geometry_signature,
 					true,
 					&entry.vertex_buffer,
 					&entry.vertex_buffer_size,
@@ -4048,7 +4021,6 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						surface.width,
 						surface.height,
 						surface.geometry,
-						surface.geometry_signature,
 						true,
 						&entry.vertex_buffer,
 						&entry.vertex_buffer_size,
