@@ -608,13 +608,6 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 				( image.texture_source_type == FeRenderTextureSourceContainer )
 					? static_cast<const FeBaseTextureContainer *>( image.texture_id )
 					: nullptr;
-			const bool waiting_for_first_dynamic_frame =
-				( source_container != nullptr ) &&
-				( dynamic_cast<const FeTextureContainer *>( source_container ) != nullptr ) &&
-				( static_cast<const FeTextureContainer *>( source_container )->get_media() != nullptr ) &&
-				image.texture_dynamic &&
-				!had_texture &&
-				( image.texture_content_version == 0 );
 			const bool has_explicit_content_version =
 				( image.texture_content_version != 0 );
 			const bool needs_upload =
@@ -626,7 +619,7 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					entry.last_upload_content_version != content_version ) ||
 				( image.texture_dynamic && entry.last_upload_content_version != content_version );
 
-			if ( needs_upload && !waiting_for_first_dynamic_frame )
+			if ( needs_upload )
 			{
 				if ( upload_texture( image.texture_id, image.texture_source_type, entry ) )
 				{
