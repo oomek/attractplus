@@ -5,6 +5,33 @@
 namespace
 {
 	constexpr float FE_PI = 3.14159265358979323846f;
+
+	void fe_render_set_identity4( float *matrix )
+	{
+		if ( !matrix )
+			return;
+
+		for ( int i = 0; i < 16; ++i )
+			matrix[i] = 0.0f;
+
+		matrix[0] = 1.0f;
+		matrix[5] = 1.0f;
+		matrix[10] = 1.0f;
+		matrix[15] = 1.0f;
+	}
+
+	void fe_render_set_identity3( float *matrix )
+	{
+		if ( !matrix )
+			return;
+
+		for ( int i = 0; i < 9; ++i )
+			matrix[i] = 0.0f;
+
+		matrix[0] = 1.0f;
+		matrix[4] = 1.0f;
+		matrix[8] = 1.0f;
+	}
 }
 
 FeRenderMatrix4 FeRenderMatrix4::identity()
@@ -48,8 +75,88 @@ void FePerspectiveCamera::update_projection( float viewport_width, float viewpor
 	projection = FeRenderMatrix4::perspective( fov_y_degrees, aspect_ratio, near_plane, far_plane );
 }
 
+FeRenderTextureBinding::FeRenderTextureBinding()
+{
+	clear();
+}
+
+void FeRenderTextureBinding::clear()
+{
+	texture_id = nullptr;
+	texture_source_type = FeRenderTextureSourceNone;
+	repeated = false;
+	smooth = true;
+	mipmap = false;
+	dynamic = false;
+	width = 0.0f;
+	height = 0.0f;
+	content_version = 0;
+	offset_u = 0.0f;
+	offset_v = 0.0f;
+	scale_u = 1.0f;
+	scale_v = 1.0f;
+	rotation = 0.0f;
+	texcoord_set = 0;
+}
+
+FeRenderPbrLight::FeRenderPbrLight()
+{
+	clear();
+}
+
+void FeRenderPbrLight::clear()
+{
+	type = FeRenderPbrLightDirectional;
+	color[0] = 1.0f;
+	color[1] = 1.0f;
+	color[2] = 1.0f;
+	intensity = 1.0f;
+	position[0] = 0.0f;
+	position[1] = 0.0f;
+	position[2] = 0.0f;
+	direction[0] = 0.0f;
+	direction[1] = 0.0f;
+	direction[2] = -1.0f;
+	range = 0.0f;
+	inner_cone_cos = 0.0f;
+	outer_cone_cos = 0.0f;
+}
+
+FeRenderPbrMaterial::FeRenderPbrMaterial()
+{
+	clear();
+}
+
+void FeRenderPbrMaterial::clear()
+{
+	base_color_texture.clear();
+	metallic_roughness_texture.clear();
+	normal_texture.clear();
+	occlusion_texture.clear();
+	emissive_texture.clear();
+	base_color_factor[0] = 1.0f;
+	base_color_factor[1] = 1.0f;
+	base_color_factor[2] = 1.0f;
+	base_color_factor[3] = 1.0f;
+	emissive_factor[0] = 0.0f;
+	emissive_factor[1] = 0.0f;
+	emissive_factor[2] = 0.0f;
+	metallic_factor = 1.0f;
+	roughness_factor = 1.0f;
+	normal_scale = 1.0f;
+	occlusion_strength = 1.0f;
+	alpha_cutoff = 0.5f;
+	alpha_mode = FeRenderPbrAlphaOpaque;
+	unlit = false;
+	double_sided = false;
+}
+
 FeRenderGeometry::FeRenderGeometry()
-	: texture_id( nullptr ),
+	: external_vertices( nullptr ),
+	  external_vertex_count( 0 ),
+	  external_vertex_id( nullptr ),
+	  geometry_kind( FeRenderGeometryLegacy2d ),
+	  texture_id( nullptr ),
 	  texture_source_type( FeRenderTextureSourceNone ),
 	  texture_repeated( false ),
 	  texture_smooth( true ),
@@ -62,13 +169,24 @@ FeRenderGeometry::FeRenderGeometry()
 	custom_shader( false ),
 	textured( false ),
 	texture_dynamic( false ),
-	texture_content_version( 0 )
+	texture_content_version( 0 ),
+	light_count( 0 )
 {
+	ambient_color[0] = 0.0f;
+	ambient_color[1] = 0.0f;
+	ambient_color[2] = 0.0f;
+	camera_light = 0.0f;
+	fe_render_set_identity4( model_matrix );
+	fe_render_set_identity3( normal_matrix );
 }
 
 void FeRenderGeometry::clear()
 {
 	vertices.clear();
+	external_vertices = nullptr;
+	external_vertex_count = 0;
+	external_vertex_id = nullptr;
+	geometry_kind = FeRenderGeometryLegacy2d;
 	texture_id = nullptr;
 	texture_source_type = FeRenderTextureSourceNone;
 	texture_repeated = false;
@@ -83,6 +201,34 @@ void FeRenderGeometry::clear()
 	textured = false;
 	texture_dynamic = false;
 	texture_content_version = 0;
+	pbr_material.clear();
+	light_count = 0;
+	for ( FeRenderPbrLight &light : lights )
+		light.clear();
+	ambient_color[0] = 0.0f;
+	ambient_color[1] = 0.0f;
+	ambient_color[2] = 0.0f;
+	camera_light = 0.0f;
+	fe_render_set_identity4( model_matrix );
+	fe_render_set_identity3( normal_matrix );
+}
+
+bool FeRenderGeometry::has_external_vertices() const
+{
+	return external_vertices != nullptr && external_vertex_count > 0;
+}
+
+const FeRenderVertex *FeRenderGeometry::get_vertex_data() const
+{
+	if ( has_external_vertices() )
+		return external_vertices;
+
+	return vertices.empty() ? nullptr : vertices.data();
+}
+
+std::size_t FeRenderGeometry::get_vertex_count() const
+{
+	return has_external_vertices() ? external_vertex_count : vertices.size();
 }
 
 FeRenderSurfaceFrame::FeRenderSurfaceFrame()

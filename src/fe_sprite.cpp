@@ -77,7 +77,13 @@ namespace
 
 	void fe_sprite_store_vertex( std::vector<FeRenderVertex> &out, const FeLocalVertex &vertex )
 	{
-		out.push_back( FeRenderVertex{ vertex.x, vertex.y, vertex.z, vertex.u, vertex.v, 0, 0, 0, 0 } );
+		FeRenderVertex render_vertex = {};
+		render_vertex.x = vertex.x;
+		render_vertex.y = vertex.y;
+		render_vertex.z = vertex.z;
+		render_vertex.u = vertex.u;
+		render_vertex.v = vertex.v;
+		out.push_back( render_vertex );
 	}
 
 	void fe_sprite_store_triangle(
@@ -342,17 +348,17 @@ void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float z
 			break;
 		}
 
-		out.push_back( FeRenderVertex{
-			rotated.x + m_position.x,
-			rotated.y + m_position.y,
-			zorder + rotated.z + m_origin.z,
-			vertex.u,
-			vertex.v,
-			m_color.r,
-			m_color.g,
-			m_color.b,
-			m_color.a
-		} );
+		FeRenderVertex render_vertex = {};
+		render_vertex.x = rotated.x + m_position.x;
+		render_vertex.y = rotated.y + m_position.y;
+		render_vertex.z = zorder + rotated.z + m_origin.z;
+		render_vertex.u = vertex.u;
+		render_vertex.v = vertex.v;
+		render_vertex.r = m_color.r;
+		render_vertex.g = m_color.g;
+		render_vertex.b = m_color.b;
+		render_vertex.a = m_color.a;
+		out.push_back( render_vertex );
 	}
 }
 

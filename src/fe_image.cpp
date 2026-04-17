@@ -25,6 +25,7 @@
 #include "fe_settings.hpp"
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
+#include "fe_model_3d.hpp"
 #include "fe_blend.hpp"
 #include "fe_sdl3_gpu.hpp"
 #include "fe_vm.hpp"
@@ -2512,6 +2513,15 @@ FeImage *FeImage::add_artwork(const char *l, float x, float y)
 FeImage *FeImage::add_artwork(const char *l )
 {
 	return add_artwork( l, 0, 0, 0, 0 );
+}
+
+FeModel3D *FeImage::add_model_3d(const char *n)
+{
+	FePresentableParent *p = m_tex->get_presentable_parent();
+	if ( p )
+		return p->add_model_3d( n );
+
+	return NULL;
 }
 
 FeImage *FeImage::add_clone(FeImage *i )

@@ -173,6 +173,9 @@ namespace
 		if ( !image.zbuffer )
 			return false;
 
+		if ( image.geometry_kind == FeRenderGeometryObjectPbr )
+			return image.pbr_material.alpha_mode == FeRenderPbrAlphaBlend;
+
 		return image.textured &&
 			( ( image.blend_mode == FeBlend::Alpha ) || ( image.blend_mode == FeBlend::Premultiplied ) );
 	}
@@ -280,16 +283,19 @@ namespace
 	{
 		width = 0.0f;
 		height = 0.0f;
-		if ( image.vertices.empty() )
+		const FeRenderVertex *vertices = image.get_vertex_data();
+		const std::size_t vertex_count = image.get_vertex_count();
+		if ( !vertices || vertex_count == 0 )
 			return;
 
-		float min_x = image.vertices.front().x;
-		float max_x = image.vertices.front().x;
-		float min_y = image.vertices.front().y;
-		float max_y = image.vertices.front().y;
+		float min_x = vertices[0].x;
+		float max_x = vertices[0].x;
+		float min_y = vertices[0].y;
+		float max_y = vertices[0].y;
 
-		for ( const FeRenderVertex &vertex : image.vertices )
+		for ( std::size_t i = 0; i < vertex_count; ++i )
 		{
+			const FeRenderVertex &vertex = vertices[i];
 			min_x = std::min( min_x, vertex.x );
 			max_x = std::max( max_x, vertex.x );
 			min_y = std::min( min_y, vertex.y );
@@ -316,12 +322,55 @@ namespace
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.u1 * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.v1 * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.nx * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.ny * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.nz * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.tx * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.ty * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.tz * 1024.0f ) ) );
+			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.tw * 1024.0f ) ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.r ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.g ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.b ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.a ) );
 		}
 		return hash;
+	}
+
+	float compute_plane_distance( const FePerspectiveCamera &camera, int viewport_height )
+	{
+		const float safe_height = ( viewport_height > 0 ) ? static_cast<float>( viewport_height ) : 1.0f;
+		const float fov_radians = camera.fov_y_degrees * 3.14159265358979323846f / 180.0f;
+		const float tan_half_fov = std::tan( fov_radians * 0.5f );
+		const float auto_plane_distance = ( tan_half_fov > 0.0f ) ? ( safe_height * 0.5f ) / tan_half_fov : safe_height;
+		float plane_distance = ( camera.default_plane_z > camera.near_plane ) ? camera.default_plane_z : auto_plane_distance;
+		if ( plane_distance <= camera.near_plane )
+			plane_distance = camera.near_plane + 1.0f;
+		return plane_distance;
+	}
+
+	Vec3f to_view_position( const Vec3f &world_position, int viewport_width, int viewport_height, float plane_distance )
+	{
+		return Vec3f(
+			world_position.x - ( static_cast<float>( viewport_width ) * 0.5f ),
+			( static_cast<float>( viewport_height ) * 0.5f ) - world_position.y,
+			world_position.z - plane_distance );
+	}
+
+	Vec3f to_view_direction( const Vec3f &world_direction )
+	{
+		Vec3f direction( world_direction.x, -world_direction.y, world_direction.z );
+		const float length_sq =
+			direction.x * direction.x +
+			direction.y * direction.y +
+			direction.z * direction.z;
+		if ( length_sq <= 1.0e-8f )
+			return Vec3f( 0.0f, 0.0f, -1.0f );
+
+		const float inv_length = 1.0f / std::sqrt( length_sq );
+		return Vec3f( direction.x * inv_length, direction.y * inv_length, direction.z * inv_length );
 	}
 
 	Uint32 get_mip_level_count( Uint32 width, Uint32 height )
@@ -431,6 +480,247 @@ namespace
 		return stream.str();
 	}
 
+	std::string build_pbr_vertex_shader()
+	{
+		return
+			"#version 450\n"
+			"layout(location = 0) in vec3 in_position;\n"
+			"layout(location = 1) in vec2 in_texcoord0;\n"
+			"layout(location = 2) in vec4 in_color;\n"
+			"layout(location = 3) in vec2 in_texcoord1;\n"
+			"layout(location = 4) in vec3 in_normal;\n"
+			"layout(location = 5) in vec4 in_tangent;\n"
+			"layout(location = 0) out vec2 frag_uv0;\n"
+			"layout(location = 1) out vec2 frag_uv1;\n"
+			"layout(location = 2) out vec4 frag_color;\n"
+			"layout(location = 3) out vec3 frag_view_position;\n"
+			"layout(location = 4) out vec3 frag_view_normal;\n"
+			"layout(location = 5) out vec4 frag_view_tangent;\n"
+			"layout(set = 1, binding = 0) uniform PbrVertexUniforms\n"
+			"{\n"
+			"\tmat4 projection;\n"
+			"\tfloat viewport_width;\n"
+			"\tfloat viewport_height;\n"
+			"\tfloat plane_distance;\n"
+			"\tfloat reserved;\n"
+			"\tmat4 model;\n"
+			"\tvec4 normal_matrix[3];\n"
+			"} ubo;\n"
+			"void main()\n"
+			"{\n"
+			"\tvec4 world_position = ubo.model * vec4( in_position, 1.0 );\n"
+			"\tvec3 view_position = vec3(\n"
+			"\t\tworld_position.x - ( ubo.viewport_width * 0.5 ),\n"
+			"\t\t( ubo.viewport_height * 0.5 ) - world_position.y,\n"
+			"\t\tworld_position.z - ubo.plane_distance );\n"
+			"\tvec3 world_normal = normalize( vec3(\n"
+			"\t\tdot( ubo.normal_matrix[0].xyz, in_normal ),\n"
+			"\t\tdot( ubo.normal_matrix[1].xyz, in_normal ),\n"
+			"\t\tdot( ubo.normal_matrix[2].xyz, in_normal ) ) );\n"
+			"\tvec3 world_tangent = normalize( ( ubo.model * vec4( in_tangent.xyz, 0.0 ) ).xyz );\n"
+			"\tgl_Position = ubo.projection * vec4( view_position, 1.0 );\n"
+			"\tfrag_uv0 = in_texcoord0;\n"
+			"\tfrag_uv1 = in_texcoord1;\n"
+			"\tfrag_color = in_color;\n"
+			"\tfrag_view_position = view_position;\n"
+			"\tfrag_view_normal = normalize( vec3( world_normal.x, -world_normal.y, world_normal.z ) );\n"
+			"\tfrag_view_tangent = vec4( normalize( vec3( world_tangent.x, -world_tangent.y, world_tangent.z ) ), in_tangent.w );\n"
+			"}\n";
+	}
+
+	std::string build_pbr_fragment_shader()
+	{
+		return
+			"#version 450\n"
+			"layout(location = 0) in vec2 frag_uv0;\n"
+			"layout(location = 1) in vec2 frag_uv1;\n"
+			"layout(location = 2) in vec4 frag_color;\n"
+			"layout(location = 3) in vec3 frag_view_position;\n"
+			"layout(location = 4) in vec3 frag_view_normal;\n"
+			"layout(location = 5) in vec4 frag_view_tangent;\n"
+			"layout(location = 0) out vec4 out_color;\n"
+			"layout(set = 2, binding = 0) uniform sampler2D base_color_texture;\n"
+			"layout(set = 2, binding = 1) uniform sampler2D metallic_roughness_texture;\n"
+			"layout(set = 2, binding = 2) uniform sampler2D normal_texture;\n"
+			"layout(set = 2, binding = 3) uniform sampler2D occlusion_texture;\n"
+			"layout(set = 2, binding = 4) uniform sampler2D emissive_texture;\n"
+			"struct LightUniform\n"
+			"{\n"
+			"\tvec4 color_intensity;\n"
+			"\tvec4 position_range;\n"
+			"\tvec4 direction_inner;\n"
+			"\tvec4 outer_type;\n"
+			"};\n"
+			"layout(set = 3, binding = 0, std140) uniform PbrUniforms\n"
+			"{\n"
+			"\tvec4 base_color_factor;\n"
+			"\tvec4 emissive_factor;\n"
+			"\tvec4 material_params;\n"
+			"\tvec4 control;\n"
+			"\tvec4 ambient_color;\n"
+			"\tvec4 transforms_offset_scale[5];\n"
+			"\tvec4 transforms_rotation_texcoord[5];\n"
+			"\tLightUniform lights[4];\n"
+			"} pbr;\n"
+			"const float PI = 3.14159265358979323846;\n"
+			"vec3 srgb_to_linear( vec3 value )\n"
+			"{\n"
+			"\treturn pow( max( value, vec3( 0.0 ) ), vec3( 2.2 ) );\n"
+			"}\n"
+			"vec2 select_uv( float texcoord_set )\n"
+			"{\n"
+			"\treturn texcoord_set > 0.5 ? frag_uv1 : frag_uv0;\n"
+			"}\n"
+			"vec2 transform_uv( vec2 uv, int index )\n"
+			"{\n"
+			"\tvec4 offset_scale = pbr.transforms_offset_scale[index];\n"
+			"\tvec4 rotation_texcoord = pbr.transforms_rotation_texcoord[index];\n"
+			"\tuv *= offset_scale.zw;\n"
+			"\tfloat c = cos( rotation_texcoord.x );\n"
+			"\tfloat s = sin( rotation_texcoord.x );\n"
+			"\tuv = vec2( c * uv.x - s * uv.y, s * uv.x + c * uv.y );\n"
+			"\treturn uv + offset_scale.xy;\n"
+			"}\n"
+			"vec4 sample_base_color()\n"
+			"{\n"
+			"\treturn texture( base_color_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[0].y ), 0 ) );\n"
+			"}\n"
+			"vec4 sample_metallic_roughness()\n"
+			"{\n"
+			"\treturn texture( metallic_roughness_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[1].y ), 1 ) );\n"
+			"}\n"
+			"vec3 sample_normal_tex()\n"
+			"{\n"
+			"\treturn texture( normal_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[2].y ), 2 ) ).xyz;\n"
+			"}\n"
+			"float sample_occlusion()\n"
+			"{\n"
+			"\treturn texture( occlusion_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[3].y ), 3 ) ).r;\n"
+			"}\n"
+			"vec3 sample_emissive()\n"
+			"{\n"
+			"\treturn texture( emissive_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[4].y ), 4 ) ).rgb;\n"
+			"}\n"
+			"float distribution_ggx( vec3 N, vec3 H, float roughness )\n"
+			"{\n"
+			"\tfloat a = roughness * roughness;\n"
+			"\tfloat a2 = a * a;\n"
+			"\tfloat NdotH = max( dot( N, H ), 0.0 );\n"
+			"\tfloat NdotH2 = NdotH * NdotH;\n"
+			"\tfloat denom = ( NdotH2 * ( a2 - 1.0 ) + 1.0 );\n"
+			"\treturn a2 / max( PI * denom * denom, 0.0001 );\n"
+			"}\n"
+			"float geometry_schlick_ggx( float NdotV, float roughness )\n"
+			"{\n"
+			"\tfloat r = roughness + 1.0;\n"
+			"\tfloat k = ( r * r ) / 8.0;\n"
+			"\treturn NdotV / max( NdotV * ( 1.0 - k ) + k, 0.0001 );\n"
+			"}\n"
+			"float geometry_smith( vec3 N, vec3 V, vec3 L, float roughness )\n"
+			"{\n"
+			"\tfloat ggx1 = geometry_schlick_ggx( max( dot( N, V ), 0.0 ), roughness );\n"
+			"\tfloat ggx2 = geometry_schlick_ggx( max( dot( N, L ), 0.0 ), roughness );\n"
+			"\treturn ggx1 * ggx2;\n"
+			"}\n"
+			"vec3 fresnel_schlick( float cosTheta, vec3 F0 )\n"
+			"{\n"
+			"\treturn F0 + ( 1.0 - F0 ) * pow( 1.0 - cosTheta, 5.0 );\n"
+			"}\n"
+			"void main()\n"
+			"{\n"
+			"\tvec4 base_sample = sample_base_color();\n"
+			"\tvec4 base_color = vec4( srgb_to_linear( base_sample.rgb ), base_sample.a ) * pbr.base_color_factor * frag_color;\n"
+			"\tfloat alpha_mode = pbr.control.y;\n"
+			"\tif ( alpha_mode > 0.5 && alpha_mode < 1.5 && base_color.a < pbr.control.x )\n"
+			"\t\tdiscard;\n"
+			"\tif ( alpha_mode > 1.5 && base_color.a <= 0.001 )\n"
+			"\t\tdiscard;\n"
+			"\n"
+			"\tvec3 N = normalize( frag_view_normal );\n"
+			"\tif ( pbr.emissive_factor.w > 0.5 )\n"
+			"\t{\n"
+			"\t\tvec3 tangent = normalize( frag_view_tangent.xyz );\n"
+			"\t\tvec3 bitangent = normalize( cross( N, tangent ) ) * frag_view_tangent.w;\n"
+			"\t\tmat3 tbn = mat3( tangent, bitangent, N );\n"
+			"\t\tvec3 mapped = sample_normal_tex() * 2.0 - 1.0;\n"
+			"\t\tmapped.xy *= pbr.material_params.z;\n"
+			"\t\tN = normalize( tbn * mapped );\n"
+			"\t}\n"
+			"\n"
+			"\tvec4 mr_sample = sample_metallic_roughness();\n"
+			"\tfloat metallic = clamp( pbr.material_params.x * mr_sample.b, 0.0, 1.0 );\n"
+			"\tfloat roughness = clamp( pbr.material_params.y * mr_sample.g, 0.045, 1.0 );\n"
+			"\tfloat occlusion = 1.0 + pbr.material_params.w * ( sample_occlusion() - 1.0 );\n"
+			"\tvec3 emissive = srgb_to_linear( sample_emissive() ) * pbr.emissive_factor.rgb;\n"
+			"\n"
+			"\tif ( pbr.control.z > 0.5 )\n"
+			"\t{\n"
+			"\t\tout_color = vec4( base_color.rgb * occlusion + emissive, base_color.a );\n"
+			"\t\treturn;\n"
+			"\t}\n"
+			"\n"
+			"\tvec3 V = normalize( -frag_view_position );\n"
+			"\tvec3 F0 = mix( vec3( 0.04 ), base_color.rgb, metallic );\n"
+			"\tvec3 Lo = vec3( 0.0 );\n"
+			"\tint light_count = int( pbr.control.w + 0.5 );\n"
+			"\tfor ( int light_index = 0; light_index < light_count; ++light_index )\n"
+			"\t{\n"
+			"\t\tLightUniform light = pbr.lights[light_index];\n"
+			"\t\tfloat type = light.outer_type.y;\n"
+			"\t\tvec3 L = vec3( 0.0 );\n"
+			"\t\tfloat attenuation = 1.0;\n"
+			"\n"
+			"\t\tif ( type < 0.5 )\n"
+			"\t\t{\n"
+			"\t\t\tL = normalize( -light.direction_inner.xyz );\n"
+			"\t\t\tattenuation = light.color_intensity.w;\n"
+			"\t\t}\n"
+			"\t\telse\n"
+			"\t\t{\n"
+			"\t\t\tvec3 to_light = light.position_range.xyz - frag_view_position;\n"
+			"\t\t\tfloat distance_to_light = length( to_light );\n"
+			"\t\t\tif ( distance_to_light <= 0.0001 )\n"
+			"\t\t\t\tcontinue;\n"
+			"\t\t\tL = to_light / distance_to_light;\n"
+			"\t\t\tattenuation = light.color_intensity.w / max( distance_to_light * distance_to_light, 0.0001 );\n"
+			"\t\t\tif ( light.position_range.w > 0.0 )\n"
+			"\t\t\t{\n"
+			"\t\t\t\tfloat range_factor = clamp( 1.0 - distance_to_light / light.position_range.w, 0.0, 1.0 );\n"
+			"\t\t\t\tattenuation *= range_factor * range_factor;\n"
+			"\t\t\t}\n"
+			"\t\t\tif ( type > 1.5 )\n"
+			"\t\t\t{\n"
+			"\t\t\t\tfloat cone_cos = dot( normalize( -L ), normalize( light.direction_inner.xyz ) );\n"
+			"\t\t\t\tfloat cone = smoothstep( light.outer_type.x, light.direction_inner.w, cone_cos );\n"
+			"\t\t\t\tattenuation *= cone;\n"
+			"\t\t\t}\n"
+			"\t\t}\n"
+			"\n"
+			"\t\tvec3 H = normalize( V + L );\n"
+			"\t\tfloat NdotL = max( dot( N, L ), 0.0 );\n"
+			"\t\tfloat NdotV = max( dot( N, V ), 0.0 );\n"
+			"\t\tif ( NdotL <= 0.0 || NdotV <= 0.0 )\n"
+			"\t\t\tcontinue;\n"
+			"\n"
+			"\t\tfloat D = distribution_ggx( N, H, roughness );\n"
+			"\t\tfloat G = geometry_smith( N, V, L, roughness );\n"
+			"\t\tvec3 F = fresnel_schlick( max( dot( H, V ), 0.0 ), F0 );\n"
+			"\t\tvec3 numerator = D * G * F;\n"
+			"\t\tfloat denominator = max( 4.0 * NdotV * NdotL, 0.0001 );\n"
+			"\t\tvec3 specular = numerator / denominator;\n"
+			"\t\tvec3 kS = F;\n"
+			"\t\tvec3 kD = ( vec3( 1.0 ) - kS ) * ( 1.0 - metallic );\n"
+			"\t\tvec3 radiance = light.color_intensity.rgb * attenuation;\n"
+			"\t\tLo += ( kD * base_color.rgb / PI + specular ) * radiance * NdotL;\n"
+			"\t}\n"
+			"\n"
+			"\tvec3 ambient = pbr.ambient_color.rgb * base_color.rgb * occlusion;\n"
+			"\tfloat camera_fill_factor = max( pbr.ambient_color.w, 0.0 ) * 0.01;\n"
+			"\tvec3 camera_fill = ( base_color.rgb * 0.8 + vec3( 0.2 ) ) * occlusion * camera_fill_factor;\n"
+			"\tout_color = vec4( ambient + camera_fill + Lo * occlusion + emissive, base_color.a );\n"
+			"}\n";
+	}
+
 }
 
 FeSdl3GpuContext::FeSdl3GpuContext()
@@ -454,12 +744,18 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_vertex_buffer_signature = 0;
 	m_vertex_shader = nullptr;
 	m_alpha_prepass_shader = nullptr;
+	m_pbr_vertex_shader = nullptr;
+	m_pbr_fragment_shader = nullptr;
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
 		m_fragment_shaders[i] = nullptr;
 		for ( int z = 0; z < 3; ++z )
 			m_blend_pipelines[z][i] = nullptr;
 	}
+	for ( int z = 0; z < 3; ++z )
+		for ( int a = 0; a < 2; ++a )
+			for ( int d = 0; d < 2; ++d )
+				m_pbr_pipelines[z][a][d] = nullptr;
 	m_alpha_prepass_pipeline = nullptr;
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
@@ -518,6 +814,7 @@ void FeSdl3GpuContext::clear_layout_resources()
 {
 	release_surfaces();
 	clear_textures();
+	clear_geometry_buffers();
 }
 
 bool FeSdl3GpuContext::present_blank_frame()
@@ -579,53 +876,92 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 
 	auto sync_geometry = [&]( const FeRenderGeometry &image )
 	{
-		if ( !image.texture_id )
-			return;
-
-		if ( image.texture_source_type == FeRenderTextureSourceContainer )
+		auto sync_binding = [&]( const void *texture_id,
+			int texture_source_type,
+			float texture_width,
+			float texture_height,
+			bool texture_mipmap,
+			bool texture_dynamic,
+			unsigned long long texture_content_version )
 		{
-			const FeBaseTextureContainer *container = static_cast<const FeBaseTextureContainer *>( image.texture_id );
-			if ( dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
+			if ( !texture_id )
 				return;
-		}
 
-		TextureEntry &entry = m_textures[ image.texture_id ];
-		const float previous_width = entry.width;
-		const float previous_height = entry.height;
-		const bool previous_mipmapped = entry.mipmapped;
-		const unsigned long long content_version =
-			( image.texture_content_version != 0 )
-				? image.texture_content_version
-				: m_frame.frame_number;
-		entry.width = image.texture_width;
-		entry.height = image.texture_height;
-		entry.mipmapped = image.texture_mipmap;
-		entry.last_seen_frame = m_frame.frame_number;
-		if ( is_available() )
-		{
-			const bool had_texture = ( entry.gpu_texture != nullptr );
-			const FeBaseTextureContainer *source_container =
-				( image.texture_source_type == FeRenderTextureSourceContainer )
-					? static_cast<const FeBaseTextureContainer *>( image.texture_id )
-					: nullptr;
-			const bool has_explicit_content_version =
-				( image.texture_content_version != 0 );
-			const bool needs_upload =
-				!had_texture ||
-				( previous_width != image.texture_width ) ||
-				( previous_height != image.texture_height ) ||
-				( previous_mipmapped != image.texture_mipmap ) ||
-				( has_explicit_content_version &&
-					entry.last_upload_content_version != content_version ) ||
-				( image.texture_dynamic && entry.last_upload_content_version != content_version );
-
-			if ( needs_upload )
+			if ( texture_source_type == FeRenderTextureSourceContainer )
 			{
-				if ( upload_texture( image.texture_id, image.texture_source_type, entry ) )
+				const FeBaseTextureContainer *container = static_cast<const FeBaseTextureContainer *>( texture_id );
+				if ( dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
+					return;
+			}
+
+			TextureEntry &entry = m_textures[ texture_id ];
+			const float previous_width = entry.width;
+			const float previous_height = entry.height;
+			const bool previous_mipmapped = entry.mipmapped;
+			const unsigned long long content_version =
+				( texture_content_version != 0 )
+					? texture_content_version
+					: m_frame.frame_number;
+			entry.width = texture_width;
+			entry.height = texture_height;
+			entry.mipmapped = texture_mipmap;
+			entry.last_seen_frame = m_frame.frame_number;
+			if ( is_available() )
+			{
+				const bool had_texture = ( entry.gpu_texture != nullptr );
+				const bool has_explicit_content_version = ( texture_content_version != 0 );
+				const bool needs_upload =
+					!had_texture ||
+					( previous_width != texture_width ) ||
+					( previous_height != texture_height ) ||
+					( previous_mipmapped != texture_mipmap ) ||
+					( has_explicit_content_version &&
+						entry.last_upload_content_version != content_version ) ||
+					( texture_dynamic && entry.last_upload_content_version != content_version );
+
+				if ( needs_upload )
 				{
-					entry.last_upload_frame = m_frame.frame_number;
-					entry.last_upload_content_version = content_version;
+					if ( upload_texture( texture_id, texture_source_type, entry ) )
+					{
+						entry.last_upload_frame = m_frame.frame_number;
+						entry.last_upload_content_version = content_version;
+					}
 				}
+			}
+		};
+
+		sync_binding(
+			image.texture_id,
+			image.texture_source_type,
+			image.texture_width,
+			image.texture_height,
+			image.texture_mipmap,
+			image.texture_dynamic,
+			image.texture_content_version );
+
+		if ( image.geometry_kind == FeRenderGeometryObjectPbr )
+		{
+			const FeRenderTextureBinding *bindings[] =
+			{
+				&image.pbr_material.base_color_texture,
+				&image.pbr_material.metallic_roughness_texture,
+				&image.pbr_material.normal_texture,
+				&image.pbr_material.occlusion_texture,
+				&image.pbr_material.emissive_texture
+			};
+			for ( const FeRenderTextureBinding *binding : bindings )
+			{
+				if ( !binding )
+					continue;
+
+				sync_binding(
+					binding->texture_id,
+					binding->texture_source_type,
+					binding->width,
+					binding->height,
+					binding->mipmap,
+					binding->dynamic,
+					binding->content_version );
 			}
 		}
 	};
@@ -663,6 +999,45 @@ void FeSdl3GpuContext::clear_textures()
 	m_textures.clear();
 }
 
+void FeSdl3GpuContext::release_geometry_buffer( GeometryBufferEntry &entry )
+{
+	if ( entry.vertex_buffer )
+	{
+		SDL_ReleaseGPUBuffer( m_device, entry.vertex_buffer );
+		entry.vertex_buffer = nullptr;
+		entry.vertex_buffer_size = 0;
+		entry.vertex_count = 0;
+	}
+}
+
+void FeSdl3GpuContext::clear_geometry_buffers()
+{
+	for ( auto &entry : m_geometry_buffers )
+		release_geometry_buffer( entry.second );
+
+	m_geometry_buffers.clear();
+}
+
+bool FeSdl3GpuContext::ensure_geometry_vertex_buffer( const PreparedImage &image, SDL_GPUBuffer *&buffer )
+{
+	buffer = nullptr;
+	if ( !image.external_vertex_id || !image.external_vertices || image.vertex_count == 0 )
+		return false;
+
+	GeometryBufferEntry &entry = m_geometry_buffers[ image.external_vertex_id ];
+	entry.last_seen_frame = m_frame.frame_number;
+	if ( !entry.vertex_buffer || entry.vertex_count != image.vertex_count )
+	{
+		if ( !upload_vertex_buffer( image.external_vertices, image.vertex_count, entry.vertex_buffer, entry.vertex_buffer_size ) )
+			return false;
+
+		entry.vertex_count = image.vertex_count;
+	}
+
+	buffer = entry.vertex_buffer;
+	return buffer != nullptr;
+}
+
 void FeSdl3GpuContext::build_prepared_images()
 {
 	prepare_geometry_batch( m_frame.images, true, m_prepared_images, m_vertex_stream );
@@ -684,11 +1059,16 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		PreparedImage prepared = {};
 		prepared.geometry = &image;
 		prepared.gpu_texture = nullptr;
+		for ( SDL_GPUTexture *&texture : prepared.pbr_textures )
+			texture = nullptr;
+		prepared.external_vertices = nullptr;
+		prepared.external_vertex_id = nullptr;
 		prepared.first_vertex = vertex_stream.size();
-		prepared.vertex_count = image.vertices.size();
+		prepared.vertex_count = image.get_vertex_count();
 		prepared.blend_mode = image.blend_mode;
 		prepared.zbuffer = image.zbuffer;
 		prepared.translucent_depth = geometry_uses_translucent_depth_pipeline( image );
+		prepared.object_pbr = ( image.geometry_kind == FeRenderGeometryObjectPbr );
 		prepared.texture_repeated = image.texture_repeated;
 		prepared.texture_smooth = image.texture_smooth;
 		prepared.texture_mipmap = image.texture_mipmap;
@@ -713,17 +1093,62 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		else
 			prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
 
-		if ( image.custom_shader )
+		if ( prepared.object_pbr )
+		{
+			const FeRenderTextureBinding *bindings[] =
+			{
+				&image.pbr_material.base_color_texture,
+				&image.pbr_material.metallic_roughness_texture,
+				&image.pbr_material.normal_texture,
+				&image.pbr_material.occlusion_texture,
+				&image.pbr_material.emissive_texture
+			};
+
+			for ( int binding_index = 0; binding_index < 5; ++binding_index )
+			{
+				const FeRenderTextureBinding &binding = *bindings[binding_index];
+				SDL_GPUTexture *binding_texture = nullptr;
+				if ( binding.texture_id && use_surface_targets )
+				{
+					auto surface_it = m_surfaces.find( binding.texture_id );
+					if ( surface_it != m_surfaces.end() )
+						binding_texture = surface_it->second.color_texture;
+				}
+				if ( !binding_texture && binding.texture_id )
+				{
+					auto it = m_textures.find( binding.texture_id );
+					binding_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
+				}
+				prepared.pbr_textures[binding_index] =
+					binding_texture ? binding_texture : ( ensure_white_texture() ? m_white_texture : nullptr );
+			}
+
+			if ( !prepared.gpu_texture )
+				prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
+		}
+
+		if ( !prepared.object_pbr && image.custom_shader )
 			prepared.custom_shader = get_custom_shader_entry( image );
-		else if ( image.textured &&
+		else if ( !prepared.object_pbr && image.textured &&
 			( image.blend_mode == FeBlend::Screen ||
 				image.blend_mode == FeBlend::Multiply ||
 				image.blend_mode == FeBlend::Overlay ||
 				image.blend_mode == FeBlend::Premultiplied ) )
 			prepared.builtin_shader = get_fast_builtin_shader_entry( image.blend_mode );
 
-		for ( FeRenderVertex vertex : image.vertices )
+		if ( image.geometry_kind == FeRenderGeometryObjectPbr && image.has_external_vertices() )
 		{
+			prepared.external_vertices = image.external_vertices;
+			prepared.external_vertex_id = image.external_vertex_id;
+			prepared_images.push_back( prepared );
+			continue;
+		}
+
+		const FeRenderVertex *vertex_data = image.get_vertex_data();
+		const std::size_t vertex_count = image.get_vertex_count();
+		for ( std::size_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index )
+		{
+			FeRenderVertex vertex = vertex_data[vertex_index];
 			if ( prepared.custom_shader && image.textured && image.texture_width > 0.0f && image.texture_height > 0.0f )
 			{
 				vertex.u /= image.texture_width;
@@ -807,6 +1232,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		release_surfaces();
 		release_custom_shaders();
 		release_image_pipeline();
+		release_pbr_pipeline();
 		release_color_target();
 		release_depth_target();
 		m_swapchain_format = target_format;
@@ -819,10 +1245,11 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	if ( !m_pipeline_attempted )
 	{
 		initialize_image_pipeline( target_format );
+		initialize_pbr_pipeline( target_format );
 		m_pipeline_attempted = true;
 	}
 
-	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
+	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] || !m_pbr_pipelines[ 0 ][ 0 ][ 0 ] )
 		return false;
 
 	SDL_GPUTextureCreateInfo texture_info = {};
@@ -1203,6 +1630,37 @@ namespace
 		float values[FE_MAX_CUSTOM_SHADER_UNIFORMS * 4];
 	};
 
+	struct FeSdl3GpuPbrVertexUniforms
+	{
+		float projection[16];
+		float viewport_width;
+		float viewport_height;
+		float plane_distance;
+		float reserved;
+		float model[16];
+		float normal_matrix[3][4];
+	};
+
+	struct FeSdl3GpuPbrLightUniform
+	{
+		float color_intensity[4];
+		float position_range[4];
+		float direction_inner[4];
+		float outer_type[4];
+	};
+
+	struct FeSdl3GpuPbrFragmentUniforms
+	{
+		float base_color_factor[4];
+		float emissive_factor[4];
+		float material_params[4];
+		float control[4];
+		float ambient_color[4];
+		float transforms_offset_scale[5][4];
+		float transforms_rotation_texcoord[5][4];
+		FeSdl3GpuPbrLightUniform lights[4];
+	};
+
 	SDL_GPUShaderFormat get_default_shader_formats()
 	{
 		SDL_GPUShaderFormat formats = SDL_GPU_SHADERFORMAT_SPIRV;
@@ -1391,6 +1849,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		release_surfaces();
 		release_custom_shaders();
 		release_image_pipeline();
+		release_pbr_pipeline();
 		release_color_target();
 		release_depth_target();
 		m_swapchain_format = swapchain_format;
@@ -1408,10 +1867,13 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !m_pipeline_attempted )
 	{
 		initialize_image_pipeline( swapchain_format );
+		initialize_pbr_pipeline( swapchain_format );
 		m_pipeline_attempted = true;
 	}
 
-	m_frame_stats.pipeline_ready = ( m_blend_pipelines[0][FeBlend::Alpha] != nullptr );
+	m_frame_stats.pipeline_ready =
+		( m_blend_pipelines[0][FeBlend::Alpha] != nullptr )
+		&& ( m_pbr_pipelines[0][0][0] != nullptr );
 
 	if ( m_frame_stats.pipeline_ready && !render_surface_frames( command_buffer ) )
 	{
@@ -1581,12 +2043,14 @@ void FeSdl3GpuContext::shutdown()
 	release_window();
 	release_surfaces();
 	clear_textures();
+	clear_geometry_buffers();
 	release_white_texture();
 	release_vertex_buffer();
 	release_color_target();
 	release_depth_target();
 	release_custom_shaders();
 	release_image_pipeline();
+	release_pbr_pipeline();
 
 	if ( m_device )
 	{
@@ -2116,6 +2580,36 @@ void FeSdl3GpuContext::release_image_pipeline()
 	}
 }
 
+void FeSdl3GpuContext::release_pbr_pipeline()
+{
+	for ( int z = 0; z < 3; ++z )
+	{
+		for ( int blend = 0; blend < 2; ++blend )
+		{
+			for ( int sided = 0; sided < 2; ++sided )
+			{
+				if ( m_pbr_pipelines[z][blend][sided] )
+				{
+					SDL_ReleaseGPUGraphicsPipeline( m_device, m_pbr_pipelines[z][blend][sided] );
+					m_pbr_pipelines[z][blend][sided] = nullptr;
+				}
+			}
+		}
+	}
+
+	if ( m_pbr_fragment_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_pbr_fragment_shader );
+		m_pbr_fragment_shader = nullptr;
+	}
+
+	if ( m_pbr_vertex_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_pbr_vertex_shader );
+		m_pbr_vertex_shader = nullptr;
+	}
+}
+
 void FeSdl3GpuContext::release_builtin_shader( BuiltinShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
@@ -2632,7 +3126,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 	vertex_buffer.instance_step_rate = 0;
 
-	SDL_GPUVertexAttribute attributes[3] = {};
+	SDL_GPUVertexAttribute attributes[6] = {};
 	attributes[0].location = 0;
 	attributes[0].buffer_slot = 0;
 	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -2645,6 +3139,18 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	attributes[2].buffer_slot = 0;
 	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
 	attributes[2].offset = offsetof( FeRenderVertex, r );
+	attributes[3].location = 3;
+	attributes[3].buffer_slot = 0;
+	attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[3].offset = offsetof( FeRenderVertex, u1 );
+	attributes[4].location = 4;
+	attributes[4].buffer_slot = 0;
+	attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[4].offset = offsetof( FeRenderVertex, nx );
+	attributes[5].location = 5;
+	attributes[5].buffer_slot = 0;
+	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[5].offset = offsetof( FeRenderVertex, tx );
 
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = m_swapchain_format;
@@ -2655,7 +3161,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
 	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
-	pipeline_info.vertex_input_state.num_vertex_attributes = 3;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 6;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -2759,7 +3265,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 	vertex_buffer.instance_step_rate = 0;
 
-	SDL_GPUVertexAttribute attributes[3] = {};
+	SDL_GPUVertexAttribute attributes[6] = {};
 	attributes[0].location = 0;
 	attributes[0].buffer_slot = 0;
 	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -2772,6 +3278,18 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	attributes[2].buffer_slot = 0;
 	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
 	attributes[2].offset = offsetof( FeRenderVertex, r );
+	attributes[3].location = 3;
+	attributes[3].buffer_slot = 0;
+	attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[3].offset = offsetof( FeRenderVertex, u1 );
+	attributes[4].location = 4;
+	attributes[4].buffer_slot = 0;
+	attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[4].offset = offsetof( FeRenderVertex, nx );
+	attributes[5].location = 5;
+	attributes[5].buffer_slot = 0;
+	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[5].offset = offsetof( FeRenderVertex, tx );
 
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = m_swapchain_format;
@@ -2781,7 +3299,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
 	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
-	pipeline_info.vertex_input_state.num_vertex_attributes = 3;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 6;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -2866,7 +3384,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 	vertex_buffer.instance_step_rate = 0;
 
-	SDL_GPUVertexAttribute attributes[3] = {};
+	SDL_GPUVertexAttribute attributes[6] = {};
 	attributes[0].location = 0;
 	attributes[0].buffer_slot = 0;
 	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -2879,6 +3397,18 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	attributes[2].buffer_slot = 0;
 	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
 	attributes[2].offset = offsetof( FeRenderVertex, r );
+	attributes[3].location = 3;
+	attributes[3].buffer_slot = 0;
+	attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[3].offset = offsetof( FeRenderVertex, u1 );
+	attributes[4].location = 4;
+	attributes[4].buffer_slot = 0;
+	attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[4].offset = offsetof( FeRenderVertex, nx );
+	attributes[5].location = 5;
+	attributes[5].buffer_slot = 0;
+	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[5].offset = offsetof( FeRenderVertex, tx );
 
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = m_swapchain_format;
@@ -2888,7 +3418,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
 	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
-	pipeline_info.vertex_input_state.num_vertex_attributes = 3;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 6;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -3291,10 +3821,23 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 
 bool FeSdl3GpuContext::upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size )
 {
+	return upload_vertex_buffer(
+		vertices.empty() ? nullptr : vertices.data(),
+		vertices.size(),
+		buffer,
+		buffer_size );
+}
+
+bool FeSdl3GpuContext::upload_vertex_buffer(
+	const FeRenderVertex *vertices,
+	std::size_t vertex_count,
+	SDL_GPUBuffer *&buffer,
+	Uint32 &buffer_size )
+{
 	if ( !m_device )
 		return false;
 
-	if ( vertices.empty() )
+	if ( !vertices || vertex_count == 0 )
 	{
 		if ( buffer )
 		{
@@ -3305,7 +3848,7 @@ bool FeSdl3GpuContext::upload_vertex_buffer( const std::vector<FeRenderVertex> &
 		return true;
 	}
 
-	const Uint32 required_size = static_cast<Uint32>( vertices.size() * sizeof( FeRenderVertex ) );
+	const Uint32 required_size = static_cast<Uint32>( vertex_count * sizeof( FeRenderVertex ) );
 
 	if ( !buffer || buffer_size < required_size )
 	{
@@ -3340,7 +3883,7 @@ bool FeSdl3GpuContext::upload_vertex_buffer( const std::vector<FeRenderVertex> &
 		return false;
 	}
 
-	std::memcpy( mapped, vertices.data(), required_size );
+	std::memcpy( mapped, vertices, required_size );
 	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
 
 	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
@@ -3387,48 +3930,64 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	std::uint64_t *cached_vertex_signature,
 	bool &drew_anything )
 {
-	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || prepared_images.empty() || vertex_stream.empty() )
+	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || prepared_images.empty() )
 		return true;
 
-	SDL_GPUBuffer *vertex_buffer = nullptr;
-	Uint32 vertex_buffer_size = 0;
+	SDL_GPUBuffer *inline_vertex_buffer = nullptr;
+	Uint32 inline_vertex_buffer_size = 0;
 	const bool use_cached_vertex_buffer =
 		cached_vertex_buffer && cached_vertex_buffer_size && cached_vertex_signature;
-	const std::uint64_t vertex_stream_hash = compute_vertex_stream_hash( vertex_stream );
-	if ( use_cached_vertex_buffer )
+	if ( !vertex_stream.empty() )
 	{
-		vertex_buffer = *cached_vertex_buffer;
-		vertex_buffer_size = *cached_vertex_buffer_size;
-		if ( !vertex_buffer || ( *cached_vertex_signature != vertex_stream_hash ) )
+		const std::uint64_t vertex_stream_hash = compute_vertex_stream_hash( vertex_stream );
+		if ( use_cached_vertex_buffer )
 		{
-			if ( !upload_vertex_buffer( vertex_stream, vertex_buffer, vertex_buffer_size ) )
-				return false;
+			inline_vertex_buffer = *cached_vertex_buffer;
+			inline_vertex_buffer_size = *cached_vertex_buffer_size;
+			if ( !inline_vertex_buffer || ( *cached_vertex_signature != vertex_stream_hash ) )
+			{
+				if ( !upload_vertex_buffer( vertex_stream, inline_vertex_buffer, inline_vertex_buffer_size ) )
+					return false;
 
-			*cached_vertex_buffer = vertex_buffer;
-			*cached_vertex_buffer_size = vertex_buffer_size;
-			*cached_vertex_signature = vertex_stream_hash;
+				*cached_vertex_buffer = inline_vertex_buffer;
+				*cached_vertex_buffer_size = inline_vertex_buffer_size;
+				*cached_vertex_signature = vertex_stream_hash;
+			}
 		}
+		else if ( !upload_vertex_buffer( vertex_stream, inline_vertex_buffer, inline_vertex_buffer_size ) )
+			return false;
 	}
-	else if ( !upload_vertex_buffer( vertex_stream, vertex_buffer, vertex_buffer_size ) )
-		return false;
+	else if ( use_cached_vertex_buffer )
+	{
+		*cached_vertex_signature = 0;
+	}
 
-	SDL_GPUBufferBinding vertex_binding = {};
-	vertex_binding.buffer = vertex_buffer;
-	vertex_binding.offset = 0;
-	SDL_BindGPUVertexBuffers( render_pass, 0, &vertex_binding, 1 );
+	SDL_GPUBuffer *currently_bound_vertex_buffer = nullptr;
+	auto bind_vertex_buffer = [&]( SDL_GPUBuffer *buffer ) -> bool
+	{
+		if ( !buffer )
+			return false;
+
+		if ( currently_bound_vertex_buffer == buffer )
+			return true;
+
+		SDL_GPUBufferBinding vertex_binding = {};
+		vertex_binding.buffer = buffer;
+		vertex_binding.offset = 0;
+		SDL_BindGPUVertexBuffers( render_pass, 0, &vertex_binding, 1 );
+		currently_bound_vertex_buffer = buffer;
+		return true;
+	};
+
+	if ( inline_vertex_buffer )
+		bind_vertex_buffer( inline_vertex_buffer );
 
 	FeSdl3GpuDrawUniforms uniforms = {};
 	for ( int i = 0; i < 16; ++i )
 		uniforms.projection[ i ] = camera.projection.m[ i ];
 	uniforms.viewport_width = static_cast<float>( viewport_width );
 	uniforms.viewport_height = static_cast<float>( viewport_height );
-	const float safe_height = ( uniforms.viewport_height > 0.0f ) ? uniforms.viewport_height : 1.0f;
-	const float fov_radians = camera.fov_y_degrees * 3.14159265358979323846f / 180.0f;
-	const float tan_half_fov = std::tan( fov_radians * 0.5f );
-	const float auto_plane_distance = ( tan_half_fov > 0.0f ) ? ( safe_height * 0.5f ) / tan_half_fov : safe_height;
-	uniforms.plane_distance = ( camera.default_plane_z > camera.near_plane ) ? camera.default_plane_z : auto_plane_distance;
-	if ( uniforms.plane_distance <= camera.near_plane )
-		uniforms.plane_distance = camera.near_plane + 1.0f;
+	uniforms.plane_distance = compute_plane_distance( camera, viewport_height );
 	SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
 
 	if ( m_alpha_prepass_pipeline )
@@ -3437,13 +3996,15 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 		for ( const PreparedImage &image : prepared_images )
 		{
-			if ( !image.translucent_depth || !image.gpu_texture || image.vertex_count == 0 || image.custom_shader )
+			if ( image.object_pbr || !image.translucent_depth || !image.gpu_texture || image.vertex_count == 0 || image.custom_shader )
 				continue;
 
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
 			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
+			if ( !bind_vertex_buffer( inline_vertex_buffer ) )
+				continue;
 			SDL_DrawGPUPrimitives(
 				render_pass,
 				static_cast<Uint32>( image.vertex_count ),
@@ -3457,6 +4018,145 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	{
 		if ( !image.gpu_texture || image.vertex_count == 0 )
 			continue;
+
+		if ( image.object_pbr )
+		{
+			if ( !image.geometry )
+				continue;
+
+			SDL_GPUBuffer *draw_vertex_buffer = nullptr;
+			const bool uses_external_vertices =
+				( image.external_vertex_id != nullptr ) && ( image.external_vertices != nullptr );
+			if ( uses_external_vertices )
+			{
+				if ( !ensure_geometry_vertex_buffer( image, draw_vertex_buffer ) )
+					continue;
+			}
+			else
+				draw_vertex_buffer = inline_vertex_buffer;
+
+			if ( !bind_vertex_buffer( draw_vertex_buffer ) )
+				continue;
+
+			const int depth_pipeline = get_depth_pipeline_index( image.zbuffer, image.translucent_depth );
+			const int blend_index =
+				( image.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend ) ? 1 : 0;
+			const int double_sided_index = image.geometry->pbr_material.double_sided ? 1 : 0;
+			SDL_GPUGraphicsPipeline *pipeline = m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
+			if ( !pipeline )
+				continue;
+
+			FeSdl3GpuPbrVertexUniforms vertex_uniforms = {};
+			for ( int i = 0; i < 16; ++i )
+			{
+				vertex_uniforms.projection[i] = uniforms.projection[i];
+				vertex_uniforms.model[i] = image.geometry->model_matrix[i];
+			}
+			vertex_uniforms.viewport_width = uniforms.viewport_width;
+			vertex_uniforms.viewport_height = uniforms.viewport_height;
+			vertex_uniforms.plane_distance = uniforms.plane_distance;
+			vertex_uniforms.reserved = uniforms.reserved;
+			for ( int row = 0; row < 3; ++row )
+				for ( int column = 0; column < 3; ++column )
+					vertex_uniforms.normal_matrix[row][column] =
+						image.geometry->normal_matrix[row * 3 + column];
+			SDL_PushGPUVertexUniformData( command_buffer, 0, &vertex_uniforms, sizeof( vertex_uniforms ) );
+
+			FeSdl3GpuPbrFragmentUniforms fragment_uniforms = {};
+			for ( int i = 0; i < 4; ++i )
+				fragment_uniforms.base_color_factor[i] = image.geometry->pbr_material.base_color_factor[i];
+			for ( int i = 0; i < 3; ++i )
+			{
+				fragment_uniforms.emissive_factor[i] = image.geometry->pbr_material.emissive_factor[i];
+				fragment_uniforms.ambient_color[i] = image.geometry->ambient_color[i];
+			}
+			fragment_uniforms.ambient_color[3] = image.geometry->camera_light;
+			fragment_uniforms.emissive_factor[3] =
+				( image.geometry->pbr_material.normal_texture.texture_id != nullptr ) ? 1.0f : 0.0f;
+			fragment_uniforms.material_params[0] = image.geometry->pbr_material.metallic_factor;
+			fragment_uniforms.material_params[1] = image.geometry->pbr_material.roughness_factor;
+			fragment_uniforms.material_params[2] = image.geometry->pbr_material.normal_scale;
+			fragment_uniforms.material_params[3] = image.geometry->pbr_material.occlusion_strength;
+			fragment_uniforms.control[0] = image.geometry->pbr_material.alpha_cutoff;
+			fragment_uniforms.control[1] = static_cast<float>( image.geometry->pbr_material.alpha_mode );
+			fragment_uniforms.control[2] = image.geometry->pbr_material.unlit ? 1.0f : 0.0f;
+			fragment_uniforms.control[3] = static_cast<float>( image.geometry->light_count );
+
+			const FeRenderTextureBinding *bindings[] =
+			{
+				&image.geometry->pbr_material.base_color_texture,
+				&image.geometry->pbr_material.metallic_roughness_texture,
+				&image.geometry->pbr_material.normal_texture,
+				&image.geometry->pbr_material.occlusion_texture,
+				&image.geometry->pbr_material.emissive_texture
+			};
+			for ( int binding_index = 0; binding_index < 5; ++binding_index )
+			{
+				const FeRenderTextureBinding &binding = *bindings[binding_index];
+				fragment_uniforms.transforms_offset_scale[binding_index][0] = binding.offset_u;
+				fragment_uniforms.transforms_offset_scale[binding_index][1] = binding.offset_v;
+				fragment_uniforms.transforms_offset_scale[binding_index][2] = binding.scale_u;
+				fragment_uniforms.transforms_offset_scale[binding_index][3] = binding.scale_v;
+				fragment_uniforms.transforms_rotation_texcoord[binding_index][0] = binding.rotation;
+				fragment_uniforms.transforms_rotation_texcoord[binding_index][1] = static_cast<float>( binding.texcoord_set );
+			}
+
+			for ( int light_index = 0; light_index < image.geometry->light_count; ++light_index )
+			{
+				const FeRenderPbrLight &light = image.geometry->lights[light_index];
+				FeSdl3GpuPbrLightUniform &target = fragment_uniforms.lights[light_index];
+				target.color_intensity[0] = light.color[0];
+				target.color_intensity[1] = light.color[1];
+				target.color_intensity[2] = light.color[2];
+				target.color_intensity[3] = light.intensity;
+				const Vec3f view_position = to_view_position(
+					Vec3f( light.position[0], light.position[1], light.position[2] ),
+					viewport_width,
+					viewport_height,
+					uniforms.plane_distance );
+				const Vec3f view_direction = to_view_direction(
+					Vec3f( light.direction[0], light.direction[1], light.direction[2] ) );
+				target.position_range[0] = view_position.x;
+				target.position_range[1] = view_position.y;
+				target.position_range[2] = view_position.z;
+				target.position_range[3] = light.range;
+				target.direction_inner[0] = view_direction.x;
+				target.direction_inner[1] = view_direction.y;
+				target.direction_inner[2] = view_direction.z;
+				target.direction_inner[3] = light.inner_cone_cos;
+				target.outer_type[0] = light.outer_cone_cos;
+				target.outer_type[1] = static_cast<float>( light.type );
+			}
+
+			SDL_PushGPUFragmentUniformData(
+				command_buffer,
+				0,
+				&fragment_uniforms,
+				static_cast<Uint32>( sizeof( fragment_uniforms ) ) );
+			SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+
+			SDL_GPUTextureSamplerBinding sampler_bindings[5] = {};
+			for ( int binding_index = 0; binding_index < 5; ++binding_index )
+			{
+				const FeRenderTextureBinding &binding = *bindings[binding_index];
+				sampler_bindings[binding_index].texture =
+					image.pbr_textures[binding_index] ? image.pbr_textures[binding_index] : m_white_texture;
+				sampler_bindings[binding_index].sampler =
+					get_image_sampler(
+						binding.smooth,
+						binding.repeated,
+						binding.mipmap );
+			}
+			SDL_BindGPUFragmentSamplers( render_pass, 0, sampler_bindings, 5 );
+			SDL_DrawGPUPrimitives(
+				render_pass,
+				static_cast<Uint32>( image.vertex_count ),
+				1,
+				uses_external_vertices ? 0u : static_cast<Uint32>( image.first_vertex ),
+				0 );
+			drew_anything = true;
+			continue;
+		}
 
 		const int blend_mode = clamp_blend_mode( image.blend_mode );
 		const int depth_pipeline = get_depth_pipeline_index( image.zbuffer, image.translucent_depth );
@@ -3519,6 +4219,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				pipeline = m_blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 		}
 		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+		if ( !bind_vertex_buffer( inline_vertex_buffer ) )
+			continue;
 
 		std::vector<SDL_GPUTextureSamplerBinding> sampler_bindings;
 		bool fast_current_texture_only = false;
@@ -3650,8 +4352,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		drew_anything = true;
 	}
 
-	if ( vertex_buffer && !use_cached_vertex_buffer )
-		SDL_ReleaseGPUBuffer( m_device, vertex_buffer );
+	if ( inline_vertex_buffer && !use_cached_vertex_buffer )
+		SDL_ReleaseGPUBuffer( m_device, inline_vertex_buffer );
 
 	return true;
 }
@@ -4128,7 +4830,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 	vertex_buffer.instance_step_rate = 0;
 
-	SDL_GPUVertexAttribute attributes[3] = {};
+	SDL_GPUVertexAttribute attributes[6] = {};
 	attributes[0].location = 0;
 	attributes[0].buffer_slot = 0;
 	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -4141,6 +4843,18 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	attributes[2].buffer_slot = 0;
 	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
 	attributes[2].offset = offsetof( FeRenderVertex, r );
+	attributes[3].location = 3;
+	attributes[3].buffer_slot = 0;
+	attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[3].offset = offsetof( FeRenderVertex, u1 );
+	attributes[4].location = 4;
+	attributes[4].buffer_slot = 0;
+	attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[4].offset = offsetof( FeRenderVertex, nx );
+	attributes[5].location = 5;
+	attributes[5].buffer_slot = 0;
+	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[5].offset = offsetof( FeRenderVertex, tx );
 
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = swapchain_format;
@@ -4156,7 +4870,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
 	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
-	pipeline_info.vertex_input_state.num_vertex_attributes = 3;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 6;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
 	pipeline_info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
@@ -4200,6 +4914,136 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	}
 
 	FeDebug() << "SDL: initialize_image_pipeline: success" << std::endl;
+	return true;
+}
+
+bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_format )
+{
+	if ( !m_device || ( swapchain_format == SDL_GPU_TEXTUREFORMAT_INVALID ) )
+		return false;
+
+	ShaderBlob vertex_blob = {};
+	ShaderBlob fragment_blob = {};
+	if ( !compile_shader_blob( "__pbr_vertex__", build_pbr_vertex_shader(), true, vertex_blob ) )
+	{
+		FeLog() << "SDL: initialize_pbr_pipeline: failed to compile internal vertex shader" << std::endl;
+		return false;
+	}
+
+	if ( !compile_shader_blob( "__pbr_fragment__", build_pbr_fragment_shader(), false, fragment_blob ) )
+	{
+		FeLog() << "SDL: initialize_pbr_pipeline: failed to compile internal fragment shader" << std::endl;
+		return false;
+	}
+
+	SDL_GPUShaderCreateInfo vertex_info = {};
+	vertex_info.code_size = vertex_blob.code.size();
+	vertex_info.code = vertex_blob.code.data();
+	vertex_info.entrypoint = vertex_blob.entrypoint;
+	vertex_info.format = vertex_blob.format;
+	vertex_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+	vertex_info.num_uniform_buffers = 1;
+
+	m_pbr_vertex_shader = SDL_CreateGPUShader( m_device, &vertex_info );
+	if ( !m_pbr_vertex_shader )
+	{
+		FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUShader failed for vertex shader" << std::endl;
+		release_pbr_pipeline();
+		return false;
+	}
+
+	SDL_GPUShaderCreateInfo fragment_info = {};
+	fragment_info.code_size = fragment_blob.code.size();
+	fragment_info.code = fragment_blob.code.data();
+	fragment_info.entrypoint = fragment_blob.entrypoint;
+	fragment_info.format = fragment_blob.format;
+	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+	fragment_info.num_uniform_buffers = 1;
+	fragment_info.num_samplers = 5;
+
+	m_pbr_fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
+	if ( !m_pbr_fragment_shader )
+	{
+		FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUShader failed for fragment shader" << std::endl;
+		release_pbr_pipeline();
+		return false;
+	}
+
+	SDL_GPUVertexBufferDescription vertex_buffer = {};
+	vertex_buffer.slot = 0;
+	vertex_buffer.pitch = sizeof( FeRenderVertex );
+	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+	vertex_buffer.instance_step_rate = 0;
+
+	SDL_GPUVertexAttribute attributes[6] = {};
+	attributes[0].location = 0;
+	attributes[0].buffer_slot = 0;
+	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[0].offset = offsetof( FeRenderVertex, x );
+	attributes[1].location = 1;
+	attributes[1].buffer_slot = 0;
+	attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[1].offset = offsetof( FeRenderVertex, u );
+	attributes[2].location = 2;
+	attributes[2].buffer_slot = 0;
+	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+	attributes[2].offset = offsetof( FeRenderVertex, r );
+	attributes[3].location = 3;
+	attributes[3].buffer_slot = 0;
+	attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[3].offset = offsetof( FeRenderVertex, u1 );
+	attributes[4].location = 4;
+	attributes[4].buffer_slot = 0;
+	attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[4].offset = offsetof( FeRenderVertex, nx );
+	attributes[5].location = 5;
+	attributes[5].buffer_slot = 0;
+	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[5].offset = offsetof( FeRenderVertex, tx );
+
+	SDL_GPUColorTargetDescription color_target = {};
+	color_target.format = swapchain_format;
+
+	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
+	pipeline_info.vertex_shader = m_pbr_vertex_shader;
+	pipeline_info.fragment_shader = m_pbr_fragment_shader;
+	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
+	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
+	pipeline_info.vertex_input_state.vertex_attributes = attributes;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 6;
+	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+	pipeline_info.rasterizer_state.enable_depth_clip = true;
+	pipeline_info.multisample_state.sample_count = m_sample_count;
+	pipeline_info.multisample_state.sample_mask = 0;
+	pipeline_info.target_info.color_target_descriptions = &color_target;
+	pipeline_info.target_info.num_color_targets = 1;
+
+	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
+	{
+		configure_pipeline_depth_state( pipeline_info, depth_mode );
+		for ( int blend_index = 0; blend_index < 2; ++blend_index )
+		{
+			color_target.blend_state = make_gpu_blend_state( blend_index == 1 ? FeBlend::Alpha : FeBlend::None );
+			pipeline_info.target_info.color_target_descriptions = &color_target;
+			for ( int double_sided = 0; double_sided < 2; ++double_sided )
+			{
+				pipeline_info.rasterizer_state.cull_mode =
+					double_sided ? SDL_GPU_CULLMODE_NONE : SDL_GPU_CULLMODE_BACK;
+				m_pbr_pipelines[ depth_mode ][ blend_index ][ double_sided ] =
+					SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+				if ( !m_pbr_pipelines[ depth_mode ][ blend_index ][ double_sided ] )
+				{
+					FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUGraphicsPipeline failed" << std::endl;
+					release_pbr_pipeline();
+					return false;
+				}
+			}
+		}
+	}
+
+	FeDebug() << "SDL: initialize_pbr_pipeline: success" << std::endl;
 	return true;
 }
 

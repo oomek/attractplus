@@ -130,6 +130,7 @@ public:
 };
 
 class FeImage;
+class FeModel3D;
 class FeText;
 class FeListBox;
 class FeRectangle;
@@ -152,6 +153,7 @@ public:
 	FeImage *add_artwork(const char *,float, float, float, float);
 	FeImage *add_artwork(const char *, float, float);
 	FeImage *add_artwork(const char *);
+	FeModel3D *add_model_3d(const char *);
 	FeImage *add_clone(FeImage *);
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);

@@ -141,6 +141,7 @@ _DEP =\
 	fe_transform.hpp \
 	fe_renderer.hpp \
 	fe_present.hpp \
+	fe_model_3d.hpp \
 	fe_sdl3_gpu.hpp \
 	fe_glslang.hpp \
 	fe_sprite.hpp \
@@ -190,6 +191,7 @@ _OBJ =\
 	fe_presentable.o \
 	fe_renderer.o \
 	fe_present.o \
+	fe_model_3d.o \
 	fe_sdl3_gpu.o \
 	fe_glslang.o \
 	fe_sprite.o \

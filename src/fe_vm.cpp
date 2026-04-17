@@ -30,6 +30,7 @@
 #include "fe_listbox.hpp"
 #include "fe_rectangle.hpp"
 #include "fe_image.hpp"
+#include "fe_model_3d.hpp"
 #include "fe_shader.hpp"
 #include "fe_config.hpp"
 #include "fe_overlay.hpp"
@@ -1080,8 +1081,24 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_text"), &FeImage::add_text )
 		.Func( _SC("add_listbox"), &FeImage::add_listbox )
 		.Func( _SC("add_rectangle"), &FeImage::add_rectangle )
+		.Func( _SC("add_model_3d"), &FeImage::add_model_3d )
 		.Overload<FeImage * (FeImage::*)(float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
 		.Overload<FeImage * (FeImage::*)(int, int)>(_SC("add_surface"), &FeImage::add_surface)
+	);
+
+	fe.Bind( _SC("Model3D"),
+		DerivedClass<FeModel3D, FeBasePresentable, NoConstructor>()
+		.Prop(_SC("anchor_x"), &FeModel3D::get_anchor_x, &FeModel3D::set_anchor_x )
+		.Prop(_SC("anchor_y"), &FeModel3D::get_anchor_y, &FeModel3D::set_anchor_y )
+		.Prop(_SC("anchor_z"), &FeModel3D::get_anchor_z, &FeModel3D::set_anchor_z )
+		.Prop(_SC("depth"), &FeModel3D::get_depth, &FeModel3D::set_depth )
+		.Prop(_SC("file_name"), &FeModel3D::get_file_name )
+		.Overload<void (FeModel3D::*)(float, float)>(_SC("set_anchor"), &FeModel3D::set_anchor )
+		.Overload<void (FeModel3D::*)(float, float, float)>(_SC("set_anchor"), &FeModel3D::set_anchor )
+		.Func(_SC("set_material_artwork"), &FeModel3D::set_material_artwork )
+		.Func(_SC("set_material_file"), &FeModel3D::set_material_file )
+		.Func(_SC("set_material_texture_rotation"), &FeModel3D::set_material_texture_rotation )
+		.Func(_SC("clear_material_texture"), &FeModel3D::clear_material_texture )
 	);
 
 	fe.Bind( _SC("Text"),
@@ -1217,6 +1234,10 @@ bool FeVM::on_new_layout()
 		.Func(_SC("redraw"), &FePresent::redraw )
 	);
 
+	fe.Bind( _SC("CameraGlobals"), Class <FePresent, NoConstructor>()
+		.Prop( _SC("light"), &FePresent::get_camera_light, &FePresent::set_camera_light )
+	);
+
 	// Create a slot for fe.layout.nv data
 	Sqrat::Table layoutGlobals( fe.GetSlot( _SC("LayoutGlobals") ) );
 	layoutGlobals.SetValue( _SC("nv"), Table() );
@@ -1332,6 +1353,7 @@ bool FeVM::on_new_layout()
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
+		.Func( _SC("add_model_3d"), &FePresentableParent::add_model_3d )
 		.Func( _SC("add_clone"), &FePresentableParent::add_clone )
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
@@ -1373,6 +1395,7 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeImage* (*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
 	fe.Overload<FeImage* (*)(const char *, float, float)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
 	fe.Overload<FeImage* (*)(const char *)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
+	fe.Func<FeModel3D* (*)(const char *)>(_SC("add_model_3d"), &FeVM::cb_add_model_3d);
 
 	fe.Func<FeImage* (*)(FeImage *)>(_SC("add_clone"), &FeVM::cb_add_clone);
 
@@ -1473,6 +1496,7 @@ bool FeVM::on_new_layout()
 		monitors.Append( &m_mon[i] );
 
 	fe.SetInstance( _SC("layout"), (FePresent *)this );
+	fe.SetInstance( _SC("camera"), (FePresent *)this );
 	fe.SetInstance( _SC("list"), (FePresent *)this );
 	fe.SetInstance( _SC("overlay"), this );
 	fe.SetInstance( _SC("ambient_sound"), &m_ambient_sound );
@@ -2568,6 +2592,20 @@ FeImage* FeVM::cb_add_artwork(const char *n, float x, float y )
 FeImage* FeVM::cb_add_artwork(const char *n )
 {
 	return cb_add_artwork( n, 0, 0, 0, 0 );
+}
+
+FeModel3D *FeVM::cb_add_model_3d( const char *n )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	FeModel3D *ret = fev->add_model_3d( n, fev->m_mon[0] );
+
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
+	obj.Append( ret );
+
+	return ret;
 }
 
 FeImage* FeVM::cb_add_clone( FeImage *o )

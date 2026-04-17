@@ -22,6 +22,7 @@
 
 #include "fe_presentable.hpp"
 #include "fe_present.hpp"
+#include "fe_model_3d.hpp"
 
 FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	: m_parent( p ),
@@ -379,6 +380,16 @@ FeImage *FePresentableParent::add_artwork(const char *l, float x, float y)
 FeImage *FePresentableParent::add_artwork(const char *l )
 {
 	return add_artwork( l, 0, 0, 0, 0 );
+}
+
+FeModel3D *FePresentableParent::add_model_3d(const char *n)
+{
+	FePresent *fep = FePresent::script_get_fep();
+
+	if ( fep )
+		return fep->add_model_3d( n, *this );
+
+	return NULL;
 }
 
 FeImage *FePresentableParent::add_clone(FeImage *i )

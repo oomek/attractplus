@@ -37,6 +37,7 @@ extern "C"
 #include <libavformat/avio.h>
 #include <libswscale/swscale.h>
 #include <libswresample/swresample.h>
+#include <libavutil/display.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/opt.h>
 
@@ -52,6 +53,9 @@ extern "C"
 #include <thread>
 #include <condition_variable>
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <cmath>
 #include <memory>
 #include <utility>
 
@@ -86,6 +90,96 @@ namespace
 			return true;
 
 		return stream->attached_pic.size > 0;
+	}
+
+	double normalize_degrees( double degrees )
+	{
+		while ( degrees < 0.0 )
+			degrees += 360.0;
+		while ( degrees >= 360.0 )
+			degrees -= 360.0;
+		return degrees;
+	}
+
+	int get_display_rotation_quadrants( const AVStream *stream )
+	{
+		if ( !stream || !stream->codecpar )
+			return 0;
+
+		const AVPacketSideData *side_data =
+			av_packet_side_data_get(
+				stream->codecpar->coded_side_data,
+				stream->codecpar->nb_coded_side_data,
+				AV_PKT_DATA_DISPLAYMATRIX );
+		if ( !side_data || !side_data->data || side_data->size < ( sizeof( std::int32_t ) * 9u ) )
+			return 0;
+
+		double clockwise_degrees =
+			-av_display_rotation_get( reinterpret_cast<const std::int32_t *>( side_data->data ) );
+		if ( std::isnan( clockwise_degrees ) )
+			return 0;
+
+		clockwise_degrees = normalize_degrees( clockwise_degrees );
+		return static_cast<int>( std::floor( ( clockwise_degrees + 45.0 ) / 90.0 ) ) % 4;
+	}
+
+	void copy_rotated_rgba(
+		const std::uint8_t *source,
+		int source_width,
+		int source_height,
+		int clockwise_quadrants,
+		std::uint8_t *destination )
+	{
+		if ( !source || !destination || source_width <= 0 || source_height <= 0 )
+			return;
+
+		if ( clockwise_quadrants == 0 )
+		{
+			const std::size_t byte_count =
+				static_cast<std::size_t>( source_width ) *
+				static_cast<std::size_t>( source_height ) * 4u;
+			std::memcpy( destination, source, byte_count );
+			return;
+		}
+
+		const int destination_width =
+			( clockwise_quadrants % 2 ) ? source_height : source_width;
+		for ( int source_y = 0; source_y < source_height; ++source_y )
+		{
+			for ( int source_x = 0; source_x < source_width; ++source_x )
+			{
+				int destination_x = source_x;
+				int destination_y = source_y;
+				switch ( clockwise_quadrants )
+				{
+				case 1:
+					destination_x = source_height - 1 - source_y;
+					destination_y = source_x;
+					break;
+
+				case 2:
+					destination_x = source_width - 1 - source_x;
+					destination_y = source_height - 1 - source_y;
+					break;
+
+				case 3:
+					destination_x = source_y;
+					destination_y = source_width - 1 - source_x;
+					break;
+
+				default:
+					break;
+				}
+
+				const std::size_t source_index =
+					( static_cast<std::size_t>( source_y ) * static_cast<std::size_t>( source_width )
+						+ static_cast<std::size_t>( source_x ) ) * 4u;
+				const std::size_t destination_index =
+					( static_cast<std::size_t>( destination_y ) * static_cast<std::size_t>( destination_width )
+						+ static_cast<std::size_t>( destination_x ) ) * 4u;
+				std::memcpy( destination + destination_index, source + source_index, 4u );
+			}
+		}
 	}
 
 	std::string g_decoder;
@@ -191,6 +285,8 @@ public:
 
 class FeVideoImp : public FeBaseStream
 {
+	friend class FeMedia;
+
 private:
 	//
 	// Video decoding and colour conversion runs on a dedicated thread.
@@ -201,7 +297,8 @@ private:
 	std::uint8_t *rgba_buffer[4];
 	int rgba_linesize[4];
 	FeTime half_frame_offset;
-
+	int rgba_width;
+	int rgba_height;
 #if FE_HWACCEL
 	AVPixelFormat hwaccel_output_format;
 	bool hw_retrieve_data( AVFrame *f );
@@ -214,6 +311,7 @@ public:
 	FeClock video_timer;
 	int disptex_width;
 	int disptex_height;
+	int display_rotation_quadrants;
 
 	//
 	// The video thread sets display_frame when the next image frame is decoded.
@@ -426,12 +524,15 @@ FeVideoImp::FeVideoImp( FeMedia *p )
 		m_parent( p ),
 		rgba_buffer(),
 		rgba_linesize(),
+		rgba_width( 0 ),
+		rgba_height( 0 ),
 #if FE_HWACCEL
 		hwaccel_output_format( AV_PIX_FMT_NONE ),
 #endif
 		run_video_thread( false ),
 		disptex_width( 0 ),
 		disptex_height( 0 ),
+		display_rotation_quadrants( 0 ),
 		display_frame( NULL ),
 		frame_serial( 0 )
 {
@@ -568,7 +669,7 @@ void FeVideoImp::init_rgba_buffer()
 		av_freep( &rgba_buffer[0] );
 
 	int ret = av_image_alloc( rgba_buffer, rgba_linesize,
-			disptex_width, disptex_height,
+			rgba_width, rgba_height,
 			AV_PIX_FMT_RGBA, 32 );
 
 	if ( ret < 0 )
@@ -576,7 +677,7 @@ void FeVideoImp::init_rgba_buffer()
 
 	// Override linesize with original video width
 	// to remove stride padding with sws_scale
-	rgba_linesize[0] = disptex_width * 4;
+	rgba_linesize[0] = rgba_width * 4;
 }
 
 bool FeVideoImp::copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height )
@@ -588,7 +689,13 @@ bool FeVideoImp::copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned i
 	width = static_cast<unsigned int>( disptex_width );
 	height = static_cast<unsigned int>( disptex_height );
 	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-	pixels.assign( rgba_buffer[0], rgba_buffer[0] + data_size );
+	pixels.resize( data_size );
+	copy_rotated_rgba(
+		rgba_buffer[0],
+		rgba_width,
+		rgba_height,
+		display_rotation_quadrants,
+		pixels.data() );
 	return true;
 }
 
@@ -615,7 +722,12 @@ bool FeVideoImp::copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsi
 	if ( pixel_count < data_size )
 		return false;
 
-	std::memcpy( pixels, rgba_buffer[0], data_size );
+	copy_rotated_rgba(
+		rgba_buffer[0],
+		rgba_width,
+		rgba_height,
+		display_rotation_quadrants,
+		static_cast<std::uint8_t *>( pixels ) );
 	return true;
 }
 
@@ -731,7 +843,7 @@ void FeVideoImp::video_thread()
 
 					sws_ctx = sws_getCachedContext( NULL,
 						codec_ctx->width, codec_ctx->height, pfmt,
-						disptex_width, disptex_height, AV_PIX_FMT_RGBA,
+						rgba_width, rgba_height, AV_PIX_FMT_RGBA,
 						sws_flags, NULL, NULL, NULL );
 
 					if ( !sws_ctx )
@@ -1404,8 +1516,20 @@ bool FeMedia::open( const std::string &archive,
 				if ( m_imp->m_format_ctx->streams[stream_id]->sample_aspect_ratio.num != 0 )
 					m_aspect_ratio = av_q2d( m_imp->m_format_ctx->streams[stream_id]->sample_aspect_ratio );
 
-				m_video->disptex_width = codec_ctx->width;
-				m_video->disptex_height = codec_ctx->height;
+				m_video->rgba_width = codec_ctx->width;
+				m_video->rgba_height = codec_ctx->height;
+				m_video->display_rotation_quadrants =
+					get_display_rotation_quadrants( m_imp->m_format_ctx->streams[stream_id] );
+				if ( m_video->display_rotation_quadrants == 1 || m_video->display_rotation_quadrants == 3 )
+				{
+					m_video->disptex_width = codec_ctx->height;
+					m_video->disptex_height = codec_ctx->width;
+				}
+				else
+				{
+					m_video->disptex_width = codec_ctx->width;
+					m_video->disptex_height = codec_ctx->height;
+				}
 
 				m_video->init_rgba_buffer();
 			}

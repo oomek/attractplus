@@ -36,6 +36,7 @@
 class FeSettings;
 class FeMedia;
 class FeImage;
+class FeModel3D;
 class FeText;
 class FeListBox;
 class FeRectangle;
@@ -548,6 +549,7 @@ public:
 	FeImage *add_artwork( const char *, float, float, float, float );
 	FeImage *add_artwork( const char *, float, float );
 	FeImage *add_artwork( const char * );
+	FeModel3D *add_model_3d( const char * );
 	FeImage *add_surface( float, float, int, int );
 	FeImage *add_surface( int, int );
 	FeImage *add_clone( FeImage * );

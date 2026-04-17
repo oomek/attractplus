@@ -36,6 +36,7 @@
 #include "fe_window.hpp"
 
 class FeImage;
+class FeModel3D;
 class FeBaseTextureContainer;
 class FeText;
 class FeListBox;
@@ -159,6 +160,7 @@ protected:
 	FeTransform m_layout_transform;
 	FeTransform m_ui_transform;
 	FePerspectiveCamera m_layout_camera;
+	float m_camera_light;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
@@ -198,6 +200,7 @@ protected:
 	void sort_zorder();
 
 	FeImage *add_image(bool a, const std::string &n, float x, float y, float w, float h, FePresentableParent &p);
+	FeModel3D *add_model_3d(const std::string &n, FePresentableParent &p);
 	FeImage *add_clone(FeImage *, FePresentableParent &p);
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
@@ -318,6 +321,8 @@ public:
 	FeTime get_layout_time();
 	float get_layout_frame_time();
 	int get_refresh_rate();
+	float get_camera_light() const;
+	void set_camera_light( float light );
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
 	FeSdl3GpuContext &get_gpu_context() { return m_window.get_gpu_context(); }
@@ -329,6 +334,8 @@ public:
 	static FePresent *script_get_fep();
 	static void script_do_update( FeBaseTextureContainer *, bool do_update = false );
 	static void script_do_update( FeBasePresentable * );
+	static void script_register_texture_container( FeBaseTextureContainer * );
+	static void script_unregister_texture_container( FeBaseTextureContainer * );
 	static void script_flag_redraw();
 	static void script_flag_sort_zorder();
 	static void script_process_magic_strings( std::string &str,

@@ -23,6 +23,7 @@
 #include "fe_present.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
+#include "fe_model_3d.hpp"
 #include "fe_text.hpp"
 #include "fe_listbox.hpp"
 #include "fe_rectangle.hpp"
@@ -200,6 +201,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_frame_time( 0.0f ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
+	m_camera_light( 0.0f ),
 	m_refresh_rate( 0 ),
 	m_playMovies( true ),
 	m_user_page_size( -1 ),
@@ -540,6 +542,105 @@ namespace
 		return ( one->get_z() < two->get_z() );
 	}
 
+	bool build_normal_matrix3_from_model( const float *model_matrix, float *out_normal_matrix )
+	{
+		const float a00 = model_matrix[0];
+		const float a01 = model_matrix[4];
+		const float a02 = model_matrix[8];
+		const float a10 = model_matrix[1];
+		const float a11 = model_matrix[5];
+		const float a12 = model_matrix[9];
+		const float a20 = model_matrix[2];
+		const float a21 = model_matrix[6];
+		const float a22 = model_matrix[10];
+
+		const float det =
+			a00 * ( a11 * a22 - a12 * a21 ) -
+			a01 * ( a10 * a22 - a12 * a20 ) +
+			a02 * ( a10 * a21 - a11 * a20 );
+		if ( std::fabs( det ) <= 1.0e-6f )
+			return false;
+
+		const float inv_det = 1.0f / det;
+		const float inverse[9] = {
+			( a11 * a22 - a12 * a21 ) * inv_det,
+			( a02 * a21 - a01 * a22 ) * inv_det,
+			( a01 * a12 - a02 * a11 ) * inv_det,
+			( a12 * a20 - a10 * a22 ) * inv_det,
+			( a00 * a22 - a02 * a20 ) * inv_det,
+			( a02 * a10 - a00 * a12 ) * inv_det,
+			( a10 * a21 - a11 * a20 ) * inv_det,
+			( a01 * a20 - a00 * a21 ) * inv_det,
+			( a00 * a11 - a01 * a10 ) * inv_det
+		};
+
+		out_normal_matrix[0] = inverse[0];
+		out_normal_matrix[1] = inverse[3];
+		out_normal_matrix[2] = inverse[6];
+		out_normal_matrix[3] = inverse[1];
+		out_normal_matrix[4] = inverse[4];
+		out_normal_matrix[5] = inverse[7];
+		out_normal_matrix[6] = inverse[2];
+		out_normal_matrix[7] = inverse[5];
+		out_normal_matrix[8] = inverse[8];
+		return true;
+	}
+
+	Vec2f transform_direction_xy( const FeTransform &transform, const Vec2f &direction )
+	{
+		const Vec2f origin = transform.transformPoint( { 0.0f, 0.0f } );
+		const Vec2f endpoint = transform.transformPoint( direction );
+		return endpoint - origin;
+	}
+
+	void apply_object_geometry_transform( FeRenderGeometry &entry, const FeTransform &transform )
+	{
+		const Vec2f transformed_origin =
+			transform.transformPoint( { entry.model_matrix[12], entry.model_matrix[13] } );
+
+		float transformed_model[16] = {};
+		std::memcpy( transformed_model, entry.model_matrix, sizeof( transformed_model ) );
+		transformed_model[12] = transformed_origin.x;
+		transformed_model[13] = transformed_origin.y;
+
+		for ( int column = 0; column < 3; ++column )
+		{
+			const int index = column * 4;
+			const Vec2f basis_endpoint = transform.transformPoint(
+				{
+					entry.model_matrix[12] + entry.model_matrix[index + 0],
+					entry.model_matrix[13] + entry.model_matrix[index + 1]
+				} );
+			transformed_model[index + 0] = basis_endpoint.x - transformed_origin.x;
+			transformed_model[index + 1] = basis_endpoint.y - transformed_origin.y;
+		}
+
+		std::memcpy( entry.model_matrix, transformed_model, sizeof( transformed_model ) );
+		build_normal_matrix3_from_model( entry.model_matrix, entry.normal_matrix );
+
+		for ( int light_index = 0; light_index < entry.light_count; ++light_index )
+		{
+			FeRenderPbrLight &light = entry.lights[light_index];
+			const Vec2f transformed_position =
+				transform.transformPoint( { light.position[0], light.position[1] } );
+			const Vec2f transformed_direction =
+				transform_direction_xy( transform, { light.direction[0], light.direction[1] } );
+			light.position[0] = transformed_position.x;
+			light.position[1] = transformed_position.y;
+
+			const float direction_length = std::sqrt(
+				( transformed_direction.x * transformed_direction.x ) +
+				( transformed_direction.y * transformed_direction.y ) +
+				( light.direction[2] * light.direction[2] ) );
+			if ( direction_length > 1.0e-6f )
+			{
+				light.direction[0] = transformed_direction.x / direction_length;
+				light.direction[1] = transformed_direction.y / direction_length;
+				light.direction[2] /= direction_length;
+			}
+		}
+	}
+
 	void apply_geometry_transform( std::vector<FeRenderGeometry> &geometry, const FeTransform &transform )
 	{
 		if ( transform.isIdentity() )
@@ -547,6 +648,12 @@ namespace
 
 		for ( FeRenderGeometry &entry : geometry )
 		{
+			if ( entry.geometry_kind == FeRenderGeometryObjectPbr )
+			{
+				apply_object_geometry_transform( entry, transform );
+				continue;
+			}
+
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
 				const Vec2f p = transform.transformPoint( { vertex.x, vertex.y } );
@@ -602,6 +709,13 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 				continue;
 			}
 
+			const FeModel3D *object = dynamic_cast<const FeModel3D *>( presentable );
+			if ( object )
+			{
+				object->build_render_geometry( monitor_geometry );
+				continue;
+			}
+
 			const FeText *text = dynamic_cast<const FeText *>( presentable );
 			if ( text )
 			{
@@ -641,8 +755,31 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 	{
 		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
 	};
+	auto hash_float = [&]( std::uint64_t seed, float value ) -> std::uint64_t
+	{
+		return hash_combine( seed, static_cast<std::uint64_t>( std::lround( value * 1024.0f ) ) );
+	};
+	auto hash_texture_binding = [&]( const FeRenderTextureBinding &binding, std::uint64_t seed ) -> std::uint64_t
+	{
+		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.texture_source_type ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.texcoord_set ) );
+		seed = hash_float( seed, binding.width );
+		seed = hash_float( seed, binding.height );
+		seed = hash_float( seed, binding.offset_u );
+		seed = hash_float( seed, binding.offset_v );
+		seed = hash_float( seed, binding.scale_u );
+		seed = hash_float( seed, binding.scale_v );
+		seed = hash_float( seed, binding.rotation );
+		return seed;
+	};
 	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed ) -> std::uint64_t
 	{
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.geometry_kind ) );
 		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.texture_id ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_source_type ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_repeated ? 1 : 0 ) );
@@ -651,19 +788,78 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
-		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.vertices.size() ) );
-		for ( const FeRenderVertex &vertex : geometry.vertices )
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.get_vertex_count() ) );
+		if ( geometry.has_external_vertices() )
+		{
+			seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.external_vertex_id ) );
+		}
+		else for ( const FeRenderVertex &vertex : geometry.vertices )
 		{
 			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.u1 * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.v1 * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.nx * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.ny * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.nz * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.tx * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.ty * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.tz * 1024.0f ) ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.tw * 1024.0f ) ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.r ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.g ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.b ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.a ) );
 		}
+
+		if ( geometry.geometry_kind == FeRenderGeometryObjectPbr )
+		{
+			for ( int i = 0; i < 16; ++i )
+				seed = hash_float( seed, geometry.model_matrix[i] );
+			for ( int i = 0; i < 9; ++i )
+				seed = hash_float( seed, geometry.normal_matrix[i] );
+			seed = hash_texture_binding( geometry.pbr_material.base_color_texture, seed );
+			seed = hash_texture_binding( geometry.pbr_material.metallic_roughness_texture, seed );
+			seed = hash_texture_binding( geometry.pbr_material.normal_texture, seed );
+			seed = hash_texture_binding( geometry.pbr_material.occlusion_texture, seed );
+			seed = hash_texture_binding( geometry.pbr_material.emissive_texture, seed );
+			for ( int i = 0; i < 4; ++i )
+				seed = hash_float( seed, geometry.pbr_material.base_color_factor[i] );
+			for ( int i = 0; i < 3; ++i )
+			{
+				seed = hash_float( seed, geometry.pbr_material.emissive_factor[i] );
+				seed = hash_float( seed, geometry.ambient_color[i] );
+			}
+			seed = hash_float( seed, geometry.camera_light );
+			seed = hash_float( seed, geometry.pbr_material.metallic_factor );
+			seed = hash_float( seed, geometry.pbr_material.roughness_factor );
+			seed = hash_float( seed, geometry.pbr_material.normal_scale );
+			seed = hash_float( seed, geometry.pbr_material.occlusion_strength );
+			seed = hash_float( seed, geometry.pbr_material.alpha_cutoff );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.alpha_mode ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.unlit ? 1 : 0 ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.double_sided ? 1 : 0 ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.light_count ) );
+			for ( int light_index = 0; light_index < geometry.light_count; ++light_index )
+			{
+				const FeRenderPbrLight &light = geometry.lights[light_index];
+				seed = hash_combine( seed, static_cast<std::uint64_t>( light.type ) );
+				for ( int i = 0; i < 3; ++i )
+				{
+					seed = hash_float( seed, light.color[i] );
+					seed = hash_float( seed, light.position[i] );
+					seed = hash_float( seed, light.direction[i] );
+				}
+				seed = hash_float( seed, light.intensity );
+				seed = hash_float( seed, light.range );
+				seed = hash_float( seed, light.inner_cone_cos );
+				seed = hash_float( seed, light.outer_cone_cos );
+			}
+		}
+
 		return seed;
 	};
 	auto append_surface_dependencies =
@@ -671,6 +867,21 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			const FeSurfaceTextureContainer *current_surface,
 			std::vector<const void *> &dependencies )
 		{
+			auto add_binding_dependency =
+				[]( const FeRenderTextureBinding &binding,
+					const FeSurfaceTextureContainer *surface,
+					std::vector<const void *> &dependency_list )
+				{
+					if ( binding.texture_source_type != FeRenderTextureSourceContainer || !binding.texture_id )
+						return;
+
+					const FeSurfaceTextureContainer *referenced_surface =
+						dynamic_cast<const FeSurfaceTextureContainer *>(
+							static_cast<const FeBaseTextureContainer *>( binding.texture_id ) );
+					if ( referenced_surface && referenced_surface != surface )
+						dependency_list.push_back( referenced_surface );
+				};
+
 			if ( geometry.texture_source_type == FeRenderTextureSourceContainer )
 			{
 				const FeSurfaceTextureContainer *referenced_surface =
@@ -678,6 +889,15 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 						static_cast<const FeBaseTextureContainer *>( geometry.texture_id ) );
 				if ( referenced_surface && referenced_surface != current_surface )
 					dependencies.push_back( referenced_surface );
+			}
+
+			if ( geometry.geometry_kind == FeRenderGeometryObjectPbr )
+			{
+				add_binding_dependency( geometry.pbr_material.base_color_texture, current_surface, dependencies );
+				add_binding_dependency( geometry.pbr_material.metallic_roughness_texture, current_surface, dependencies );
+				add_binding_dependency( geometry.pbr_material.normal_texture, current_surface, dependencies );
+				add_binding_dependency( geometry.pbr_material.occlusion_texture, current_surface, dependencies );
+				add_binding_dependency( geometry.pbr_material.emissive_texture, current_surface, dependencies );
 			}
 
 			if ( !geometry.shader )
@@ -764,6 +984,22 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature );
 					frame.content_signature = hash_geometry( rectangle_geometry, frame.content_signature );
 					frame.geometry.push_back( rectangle_geometry );
+				}
+				continue;
+			}
+
+			const FeModel3D *object = dynamic_cast<const FeModel3D *>( presentable );
+			if ( object )
+			{
+				const std::size_t old_size = frame.geometry.size();
+				object->build_render_geometry( frame.geometry );
+				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
+				{
+					const FeRenderGeometry &object_geometry = frame.geometry[i];
+					append_surface_dependencies( object_geometry, surface, dependencies );
+					frame.dynamic_content = frame.dynamic_content || object_geometry.texture_dynamic;
+					frame.geometry_signature = hash_geometry( object_geometry, frame.geometry_signature );
+					frame.content_signature = hash_geometry( object_geometry, frame.content_signature );
 				}
 				continue;
 			}
@@ -914,6 +1150,18 @@ FeImage *FePresent::add_image( bool is_artwork,
 	p.elements.push_back( new_image );
 
 	return new_image;
+}
+
+FeModel3D *FePresent::add_model_3d( const std::string &n, FePresentableParent &p )
+{
+	FeModel3D *new_model_3d = new FeModel3D( p, n );
+
+	if ( get_script_id() < 0 )
+		m_layout_has_content = true;
+
+	flag_redraw();
+	p.elements.push_back( new_model_3d );
+	return new_model_3d;
 }
 
 FeImage *FePresent::add_clone( FeImage *o,
@@ -1211,6 +1459,23 @@ void FePresent::set_perspective_default_z( float z )
 		return;
 
 	m_layout_camera.default_plane_z = z;
+	flag_redraw();
+}
+
+float FePresent::get_camera_light() const
+{
+	return m_camera_light;
+}
+
+void FePresent::set_camera_light( float light )
+{
+	if ( light < 0.0f )
+		light = 0.0f;
+
+	if ( light == m_camera_light )
+		return;
+
+	m_camera_light = light;
 	flag_redraw();
 }
 
@@ -2159,6 +2424,28 @@ void FePresent::script_do_update( FeBaseTextureContainer *tc, bool do_update )
 		tc->on_new_selection( fep->m_feSettings );
 		fep->flag_redraw();
 	}
+}
+
+void FePresent::script_register_texture_container( FeBaseTextureContainer *tc )
+{
+	FePresent *fep = script_get_fep();
+	if ( !fep || !tc )
+		return;
+
+	if ( std::find( fep->m_texturePool.begin(), fep->m_texturePool.end(), tc ) == fep->m_texturePool.end() )
+		fep->m_texturePool.push_back( tc );
+}
+
+void FePresent::script_unregister_texture_container( FeBaseTextureContainer *tc )
+{
+	FePresent *fep = script_get_fep();
+	if ( !fep || !tc )
+		return;
+
+	std::vector<FeBaseTextureContainer *>::iterator it =
+		std::find( fep->m_texturePool.begin(), fep->m_texturePool.end(), tc );
+	if ( it != fep->m_texturePool.end() )
+		fep->m_texturePool.erase( it );
 }
 
 void FePresent::script_flag_redraw()

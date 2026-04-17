@@ -32,6 +32,15 @@ struct FeRenderVertex
 	float z;
 	float u;
 	float v;
+	float u1;
+	float v1;
+	float nx;
+	float ny;
+	float nz;
+	float tx;
+	float ty;
+	float tz;
+	float tw;
 	std::uint8_t r;
 	std::uint8_t g;
 	std::uint8_t b;
@@ -53,9 +62,92 @@ struct FeRenderRawTextureSource
 	unsigned int height;
 };
 
+enum FeRenderGeometryKind
+{
+	FeRenderGeometryLegacy2d = 0,
+	FeRenderGeometryObjectPbr
+};
+
+enum FeRenderPbrAlphaMode
+{
+	FeRenderPbrAlphaOpaque = 0,
+	FeRenderPbrAlphaMask,
+	FeRenderPbrAlphaBlend
+};
+
+enum FeRenderPbrLightType
+{
+	FeRenderPbrLightDirectional = 0,
+	FeRenderPbrLightPoint,
+	FeRenderPbrLightSpot
+};
+
+struct FeRenderTextureBinding
+{
+	const void *texture_id;
+	int texture_source_type;
+	bool repeated;
+	bool smooth;
+	bool mipmap;
+	bool dynamic;
+	float width;
+	float height;
+	std::uint64_t content_version;
+	float offset_u;
+	float offset_v;
+	float scale_u;
+	float scale_v;
+	float rotation;
+	int texcoord_set;
+
+	FeRenderTextureBinding();
+	void clear();
+};
+
+struct FeRenderPbrLight
+{
+	int type;
+	float color[3];
+	float intensity;
+	float position[3];
+	float direction[3];
+	float range;
+	float inner_cone_cos;
+	float outer_cone_cos;
+
+	FeRenderPbrLight();
+	void clear();
+};
+
+struct FeRenderPbrMaterial
+{
+	FeRenderTextureBinding base_color_texture;
+	FeRenderTextureBinding metallic_roughness_texture;
+	FeRenderTextureBinding normal_texture;
+	FeRenderTextureBinding occlusion_texture;
+	FeRenderTextureBinding emissive_texture;
+	float base_color_factor[4];
+	float emissive_factor[3];
+	float metallic_factor;
+	float roughness_factor;
+	float normal_scale;
+	float occlusion_strength;
+	float alpha_cutoff;
+	int alpha_mode;
+	bool unlit;
+	bool double_sided;
+
+	FeRenderPbrMaterial();
+	void clear();
+};
+
 struct FeRenderGeometry
 {
 	std::vector<FeRenderVertex> vertices;
+	const FeRenderVertex *external_vertices;
+	std::size_t external_vertex_count;
+	const void *external_vertex_id;
+	int geometry_kind;
 	const void *texture_id;
 	int texture_source_type;
 	bool texture_repeated;
@@ -70,9 +162,19 @@ struct FeRenderGeometry
 	bool textured;
 	bool texture_dynamic;
 	std::uint64_t texture_content_version;
+	FeRenderPbrMaterial pbr_material;
+	int light_count;
+	FeRenderPbrLight lights[4];
+	float ambient_color[3];
+	float camera_light;
+	float model_matrix[16];
+	float normal_matrix[9];
 
 	FeRenderGeometry();
 	void clear();
+	bool has_external_vertices() const;
+	const FeRenderVertex *get_vertex_data() const;
+	std::size_t get_vertex_count() const;
 };
 
 struct FeRenderSurfaceFrame
