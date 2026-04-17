@@ -528,13 +528,16 @@ namespace
 {
 	bool zcompare( FeBasePresentable *one, FeBasePresentable *two )
 	{
-		if ( one->get_z() < two->get_z() )
+		if ( one->get_zorder() < two->get_zorder() )
 			return true;
 
-		if ( one->get_z() > two->get_z() )
+		if ( one->get_zorder() > two->get_zorder() )
 			return false;
 
-		return ( one->get_zorder() < two->get_zorder() );
+		if ( one->get_zbuffer() || two->get_zbuffer() )
+			return false;
+
+		return ( one->get_z() < two->get_z() );
 	}
 
 	void apply_geometry_transform( std::vector<FeRenderGeometry> &geometry, const FeTransform &transform )
