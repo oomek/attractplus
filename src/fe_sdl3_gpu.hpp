@@ -52,7 +52,6 @@ public:
 	SDL_Window *get_window() const;
 	SDL_GPUDevice *get_device() const;
 	void *get_native_window_handle() const;
-	void write_debug_log( const char *message ) const;
 
 private:
 	struct CustomShaderEntry;
@@ -310,8 +309,6 @@ private:
 	bool m_present_disabled;
 	unsigned int m_failed_present_frames;
 	bool m_has_submitted_frame;
-	bool m_logged_successful_present;
-	bool m_debug_logging_enabled;
 };
 
 #endif

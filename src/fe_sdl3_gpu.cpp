@@ -16,7 +16,6 @@
 #include <cstring>
 #include <fstream>
 #include <regex>
-#include <set>
 #include <sstream>
 
 namespace
@@ -485,8 +484,6 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_present_disabled = false;
 	m_failed_present_frames = 0;
 	m_has_submitted_frame = false;
-	m_logged_successful_present = false;
-	m_debug_logging_enabled = false;
 }
 
 FeSdl3GpuContext::~FeSdl3GpuContext()
@@ -500,63 +497,6 @@ void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
 	m_has_submitted_frame = true;
 	m_prepared_images.clear();
 	m_vertex_stream.clear();
-
-	if ( m_debug_logging_enabled )
-	{
-		std::size_t surface_geometry_count = 0;
-		std::size_t custom_shader_count = 0;
-		std::size_t surface_custom_shader_count = 0;
-		std::set<std::string> shader_paths;
-		for ( const FeRenderGeometry &image : m_frame.images )
-		{
-			if ( image.custom_shader )
-			{
-				++custom_shader_count;
-				if ( image.shader && !image.shader->get_fragment_source_path().empty() )
-					shader_paths.insert( image.shader->get_fragment_source_path() );
-			}
-		}
-		for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
-		{
-			surface_geometry_count += surface.geometry.size();
-			for ( const FeRenderGeometry &image : surface.geometry )
-			{
-				if ( image.custom_shader )
-				{
-					++surface_custom_shader_count;
-					if ( image.shader && !image.shader->get_fragment_source_path().empty() )
-						shader_paths.insert( image.shader->get_fragment_source_path() );
-				}
-			}
-		}
-
-		std::ostringstream stream;
-		stream
-			<< "submit_frame:"
-			<< " images=" << m_frame.images.size()
-			<< " surfaces=" << m_frame.surfaces.size()
-			<< " surface_geometry=" << surface_geometry_count
-			<< " custom_shaders=" << custom_shader_count
-			<< " surface_custom_shaders=" << surface_custom_shader_count
-			<< " viewport=" << m_frame.viewport_width << "x" << m_frame.viewport_height;
-		write_debug_log( stream.str().c_str() );
-
-		if ( !shader_paths.empty() )
-		{
-			std::ostringstream shader_stream;
-			shader_stream << "submit_frame: shader_paths=";
-			bool first = true;
-			for ( const std::string &path : shader_paths )
-			{
-				if ( !first )
-					shader_stream << ";";
-				first = false;
-				shader_stream << path;
-			}
-			write_debug_log( shader_stream.str().c_str() );
-		}
-	}
-
 }
 
 const FeRenderFrame &FeSdl3GpuContext::get_frame() const
@@ -862,7 +802,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		break;
 
 	default:
-		FeLog() << "Could not capture GPU frame: unsupported GPU texture format." << std::endl;
+		FeLog() << "SDL: Could not capture GPU frame: unsupported GPU texture format." << std::endl;
 		return false;
 	}
 
@@ -1382,21 +1322,21 @@ namespace
 
 			if ( !fe_glslang_compile_to_spirv( shader_name, translated_source, vertex_stage, blob.code, diagnostics ) || blob.code.empty() )
 			{
-				FeLog() << "shader_compile: error " << shader_name << std::endl;
+				FeLog() << "SDL: shader_compile: error " << shader_name << std::endl;
 				if ( !diagnostics.empty() )
-					FeDebug() << diagnostics << std::endl;
+					FeLog() << "SDL: " << diagnostics << std::endl;
 				cache[ cache_key ].compile_failed = true;
 				return false;
 			}
 
 			if ( !diagnostics.empty() )
-				FeDebug() << diagnostics << std::endl;
+				FeDebug() << "SDL: " << diagnostics << std::endl;
 
 			write_binary_file( spirv_path, blob.code );
 		}
 
 		if ( compiled )
-			FeDebug() << "shader_compile: ok " << shader_name << std::endl;
+			FeDebug() << "SDL: shader_compile: ok " << shader_name << std::endl;
 
 		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
 		blob.entrypoint = "main";
@@ -1418,7 +1358,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	if ( !is_available() )
 	{
-		write_debug_log( "execute_frame: GPU context is not available" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1428,7 +1367,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
 	if ( !command_buffer )
 	{
-		write_debug_log( "execute_frame: SDL_AcquireGPUCommandBuffer failed" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1438,14 +1376,12 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	Uint32 swapchain_height = 0;
 	if ( !SDL_WaitAndAcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
 	{
-		write_debug_log( "execute_frame: SDL_WaitAndAcquireGPUSwapchainTexture failed" );
 		m_failed_present_frames++;
 		return false;
 	}
 
 	if ( !swapchain_texture )
 	{
-		write_debug_log( "execute_frame: swapchain texture was null" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1472,7 +1408,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		&& ensure_color_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
 	if ( !m_frame_stats.depth_ready )
 	{
-		write_debug_log( "execute_frame: render targets not ready" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1484,12 +1419,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	}
 
 	m_frame_stats.pipeline_ready = ( m_blend_pipelines[0][FeBlend::Alpha] != nullptr );
-	if ( !m_frame_stats.pipeline_ready )
-		write_debug_log( "execute_frame: image pipeline not ready" );
 
 	if ( m_frame_stats.pipeline_ready && !render_surface_frames( command_buffer ) )
 	{
-		write_debug_log( "execute_frame: render_surface_frames failed" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1525,7 +1457,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		m_depth_texture ? &depth_target : nullptr );
 	if ( !render_pass )
 	{
-		write_debug_log( "execute_frame: SDL_BeginGPURenderPass failed" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1547,7 +1478,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				m_frame_stats.draw_ready ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
-			write_debug_log( "execute_frame: render_geometry_batch failed" );
 			m_failed_present_frames++;
 			return false;
 		}
@@ -1570,7 +1500,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				overlay_drew ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
-			write_debug_log( "execute_frame: render_overlay_geometry failed" );
 			m_failed_present_frames++;
 			return false;
 		}
@@ -1581,7 +1510,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
-		write_debug_log( "execute_frame: SDL_SubmitGPUCommandBuffer failed" );
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1589,61 +1517,15 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	m_frame_stats.executed = true;
 	m_frame_stats.submitted_frames++;
 	if ( m_frame_stats.pipeline_ready && m_frame_stats.draw_ready )
-	{
 		m_failed_present_frames = 0;
-		if ( !m_logged_successful_present )
-		{
-			std::ostringstream stream;
-			stream
-				<< "execute_frame: drew frame"
-				<< " prepared_images=" << m_prepared_images.size()
-				<< " vertex_count=" << m_vertex_stream.size()
-				<< " viewport=" << swapchain_width << "x" << swapchain_height;
-			write_debug_log( stream.str().c_str() );
-
-			if ( !m_prepared_images.empty() && m_prepared_images[0].geometry )
-			{
-				const FeRenderGeometry &geometry = *m_prepared_images[0].geometry;
-				std::ostringstream geo_stream;
-				geo_stream
-					<< "execute_frame: first_geometry"
-					<< " textured=" << ( geometry.textured ? 1 : 0 )
-					<< " texture_size=" << geometry.texture_width << "x" << geometry.texture_height
-					<< " vertices=" << geometry.vertices.size();
-
-				const std::size_t sample_count = std::min<std::size_t>( geometry.vertices.size(), 3 );
-				for ( std::size_t i = 0; i < sample_count; ++i )
-				{
-					const FeRenderVertex &vertex = geometry.vertices[i];
-					geo_stream
-						<< " v" << i
-						<< "=(" << vertex.x << "," << vertex.y << "," << vertex.z << ";"
-						<< vertex.u << "," << vertex.v << ")";
-				}
-
-				write_debug_log( geo_stream.str().c_str() );
-			}
-			m_logged_successful_present = true;
-		}
-	}
 	if ( !m_frame_stats.draw_ready )
 	{
-		std::ostringstream stream;
-		stream
-			<< "execute_frame: submitted without draws"
-			<< " pipeline_ready=" << ( m_frame_stats.pipeline_ready ? 1 : 0 )
-			<< " prepared_images=" << m_prepared_images.size()
-			<< " vertex_count=" << m_vertex_stream.size();
-		write_debug_log( stream.str().c_str() );
 		if ( has_frame_content() )
 			m_failed_present_frames++;
 	}
 
 	if ( m_failed_present_frames >= 3 )
-	{
 		m_present_disabled = true;
-		write_debug_log( "execute_frame: disabling SDL present after repeated failed/no-draw frames" );
-	}
 	return true;
 }
 
@@ -1651,9 +1533,6 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 {
 	if ( m_device )
 		return true;
-
-	const char *debug_env = SDL_getenv( "FE_SDL3_GPU_DEBUG_LOG" );
-	m_debug_logging_enabled = debug_mode || ( debug_env && debug_env[0] && debug_env[0] != '0' );
 
 	if ( !ensure_video_subsystem() )
 		return false;
@@ -1664,11 +1543,11 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 	if ( !m_device && preferred_driver )
 	{
 		const std::string message = std::string( "initialize: preferred GPU driver failed: " ) + preferred_driver;
-		write_debug_log( message.c_str() );
+		FeDebug() << "SDL: " << message << std::endl;
 		m_device = SDL_CreateGPUDevice( shader_formats, debug_mode, nullptr );
 	}
 	if ( !m_device )
-		write_debug_log( "initialize: SDL_CreateGPUDevice failed" );
+		FeLog() << "SDL: initialize: SDL_CreateGPUDevice failed" << std::endl;
 	else
 	{
 		std::ostringstream stream;
@@ -1676,7 +1555,7 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 		if ( preferred_driver )
 			stream << " preferred_driver=" << preferred_driver;
 		stream << " shader_formats=" << static_cast<unsigned int>( SDL_GetGPUShaderFormats( m_device ) );
-		write_debug_log( stream.str().c_str() );
+		FeDebug() << "SDL: " << stream.str() << std::endl;
 	}
 	return ( m_device != nullptr );
 }
@@ -1695,7 +1574,7 @@ bool FeSdl3GpuContext::ensure_video_subsystem()
 
 	if ( !SDL_InitSubSystem( SDL_INIT_VIDEO ) )
 	{
-		FeLog() << "WARNING: SDL3 video initialization failed: " << SDL_GetError() << std::endl;
+		FeLog() << "SDL: WARNING: SDL3 video initialization failed: " << SDL_GetError() << std::endl;
 		return false;
 	}
 
@@ -1721,8 +1600,6 @@ void FeSdl3GpuContext::shutdown()
 		SDL_DestroyGPUDevice( m_device );
 		m_device = nullptr;
 	}
-
-	m_debug_logging_enabled = false;
 
 	if ( m_sdl_ready && m_owns_sdl_video )
 	{
@@ -1767,11 +1644,11 @@ bool FeSdl3GpuContext::wrap_native_window( void *native_window_handle, int width
 	{
 		SDL_DestroyWindow( m_window );
 		m_window = nullptr;
-		write_debug_log( "wrap_native_window: SDL_ClaimWindowForGPUDevice failed" );
+		FeLog() << "SDL: wrap_native_window: SDL_ClaimWindowForGPUDevice failed" << std::endl;
 		return false;
 	}
 
-	write_debug_log( "wrap_native_window: success" );
+	FeDebug() << "SDL: wrap_native_window: success" << std::endl;
 	m_present_disabled = false;
 	m_failed_present_frames = 0;
 	return true;
@@ -1795,11 +1672,11 @@ bool FeSdl3GpuContext::claim_window( SDL_Window *window )
 	if ( !m_window_claimed )
 	{
 		m_window = nullptr;
-		write_debug_log( "claim_window: SDL_ClaimWindowForGPUDevice failed" );
+		FeLog() << "SDL: claim_window: SDL_ClaimWindowForGPUDevice failed" << std::endl;
 		return false;
 	}
 
-	write_debug_log( "claim_window: success" );
+	FeDebug() << "SDL: claim_window: success" << std::endl;
 	m_present_disabled = false;
 	m_failed_present_frames = 0;
 	return true;
@@ -1822,7 +1699,6 @@ void FeSdl3GpuContext::release_window()
 	m_present_disabled = false;
 	m_failed_present_frames = 0;
 	m_has_submitted_frame = false;
-	m_logged_successful_present = false;
 }
 
 void FeSdl3GpuContext::release_texture( TextureEntry &entry )
@@ -2753,7 +2629,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
 	if ( !entry.fragment_shader )
 	{
-		write_debug_log( ( std::string( "builtin_shader: SDL_CreateGPUShader failed for " ) + entry.source_id ).c_str() );
+		FeLog() << "SDL: builtin_shader: SDL_CreateGPUShader failed for " << entry.source_id << std::endl;
 		return false;
 	}
 
@@ -2806,7 +2682,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 			entry.blend_pipelines[z][mode] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
 			if ( !entry.blend_pipelines[z][mode] )
 			{
-				write_debug_log( ( std::string( "builtin_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_id ).c_str() );
+				FeLog() << "SDL: builtin_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_id << std::endl;
 				release_builtin_shader( entry );
 				return false;
 			}
@@ -2862,7 +2738,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		entry.vertex_shader = SDL_CreateGPUShader( m_device, &vertex_info );
 		if ( !entry.vertex_shader )
 		{
-			write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUShader failed for vertex shader " ) + vertex_source_id ).c_str() );
+			FeLog() << "SDL: custom_shader: SDL_CreateGPUShader failed for vertex shader " << vertex_source_id << std::endl;
 			return false;
 		}
 		vertex_shader = entry.vertex_shader;
@@ -2880,7 +2756,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
 	if ( !entry.fragment_shader )
 	{
-		write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUShader failed for " ) + entry.source_path ).c_str() );
+		FeLog() << "SDL: custom_shader: SDL_CreateGPUShader failed for " << entry.source_path << std::endl;
 		return false;
 	}
 
@@ -2933,7 +2809,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 			entry.blend_pipelines[ z ][ blend_mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
 			if ( !entry.blend_pipelines[ z ][ blend_mode ] )
 			{
-				write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
+				FeLog() << "SDL: custom_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_path << std::endl;
 				release_custom_shader( entry );
 				return false;
 			}
@@ -2949,7 +2825,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 			entry.uses_current_texture = true;
 	entry.has_custom_vertex = has_custom_vertex;
 	entry.fast_current_texture_only = false;
-	write_debug_log( ( std::string( "custom_shader: ready " ) + entry.source_path ).c_str() );
+	FeDebug() << "SDL: custom_shader: ready " << entry.source_path << std::endl;
 	return true;
 }
 
@@ -2987,7 +2863,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
 	if ( !entry.fragment_shader )
 	{
-		write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUShader failed for " ) + entry.source_path ).c_str() );
+		FeLog() << "SDL: custom_shader: SDL_CreateGPUShader failed for " << entry.source_path << std::endl;
 		return false;
 	}
 
@@ -3040,7 +2916,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 			entry.blend_pipelines[ z ][ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
 			if ( !entry.blend_pipelines[ z ][ mode ] )
 			{
-				write_debug_log( ( std::string( "custom_shader: SDL_CreateGPUGraphicsPipeline failed for " ) + entry.source_path ).c_str() );
+				FeLog() << "SDL: custom_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_path << std::endl;
 				release_custom_shader( entry );
 				return false;
 			}
@@ -3052,7 +2928,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	entry.fragment_samplers = fragment_samplers;
 	entry.uses_current_texture = true;
 	entry.has_custom_vertex = false;
-	write_debug_log( ( std::string( "custom_shader: ready " ) + entry.source_path ).c_str() );
+	FeDebug() << "SDL: custom_shader: ready " << entry.source_path << std::endl;
 	return true;
 }
 
@@ -3092,7 +2968,7 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 
 		if ( static_cast<int>( uniforms.size() ) >= FE_MAX_CUSTOM_SHADER_UNIFORMS )
 		{
-			write_debug_log( ( std::string( "custom_shader: too many numeric uniforms in " ) + source_id ).c_str() );
+			FeLog() << "SDL: custom_shader: too many numeric uniforms in " << source_id << std::endl;
 			return false;
 		}
 
@@ -3176,7 +3052,7 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 	{
 		if ( !read_file_content( source_path, raw_source ) )
 		{
-			write_debug_log( ( std::string( "custom_shader: failed to read source " ) + source_path ).c_str() );
+			FeLog() << "SDL: custom_shader: failed to read source " << source_path << std::endl;
 			return false;
 		}
 	}
@@ -3212,7 +3088,7 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	{
 		if ( !read_file_content( source_path, raw_source ) )
 		{
-			write_debug_log( ( std::string( "custom_shader: failed to read source " ) + source_path ).c_str() );
+			FeLog() << "SDL: custom_shader: failed to read source " << source_path << std::endl;
 			return false;
 		}
 	}
@@ -3237,13 +3113,13 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	{
 		if ( uniform.sampler )
 		{
-			write_debug_log( ( std::string( "custom_shader: samplers are not supported in custom vertex shaders " ) + source_path ).c_str() );
+			FeLog() << "SDL: custom_shader: samplers are not supported in custom vertex shaders " << source_path << std::endl;
 			return false;
 		}
 
 		if ( static_cast<int>( uniforms.size() ) >= FE_MAX_CUSTOM_SHADER_UNIFORMS )
 		{
-			write_debug_log( ( std::string( "custom_shader: too many numeric uniforms in " ) + source_path ).c_str() );
+			FeLog() << "SDL: custom_shader: too many numeric uniforms in " << source_path << std::endl;
 			return false;
 		}
 
@@ -4068,13 +3944,13 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	ShaderBlob fragment_blobs[FeBlend::None + 1] = {};
 	if ( !compile_shader_blob( "__vertex__", build_builtin_vertex_shader(), true, vertex_blob ) )
 	{
-		write_debug_log( "initialize_image_pipeline: failed to compile internal vertex shader" );
+		FeLog() << "SDL: initialize_image_pipeline: failed to compile internal vertex shader" << std::endl;
 		return false;
 	}
 
 	if ( !compile_shader_blob( "__alpha_prepass_fragment__", build_alpha_prepass_fragment_shader(), false, alpha_prepass_blob ) )
 	{
-		write_debug_log( "initialize_image_pipeline: failed to compile internal alpha prepass shader" );
+		FeLog() << "SDL: initialize_image_pipeline: failed to compile internal alpha prepass shader" << std::endl;
 		return false;
 	}
 
@@ -4095,7 +3971,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		{
 			std::ostringstream stream;
 			stream << "initialize_image_pipeline: failed to compile internal fragment shader for blend mode " << mode;
-			write_debug_log( stream.str().c_str() );
+			FeLog() << "SDL: " << stream.str() << std::endl;
 			return false;
 		}
 	}
@@ -4111,7 +3987,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	m_vertex_shader = SDL_CreateGPUShader( m_device, &vertex_info );
 	if ( !m_vertex_shader )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUShader failed for vertex shader" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for vertex shader" << std::endl;
 		return false;
 	}
 
@@ -4126,7 +4002,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	m_alpha_prepass_shader = SDL_CreateGPUShader( m_device, &fragment_info );
 	if ( !m_alpha_prepass_shader )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUShader failed for alpha prepass shader" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for alpha prepass shader" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4143,7 +4019,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		{
 			std::ostringstream stream;
 			stream << "initialize_image_pipeline: SDL_CreateGPUShader failed for blend mode " << mode;
-			write_debug_log( stream.str().c_str() );
+			FeLog() << "SDL: " << stream.str() << std::endl;
 			release_image_pipeline();
 			return false;
 		}
@@ -4157,7 +4033,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		true );
 	if ( !m_linear_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4170,7 +4046,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		true );
 	if ( !m_linear_repeat_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear repeat sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear repeat sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4183,7 +4059,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		true );
 	if ( !m_linear_mipmap_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4196,7 +4072,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		true );
 	if ( !m_linear_mipmap_repeat_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap repeat sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap repeat sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4209,7 +4085,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		false );
 	if ( !m_nearest_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4222,7 +4098,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		false );
 	if ( !m_nearest_repeat_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest repeat sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest repeat sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4235,7 +4111,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		false );
 	if ( !m_nearest_mipmap_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest mipmap sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest mipmap sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4248,7 +4124,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		false );
 	if ( !m_nearest_mipmap_repeat_sampler )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest mipmap repeat sampler" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for nearest mipmap repeat sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4305,7 +4181,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	m_alpha_prepass_pipeline = SDL_CreateGPUGraphicsPipeline( m_device, &alpha_prepass_info );
 	if ( !m_alpha_prepass_pipeline )
 	{
-		write_debug_log( "initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for alpha prepass" );
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for alpha prepass" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -4323,21 +4199,15 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 			{
 				std::ostringstream stream;
 				stream << "initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for blend mode " << mode;
-				write_debug_log( stream.str().c_str() );
+				FeLog() << "SDL: " << stream.str() << std::endl;
 				release_image_pipeline();
 				return false;
 			}
 		}
 	}
 
-	write_debug_log( "initialize_image_pipeline: success" );
+	FeDebug() << "SDL: initialize_image_pipeline: success" << std::endl;
 	return true;
-}
-
-void FeSdl3GpuContext::write_debug_log( const char *message ) const
-{
-	if ( m_debug_logging_enabled && message && message[0] )
-		FeLog() << message << std::endl;
 }
 
 SDL_Window *FeSdl3GpuContext::get_window() const
