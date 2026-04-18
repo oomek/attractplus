@@ -98,6 +98,8 @@ struct FeRenderTextureBinding
 	float scale_u;
 	float scale_v;
 	float rotation;
+	float fit_scale_u;
+	float fit_scale_v;
 	int texcoord_set;
 
 	FeRenderTextureBinding();

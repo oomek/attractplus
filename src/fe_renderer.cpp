@@ -96,6 +96,8 @@ void FeRenderTextureBinding::clear()
 	scale_u = 1.0f;
 	scale_v = 1.0f;
 	rotation = 0.0f;
+	fit_scale_u = 1.0f;
+	fit_scale_v = 1.0f;
 	texcoord_set = 0;
 }
 

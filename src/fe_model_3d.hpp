@@ -7,6 +7,56 @@
 
 #include "fe_image.hpp"
 
+class FeModel3D;
+
+class FeModel3DMaterialArtwork
+{
+public:
+	FeModel3DMaterialArtwork( FeModel3D &model, const std::string &material_name );
+
+	const char *get_material_name() const;
+	int get_index_offset() const;
+	void set_index_offset( int io );
+	int get_filter_offset() const;
+	void set_filter_offset( int fo );
+	void rawset_index_offset( int io );
+	void rawset_filter_offset( int fo );
+	int get_video_flags() const;
+	void set_video_flags( int flags );
+	bool get_movie_enabled() const;
+	void set_movie_enabled( bool enabled );
+	bool get_video_playing() const;
+	void set_video_playing( bool playing );
+	int get_video_duration() const;
+	int get_video_time() const;
+	bool get_preserve_aspect_ratio() const;
+	void set_preserve_aspect_ratio( bool preserve );
+	const char *get_file_name() const;
+	void set_file_name( const char *filename );
+	int get_trigger() const;
+	void set_trigger( int trigger );
+	float get_volume() const;
+	void set_volume( float volume );
+	float get_pan() const;
+	void set_pan( float pan );
+	bool get_smooth() const;
+	void set_smooth( bool smooth );
+	bool get_mipmap() const;
+	void set_mipmap( bool mipmap );
+	bool get_repeat() const;
+	void set_repeat( bool repeat );
+	float get_sample_aspect_ratio() const;
+	float get_texture_rotation() const;
+	void set_texture_rotation( float degrees );
+	void set_artwork( const char *artwork_label );
+	void set_file( const char *filename );
+	void clear();
+
+private:
+	FeModel3D *m_model;
+	std::string m_material_name;
+};
+
 class FeModel3D : public FeBasePresentable
 {
 public:
@@ -35,6 +85,8 @@ public:
 	void set_depth( float depth );
 	const char *get_file_name() const;
 
+	FeModel3DMaterialArtwork *add_material_artwork( const char *material_name, const char *artwork_label );
+	FeModel3DMaterialArtwork *add_material_file( const char *material_name, const char *filename );
 	void set_material_artwork( const char *material_name, const char *artwork_label );
 	void set_material_file( const char *material_name, const char *filename );
 	void set_material_texture_rotation( const char *material_name, float degrees );
@@ -47,6 +99,10 @@ private:
 	struct MaterialOverride;
 
 	void load_model( const std::string &filename );
+	void initialize_override_defaults( MaterialOverride &entry );
+	void apply_override_settings( MaterialOverride &entry, bool do_update = true );
+	FeTextureContainer *create_override_artwork_container( const char *artwork_label ) const;
+	FeTextureContainer *create_override_file_container( const char *filename ) const;
 	MaterialOverride *find_override( const std::string &material_name );
 	const MaterialOverride *find_override( const std::string &material_name ) const;
 	MaterialOverride *find_or_create_override( const std::string &material_name );
@@ -63,6 +119,8 @@ private:
 	Color m_color;
 	std::shared_ptr<ModelData> m_model;
 	std::vector<std::unique_ptr<MaterialOverride>> m_overrides;
+
+	friend class FeModel3DMaterialArtwork;
 };
 
 #endif

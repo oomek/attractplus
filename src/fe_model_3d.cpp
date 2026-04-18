@@ -1057,6 +1057,135 @@ namespace
 		binding.rotation = radians;
 	}
 
+	Vec2f get_vertex_texcoord( const FeRenderVertex &vertex, int texcoord_set )
+	{
+		if ( texcoord_set == 1 )
+			return Vec2f( vertex.u1, vertex.v1 );
+
+		return Vec2f( vertex.u, vertex.v );
+	}
+
+	float estimate_primitive_bounds_aspect( const ModelPrimitive &primitive )
+	{
+		if ( primitive.vertices.empty() )
+			return 1.0f;
+
+		float min_x = primitive.vertices[0].x;
+		float max_x = primitive.vertices[0].x;
+		float min_y = primitive.vertices[0].y;
+		float max_y = primitive.vertices[0].y;
+		float min_z = primitive.vertices[0].z;
+		float max_z = primitive.vertices[0].z;
+
+		for ( const FeRenderVertex &vertex : primitive.vertices )
+		{
+			min_x = std::min( min_x, vertex.x );
+			max_x = std::max( max_x, vertex.x );
+			min_y = std::min( min_y, vertex.y );
+			max_y = std::max( max_y, vertex.y );
+			min_z = std::min( min_z, vertex.z );
+			max_z = std::max( max_z, vertex.z );
+		}
+
+		float extents[3] =
+		{
+			max_x - min_x,
+			max_y - min_y,
+			max_z - min_z
+		};
+		std::sort( extents, extents + 3 );
+		return ( extents[1] > FE_EPSILON ) ? ( extents[2] / extents[1] ) : 1.0f;
+	}
+
+	float estimate_primitive_target_aspect( const ModelPrimitive &primitive, int texcoord_set )
+	{
+		if ( primitive.vertices.size() < 3 )
+			return estimate_primitive_bounds_aspect( primitive );
+
+		float min_u = std::numeric_limits<float>::max();
+		float max_u = -std::numeric_limits<float>::max();
+		float min_v = std::numeric_limits<float>::max();
+		float max_v = -std::numeric_limits<float>::max();
+		float tangent_length_sum = 0.0f;
+		float bitangent_length_sum = 0.0f;
+		float weight_sum = 0.0f;
+
+		for ( std::size_t i = 0; i < primitive.vertices.size(); i += 3 )
+		{
+			if ( i + 2 >= primitive.vertices.size() )
+				break;
+
+			const FeRenderVertex &v0 = primitive.vertices[i];
+			const FeRenderVertex &v1 = primitive.vertices[i + 1];
+			const FeRenderVertex &v2 = primitive.vertices[i + 2];
+			const Vec2f uv0 = get_vertex_texcoord( v0, texcoord_set );
+			const Vec2f uv1 = get_vertex_texcoord( v1, texcoord_set );
+			const Vec2f uv2 = get_vertex_texcoord( v2, texcoord_set );
+			min_u = std::min( min_u, std::min( uv0.x, std::min( uv1.x, uv2.x ) ) );
+			max_u = std::max( max_u, std::max( uv0.x, std::max( uv1.x, uv2.x ) ) );
+			min_v = std::min( min_v, std::min( uv0.y, std::min( uv1.y, uv2.y ) ) );
+			max_v = std::max( max_v, std::max( uv0.y, std::max( uv1.y, uv2.y ) ) );
+
+			const Vec3f p0( v0.x, v0.y, v0.z );
+			const Vec3f p1( v1.x, v1.y, v1.z );
+			const Vec3f p2( v2.x, v2.y, v2.z );
+			const Vec3f delta_pos1 = p1 - p0;
+			const Vec3f delta_pos2 = p2 - p0;
+			const Vec2f delta_uv1( uv1.x - uv0.x, uv1.y - uv0.y );
+			const Vec2f delta_uv2( uv2.x - uv0.x, uv2.y - uv0.y );
+			const float determinant = ( delta_uv1.x * delta_uv2.y ) - ( delta_uv2.x * delta_uv1.y );
+			const float triangle_weight = length( cross( delta_pos1, delta_pos2 ) );
+			if ( std::fabs( determinant ) <= FE_EPSILON || triangle_weight <= FE_EPSILON )
+				continue;
+
+			const float inv_determinant = 1.0f / determinant;
+			const Vec3f tangent =
+				( delta_pos1 * delta_uv2.y - delta_pos2 * delta_uv1.y ) * inv_determinant;
+			const Vec3f bitangent =
+				( delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x ) * inv_determinant;
+			tangent_length_sum += length( tangent ) * triangle_weight;
+			bitangent_length_sum += length( bitangent ) * triangle_weight;
+			weight_sum += triangle_weight;
+		}
+
+		const float uv_width = max_u - min_u;
+		const float uv_height = max_v - min_v;
+		if ( weight_sum > FE_EPSILON && uv_width > FE_EPSILON && uv_height > FE_EPSILON )
+		{
+			const float width = ( tangent_length_sum / weight_sum ) * uv_width;
+			const float height = ( bitangent_length_sum / weight_sum ) * uv_height;
+			if ( width > FE_EPSILON && height > FE_EPSILON )
+				return width / height;
+		}
+
+		return estimate_primitive_bounds_aspect( primitive );
+	}
+
+	void apply_preserve_aspect_ratio_fit(
+		FeRenderTextureBinding &binding,
+		const ModelPrimitive &primitive,
+		float sample_aspect_ratio )
+	{
+		if ( !binding.texture_id || binding.width <= FE_EPSILON || binding.height <= FE_EPSILON )
+			return;
+
+		const float target_aspect = estimate_primitive_target_aspect( primitive, binding.texcoord_set );
+		const float safe_sample_aspect_ratio =
+			( sample_aspect_ratio > FE_EPSILON ) ? sample_aspect_ratio : 1.0f;
+		const float source_aspect =
+			( binding.width * safe_sample_aspect_ratio ) / std::max( binding.height, FE_EPSILON );
+		if ( target_aspect <= FE_EPSILON || source_aspect <= FE_EPSILON )
+			return;
+
+		binding.fit_scale_u = 1.0f;
+		binding.fit_scale_v = 1.0f;
+
+		if ( source_aspect > target_aspect + FE_EPSILON )
+			binding.fit_scale_v = target_aspect / source_aspect;
+		else if ( source_aspect + FE_EPSILON < target_aspect )
+			binding.fit_scale_u = source_aspect / target_aspect;
+	}
+
 }
 
 struct FeModel3D::ModelData
@@ -1085,16 +1214,385 @@ struct FeModel3D::MaterialOverride
 {
 	std::string material_name;
 	FeTextureContainer *container;
+	std::unique_ptr<FeModel3DMaterialArtwork> handle;
+	int index_offset;
+	int filter_offset;
+	int video_flags;
+	int trigger;
+	bool preserve_aspect_ratio;
 	float texture_rotation_degrees;
 	bool use_texture_rotation;
+	bool smooth;
+	bool mipmap;
+	bool repeat;
+	float volume;
+	float pan;
+	bool play_state;
+	bool use_play_state;
 
 	MaterialOverride()
 		: container( nullptr ),
+		  index_offset( 0 ),
+		  filter_offset( 0 ),
+		  video_flags( VF_Normal ),
+		  trigger( ToNewSelection ),
+		  preserve_aspect_ratio( false ),
 		  texture_rotation_degrees( 0.0f ),
-		  use_texture_rotation( false )
+		  use_texture_rotation( false ),
+		  smooth( false ),
+		  mipmap( true ),
+		  repeat( false ),
+		  volume( 100.0f ),
+		  pan( 0.0f ),
+		  play_state( true ),
+		  use_play_state( false )
 	{
 	}
 };
+
+FeModel3DMaterialArtwork::FeModel3DMaterialArtwork( FeModel3D &model, const std::string &material_name )
+	: m_model( &model ),
+	  m_material_name( material_name )
+{
+}
+
+const char *FeModel3DMaterialArtwork::get_material_name() const
+{
+	return m_material_name.c_str();
+}
+
+int FeModel3DMaterialArtwork::get_index_offset() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->index_offset : 0;
+}
+
+void FeModel3DMaterialArtwork::set_index_offset( int io )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->index_offset = io;
+	if ( entry->container )
+		entry->container->set_index_offset( io, true );
+}
+
+int FeModel3DMaterialArtwork::get_filter_offset() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->filter_offset : 0;
+}
+
+void FeModel3DMaterialArtwork::set_filter_offset( int fo )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->filter_offset = fo;
+	if ( entry->container )
+		entry->container->set_filter_offset( fo, true );
+}
+
+void FeModel3DMaterialArtwork::rawset_index_offset( int io )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->index_offset = io;
+	if ( entry->container )
+		entry->container->set_index_offset( io, false );
+}
+
+void FeModel3DMaterialArtwork::rawset_filter_offset( int fo )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->filter_offset = fo;
+	if ( entry->container )
+		entry->container->set_filter_offset( fo, false );
+}
+
+int FeModel3DMaterialArtwork::get_video_flags() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->video_flags : VF_Normal;
+}
+
+void FeModel3DMaterialArtwork::set_video_flags( int flags )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->video_flags = flags;
+	if ( entry->container )
+		entry->container->set_video_flags( static_cast<FeVideoFlags>( flags ) );
+}
+
+bool FeModel3DMaterialArtwork::get_movie_enabled() const
+{
+	return ( get_video_flags() & VF_DisableVideo ) == 0;
+}
+
+void FeModel3DMaterialArtwork::set_movie_enabled( bool enabled )
+{
+	int flags = get_video_flags();
+	if ( enabled )
+		flags &= ~VF_DisableVideo;
+	else
+		flags |= VF_DisableVideo;
+
+	set_video_flags( flags );
+}
+
+bool FeModel3DMaterialArtwork::get_video_playing() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	if ( !entry )
+		return false;
+
+	if ( entry->container )
+		return entry->container->get_play_state();
+
+	return entry->use_play_state && entry->play_state;
+}
+
+void FeModel3DMaterialArtwork::set_video_playing( bool playing )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->play_state = playing;
+	entry->use_play_state = true;
+	if ( entry->container )
+		entry->container->set_play_state( playing );
+}
+
+int FeModel3DMaterialArtwork::get_video_duration() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return ( entry && entry->container ) ? entry->container->get_video_duration() : 0;
+}
+
+int FeModel3DMaterialArtwork::get_video_time() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return ( entry && entry->container ) ? entry->container->get_video_time() : 0;
+}
+
+bool FeModel3DMaterialArtwork::get_preserve_aspect_ratio() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->preserve_aspect_ratio : false;
+}
+
+void FeModel3DMaterialArtwork::set_preserve_aspect_ratio( bool preserve )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	if ( entry->preserve_aspect_ratio == preserve )
+		return;
+
+	entry->preserve_aspect_ratio = preserve;
+	FePresent::script_flag_redraw();
+}
+
+const char *FeModel3DMaterialArtwork::get_file_name() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return ( entry && entry->container ) ? entry->container->get_file_name() : "";
+}
+
+void FeModel3DMaterialArtwork::set_file_name( const char *filename )
+{
+	set_file( filename );
+}
+
+int FeModel3DMaterialArtwork::get_trigger() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->trigger : ToNewSelection;
+}
+
+void FeModel3DMaterialArtwork::set_trigger( int trigger )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->trigger = trigger;
+	if ( entry->container )
+		entry->container->set_trigger( trigger );
+}
+
+float FeModel3DMaterialArtwork::get_volume() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->volume : 100.0f;
+}
+
+void FeModel3DMaterialArtwork::set_volume( float volume )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	if ( volume < 0.0f )
+		volume = 0.0f;
+	if ( volume > 100.0f )
+		volume = 100.0f;
+	entry->volume = volume;
+	if ( entry->container )
+		entry->container->set_volume( volume );
+}
+
+float FeModel3DMaterialArtwork::get_pan() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->pan : 0.0f;
+}
+
+void FeModel3DMaterialArtwork::set_pan( float pan )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	entry->pan = std::clamp( pan, -1.0f, 1.0f );
+	if ( entry->container )
+		entry->container->set_pan( entry->pan );
+}
+
+bool FeModel3DMaterialArtwork::get_smooth() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->smooth : false;
+}
+
+void FeModel3DMaterialArtwork::set_smooth( bool smooth )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	if ( entry->smooth == smooth )
+		return;
+
+	entry->smooth = smooth;
+	if ( entry->container )
+		entry->container->set_smooth( smooth );
+	FePresent::script_flag_redraw();
+}
+
+bool FeModel3DMaterialArtwork::get_mipmap() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->mipmap : true;
+}
+
+void FeModel3DMaterialArtwork::set_mipmap( bool mipmap )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	if ( entry->mipmap == mipmap )
+		return;
+
+	entry->mipmap = mipmap;
+	if ( entry->container )
+		entry->container->set_mipmap( mipmap );
+	FePresent::script_flag_redraw();
+}
+
+bool FeModel3DMaterialArtwork::get_repeat() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->repeat : false;
+}
+
+void FeModel3DMaterialArtwork::set_repeat( bool repeat )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	if ( entry->repeat == repeat )
+		return;
+
+	entry->repeat = repeat;
+	if ( entry->container )
+		entry->container->set_repeat( repeat );
+	FePresent::script_flag_redraw();
+}
+
+float FeModel3DMaterialArtwork::get_sample_aspect_ratio() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return ( entry && entry->container ) ? entry->container->get_sample_aspect_ratio() : 1.0f;
+}
+
+float FeModel3DMaterialArtwork::get_texture_rotation() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->texture_rotation_degrees : 0.0f;
+}
+
+void FeModel3DMaterialArtwork::set_texture_rotation( float degrees )
+{
+	if ( !m_model )
+		return;
+
+	m_model->set_material_texture_rotation( m_material_name.c_str(), degrees );
+}
+
+void FeModel3DMaterialArtwork::set_artwork( const char *artwork_label )
+{
+	if ( !m_model )
+		return;
+
+	m_model->add_material_artwork( m_material_name.c_str(), artwork_label );
+}
+
+void FeModel3DMaterialArtwork::set_file( const char *filename )
+{
+	if ( !m_model )
+		return;
+
+	m_model->add_material_file( m_material_name.c_str(), filename );
+}
+
+void FeModel3DMaterialArtwork::clear()
+{
+	if ( !m_model )
+		return;
+
+	m_model->clear_material_texture( m_material_name.c_str() );
+}
 
 FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	: FeBasePresentable( p ),
@@ -1234,6 +1732,18 @@ const char *FeModel3D::get_file_name() const
 	return m_file_name.c_str();
 }
 
+void FeModel3D::initialize_override_defaults( MaterialOverride &entry )
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep && fep->get_fes() )
+		entry.smooth = fep->get_fes()->get_info_bool( FeSettings::SmoothImages );
+	else
+		entry.smooth = false;
+
+	entry.mipmap = true;
+	entry.repeat = false;
+}
+
 FeModel3D::MaterialOverride *FeModel3D::find_override( const std::string &material_name )
 {
 	for ( const std::unique_ptr<MaterialOverride> &entry : m_overrides )
@@ -1259,6 +1769,8 @@ FeModel3D::MaterialOverride *FeModel3D::find_or_create_override( const std::stri
 
 	std::unique_ptr<MaterialOverride> entry( new MaterialOverride() );
 	entry->material_name = material_name;
+	initialize_override_defaults( *entry );
+	entry->handle.reset( new FeModel3DMaterialArtwork( *this, material_name ) );
 	MaterialOverride *result = entry.get();
 	m_overrides.push_back( std::move( entry ) );
 	return result;
@@ -1280,22 +1792,55 @@ void FeModel3D::release_overrides()
 
 void FeModel3D::clear_override( const std::string &material_name )
 {
-	for ( auto it = m_overrides.begin(); it != m_overrides.end(); ++it )
-	{
-		MaterialOverride *entry = it->get();
-		if ( !entry || entry->material_name != material_name )
-			continue;
-
-		if ( entry->container )
-		{
-			FePresent::script_unregister_texture_container( entry->container );
-			delete entry->container;
-		}
-
-		m_overrides.erase( it );
-		FePresent::script_flag_redraw();
+	MaterialOverride *entry = find_override( material_name );
+	if ( !entry || !entry->container )
 		return;
+
+	FePresent::script_unregister_texture_container( entry->container );
+	delete entry->container;
+	entry->container = nullptr;
+	FePresent::script_flag_redraw();
+}
+
+void FeModel3D::apply_override_settings( MaterialOverride &entry, bool do_update )
+{
+	if ( !entry.container )
+		return;
+
+	entry.container->set_smooth( entry.smooth );
+	entry.container->set_mipmap( entry.mipmap );
+	entry.container->set_repeat( entry.repeat );
+	entry.container->set_index_offset( entry.index_offset, false );
+	entry.container->set_filter_offset( entry.filter_offset, false );
+	entry.container->set_video_flags( static_cast<FeVideoFlags>( entry.video_flags ) );
+	entry.container->set_trigger( entry.trigger );
+	entry.container->set_volume( entry.volume );
+	entry.container->set_pan( entry.pan );
+
+	if ( do_update )
+	{
+		FePresent::script_do_update( entry.container, true );
+		if ( entry.use_play_state )
+			entry.container->set_play_state( entry.play_state );
 	}
+}
+
+FeTextureContainer *FeModel3D::create_override_artwork_container( const char *artwork_label ) const
+{
+	if ( !artwork_label )
+		return nullptr;
+
+	return new FeTextureContainer( true, artwork_label );
+}
+
+FeTextureContainer *FeModel3D::create_override_file_container( const char *filename ) const
+{
+	if ( !filename )
+		return nullptr;
+
+	FeTextureContainer *container = new FeTextureContainer( false );
+	container->load_file( filename );
+	return container;
 }
 
 void FeModel3D::set_override_container( const std::string &material_name, FeTextureContainer *container )
@@ -1312,34 +1857,37 @@ void FeModel3D::set_override_container( const std::string &material_name, FeText
 	entry->container = container;
 
 	FePresent::script_register_texture_container( container );
-	FePresent::script_do_update( container, true );
+	apply_override_settings( *entry, true );
+}
+
+FeModel3DMaterialArtwork *FeModel3D::add_material_artwork( const char *material_name, const char *artwork_label )
+{
+	if ( !material_name || !artwork_label )
+		return nullptr;
+
+	MaterialOverride *entry = find_or_create_override( material_name );
+	set_override_container( material_name, create_override_artwork_container( artwork_label ) );
+	return entry->handle.get();
+}
+
+FeModel3DMaterialArtwork *FeModel3D::add_material_file( const char *material_name, const char *filename )
+{
+	if ( !material_name || !filename )
+		return nullptr;
+
+	MaterialOverride *entry = find_or_create_override( material_name );
+	set_override_container( material_name, create_override_file_container( filename ) );
+	return entry->handle.get();
 }
 
 void FeModel3D::set_material_artwork( const char *material_name, const char *artwork_label )
 {
-	if ( !material_name || !artwork_label )
-		return;
-
-	FeTextureContainer *container = new FeTextureContainer( true, artwork_label );
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep && fep->get_fes() )
-		container->set_smooth( fep->get_fes()->get_info_bool( FeSettings::SmoothImages ) );
-	container->set_mipmap( true );
-	set_override_container( material_name, container );
+	add_material_artwork( material_name, artwork_label );
 }
 
 void FeModel3D::set_material_file( const char *material_name, const char *filename )
 {
-	if ( !material_name || !filename )
-		return;
-
-	FeTextureContainer *container = new FeTextureContainer( false );
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep && fep->get_fes() )
-		container->set_smooth( fep->get_fes()->get_info_bool( FeSettings::SmoothImages ) );
-	container->set_mipmap( true );
-	container->load_file( filename );
-	set_override_container( material_name, container );
+	add_material_file( material_name, filename );
 }
 
 void FeModel3D::set_material_texture_rotation( const char *material_name, float degrees )
@@ -1962,6 +2510,21 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			entry.pbr_material.emissive_texture,
 			primitive.material.emissive_texture,
 			use_emissive_override ? override_container : nullptr );
+		if ( override_container && override_entry && override_entry->preserve_aspect_ratio )
+		{
+			const float sample_aspect_ratio = override_container->get_sample_aspect_ratio();
+			apply_preserve_aspect_ratio_fit(
+				entry.pbr_material.base_color_texture,
+				primitive,
+				sample_aspect_ratio );
+			if ( use_emissive_override )
+			{
+				apply_preserve_aspect_ratio_fit(
+					entry.pbr_material.emissive_texture,
+					primitive,
+					sample_aspect_ratio );
+			}
+		}
 		if ( override_container && override_entry && override_entry->use_texture_rotation )
 		{
 			apply_centered_texture_rotation(
