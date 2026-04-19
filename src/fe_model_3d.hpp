@@ -61,6 +61,7 @@ class FeModel3D : public FeBasePresentable
 {
 public:
 	FeModel3D( FePresentableParent &p, const std::string &filename );
+	FeModel3D( FeModel3D *o, FePresentableParent &p );
 	~FeModel3D() override;
 
 	Vec2f getPosition() const override;
@@ -85,6 +86,7 @@ public:
 	void set_depth( float depth );
 	const char *get_file_name() const;
 
+	FeModel3DMaterialArtwork *get_material_artwork( const char *material_name );
 	FeModel3DMaterialArtwork *add_material_artwork( const char *material_name, const char *artwork_label );
 	FeModel3DMaterialArtwork *add_material_file( const char *material_name, const char *filename );
 	void set_material_artwork( const char *material_name, const char *artwork_label );
@@ -109,6 +111,12 @@ private:
 	void set_override_container( const std::string &material_name, FeTextureContainer *container );
 	void clear_override( const std::string &material_name );
 	void release_overrides();
+	void invalidate_geometry_cache() const;
+	bool geometry_cache_matches( float camera_light ) const;
+	void update_geometry_cache_state( float camera_light ) const;
+	void update_cached_material_state( FeRenderGeometry &entry, std::size_t primitive_index ) const;
+	void refresh_geometry_cache() const;
+	void rebuild_geometry_cache( float camera_light ) const;
 
 	std::string m_file_name;
 	Vec2f m_pos;
@@ -119,6 +127,22 @@ private:
 	Color m_color;
 	std::shared_ptr<ModelData> m_model;
 	std::vector<std::unique_ptr<MaterialOverride>> m_overrides;
+	mutable bool m_geometry_cache_valid;
+	mutable const ModelData *m_geometry_cache_model;
+	mutable Vec2f m_geometry_cache_pos;
+	mutable Vec2f m_geometry_cache_size;
+	mutable Vec3f m_geometry_cache_anchor;
+	mutable float m_geometry_cache_depth;
+	mutable float m_geometry_cache_rotation;
+	mutable float m_geometry_cache_z;
+	mutable float m_geometry_cache_rotation_x;
+	mutable float m_geometry_cache_rotation_y;
+	mutable int m_geometry_cache_rotation_order;
+	mutable Color m_geometry_cache_color;
+	mutable bool m_geometry_cache_zbuffer;
+	mutable float m_geometry_cache_camera_light;
+	mutable std::vector<std::size_t> m_geometry_cache_primitives;
+	mutable std::vector<FeRenderGeometry> m_geometry_cache;
 
 	friend class FeModel3DMaterialArtwork;
 };

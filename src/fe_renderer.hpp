@@ -143,9 +143,19 @@ struct FeRenderPbrMaterial
 	void clear();
 };
 
+struct FeRenderPbrInstance
+{
+	float model_matrix[16];
+	float normal_matrix[9];
+
+	FeRenderPbrInstance();
+	void clear();
+};
+
 struct FeRenderGeometry
 {
 	std::vector<FeRenderVertex> vertices;
+	std::vector<FeRenderPbrInstance> pbr_instances;
 	const FeRenderVertex *external_vertices;
 	std::size_t external_vertex_count;
 	const void *external_vertex_id;
@@ -175,6 +185,7 @@ struct FeRenderGeometry
 	FeRenderGeometry();
 	void clear();
 	bool has_external_vertices() const;
+	bool has_pbr_instances() const;
 	const FeRenderVertex *get_vertex_data() const;
 	std::size_t get_vertex_count() const;
 };

@@ -17,6 +17,7 @@
 #include <fstream>
 #include <regex>
 #include <sstream>
+#include <utility>
 
 namespace
 {
@@ -339,6 +340,13 @@ namespace
 		return hash;
 	}
 
+	std::uint64_t hash_float_bits( std::uint64_t seed, float value )
+	{
+		std::uint32_t bits = 0;
+		std::memcpy( &bits, &value, sizeof( bits ) );
+		return hash_combine_u64( seed, static_cast<std::uint64_t>( bits ) );
+	}
+
 	float compute_plane_distance( const FePerspectiveCamera &camera, int viewport_height )
 	{
 		const float safe_height = ( viewport_height > 0 ) ? static_cast<float>( viewport_height ) : 1.0f;
@@ -490,6 +498,13 @@ namespace
 			"layout(location = 3) in vec2 in_texcoord1;\n"
 			"layout(location = 4) in vec3 in_normal;\n"
 			"layout(location = 5) in vec4 in_tangent;\n"
+			"layout(location = 6) in vec4 in_model_0;\n"
+			"layout(location = 7) in vec4 in_model_1;\n"
+			"layout(location = 8) in vec4 in_model_2;\n"
+			"layout(location = 9) in vec4 in_model_3;\n"
+			"layout(location = 10) in vec4 in_normal_row_0;\n"
+			"layout(location = 11) in vec4 in_normal_row_1;\n"
+			"layout(location = 12) in vec4 in_normal_row_2;\n"
 			"layout(location = 0) out vec2 frag_uv0;\n"
 			"layout(location = 1) out vec2 frag_uv1;\n"
 			"layout(location = 2) out vec4 frag_color;\n"
@@ -503,21 +518,20 @@ namespace
 			"\tfloat viewport_height;\n"
 			"\tfloat plane_distance;\n"
 			"\tfloat reserved;\n"
-			"\tmat4 model;\n"
-			"\tvec4 normal_matrix[3];\n"
 			"} ubo;\n"
 			"void main()\n"
 			"{\n"
-			"\tvec4 world_position = ubo.model * vec4( in_position, 1.0 );\n"
+			"\tmat4 model = mat4( in_model_0, in_model_1, in_model_2, in_model_3 );\n"
+			"\tvec4 world_position = model * vec4( in_position, 1.0 );\n"
 			"\tvec3 view_position = vec3(\n"
 			"\t\tworld_position.x - ( ubo.viewport_width * 0.5 ),\n"
 			"\t\t( ubo.viewport_height * 0.5 ) - world_position.y,\n"
 			"\t\tworld_position.z - ubo.plane_distance );\n"
 			"\tvec3 world_normal = normalize( vec3(\n"
-			"\t\tdot( ubo.normal_matrix[0].xyz, in_normal ),\n"
-			"\t\tdot( ubo.normal_matrix[1].xyz, in_normal ),\n"
-			"\t\tdot( ubo.normal_matrix[2].xyz, in_normal ) ) );\n"
-			"\tvec3 world_tangent = normalize( ( ubo.model * vec4( in_tangent.xyz, 0.0 ) ).xyz );\n"
+			"\t\tdot( in_normal_row_0.xyz, in_normal ),\n"
+			"\t\tdot( in_normal_row_1.xyz, in_normal ),\n"
+			"\t\tdot( in_normal_row_2.xyz, in_normal ) ) );\n"
+			"\tvec3 world_tangent = normalize( ( model * vec4( in_tangent.xyz, 0.0 ) ).xyz );\n"
 			"\tgl_Position = ubo.projection * vec4( view_position, 1.0 );\n"
 			"\tfrag_uv0 = in_texcoord0;\n"
 			"\tfrag_uv1 = in_texcoord1;\n"
@@ -762,7 +776,9 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_window = nullptr;
 	m_device = nullptr;
 	m_vertex_buffer = nullptr;
+	m_pbr_instance_buffer = nullptr;
 	m_vertex_buffer_size = 0;
+	m_pbr_instance_buffer_size = 0;
 	m_vertex_buffer_signature = 0;
 	m_vertex_shader = nullptr;
 	m_alpha_prepass_shader = nullptr;
@@ -809,9 +825,9 @@ FeSdl3GpuContext::~FeSdl3GpuContext()
 	shutdown();
 }
 
-void FeSdl3GpuContext::submit_frame( const FeRenderFrame &frame )
+void FeSdl3GpuContext::submit_frame( FeRenderFrame frame )
 {
-	m_frame = frame;
+	m_frame = std::move( frame );
 	m_has_submitted_frame = true;
 	m_prepared_images.clear();
 	m_vertex_stream.clear();
@@ -1096,6 +1112,11 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		prepared.texture_mipmap = image.texture_mipmap;
 		prepared.custom_shader = nullptr;
 		prepared.builtin_shader = nullptr;
+		prepared.pbr_instance_first = 0;
+		prepared.pbr_instance_count = image.has_pbr_instances()
+			? static_cast<Uint32>( image.pbr_instances.size() )
+			: 1u;
+		prepared.pbr_instance_head = true;
 
 		if ( image.textured )
 		{
@@ -1180,6 +1201,364 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		}
 
 		prepared_images.push_back( prepared );
+	}
+}
+
+bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const PreparedImage &rhs ) const
+{
+	if ( !lhs.geometry || !rhs.geometry )
+		return false;
+
+	if ( lhs.vertex_count != rhs.vertex_count
+		|| lhs.external_vertex_id != rhs.external_vertex_id
+		|| lhs.zbuffer != rhs.zbuffer
+		|| lhs.translucent_depth != rhs.translucent_depth )
+	{
+		return false;
+	}
+
+	const FeRenderPbrMaterial &lhs_material = lhs.geometry->pbr_material;
+	const FeRenderPbrMaterial &rhs_material = rhs.geometry->pbr_material;
+	if ( lhs_material.alpha_mode != rhs_material.alpha_mode
+		|| lhs_material.unlit != rhs_material.unlit
+		|| lhs_material.double_sided != rhs_material.double_sided
+		|| lhs_material.metallic_factor != rhs_material.metallic_factor
+		|| lhs_material.roughness_factor != rhs_material.roughness_factor
+		|| lhs_material.normal_scale != rhs_material.normal_scale
+		|| lhs_material.occlusion_strength != rhs_material.occlusion_strength
+		|| lhs_material.alpha_cutoff != rhs_material.alpha_cutoff
+		|| lhs.geometry->camera_light != rhs.geometry->camera_light
+		|| lhs.geometry->light_count != rhs.geometry->light_count )
+	{
+		return false;
+	}
+
+	for ( int i = 0; i < 4; ++i )
+	{
+		if ( lhs_material.base_color_factor[i] != rhs_material.base_color_factor[i] )
+			return false;
+	}
+
+	for ( int i = 0; i < 3; ++i )
+	{
+		if ( lhs_material.emissive_factor[i] != rhs_material.emissive_factor[i]
+			|| lhs.geometry->ambient_color[i] != rhs.geometry->ambient_color[i] )
+		{
+			return false;
+		}
+	}
+
+	auto binding_matches = []( const FeRenderTextureBinding &a, const FeRenderTextureBinding &b ) -> bool
+	{
+		return a.texture_id == b.texture_id
+			&& a.texture_source_type == b.texture_source_type
+			&& a.repeated == b.repeated
+			&& a.smooth == b.smooth
+			&& a.mipmap == b.mipmap
+			&& a.width == b.width
+			&& a.height == b.height
+			&& a.content_version == b.content_version
+			&& a.offset_u == b.offset_u
+			&& a.offset_v == b.offset_v
+			&& a.scale_u == b.scale_u
+			&& a.scale_v == b.scale_v
+			&& a.rotation == b.rotation
+			&& a.fit_scale_u == b.fit_scale_u
+			&& a.fit_scale_v == b.fit_scale_v
+			&& a.texcoord_set == b.texcoord_set;
+	};
+
+	if ( !binding_matches( lhs_material.base_color_texture, rhs_material.base_color_texture )
+		|| !binding_matches( lhs_material.metallic_roughness_texture, rhs_material.metallic_roughness_texture )
+		|| !binding_matches( lhs_material.normal_texture, rhs_material.normal_texture )
+		|| !binding_matches( lhs_material.occlusion_texture, rhs_material.occlusion_texture )
+		|| !binding_matches( lhs_material.emissive_texture, rhs_material.emissive_texture ) )
+	{
+		return false;
+	}
+
+	for ( int i = 0; i < 5; ++i )
+	{
+		if ( lhs.pbr_textures[i] != rhs.pbr_textures[i] )
+			return false;
+	}
+
+	for ( int light_index = 0; light_index < lhs.geometry->light_count; ++light_index )
+	{
+		const FeRenderPbrLight &lhs_light = lhs.geometry->lights[light_index];
+		const FeRenderPbrLight &rhs_light = rhs.geometry->lights[light_index];
+		if ( lhs_light.type != FeRenderPbrLightDirectional
+			|| rhs_light.type != FeRenderPbrLightDirectional
+			|| lhs_light.type != rhs_light.type
+			|| lhs_light.intensity != rhs_light.intensity
+			|| lhs_light.range != rhs_light.range
+			|| lhs_light.inner_cone_cos != rhs_light.inner_cone_cos
+			|| lhs_light.outer_cone_cos != rhs_light.outer_cone_cos )
+		{
+			return false;
+		}
+
+		for ( int i = 0; i < 3; ++i )
+		{
+			if ( lhs_light.color[i] != rhs_light.color[i]
+				|| lhs_light.direction[i] != rhs_light.direction[i] )
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedImage &image ) const
+{
+	if ( !image.geometry )
+		return 0;
+
+	std::uint64_t hash = 1469598103934665603ULL;
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.vertex_count ) );
+	hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.external_vertex_id ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.translucent_depth ? 1 : 0 ) );
+
+	const FeRenderGeometry &geometry = *image.geometry;
+	const FeRenderPbrMaterial &material = geometry.pbr_material;
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+	hash = hash_float_bits( hash, material.metallic_factor );
+	hash = hash_float_bits( hash, material.roughness_factor );
+	hash = hash_float_bits( hash, material.normal_scale );
+	hash = hash_float_bits( hash, material.occlusion_strength );
+	hash = hash_float_bits( hash, material.alpha_cutoff );
+	hash = hash_float_bits( hash, geometry.camera_light );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.light_count ) );
+
+	for ( int i = 0; i < 4; ++i )
+		hash = hash_float_bits( hash, material.base_color_factor[i] );
+	for ( int i = 0; i < 3; ++i )
+	{
+		hash = hash_float_bits( hash, material.emissive_factor[i] );
+		hash = hash_float_bits( hash, geometry.ambient_color[i] );
+	}
+
+	auto hash_binding = [&]( const FeRenderTextureBinding &binding )
+	{
+		hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.texture_source_type ) );
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		hash = hash_float_bits( hash, binding.width );
+		hash = hash_float_bits( hash, binding.height );
+		hash = hash_combine_u64( hash, binding.content_version );
+		hash = hash_float_bits( hash, binding.offset_u );
+		hash = hash_float_bits( hash, binding.offset_v );
+		hash = hash_float_bits( hash, binding.scale_u );
+		hash = hash_float_bits( hash, binding.scale_v );
+		hash = hash_float_bits( hash, binding.rotation );
+		hash = hash_float_bits( hash, binding.fit_scale_u );
+		hash = hash_float_bits( hash, binding.fit_scale_v );
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
+	};
+
+	hash_binding( material.base_color_texture );
+	hash_binding( material.metallic_roughness_texture );
+	hash_binding( material.normal_texture );
+	hash_binding( material.occlusion_texture );
+	hash_binding( material.emissive_texture );
+
+	for ( int i = 0; i < 5; ++i )
+		hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.pbr_textures[i] ) );
+
+	for ( int light_index = 0; light_index < geometry.light_count; ++light_index )
+	{
+		const FeRenderPbrLight &light = geometry.lights[light_index];
+		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( light.type ) );
+		hash = hash_float_bits( hash, light.intensity );
+		hash = hash_float_bits( hash, light.range );
+		hash = hash_float_bits( hash, light.inner_cone_cos );
+		hash = hash_float_bits( hash, light.outer_cone_cos );
+		for ( int i = 0; i < 3; ++i )
+		{
+			hash = hash_float_bits( hash, light.color[i] );
+			hash = hash_float_bits( hash, light.direction[i] );
+		}
+	}
+
+	return hash;
+}
+
+void FeSdl3GpuContext::build_pbr_instance_batches(
+	std::vector<PreparedImage> &prepared_images,
+	std::vector<PbrInstanceEntry> &instance_data ) const
+{
+	instance_data.clear();
+	instance_data.reserve( prepared_images.size() );
+
+	for ( PreparedImage &image : prepared_images )
+	{
+		image.pbr_instance_first = 0;
+		image.pbr_instance_count = 0;
+		image.pbr_instance_head = false;
+	}
+
+	auto append_instance = [&]( PreparedImage &image )
+	{
+		if ( !image.geometry )
+			return;
+
+		PbrInstanceEntry instance = {};
+		std::memcpy( instance.model, image.geometry->model_matrix, sizeof( instance.model ) );
+		for ( int row = 0; row < 3; ++row )
+		{
+			instance.normal_matrix[row][0] = image.geometry->normal_matrix[row * 3 + 0];
+			instance.normal_matrix[row][1] = image.geometry->normal_matrix[row * 3 + 1];
+			instance.normal_matrix[row][2] = image.geometry->normal_matrix[row * 3 + 2];
+			instance.normal_matrix[row][3] = 0.0f;
+		}
+
+		image.pbr_instance_first = static_cast<Uint32>( instance_data.size() );
+		image.pbr_instance_count = 1;
+		image.pbr_instance_head = true;
+		instance_data.push_back( instance );
+	};
+
+	for ( std::size_t image_index = 0; image_index < prepared_images.size(); ++image_index )
+	{
+		PreparedImage &image = prepared_images[image_index];
+		if ( !image.object_pbr || !image.geometry || image.pbr_instance_head || image.pbr_instance_count != 0 )
+			continue;
+
+		if ( image.geometry->has_pbr_instances() )
+		{
+			image.pbr_instance_first = static_cast<Uint32>( instance_data.size() );
+			image.pbr_instance_count = static_cast<Uint32>( image.geometry->pbr_instances.size() );
+			image.pbr_instance_head = true;
+			for ( const FeRenderPbrInstance &instance : image.geometry->pbr_instances )
+			{
+				PbrInstanceEntry entry = {};
+				std::memcpy( entry.model, instance.model_matrix, sizeof( entry.model ) );
+				for ( int row = 0; row < 3; ++row )
+				{
+					entry.normal_matrix[row][0] = instance.normal_matrix[row * 3 + 0];
+					entry.normal_matrix[row][1] = instance.normal_matrix[row * 3 + 1];
+					entry.normal_matrix[row][2] = instance.normal_matrix[row * 3 + 2];
+					entry.normal_matrix[row][3] = 0.0f;
+				}
+				instance_data.push_back( entry );
+			}
+			continue;
+		}
+
+		const bool batchable_object =
+			image.zbuffer &&
+			!image.translucent_depth &&
+			( image.geometry->pbr_material.alpha_mode != FeRenderPbrAlphaBlend ) &&
+			( image.external_vertex_id != nullptr ) &&
+			( image.external_vertices != nullptr );
+		if ( !batchable_object )
+		{
+			append_instance( image );
+			continue;
+		}
+
+		std::size_t run_end = image_index;
+		while ( run_end < prepared_images.size() )
+		{
+			const PreparedImage &run_image = prepared_images[run_end];
+			if ( !run_image.object_pbr
+				|| !run_image.geometry
+				|| !run_image.zbuffer
+				|| run_image.translucent_depth
+				|| run_image.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend
+				|| !run_image.external_vertex_id
+				|| !run_image.external_vertices )
+			{
+				break;
+			}
+
+			++run_end;
+		}
+
+		struct BatchRange
+		{
+			std::uint64_t hash;
+			std::vector<std::size_t> indices;
+		};
+
+		std::vector<BatchRange> batches;
+		batches.reserve( run_end - image_index );
+		std::unordered_map<std::uint64_t, std::vector<std::size_t>> batch_lookup;
+		batch_lookup.reserve( run_end - image_index );
+		for ( std::size_t run_index = image_index; run_index < run_end; ++run_index )
+		{
+			PreparedImage &run_image = prepared_images[run_index];
+			const std::uint64_t batch_hash = compute_pbr_instance_batch_hash( run_image );
+			bool appended = false;
+			auto lookup_it = batch_lookup.find( batch_hash );
+			if ( lookup_it != batch_lookup.end() )
+			{
+				for ( std::size_t batch_lookup_index : lookup_it->second )
+				{
+					BatchRange &batch = batches[batch_lookup_index];
+					if ( batch.indices.empty() )
+						continue;
+
+					if ( can_instance_pbr_images( prepared_images[batch.indices[0]], run_image ) )
+					{
+						batch.indices.push_back( run_index );
+						appended = true;
+						break;
+					}
+				}
+			}
+
+			if ( !appended )
+			{
+				BatchRange batch;
+				batch.hash = batch_hash;
+				batch.indices.push_back( run_index );
+				batches.push_back( std::move( batch ) );
+				batch_lookup[batch_hash].push_back( batches.size() - 1 );
+			}
+		}
+
+		for ( const BatchRange &batch : batches )
+		{
+			if ( batch.indices.empty() )
+				continue;
+
+			PreparedImage &head = prepared_images[batch.indices[0]];
+			head.pbr_instance_first = static_cast<Uint32>( instance_data.size() );
+			head.pbr_instance_count = static_cast<Uint32>( batch.indices.size() );
+			head.pbr_instance_head = true;
+
+			for ( std::size_t batch_pos = 0; batch_pos < batch.indices.size(); ++batch_pos )
+			{
+				PreparedImage &batch_image = prepared_images[batch.indices[batch_pos]];
+				PbrInstanceEntry instance = {};
+				std::memcpy( instance.model, batch_image.geometry->model_matrix, sizeof( instance.model ) );
+				for ( int row = 0; row < 3; ++row )
+				{
+					instance.normal_matrix[row][0] = batch_image.geometry->normal_matrix[row * 3 + 0];
+					instance.normal_matrix[row][1] = batch_image.geometry->normal_matrix[row * 3 + 1];
+					instance.normal_matrix[row][2] = batch_image.geometry->normal_matrix[row * 3 + 2];
+					instance.normal_matrix[row][3] = 0.0f;
+				}
+				instance_data.push_back( instance );
+
+				if ( batch_pos == 0 )
+					continue;
+
+				batch_image.pbr_instance_first = head.pbr_instance_first;
+				batch_image.pbr_instance_count = 0;
+				batch_image.pbr_instance_head = false;
+			}
+		}
+
+		image_index = run_end - 1;
 	}
 }
 
@@ -1326,8 +1705,18 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		return false;
 	}
 
-	if ( !render_surface_frames( command_buffer ) )
+	std::vector<SDL_GPUBuffer *> temporary_pbr_buffers;
+	auto release_temporary_pbr_buffers = [&]()
 	{
+		for ( SDL_GPUBuffer *buffer : temporary_pbr_buffers )
+			SDL_ReleaseGPUBuffer( m_device, buffer );
+
+		temporary_pbr_buffers.clear();
+	};
+
+	if ( !render_surface_frames( command_buffer, &temporary_pbr_buffers ) )
+	{
+		release_temporary_pbr_buffers();
 		SDL_CancelGPUCommandBuffer( command_buffer );
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		if ( msaa_color_texture )
@@ -1337,6 +1726,28 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	}
 
 	build_prepared_images();
+	std::vector<PbrInstanceEntry> pbr_instance_data;
+	build_pbr_instance_batches( m_prepared_images, pbr_instance_data );
+	if ( !pbr_instance_data.empty() )
+	{
+		if ( !upload_gpu_vertex_buffer_data(
+			command_buffer,
+			pbr_instance_data.data(),
+			static_cast<Uint32>( pbr_instance_data.size() * sizeof( PbrInstanceEntry ) ),
+			m_pbr_instance_buffer,
+			m_pbr_instance_buffer_size ) )
+		{
+			release_temporary_pbr_buffers();
+			SDL_CancelGPUCommandBuffer( command_buffer );
+			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+			if ( msaa_color_texture )
+				SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
+			SDL_ReleaseGPUTexture( m_device, color_texture );
+			return false;
+		}
+	}
+	else
+		release_pbr_instance_buffer();
 
 	SDL_GPUColorTargetInfo color_target = {};
 	color_target.texture = uses_multisampling() ? msaa_color_texture : color_texture;
@@ -1369,6 +1780,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		m_depth_texture ? &depth_target : nullptr );
 	if ( !render_pass )
 	{
+		release_temporary_pbr_buffers();
 		SDL_CancelGPUCommandBuffer( command_buffer );
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		if ( msaa_color_texture )
@@ -1391,9 +1803,12 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 				&m_vertex_buffer,
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
+				true,
+				&temporary_pbr_buffers,
 				drew_anything ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
+			release_temporary_pbr_buffers();
 			SDL_CancelGPUCommandBuffer( command_buffer );
 			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 			if ( msaa_color_texture )
@@ -1408,6 +1823,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
 	if ( !copy_pass )
 	{
+		release_temporary_pbr_buffers();
 		SDL_CancelGPUCommandBuffer( command_buffer );
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		if ( msaa_color_texture )
@@ -1438,12 +1854,14 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
+		release_temporary_pbr_buffers();
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		if ( msaa_color_texture )
 			SDL_ReleaseGPUTexture( m_device, msaa_color_texture );
 		SDL_ReleaseGPUTexture( m_device, color_texture );
 		return false;
 	}
+	release_temporary_pbr_buffers();
 
 	if ( !SDL_WaitForGPUIdle( m_device ) )
 	{
@@ -1659,8 +2077,6 @@ namespace
 		float viewport_height;
 		float plane_distance;
 		float reserved;
-		float model[16];
-		float normal_matrix[3][4];
 	};
 
 	struct FeSdl3GpuPbrLightUniform
@@ -1844,17 +2260,28 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		return false;
 	}
 
+	std::vector<SDL_GPUBuffer *> temporary_pbr_buffers;
+	auto release_temporary_pbr_buffers = [&]()
+	{
+		for ( SDL_GPUBuffer *buffer : temporary_pbr_buffers )
+			SDL_ReleaseGPUBuffer( m_device, buffer );
+
+		temporary_pbr_buffers.clear();
+	};
+
 	SDL_GPUTexture *swapchain_texture = nullptr;
 	Uint32 swapchain_width = 0;
 	Uint32 swapchain_height = 0;
 	if ( !SDL_WaitAndAcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
 	{
+		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
 	}
 
 	if ( !swapchain_texture )
 	{
+		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1882,6 +2309,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		&& ensure_color_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
 	if ( !m_frame_stats.depth_ready )
 	{
+		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1897,8 +2325,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		( m_blend_pipelines[0][FeBlend::Alpha] != nullptr )
 		&& ( m_pbr_pipelines[0][0][0] != nullptr );
 
-	if ( m_frame_stats.pipeline_ready && !render_surface_frames( command_buffer ) )
+	if ( m_frame_stats.pipeline_ready && !render_surface_frames( command_buffer, &temporary_pbr_buffers ) )
 	{
+		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1934,6 +2363,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		m_depth_texture ? &depth_target : nullptr );
 	if ( !render_pass )
 	{
+		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
 	}
@@ -1941,6 +2371,26 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( m_blend_pipelines[0][FeBlend::Alpha] && !m_frame.images.empty() )
 	{
 		build_prepared_images();
+		std::vector<PbrInstanceEntry> pbr_instance_data;
+		build_pbr_instance_batches( m_prepared_images, pbr_instance_data );
+		if ( !pbr_instance_data.empty() )
+		{
+			if ( !upload_gpu_vertex_buffer_data(
+				command_buffer,
+				pbr_instance_data.data(),
+				static_cast<Uint32>( pbr_instance_data.size() * sizeof( PbrInstanceEntry ) ),
+				m_pbr_instance_buffer,
+				m_pbr_instance_buffer_size ) )
+			{
+				SDL_EndGPURenderPass( render_pass );
+				release_temporary_pbr_buffers();
+				m_failed_present_frames++;
+				return false;
+			}
+		}
+		else
+			release_pbr_instance_buffer();
+
 		if ( !render_prepared_geometry_batch(
 				render_pass,
 				command_buffer,
@@ -1952,9 +2402,12 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				&m_vertex_buffer,
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
+				true,
+				&temporary_pbr_buffers,
 				m_frame_stats.draw_ready ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
+			release_temporary_pbr_buffers();
 			m_failed_present_frames++;
 			return false;
 		}
@@ -1974,9 +2427,11 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				nullptr,
 				nullptr,
 				nullptr,
+				&temporary_pbr_buffers,
 				overlay_drew ) )
 		{
 			SDL_EndGPURenderPass( render_pass );
+			release_temporary_pbr_buffers();
 			m_failed_present_frames++;
 			return false;
 		}
@@ -1987,9 +2442,11 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
+		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
 	}
+	release_temporary_pbr_buffers();
 
 	m_frame_stats.executed = true;
 	m_frame_stats.submitted_frames++;
@@ -2068,6 +2525,7 @@ void FeSdl3GpuContext::shutdown()
 	clear_geometry_buffers();
 	release_white_texture();
 	release_vertex_buffer();
+	release_pbr_instance_buffer();
 	release_color_target();
 	release_depth_target();
 	release_custom_shaders();
@@ -2508,6 +2966,17 @@ void FeSdl3GpuContext::release_vertex_buffer()
 	}
 
 	m_vertex_buffer_signature = 0;
+}
+
+void FeSdl3GpuContext::release_pbr_instance_buffer()
+{
+	if ( m_pbr_instance_buffer )
+	{
+		SDL_ReleaseGPUBuffer( m_device, m_pbr_instance_buffer );
+		m_pbr_instance_buffer = nullptr;
+	}
+
+	m_pbr_instance_buffer_size = 0;
 }
 
 void FeSdl3GpuContext::release_image_pipeline()
@@ -3846,20 +4315,21 @@ bool FeSdl3GpuContext::upload_vertex_buffer( const std::vector<FeRenderVertex> &
 	return upload_vertex_buffer(
 		vertices.empty() ? nullptr : vertices.data(),
 		vertices.size(),
-		buffer,
-		buffer_size );
+	buffer,
+	buffer_size );
 }
 
-bool FeSdl3GpuContext::upload_vertex_buffer(
-	const FeRenderVertex *vertices,
-	std::size_t vertex_count,
+bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
+	SDL_GPUCommandBuffer *command_buffer,
+	const void *data,
+	Uint32 size,
 	SDL_GPUBuffer *&buffer,
 	Uint32 &buffer_size )
 {
 	if ( !m_device )
 		return false;
 
-	if ( !vertices || vertex_count == 0 )
+	if ( !data || size == 0 )
 	{
 		if ( buffer )
 		{
@@ -3870,28 +4340,26 @@ bool FeSdl3GpuContext::upload_vertex_buffer(
 		return true;
 	}
 
-	const Uint32 required_size = static_cast<Uint32>( vertex_count * sizeof( FeRenderVertex ) );
-
-	if ( !buffer || buffer_size < required_size )
+	if ( !buffer || buffer_size < size )
 	{
 		if ( buffer )
 			SDL_ReleaseGPUBuffer( m_device, buffer );
 
 		SDL_GPUBufferCreateInfo buffer_info = {};
 		buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-		buffer_info.size = required_size;
+		buffer_info.size = size;
 		buffer_info.props = 0;
 
 		buffer = SDL_CreateGPUBuffer( m_device, &buffer_info );
 		if ( !buffer )
 			return false;
 
-		buffer_size = required_size;
+		buffer_size = size;
 	}
 
 	SDL_GPUTransferBufferCreateInfo transfer_info = {};
 	transfer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-	transfer_info.size = required_size;
+	transfer_info.size = size;
 	transfer_info.props = 0;
 
 	SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
@@ -3905,17 +4373,15 @@ bool FeSdl3GpuContext::upload_vertex_buffer(
 		return false;
 	}
 
-	std::memcpy( mapped, vertices, required_size );
+	std::memcpy( mapped, data, size );
 	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
 
-	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
-	if ( !command_buffer )
+	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
+	if ( !copy_pass )
 	{
 		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		return false;
 	}
-
-	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
 
 	SDL_GPUTransferBufferLocation source = {};
 	source.transfer_buffer = transfer_buffer;
@@ -3924,14 +4390,43 @@ bool FeSdl3GpuContext::upload_vertex_buffer(
 	SDL_GPUBufferRegion destination = {};
 	destination.buffer = buffer;
 	destination.offset = 0;
-	destination.size = required_size;
+	destination.size = size;
 
 	SDL_UploadToGPUBuffer( copy_pass, &source, &destination, false );
 	SDL_EndGPUCopyPass( copy_pass );
-
-	const bool submitted = SDL_SubmitGPUCommandBuffer( command_buffer );
 	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
-	return submitted;
+	return true;
+}
+
+bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
+	const void *data,
+	Uint32 size,
+	SDL_GPUBuffer *&buffer,
+	Uint32 &buffer_size )
+{
+	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command_buffer )
+		return false;
+
+	const bool uploaded =
+		upload_gpu_vertex_buffer_data( command_buffer, data, size, buffer, buffer_size );
+	if ( !uploaded )
+	{
+		SDL_CancelGPUCommandBuffer( command_buffer );
+		return false;
+	}
+
+	return SDL_SubmitGPUCommandBuffer( command_buffer );
+}
+
+bool FeSdl3GpuContext::upload_vertex_buffer(
+	const FeRenderVertex *vertices,
+	std::size_t vertex_count,
+	SDL_GPUBuffer *&buffer,
+	Uint32 &buffer_size )
+{
+	const Uint32 required_size = static_cast<Uint32>( vertex_count * sizeof( FeRenderVertex ) );
+	return upload_gpu_vertex_buffer_data( vertices, required_size, buffer, buffer_size );
 }
 
 bool FeSdl3GpuContext::upload_vertex_buffer()
@@ -3950,6 +4445,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
 	std::uint64_t *cached_vertex_signature,
+	bool use_preuploaded_pbr_instances,
+	std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 	bool &drew_anything )
 {
 	if ( !render_pass || !command_buffer || !m_blend_pipelines[0][FeBlend::Alpha] || prepared_images.empty() )
@@ -4036,55 +4533,28 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		}
 	}
 
-	for ( const PreparedImage &image : prepared_images )
-	{
-		if ( !image.gpu_texture || image.vertex_count == 0 )
-			continue;
+	FeSdl3GpuPbrVertexUniforms pbr_vertex_uniforms = {};
+	for ( int i = 0; i < 16; ++i )
+		pbr_vertex_uniforms.projection[i] = uniforms.projection[i];
+	pbr_vertex_uniforms.viewport_width = uniforms.viewport_width;
+	pbr_vertex_uniforms.viewport_height = uniforms.viewport_height;
+	pbr_vertex_uniforms.plane_distance = uniforms.plane_distance;
+	pbr_vertex_uniforms.reserved = uniforms.reserved;
 
-		if ( image.object_pbr )
+	auto fill_pbr_fragment_state =
+		[&]( const PreparedImage &image,
+			FeSdl3GpuPbrFragmentUniforms &fragment_uniforms,
+			SDL_GPUTextureSamplerBinding (&sampler_bindings)[5] )
 		{
-			if ( !image.geometry )
-				continue;
-
-			SDL_GPUBuffer *draw_vertex_buffer = nullptr;
-			const bool uses_external_vertices =
-				( image.external_vertex_id != nullptr ) && ( image.external_vertices != nullptr );
-			if ( uses_external_vertices )
+			const FeRenderTextureBinding *bindings[] =
 			{
-				if ( !ensure_geometry_vertex_buffer( image, draw_vertex_buffer ) )
-					continue;
-			}
-			else
-				draw_vertex_buffer = inline_vertex_buffer;
+				&image.geometry->pbr_material.base_color_texture,
+				&image.geometry->pbr_material.metallic_roughness_texture,
+				&image.geometry->pbr_material.normal_texture,
+				&image.geometry->pbr_material.occlusion_texture,
+				&image.geometry->pbr_material.emissive_texture
+			};
 
-			if ( !bind_vertex_buffer( draw_vertex_buffer ) )
-				continue;
-
-			const int depth_pipeline = get_depth_pipeline_index( image.zbuffer, image.translucent_depth );
-			const int blend_index =
-				( image.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend ) ? 1 : 0;
-			const int double_sided_index = image.geometry->pbr_material.double_sided ? 1 : 0;
-			SDL_GPUGraphicsPipeline *pipeline = m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
-			if ( !pipeline )
-				continue;
-
-			FeSdl3GpuPbrVertexUniforms vertex_uniforms = {};
-			for ( int i = 0; i < 16; ++i )
-			{
-				vertex_uniforms.projection[i] = uniforms.projection[i];
-				vertex_uniforms.model[i] = image.geometry->model_matrix[i];
-			}
-			vertex_uniforms.viewport_width = uniforms.viewport_width;
-			vertex_uniforms.viewport_height = uniforms.viewport_height;
-			vertex_uniforms.plane_distance = uniforms.plane_distance;
-			vertex_uniforms.reserved = uniforms.reserved;
-			for ( int row = 0; row < 3; ++row )
-				for ( int column = 0; column < 3; ++column )
-					vertex_uniforms.normal_matrix[row][column] =
-						image.geometry->normal_matrix[row * 3 + column];
-			SDL_PushGPUVertexUniformData( command_buffer, 0, &vertex_uniforms, sizeof( vertex_uniforms ) );
-
-			FeSdl3GpuPbrFragmentUniforms fragment_uniforms = {};
 			for ( int i = 0; i < 4; ++i )
 				fragment_uniforms.base_color_factor[i] = image.geometry->pbr_material.base_color_factor[i];
 			for ( int i = 0; i < 3; ++i )
@@ -4104,14 +4574,6 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			fragment_uniforms.control[2] = image.geometry->pbr_material.unlit ? 1.0f : 0.0f;
 			fragment_uniforms.control[3] = static_cast<float>( image.geometry->light_count );
 
-			const FeRenderTextureBinding *bindings[] =
-			{
-				&image.geometry->pbr_material.base_color_texture,
-				&image.geometry->pbr_material.metallic_roughness_texture,
-				&image.geometry->pbr_material.normal_texture,
-				&image.geometry->pbr_material.occlusion_texture,
-				&image.geometry->pbr_material.emissive_texture
-			};
 			for ( int binding_index = 0; binding_index < 5; ++binding_index )
 			{
 				const FeRenderTextureBinding &binding = *bindings[binding_index];
@@ -4123,6 +4585,13 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				fragment_uniforms.transforms_rotation_texcoord[binding_index][1] = static_cast<float>( binding.texcoord_set );
 				fragment_uniforms.transforms_rotation_texcoord[binding_index][2] = binding.fit_scale_u;
 				fragment_uniforms.transforms_rotation_texcoord[binding_index][3] = binding.fit_scale_v;
+				sampler_bindings[binding_index].texture =
+					image.pbr_textures[binding_index] ? image.pbr_textures[binding_index] : m_white_texture;
+				sampler_bindings[binding_index].sampler =
+					get_image_sampler(
+						binding.smooth,
+						binding.repeated,
+						binding.mipmap );
 			}
 
 			for ( int light_index = 0; light_index < image.geometry->light_count; ++light_index )
@@ -4151,34 +4620,165 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				target.outer_type[0] = light.outer_cone_cos;
 				target.outer_type[1] = static_cast<float>( light.type );
 			}
+		};
 
-			SDL_PushGPUFragmentUniformData(
-				command_buffer,
-				0,
-				&fragment_uniforms,
-				static_cast<Uint32>( sizeof( fragment_uniforms ) ) );
-			SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+	auto draw_pbr_images = [&]( const std::vector<const PreparedImage *> &images ) -> bool
+	{
+		if ( images.empty() || !images[0] || !images[0]->geometry )
+			return true;
 
-			SDL_GPUTextureSamplerBinding sampler_bindings[5] = {};
-			for ( int binding_index = 0; binding_index < 5; ++binding_index )
+		const PreparedImage &prototype = *images[0];
+		SDL_GPUBuffer *draw_vertex_buffer = nullptr;
+		const bool uses_external_vertices =
+			( prototype.external_vertex_id != nullptr ) && ( prototype.external_vertices != nullptr );
+		if ( uses_external_vertices )
+		{
+			if ( !ensure_geometry_vertex_buffer( prototype, draw_vertex_buffer ) )
+				return true;
+		}
+		else
+			draw_vertex_buffer = inline_vertex_buffer;
+
+		if ( !bind_vertex_buffer( draw_vertex_buffer ) )
+			return true;
+
+		const int depth_pipeline = get_depth_pipeline_index( prototype.zbuffer, prototype.translucent_depth );
+		const int blend_index =
+			( prototype.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend ) ? 1 : 0;
+		const int double_sided_index = prototype.geometry->pbr_material.double_sided ? 1 : 0;
+		SDL_GPUGraphicsPipeline *pipeline = m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
+		if ( !pipeline )
+			return true;
+
+		FeSdl3GpuPbrFragmentUniforms fragment_uniforms = {};
+		SDL_GPUTextureSamplerBinding sampler_bindings[5] = {};
+		fill_pbr_fragment_state( prototype, fragment_uniforms, sampler_bindings );
+
+		SDL_GPUBuffer *instance_buffer = nullptr;
+		Uint32 instance_offset = 0;
+		Uint32 first_instance = 0;
+		Uint32 instance_count = static_cast<Uint32>( images.size() );
+		if ( use_preuploaded_pbr_instances && m_pbr_instance_buffer )
+		{
+			instance_buffer = m_pbr_instance_buffer;
+			instance_count = prototype.pbr_instance_count;
+			first_instance = prototype.pbr_instance_first;
+		}
+		else
+		{
+			const std::vector<FeRenderPbrInstance> *prototype_instances =
+				( prototype.geometry && prototype.geometry->has_pbr_instances() )
+					? &prototype.geometry->pbr_instances
+					: nullptr;
+			if ( prototype_instances )
+				instance_count = static_cast<Uint32>( prototype_instances->size() );
+
+			std::vector<PbrInstanceEntry> instance_data(
+				prototype_instances ? prototype_instances->size() : images.size() );
+			for ( std::size_t instance_index = 0; instance_index < instance_data.size(); ++instance_index )
 			{
-				const FeRenderTextureBinding &binding = *bindings[binding_index];
-				sampler_bindings[binding_index].texture =
-					image.pbr_textures[binding_index] ? image.pbr_textures[binding_index] : m_white_texture;
-				sampler_bindings[binding_index].sampler =
-					get_image_sampler(
-						binding.smooth,
-						binding.repeated,
-						binding.mipmap );
+				PbrInstanceEntry &instance = instance_data[instance_index];
+				if ( prototype_instances )
+				{
+					const FeRenderPbrInstance &source = ( *prototype_instances )[instance_index];
+					std::memcpy( instance.model, source.model_matrix, sizeof( instance.model ) );
+					for ( int row = 0; row < 3; ++row )
+					{
+						instance.normal_matrix[row][0] = source.normal_matrix[row * 3 + 0];
+						instance.normal_matrix[row][1] = source.normal_matrix[row * 3 + 1];
+						instance.normal_matrix[row][2] = source.normal_matrix[row * 3 + 2];
+						instance.normal_matrix[row][3] = 0.0f;
+					}
+				}
+				else
+				{
+					const FeRenderGeometry &geometry = *images[instance_index]->geometry;
+					std::memcpy( instance.model, geometry.model_matrix, sizeof( instance.model ) );
+					for ( int row = 0; row < 3; ++row )
+					{
+						instance.normal_matrix[row][0] = geometry.normal_matrix[row * 3 + 0];
+						instance.normal_matrix[row][1] = geometry.normal_matrix[row * 3 + 1];
+						instance.normal_matrix[row][2] = geometry.normal_matrix[row * 3 + 2];
+						instance.normal_matrix[row][3] = 0.0f;
+					}
+				}
 			}
-			SDL_BindGPUFragmentSamplers( render_pass, 0, sampler_bindings, 5 );
-			SDL_DrawGPUPrimitives(
-				render_pass,
-				static_cast<Uint32>( image.vertex_count ),
-				1,
-				uses_external_vertices ? 0u : static_cast<Uint32>( image.first_vertex ),
-				0 );
-			drew_anything = true;
+
+			Uint32 temporary_buffer_size = 0;
+			if ( !upload_gpu_vertex_buffer_data(
+				instance_data.data(),
+				static_cast<Uint32>( instance_data.size() * sizeof( PbrInstanceEntry ) ),
+				instance_buffer,
+				temporary_buffer_size ) )
+			{
+				return false;
+			}
+
+			if ( temporary_pbr_buffers )
+				temporary_pbr_buffers->push_back( instance_buffer );
+		}
+
+		SDL_GPUBufferBinding vertex_bindings[2] = {};
+		vertex_bindings[0].buffer = draw_vertex_buffer;
+		vertex_bindings[0].offset = 0;
+		vertex_bindings[1].buffer = instance_buffer;
+		vertex_bindings[1].offset = instance_offset;
+		SDL_BindGPUVertexBuffers( render_pass, 0, vertex_bindings, 2 );
+		currently_bound_vertex_buffer = draw_vertex_buffer;
+
+		SDL_PushGPUVertexUniformData( command_buffer, 0, &pbr_vertex_uniforms, sizeof( pbr_vertex_uniforms ) );
+		SDL_PushGPUFragmentUniformData(
+			command_buffer,
+			0,
+			&fragment_uniforms,
+			static_cast<Uint32>( sizeof( fragment_uniforms ) ) );
+		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+		SDL_BindGPUFragmentSamplers( render_pass, 0, sampler_bindings, 5 );
+		SDL_DrawGPUPrimitives(
+			render_pass,
+			static_cast<Uint32>( prototype.vertex_count ),
+			instance_count,
+			uses_external_vertices ? 0u : static_cast<Uint32>( prototype.first_vertex ),
+			first_instance );
+		drew_anything = true;
+		return true;
+	};
+
+	for ( std::size_t image_index = 0; image_index < prepared_images.size(); ++image_index )
+	{
+		const PreparedImage &image = prepared_images[image_index];
+		if ( !image.gpu_texture || image.vertex_count == 0 )
+			continue;
+
+		if ( image.object_pbr )
+		{
+			if ( !image.geometry )
+				continue;
+			if ( use_preuploaded_pbr_instances && !image.pbr_instance_head )
+				continue;
+
+			std::vector<const PreparedImage *> image_batch;
+			image_batch.push_back( &image );
+			if ( !use_preuploaded_pbr_instances && image.pbr_instance_count > 1 )
+			{
+				for ( std::size_t batch_index = image_index + 1; batch_index < prepared_images.size(); ++batch_index )
+				{
+					const PreparedImage &batch_image = prepared_images[batch_index];
+					if ( !batch_image.object_pbr
+						|| batch_image.pbr_instance_head
+						|| batch_image.pbr_instance_first != image.pbr_instance_first )
+					{
+						continue;
+					}
+
+					image_batch.push_back( &batch_image );
+					if ( image_batch.size() >= image.pbr_instance_count )
+						break;
+				}
+			}
+
+			if ( !draw_pbr_images( image_batch ) )
+				return false;
 			continue;
 		}
 
@@ -4393,6 +4993,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
 	std::uint64_t *cached_vertex_signature,
+	std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 	bool &drew_anything )
 {
 	if ( geometry.empty() )
@@ -4412,10 +5013,12 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		cached_vertex_buffer,
 		cached_vertex_buffer_size,
 		cached_vertex_signature,
+		false,
+		temporary_pbr_buffers,
 		drew_anything );
 }
 
-bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buffer )
+bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buffer, std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers )
 {
 	if ( !command_buffer || !m_blend_pipelines[0][ FeBlend::Alpha ] )
 		return true;
@@ -4526,6 +5129,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					&entry.vertex_buffer,
 					&entry.vertex_buffer_size,
 					&entry.vertex_signature,
+					temporary_pbr_buffers,
 					drew_anything );
 				SDL_EndGPURenderPass( render_pass );
 
@@ -4620,6 +5224,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						&entry.vertex_buffer,
 						&entry.vertex_buffer_size,
 						&entry.vertex_signature,
+						temporary_pbr_buffers,
 						drew_anything );
 					SDL_EndGPURenderPass( render_pass );
 
@@ -4993,13 +5598,17 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 		return false;
 	}
 
-	SDL_GPUVertexBufferDescription vertex_buffer = {};
-	vertex_buffer.slot = 0;
-	vertex_buffer.pitch = sizeof( FeRenderVertex );
-	vertex_buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-	vertex_buffer.instance_step_rate = 0;
+	SDL_GPUVertexBufferDescription vertex_buffers[2] = {};
+	vertex_buffers[0].slot = 0;
+	vertex_buffers[0].pitch = sizeof( FeRenderVertex );
+	vertex_buffers[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+	vertex_buffers[0].instance_step_rate = 0;
+	vertex_buffers[1].slot = 1;
+	vertex_buffers[1].pitch = sizeof( PbrInstanceEntry );
+	vertex_buffers[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+	vertex_buffers[1].instance_step_rate = 0;
 
-	SDL_GPUVertexAttribute attributes[6] = {};
+	SDL_GPUVertexAttribute attributes[13] = {};
 	attributes[0].location = 0;
 	attributes[0].buffer_slot = 0;
 	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -5024,6 +5633,34 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	attributes[5].buffer_slot = 0;
 	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
 	attributes[5].offset = offsetof( FeRenderVertex, tx );
+	attributes[6].location = 6;
+	attributes[6].buffer_slot = 1;
+	attributes[6].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[6].offset = offsetof( PbrInstanceEntry, model ) + ( 0 * sizeof( float ) * 4 );
+	attributes[7].location = 7;
+	attributes[7].buffer_slot = 1;
+	attributes[7].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[7].offset = offsetof( PbrInstanceEntry, model ) + ( 1 * sizeof( float ) * 4 );
+	attributes[8].location = 8;
+	attributes[8].buffer_slot = 1;
+	attributes[8].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[8].offset = offsetof( PbrInstanceEntry, model ) + ( 2 * sizeof( float ) * 4 );
+	attributes[9].location = 9;
+	attributes[9].buffer_slot = 1;
+	attributes[9].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[9].offset = offsetof( PbrInstanceEntry, model ) + ( 3 * sizeof( float ) * 4 );
+	attributes[10].location = 10;
+	attributes[10].buffer_slot = 1;
+	attributes[10].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[10].offset = offsetof( PbrInstanceEntry, normal_matrix ) + ( 0 * sizeof( float ) * 4 );
+	attributes[11].location = 11;
+	attributes[11].buffer_slot = 1;
+	attributes[11].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[11].offset = offsetof( PbrInstanceEntry, normal_matrix ) + ( 1 * sizeof( float ) * 4 );
+	attributes[12].location = 12;
+	attributes[12].buffer_slot = 1;
+	attributes[12].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[12].offset = offsetof( PbrInstanceEntry, normal_matrix ) + ( 2 * sizeof( float ) * 4 );
 
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = swapchain_format;
@@ -5031,10 +5668,10 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
 	pipeline_info.vertex_shader = m_pbr_vertex_shader;
 	pipeline_info.fragment_shader = m_pbr_fragment_shader;
-	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
-	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
+	pipeline_info.vertex_input_state.vertex_buffer_descriptions = vertex_buffers;
+	pipeline_info.vertex_input_state.num_vertex_buffers = 2;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
-	pipeline_info.vertex_input_state.num_vertex_attributes = 6;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 13;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
 	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;

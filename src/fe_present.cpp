@@ -44,6 +44,8 @@
 #include <limits>
 #include <cstring>
 #include <algorithm>
+#include <unordered_map>
+#include <utility>
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
@@ -593,6 +595,281 @@ namespace
 		return endpoint - origin;
 	}
 
+	FeRenderPbrInstance make_pbr_instance( const FeRenderGeometry &entry )
+	{
+		FeRenderPbrInstance instance;
+		std::memcpy( instance.model_matrix, entry.model_matrix, sizeof( instance.model_matrix ) );
+		std::memcpy( instance.normal_matrix, entry.normal_matrix, sizeof( instance.normal_matrix ) );
+		return instance;
+	}
+
+	bool pbr_texture_binding_matches( const FeRenderTextureBinding &lhs, const FeRenderTextureBinding &rhs )
+	{
+		return lhs.texture_id == rhs.texture_id
+			&& lhs.texture_source_type == rhs.texture_source_type
+			&& lhs.repeated == rhs.repeated
+			&& lhs.smooth == rhs.smooth
+			&& lhs.mipmap == rhs.mipmap
+			&& lhs.dynamic == rhs.dynamic
+			&& lhs.width == rhs.width
+			&& lhs.height == rhs.height
+			&& lhs.content_version == rhs.content_version
+			&& lhs.offset_u == rhs.offset_u
+			&& lhs.offset_v == rhs.offset_v
+			&& lhs.scale_u == rhs.scale_u
+			&& lhs.scale_v == rhs.scale_v
+			&& lhs.rotation == rhs.rotation
+			&& lhs.fit_scale_u == rhs.fit_scale_u
+			&& lhs.fit_scale_v == rhs.fit_scale_v
+			&& lhs.texcoord_set == rhs.texcoord_set;
+	}
+
+	bool is_batchable_pbr_geometry( const FeRenderGeometry &entry )
+	{
+		if ( entry.geometry_kind != FeRenderGeometryObjectPbr
+			|| !entry.has_external_vertices()
+			|| !entry.zbuffer
+			|| entry.pbr_material.alpha_mode == FeRenderPbrAlphaBlend )
+		{
+			return false;
+		}
+
+		for ( int light_index = 0; light_index < entry.light_count; ++light_index )
+			if ( entry.lights[light_index].type != FeRenderPbrLightDirectional )
+				return false;
+
+		return true;
+	}
+
+	bool can_batch_pbr_geometry( const FeRenderGeometry &lhs, const FeRenderGeometry &rhs )
+	{
+		if ( !is_batchable_pbr_geometry( lhs )
+			|| !is_batchable_pbr_geometry( rhs )
+			|| lhs.get_vertex_count() != rhs.get_vertex_count()
+			|| lhs.external_vertex_id != rhs.external_vertex_id
+			|| lhs.texture_id != rhs.texture_id
+			|| lhs.texture_source_type != rhs.texture_source_type
+			|| lhs.texture_repeated != rhs.texture_repeated
+			|| lhs.texture_smooth != rhs.texture_smooth
+			|| lhs.texture_mipmap != rhs.texture_mipmap
+			|| lhs.texture_dynamic != rhs.texture_dynamic
+			|| lhs.texture_content_version != rhs.texture_content_version
+			|| lhs.blend_mode != rhs.blend_mode
+			|| lhs.camera_light != rhs.camera_light
+			|| lhs.light_count != rhs.light_count )
+		{
+			return false;
+		}
+
+		const FeRenderPbrMaterial &lhs_material = lhs.pbr_material;
+		const FeRenderPbrMaterial &rhs_material = rhs.pbr_material;
+		if ( lhs_material.alpha_mode != rhs_material.alpha_mode
+			|| lhs_material.unlit != rhs_material.unlit
+			|| lhs_material.double_sided != rhs_material.double_sided
+			|| lhs_material.metallic_factor != rhs_material.metallic_factor
+			|| lhs_material.roughness_factor != rhs_material.roughness_factor
+			|| lhs_material.normal_scale != rhs_material.normal_scale
+			|| lhs_material.occlusion_strength != rhs_material.occlusion_strength
+			|| lhs_material.alpha_cutoff != rhs_material.alpha_cutoff )
+		{
+			return false;
+		}
+
+		for ( int i = 0; i < 4; ++i )
+			if ( lhs_material.base_color_factor[i] != rhs_material.base_color_factor[i] )
+				return false;
+
+		for ( int i = 0; i < 3; ++i )
+		{
+			if ( lhs_material.emissive_factor[i] != rhs_material.emissive_factor[i]
+				|| lhs.ambient_color[i] != rhs.ambient_color[i] )
+			{
+				return false;
+			}
+		}
+
+		if ( !pbr_texture_binding_matches( lhs_material.base_color_texture, rhs_material.base_color_texture )
+			|| !pbr_texture_binding_matches( lhs_material.metallic_roughness_texture, rhs_material.metallic_roughness_texture )
+			|| !pbr_texture_binding_matches( lhs_material.normal_texture, rhs_material.normal_texture )
+			|| !pbr_texture_binding_matches( lhs_material.occlusion_texture, rhs_material.occlusion_texture )
+			|| !pbr_texture_binding_matches( lhs_material.emissive_texture, rhs_material.emissive_texture ) )
+		{
+			return false;
+		}
+
+		for ( int light_index = 0; light_index < lhs.light_count; ++light_index )
+		{
+			const FeRenderPbrLight &lhs_light = lhs.lights[light_index];
+			const FeRenderPbrLight &rhs_light = rhs.lights[light_index];
+			if ( lhs_light.type != rhs_light.type
+				|| lhs_light.intensity != rhs_light.intensity
+				|| lhs_light.range != rhs_light.range
+				|| lhs_light.inner_cone_cos != rhs_light.inner_cone_cos
+				|| lhs_light.outer_cone_cos != rhs_light.outer_cone_cos )
+			{
+				return false;
+			}
+
+			for ( int i = 0; i < 3; ++i )
+			{
+				if ( lhs_light.color[i] != rhs_light.color[i]
+					|| lhs_light.direction[i] != rhs_light.direction[i] )
+				{
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	std::uint64_t hash_combine_pbr_batch( std::uint64_t seed, std::uint64_t value )
+	{
+		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
+	}
+
+	std::uint64_t hash_float_pbr_batch( std::uint64_t seed, float value )
+	{
+		std::uint32_t bits = 0;
+		std::memcpy( &bits, &value, sizeof( bits ) );
+		return hash_combine_pbr_batch( seed, static_cast<std::uint64_t>( bits ) );
+	}
+
+	void hash_pbr_texture_binding( const FeRenderTextureBinding &binding, std::uint64_t &hash )
+	{
+		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.texture_source_type ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
+		hash = hash_float_pbr_batch( hash, binding.width );
+		hash = hash_float_pbr_batch( hash, binding.height );
+		hash = hash_combine_pbr_batch( hash, binding.content_version );
+		hash = hash_float_pbr_batch( hash, binding.offset_u );
+		hash = hash_float_pbr_batch( hash, binding.offset_v );
+		hash = hash_float_pbr_batch( hash, binding.scale_u );
+		hash = hash_float_pbr_batch( hash, binding.scale_v );
+		hash = hash_float_pbr_batch( hash, binding.rotation );
+		hash = hash_float_pbr_batch( hash, binding.fit_scale_u );
+		hash = hash_float_pbr_batch( hash, binding.fit_scale_v );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
+	}
+
+	std::uint64_t compute_pbr_batch_hash( const FeRenderGeometry &entry )
+	{
+		std::uint64_t hash = 1469598103934665603ULL;
+		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( entry.external_vertex_id ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.get_vertex_count() ) );
+		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( entry.texture_id ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_source_type ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_repeated ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_smooth ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_mipmap ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, entry.texture_content_version );
+		hash = hash_float_pbr_batch( hash, entry.camera_light );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.light_count ) );
+
+		const FeRenderPbrMaterial &material = entry.pbr_material;
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+		hash = hash_float_pbr_batch( hash, material.metallic_factor );
+		hash = hash_float_pbr_batch( hash, material.roughness_factor );
+		hash = hash_float_pbr_batch( hash, material.normal_scale );
+		hash = hash_float_pbr_batch( hash, material.occlusion_strength );
+		hash = hash_float_pbr_batch( hash, material.alpha_cutoff );
+		for ( int i = 0; i < 4; ++i )
+			hash = hash_float_pbr_batch( hash, material.base_color_factor[i] );
+		for ( int i = 0; i < 3; ++i )
+		{
+			hash = hash_float_pbr_batch( hash, material.emissive_factor[i] );
+			hash = hash_float_pbr_batch( hash, entry.ambient_color[i] );
+		}
+
+		hash_pbr_texture_binding( material.base_color_texture, hash );
+		hash_pbr_texture_binding( material.metallic_roughness_texture, hash );
+		hash_pbr_texture_binding( material.normal_texture, hash );
+		hash_pbr_texture_binding( material.occlusion_texture, hash );
+		hash_pbr_texture_binding( material.emissive_texture, hash );
+
+		for ( int light_index = 0; light_index < entry.light_count; ++light_index )
+		{
+			const FeRenderPbrLight &light = entry.lights[light_index];
+			hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( light.type ) );
+			hash = hash_float_pbr_batch( hash, light.intensity );
+			hash = hash_float_pbr_batch( hash, light.range );
+			hash = hash_float_pbr_batch( hash, light.inner_cone_cos );
+			hash = hash_float_pbr_batch( hash, light.outer_cone_cos );
+			for ( int i = 0; i < 3; ++i )
+			{
+				hash = hash_float_pbr_batch( hash, light.color[i] );
+				hash = hash_float_pbr_batch( hash, light.direction[i] );
+			}
+		}
+
+		return hash;
+	}
+
+	void collapse_pbr_geometry_instances( std::vector<FeRenderGeometry> &geometry )
+	{
+		if ( geometry.empty() )
+			return;
+
+		std::vector<FeRenderGeometry> collapsed;
+		collapsed.reserve( geometry.size() );
+
+		for ( std::size_t index = 0; index < geometry.size(); )
+		{
+			if ( !is_batchable_pbr_geometry( geometry[index] ) )
+			{
+				collapsed.push_back( std::move( geometry[index] ) );
+				++index;
+				continue;
+			}
+
+			std::size_t run_end = index;
+			while ( run_end < geometry.size() && is_batchable_pbr_geometry( geometry[run_end] ) )
+				++run_end;
+
+			std::unordered_map<std::uint64_t, std::vector<std::size_t>> run_lookup;
+			run_lookup.reserve( run_end - index );
+			for ( std::size_t run_index = index; run_index < run_end; ++run_index )
+			{
+				FeRenderGeometry &entry = geometry[run_index];
+				const std::uint64_t hash = compute_pbr_batch_hash( entry );
+				bool merged = false;
+				auto lookup_it = run_lookup.find( hash );
+				if ( lookup_it != run_lookup.end() )
+				{
+					for ( std::size_t collapsed_index : lookup_it->second )
+					{
+						FeRenderGeometry &head = collapsed[collapsed_index];
+						if ( !can_batch_pbr_geometry( head, entry ) )
+							continue;
+
+						if ( !head.has_pbr_instances() )
+							head.pbr_instances.push_back( make_pbr_instance( head ) );
+						head.pbr_instances.push_back( make_pbr_instance( entry ) );
+						merged = true;
+						break;
+					}
+				}
+
+				if ( merged )
+					continue;
+
+				collapsed.push_back( std::move( entry ) );
+				run_lookup[hash].push_back( collapsed.size() - 1 );
+			}
+
+			index = run_end;
+		}
+
+		geometry.swap( collapsed );
+	}
+
 	void apply_object_geometry_transform( FeRenderGeometry &entry, const FeTransform &transform )
 	{
 		const Vec2f transformed_origin =
@@ -730,6 +1007,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 
 		const FeTransform &transform = ( monitor_index == 0 ) ? m_layout_transform : monitor.transform;
 		apply_geometry_transform( monitor_geometry, transform );
+		collapse_pbr_geometry_instances( monitor_geometry );
 		geometry.insert( geometry.end(), monitor_geometry.begin(), monitor_geometry.end() );
 	}
 }
@@ -1175,6 +1453,14 @@ FeImage *FePresent::add_clone( FeImage *o,
 		o->get_presentable_parent()->set_nesting_level( p.get_nesting_level() + 1 );
 
 	return new_image;
+}
+
+FeModel3D *FePresent::add_clone( FeModel3D *o, FePresentableParent &p )
+{
+	FeModel3D *new_model_3d = new FeModel3D( o, p );
+	flag_redraw();
+	p.elements.push_back( new_model_3d );
+	return new_model_3d;
 }
 
 FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
@@ -2017,7 +2303,7 @@ void FePresent::submit_render_frame()
 	build_render_geometry( frame.images );
 	build_render_surface_frames( frame.surfaces );
 	frame.image_count = static_cast<unsigned long long>( frame.images.size() );
-	m_window.get_gpu_context().submit_frame( frame );
+	m_window.get_gpu_context().submit_frame( std::move( frame ) );
 }
 
 bool FePresent::saver_activation_check()

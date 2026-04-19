@@ -660,59 +660,59 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		}
 	}
 
+	if ( !m_movie )
+		return false;
+
 	m_audio_effects.update_all();
 
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
 
-	if ( m_movie )
+	// VF_NoAudio flag overrides volume setting
+	float vol = m_video_flags & VF_NoAudio
+		? 0.f
+		: m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
+
+	if ( vol != m_movie->getVolume() )
+		m_movie->setVolume( vol );
+
+	if ( m_pan != m_movie->getPan() )
+		m_movie->setPan( m_pan );
+
+	if ( m_movie_status > 0 )
 	{
-		// VF_NoAudio flag overrides volume setting
-		float vol = m_video_flags & VF_NoAudio
-			? 0.f
-			: m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
-
-		if ( vol != m_movie->getVolume() )
-			m_movie->setVolume( vol );
-
-		if ( m_pan != m_movie->getPan() )
-			m_movie->setPan( m_pan );
-
-		if ( m_movie_status > 0 )
+		if ( m_movie_status < PLAY_COUNT )
 		{
-			if ( m_movie_status < PLAY_COUNT )
-			{
-				//
-				// We skip the first few "ticks" after the movie
-				// is first loaded because the user may just be
-				// scrolling rapidly through the game list (there
-				// are ticks between each selection scrolling by)
-				//
-				m_movie_status++;
-				return false;
-			}
-			else if ( m_movie_status == PLAY_COUNT )
-			{
-				m_movie_status++;
-				m_movie->play();
-			}
-
-			// restart looped video
-			if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
-			{
-				m_movie->stop();
-				m_movie->play();
-
-				FeDebug() << "Restarted looped video" << std::endl;
-			}
+			//
+			// We skip the first few "ticks" after the movie
+			// is first loaded because the user may just be
+			// scrolling rapidly through the game list (there
+			// are ticks between each selection scrolling by)
+			//
+			m_movie_status++;
+			return false;
+		}
+		else if ( m_movie_status == PLAY_COUNT )
+		{
+			m_movie_status++;
+			m_movie->play();
 		}
 
-		if ( m_movie->tick() )
+		// restart looped video
+		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
 		{
-			m_pixel_cache.clear();
-			m_pixel_cache_valid = false;
-			return true;
+			m_movie->stop();
+			m_movie->play();
+
+			FeDebug() << "Restarted looped video" << std::endl;
 		}
+	}
+
+	if ( m_movie->tick() )
+	{
+		m_pixel_cache.clear();
+		m_pixel_cache_valid = false;
+		return true;
 	}
 
 	return false;

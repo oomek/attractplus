@@ -29,7 +29,7 @@ public:
 	FeSdl3GpuContext();
 	~FeSdl3GpuContext();
 
-	void submit_frame( const FeRenderFrame &frame );
+	void submit_frame( FeRenderFrame frame );
 	const FeRenderFrame &get_frame() const;
 	std::size_t get_texture_count() const;
 	bool execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry = nullptr );
@@ -102,6 +102,15 @@ private:
 		BuiltinShaderEntry *builtin_shader;
 		const FeRenderVertex *external_vertices;
 		const void *external_vertex_id;
+		Uint32 pbr_instance_first;
+		Uint32 pbr_instance_count;
+		bool pbr_instance_head;
+	};
+
+	struct PbrInstanceEntry
+	{
+		float model[16];
+		float normal_matrix[3][4];
 	};
 
 	struct SurfaceEntry
@@ -210,11 +219,17 @@ private:
 	void release_white_texture();
 	bool ensure_white_texture();
 	void release_vertex_buffer();
+	void release_pbr_instance_buffer();
+	bool upload_gpu_vertex_buffer_data( const void *data, Uint32 size, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
+	bool upload_gpu_vertex_buffer_data( SDL_GPUCommandBuffer *command_buffer, const void *data, Uint32 size, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
 	bool upload_vertex_buffer();
 	bool upload_vertex_buffer( const FeRenderVertex *vertices, std::size_t vertex_count, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
 	bool upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
 	void release_geometry_buffer( GeometryBufferEntry &entry );
 	bool ensure_geometry_vertex_buffer( const PreparedImage &image, SDL_GPUBuffer *&buffer );
+	bool can_instance_pbr_images( const PreparedImage &lhs, const PreparedImage &rhs ) const;
+	std::uint64_t compute_pbr_instance_batch_hash( const PreparedImage &image ) const;
+	void build_pbr_instance_batches( std::vector<PreparedImage> &prepared_images, std::vector<PbrInstanceEntry> &instance_data ) const;
 	int get_requested_anisotropy() const;
 	bool update_anisotropy();
 	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth );
@@ -260,7 +275,7 @@ private:
 		const FeRenderGeometry &image,
 		const std::vector<CustomUniformBinding> &uniforms,
 		std::vector<float> &data ) const;
-	bool render_surface_frames( SDL_GPUCommandBuffer *command_buffer );
+	bool render_surface_frames( SDL_GPUCommandBuffer *command_buffer, std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers );
 	bool render_prepared_geometry_batch(
 		SDL_GPURenderPass *render_pass,
 		SDL_GPUCommandBuffer *command_buffer,
@@ -272,6 +287,8 @@ private:
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
+		bool use_preuploaded_pbr_instances,
+		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
 	bool render_geometry_batch(
 		SDL_GPURenderPass *render_pass,
@@ -284,6 +301,7 @@ private:
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
+		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
 	void release_image_pipeline();
 	bool initialize_image_pipeline( SDL_GPUTextureFormat swapchain_format );
@@ -306,7 +324,9 @@ private:
 	SDL_Window *m_window;
 	SDL_GPUDevice *m_device;
 	SDL_GPUBuffer *m_vertex_buffer;
+	SDL_GPUBuffer *m_pbr_instance_buffer;
 	Uint32 m_vertex_buffer_size;
+	Uint32 m_pbr_instance_buffer_size;
 	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
 	SDL_GPUShader *m_alpha_prepass_shader;

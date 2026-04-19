@@ -155,6 +155,7 @@ public:
 	FeImage *add_artwork(const char *);
 	FeModel3D *add_model_3d(const char *);
 	FeImage *add_clone(FeImage *);
+	FeModel3D *add_clone(FeModel3D *);
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);
 	FeRectangle *add_rectangle(float, float, float, float);

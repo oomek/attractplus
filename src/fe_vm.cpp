@@ -1095,6 +1095,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("file_name"), &FeModel3D::get_file_name )
 		.Overload<void (FeModel3D::*)(float, float)>(_SC("set_anchor"), &FeModel3D::set_anchor )
 		.Overload<void (FeModel3D::*)(float, float, float)>(_SC("set_anchor"), &FeModel3D::set_anchor )
+		.Func(_SC("get_material_artwork"), &FeModel3D::get_material_artwork )
 		.Func(_SC("add_material_artwork"), &FeModel3D::add_material_artwork )
 		.Func(_SC("add_material_file"), &FeModel3D::add_material_file )
 		.Func(_SC("set_material_artwork"), &FeModel3D::set_material_artwork )
@@ -1383,7 +1384,8 @@ bool FeVM::on_new_layout()
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Func( _SC("add_model_3d"), &FePresentableParent::add_model_3d )
-		.Func( _SC("add_clone"), &FePresentableParent::add_clone )
+		.Overload<FeImage * (FePresentableParent::*)(FeImage *)>( _SC("add_clone"), &FePresentableParent::add_clone )
+		.Overload<FeModel3D * (FePresentableParent::*)(FeModel3D *)>( _SC("add_clone"), &FePresentableParent::add_clone )
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
 		.Func( _SC("add_rectangle"), &FePresentableParent::add_rectangle )
@@ -1426,7 +1428,8 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeImage* (*)(const char *)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
 	fe.Func<FeModel3D* (*)(const char *)>(_SC("add_model_3d"), &FeVM::cb_add_model_3d);
 
-	fe.Func<FeImage* (*)(FeImage *)>(_SC("add_clone"), &FeVM::cb_add_clone);
+	fe.Overload<FeImage* (*)(FeImage *)>( _SC("add_clone"), &FeVM::cb_add_clone );
+	fe.Overload<FeModel3D* (*)(FeModel3D *)>( _SC("add_clone"), &FeVM::cb_add_clone );
 
 	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
 	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
@@ -2646,6 +2649,20 @@ FeImage* FeVM::cb_add_clone( FeImage *o )
 
 	// Add the image to the "fe.obj" array in Squirrel
 	//
+	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
+	obj.Append( ret );
+
+	return ret;
+}
+
+FeModel3D *FeVM::cb_add_clone( FeModel3D *o )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	FeModel3D *ret = fev->add_clone( o, fev->m_mon[0] );
+
 	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
 	obj.Append( ret );

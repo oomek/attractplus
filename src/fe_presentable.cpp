@@ -402,6 +402,16 @@ FeImage *FePresentableParent::add_clone(FeImage *i )
 	return NULL;
 }
 
+FeModel3D *FePresentableParent::add_clone( FeModel3D *m )
+{
+	FePresent *fep = FePresent::script_get_fep();
+
+	if ( fep )
+		return fep->add_clone( m, *this );
+
+	return NULL;
+}
+
 FeText *FePresentableParent::add_text(const char *t, int x, int y, int w, int h)
 {
 	FePresent *fep = FePresent::script_get_fep();

@@ -117,7 +117,114 @@ namespace
 	{
 		std::vector<FeRenderVertex> vertices;
 		ModelMaterial material;
+		float bounds_aspect;
+		float target_aspect[2];
+
+		ModelPrimitive()
+			: bounds_aspect( 1.0f )
+		{
+			target_aspect[0] = 1.0f;
+			target_aspect[1] = 1.0f;
+		}
 	};
+
+	bool model_texture_ref_matches( const ModelTextureRef &lhs, const ModelTextureRef &rhs )
+	{
+		return lhs.container == rhs.container
+			&& lhs.repeated == rhs.repeated
+			&& lhs.smooth == rhs.smooth
+			&& lhs.mipmap == rhs.mipmap
+			&& lhs.texcoord_set == rhs.texcoord_set
+			&& lhs.offset_u == rhs.offset_u
+			&& lhs.offset_v == rhs.offset_v
+			&& lhs.scale_u == rhs.scale_u
+			&& lhs.scale_v == rhs.scale_v
+			&& lhs.rotation == rhs.rotation;
+	}
+
+	bool model_material_matches( const ModelMaterial &lhs, const ModelMaterial &rhs )
+	{
+		if ( lhs.name != rhs.name
+			|| !model_texture_ref_matches( lhs.base_color_texture, rhs.base_color_texture )
+			|| !model_texture_ref_matches( lhs.metallic_roughness_texture, rhs.metallic_roughness_texture )
+			|| !model_texture_ref_matches( lhs.normal_texture, rhs.normal_texture )
+			|| !model_texture_ref_matches( lhs.occlusion_texture, rhs.occlusion_texture )
+			|| !model_texture_ref_matches( lhs.emissive_texture, rhs.emissive_texture )
+			|| lhs.metallic_factor != rhs.metallic_factor
+			|| lhs.roughness_factor != rhs.roughness_factor
+			|| lhs.normal_scale != rhs.normal_scale
+			|| lhs.occlusion_strength != rhs.occlusion_strength
+			|| lhs.alpha_cutoff != rhs.alpha_cutoff
+			|| lhs.alpha_mode != rhs.alpha_mode
+			|| lhs.unlit != rhs.unlit
+			|| lhs.double_sided != rhs.double_sided )
+		{
+			return false;
+		}
+
+		for ( int i = 0; i < 4; ++i )
+		{
+			if ( lhs.base_color_factor[i] != rhs.base_color_factor[i] )
+				return false;
+		}
+		for ( int i = 0; i < 3; ++i )
+		{
+			if ( lhs.emissive_factor[i] != rhs.emissive_factor[i] )
+				return false;
+		}
+
+		return true;
+	}
+
+	std::uint64_t hash_combine_model_u64( std::uint64_t seed, std::uint64_t value )
+	{
+		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
+	}
+
+	std::uint64_t hash_model_float( std::uint64_t seed, float value )
+	{
+		std::uint32_t bits = 0;
+		std::memcpy( &bits, &value, sizeof( bits ) );
+		return hash_combine_model_u64( seed, static_cast<std::uint64_t>( bits ) );
+	}
+
+	std::uint64_t hash_model_texture_ref( const ModelTextureRef &value, std::uint64_t seed )
+	{
+		seed = hash_combine_model_u64( seed, reinterpret_cast<std::uint64_t>( value.container ) );
+		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.repeated ? 1 : 0 ) );
+		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.smooth ? 1 : 0 ) );
+		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.mipmap ? 1 : 0 ) );
+		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.texcoord_set ) );
+		seed = hash_model_float( seed, value.offset_u );
+		seed = hash_model_float( seed, value.offset_v );
+		seed = hash_model_float( seed, value.scale_u );
+		seed = hash_model_float( seed, value.scale_v );
+		seed = hash_model_float( seed, value.rotation );
+		return seed;
+	}
+
+	std::uint64_t compute_model_material_hash( const ModelMaterial &material )
+	{
+		std::uint64_t hash = std::hash<std::string>{}( material.name );
+		hash = hash_model_texture_ref( material.base_color_texture, hash );
+		hash = hash_model_texture_ref( material.metallic_roughness_texture, hash );
+		hash = hash_model_texture_ref( material.normal_texture, hash );
+		hash = hash_model_texture_ref( material.occlusion_texture, hash );
+		hash = hash_model_texture_ref( material.emissive_texture, hash );
+		for ( int i = 0; i < 4; ++i )
+			hash = hash_model_float( hash, material.base_color_factor[i] );
+		for ( int i = 0; i < 3; ++i )
+			hash = hash_model_float( hash, material.emissive_factor[i] );
+		hash = hash_model_float( hash, material.metallic_factor );
+		hash = hash_model_float( hash, material.roughness_factor );
+		hash = hash_model_float( hash, material.normal_scale );
+		hash = hash_model_float( hash, material.occlusion_strength );
+		hash = hash_model_float( hash, material.alpha_cutoff );
+		hash = hash_combine_model_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
+		hash = hash_combine_model_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
+		hash = hash_combine_model_u64( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+		return hash;
+	}
 
 	struct ModelLight
 	{
@@ -1169,7 +1276,9 @@ namespace
 		if ( !binding.texture_id || binding.width <= FE_EPSILON || binding.height <= FE_EPSILON )
 			return;
 
-		const float target_aspect = estimate_primitive_target_aspect( primitive, binding.texcoord_set );
+		float target_aspect = primitive.target_aspect[ binding.texcoord_set == 1 ? 1 : 0 ];
+		if ( target_aspect <= FE_EPSILON )
+			target_aspect = primitive.bounds_aspect;
 		const float safe_sample_aspect_ratio =
 			( sample_aspect_ratio > FE_EPSILON ) ? sample_aspect_ratio : 1.0f;
 		const float source_aspect =
@@ -1212,9 +1321,18 @@ struct FeModel3D::ModelData
 
 struct FeModel3D::MaterialOverride
 {
+	enum SourceType
+	{
+		SourceNone = 0,
+		SourceArtwork,
+		SourceFile
+	};
+
 	std::string material_name;
 	FeTextureContainer *container;
 	std::unique_ptr<FeModel3DMaterialArtwork> handle;
+	SourceType source_type;
+	std::string source_value;
 	int index_offset;
 	int filter_offset;
 	int video_flags;
@@ -1232,6 +1350,7 @@ struct FeModel3D::MaterialOverride
 
 	MaterialOverride()
 		: container( nullptr ),
+		  source_type( SourceNone ),
 		  index_offset( 0 ),
 		  filter_offset( 0 ),
 		  video_flags( VF_Normal ),
@@ -1409,6 +1528,7 @@ void FeModel3DMaterialArtwork::set_preserve_aspect_ratio( bool preserve )
 		return;
 
 	entry->preserve_aspect_ratio = preserve;
+	m_model->invalidate_geometry_cache();
 	FePresent::script_flag_redraw();
 }
 
@@ -1501,6 +1621,7 @@ void FeModel3DMaterialArtwork::set_smooth( bool smooth )
 	entry->smooth = smooth;
 	if ( entry->container )
 		entry->container->set_smooth( smooth );
+	m_model->invalidate_geometry_cache();
 	FePresent::script_flag_redraw();
 }
 
@@ -1523,6 +1644,7 @@ void FeModel3DMaterialArtwork::set_mipmap( bool mipmap )
 	entry->mipmap = mipmap;
 	if ( entry->container )
 		entry->container->set_mipmap( mipmap );
+	m_model->invalidate_geometry_cache();
 	FePresent::script_flag_redraw();
 }
 
@@ -1545,6 +1667,7 @@ void FeModel3DMaterialArtwork::set_repeat( bool repeat )
 	entry->repeat = repeat;
 	if ( entry->container )
 		entry->container->set_repeat( repeat );
+	m_model->invalidate_geometry_cache();
 	FePresent::script_flag_redraw();
 }
 
@@ -1602,10 +1725,99 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	  m_anchor( 0.0f, 0.0f, 0.0f ),
 	  m_depth( 1.0f ),
 	  m_rotation( 0.0f ),
-	  m_color( Color::White )
+	  m_color( Color::White ),
+	  m_geometry_cache_valid( false ),
+	  m_geometry_cache_model( nullptr ),
+	  m_geometry_cache_pos( 0.0f, 0.0f ),
+	  m_geometry_cache_size( 0.0f, 0.0f ),
+	  m_geometry_cache_anchor( 0.0f, 0.0f, 0.0f ),
+	  m_geometry_cache_depth( 0.0f ),
+	  m_geometry_cache_rotation( 0.0f ),
+	  m_geometry_cache_z( 0.0f ),
+	  m_geometry_cache_rotation_x( 0.0f ),
+	  m_geometry_cache_rotation_y( 0.0f ),
+	  m_geometry_cache_rotation_order( 0 ),
+	  m_geometry_cache_color( Color::White ),
+	  m_geometry_cache_zbuffer( false ),
+	  m_geometry_cache_camera_light( 0.0f )
 {
 	set_zbuffer( true );
 	load_model( filename );
+}
+
+FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
+	: FeBasePresentable( p ),
+	  m_file_name( o ? o->m_file_name : "" ),
+	  m_pos( o ? o->m_pos : Vec2f( 0.0f, 0.0f ) ),
+	  m_size( o ? o->m_size : Vec2f( 1.0f, 1.0f ) ),
+	  m_anchor( o ? o->m_anchor : Vec3f( 0.0f, 0.0f, 0.0f ) ),
+	  m_depth( o ? o->m_depth : 1.0f ),
+	  m_rotation( o ? o->m_rotation : 0.0f ),
+	  m_color( o ? o->m_color : Color::White ),
+	  m_model( o ? o->m_model : nullptr ),
+	  m_geometry_cache_valid( false ),
+	  m_geometry_cache_model( nullptr ),
+	  m_geometry_cache_pos( 0.0f, 0.0f ),
+	  m_geometry_cache_size( 0.0f, 0.0f ),
+	  m_geometry_cache_anchor( 0.0f, 0.0f, 0.0f ),
+	  m_geometry_cache_depth( 0.0f ),
+	  m_geometry_cache_rotation( 0.0f ),
+	  m_geometry_cache_z( 0.0f ),
+	  m_geometry_cache_rotation_x( 0.0f ),
+	  m_geometry_cache_rotation_y( 0.0f ),
+	  m_geometry_cache_rotation_order( 0 ),
+	  m_geometry_cache_color( Color::White ),
+	  m_geometry_cache_zbuffer( false ),
+	  m_geometry_cache_camera_light( 0.0f )
+{
+	if ( !o )
+		return;
+
+	set_visible( o->get_visible() );
+	set_z( o->get_z() );
+	script_set_shader( o->get_shader() );
+	set_rotation_x( o->get_rotation_x() );
+	set_rotation_y( o->get_rotation_y() );
+	set_rotation_order( o->get_rotation_order() );
+	set_zorder( o->get_zorder() );
+	set_zbuffer( o->get_zbuffer() );
+
+	for ( const std::unique_ptr<MaterialOverride> &source_override : o->m_overrides )
+	{
+		if ( !source_override )
+			continue;
+
+		MaterialOverride *target_override =
+			find_or_create_override( source_override->material_name );
+		target_override->source_type = source_override->source_type;
+		target_override->source_value = source_override->source_value;
+		target_override->index_offset = source_override->index_offset;
+		target_override->filter_offset = source_override->filter_offset;
+		target_override->video_flags = source_override->video_flags;
+		target_override->trigger = source_override->trigger;
+		target_override->preserve_aspect_ratio = source_override->preserve_aspect_ratio;
+		target_override->texture_rotation_degrees = source_override->texture_rotation_degrees;
+		target_override->use_texture_rotation = source_override->use_texture_rotation;
+		target_override->smooth = source_override->smooth;
+		target_override->mipmap = source_override->mipmap;
+		target_override->repeat = source_override->repeat;
+		target_override->volume = source_override->volume;
+		target_override->pan = source_override->pan;
+		target_override->play_state = source_override->play_state;
+		target_override->use_play_state = source_override->use_play_state;
+
+		if ( !source_override->container )
+			continue;
+
+		FeTextureContainer *container = nullptr;
+		if ( source_override->source_type == MaterialOverride::SourceArtwork )
+			container = create_override_artwork_container( source_override->source_value.c_str() );
+		else if ( source_override->source_type == MaterialOverride::SourceFile )
+			container = create_override_file_container( source_override->source_value.c_str() );
+
+		if ( container )
+			set_override_container( source_override->material_name, container );
+	}
 }
 
 FeModel3D::~FeModel3D()
@@ -1790,15 +2002,26 @@ void FeModel3D::release_overrides()
 	m_overrides.clear();
 }
 
+void FeModel3D::invalidate_geometry_cache() const
+{
+	m_geometry_cache_valid = false;
+}
+
 void FeModel3D::clear_override( const std::string &material_name )
 {
 	MaterialOverride *entry = find_override( material_name );
-	if ( !entry || !entry->container )
+	if ( !entry )
+		return;
+
+	entry->source_type = MaterialOverride::SourceNone;
+	entry->source_value.clear();
+	if ( !entry->container )
 		return;
 
 	FePresent::script_unregister_texture_container( entry->container );
 	delete entry->container;
 	entry->container = nullptr;
+	invalidate_geometry_cache();
 	FePresent::script_flag_redraw();
 }
 
@@ -1858,6 +2081,16 @@ void FeModel3D::set_override_container( const std::string &material_name, FeText
 
 	FePresent::script_register_texture_container( container );
 	apply_override_settings( *entry, true );
+	invalidate_geometry_cache();
+}
+
+FeModel3DMaterialArtwork *FeModel3D::get_material_artwork( const char *material_name )
+{
+	if ( !material_name )
+		return nullptr;
+
+	MaterialOverride *entry = find_or_create_override( material_name );
+	return entry ? entry->handle.get() : nullptr;
 }
 
 FeModel3DMaterialArtwork *FeModel3D::add_material_artwork( const char *material_name, const char *artwork_label )
@@ -1866,6 +2099,8 @@ FeModel3DMaterialArtwork *FeModel3D::add_material_artwork( const char *material_
 		return nullptr;
 
 	MaterialOverride *entry = find_or_create_override( material_name );
+	entry->source_type = MaterialOverride::SourceArtwork;
+	entry->source_value = artwork_label;
 	set_override_container( material_name, create_override_artwork_container( artwork_label ) );
 	return entry->handle.get();
 }
@@ -1876,6 +2111,8 @@ FeModel3DMaterialArtwork *FeModel3D::add_material_file( const char *material_nam
 		return nullptr;
 
 	MaterialOverride *entry = find_or_create_override( material_name );
+	entry->source_type = MaterialOverride::SourceFile;
+	entry->source_value = filename;
 	set_override_container( material_name, create_override_file_container( filename ) );
 	return entry->handle.get();
 }
@@ -1905,6 +2142,7 @@ void FeModel3D::set_material_texture_rotation( const char *material_name, float 
 
 	entry->texture_rotation_degrees = degrees;
 	entry->use_texture_rotation = use_rotation;
+	invalidate_geometry_cache();
 	FePresent::script_flag_redraw();
 }
 
@@ -2121,6 +2359,7 @@ void FeModel3D::load_model( const std::string &filename )
 			roots.push_back( &data->nodes[i] );
 	}
 
+	std::unordered_map<std::uint64_t, std::vector<std::size_t>> primitive_merge_lookup;
 	std::vector<const cgltf_node *> stack = roots;
 	while ( !stack.empty() )
 	{
@@ -2381,7 +2620,40 @@ void FeModel3D::load_model( const std::string &filename )
 			}
 
 			if ( !model_primitive.vertices.empty() )
-				model->primitives.push_back( std::move( model_primitive ) );
+			{
+				model_primitive.bounds_aspect = estimate_primitive_bounds_aspect( model_primitive );
+				model_primitive.target_aspect[0] = estimate_primitive_target_aspect( model_primitive, 0 );
+				model_primitive.target_aspect[1] = estimate_primitive_target_aspect( model_primitive, 1 );
+				const std::uint64_t material_hash =
+					compute_model_material_hash( model_primitive.material );
+				bool merged = false;
+				auto merge_it = primitive_merge_lookup.find( material_hash );
+				if ( merge_it != primitive_merge_lookup.end() )
+				{
+					for ( std::size_t primitive_slot : merge_it->second )
+					{
+						if ( primitive_slot >= model->primitives.size() )
+							continue;
+
+						ModelPrimitive &existing_primitive = model->primitives[ primitive_slot ];
+						if ( !model_material_matches( existing_primitive.material, model_primitive.material ) )
+							continue;
+
+						existing_primitive.vertices.insert(
+							existing_primitive.vertices.end(),
+							model_primitive.vertices.begin(),
+							model_primitive.vertices.end() );
+						merged = true;
+						break;
+					}
+				}
+
+				if ( !merged )
+				{
+					model->primitives.push_back( std::move( model_primitive ) );
+					primitive_merge_lookup[ material_hash ].push_back( model->primitives.size() - 1 );
+				}
+			}
 		}
 	}
 
@@ -2408,10 +2680,366 @@ void FeModel3D::load_model( const std::string &filename )
 	m_model = std::move( model );
 }
 
-bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
+bool FeModel3D::geometry_cache_matches( float camera_light ) const
 {
-	if ( !m_model || m_model->primitives.empty() )
+	if ( !m_geometry_cache_valid
+		|| ( m_geometry_cache_model != m_model.get() )
+		|| ( m_geometry_cache_pos != m_pos )
+		|| ( m_geometry_cache_size != m_size )
+		|| ( m_geometry_cache_anchor != m_anchor )
+		|| ( m_geometry_cache_depth != m_depth )
+		|| ( m_geometry_cache_rotation != m_rotation )
+		|| ( m_geometry_cache_z != get_z() )
+		|| ( m_geometry_cache_rotation_x != get_rotation_x() )
+		|| ( m_geometry_cache_rotation_y != get_rotation_y() )
+		|| ( m_geometry_cache_rotation_order != get_rotation_order() )
+		|| ( m_geometry_cache_color != m_color )
+		|| ( m_geometry_cache_zbuffer != get_zbuffer() )
+		|| ( m_geometry_cache_camera_light != camera_light )
+		|| ( m_geometry_cache_primitives.size() != m_geometry_cache.size() ) )
+	{
 		return false;
+	}
+
+	for ( std::size_t cache_index = 0; cache_index < m_geometry_cache.size(); ++cache_index )
+	{
+		const std::size_t primitive_index = m_geometry_cache_primitives[cache_index];
+		if ( primitive_index >= m_model->primitives.size() )
+			return false;
+
+		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+		const MaterialOverride *override_entry = find_override( primitive.material.name );
+		if ( !override_entry || !override_entry->container )
+			continue;
+
+		const FeBaseTextureContainer *container = override_entry->container;
+		const Vec2u texture_size = container->get_texture_size();
+		const FeRenderTextureBinding &base_binding =
+			m_geometry_cache[cache_index].pbr_material.base_color_texture;
+		if ( base_binding.texture_id != container->get_texture_source_id()
+			|| base_binding.texture_source_type != container->get_texture_source_type()
+			|| base_binding.repeated != container->get_repeat()
+			|| base_binding.smooth != container->get_smooth()
+			|| base_binding.mipmap != container->get_mipmap()
+			|| base_binding.dynamic != container->is_volatile_texture()
+			|| base_binding.width != static_cast<float>( texture_size.x )
+			|| base_binding.height != static_cast<float>( texture_size.y )
+			|| base_binding.content_version != container->get_texture_content_version() )
+		{
+			return false;
+		}
+
+		const bool use_emissive_override =
+			primitive.material.emissive_texture.container
+			|| has_nonzero_emissive_factor( primitive.material );
+		if ( use_emissive_override )
+		{
+			const FeRenderTextureBinding &emissive_binding =
+				m_geometry_cache[cache_index].pbr_material.emissive_texture;
+			if ( emissive_binding.texture_id != container->get_texture_source_id()
+				|| emissive_binding.texture_source_type != container->get_texture_source_type()
+				|| emissive_binding.repeated != container->get_repeat()
+				|| emissive_binding.smooth != container->get_smooth()
+				|| emissive_binding.mipmap != container->get_mipmap()
+				|| emissive_binding.dynamic != container->is_volatile_texture()
+				|| emissive_binding.width != static_cast<float>( texture_size.x )
+				|| emissive_binding.height != static_cast<float>( texture_size.y )
+				|| emissive_binding.content_version != container->get_texture_content_version() )
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+void FeModel3D::update_geometry_cache_state( float camera_light ) const
+{
+	m_geometry_cache_valid = true;
+	m_geometry_cache_model = m_model.get();
+	m_geometry_cache_pos = m_pos;
+	m_geometry_cache_size = m_size;
+	m_geometry_cache_anchor = m_anchor;
+	m_geometry_cache_depth = m_depth;
+	m_geometry_cache_rotation = m_rotation;
+	m_geometry_cache_z = get_z();
+	m_geometry_cache_rotation_x = get_rotation_x();
+	m_geometry_cache_rotation_y = get_rotation_y();
+	m_geometry_cache_rotation_order = get_rotation_order();
+	m_geometry_cache_color = m_color;
+	m_geometry_cache_zbuffer = get_zbuffer();
+	m_geometry_cache_camera_light = camera_light;
+}
+
+void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size_t primitive_index ) const
+{
+	if ( !m_model || primitive_index >= m_model->primitives.size() )
+		return;
+
+	const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+	const MaterialOverride *override_entry = find_override( primitive.material.name );
+	const FeBaseTextureContainer *override_container =
+		override_entry ? override_entry->container : nullptr;
+	const bool use_emissive_override =
+		override_container &&
+		( primitive.material.emissive_texture.container
+			|| has_nonzero_emissive_factor( primitive.material ) );
+
+	entry.pbr_material.emissive_factor[0] = primitive.material.emissive_factor[0];
+	entry.pbr_material.emissive_factor[1] = primitive.material.emissive_factor[1];
+	entry.pbr_material.emissive_factor[2] = primitive.material.emissive_factor[2];
+	if ( use_emissive_override && !primitive.material.emissive_texture.container )
+		normalize_emissive_override_factor( entry.pbr_material.emissive_factor );
+
+	fill_render_texture_binding(
+		entry.pbr_material.base_color_texture,
+		primitive.material.base_color_texture,
+		override_container );
+	fill_render_texture_binding(
+		entry.pbr_material.metallic_roughness_texture,
+		primitive.material.metallic_roughness_texture );
+	fill_render_texture_binding(
+		entry.pbr_material.normal_texture,
+		primitive.material.normal_texture );
+	fill_render_texture_binding(
+		entry.pbr_material.occlusion_texture,
+		primitive.material.occlusion_texture );
+	fill_render_texture_binding(
+		entry.pbr_material.emissive_texture,
+		primitive.material.emissive_texture,
+		use_emissive_override ? override_container : nullptr );
+
+	if ( override_container && override_entry && override_entry->preserve_aspect_ratio )
+	{
+		const float sample_aspect_ratio = override_container->get_sample_aspect_ratio();
+		apply_preserve_aspect_ratio_fit(
+			entry.pbr_material.base_color_texture,
+			primitive,
+			sample_aspect_ratio );
+		if ( use_emissive_override )
+		{
+			apply_preserve_aspect_ratio_fit(
+				entry.pbr_material.emissive_texture,
+				primitive,
+				sample_aspect_ratio );
+		}
+	}
+	if ( override_container && override_entry && override_entry->use_texture_rotation )
+	{
+		apply_centered_texture_rotation(
+			entry.pbr_material.base_color_texture,
+			override_entry->texture_rotation_degrees );
+		if ( use_emissive_override )
+		{
+			apply_centered_texture_rotation(
+				entry.pbr_material.emissive_texture,
+				override_entry->texture_rotation_degrees );
+		}
+	}
+
+	entry.texture_id = entry.pbr_material.base_color_texture.texture_id;
+	entry.texture_source_type = entry.pbr_material.base_color_texture.texture_source_type;
+	entry.texture_repeated = entry.pbr_material.base_color_texture.repeated;
+	entry.texture_smooth = entry.pbr_material.base_color_texture.smooth;
+	entry.texture_mipmap = entry.pbr_material.base_color_texture.mipmap;
+	entry.texture_width = entry.pbr_material.base_color_texture.width;
+	entry.texture_height = entry.pbr_material.base_color_texture.height;
+	entry.texture_content_version = entry.pbr_material.base_color_texture.content_version;
+	entry.texture_dynamic =
+		binding_is_dynamic( entry.pbr_material.base_color_texture )
+		|| binding_is_dynamic( entry.pbr_material.metallic_roughness_texture )
+		|| binding_is_dynamic( entry.pbr_material.normal_texture )
+		|| binding_is_dynamic( entry.pbr_material.occlusion_texture )
+		|| binding_is_dynamic( entry.pbr_material.emissive_texture );
+}
+
+void FeModel3D::refresh_geometry_cache() const
+{
+	if ( !m_model || m_geometry_cache.empty() )
+		return;
+
+	const Vec3f bounds_size = m_model->bounds_max - m_model->bounds_min;
+	const Vec3f source_center = ( m_model->bounds_min + m_model->bounds_max ) * 0.5f;
+	const Vec3f target_min(
+		m_pos.x - ( m_anchor.x * m_size.x ),
+		m_pos.y - ( m_anchor.y * m_size.y ),
+		get_z() - ( m_anchor.z * m_depth ) );
+	const Vec3f target_center(
+		target_min.x + ( m_size.x * 0.5f ),
+		target_min.y + ( m_size.y * 0.5f ),
+		target_min.z + ( m_depth * 0.5f ) );
+	const Vec3f scale(
+		m_size.x / safe_extent( bounds_size.x ),
+		m_size.y / safe_extent( bounds_size.y ),
+		m_depth / safe_extent( bounds_size.z ) );
+	float model_matrix[16] = {};
+	build_model_model_matrix(
+		model_matrix,
+		source_center,
+		target_center,
+		scale,
+		get_rotation_x(),
+		get_rotation_y(),
+		m_rotation,
+		get_rotation_order() );
+	float normal_matrix[9] = {};
+	if ( !build_normal_matrix3( model_matrix, normal_matrix ) )
+	{
+		normal_matrix[0] = 1.0f;
+		normal_matrix[1] = 0.0f;
+		normal_matrix[2] = 0.0f;
+		normal_matrix[3] = 0.0f;
+		normal_matrix[4] = 1.0f;
+		normal_matrix[5] = 0.0f;
+		normal_matrix[6] = 0.0f;
+		normal_matrix[7] = 0.0f;
+		normal_matrix[8] = 1.0f;
+	}
+
+	const float color_scale_r = static_cast<float>( m_color.r ) / 255.0f;
+	const float color_scale_g = static_cast<float>( m_color.g ) / 255.0f;
+	const float color_scale_b = static_cast<float>( m_color.b ) / 255.0f;
+	const float color_scale_a = static_cast<float>( m_color.a ) / 255.0f;
+	float camera_light = 0.0f;
+	if ( FePresent *fep = FePresent::script_get_fep() )
+		camera_light = fep->get_camera_light();
+
+	FeRenderPbrLight transformed_lights[4];
+	int light_count = 0;
+	if ( m_model->lights.empty() )
+	{
+		light_count = 1;
+		transformed_lights[0].clear();
+		transformed_lights[0].type = FeRenderPbrLightDirectional;
+		transformed_lights[0].color[0] = 1.0f;
+		transformed_lights[0].color[1] = 1.0f;
+		transformed_lights[0].color[2] = 1.0f;
+		transformed_lights[0].intensity = 3.0f;
+		transformed_lights[0].position[0] = target_center.x;
+		transformed_lights[0].position[1] = target_center.y;
+		transformed_lights[0].position[2] = target_center.z + std::max( m_depth, 1.0f );
+		const Vec3f direction = normalize( Vec3f( -0.35f, -0.55f, -1.0f ) );
+		transformed_lights[0].direction[0] = direction.x;
+		transformed_lights[0].direction[1] = direction.y;
+		transformed_lights[0].direction[2] = direction.z;
+	}
+	else
+	{
+		light_count = static_cast<int>( m_model->lights.size() );
+		for ( int light_index = 0; light_index < light_count; ++light_index )
+		{
+			const ModelLight &source_light = m_model->lights[ light_index ];
+			FeRenderPbrLight &target_light = transformed_lights[ light_index ];
+			target_light.clear();
+			target_light.type = source_light.type;
+			target_light.color[0] = source_light.color.x;
+			target_light.color[1] = source_light.color.y;
+			target_light.color[2] = source_light.color.z;
+			target_light.intensity = source_light.intensity;
+			const Vec3f transformed_light_position = transform_instance_position(
+				source_light.position,
+				source_center,
+				target_center,
+				scale,
+				get_rotation_x(),
+				get_rotation_y(),
+				m_rotation,
+				get_rotation_order() );
+			const Vec3f transformed_light_direction = transform_instance_normal(
+				source_light.direction,
+				scale,
+				get_rotation_x(),
+				get_rotation_y(),
+				m_rotation,
+				get_rotation_order() );
+			target_light.position[0] = transformed_light_position.x;
+			target_light.position[1] = transformed_light_position.y;
+			target_light.position[2] = transformed_light_position.z;
+			target_light.direction[0] = transformed_light_direction.x;
+			target_light.direction[1] = transformed_light_direction.y;
+			target_light.direction[2] = transformed_light_direction.z;
+			target_light.range = source_light.range;
+			target_light.inner_cone_cos = source_light.inner_cone_cos;
+			target_light.outer_cone_cos = source_light.outer_cone_cos;
+		}
+	}
+
+	if ( m_overrides.empty() )
+	{
+		for ( std::size_t cache_index = 0; cache_index < m_geometry_cache.size(); ++cache_index )
+		{
+			const std::size_t primitive_index =
+				( cache_index < m_geometry_cache_primitives.size() )
+					? m_geometry_cache_primitives[ cache_index ]
+					: cache_index;
+			if ( primitive_index >= m_model->primitives.size() )
+				continue;
+
+			const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+			FeRenderGeometry &entry = m_geometry_cache[ cache_index ];
+			entry.zbuffer = get_zbuffer();
+			entry.pbr_material.base_color_factor[0] = primitive.material.base_color_factor[0] * color_scale_r;
+			entry.pbr_material.base_color_factor[1] = primitive.material.base_color_factor[1] * color_scale_g;
+			entry.pbr_material.base_color_factor[2] = primitive.material.base_color_factor[2] * color_scale_b;
+			entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
+			entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
+			entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
+			entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
+			entry.camera_light = camera_light;
+			entry.light_count = light_count;
+			std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
+			std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
+			for ( int light_index = 0; light_index < light_count; ++light_index )
+				entry.lights[ light_index ] = transformed_lights[ light_index ];
+		}
+		update_geometry_cache_state( camera_light );
+		return;
+	}
+
+	for ( std::size_t cache_index = 0; cache_index < m_geometry_cache.size(); ++cache_index )
+	{
+		const std::size_t primitive_index =
+			( cache_index < m_geometry_cache_primitives.size() )
+				? m_geometry_cache_primitives[ cache_index ]
+				: cache_index;
+		if ( primitive_index >= m_model->primitives.size() )
+			continue;
+
+		const MaterialOverride *override_entry =
+			find_override( m_model->primitives[ primitive_index ].material.name );
+		FeRenderGeometry &entry = m_geometry_cache[ cache_index ];
+		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+		entry.zbuffer = get_zbuffer();
+		entry.pbr_material.base_color_factor[0] = primitive.material.base_color_factor[0] * color_scale_r;
+		entry.pbr_material.base_color_factor[1] = primitive.material.base_color_factor[1] * color_scale_g;
+		entry.pbr_material.base_color_factor[2] = primitive.material.base_color_factor[2] * color_scale_b;
+		entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
+		entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
+		entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
+		entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
+		entry.camera_light = camera_light;
+		entry.light_count = light_count;
+		std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
+		std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
+		for ( int light_index = 0; light_index < light_count; ++light_index )
+			entry.lights[ light_index ] = transformed_lights[ light_index ];
+		if ( override_entry )
+			update_cached_material_state( entry, primitive_index );
+	}
+
+	update_geometry_cache_state( camera_light );
+}
+
+void FeModel3D::rebuild_geometry_cache( float camera_light ) const
+{
+	m_geometry_cache.clear();
+	m_geometry_cache_primitives.clear();
+	if ( !m_model || m_model->primitives.empty() )
+	{
+		m_geometry_cache_valid = false;
+		return;
+	}
 
 	const Vec3f bounds_size = m_model->bounds_max - m_model->bounds_min;
 	const Vec3f source_center = ( m_model->bounds_min + m_model->bounds_max ) * 0.5f;
@@ -2455,8 +3083,11 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	const float color_scale_b = static_cast<float>( m_color.b ) / 255.0f;
 	const float color_scale_a = static_cast<float>( m_color.a ) / 255.0f;
 
-	for ( const ModelPrimitive &primitive : m_model->primitives )
+	m_geometry_cache.reserve( m_model->primitives.size() );
+	m_geometry_cache_primitives.reserve( m_model->primitives.size() );
+	for ( std::size_t primitive_index = 0; primitive_index < m_model->primitives.size(); ++primitive_index )
 	{
+		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
 		FeRenderGeometry entry;
 		entry.clear();
 		entry.geometry_kind = FeRenderGeometryObjectPbr;
@@ -2472,9 +3103,6 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 		entry.pbr_material.base_color_factor[1] = primitive.material.base_color_factor[1] * color_scale_g;
 		entry.pbr_material.base_color_factor[2] = primitive.material.base_color_factor[2] * color_scale_b;
 		entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
-		entry.pbr_material.emissive_factor[0] = primitive.material.emissive_factor[0];
-		entry.pbr_material.emissive_factor[1] = primitive.material.emissive_factor[1];
-		entry.pbr_material.emissive_factor[2] = primitive.material.emissive_factor[2];
 		entry.pbr_material.metallic_factor = primitive.material.metallic_factor;
 		entry.pbr_material.roughness_factor = primitive.material.roughness_factor;
 		entry.pbr_material.normal_scale = primitive.material.normal_scale;
@@ -2483,83 +3111,11 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 		entry.pbr_material.alpha_mode = primitive.material.alpha_mode;
 		entry.pbr_material.unlit = primitive.material.unlit;
 		entry.pbr_material.double_sided = primitive.material.double_sided;
-
-		const MaterialOverride *override_entry = find_override( primitive.material.name );
-		const FeBaseTextureContainer *override_container =
-			override_entry ? override_entry->container : nullptr;
-		const bool use_emissive_override =
-			override_container &&
-			( primitive.material.emissive_texture.container
-				|| has_nonzero_emissive_factor( primitive.material ) );
-		if ( use_emissive_override && !primitive.material.emissive_texture.container )
-			normalize_emissive_override_factor( entry.pbr_material.emissive_factor );
-		fill_render_texture_binding(
-			entry.pbr_material.base_color_texture,
-			primitive.material.base_color_texture,
-			override_container );
-		fill_render_texture_binding(
-			entry.pbr_material.metallic_roughness_texture,
-			primitive.material.metallic_roughness_texture );
-		fill_render_texture_binding(
-			entry.pbr_material.normal_texture,
-			primitive.material.normal_texture );
-		fill_render_texture_binding(
-			entry.pbr_material.occlusion_texture,
-			primitive.material.occlusion_texture );
-		fill_render_texture_binding(
-			entry.pbr_material.emissive_texture,
-			primitive.material.emissive_texture,
-			use_emissive_override ? override_container : nullptr );
-		if ( override_container && override_entry && override_entry->preserve_aspect_ratio )
-		{
-			const float sample_aspect_ratio = override_container->get_sample_aspect_ratio();
-			apply_preserve_aspect_ratio_fit(
-				entry.pbr_material.base_color_texture,
-				primitive,
-				sample_aspect_ratio );
-			if ( use_emissive_override )
-			{
-				apply_preserve_aspect_ratio_fit(
-					entry.pbr_material.emissive_texture,
-					primitive,
-					sample_aspect_ratio );
-			}
-		}
-		if ( override_container && override_entry && override_entry->use_texture_rotation )
-		{
-			apply_centered_texture_rotation(
-				entry.pbr_material.base_color_texture,
-				override_entry->texture_rotation_degrees );
-			if ( use_emissive_override )
-			{
-				apply_centered_texture_rotation(
-					entry.pbr_material.emissive_texture,
-					override_entry->texture_rotation_degrees );
-			}
-		}
-
-		entry.texture_id = entry.pbr_material.base_color_texture.texture_id;
-		entry.texture_source_type = entry.pbr_material.base_color_texture.texture_source_type;
-		entry.texture_repeated = entry.pbr_material.base_color_texture.repeated;
-		entry.texture_smooth = entry.pbr_material.base_color_texture.smooth;
-		entry.texture_mipmap = entry.pbr_material.base_color_texture.mipmap;
-		entry.texture_width = entry.pbr_material.base_color_texture.width;
-		entry.texture_height = entry.pbr_material.base_color_texture.height;
-		entry.texture_content_version = entry.pbr_material.base_color_texture.content_version;
-		entry.texture_dynamic =
-			binding_is_dynamic( entry.pbr_material.base_color_texture )
-			|| binding_is_dynamic( entry.pbr_material.metallic_roughness_texture )
-			|| binding_is_dynamic( entry.pbr_material.normal_texture )
-			|| binding_is_dynamic( entry.pbr_material.occlusion_texture )
-			|| binding_is_dynamic( entry.pbr_material.emissive_texture );
 		std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
 		std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
 		entry.external_vertices = primitive.vertices.empty() ? nullptr : primitive.vertices.data();
 		entry.external_vertex_count = primitive.vertices.size();
 		entry.external_vertex_id = entry.external_vertices;
-		float camera_light = 0.0f;
-		if ( FePresent *fep = FePresent::script_get_fep() )
-			camera_light = fep->get_camera_light();
 		entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
@@ -2587,8 +3143,8 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			entry.light_count = static_cast<int>( m_model->lights.size() );
 			for ( int light_index = 0; light_index < entry.light_count; ++light_index )
 			{
-				const ModelLight &source_light = m_model->lights[light_index];
-				FeRenderPbrLight &target_light = entry.lights[light_index];
+				const ModelLight &source_light = m_model->lights[ light_index ];
+				FeRenderPbrLight &target_light = entry.lights[ light_index ];
 				target_light.type = source_light.type;
 				target_light.color[0] = source_light.color.x;
 				target_light.color[1] = source_light.color.y;
@@ -2621,9 +3177,35 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 				target_light.outer_cone_cos = source_light.outer_cone_cos;
 			}
 		}
+
+		update_cached_material_state( entry, primitive_index );
 		if ( entry.get_vertex_count() > 0 )
-			geometry.push_back( entry );
+		{
+			m_geometry_cache.push_back( entry );
+			m_geometry_cache_primitives.push_back( primitive_index );
+		}
 	}
 
-	return !geometry.empty();
+	update_geometry_cache_state( camera_light );
+}
+
+bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
+{
+	if ( !m_model || m_model->primitives.empty() )
+		return false;
+
+	float camera_light = 0.0f;
+	if ( FePresent *fep = FePresent::script_get_fep() )
+		camera_light = fep->get_camera_light();
+
+	if ( !m_geometry_cache_valid || ( m_geometry_cache_model != m_model.get() ) )
+		rebuild_geometry_cache( camera_light );
+	else if ( !geometry_cache_matches( camera_light ) )
+		refresh_geometry_cache();
+
+	if ( m_geometry_cache.empty() )
+		return false;
+
+	geometry.insert( geometry.end(), m_geometry_cache.begin(), m_geometry_cache.end() );
+	return true;
 }

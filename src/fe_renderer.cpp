@@ -153,6 +153,17 @@ void FeRenderPbrMaterial::clear()
 	double_sided = false;
 }
 
+FeRenderPbrInstance::FeRenderPbrInstance()
+{
+	clear();
+}
+
+void FeRenderPbrInstance::clear()
+{
+	fe_render_set_identity4( model_matrix );
+	fe_render_set_identity3( normal_matrix );
+}
+
 FeRenderGeometry::FeRenderGeometry()
 	: external_vertices( nullptr ),
 	  external_vertex_count( 0 ),
@@ -185,6 +196,7 @@ FeRenderGeometry::FeRenderGeometry()
 void FeRenderGeometry::clear()
 {
 	vertices.clear();
+	pbr_instances.clear();
 	external_vertices = nullptr;
 	external_vertex_count = 0;
 	external_vertex_id = nullptr;
@@ -218,6 +230,11 @@ void FeRenderGeometry::clear()
 bool FeRenderGeometry::has_external_vertices() const
 {
 	return external_vertices != nullptr && external_vertex_count > 0;
+}
+
+bool FeRenderGeometry::has_pbr_instances() const
+{
+	return !pbr_instances.empty();
 }
 
 const FeRenderVertex *FeRenderGeometry::get_vertex_data() const
