@@ -1426,6 +1426,7 @@ FeImage *FePresent::add_image( bool is_artwork,
 	flag_redraw();
 	m_texturePool.push_back( new_tex );
 	p.elements.push_back( new_image );
+	flag_sort_zorder();
 
 	return new_image;
 }
@@ -1439,6 +1440,7 @@ FeModel3D *FePresent::add_model_3d( const std::string &n, FePresentableParent &p
 
 	flag_redraw();
 	p.elements.push_back( new_model_3d );
+	flag_sort_zorder();
 	return new_model_3d;
 }
 
@@ -1448,6 +1450,7 @@ FeImage *FePresent::add_clone( FeImage *o,
 	FeImage *new_image = new FeImage( o, p );
 	flag_redraw();
 	p.elements.push_back( new_image );
+	flag_sort_zorder();
 
 	if ( o->get_presentable_parent() != NULL )
 		o->get_presentable_parent()->set_nesting_level( p.get_nesting_level() + 1 );
@@ -1460,6 +1463,7 @@ FeModel3D *FePresent::add_clone( FeModel3D *o, FePresentableParent &p )
 	FeModel3D *new_model_3d = new FeModel3D( o, p );
 	flag_redraw();
 	p.elements.push_back( new_model_3d );
+	flag_sort_zorder();
 	return new_model_3d;
 }
 
@@ -1476,6 +1480,7 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 
 	flag_redraw();
 	p.elements.push_back( new_text );
+	flag_sort_zorder();
 	return new_text;
 }
 
@@ -1493,6 +1498,7 @@ FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
 	flag_redraw();
 	m_listBox = new_lb;
 	p.elements.push_back( new_lb );
+	flag_sort_zorder();
 	return new_lb;
 }
 
@@ -1507,6 +1513,7 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 
 	flag_redraw();
 	p.elements.push_back( new_rc );
+	flag_sort_zorder();
 	return new_rc;
 }
 
@@ -1531,6 +1538,7 @@ FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentablePa
 	flag_redraw();
 	p.elements.push_back( new_image );
 	m_texturePool.push_back( new_surface );
+	flag_sort_zorder();
 	return new_image;
 }
 
