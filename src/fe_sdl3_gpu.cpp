@@ -5093,7 +5093,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						: SDL_GPU_LOADOP_LOAD;
 				color_target.store_op =
 					entry.msaa_color_texture
-						? ( ( !surface.clear && entry.rendered_once ) ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_RESOLVE )
+						? SDL_GPU_STOREOP_RESOLVE_AND_STORE
 						: SDL_GPU_STOREOP_STORE;
 				color_target.resolve_texture = entry.msaa_color_texture ? entry.color_texture : nullptr;
 				color_target.resolve_mip_level = 0;
@@ -5188,7 +5188,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 							: SDL_GPU_LOADOP_LOAD;
 					color_target.store_op =
 						entry.msaa_color_texture
-							? ( ( !surface.clear && entry.rendered_once ) ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_RESOLVE )
+							? SDL_GPU_STOREOP_RESOLVE_AND_STORE
 							: SDL_GPU_STOREOP_STORE;
 					color_target.resolve_texture = entry.msaa_color_texture ? entry.color_texture : nullptr;
 					color_target.resolve_mip_level = 0;
