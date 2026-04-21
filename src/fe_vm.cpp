@@ -1428,8 +1428,7 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeImage* (*)(const char *)>(_SC("add_artwork"), &FeVM::cb_add_artwork);
 	fe.Func<FeModel3D* (*)(const char *)>(_SC("add_model_3d"), &FeVM::cb_add_model_3d);
 
-	fe.Overload<FeImage* (*)(FeImage *)>( _SC("add_clone"), &FeVM::cb_add_clone );
-	fe.Overload<FeModel3D* (*)(FeModel3D *)>( _SC("add_clone"), &FeVM::cb_add_clone );
+	fe.Func( _SC("add_clone"), &FeVM::cb_add_clone_presentable );
 
 	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
 	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
@@ -2640,34 +2639,36 @@ FeModel3D *FeVM::cb_add_model_3d( const char *n )
 	return ret;
 }
 
-FeImage* FeVM::cb_add_clone( FeImage *o )
+Sqrat::Object FeVM::cb_add_clone_presentable( FeBasePresentable *o )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
-	FeImage *ret = fev->add_clone( o, fev->m_mon[0] );
+	if ( !fev || !o )
+		return Sqrat::Object();
 
-	// Add the image to the "fe.obj" array in Squirrel
-	//
+	Sqrat::Object ret_obj;
+	if ( FeImage *image = dynamic_cast<FeImage *>( o ) )
+	{
+		FeImage *ret = fev->add_clone( image, fev->m_mon[0] );
+		if ( ret )
+			ret_obj = Sqrat::Object( ret, vm );
+	}
+	else if ( FeModel3D *model = dynamic_cast<FeModel3D *>( o ) )
+	{
+		FeModel3D *ret = fev->add_clone( model, fev->m_mon[0] );
+		if ( ret )
+			ret_obj = Sqrat::Object( ret, vm );
+	}
+
+	if ( ret_obj.IsNull() )
+		return ret_obj;
+
 	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.Append( ret );
+	obj.Append( ret_obj );
 
-	return ret;
-}
-
-FeModel3D *FeVM::cb_add_clone( FeModel3D *o )
-{
-	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
-	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
-
-	FeModel3D *ret = fev->add_clone( o, fev->m_mon[0] );
-
-	Sqrat::Object fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
-	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
-	obj.Append( ret );
-
-	return ret;
+	return ret_obj;
 }
 
 FeText* FeVM::cb_add_text(const char *n, int x, int y, int w, int h )
