@@ -51,6 +51,8 @@
 #FE_DEBUG=1
 #VERBOSE=1
 
+.DEFAULT_GOAL := all
+
 override FE_VERSION := v3.2.4
 
 CC ?= gcc
@@ -282,6 +284,15 @@ GLSLANG_OBJ_DIR = $(OBJ_DIR)/glslang
 GLSLANG_LIB_DIR=$(GLSLANG_OBJ_DIR)/install/lib/
 GLSLANG_TOKEN=$(GLSLANG_OBJ_DIR)/.glslangok
 
+SDL3_OBJ_DIR         = $(OBJ_DIR)/sdl3
+SDL3_LIB_DIR         = $(SDL3_OBJ_DIR)/install/lib
+SDL3_TOKEN           = $(SDL3_LIB_DIR)/libSDL3.a
+SDL3_PKG_CONFIG_PATH = $(SDL3_LIB_DIR)/pkgconfig
+
+SDL3_IMAGE_OBJ_DIR         = $(OBJ_DIR)/sdl3-image
+SDL3_IMAGE_LIB_DIR         = $(SDL3_IMAGE_OBJ_DIR)/install/lib
+SDL3_IMAGE_TOKEN           = $(SDL3_IMAGE_LIB_DIR)/libSDL3_image.a
+SDL3_IMAGE_PKG_CONFIG_PATH = $(SDL3_IMAGE_LIB_DIR)/pkgconfig
 
 ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenGL
@@ -318,22 +329,38 @@ else
  CFLAGS += -DDATA_PATH=\"$(DATA_PATH)\"
 endif
 
-ifneq ($(shell $(PKG_CONFIG) --exists sdl3 && echo 1 || echo 0),1)
- $(error SDL3 development files are required through pkg-config)
-endif
-CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
-LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
-ifneq ($(shell $(PKG_CONFIG) --exists SDL3_image && echo 1 || echo 0),1)
- ifneq ($(shell $(PKG_CONFIG) --exists sdl3-image && echo 1 || echo 0),1)
-  $(error SDL3_image development files are required through pkg-config)
- else
-  SDL3_IMAGE_PKG = sdl3-image
- endif
+HEADERINFO_DEPS =
+
+define pkg_exists
+$(shell $(PKG_CONFIG) --exists $(1) 2>/dev/null && echo 1 || echo 0)
+endef
+
+#
+# SDL3
+#
+HAS_SDL3 := $(call pkg_exists,sdl3)
+HAS_SDL3_IMAGE := $(call pkg_exists,sdl3-image)
+ifneq ($(HAS_SDL3_IMAGE),1)
+  $(info sdl3-image will be built with AM+)
+  HEADERINFO_DEPS += sdl3-image
 else
- SDL3_IMAGE_PKG = SDL3_image
+  CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SDL3_IMAGE_PKG))
+  LIBS += $(shell $(PKG_CONFIG) --libs $(SDL3_IMAGE_PKG))
 endif
-CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SDL3_IMAGE_PKG))
-LIBS += $(shell $(PKG_CONFIG) --libs $(SDL3_IMAGE_PKG))
+
+ifneq ($(HAS_SDL3),1)
+  $(info sdl3 will be built with AM+)
+  ifeq ($(HAS_SDL3_IMAGE),1)
+    # sdl3-image système OK mais sdl3 manquant : cas rare, on build juste sdl3
+    HEADERINFO_DEPS += sdl3
+  else
+    # sdl3 et sdl3-image à builder : sdl3-image attendra sdl3 via la règle ci-dessous
+    sdl3-imagebuild: sdl3
+  endif
+else
+  CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
+  LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
+endif
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
@@ -425,7 +452,7 @@ endif
 ifeq ($(FE_HWACCEL_VDPAU),1)
  BUILD_OBJ_TAG := $(BUILD_OBJ_TAG)-vdpau
 endif
-OBJ_DIR := $(OBJ_DIR_PREFIX)-$(BUILD_OBJ_TAG)
+OBJ_DIR := $(ROOT_DIR)/$(OBJ_DIR_PREFIX)-$(BUILD_OBJ_TAG)
 endif
 
 CFLAGS += -D__STDC_CONSTANT_MACROS -I$(RES_IMGS_DIR) -I$(RES_FONTS_DIR) -I$(RES_LANGUAGE_DIR)
@@ -437,6 +464,9 @@ LIBS := $(LIBS) $(shell $(PKG_CONFIG) --libs $(PKG_CONFIG_LIBS))
 CFLAGS := $(CFLAGS) $(shell $(PKG_CONFIG) --cflags $(PKG_CONFIG_LIBS))
 
 EXE = $(EXE_BASE)$(EXE_EXT)
+
+.PHONY: all
+all: $(EXE)
 
 ifeq ($(BUILD_EXPAT),1)
  CFLAGS += -I$(EXTLIBS_DIR)/expat
@@ -496,6 +526,9 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.mm $(DEP) | $(OBJ_DIR)
 	$(SILENT)$(CC) -c -o $@ $< $(CFLAGS) $(FE_FLAGS)
 
 .PRECIOUS: $(OBJ_DIR)/%.h
+	$(info flags: $(CFLAGS) $(FE_FLAGS))
+	$(info libs: $(LIBS))
+
 $(OBJ_DIR)/%.h: % | $(RES_FONTS_DIR) $(RES_IMGS_DIR)
 	$(info Converting $< to $@...)
 	$(shell (echo 'const char* _binary_$(subst .,_,$(subst /,_,$<)) = "' ; base64 $(B64FLAGS) $< ; echo '";') | tr -d '\n' > $@)
@@ -513,7 +546,7 @@ endif
 
 glslangbuild:
 ifneq ("$(wildcard $(GLSLANG_TOKEN))","")
-	$(info glslang is already built)
+	$(info $@ is already built)
 else
 	$(info Building glslang...)
 	$(SILENT)$(MD) $(GLSLANG_OBJ_DIR)
@@ -523,10 +556,39 @@ else
 endif
 
 glslang: glslangbuild
-	$(eval CFLAGS += -I$(ROOT_DIR)/$(GLSLANG_OBJ_DIR)/install/include)
+	$(eval CFLAGS += -I$(GLSLANG_OBJ_DIR)/install/include)
 	$(eval GLSLANG_LIBS += -L$(GLSLANG_LIB_DIR))
 	$(eval GLSLANG_LIBS += -lglslang -lMachineIndependent -lOSDependent -lSPIRV -lGenericCodeGen -lglslang-default-resource-limits)
 	$(eval override LIBS = $(GLSLANG_LIBS) $(LIBS))
+
+sdl3build:
+ifneq ("$(wildcard $(SDL3_TOKEN))","")
+	$(info $@ is already built)
+else
+	$(info Building sdl3...)
+	$(SILENT)$(MD) $(SDL3_OBJ_DIR)
+	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3 -B $(SDL3_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_OBJ_DIR)/install -DSDL_SHARED=FALSE -DSDL_STATIC=TRUE -DSDL_TESTS=FALSE -DSDL_EXAMPLES=FALSE -DSDL_TEST_LIBRARY=FALSE
+	+$(SILENT)$(CMAKE) --build $(SDL3_OBJ_DIR) --config Release --target install
+endif
+
+sdl3: sdl3build
+	$(eval override CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $@) $(CFLAGS))
+	$(eval override LIBS   += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $@) $(LIBS))
+
+sdl3-imagebuild:
+ifneq ("$(wildcard $(SDL3_IMAGE_TOKEN))","")
+	$(info $@ is already built)
+else
+	$(info Building sdl3-image...)
+	$(info $(SDL3_LIB_DIR)/cmake/SDL3)
+	$(SILENT)$(MD) $(SDL3_IMAGE_OBJ_DIR)
+	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3-image -B $(SDL3_IMAGE_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_IMAGE_OBJ_DIR)/install -DBUILD_SHARED_LIBS=FALSE -DSDLIMAGE_TESTS=FALSE -DSDLIMAGE_SAMPLES=FALSE -DSDL3_DIR=$(SDL3_LIB_DIR)/cmake/SDL3 -DSDLIMAGE_VENDORED=FALSE
+	+$(SILENT)$(CMAKE) --build $(SDL3_IMAGE_OBJ_DIR) --config Release --target install
+endif
+
+sdl3-image: sdl3-imagebuild
+	$(eval override CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):$(SDL3_IMAGE_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $@) $(CFLAGS))
+	$(eval override LIBS   += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):$(SDL3_IMAGE_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $@) $(LIBS))
 
 # .WAIT is supported from make 4.4, not yet standard sadly. So the all target appreared
 #$(OBJ_DIR) : headerinfo
@@ -548,7 +610,8 @@ $(RES_LANGUAGE_FILE): $(_LANGUAGE) $(RES_LANGUAGE_DIR)
 	$(foreach f,$(_LANGUAGE),$(shell (echo '$(OPEN_BRACE) "$(word 3,$(subst ., ,$(subst /, ,$f)));$(subst #@,,$(shell (sed 1q $f)))", "$(shell base64 $(B64FLAGS) $f)" $(CLOSE_BRACE),' >> $(RES_LANGUAGE_FILE))))
 	$(shell (echo '$(CLOSE_BRACE);') >> $(RES_LANGUAGE_FILE))
 
-headerinfo: glslang
+# sdl3_image depends on sdl3
+headerinfo: glslang $(HEADERINFO_DEPS)
 	$(info flags: $(CFLAGS) $(FE_FLAGS))
 	$(info libs: $(LIBS))
 
