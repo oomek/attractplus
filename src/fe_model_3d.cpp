@@ -57,7 +57,6 @@ namespace
 		float offset_v;
 		float scale_u;
 		float scale_v;
-		float rotation;
 
 		ModelTextureRef()
 			: container( nullptr ),
@@ -68,8 +67,7 @@ namespace
 			  offset_u( 0.0f ),
 			  offset_v( 0.0f ),
 			  scale_u( 1.0f ),
-			  scale_v( 1.0f ),
-			  rotation( 0.0f )
+			  scale_v( 1.0f )
 		{
 		}
 	};
@@ -138,8 +136,7 @@ namespace
 			&& lhs.offset_u == rhs.offset_u
 			&& lhs.offset_v == rhs.offset_v
 			&& lhs.scale_u == rhs.scale_u
-			&& lhs.scale_v == rhs.scale_v
-			&& lhs.rotation == rhs.rotation;
+			&& lhs.scale_v == rhs.scale_v;
 	}
 
 	bool model_material_matches( const ModelMaterial &lhs, const ModelMaterial &rhs )
@@ -199,7 +196,6 @@ namespace
 		seed = hash_model_float( seed, value.offset_v );
 		seed = hash_model_float( seed, value.scale_u );
 		seed = hash_model_float( seed, value.scale_v );
-		seed = hash_model_float( seed, value.rotation );
 		return seed;
 	}
 
@@ -1093,7 +1089,6 @@ namespace
 		binding.offset_v = source.offset_v;
 		binding.scale_u = source.scale_u;
 		binding.scale_v = source.scale_v;
-		binding.rotation = source.rotation;
 		binding.texcoord_set = source.texcoord_set;
 	}
 
@@ -1150,18 +1145,6 @@ namespace
 		emissive_factor[0] /= max_value;
 		emissive_factor[1] /= max_value;
 		emissive_factor[2] /= max_value;
-	}
-
-	void apply_centered_texture_rotation( FeRenderTextureBinding &binding, float degrees )
-	{
-		const float radians = degrees * FE_PI / 180.0f;
-		const float c = std::cos( radians );
-		const float s = std::sin( radians );
-		binding.offset_u = 0.5f - ( 0.5f * c ) + ( 0.5f * s );
-		binding.offset_v = 0.5f - ( 0.5f * s ) - ( 0.5f * c );
-		binding.scale_u = 1.0f;
-		binding.scale_v = 1.0f;
-		binding.rotation = radians;
 	}
 
 	Vec2f get_vertex_texcoord( const FeRenderVertex &vertex, int texcoord_set )
@@ -1339,8 +1322,6 @@ struct FeModel3D::MaterialOverride
 	int video_flags;
 	int trigger;
 	bool preserve_aspect_ratio;
-	float texture_rotation_degrees;
-	bool use_texture_rotation;
 	bool smooth;
 	bool mipmap;
 	bool repeat;
@@ -1358,8 +1339,6 @@ struct FeModel3D::MaterialOverride
 		  video_flags( VF_Normal ),
 		  trigger( ToNewSelection ),
 		  preserve_aspect_ratio( false ),
-		  texture_rotation_degrees( 0.0f ),
-		  use_texture_rotation( false ),
 		  smooth( false ),
 		  mipmap( true ),
 		  repeat( false ),
@@ -1680,21 +1659,6 @@ float FeModel3DMaterialArtwork::get_sample_aspect_ratio() const
 	return ( entry && entry->container ) ? entry->container->get_sample_aspect_ratio() : 1.0f;
 }
 
-float FeModel3DMaterialArtwork::get_texture_rotation() const
-{
-	const FeModel3D::MaterialOverride *entry =
-		m_model ? m_model->find_override( m_material_name ) : nullptr;
-	return entry ? entry->texture_rotation_degrees : 0.0f;
-}
-
-void FeModel3DMaterialArtwork::set_texture_rotation( float degrees )
-{
-	if ( !m_model )
-		return;
-
-	m_model->set_material_texture_rotation( m_material_name.c_str(), degrees );
-}
-
 FeShader *FeModel3DMaterialArtwork::get_shader() const
 {
 	const FeModel3D::MaterialOverride *entry =
@@ -1820,8 +1784,6 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 		target_override->video_flags = source_override->video_flags;
 		target_override->trigger = source_override->trigger;
 		target_override->preserve_aspect_ratio = source_override->preserve_aspect_ratio;
-		target_override->texture_rotation_degrees = source_override->texture_rotation_degrees;
-		target_override->use_texture_rotation = source_override->use_texture_rotation;
 		target_override->smooth = source_override->smooth;
 		target_override->mipmap = source_override->mipmap;
 		target_override->repeat = source_override->repeat;
@@ -2141,25 +2103,6 @@ FeModel3DMaterialArtwork *FeModel3D::add_material_image( const char *material_na
 	return entry->handle.get();
 }
 
-void FeModel3D::set_material_texture_rotation( const char *material_name, float degrees )
-{
-	if ( !material_name )
-		return;
-
-	MaterialOverride *entry = find_or_create_override( material_name );
-	const bool use_rotation = std::fabs( degrees ) > FE_EPSILON;
-	if ( entry->use_texture_rotation == use_rotation
-		&& std::fabs( entry->texture_rotation_degrees - degrees ) <= FE_EPSILON )
-	{
-		return;
-	}
-
-	entry->texture_rotation_degrees = degrees;
-	entry->use_texture_rotation = use_rotation;
-	invalidate_geometry_cache();
-	FePresent::script_flag_redraw();
-}
-
 void FeModel3D::clear_material_texture( const char *material_name )
 {
 	if ( !material_name )
@@ -2339,7 +2282,6 @@ void FeModel3D::load_model( const std::string &filename )
 			binding.offset_v = view.transform.offset[1];
 			binding.scale_u = view.transform.scale[0];
 			binding.scale_v = view.transform.scale[1];
-			binding.rotation = view.transform.rotation;
 		}
 		return binding;
 	};
@@ -2841,18 +2783,6 @@ void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size
 				entry.pbr_material.emissive_texture,
 				primitive,
 				sample_aspect_ratio );
-		}
-	}
-	if ( override_container && override_entry && override_entry->use_texture_rotation )
-	{
-		apply_centered_texture_rotation(
-			entry.pbr_material.base_color_texture,
-			override_entry->texture_rotation_degrees );
-		if ( use_emissive_override )
-		{
-			apply_centered_texture_rotation(
-				entry.pbr_material.emissive_texture,
-				override_entry->texture_rotation_degrees );
 		}
 	}
 

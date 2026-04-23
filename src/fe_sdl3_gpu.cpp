@@ -574,7 +574,7 @@ namespace
 			"\tvec4 ambient_color;\n"
 			"\tvec4 artwork_control;\n"
 			"\tvec4 transforms_offset_scale[5];\n"
-			"\tvec4 transforms_rotation_texcoord[5];\n"
+			"\tvec4 transforms_texcoord_fit[5];\n"
 			"\tLightUniform lights[4];\n"
 			"} pbr;\n"
 			"const float PI = 3.14159265358979323846;\n"
@@ -589,8 +589,8 @@ namespace
 			"vec2 transform_uv( vec2 uv, int index, out float fit_alpha )\n"
 			"{\n"
 			"\tvec4 offset_scale = pbr.transforms_offset_scale[index];\n"
-			"\tvec4 rotation_texcoord = pbr.transforms_rotation_texcoord[index];\n"
-			"\tvec2 fit_scale = max( rotation_texcoord.zw, vec2( 0.0001 ) );\n"
+			"\tvec4 texcoord_fit = pbr.transforms_texcoord_fit[index];\n"
+			"\tvec2 fit_scale = max( texcoord_fit.yz, vec2( 0.0001 ) );\n"
 			"\tfit_alpha = 1.0;\n"
 			"\tif ( fit_scale.x < 0.9999 || fit_scale.y < 0.9999 )\n"
 			"\t{\n"
@@ -604,15 +604,12 @@ namespace
 			"\t\tuv = clamp( ( uv - fit_offset ) / fit_scale, vec2( 0.0 ), vec2( 1.0 ) );\n"
 			"\t}\n"
 			"\tuv *= offset_scale.zw;\n"
-			"\tfloat c = cos( rotation_texcoord.x );\n"
-			"\tfloat s = sin( rotation_texcoord.x );\n"
-			"\tuv = vec2( c * uv.x - s * uv.y, s * uv.x + c * uv.y );\n"
 			"\treturn uv + offset_scale.xy;\n"
 			"}\n"
 			"vec4 sample_base_color()\n"
 			"{\n"
 			"\tfloat fit_alpha = 1.0;\n"
-			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[0].y ), 0, fit_alpha );\n"
+			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[0].x ), 0, fit_alpha );\n"
 			"\tvec4 base_sample_color = texture( base_color_texture, uv );\n"
 			"\tbase_sample_color *= fit_alpha;\n"
 			"\treturn base_sample_color;\n"
@@ -620,22 +617,22 @@ namespace
 			"vec4 sample_metallic_roughness()\n"
 			"{\n"
 			"\tfloat fit_alpha = 1.0;\n"
-			"\treturn texture( metallic_roughness_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[1].y ), 1, fit_alpha ) );\n"
+			"\treturn texture( metallic_roughness_texture, transform_uv( select_uv( pbr.transforms_texcoord_fit[1].x ), 1, fit_alpha ) );\n"
 			"}\n"
 			"vec3 sample_normal_tex()\n"
 			"{\n"
 			"\tfloat fit_alpha = 1.0;\n"
-			"\treturn texture( normal_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[2].y ), 2, fit_alpha ) ).xyz;\n"
+			"\treturn texture( normal_texture, transform_uv( select_uv( pbr.transforms_texcoord_fit[2].x ), 2, fit_alpha ) ).xyz;\n"
 			"}\n"
 			"float sample_occlusion()\n"
 			"{\n"
 			"\tfloat fit_alpha = 1.0;\n"
-			"\treturn texture( occlusion_texture, transform_uv( select_uv( pbr.transforms_rotation_texcoord[3].y ), 3, fit_alpha ) ).r;\n"
+			"\treturn texture( occlusion_texture, transform_uv( select_uv( pbr.transforms_texcoord_fit[3].x ), 3, fit_alpha ) ).r;\n"
 			"}\n"
 			"vec3 sample_emissive()\n"
 			"{\n"
 			"\tfloat fit_alpha = 1.0;\n"
-			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[4].y ), 4, fit_alpha );\n"
+			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[4].x ), 4, fit_alpha );\n"
 			"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
 			"}\n"
 			"float distribution_ggx( vec3 N, vec3 H, float roughness )\n"
@@ -1269,7 +1266,6 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 			&& a.offset_v == b.offset_v
 			&& a.scale_u == b.scale_u
 			&& a.scale_v == b.scale_v
-			&& a.rotation == b.rotation
 			&& a.fit_scale_u == b.fit_scale_u
 			&& a.fit_scale_v == b.fit_scale_v
 			&& a.texcoord_set == b.texcoord_set;
@@ -1366,7 +1362,6 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 		hash = hash_float_bits( hash, binding.offset_v );
 		hash = hash_float_bits( hash, binding.scale_u );
 		hash = hash_float_bits( hash, binding.scale_v );
-		hash = hash_float_bits( hash, binding.rotation );
 		hash = hash_float_bits( hash, binding.fit_scale_u );
 		hash = hash_float_bits( hash, binding.fit_scale_v );
 		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
@@ -2105,7 +2100,7 @@ namespace
 		float ambient_color[4];
 		float artwork_control[4];
 		float transforms_offset_scale[5][4];
-		float transforms_rotation_texcoord[5][4];
+		float transforms_texcoord_fit[5][4];
 		FeSdl3GpuPbrLightUniform lights[4];
 	};
 
@@ -4519,7 +4514,7 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		"vec4 sample_base_color()\n"
 		"{\n"
 		"\tfloat fit_alpha = 1.0;\n"
-		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[0].y ), 0, fit_alpha );\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[0].x ), 0, fit_alpha );\n"
 		"\tvec4 base_sample_color = texture( base_color_texture, uv );\n"
 		"\tbase_sample_color *= fit_alpha;\n"
 		"\treturn base_sample_color;\n"
@@ -4528,21 +4523,21 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		"vec3 sample_emissive()\n"
 		"{\n"
 		"\tfloat fit_alpha = 1.0;\n"
-		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[4].y ), 4, fit_alpha );\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[4].x ), 4, fit_alpha );\n"
 		"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
 		"}\n";
 	const std::string custom_sample_base_color_block =
 		"vec4 sample_base_color()\n"
 		"{\n"
 		"\tfloat fit_alpha = 1.0;\n"
-		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[0].y ), 0, fit_alpha );\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[0].x ), 0, fit_alpha );\n"
 		"\treturn fe_run_artwork_shader( uv, fit_alpha );\n"
 		"}\n";
 	const std::string custom_sample_emissive_block =
 		"vec3 sample_emissive()\n"
 		"{\n"
 		"\tfloat fit_alpha = 1.0;\n"
-		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[4].y ), 4, fit_alpha );\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[4].x ), 4, fit_alpha );\n"
 		"\tif ( pbr.artwork_control.x > 0.5 )\n"
 		"\t\treturn fe_run_artwork_shader( uv, fit_alpha ).rgb;\n"
 		"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
@@ -5087,10 +5082,10 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				fragment_uniforms.transforms_offset_scale[binding_index][1] = binding.offset_v;
 				fragment_uniforms.transforms_offset_scale[binding_index][2] = binding.scale_u;
 				fragment_uniforms.transforms_offset_scale[binding_index][3] = binding.scale_v;
-				fragment_uniforms.transforms_rotation_texcoord[binding_index][0] = binding.rotation;
-				fragment_uniforms.transforms_rotation_texcoord[binding_index][1] = static_cast<float>( binding.texcoord_set );
-				fragment_uniforms.transforms_rotation_texcoord[binding_index][2] = binding.fit_scale_u;
-				fragment_uniforms.transforms_rotation_texcoord[binding_index][3] = binding.fit_scale_v;
+				fragment_uniforms.transforms_texcoord_fit[binding_index][0] = static_cast<float>( binding.texcoord_set );
+				fragment_uniforms.transforms_texcoord_fit[binding_index][1] = binding.fit_scale_u;
+				fragment_uniforms.transforms_texcoord_fit[binding_index][2] = binding.fit_scale_v;
+				fragment_uniforms.transforms_texcoord_fit[binding_index][3] = 0.0f;
 				sampler_bindings[binding_index].texture =
 					image.pbr_textures[binding_index] ? image.pbr_textures[binding_index] : m_white_texture;
 				sampler_bindings[binding_index].sampler =

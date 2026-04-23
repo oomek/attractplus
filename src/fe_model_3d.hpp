@@ -47,8 +47,6 @@ public:
 	bool get_repeat() const;
 	void set_repeat( bool repeat );
 	float get_sample_aspect_ratio() const;
-	float get_texture_rotation() const;
-	void set_texture_rotation( float degrees );
 	FeShader *get_shader() const;
 	void set_shader( FeShader *shader );
 	void set_artwork( const char *artwork_label );
@@ -92,7 +90,6 @@ public:
 	FeModel3DMaterialArtwork *get_material_artwork( const char *material_name );
 	FeModel3DMaterialArtwork *add_material_artwork( const char *material_name, const char *artwork_label );
 	FeModel3DMaterialArtwork *add_material_image( const char *material_name, const char *filename );
-	void set_material_texture_rotation( const char *material_name, float degrees );
 	void clear_material_texture( const char *material_name );
 
 	bool build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;

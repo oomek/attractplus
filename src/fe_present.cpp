@@ -618,7 +618,6 @@ namespace
 			&& lhs.offset_v == rhs.offset_v
 			&& lhs.scale_u == rhs.scale_u
 			&& lhs.scale_v == rhs.scale_v
-			&& lhs.rotation == rhs.rotation
 			&& lhs.fit_scale_u == rhs.fit_scale_u
 			&& lhs.fit_scale_v == rhs.fit_scale_v
 			&& lhs.texcoord_set == rhs.texcoord_set;
@@ -750,7 +749,6 @@ namespace
 		hash = hash_float_pbr_batch( hash, binding.offset_v );
 		hash = hash_float_pbr_batch( hash, binding.scale_u );
 		hash = hash_float_pbr_batch( hash, binding.scale_v );
-		hash = hash_float_pbr_batch( hash, binding.rotation );
 		hash = hash_float_pbr_batch( hash, binding.fit_scale_u );
 		hash = hash_float_pbr_batch( hash, binding.fit_scale_v );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
@@ -1052,7 +1050,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_float( seed, binding.offset_v );
 		seed = hash_float( seed, binding.scale_u );
 		seed = hash_float( seed, binding.scale_v );
-		seed = hash_float( seed, binding.rotation );
 		return seed;
 	};
 	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed ) -> std::uint64_t
