@@ -37,6 +37,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         path: am
+        submodules: 'true'
 
     - name: Prepare
       id: vars

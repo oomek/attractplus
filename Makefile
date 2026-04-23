@@ -280,9 +280,10 @@ endif
 
 ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 CFLAGS += $(shell $(PKG_CONFIG) --cflags freetype2)
+
 GLSLANG_OBJ_DIR = $(OBJ_DIR)/glslang
-GLSLANG_LIB_DIR=$(GLSLANG_OBJ_DIR)/install/lib/
-GLSLANG_TOKEN=$(GLSLANG_OBJ_DIR)/.glslangok
+GLSLANG_LIB_DIR = $(GLSLANG_OBJ_DIR)/install/lib/
+GLSLANG_TOKEN   = $(GLSLANG_OBJ_DIR)/.glslangok
 
 SDL3_OBJ_DIR         = $(OBJ_DIR)/sdl3
 SDL3_LIB_DIR         = $(SDL3_OBJ_DIR)/install/lib
@@ -293,6 +294,7 @@ SDL3_IMAGE_OBJ_DIR         = $(OBJ_DIR)/sdl3-image
 SDL3_IMAGE_LIB_DIR         = $(SDL3_IMAGE_OBJ_DIR)/install/lib
 SDL3_IMAGE_TOKEN           = $(SDL3_IMAGE_LIB_DIR)/libSDL3_image.a
 SDL3_IMAGE_PKG_CONFIG_PATH = $(SDL3_IMAGE_LIB_DIR)/pkgconfig
+SDL3_IMAGE_DOWNLOAD_TOKEN  = $(EXTLIBS_DIR)/.sdl3-image-vendordownloadeded
 
 ifeq ($(FE_MACOSX_COMPILE),1)
   LIBS += -framework OpenGL
@@ -348,19 +350,54 @@ else
   LIBS += $(shell $(PKG_CONFIG) --libs $(SDL3_IMAGE_PKG))
 endif
 
+# Don't rely on MXE various image libs, use vendored ones
+SDL_IMAGE_VENDORED := OFF
+ifneq ($(HAS_SDL3_IMAGE),1)
+  ifeq ($(FE_WINDOWS_COMPILE),1)
+    $(info Downloading sdl3-image vendored libs...)
+    override SDL_IMAGE_VENDORED := ON
+  endif
+endif
+
 ifneq ($(HAS_SDL3),1)
   $(info sdl3 will be built with AM+)
   ifeq ($(HAS_SDL3_IMAGE),1)
-    # sdl3-image système OK mais sdl3 manquant : cas rare, on build juste sdl3
     HEADERINFO_DEPS += sdl3
   else
-    # sdl3 et sdl3-image à builder : sdl3-image attendra sdl3 via la règle ci-dessous
     sdl3-imagebuild: sdl3
   endif
 else
   CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3)
   LIBS += $(shell $(PKG_CONFIG) --libs sdl3)
 endif
+
+ifeq ($(SDL_IMAGE_VENDORED),ON)
+  sdl3-imagebuild: $(SDL3_IMAGE_DOWNLOAD_TOKEN)
+endif
+
+#
+# glslang
+#
+ifeq ($(FE_WINDOWS_COMPILE),1)
+  HAS_GLSLANG := 0
+else
+  GLSLANG_SYS_HEADER := $(firstword $(wildcard \
+      /usr/include/glslang/Public/ResourceLimits.h \
+      /usr/local/include/glslang/Public/ResourceLimits.h \
+      /opt/homebrew/include/glslang/Public/ResourceLimits.h))
+  HAS_GLSLANG := $(if $(GLSLANG_SYS_HEADER),1,0)
+endif
+
+ifneq ($(HAS_GLSLANG),1)
+  $(info glslang will be built with AM+)
+  CFLAGS += -I$(GLSLANG_OBJ_DIR)/install/include
+  LIBS += -L$(GLSLANG_LIB_DIR) -lglslang -lMachineIndependent -lOSDependent -lSPIRV -lGenericCodeGen -lglslang-default-resource-limits
+  HEADERINFO_DEPS += glslang
+else
+  $(info Using system glslang)
+  LIBS += -lglslang -lMachineIndependent -lOSDependent -lSPIRV -lGenericCodeGen -lglslang-default-resource-limits
+endif
+
 
 ifneq ($(FE_WINDOWS_COMPILE),1)
  ifneq ($(FE_MACOSX_COMPILE),1)
@@ -540,6 +577,7 @@ ifneq ($(FE_DEBUG),1)
 	$(SILENT)$(STRIP) $@
 endif
 
+.PHONY: headerinfo
 .PHONY: clean
 .PHONY: install
 .PHONY: glslang glslangbuild
@@ -556,10 +594,6 @@ else
 endif
 
 glslang: glslangbuild
-	$(eval CFLAGS += -I$(GLSLANG_OBJ_DIR)/install/include)
-	$(eval GLSLANG_LIBS += -L$(GLSLANG_LIB_DIR))
-	$(eval GLSLANG_LIBS += -lglslang -lMachineIndependent -lOSDependent -lSPIRV -lGenericCodeGen -lglslang-default-resource-limits)
-	$(eval override LIBS = $(GLSLANG_LIBS) $(LIBS))
 
 sdl3build:
 ifneq ("$(wildcard $(SDL3_TOKEN))","")
@@ -567,13 +601,17 @@ ifneq ("$(wildcard $(SDL3_TOKEN))","")
 else
 	$(info Building sdl3...)
 	$(SILENT)$(MD) $(SDL3_OBJ_DIR)
-	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3 -B $(SDL3_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_OBJ_DIR)/install -DSDL_SHARED=FALSE -DSDL_STATIC=TRUE -DSDL_TESTS=FALSE -DSDL_EXAMPLES=FALSE -DSDL_TEST_LIBRARY=FALSE
+	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3 -B $(SDL3_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_OBJ_DIR)/install -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF -DSDL_TEST_LIBRARY=OFF
 	+$(SILENT)$(CMAKE) --build $(SDL3_OBJ_DIR) --config Release --target install
 endif
 
 sdl3: sdl3build
 	$(eval override CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $@) $(CFLAGS))
 	$(eval override LIBS   += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $@) $(LIBS))
+
+$(SDL3_IMAGE_DOWNLOAD_TOKEN):
+	$(SILENT)$(EXTLIBS_DIR)/sdl3-image/external/download.sh
+	$(SILENT)touch $@
 
 sdl3-imagebuild:
 ifneq ("$(wildcard $(SDL3_IMAGE_TOKEN))","")
@@ -582,7 +620,7 @@ else
 	$(info Building sdl3-image...)
 	$(info $(SDL3_LIB_DIR)/cmake/SDL3)
 	$(SILENT)$(MD) $(SDL3_IMAGE_OBJ_DIR)
-	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3-image -B $(SDL3_IMAGE_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_IMAGE_OBJ_DIR)/install -DBUILD_SHARED_LIBS=FALSE -DSDLIMAGE_TESTS=FALSE -DSDLIMAGE_SAMPLES=FALSE -DSDL3_DIR=$(SDL3_LIB_DIR)/cmake/SDL3 -DSDLIMAGE_VENDORED=FALSE
+	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3-image -B $(SDL3_IMAGE_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_IMAGE_OBJ_DIR)/install -DBUILD_SHARED_LIBS=OFF -DSDLIMAGE_TESTS=OFF -DSDLIMAGE_SAMPLES=OFF -DSDL3_DIR=$(SDL3_LIB_DIR)/cmake/SDL3 -DSDLIMAGE_VENDORED=$(SDL_IMAGE_VENDORED)
 	+$(SILENT)$(CMAKE) --build $(SDL3_IMAGE_OBJ_DIR) --config Release --target install
 endif
 
@@ -592,7 +630,7 @@ sdl3-image: sdl3-imagebuild
 
 # .WAIT is supported from make 4.4, not yet standard sadly. So the all target appreared
 #$(OBJ_DIR) : headerinfo
-$(OBJ_DIR): headerinfo
+$(OBJ_DIR): | headerinfo
 	$(MD) $@
 
 $(RES_FONTS_DIR): $(OBJ_DIR)
@@ -611,7 +649,7 @@ $(RES_LANGUAGE_FILE): $(_LANGUAGE) $(RES_LANGUAGE_DIR)
 	$(shell (echo '$(CLOSE_BRACE);') >> $(RES_LANGUAGE_FILE))
 
 # sdl3_image depends on sdl3
-headerinfo: glslang $(HEADERINFO_DEPS)
+headerinfo: $(HEADERINFO_DEPS)
 	$(info flags: $(CFLAGS) $(FE_FLAGS))
 	$(info libs: $(LIBS))
 
@@ -729,4 +767,5 @@ smallclean:
 	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h
 
 clean:
-	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(GLSLANG_OBJ_DIR)/* $(GLSLANG_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(GLSLANG_OBJ_DIR)/* $(GLSLANG_TOKEN) $(SDL3_OBJ_DIR)/* $(SDL3_IMAGE_OBJ_DIR)/* $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core $(SDL3_IMAGE_DOWNLOAD_TOKEN)
+	-git -C extlibs/sdl3-image submodule deinit -f --all

@@ -6,10 +6,15 @@ Build-Depends: debhelper (>= 10), pkgconf, git,
  libarchive-dev, libavcodec-dev, libavformat-dev, libswresample-dev,
  libavutil-dev, libfontconfig-dev, libfreetype6-dev, libglu-dev,
  libjpeg62-turbo-dev | libjpeg-turbo8-dev, cmake, libudev-dev,
- libxrandr-dev, libopenal-dev, libswscale-dev, libxinerama-dev,
+ libxrandr-dev, libswscale-dev, libxinerama-dev,
  libcurl4-openssl-dev | libcurl4-nss-dev | libcurl4-gnutls-dev,
  libexpat1-dev, libgl1-mesa-dev, libgbm-dev, libdrm-dev, libvorbis-dev,
- libflac-dev, libxi-dev, libxcursor-dev
+ libflac-dev, libxi-dev, libxcursor-dev,
+ ninja-build, libasound2-dev, libpulse-dev, libaudio-dev, libfribidi-dev,
+ libjack-dev, libsndio-dev, libx11-dev, libxext-dev, libxfixes-dev,
+ libxss-dev, libxtst-dev, libxkbcommon-dev, libgles2-mesa-dev, libegl1-mesa-dev,
+ libdbus-1-dev, libibus-1.0-dev, libthai-dev, libpipewire-0.3-dev,
+ libwayland-dev, libdecor-0-dev, liburing-dev, libvulkan-dev, libxxf86vm-dev
 Standards-Version: 3.9.5
 Homepage: http://attractmode.org
 
