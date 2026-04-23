@@ -56,6 +56,7 @@ public:
 private:
 	struct CustomShaderEntry;
 	struct BuiltinShaderEntry;
+	struct PbrCustomShaderEntry;
 
 	struct TextureEntry
 	{
@@ -100,6 +101,7 @@ private:
 		bool texture_mipmap;
 		CustomShaderEntry *custom_shader;
 		BuiltinShaderEntry *builtin_shader;
+		PbrCustomShaderEntry *pbr_custom_shader;
 		const FeRenderVertex *external_vertices;
 		const void *external_vertex_id;
 		Uint32 pbr_instance_first;
@@ -190,6 +192,28 @@ private:
 		}
 	};
 
+	struct PbrCustomShaderEntry
+	{
+		std::string source_path;
+		unsigned long long source_stamp;
+		bool compile_failed;
+		SDL_GPUShader *fragment_shader;
+		SDL_GPUGraphicsPipeline *pbr_pipelines[3][2][2];
+		std::vector<CustomUniformBinding> fragment_uniforms;
+		std::vector<CustomSamplerBinding> fragment_samplers;
+
+		PbrCustomShaderEntry()
+			: source_stamp( 0 ),
+			  compile_failed( false ),
+			  fragment_shader( nullptr )
+		{
+			for ( int z = 0; z < 3; ++z )
+				for ( int blend = 0; blend < 2; ++blend )
+					for ( int sided = 0; sided < 2; ++sided )
+						pbr_pipelines[ z ][ blend ][ sided ] = nullptr;
+		}
+	};
+
 	struct BuiltinShaderEntry
 	{
 		std::string source_id;
@@ -247,13 +271,17 @@ private:
 	bool ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );
 	void release_custom_shaders();
 	void release_custom_shader( CustomShaderEntry &entry );
+	void release_pbr_custom_shaders();
+	void release_pbr_custom_shader( PbrCustomShaderEntry &entry );
 	void release_builtin_shaders();
 	void release_builtin_shader( BuiltinShaderEntry &entry );
 	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
 	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
+	PbrCustomShaderEntry *get_pbr_custom_shader_entry( const FeRenderGeometry &image );
 	BuiltinShaderEntry *get_fast_builtin_shader_entry( int blend_mode );
 	bool create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry );
 	bool create_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image, CustomShaderEntry &entry );
+	bool create_pbr_custom_shader_entry( const FeRenderGeometry &image, PbrCustomShaderEntry &entry );
 	bool create_fast_builtin_shader_entry( int blend_mode, BuiltinShaderEntry &entry );
 	bool build_custom_fragment_shader_from_source(
 		const FeRenderGeometry &image,
@@ -271,10 +299,18 @@ private:
 		std::string &source_code,
 		std::vector<CustomUniformBinding> &uniforms,
 		std::vector<CustomSamplerBinding> &samplers );
+	bool build_pbr_custom_fragment_shader(
+		const FeRenderGeometry &image,
+		const std::string &source_id,
+		const std::string &raw_source,
+		std::string &source_code,
+		std::vector<CustomUniformBinding> &uniforms,
+		std::vector<CustomSamplerBinding> &samplers );
 	void build_custom_uniform_data(
 		const FeRenderGeometry &image,
 		const std::vector<CustomUniformBinding> &uniforms,
-		std::vector<float> &data ) const;
+		std::vector<float> &data,
+		const FeShader *shader = nullptr ) const;
 	bool render_surface_frames( SDL_GPUCommandBuffer *command_buffer, std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers );
 	bool render_prepared_geometry_batch(
 		SDL_GPURenderPass *render_pass,
@@ -317,6 +353,7 @@ private:
 	std::vector<FeRenderVertex> m_vertex_stream;
 	std::unordered_map<std::string, CustomShaderEntry> m_custom_shaders;
 	std::unordered_map<std::string, std::string> m_custom_shader_sources;
+	std::unordered_map<std::string, PbrCustomShaderEntry> m_pbr_custom_shaders;
 	std::unordered_map<int, BuiltinShaderEntry> m_builtin_shaders;
 	bool m_sdl_ready;
 	bool m_owns_sdl_video;

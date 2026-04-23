@@ -128,6 +128,7 @@ struct FeRenderPbrMaterial
 	FeRenderTextureBinding normal_texture;
 	FeRenderTextureBinding occlusion_texture;
 	FeRenderTextureBinding emissive_texture;
+	const FeShader *artwork_shader;
 	float base_color_factor[4];
 	float emissive_factor[3];
 	float metallic_factor;
@@ -136,6 +137,7 @@ struct FeRenderPbrMaterial
 	float occlusion_strength;
 	float alpha_cutoff;
 	int alpha_mode;
+	bool artwork_shader_emissive;
 	bool unlit;
 	bool double_sided;
 

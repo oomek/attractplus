@@ -8,6 +8,7 @@
 #include "fe_image.hpp"
 
 class FeModel3D;
+class FeShader;
 
 class FeModel3DMaterialArtwork
 {
@@ -48,6 +49,8 @@ public:
 	float get_sample_aspect_ratio() const;
 	float get_texture_rotation() const;
 	void set_texture_rotation( float degrees );
+	FeShader *get_shader() const;
+	void set_shader( FeShader *shader );
 	void set_artwork( const char *artwork_label );
 	void set_file( const char *filename );
 	void clear();
@@ -88,9 +91,7 @@ public:
 
 	FeModel3DMaterialArtwork *get_material_artwork( const char *material_name );
 	FeModel3DMaterialArtwork *add_material_artwork( const char *material_name, const char *artwork_label );
-	FeModel3DMaterialArtwork *add_material_file( const char *material_name, const char *filename );
-	void set_material_artwork( const char *material_name, const char *artwork_label );
-	void set_material_file( const char *material_name, const char *filename );
+	FeModel3DMaterialArtwork *add_material_image( const char *material_name, const char *filename );
 	void set_material_texture_rotation( const char *material_name, float degrees );
 	void clear_material_texture( const char *material_name );
 

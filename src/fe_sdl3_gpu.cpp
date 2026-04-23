@@ -572,6 +572,7 @@ namespace
 			"\tvec4 material_params;\n"
 			"\tvec4 control;\n"
 			"\tvec4 ambient_color;\n"
+			"\tvec4 artwork_control;\n"
 			"\tvec4 transforms_offset_scale[5];\n"
 			"\tvec4 transforms_rotation_texcoord[5];\n"
 			"\tLightUniform lights[4];\n"
@@ -1112,6 +1113,7 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		prepared.texture_mipmap = image.texture_mipmap;
 		prepared.custom_shader = nullptr;
 		prepared.builtin_shader = nullptr;
+		prepared.pbr_custom_shader = nullptr;
 		prepared.pbr_instance_first = 0;
 		prepared.pbr_instance_count = image.has_pbr_instances()
 			? static_cast<Uint32>( image.pbr_instances.size() )
@@ -1168,6 +1170,9 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 			if ( !prepared.gpu_texture )
 				prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
+
+			if ( image.pbr_material.artwork_shader )
+				prepared.pbr_custom_shader = get_pbr_custom_shader_entry( image );
 		}
 
 		if ( !prepared.object_pbr && image.custom_shader )
@@ -1222,6 +1227,8 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 	if ( lhs_material.alpha_mode != rhs_material.alpha_mode
 		|| lhs_material.unlit != rhs_material.unlit
 		|| lhs_material.double_sided != rhs_material.double_sided
+		|| lhs_material.artwork_shader != rhs_material.artwork_shader
+		|| lhs_material.artwork_shader_emissive != rhs_material.artwork_shader_emissive
 		|| lhs_material.metallic_factor != rhs_material.metallic_factor
 		|| lhs_material.roughness_factor != rhs_material.roughness_factor
 		|| lhs_material.normal_scale != rhs_material.normal_scale
@@ -1327,6 +1334,8 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+	hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
 	hash = hash_float_bits( hash, material.metallic_factor );
 	hash = hash_float_bits( hash, material.roughness_factor );
 	hash = hash_float_bits( hash, material.normal_scale );
@@ -2094,6 +2103,7 @@ namespace
 		float material_params[4];
 		float control[4];
 		float ambient_color[4];
+		float artwork_control[4];
 		float transforms_offset_scale[5][4];
 		float transforms_rotation_texcoord[5][4];
 		FeSdl3GpuPbrLightUniform lights[4];
@@ -3073,6 +3083,8 @@ void FeSdl3GpuContext::release_image_pipeline()
 
 void FeSdl3GpuContext::release_pbr_pipeline()
 {
+	release_pbr_custom_shaders();
+
 	for ( int z = 0; z < 3; ++z )
 	{
 		for ( int blend = 0; blend < 2; ++blend )
@@ -3169,6 +3181,36 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 	entry.vertex_source_stamp = 0;
 }
 
+void FeSdl3GpuContext::release_pbr_custom_shader( PbrCustomShaderEntry &entry )
+{
+	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
+	{
+		for ( int blend_mode = 0; blend_mode < 2; ++blend_mode )
+		{
+			for ( int sided = 0; sided < 2; ++sided )
+			{
+				if ( entry.pbr_pipelines[depth_mode][blend_mode][sided] )
+				{
+					SDL_ReleaseGPUGraphicsPipeline( m_device, entry.pbr_pipelines[depth_mode][blend_mode][sided] );
+					entry.pbr_pipelines[depth_mode][blend_mode][sided] = nullptr;
+				}
+			}
+		}
+	}
+
+	if ( entry.fragment_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, entry.fragment_shader );
+		entry.fragment_shader = nullptr;
+	}
+
+	entry.fragment_uniforms.clear();
+	entry.fragment_samplers.clear();
+	entry.compile_failed = false;
+	entry.source_stamp = 0;
+	entry.source_path.clear();
+}
+
 void FeSdl3GpuContext::release_custom_shaders()
 {
 	for ( auto &entry : m_custom_shaders )
@@ -3176,6 +3218,14 @@ void FeSdl3GpuContext::release_custom_shaders()
 
 	m_custom_shaders.clear();
 	m_custom_shader_sources.clear();
+}
+
+void FeSdl3GpuContext::release_pbr_custom_shaders()
+{
+	for ( auto &entry : m_pbr_custom_shaders )
+		release_pbr_custom_shader( entry.second );
+
+	m_pbr_custom_shaders.clear();
 }
 
 int FeSdl3GpuContext::get_requested_anisotropy() const
@@ -3558,6 +3608,53 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_builtin_blend_shader_
 
 	entry.source_stamp = source_stamp;
 	entry.vertex_source_stamp = 0ULL;
+	return &entry;
+}
+
+FeSdl3GpuContext::PbrCustomShaderEntry *FeSdl3GpuContext::get_pbr_custom_shader_entry( const FeRenderGeometry &image )
+{
+	if ( !m_device || !m_pbr_vertex_shader || !image.pbr_material.artwork_shader )
+		return nullptr;
+
+	const FeShader *shader = image.pbr_material.artwork_shader;
+	const FeShader::Type shader_type = shader->get_type();
+	const std::string &fragment_source_path = shader->get_fragment_source_path();
+	const std::string &fragment_source_code = shader->get_fragment_source_code();
+	if ( ( fragment_source_path.empty() && fragment_source_code.empty() ) ||
+		( shader_type != FeShader::Fragment && shader_type != FeShader::VertexAndFragment ) )
+	{
+		return nullptr;
+	}
+
+	const std::string cache_key =
+		fragment_source_path.empty()
+			? std::string( "memory-pbr-fragment|" ) + std::to_string( std::hash<std::string>{}( fragment_source_code ) )
+			: absolute_path( fragment_source_path );
+	const unsigned long long source_stamp =
+		fragment_source_path.empty()
+			? static_cast<unsigned long long>( std::hash<std::string>{}( fragment_source_code ) )
+			: static_cast<unsigned long long>( get_file_mtime( fragment_source_path ) );
+
+	PbrCustomShaderEntry &entry = m_pbr_custom_shaders[ cache_key ];
+	if ( entry.source_stamp == source_stamp )
+	{
+		if ( entry.fragment_shader )
+			return &entry;
+		if ( entry.compile_failed )
+			return nullptr;
+	}
+
+	release_pbr_custom_shader( entry );
+	entry.source_path = cache_key;
+	if ( !create_pbr_custom_shader_entry( image, entry ) )
+	{
+		entry.compile_failed = true;
+		entry.source_stamp = source_stamp;
+		return nullptr;
+	}
+
+	entry.compile_failed = false;
+	entry.source_stamp = source_stamp;
 	return &entry;
 }
 
@@ -3946,6 +4043,176 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	return true;
 }
 
+bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &image, PbrCustomShaderEntry &entry )
+{
+	if ( !image.pbr_material.artwork_shader )
+		return false;
+
+	const FeShader *shader = image.pbr_material.artwork_shader;
+	std::string raw_source;
+	const std::string &source_path = shader->get_fragment_source_path();
+	if ( !source_path.empty() )
+	{
+		if ( !read_file_content( source_path, raw_source ) )
+		{
+			FeLog() << "SDL: pbr_custom_shader: failed to read source " << source_path << std::endl;
+			return false;
+		}
+	}
+	else
+	{
+		raw_source = shader->get_fragment_source_code();
+		if ( raw_source.empty() )
+			return false;
+	}
+
+	std::string fragment_source_code;
+	std::vector<CustomUniformBinding> fragment_uniforms;
+	std::vector<CustomSamplerBinding> fragment_samplers;
+	const std::string source_id =
+		source_path.empty() ? entry.source_path : source_path;
+	if ( !build_pbr_custom_fragment_shader(
+		image,
+		source_id,
+		raw_source,
+		fragment_source_code,
+		fragment_uniforms,
+		fragment_samplers ) )
+	{
+		return false;
+	}
+
+	ShaderBlob fragment_blob = {};
+	if ( !compile_shader_blob( source_id, fragment_source_code, false, fragment_blob ) )
+		return false;
+
+	SDL_GPUShaderCreateInfo fragment_info = {};
+	fragment_info.code_size = fragment_blob.code.size();
+	fragment_info.code = fragment_blob.code.data();
+	fragment_info.entrypoint = fragment_blob.entrypoint;
+	fragment_info.format = fragment_blob.format;
+	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+	fragment_info.num_uniform_buffers = 2;
+	fragment_info.num_samplers = static_cast<Uint32>( 5 + fragment_samplers.size() );
+
+	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
+	if ( !entry.fragment_shader )
+	{
+		FeLog() << "SDL: pbr_custom_shader: SDL_CreateGPUShader failed for " << entry.source_path << std::endl;
+		return false;
+	}
+
+	SDL_GPUVertexBufferDescription vertex_buffers[2] = {};
+	vertex_buffers[0].slot = 0;
+	vertex_buffers[0].pitch = sizeof( FeRenderVertex );
+	vertex_buffers[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+	vertex_buffers[0].instance_step_rate = 0;
+	vertex_buffers[1].slot = 1;
+	vertex_buffers[1].pitch = sizeof( PbrInstanceEntry );
+	vertex_buffers[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+	vertex_buffers[1].instance_step_rate = 0;
+
+	SDL_GPUVertexAttribute attributes[13] = {};
+	attributes[0].location = 0;
+	attributes[0].buffer_slot = 0;
+	attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[0].offset = offsetof( FeRenderVertex, x );
+	attributes[1].location = 1;
+	attributes[1].buffer_slot = 0;
+	attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[1].offset = offsetof( FeRenderVertex, u );
+	attributes[2].location = 2;
+	attributes[2].buffer_slot = 0;
+	attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+	attributes[2].offset = offsetof( FeRenderVertex, r );
+	attributes[3].location = 3;
+	attributes[3].buffer_slot = 0;
+	attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+	attributes[3].offset = offsetof( FeRenderVertex, u1 );
+	attributes[4].location = 4;
+	attributes[4].buffer_slot = 0;
+	attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+	attributes[4].offset = offsetof( FeRenderVertex, nx );
+	attributes[5].location = 5;
+	attributes[5].buffer_slot = 0;
+	attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[5].offset = offsetof( FeRenderVertex, tx );
+	attributes[6].location = 6;
+	attributes[6].buffer_slot = 1;
+	attributes[6].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[6].offset = offsetof( PbrInstanceEntry, model ) + ( 0 * sizeof( float ) * 4 );
+	attributes[7].location = 7;
+	attributes[7].buffer_slot = 1;
+	attributes[7].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[7].offset = offsetof( PbrInstanceEntry, model ) + ( 1 * sizeof( float ) * 4 );
+	attributes[8].location = 8;
+	attributes[8].buffer_slot = 1;
+	attributes[8].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[8].offset = offsetof( PbrInstanceEntry, model ) + ( 2 * sizeof( float ) * 4 );
+	attributes[9].location = 9;
+	attributes[9].buffer_slot = 1;
+	attributes[9].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[9].offset = offsetof( PbrInstanceEntry, model ) + ( 3 * sizeof( float ) * 4 );
+	attributes[10].location = 10;
+	attributes[10].buffer_slot = 1;
+	attributes[10].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[10].offset = offsetof( PbrInstanceEntry, normal_matrix ) + ( 0 * sizeof( float ) * 4 );
+	attributes[11].location = 11;
+	attributes[11].buffer_slot = 1;
+	attributes[11].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[11].offset = offsetof( PbrInstanceEntry, normal_matrix ) + ( 1 * sizeof( float ) * 4 );
+	attributes[12].location = 12;
+	attributes[12].buffer_slot = 1;
+	attributes[12].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;
+	attributes[12].offset = offsetof( PbrInstanceEntry, normal_matrix ) + ( 2 * sizeof( float ) * 4 );
+
+	SDL_GPUColorTargetDescription color_target = {};
+	color_target.format = m_swapchain_format;
+
+	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
+	pipeline_info.vertex_shader = m_pbr_vertex_shader;
+	pipeline_info.fragment_shader = entry.fragment_shader;
+	pipeline_info.vertex_input_state.vertex_buffer_descriptions = vertex_buffers;
+	pipeline_info.vertex_input_state.num_vertex_buffers = 2;
+	pipeline_info.vertex_input_state.vertex_attributes = attributes;
+	pipeline_info.vertex_input_state.num_vertex_attributes = 13;
+	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+	pipeline_info.rasterizer_state.enable_depth_clip = true;
+	pipeline_info.multisample_state.sample_count = m_sample_count;
+	pipeline_info.multisample_state.sample_mask = 0;
+	pipeline_info.target_info.color_target_descriptions = &color_target;
+	pipeline_info.target_info.num_color_targets = 1;
+
+	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
+	{
+		configure_pipeline_depth_state( pipeline_info, depth_mode );
+		for ( int blend_mode = 0; blend_mode < 2; ++blend_mode )
+		{
+			color_target.blend_state = make_gpu_blend_state( blend_mode == 1 ? FeBlend::Alpha : FeBlend::None );
+			for ( int sided = 0; sided < 2; ++sided )
+			{
+				pipeline_info.rasterizer_state.cull_mode =
+					sided ? SDL_GPU_CULLMODE_NONE : SDL_GPU_CULLMODE_BACK;
+				entry.pbr_pipelines[depth_mode][blend_mode][sided] =
+					SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+				if ( !entry.pbr_pipelines[depth_mode][blend_mode][sided] )
+				{
+					FeLog() << "SDL: pbr_custom_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_path << std::endl;
+					release_pbr_custom_shader( entry );
+					return false;
+				}
+			}
+		}
+	}
+
+	entry.fragment_uniforms = fragment_uniforms;
+	entry.fragment_samplers = fragment_samplers;
+	FeDebug() << "SDL: pbr_custom_shader: ready " << entry.source_path << std::endl;
+	return true;
+}
+
 bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	const FeRenderGeometry &image,
 	const std::string &source_id,
@@ -4086,6 +4353,238 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 		samplers );
 }
 
+bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
+	const FeRenderGeometry &image,
+	const std::string &source_id,
+	const std::string &raw_source,
+	std::string &source_code,
+	std::vector<CustomUniformBinding> &uniforms,
+	std::vector<CustomSamplerBinding> &samplers )
+{
+	const FeShader *shader = image.pbr_material.artwork_shader;
+	if ( !shader )
+		return false;
+
+	std::vector<ParsedCustomVarying> parsed_varyings;
+	std::string varying_stripped_source;
+	if ( !parse_custom_varyings( raw_source, parsed_varyings, varying_stripped_source ) )
+		return false;
+
+	if ( !parsed_varyings.empty() )
+	{
+		FeLog() << "SDL: pbr_custom_shader: varying declarations are not supported in " << source_id << std::endl;
+		return false;
+	}
+
+	std::vector<ParsedCustomUniform> parsed_uniforms;
+	std::string stripped_source;
+	if ( !parse_custom_uniforms( varying_stripped_source, parsed_uniforms, stripped_source ) )
+		return false;
+
+	uniforms.clear();
+	samplers.clear();
+
+	for ( const ParsedCustomUniform &uniform : parsed_uniforms )
+	{
+		if ( uniform.sampler )
+		{
+			CustomSamplerBinding binding = {};
+			binding.name = uniform.name;
+			binding.slot = 5 + static_cast<int>( samplers.size() );
+			binding.current_texture = false;
+			binding.image = nullptr;
+			samplers.push_back( binding );
+			continue;
+		}
+
+		if ( static_cast<int>( uniforms.size() ) >= FE_MAX_CUSTOM_SHADER_UNIFORMS )
+		{
+			FeLog() << "SDL: pbr_custom_shader: too many numeric uniforms in " << source_id << std::endl;
+			return false;
+		}
+
+		CustomUniformBinding binding = {};
+		binding.name = uniform.name;
+		binding.slot = static_cast<int>( uniforms.size() );
+		binding.components =
+			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "vec2" ) ? 2 :
+			( uniform.type == "vec3" ) ? 3 : 4;
+		uniforms.push_back( binding );
+	}
+
+	replace_all( stripped_source, "texture2D(", "fe_texture2D(" );
+	for ( int i = 0; i < 8; ++i )
+	{
+		const std::string from = "gl_TexCoord[" + std::to_string( i ) + "]";
+		const std::string to = "fe_frag_texcoord" + std::to_string( i );
+		replace_all( stripped_source, from, to );
+	}
+	replace_all( stripped_source, "gl_Color", "fe_frag_color" );
+	replace_all( stripped_source, "gl_FragColor", "fe_artwork_out_color" );
+
+	const std::string renamed_source = std::regex_replace(
+		stripped_source,
+		std::regex( "\\bvoid\\s+main\\s*\\(" ),
+		"void fe_artwork_main(",
+		std::regex_constants::format_first_only );
+	if ( renamed_source == stripped_source )
+	{
+		FeLog() << "SDL: pbr_custom_shader: missing main() in " << source_id << std::endl;
+		return false;
+	}
+
+	std::ostringstream sampler_code;
+	for ( const CustomSamplerBinding &sampler : samplers )
+	{
+		sampler_code
+			<< "layout(set = 2, binding = " << sampler.slot << ") uniform sampler2D artwork_shader_texture"
+			<< sampler.slot << ";\n";
+	}
+
+	std::ostringstream macro_code;
+	for ( const CustomSamplerBinding &sampler : samplers )
+		macro_code << "#define " << sampler.name << " artwork_shader_texture" << sampler.slot << "\n";
+	for ( const CustomUniformBinding &uniform : uniforms )
+		macro_code << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components ) << "\n";
+
+	std::ostringstream undef_code;
+	for ( const CustomSamplerBinding &sampler : samplers )
+		undef_code << "#undef " << sampler.name << "\n";
+	for ( const CustomUniformBinding &uniform : uniforms )
+		undef_code << "#undef " << uniform.name << "\n";
+
+	std::ostringstream helper_code;
+	helper_code
+		<< sampler_code.str()
+		<< "layout(set = 3, binding = 1, std140) uniform CustomFragmentUniforms\n"
+		<< "{\n"
+		<< "\tvec4 values[" << FE_MAX_CUSTOM_SHADER_UNIFORMS << "];\n"
+		<< "} custom_ubo;\n"
+		<< "vec2 artwork_uv;\n"
+		<< "vec2 material_uv0;\n"
+		<< "vec2 material_uv1;\n"
+		<< "vec2 artwork_size;\n"
+		<< "vec4 fe_frag_texcoord0;\n"
+		<< "vec4 fe_frag_texcoord1;\n"
+		<< "vec4 fe_frag_texcoord2;\n"
+		<< "vec4 fe_frag_texcoord3;\n"
+		<< "vec4 fe_frag_texcoord4;\n"
+		<< "vec4 fe_frag_texcoord5;\n"
+		<< "vec4 fe_frag_texcoord6;\n"
+		<< "vec4 fe_frag_texcoord7;\n"
+		<< "vec4 fe_frag_color;\n"
+		<< "float fit_alpha;\n"
+		<< "vec4 fe_artwork_out_color;\n"
+		<< "vec4 fe_texture2D( sampler2D sampler_value, vec2 uv )\n"
+		<< "{\n"
+		<< "\treturn texture( sampler_value, uv );\n"
+		<< "}\n"
+		<< "vec4 fe_texture2D( sampler2D sampler_value, vec2 uv, float bias )\n"
+		<< "{\n"
+		<< "\treturn texture( sampler_value, uv, bias );\n"
+		<< "}\n"
+		<< "vec4 fe_sample_artwork()\n"
+		<< "{\n"
+		<< "\treturn texture( base_color_texture, artwork_uv ) * fit_alpha;\n"
+		<< "}\n"
+		<< "void fe_artwork_main();\n"
+		<< "vec4 fe_run_artwork_shader( vec2 uv, float current_fit_alpha )\n"
+		<< "{\n"
+		<< "\tartwork_uv = uv;\n"
+		<< "\tmaterial_uv0 = frag_uv0;\n"
+		<< "\tmaterial_uv1 = frag_uv1;\n"
+		<< "\tartwork_size = vec2( textureSize( base_color_texture, 0 ) );\n"
+		<< "\tfe_frag_texcoord0 = vec4( artwork_uv, 0.0, 0.0 );\n"
+		<< "\tfe_frag_texcoord1 = vec4( material_uv0, 0.0, 0.0 );\n"
+		<< "\tfe_frag_texcoord2 = vec4( material_uv1, 0.0, 0.0 );\n"
+		<< "\tfe_frag_texcoord3 = vec4( 0.0 );\n"
+		<< "\tfe_frag_texcoord4 = vec4( 0.0 );\n"
+		<< "\tfe_frag_texcoord5 = vec4( 0.0 );\n"
+		<< "\tfe_frag_texcoord6 = vec4( 0.0 );\n"
+		<< "\tfe_frag_texcoord7 = vec4( 0.0 );\n"
+		<< "\tfe_frag_color = vec4( 1.0 );\n"
+		<< "\tfit_alpha = current_fit_alpha;\n"
+		<< "\tfe_artwork_out_color = fe_texture2D( base_color_texture, artwork_uv );\n"
+		<< "\tfe_artwork_main();\n"
+		<< "\treturn fe_artwork_out_color * current_fit_alpha;\n"
+		<< "}\n";
+
+	const std::string user_shader_code =
+		macro_code.str() +
+		renamed_source + "\n" +
+		undef_code.str();
+
+	const std::string sample_base_color_block =
+		"vec4 sample_base_color()\n"
+		"{\n"
+		"\tfloat fit_alpha = 1.0;\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[0].y ), 0, fit_alpha );\n"
+		"\tvec4 base_sample_color = texture( base_color_texture, uv );\n"
+		"\tbase_sample_color *= fit_alpha;\n"
+		"\treturn base_sample_color;\n"
+		"}\n";
+	const std::string sample_emissive_block =
+		"vec3 sample_emissive()\n"
+		"{\n"
+		"\tfloat fit_alpha = 1.0;\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[4].y ), 4, fit_alpha );\n"
+		"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
+		"}\n";
+	const std::string custom_sample_base_color_block =
+		"vec4 sample_base_color()\n"
+		"{\n"
+		"\tfloat fit_alpha = 1.0;\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[0].y ), 0, fit_alpha );\n"
+		"\treturn fe_run_artwork_shader( uv, fit_alpha );\n"
+		"}\n";
+	const std::string custom_sample_emissive_block =
+		"vec3 sample_emissive()\n"
+		"{\n"
+		"\tfloat fit_alpha = 1.0;\n"
+		"\tvec2 uv = transform_uv( select_uv( pbr.transforms_rotation_texcoord[4].y ), 4, fit_alpha );\n"
+		"\tif ( pbr.artwork_control.x > 0.5 )\n"
+		"\t\treturn fe_run_artwork_shader( uv, fit_alpha ).rgb;\n"
+		"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
+		"}\n";
+
+	source_code = build_pbr_fragment_shader();
+	const std::string helper_insert_needle =
+		"const float PI = 3.14159265358979323846;\n";
+	const std::size_t helper_insert_pos = source_code.find( helper_insert_needle );
+	if ( helper_insert_pos == std::string::npos )
+	{
+		FeLog() << "SDL: pbr_custom_shader: failed to inject helpers in " << source_id << std::endl;
+		return false;
+	}
+	source_code.insert( helper_insert_pos, helper_code.str() );
+	source_code.insert( helper_insert_pos + helper_code.str().size(), user_shader_code );
+
+	const std::size_t base_color_pos = source_code.find( sample_base_color_block );
+	if ( base_color_pos == std::string::npos )
+	{
+		FeLog() << "SDL: pbr_custom_shader: failed to patch sample_base_color in " << source_id << std::endl;
+		return false;
+	}
+	source_code.replace(
+		base_color_pos,
+		sample_base_color_block.size(),
+		custom_sample_base_color_block );
+
+	const std::size_t emissive_pos = source_code.find( sample_emissive_block );
+	if ( emissive_pos == std::string::npos )
+	{
+		FeLog() << "SDL: pbr_custom_shader: failed to patch sample_emissive in " << source_id << std::endl;
+		return false;
+	}
+	source_code.replace(
+		emissive_pos,
+		sample_emissive_block.size(),
+		custom_sample_emissive_block );
+
+	return true;
+}
+
 bool FeSdl3GpuContext::build_custom_vertex_shader(
 	const FeRenderGeometry &image,
 	std::string &source_code,
@@ -4197,17 +4696,20 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 void FeSdl3GpuContext::build_custom_uniform_data(
 	const FeRenderGeometry &image,
 	const std::vector<CustomUniformBinding> &uniforms,
-	std::vector<float> &data ) const
+	std::vector<float> &data,
+	const FeShader *shader ) const
 {
 	data.assign( FE_MAX_CUSTOM_SHADER_UNIFORMS * 4, 0.0f );
 
 	float image_width = 0.0f;
 	float image_height = 0.0f;
 	get_geometry_size( image, image_width, image_height );
+	const FeShader *uniform_shader = shader ? shader : image.shader;
 
 	for ( const CustomUniformBinding &uniform : uniforms )
 	{
-		const std::vector<float> *values = image.shader ? image.shader->get_param( uniform.name.c_str() ) : nullptr;
+		const std::vector<float> *values =
+			uniform_shader ? uniform_shader->get_param( uniform.name.c_str() ) : nullptr;
 		float *slot = data.data() + ( uniform.slot * 4 );
 
 		if ( values && !values->empty() )
@@ -4561,8 +5063,12 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			{
 				fragment_uniforms.emissive_factor[i] = image.geometry->pbr_material.emissive_factor[i];
 				fragment_uniforms.ambient_color[i] = image.geometry->ambient_color[i];
+				fragment_uniforms.artwork_control[i] = 0.0f;
 			}
 			fragment_uniforms.ambient_color[3] = image.geometry->camera_light;
+			fragment_uniforms.artwork_control[3] = 0.0f;
+			fragment_uniforms.artwork_control[0] =
+				image.geometry->pbr_material.artwork_shader_emissive ? 1.0f : 0.0f;
 			fragment_uniforms.emissive_factor[3] =
 				( image.geometry->pbr_material.normal_texture.texture_id != nullptr ) ? 1.0f : 0.0f;
 			fragment_uniforms.material_params[0] = image.geometry->pbr_material.metallic_factor;
@@ -4646,13 +5152,90 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		const int blend_index =
 			( prototype.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend ) ? 1 : 0;
 		const int double_sided_index = prototype.geometry->pbr_material.double_sided ? 1 : 0;
-		SDL_GPUGraphicsPipeline *pipeline = m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
+		SDL_GPUGraphicsPipeline *pipeline =
+			prototype.pbr_custom_shader
+				? prototype.pbr_custom_shader->pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ]
+				: m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
 		if ( !pipeline )
 			return true;
 
 		FeSdl3GpuPbrFragmentUniforms fragment_uniforms = {};
-		SDL_GPUTextureSamplerBinding sampler_bindings[5] = {};
-		fill_pbr_fragment_state( prototype, fragment_uniforms, sampler_bindings );
+		SDL_GPUTextureSamplerBinding base_sampler_bindings[5] = {};
+		fill_pbr_fragment_state( prototype, fragment_uniforms, base_sampler_bindings );
+		std::vector<float> custom_fragment_uniform_data;
+		std::vector<SDL_GPUTextureSamplerBinding> sampler_bindings;
+		sampler_bindings.assign( base_sampler_bindings, base_sampler_bindings + 5 );
+		if ( prototype.pbr_custom_shader )
+		{
+			build_custom_uniform_data(
+				*prototype.geometry,
+				prototype.pbr_custom_shader->fragment_uniforms,
+				custom_fragment_uniform_data,
+				prototype.geometry->pbr_material.artwork_shader );
+			sampler_bindings.resize( 5 + prototype.pbr_custom_shader->fragment_samplers.size() );
+
+			for ( const CustomSamplerBinding &sampler : prototype.pbr_custom_shader->fragment_samplers )
+			{
+				SDL_GPUTexture *sampler_texture = nullptr;
+				bool sampler_repeated = prototype.geometry->pbr_material.base_color_texture.repeated;
+				bool sampler_smooth = prototype.geometry->pbr_material.base_color_texture.smooth;
+				bool sampler_mipmap = prototype.geometry->pbr_material.base_color_texture.mipmap;
+				const FeShader *artwork_shader = prototype.geometry->pbr_material.artwork_shader;
+				const bool shader_uses_current_texture =
+					artwork_shader ? artwork_shader->uses_current_texture( sampler.name.c_str() ) : false;
+				FeImage *shader_image =
+					artwork_shader ? artwork_shader->get_texture_param_image( sampler.name.c_str() ) : nullptr;
+				const bool use_current_texture = shader_uses_current_texture || ( shader_image == nullptr );
+
+				if ( use_current_texture )
+				{
+					sampler_texture = prototype.pbr_textures[0];
+				}
+				else if ( shader_image )
+				{
+					const FeBaseTextureContainer *container = shader_image->get_texture_container();
+					if ( container )
+					{
+						auto surface_it = m_surfaces.find( container );
+						if ( surface_it != m_surfaces.end() )
+							sampler_texture = surface_it->second.color_texture;
+
+						if ( !sampler_texture &&
+							dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
+						{
+							return true;
+						}
+
+						if ( !sampler_texture )
+						{
+							TextureEntry &cache_entry = m_textures[ container ];
+							cache_entry.width = static_cast<float>( shader_image->get_texture_width() );
+							cache_entry.height = static_cast<float>( shader_image->get_texture_height() );
+							cache_entry.mipmapped = shader_image->get_mipmap();
+							cache_entry.last_seen_frame = m_frame.frame_number;
+							if ( !cache_entry.gpu_texture )
+							{
+								if ( !upload_texture( container, FeRenderTextureSourceContainer, cache_entry ) )
+									return true;
+							}
+							sampler_texture = cache_entry.gpu_texture;
+						}
+
+						sampler_repeated = container->get_repeat();
+						sampler_smooth = container->get_smooth();
+						sampler_mipmap = container->get_mipmap();
+					}
+				}
+
+				if ( !sampler_texture )
+					return true;
+
+				SDL_GPUTextureSamplerBinding sampler_binding = {};
+				sampler_binding.texture = sampler_texture;
+				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap );
+				sampler_bindings[sampler.slot] = sampler_binding;
+			}
+		}
 
 		SDL_GPUBuffer *instance_buffer = nullptr;
 		Uint32 instance_offset = 0;
@@ -4732,8 +5315,20 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			0,
 			&fragment_uniforms,
 			static_cast<Uint32>( sizeof( fragment_uniforms ) ) );
+		if ( prototype.pbr_custom_shader )
+		{
+			SDL_PushGPUFragmentUniformData(
+				command_buffer,
+				1,
+				custom_fragment_uniform_data.data(),
+				static_cast<Uint32>( custom_fragment_uniform_data.size() * sizeof( float ) ) );
+		}
 		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
-		SDL_BindGPUFragmentSamplers( render_pass, 0, sampler_bindings, 5 );
+		SDL_BindGPUFragmentSamplers(
+			render_pass,
+			0,
+			sampler_bindings.data(),
+			static_cast<Uint32>( sampler_bindings.size() ) );
 		SDL_DrawGPUPrimitives(
 			render_pass,
 			static_cast<Uint32>( prototype.vertex_count ),

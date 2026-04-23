@@ -1331,6 +1331,7 @@ struct FeModel3D::MaterialOverride
 	std::string material_name;
 	FeTextureContainer *container;
 	std::unique_ptr<FeModel3DMaterialArtwork> handle;
+	FeShader *shader;
 	SourceType source_type;
 	std::string source_value;
 	int index_offset;
@@ -1350,6 +1351,7 @@ struct FeModel3D::MaterialOverride
 
 	MaterialOverride()
 		: container( nullptr ),
+		  shader( nullptr ),
 		  source_type( SourceNone ),
 		  index_offset( 0 ),
 		  filter_offset( 0 ),
@@ -1693,6 +1695,27 @@ void FeModel3DMaterialArtwork::set_texture_rotation( float degrees )
 	m_model->set_material_texture_rotation( m_material_name.c_str(), degrees );
 }
 
+FeShader *FeModel3DMaterialArtwork::get_shader() const
+{
+	const FeModel3D::MaterialOverride *entry =
+		m_model ? m_model->find_override( m_material_name ) : nullptr;
+	return entry ? entry->shader : nullptr;
+}
+
+void FeModel3DMaterialArtwork::set_shader( FeShader *shader )
+{
+	if ( !m_model )
+		return;
+
+	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
+	if ( entry->shader == shader )
+		return;
+
+	entry->shader = shader;
+	m_model->invalidate_geometry_cache();
+	FePresent::script_flag_redraw();
+}
+
 void FeModel3DMaterialArtwork::set_artwork( const char *artwork_label )
 {
 	if ( !m_model )
@@ -1706,7 +1729,7 @@ void FeModel3DMaterialArtwork::set_file( const char *filename )
 	if ( !m_model )
 		return;
 
-	m_model->add_material_file( m_material_name.c_str(), filename );
+	m_model->add_material_image( m_material_name.c_str(), filename );
 }
 
 void FeModel3DMaterialArtwork::clear()
@@ -1791,6 +1814,7 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 			find_or_create_override( source_override->material_name );
 		target_override->source_type = source_override->source_type;
 		target_override->source_value = source_override->source_value;
+		target_override->shader = source_override->shader;
 		target_override->index_offset = source_override->index_offset;
 		target_override->filter_offset = source_override->filter_offset;
 		target_override->video_flags = source_override->video_flags;
@@ -2105,7 +2129,7 @@ FeModel3DMaterialArtwork *FeModel3D::add_material_artwork( const char *material_
 	return entry->handle.get();
 }
 
-FeModel3DMaterialArtwork *FeModel3D::add_material_file( const char *material_name, const char *filename )
+FeModel3DMaterialArtwork *FeModel3D::add_material_image( const char *material_name, const char *filename )
 {
 	if ( !material_name || !filename )
 		return nullptr;
@@ -2115,16 +2139,6 @@ FeModel3DMaterialArtwork *FeModel3D::add_material_file( const char *material_nam
 	entry->source_value = filename;
 	set_override_container( material_name, create_override_file_container( filename ) );
 	return entry->handle.get();
-}
-
-void FeModel3D::set_material_artwork( const char *material_name, const char *artwork_label )
-{
-	add_material_artwork( material_name, artwork_label );
-}
-
-void FeModel3D::set_material_file( const char *material_name, const char *filename )
-{
-	add_material_file( material_name, filename );
 }
 
 void FeModel3D::set_material_texture_rotation( const char *material_name, float degrees )
@@ -2789,6 +2803,10 @@ void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size
 	entry.pbr_material.emissive_factor[0] = primitive.material.emissive_factor[0];
 	entry.pbr_material.emissive_factor[1] = primitive.material.emissive_factor[1];
 	entry.pbr_material.emissive_factor[2] = primitive.material.emissive_factor[2];
+	entry.pbr_material.artwork_shader =
+		( override_container && override_entry ) ? override_entry->shader : nullptr;
+	entry.pbr_material.artwork_shader_emissive =
+		( entry.pbr_material.artwork_shader != nullptr ) && use_emissive_override;
 	if ( use_emissive_override && !primitive.material.emissive_texture.container )
 		normalize_emissive_override_factor( entry.pbr_material.emissive_factor );
 
