@@ -1,3 +1,6 @@
 [submodule "extlibs/sdl3"]
 	path = extlibs/sdl3
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "extlibs/sdl3-image"]
+	path = extlibs/sdl3-image
+	url = https://github.com/libsdl-org/SDL_image.git
