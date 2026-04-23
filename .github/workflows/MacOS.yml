@@ -26,6 +26,7 @@ jobs:
       uses: actions/checkout@v6
       with:
         path: am
+        submodules: 'true'
     - name: Prepare
       id: vars
       run: |
@@ -39,7 +40,7 @@ jobs:
         brew pin ruby@3.3
         brew update
         brew upgrade
-        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo sfml openal-soft
+        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo
     #~ - name: MacOS switch to GCC
       #~ run: |
         #~ echo "CC=/usr/local/bin/gcc-10" >> $GITHUB_ENV
