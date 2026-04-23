@@ -1,0 +1,3 @@
+[submodule "extlibs/sdl3"]
+	path = extlibs/sdl3
+	url = https://github.com/libsdl-org/SDL.git
