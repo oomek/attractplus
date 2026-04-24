@@ -189,31 +189,31 @@ template <typename T>
 }
 
 template <typename T>
-struct Rect
+struct RectT
 {
 	Vec2<T> position;
 	Vec2<T> size;
 
-	constexpr Rect()
+	constexpr RectT()
 		: position(),
 		  size()
 	{
 	}
 
-	constexpr Rect( T left, T top, T width, T height )
+	constexpr RectT( T left, T top, T width, T height )
 		: position( left, top ),
 		  size( width, height )
 	{
 	}
 
-	constexpr Rect( const Vec2<T> &pos, const Vec2<T> &dimensions )
+	constexpr RectT( const Vec2<T> &pos, const Vec2<T> &dimensions )
 		: position( pos ),
 		  size( dimensions )
 	{
 	}
 
 	template <typename U>
-	explicit constexpr Rect( const Rect<U> &other )
+	explicit constexpr RectT( const RectT<U> &other )
 		: position( other.position ),
 		  size( other.size )
 	{
@@ -233,7 +233,7 @@ struct Rect
 		return contains( static_cast<T>( point.x ), static_cast<T>( point.y ) );
 	}
 
-	[[nodiscard]] constexpr bool findIntersection( const Rect<T> &other ) const
+	[[nodiscard]] constexpr bool findIntersection( const RectT<T> &other ) const
 	{
 		const T left = ( position.x > other.position.x ) ? position.x : other.position.x;
 		const T top = ( position.y > other.position.y ) ? position.y : other.position.y;
@@ -249,13 +249,13 @@ struct Rect
 };
 
 template <typename T>
-[[nodiscard]] constexpr bool operator==( const Rect<T> &lhs, const Rect<T> &rhs )
+[[nodiscard]] constexpr bool operator==( const RectT<T> &lhs, const RectT<T> &rhs )
 {
 	return lhs.position == rhs.position && lhs.size == rhs.size;
 }
 
 template <typename T>
-[[nodiscard]] constexpr bool operator!=( const Rect<T> &lhs, const Rect<T> &rhs )
+[[nodiscard]] constexpr bool operator!=( const RectT<T> &lhs, const RectT<T> &rhs )
 {
 	return !( lhs == rhs );
 }
@@ -265,8 +265,8 @@ using Vec2u = Vec2<unsigned int>;
 using Vec2f = Vec2<float>;
 using Vec3i = Vec3<int>;
 using Vec3f = Vec3<float>;
-using IntRect = Rect<int>;
-using FloatRect = Rect<float>;
+using IntRect = RectT<int>;
+using FloatRect = RectT<float>;
 
 struct Color
 {
@@ -294,8 +294,12 @@ struct Color
 	static const Color Transparent;
 	static const Color Black;
 	static const Color White;
-	static const Color Yellow;
+	static const Color Red;
+	static const Color Green;
 	static const Color Blue;
+	static const Color Yellow;
+	static const Color Magenta;
+	static const Color Cyan;
 };
 
 [[nodiscard]] constexpr bool operator==( const Color &lhs, const Color &rhs )
@@ -320,7 +324,11 @@ struct Color
 inline constexpr Color Color::Transparent{ 0, 0, 0, 0 };
 inline constexpr Color Color::Black{ 0, 0, 0, 255 };
 inline constexpr Color Color::White{ 255, 255, 255, 255 };
-inline constexpr Color Color::Yellow{ 255, 255, 0, 255 };
+inline constexpr Color Color::Red{ 255, 0, 0, 255 };
+inline constexpr Color Color::Green{ 0, 255, 0, 255 };
 inline constexpr Color Color::Blue{ 0, 0, 255, 255 };
+inline constexpr Color Color::Yellow{ 255, 255, 0, 255 };
+inline constexpr Color Color::Magenta{ 255, 0, 255, 255 };
+inline constexpr Color Color::Cyan{ 0, 255, 255, 255 };
 
 #endif
