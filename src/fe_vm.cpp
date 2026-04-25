@@ -1086,6 +1086,12 @@ bool FeVM::on_new_layout()
 		.Overload<FeImage * (FeImage::*)(int, int)>(_SC("add_surface"), &FeImage::add_surface)
 	);
 
+	fe.Bind( _SC("Model3DObject"),
+		Class<FeModel3DObject, NoConstructor>()
+		.Prop(_SC("visible"), &FeModel3DObject::get_visible, &FeModel3DObject::set_visible )
+		.Func(_SC("set_rgb"), &FeModel3DObject::set_rgb )
+	);
+
 	fe.Bind( _SC("Model3D"),
 		DerivedClass<FeModel3D, FeBasePresentable, NoConstructor>()
 		.Prop(_SC("anchor_x"), &FeModel3D::get_anchor_x, &FeModel3D::set_anchor_x )
@@ -1095,6 +1101,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("file_name"), &FeModel3D::get_file_name )
 		.Overload<void (FeModel3D::*)(float, float)>(_SC("set_anchor"), &FeModel3D::set_anchor )
 		.Overload<void (FeModel3D::*)(float, float, float)>(_SC("set_anchor"), &FeModel3D::set_anchor )
+		.Func(_SC("object"), &FeModel3D::object )
 		.Func(_SC("get_material_artwork"), &FeModel3D::get_material_artwork )
 		.Func(_SC("add_material_artwork"), &FeModel3D::add_material_artwork )
 		.Func(_SC("add_material_image"), &FeModel3D::add_material_image )

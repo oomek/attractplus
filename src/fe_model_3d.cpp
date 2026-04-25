@@ -115,15 +115,22 @@ namespace
 	{
 		std::vector<FeRenderVertex> vertices;
 		ModelMaterial material;
+		std::size_t object_index;
 		float bounds_aspect;
 		float target_aspect[2];
 
 		ModelPrimitive()
-			: bounds_aspect( 1.0f )
+			: object_index( std::numeric_limits<std::size_t>::max() ),
+			  bounds_aspect( 1.0f )
 		{
 			target_aspect[0] = 1.0f;
 			target_aspect[1] = 1.0f;
 		}
+	};
+
+	struct ModelObject
+	{
+		std::string name;
 	};
 
 	bool model_texture_ref_matches( const ModelTextureRef &lhs, const ModelTextureRef &rhs )
@@ -1283,6 +1290,7 @@ namespace
 struct FeModel3D::ModelData
 {
 	std::vector<std::unique_ptr<FeBaseTextureContainer>> image_containers;
+	std::vector<ModelObject> objects;
 	std::vector<ModelPrimitive> primitives;
 	std::vector<ModelLight> lights;
 	Vec3f bounds_min;
@@ -1349,6 +1357,46 @@ struct FeModel3D::MaterialOverride
 	{
 	}
 };
+
+FeModel3DObject::FeModel3DObject( FeModel3D &model, std::size_t index )
+	: m_model( &model ),
+	  m_index( index )
+{
+}
+
+bool FeModel3DObject::get_visible() const
+{
+	return m_model ? m_model->get_object_visible( m_index ) : false;
+}
+
+void FeModel3DObject::set_visible( bool visible )
+{
+	if ( m_model )
+		m_model->set_object_visible( m_index, visible );
+}
+
+void FeModel3DObject::set_rgb( int r, int g, int b )
+{
+	if ( !m_model )
+		return;
+
+	Color color = m_model->get_object_color( m_index );
+	const std::uint8_t red = static_cast<std::uint8_t>( std::clamp( r, 0, 255 ) );
+	const std::uint8_t green = static_cast<std::uint8_t>( std::clamp( g, 0, 255 ) );
+	const std::uint8_t blue = static_cast<std::uint8_t>( std::clamp( b, 0, 255 ) );
+	if ( m_model->has_object_color_override( m_index )
+		&& color.r == red
+		&& color.g == green
+		&& color.b == blue )
+	{
+		return;
+	}
+
+	color.r = red;
+	color.g = green;
+	color.b = blue;
+	m_model->set_object_color( m_index, color );
+}
 
 FeModel3DMaterialArtwork::FeModel3DMaterialArtwork( FeModel3D &model, const std::string &material_name )
 	: m_model( &model ),
@@ -1768,6 +1816,9 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	set_rotation_order( o->get_rotation_order() );
 	set_zorder( o->get_zorder() );
 	set_zbuffer( o->get_zbuffer() );
+	sync_object_handles();
+	m_object_states = o->m_object_states;
+	m_object_states.resize( m_object_handles.size() );
 
 	for ( const std::unique_ptr<MaterialOverride> &source_override : o->m_overrides )
 	{
@@ -1928,6 +1979,80 @@ void FeModel3D::set_depth( float depth )
 const char *FeModel3D::get_file_name() const
 {
 	return m_file_name.c_str();
+}
+
+FeModel3DObject *FeModel3D::object( const char *name )
+{
+	if ( !m_model || !name )
+		return nullptr;
+
+	const std::string lookup_name = name;
+	for ( std::size_t i = 0; i < m_model->objects.size(); ++i )
+		if ( m_model->objects[ i ].name == lookup_name )
+			return m_object_handles[ i ].get();
+
+	return nullptr;
+}
+
+void FeModel3D::sync_object_handles()
+{
+	const std::size_t object_count = m_model ? m_model->objects.size() : 0;
+
+	m_object_states.assign( object_count, ObjectState() );
+	m_object_handles.clear();
+	m_object_handles.reserve( object_count );
+	for ( std::size_t i = 0; i < object_count; ++i )
+		m_object_handles.emplace_back( new FeModel3DObject( *this, i ) );
+
+	invalidate_geometry_cache();
+}
+
+bool FeModel3D::get_object_visible( std::size_t object_index ) const
+{
+	return object_index < m_object_states.size()
+		? m_object_states[ object_index ].visible
+		: false;
+}
+
+void FeModel3D::set_object_visible( std::size_t object_index, bool visible )
+{
+	if ( object_index >= m_object_states.size()
+		|| m_object_states[ object_index ].visible == visible )
+	{
+		return;
+	}
+
+	m_object_states[ object_index ].visible = visible;
+	invalidate_geometry_cache();
+	FePresent::script_flag_redraw();
+}
+
+bool FeModel3D::has_object_color_override( std::size_t object_index ) const
+{
+	return object_index < m_object_states.size()
+		&& m_object_states[ object_index ].color_override;
+}
+
+Color FeModel3D::get_object_color( std::size_t object_index ) const
+{
+	return object_index < m_object_states.size()
+		? m_object_states[ object_index ].color
+		: Color::White;
+}
+
+void FeModel3D::set_object_color( std::size_t object_index, Color color )
+{
+	if ( object_index >= m_object_states.size() )
+		return;
+
+	ObjectState &state = m_object_states[ object_index ];
+	if ( state.color_override && state.color == color )
+		return;
+
+	state.color = color;
+	state.color_override = true;
+	invalidate_geometry_cache();
+	FePresent::script_flag_redraw();
 }
 
 void FeModel3D::initialize_override_defaults( MaterialOverride &entry )
@@ -2114,6 +2239,7 @@ void FeModel3D::clear_material_texture( const char *material_name )
 void FeModel3D::load_model( const std::string &filename )
 {
 	m_model.reset();
+	sync_object_handles();
 
 	std::string resolved_path = clean_path( filename );
 	if ( resolved_path.empty() )
@@ -2135,6 +2261,7 @@ void FeModel3D::load_model( const std::string &filename )
 				( ( std::fabs( bounds_size.y ) > FE_EPSILON ) ? bounds_size.y : 1.0f ) * FE_DEFAULT_MODEL_3D_SCALE );
 			m_depth = ( ( std::fabs( bounds_size.z ) > FE_EPSILON ) ? bounds_size.z : 1.0f ) * FE_DEFAULT_MODEL_3D_SCALE;
 			m_model = std::move( cached_model );
+			sync_object_handles();
 			return;
 		}
 
@@ -2361,6 +2488,18 @@ void FeModel3D::load_model( const std::string &filename )
 		if ( !node->mesh )
 			continue;
 
+		const std::size_t object_index = model->objects.size();
+		model->objects.emplace_back();
+		ModelObject &model_object = model->objects.back();
+		model_object.name = node->name ? node->name : "";
+		if ( model_object.name.empty() )
+		{
+			const std::string mesh_name = node->mesh->name ? node->mesh->name : "";
+			model_object.name = mesh_name.empty()
+				? ( std::string( "Object." ) + std::to_string( object_index ) )
+				: mesh_name;
+		}
+
 		for ( cgltf_size primitive_index = 0; primitive_index < node->mesh->primitives_count; ++primitive_index )
 		{
 			const cgltf_primitive &primitive = node->mesh->primitives[primitive_index];
@@ -2540,6 +2679,7 @@ void FeModel3D::load_model( const std::string &filename )
 
 			ModelPrimitive model_primitive;
 			model_primitive.material = material;
+			model_primitive.object_index = object_index;
 			model_primitive.vertices.reserve( triangle_indices.size() );
 			for ( cgltf_uint source_index : triangle_indices )
 			{
@@ -2582,8 +2722,10 @@ void FeModel3D::load_model( const std::string &filename )
 				model_primitive.target_aspect[1] = estimate_primitive_target_aspect( model_primitive, 1 );
 				const std::uint64_t material_hash =
 					compute_model_material_hash( model_primitive.material );
+				const std::uint64_t merge_hash =
+					hash_combine_model_u64( material_hash, static_cast<std::uint64_t>( object_index ) );
 				bool merged = false;
-				auto merge_it = primitive_merge_lookup.find( material_hash );
+				auto merge_it = primitive_merge_lookup.find( merge_hash );
 				if ( merge_it != primitive_merge_lookup.end() )
 				{
 					for ( std::size_t primitive_slot : merge_it->second )
@@ -2592,6 +2734,8 @@ void FeModel3D::load_model( const std::string &filename )
 							continue;
 
 						ModelPrimitive &existing_primitive = model->primitives[ primitive_slot ];
+						if ( existing_primitive.object_index != object_index )
+							continue;
 						if ( !model_material_matches( existing_primitive.material, model_primitive.material ) )
 							continue;
 
@@ -2607,7 +2751,8 @@ void FeModel3D::load_model( const std::string &filename )
 				if ( !merged )
 				{
 					model->primitives.push_back( std::move( model_primitive ) );
-					primitive_merge_lookup[ material_hash ].push_back( model->primitives.size() - 1 );
+					const std::size_t primitive_slot = model->primitives.size() - 1;
+					primitive_merge_lookup[ merge_hash ].push_back( primitive_slot );
 				}
 			}
 		}
@@ -2634,6 +2779,7 @@ void FeModel3D::load_model( const std::string &filename )
 	m_depth = ( ( std::fabs( bounds_size.z ) > FE_EPSILON ) ? bounds_size.z : 1.0f ) * FE_DEFAULT_MODEL_3D_SCALE;
 	s_model_cache[ resolved_path ] = model;
 	m_model = std::move( model );
+	sync_object_handles();
 }
 
 bool FeModel3D::geometry_cache_matches( float camera_light ) const
@@ -2925,11 +3071,20 @@ void FeModel3D::refresh_geometry_cache() const
 				continue;
 
 			const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+			const bool object_color_override =
+				has_object_color_override( primitive.object_index );
+			const Color object_color = get_object_color( primitive.object_index );
+			const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
+			const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
+			const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
 			FeRenderGeometry &entry = m_geometry_cache[ cache_index ];
 			entry.zbuffer = get_zbuffer();
-			entry.pbr_material.base_color_factor[0] = primitive.material.base_color_factor[0] * color_scale_r;
-			entry.pbr_material.base_color_factor[1] = primitive.material.base_color_factor[1] * color_scale_g;
-			entry.pbr_material.base_color_factor[2] = primitive.material.base_color_factor[2] * color_scale_b;
+			entry.pbr_material.base_color_factor[0] =
+				( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
+			entry.pbr_material.base_color_factor[1] =
+				( object_color_override ? object_scale_g : primitive.material.base_color_factor[1] ) * color_scale_g;
+			entry.pbr_material.base_color_factor[2] =
+				( object_color_override ? object_scale_b : primitive.material.base_color_factor[2] ) * color_scale_b;
 			entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
 			entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 			entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
@@ -2958,10 +3113,19 @@ void FeModel3D::refresh_geometry_cache() const
 			find_override( m_model->primitives[ primitive_index ].material.name );
 		FeRenderGeometry &entry = m_geometry_cache[ cache_index ];
 		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+		const bool object_color_override =
+			has_object_color_override( primitive.object_index );
+		const Color object_color = get_object_color( primitive.object_index );
+		const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
+		const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
+		const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
 		entry.zbuffer = get_zbuffer();
-		entry.pbr_material.base_color_factor[0] = primitive.material.base_color_factor[0] * color_scale_r;
-		entry.pbr_material.base_color_factor[1] = primitive.material.base_color_factor[1] * color_scale_g;
-		entry.pbr_material.base_color_factor[2] = primitive.material.base_color_factor[2] * color_scale_b;
+		entry.pbr_material.base_color_factor[0] =
+			( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
+		entry.pbr_material.base_color_factor[1] =
+			( object_color_override ? object_scale_g : primitive.material.base_color_factor[1] ) * color_scale_g;
+		entry.pbr_material.base_color_factor[2] =
+			( object_color_override ? object_scale_b : primitive.material.base_color_factor[2] ) * color_scale_b;
 		entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
 		entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
@@ -3036,6 +3200,15 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 	for ( std::size_t primitive_index = 0; primitive_index < m_model->primitives.size(); ++primitive_index )
 	{
 		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+		if ( !get_object_visible( primitive.object_index ) )
+			continue;
+
+		const bool object_color_override =
+			has_object_color_override( primitive.object_index );
+		const Color object_color = get_object_color( primitive.object_index );
+		const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
+		const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
+		const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
 		FeRenderGeometry entry;
 		entry.clear();
 		entry.geometry_kind = FeRenderGeometryObjectPbr;
@@ -3047,9 +3220,12 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 			( primitive.material.alpha_mode == FeRenderPbrAlphaBlend )
 				? FeBlend::Alpha
 				: FeBlend::None;
-		entry.pbr_material.base_color_factor[0] = primitive.material.base_color_factor[0] * color_scale_r;
-		entry.pbr_material.base_color_factor[1] = primitive.material.base_color_factor[1] * color_scale_g;
-		entry.pbr_material.base_color_factor[2] = primitive.material.base_color_factor[2] * color_scale_b;
+		entry.pbr_material.base_color_factor[0] =
+			( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
+		entry.pbr_material.base_color_factor[1] =
+			( object_color_override ? object_scale_g : primitive.material.base_color_factor[1] ) * color_scale_g;
+		entry.pbr_material.base_color_factor[2] =
+			( object_color_override ? object_scale_b : primitive.material.base_color_factor[2] ) * color_scale_b;
 		entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
 		entry.pbr_material.metallic_factor = primitive.material.metallic_factor;
 		entry.pbr_material.roughness_factor = primitive.material.roughness_factor;

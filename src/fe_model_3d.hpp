@@ -1,6 +1,7 @@
 #ifndef FE_MODEL3D_HPP
 #define FE_MODEL3D_HPP
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -9,6 +10,20 @@
 
 class FeModel3D;
 class FeShader;
+
+class FeModel3DObject
+{
+public:
+	FeModel3DObject( FeModel3D &model, std::size_t index );
+
+	bool get_visible() const;
+	void set_visible( bool visible );
+	void set_rgb( int r, int g, int b );
+
+private:
+	FeModel3D *m_model;
+	std::size_t m_index;
+};
 
 class FeModel3DMaterialArtwork
 {
@@ -91,14 +106,34 @@ public:
 	FeModel3DMaterialArtwork *add_material_artwork( const char *material_name, const char *artwork_label );
 	FeModel3DMaterialArtwork *add_material_image( const char *material_name, const char *filename );
 	void clear_material_texture( const char *material_name );
+	FeModel3DObject *object( const char *name );
 
 	bool build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
 
 private:
 	struct ModelData;
 	struct MaterialOverride;
+	struct ObjectState
+	{
+		bool visible;
+		bool color_override;
+		Color color;
+
+		ObjectState()
+			: visible( true ),
+			  color_override( false ),
+			  color( Color::White )
+		{
+		}
+	};
 
 	void load_model( const std::string &filename );
+	void sync_object_handles();
+	bool get_object_visible( std::size_t object_index ) const;
+	void set_object_visible( std::size_t object_index, bool visible );
+	bool has_object_color_override( std::size_t object_index ) const;
+	Color get_object_color( std::size_t object_index ) const;
+	void set_object_color( std::size_t object_index, Color color );
 	void initialize_override_defaults( MaterialOverride &entry );
 	void apply_override_settings( MaterialOverride &entry, bool do_update = true );
 	FeTextureContainer *create_override_artwork_container( const char *artwork_label ) const;
@@ -125,6 +160,8 @@ private:
 	Color m_color;
 	std::shared_ptr<ModelData> m_model;
 	std::vector<std::unique_ptr<MaterialOverride>> m_overrides;
+	std::vector<ObjectState> m_object_states;
+	std::vector<std::unique_ptr<FeModel3DObject>> m_object_handles;
 	mutable bool m_geometry_cache_valid;
 	mutable const ModelData *m_geometry_cache_model;
 	mutable Vec2f m_geometry_cache_pos;
@@ -142,6 +179,7 @@ private:
 	mutable std::vector<std::size_t> m_geometry_cache_primitives;
 	mutable std::vector<FeRenderGeometry> m_geometry_cache;
 
+	friend class FeModel3DObject;
 	friend class FeModel3DMaterialArtwork;
 };
 
