@@ -346,8 +346,8 @@ ifneq ($(HAS_SDL3_IMAGE),1)
   $(info sdl3-image will be built with AM+)
   HEADERINFO_DEPS += sdl3-image
 else
-  CFLAGS += $(shell $(PKG_CONFIG) --cflags $(SDL3_IMAGE_PKG))
-  LIBS += $(shell $(PKG_CONFIG) --libs $(SDL3_IMAGE_PKG))
+  CFLAGS += $(shell $(PKG_CONFIG) --cflags sdl3-image)
+  LIBS += $(shell $(PKG_CONFIG) --libs sdl3-image)
 endif
 
 # Don't rely on MXE various image libs, use vendored ones
