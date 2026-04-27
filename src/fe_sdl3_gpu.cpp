@@ -4193,7 +4193,7 @@ bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &i
 	pipeline_info.vertex_input_state.num_vertex_attributes = 13;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
-	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_CLOCKWISE;
 	pipeline_info.rasterizer_state.enable_depth_clip = true;
 	pipeline_info.multisample_state.sample_count = m_sample_count;
 	pipeline_info.multisample_state.sample_mask = 0;
@@ -6319,7 +6319,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	pipeline_info.vertex_input_state.num_vertex_attributes = 13;
 	pipeline_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 	pipeline_info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
-	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+	pipeline_info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_CLOCKWISE;
 	pipeline_info.rasterizer_state.enable_depth_clip = true;
 	pipeline_info.multisample_state.sample_count = m_sample_count;
 	pipeline_info.multisample_state.sample_mask = 0;
