@@ -2995,6 +2995,7 @@ void FeModel3D::refresh_geometry_cache() const
 	const float color_scale_g = static_cast<float>( m_color.g ) / 255.0f;
 	const float color_scale_b = static_cast<float>( m_color.b ) / 255.0f;
 	const float color_scale_a = static_cast<float>( m_color.a ) / 255.0f;
+	const bool model_alpha_blend = m_color.a < 255;
 	float camera_light = 0.0f;
 	if ( FePresent *fep = FePresent::script_get_fep() )
 		camera_light = fep->get_camera_light();
@@ -3078,7 +3079,12 @@ void FeModel3D::refresh_geometry_cache() const
 			const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
 			const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
 			FeRenderGeometry &entry = m_geometry_cache[ cache_index ];
+			const bool use_alpha_blend =
+				model_alpha_blend || primitive.material.alpha_mode == FeRenderPbrAlphaBlend;
 			entry.zbuffer = get_zbuffer();
+			entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
+			entry.pbr_material.alpha_mode =
+				model_alpha_blend ? FeRenderPbrAlphaBlend : primitive.material.alpha_mode;
 			entry.pbr_material.base_color_factor[0] =
 				( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
 			entry.pbr_material.base_color_factor[1] =
@@ -3119,7 +3125,12 @@ void FeModel3D::refresh_geometry_cache() const
 		const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
 		const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
 		const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
+		const bool use_alpha_blend =
+			model_alpha_blend || primitive.material.alpha_mode == FeRenderPbrAlphaBlend;
 		entry.zbuffer = get_zbuffer();
+		entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
+		entry.pbr_material.alpha_mode =
+			model_alpha_blend ? FeRenderPbrAlphaBlend : primitive.material.alpha_mode;
 		entry.pbr_material.base_color_factor[0] =
 			( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
 		entry.pbr_material.base_color_factor[1] =
@@ -3194,6 +3205,7 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 	const float color_scale_g = static_cast<float>( m_color.g ) / 255.0f;
 	const float color_scale_b = static_cast<float>( m_color.b ) / 255.0f;
 	const float color_scale_a = static_cast<float>( m_color.a ) / 255.0f;
+	const bool model_alpha_blend = m_color.a < 255;
 
 	m_geometry_cache.reserve( m_model->primitives.size() );
 	m_geometry_cache_primitives.reserve( m_model->primitives.size() );
@@ -3210,16 +3222,15 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
 		const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
 		FeRenderGeometry entry;
+		const bool use_alpha_blend =
+			model_alpha_blend || primitive.material.alpha_mode == FeRenderPbrAlphaBlend;
 		entry.clear();
 		entry.geometry_kind = FeRenderGeometryObjectPbr;
 		entry.zbuffer = get_zbuffer();
 		entry.shader = nullptr;
 		entry.custom_shader = false;
 		entry.textured = true;
-		entry.blend_mode =
-			( primitive.material.alpha_mode == FeRenderPbrAlphaBlend )
-				? FeBlend::Alpha
-				: FeBlend::None;
+		entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
 		entry.pbr_material.base_color_factor[0] =
 			( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
 		entry.pbr_material.base_color_factor[1] =
@@ -3232,7 +3243,8 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		entry.pbr_material.normal_scale = primitive.material.normal_scale;
 		entry.pbr_material.occlusion_strength = primitive.material.occlusion_strength;
 		entry.pbr_material.alpha_cutoff = primitive.material.alpha_cutoff;
-		entry.pbr_material.alpha_mode = primitive.material.alpha_mode;
+		entry.pbr_material.alpha_mode =
+			model_alpha_blend ? FeRenderPbrAlphaBlend : primitive.material.alpha_mode;
 		entry.pbr_material.unlit = primitive.material.unlit;
 		entry.pbr_material.double_sided = primitive.material.double_sided;
 		std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
