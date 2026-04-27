@@ -137,6 +137,7 @@ struct FeRenderPbrMaterial
 	float alpha_cutoff;
 	int alpha_mode;
 	bool artwork_shader_emissive;
+	bool use_base_color_alpha;
 	bool unlit;
 	bool double_sided;
 
@@ -170,6 +171,7 @@ struct FeRenderGeometry
 	float texture_height;
 	int blend_mode;
 	bool zbuffer;
+	bool translucent_depth_prepass;
 	const FeShader *shader;
 	bool custom_shader;
 	bool textured;

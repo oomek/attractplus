@@ -1761,6 +1761,7 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	  m_depth( 1.0f ),
 	  m_rotation( 0.0f ),
 	  m_color( Color::White ),
+	  m_occlusion( true ),
 	  m_geometry_cache_valid( false ),
 	  m_geometry_cache_model( nullptr ),
 	  m_geometry_cache_pos( 0.0f, 0.0f ),
@@ -1773,6 +1774,7 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	  m_geometry_cache_rotation_y( 0.0f ),
 	  m_geometry_cache_rotation_order( 0 ),
 	  m_geometry_cache_color( Color::White ),
+	  m_geometry_cache_occlusion( false ),
 	  m_geometry_cache_zbuffer( false ),
 	  m_geometry_cache_camera_light( 0.0f )
 {
@@ -1789,6 +1791,7 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	  m_depth( o ? o->m_depth : 1.0f ),
 	  m_rotation( o ? o->m_rotation : 0.0f ),
 	  m_color( o ? o->m_color : Color::White ),
+	  m_occlusion( o ? o->m_occlusion : true ),
 	  m_model( o ? o->m_model : nullptr ),
 	  m_geometry_cache_valid( false ),
 	  m_geometry_cache_model( nullptr ),
@@ -1802,6 +1805,7 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	  m_geometry_cache_rotation_y( 0.0f ),
 	  m_geometry_cache_rotation_order( 0 ),
 	  m_geometry_cache_color( Color::White ),
+	  m_geometry_cache_occlusion( false ),
 	  m_geometry_cache_zbuffer( false ),
 	  m_geometry_cache_camera_light( 0.0f )
 {
@@ -1973,6 +1977,20 @@ void FeModel3D::set_depth( float depth )
 		return;
 
 	m_depth = depth;
+	FePresent::script_flag_redraw();
+}
+
+bool FeModel3D::get_occlusion() const
+{
+	return m_occlusion;
+}
+
+void FeModel3D::set_occlusion( bool occlusion )
+{
+	if ( occlusion == m_occlusion )
+		return;
+
+	m_occlusion = occlusion;
 	FePresent::script_flag_redraw();
 }
 
@@ -2796,6 +2814,7 @@ bool FeModel3D::geometry_cache_matches( float camera_light ) const
 		|| ( m_geometry_cache_rotation_y != get_rotation_y() )
 		|| ( m_geometry_cache_rotation_order != get_rotation_order() )
 		|| ( m_geometry_cache_color != m_color )
+		|| ( m_geometry_cache_occlusion != m_occlusion )
 		|| ( m_geometry_cache_zbuffer != get_zbuffer() )
 		|| ( m_geometry_cache_camera_light != camera_light )
 		|| ( m_geometry_cache_primitives.size() != m_geometry_cache.size() ) )
@@ -2870,6 +2889,7 @@ void FeModel3D::update_geometry_cache_state( float camera_light ) const
 	m_geometry_cache_rotation_y = get_rotation_y();
 	m_geometry_cache_rotation_order = get_rotation_order();
 	m_geometry_cache_color = m_color;
+	m_geometry_cache_occlusion = m_occlusion;
 	m_geometry_cache_zbuffer = get_zbuffer();
 	m_geometry_cache_camera_light = camera_light;
 }
@@ -3083,6 +3103,9 @@ void FeModel3D::refresh_geometry_cache() const
 				model_alpha_blend || primitive.material.alpha_mode == FeRenderPbrAlphaBlend;
 			entry.zbuffer = get_zbuffer();
 			entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
+			entry.translucent_depth_prepass = model_alpha_blend && m_occlusion;
+			entry.pbr_material.use_base_color_alpha =
+				primitive.material.alpha_mode != FeRenderPbrAlphaOpaque;
 			entry.pbr_material.alpha_mode =
 				model_alpha_blend ? FeRenderPbrAlphaBlend : primitive.material.alpha_mode;
 			entry.pbr_material.base_color_factor[0] =
@@ -3129,6 +3152,9 @@ void FeModel3D::refresh_geometry_cache() const
 			model_alpha_blend || primitive.material.alpha_mode == FeRenderPbrAlphaBlend;
 		entry.zbuffer = get_zbuffer();
 		entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
+		entry.translucent_depth_prepass = model_alpha_blend && m_occlusion;
+		entry.pbr_material.use_base_color_alpha =
+			primitive.material.alpha_mode != FeRenderPbrAlphaOpaque;
 		entry.pbr_material.alpha_mode =
 			model_alpha_blend ? FeRenderPbrAlphaBlend : primitive.material.alpha_mode;
 		entry.pbr_material.base_color_factor[0] =
@@ -3231,6 +3257,9 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		entry.custom_shader = false;
 		entry.textured = true;
 		entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
+		entry.translucent_depth_prepass = model_alpha_blend && m_occlusion;
+		entry.pbr_material.use_base_color_alpha =
+			primitive.material.alpha_mode != FeRenderPbrAlphaOpaque;
 		entry.pbr_material.base_color_factor[0] =
 			( object_color_override ? object_scale_r : primitive.material.base_color_factor[0] ) * color_scale_r;
 		entry.pbr_material.base_color_factor[1] =

@@ -628,6 +628,7 @@ namespace
 		if ( entry.geometry_kind != FeRenderGeometryObjectPbr
 			|| !entry.has_external_vertices()
 			|| !entry.zbuffer
+			|| entry.translucent_depth_prepass
 			|| entry.pbr_material.alpha_mode == FeRenderPbrAlphaBlend )
 		{
 			return false;
@@ -654,6 +655,7 @@ namespace
 			|| lhs.texture_dynamic != rhs.texture_dynamic
 			|| lhs.texture_content_version != rhs.texture_content_version
 			|| lhs.blend_mode != rhs.blend_mode
+			|| lhs.translucent_depth_prepass != rhs.translucent_depth_prepass
 			|| lhs.camera_light != rhs.camera_light
 			|| lhs.light_count != rhs.light_count )
 		{
@@ -665,6 +667,7 @@ namespace
 		if ( lhs_material.alpha_mode != rhs_material.alpha_mode
 			|| lhs_material.unlit != rhs_material.unlit
 			|| lhs_material.double_sided != rhs_material.double_sided
+			|| lhs_material.use_base_color_alpha != rhs_material.use_base_color_alpha
 			|| lhs_material.metallic_factor != rhs_material.metallic_factor
 			|| lhs_material.roughness_factor != rhs_material.roughness_factor
 			|| lhs_material.normal_scale != rhs_material.normal_scale
@@ -765,6 +768,7 @@ namespace
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_smooth ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_mipmap ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.translucent_depth_prepass ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, entry.texture_content_version );
 		hash = hash_float_pbr_batch( hash, entry.camera_light );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.light_count ) );
@@ -773,6 +777,7 @@ namespace
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
 		hash = hash_float_pbr_batch( hash, material.metallic_factor );
 		hash = hash_float_pbr_batch( hash, material.roughness_factor );
 		hash = hash_float_pbr_batch( hash, material.normal_scale );
@@ -1062,6 +1067,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_mipmap ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.translucent_depth_prepass ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.get_vertex_count() ) );
 		if ( geometry.has_external_vertices() )
@@ -1117,6 +1123,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.alpha_mode ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.unlit ? 1 : 0 ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.double_sided ? 1 : 0 ) );
+			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.use_base_color_alpha ? 1 : 0 ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.light_count ) );
 			for ( int light_index = 0; light_index < geometry.light_count; ++light_index )
 			{

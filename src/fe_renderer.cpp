@@ -150,6 +150,7 @@ void FeRenderPbrMaterial::clear()
 	alpha_cutoff = 0.5f;
 	alpha_mode = FeRenderPbrAlphaOpaque;
 	artwork_shader_emissive = false;
+	use_base_color_alpha = false;
 	unlit = false;
 	double_sided = false;
 }
@@ -179,6 +180,7 @@ FeRenderGeometry::FeRenderGeometry()
 	texture_height( 0.0f ),
 	blend_mode( 0 ),
 	zbuffer( false ),
+	translucent_depth_prepass( false ),
 	shader( nullptr ),
 	custom_shader( false ),
 	textured( false ),
@@ -211,6 +213,7 @@ void FeRenderGeometry::clear()
 	texture_height = 0.0f;
 	blend_mode = 0;
 	zbuffer = false;
+	translucent_depth_prepass = false;
 	shader = nullptr;
 	custom_shader = false;
 	textured = false;

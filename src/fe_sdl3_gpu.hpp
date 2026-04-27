@@ -95,6 +95,7 @@ private:
 		int blend_mode;
 		bool zbuffer;
 		bool translucent_depth;
+		bool translucent_depth_prepass;
 		bool object_pbr;
 		bool texture_repeated;
 		bool texture_smooth;
@@ -380,6 +381,7 @@ private:
 	SDL_GPUSampler *m_nearest_mipmap_repeat_sampler;
 	SDL_GPUGraphicsPipeline *m_blend_pipelines[3][FeBlend::None + 1];
 	SDL_GPUGraphicsPipeline *m_alpha_prepass_pipeline;
+	SDL_GPUGraphicsPipeline *m_pbr_prepass_pipelines[2];
 	SDL_GPUGraphicsPipeline *m_pbr_pipelines[3][2][2];
 	SDL_GPUTexture *m_white_texture;
 	SDL_GPUTexture *m_color_target_texture;

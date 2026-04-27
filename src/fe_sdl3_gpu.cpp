@@ -663,7 +663,8 @@ namespace
 			"void main()\n"
 			"{\n"
 			"\tvec4 base_sample = sample_base_color();\n"
-			"\tvec4 base_color = vec4( srgb_to_linear( base_sample.rgb ), base_sample.a ) * pbr.base_color_factor * frag_color;\n"
+			"\tfloat base_alpha = pbr.artwork_control.y > 0.5 ? base_sample.a : 1.0;\n"
+			"\tvec4 base_color = vec4( srgb_to_linear( base_sample.rgb ), base_alpha ) * pbr.base_color_factor * frag_color;\n"
 			"\tfloat alpha_mode = pbr.control.y;\n"
 			"\tif ( alpha_mode > 0.5 && alpha_mode < 1.5 && base_color.a < pbr.control.x )\n"
 			"\t\tdiscard;\n"
@@ -793,6 +794,8 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 			for ( int d = 0; d < 2; ++d )
 				m_pbr_pipelines[z][a][d] = nullptr;
 	m_alpha_prepass_pipeline = nullptr;
+	for ( int d = 0; d < 2; ++d )
+		m_pbr_prepass_pipelines[d] = nullptr;
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
 	m_linear_mipmap_sampler = nullptr;
@@ -1104,6 +1107,8 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		prepared.blend_mode = image.blend_mode;
 		prepared.zbuffer = image.zbuffer;
 		prepared.translucent_depth = geometry_uses_translucent_depth_pipeline( image );
+		prepared.translucent_depth_prepass =
+			prepared.translucent_depth && image.translucent_depth_prepass;
 		prepared.object_pbr = ( image.geometry_kind == FeRenderGeometryObjectPbr );
 		prepared.texture_repeated = image.texture_repeated;
 		prepared.texture_smooth = image.texture_smooth;
@@ -1214,7 +1219,8 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 	if ( lhs.vertex_count != rhs.vertex_count
 		|| lhs.external_vertex_id != rhs.external_vertex_id
 		|| lhs.zbuffer != rhs.zbuffer
-		|| lhs.translucent_depth != rhs.translucent_depth )
+		|| lhs.translucent_depth != rhs.translucent_depth
+		|| lhs.translucent_depth_prepass != rhs.translucent_depth_prepass )
 	{
 		return false;
 	}
@@ -1224,6 +1230,7 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 	if ( lhs_material.alpha_mode != rhs_material.alpha_mode
 		|| lhs_material.unlit != rhs_material.unlit
 		|| lhs_material.double_sided != rhs_material.double_sided
+		|| lhs_material.use_base_color_alpha != rhs_material.use_base_color_alpha
 		|| lhs_material.artwork_shader != rhs_material.artwork_shader
 		|| lhs_material.artwork_shader_emissive != rhs_material.artwork_shader_emissive
 		|| lhs_material.metallic_factor != rhs_material.metallic_factor
@@ -1324,12 +1331,14 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.external_vertex_id ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.translucent_depth ? 1 : 0 ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.translucent_depth_prepass ? 1 : 0 ) );
 
 	const FeRenderGeometry &geometry = *image.geometry;
 	const FeRenderPbrMaterial &material = geometry.pbr_material;
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
 	hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
 	hash = hash_float_bits( hash, material.metallic_factor );
@@ -1459,6 +1468,7 @@ void FeSdl3GpuContext::build_pbr_instance_batches(
 		const bool batchable_object =
 			image.zbuffer &&
 			!image.translucent_depth &&
+			!image.translucent_depth_prepass &&
 			( image.geometry->pbr_material.alpha_mode != FeRenderPbrAlphaBlend ) &&
 			( image.external_vertex_id != nullptr ) &&
 			( image.external_vertices != nullptr );
@@ -1476,6 +1486,7 @@ void FeSdl3GpuContext::build_pbr_instance_batches(
 				|| !run_image.geometry
 				|| !run_image.zbuffer
 				|| run_image.translucent_depth
+				|| run_image.translucent_depth_prepass
 				|| run_image.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend
 				|| !run_image.external_vertex_id
 				|| !run_image.external_vertices )
@@ -3079,6 +3090,15 @@ void FeSdl3GpuContext::release_image_pipeline()
 void FeSdl3GpuContext::release_pbr_pipeline()
 {
 	release_pbr_custom_shaders();
+
+	for ( int sided = 0; sided < 2; ++sided )
+	{
+		if ( m_pbr_prepass_pipelines[sided] )
+		{
+			SDL_ReleaseGPUGraphicsPipeline( m_device, m_pbr_prepass_pipelines[sided] );
+			m_pbr_prepass_pipelines[sided] = nullptr;
+		}
+	}
 
 	for ( int z = 0; z < 3; ++z )
 	{
@@ -5064,6 +5084,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			fragment_uniforms.artwork_control[3] = 0.0f;
 			fragment_uniforms.artwork_control[0] =
 				image.geometry->pbr_material.artwork_shader_emissive ? 1.0f : 0.0f;
+			fragment_uniforms.artwork_control[1] =
+				image.geometry->pbr_material.use_base_color_alpha ? 1.0f : 0.0f;
 			fragment_uniforms.emissive_factor[3] =
 				( image.geometry->pbr_material.normal_texture.texture_id != nullptr ) ? 1.0f : 0.0f;
 			fragment_uniforms.material_params[0] = image.geometry->pbr_material.metallic_factor;
@@ -5123,12 +5145,14 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			}
 		};
 
-	auto draw_pbr_images = [&]( const std::vector<const PreparedImage *> &images ) -> bool
+	auto draw_pbr_images = [&]( const std::vector<const PreparedImage *> &images, bool depth_prepass = false ) -> bool
 	{
 		if ( images.empty() || !images[0] || !images[0]->geometry )
 			return true;
 
 		const PreparedImage &prototype = *images[0];
+		const bool use_custom_pbr_shader =
+			prototype.pbr_custom_shader && !depth_prepass;
 		SDL_GPUBuffer *draw_vertex_buffer = nullptr;
 		const bool uses_external_vertices =
 			( prototype.external_vertex_id != nullptr ) && ( prototype.external_vertices != nullptr );
@@ -5147,10 +5171,13 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		const int blend_index =
 			( prototype.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend ) ? 1 : 0;
 		const int double_sided_index = prototype.geometry->pbr_material.double_sided ? 1 : 0;
-		SDL_GPUGraphicsPipeline *pipeline =
-			prototype.pbr_custom_shader
-				? prototype.pbr_custom_shader->pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ]
-				: m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
+		SDL_GPUGraphicsPipeline *pipeline = nullptr;
+		if ( depth_prepass )
+			pipeline = m_pbr_prepass_pipelines[ double_sided_index ];
+		else if ( use_custom_pbr_shader )
+			pipeline = prototype.pbr_custom_shader->pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
+		else
+			pipeline = m_pbr_pipelines[ depth_pipeline ][ blend_index ][ double_sided_index ];
 		if ( !pipeline )
 			return true;
 
@@ -5160,7 +5187,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		std::vector<float> custom_fragment_uniform_data;
 		std::vector<SDL_GPUTextureSamplerBinding> sampler_bindings;
 		sampler_bindings.assign( base_sampler_bindings, base_sampler_bindings + 5 );
-		if ( prototype.pbr_custom_shader )
+		if ( use_custom_pbr_shader )
 		{
 			build_custom_uniform_data(
 				*prototype.geometry,
@@ -5310,7 +5337,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			0,
 			&fragment_uniforms,
 			static_cast<Uint32>( sizeof( fragment_uniforms ) ) );
-		if ( prototype.pbr_custom_shader )
+		if ( use_custom_pbr_shader )
 		{
 			SDL_PushGPUFragmentUniformData(
 				command_buffer,
@@ -5333,6 +5360,29 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		drew_anything = true;
 		return true;
 	};
+
+	if ( m_pbr_prepass_pipelines[0] || m_pbr_prepass_pipelines[1] )
+	{
+		for ( const PreparedImage &image : prepared_images )
+		{
+			if ( !image.object_pbr
+				|| !image.translucent_depth_prepass
+				|| !image.geometry
+				|| !image.gpu_texture
+				|| image.vertex_count == 0 )
+			{
+				continue;
+			}
+
+			if ( use_preuploaded_pbr_instances && !image.pbr_instance_head )
+				continue;
+
+			std::vector<const PreparedImage *> image_batch;
+			image_batch.push_back( &image );
+			if ( !draw_pbr_images( image_batch, true ) )
+				return false;
+		}
+	}
 
 	for ( std::size_t image_index = 0; image_index < prepared_images.size(); ++image_index )
 	{
@@ -6254,6 +6304,11 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 
 	SDL_GPUColorTargetDescription color_target = {};
 	color_target.format = swapchain_format;
+	SDL_GPUColorTargetDescription prepass_target = {};
+	prepass_target.format = swapchain_format;
+	prepass_target.blend_state.enable_color_write_mask = true;
+	prepass_target.blend_state.color_write_mask = 0;
+	prepass_target.blend_state.enable_blend = false;
 
 	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
 	pipeline_info.vertex_shader = m_pbr_vertex_shader;
@@ -6270,6 +6325,23 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	pipeline_info.multisample_state.sample_mask = 0;
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
+
+	SDL_GPUGraphicsPipelineCreateInfo prepass_info = pipeline_info;
+	prepass_info.target_info.color_target_descriptions = &prepass_target;
+	configure_pipeline_depth_state( prepass_info, DepthPipelineWrite );
+	for ( int double_sided = 0; double_sided < 2; ++double_sided )
+	{
+		prepass_info.rasterizer_state.cull_mode =
+			double_sided ? SDL_GPU_CULLMODE_NONE : SDL_GPU_CULLMODE_BACK;
+		m_pbr_prepass_pipelines[ double_sided ] =
+			SDL_CreateGPUGraphicsPipeline( m_device, &prepass_info );
+		if ( !m_pbr_prepass_pipelines[ double_sided ] )
+		{
+			FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUGraphicsPipeline failed for pbr alpha prepass" << std::endl;
+			release_pbr_pipeline();
+			return false;
+		}
+	}
 
 	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
 	{

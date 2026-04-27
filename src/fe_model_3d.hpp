@@ -100,6 +100,8 @@ public:
 
 	float get_depth() const;
 	void set_depth( float depth );
+	bool get_occlusion() const;
+	void set_occlusion( bool occlusion );
 	const char *get_file_name() const;
 
 	FeModel3DMaterialArtwork *get_material_artwork( const char *material_name );
@@ -158,6 +160,7 @@ private:
 	float m_depth;
 	float m_rotation;
 	Color m_color;
+	bool m_occlusion;
 	std::shared_ptr<ModelData> m_model;
 	std::vector<std::unique_ptr<MaterialOverride>> m_overrides;
 	std::vector<ObjectState> m_object_states;
@@ -174,6 +177,7 @@ private:
 	mutable float m_geometry_cache_rotation_y;
 	mutable int m_geometry_cache_rotation_order;
 	mutable Color m_geometry_cache_color;
+	mutable bool m_geometry_cache_occlusion;
 	mutable bool m_geometry_cache_zbuffer;
 	mutable float m_geometry_cache_camera_light;
 	mutable std::vector<std::size_t> m_geometry_cache_primitives;
