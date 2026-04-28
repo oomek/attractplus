@@ -181,6 +181,7 @@ private:
 	mutable bool m_geometry_cache_zbuffer;
 	mutable float m_geometry_cache_camera_light;
 	mutable std::vector<std::size_t> m_geometry_cache_primitives;
+	mutable std::vector<std::size_t> m_geometry_cache_objects;
 	mutable std::vector<FeRenderGeometry> m_geometry_cache;
 
 	friend class FeModel3DObject;

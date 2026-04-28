@@ -625,11 +625,12 @@ namespace
 
 	bool is_batchable_pbr_geometry( const FeRenderGeometry &entry )
 	{
+		const bool alpha_blend =
+			entry.pbr_material.alpha_mode == FeRenderPbrAlphaBlend;
 		if ( entry.geometry_kind != FeRenderGeometryObjectPbr
 			|| !entry.has_external_vertices()
 			|| !entry.zbuffer
-			|| entry.translucent_depth_prepass
-			|| entry.pbr_material.alpha_mode == FeRenderPbrAlphaBlend )
+			|| ( alpha_blend && !entry.translucent_depth_prepass ) )
 		{
 			return false;
 		}
@@ -668,6 +669,8 @@ namespace
 			|| lhs_material.unlit != rhs_material.unlit
 			|| lhs_material.double_sided != rhs_material.double_sided
 			|| lhs_material.use_base_color_alpha != rhs_material.use_base_color_alpha
+			|| lhs_material.artwork_shader != rhs_material.artwork_shader
+			|| lhs_material.artwork_shader_emissive != rhs_material.artwork_shader_emissive
 			|| lhs_material.metallic_factor != rhs_material.metallic_factor
 			|| lhs_material.roughness_factor != rhs_material.roughness_factor
 			|| lhs_material.normal_scale != rhs_material.normal_scale
@@ -778,6 +781,8 @@ namespace
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
+		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
 		hash = hash_float_pbr_batch( hash, material.metallic_factor );
 		hash = hash_float_pbr_batch( hash, material.roughness_factor );
 		hash = hash_float_pbr_batch( hash, material.normal_scale );

@@ -371,6 +371,7 @@ private:
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUShader *m_pbr_vertex_shader;
 	SDL_GPUShader *m_pbr_fragment_shader;
+	SDL_GPUShader *m_pbr_prepass_fragment_shader;
 	SDL_GPUSampler *m_linear_sampler;
 	SDL_GPUSampler *m_linear_repeat_sampler;
 	SDL_GPUSampler *m_linear_mipmap_sampler;

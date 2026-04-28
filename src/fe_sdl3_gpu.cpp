@@ -756,6 +756,74 @@ namespace
 			"}\n";
 	}
 
+	std::string build_pbr_prepass_fragment_shader()
+	{
+		return
+			"#version 450\n"
+			"layout(location = 0) in vec2 frag_uv0;\n"
+			"layout(location = 1) in vec2 frag_uv1;\n"
+			"layout(location = 2) in vec4 frag_color;\n"
+			"layout(location = 0) out vec4 out_color;\n"
+			"layout(set = 2, binding = 0) uniform sampler2D base_color_texture;\n"
+			"struct LightUniform\n"
+			"{\n"
+			"\tvec4 color_intensity;\n"
+			"\tvec4 position_range;\n"
+			"\tvec4 direction_inner;\n"
+			"\tvec4 outer_type;\n"
+			"};\n"
+			"layout(set = 3, binding = 0, std140) uniform PbrUniforms\n"
+			"{\n"
+			"\tvec4 base_color_factor;\n"
+			"\tvec4 emissive_factor;\n"
+			"\tvec4 material_params;\n"
+			"\tvec4 control;\n"
+			"\tvec4 ambient_color;\n"
+			"\tvec4 artwork_control;\n"
+			"\tvec4 transforms_offset_scale[5];\n"
+			"\tvec4 transforms_texcoord_fit[5];\n"
+			"\tLightUniform lights[4];\n"
+			"} pbr;\n"
+			"vec2 select_uv( float texcoord_set )\n"
+			"{\n"
+			"\treturn texcoord_set > 0.5 ? frag_uv1 : frag_uv0;\n"
+			"}\n"
+			"vec2 transform_uv( vec2 uv, int index, out float fit_alpha )\n"
+			"{\n"
+			"\tvec4 offset_scale = pbr.transforms_offset_scale[index];\n"
+			"\tvec4 texcoord_fit = pbr.transforms_texcoord_fit[index];\n"
+			"\tvec2 fit_scale = max( texcoord_fit.yz, vec2( 0.0001 ) );\n"
+			"\tfit_alpha = 1.0;\n"
+			"\tif ( fit_scale.x < 0.9999 || fit_scale.y < 0.9999 )\n"
+			"\t{\n"
+			"\t\tvec2 fit_offset = ( vec2( 1.0 ) - fit_scale ) * 0.5;\n"
+			"\t\tvec2 fit_min = fit_offset;\n"
+			"\t\tvec2 fit_max = fit_offset + fit_scale;\n"
+			"\t\tvec2 edge_width = max( fwidth( uv ), vec2( 0.0001 ) );\n"
+			"\t\tvec2 min_alpha = smoothstep( fit_min - edge_width, fit_min + edge_width, uv );\n"
+			"\t\tvec2 max_alpha = 1.0 - smoothstep( fit_max - edge_width, fit_max + edge_width, uv );\n"
+			"\t\tfit_alpha = clamp( min_alpha.x * min_alpha.y * max_alpha.x * max_alpha.y, 0.0, 1.0 );\n"
+			"\t\tuv = clamp( ( uv - fit_offset ) / fit_scale, vec2( 0.0 ), vec2( 1.0 ) );\n"
+			"\t}\n"
+			"\tuv *= offset_scale.zw;\n"
+			"\treturn uv + offset_scale.xy;\n"
+			"}\n"
+			"void main()\n"
+			"{\n"
+			"\tfloat fit_alpha = 1.0;\n"
+			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[0].x ), 0, fit_alpha );\n"
+			"\tvec4 base_sample = texture( base_color_texture, uv ) * fit_alpha;\n"
+			"\tfloat base_alpha = pbr.artwork_control.y > 0.5 ? base_sample.a : 1.0;\n"
+			"\tfloat alpha = base_alpha * pbr.base_color_factor.a * frag_color.a;\n"
+			"\tfloat alpha_mode = pbr.control.y;\n"
+			"\tif ( alpha_mode > 0.5 && alpha_mode < 1.5 && alpha < pbr.control.x )\n"
+			"\t\tdiscard;\n"
+			"\tif ( alpha_mode > 1.5 && alpha <= 0.001 )\n"
+			"\t\tdiscard;\n"
+			"\tout_color = vec4( 0.0 );\n"
+			"}\n";
+	}
+
 }
 
 FeSdl3GpuContext::FeSdl3GpuContext()
@@ -783,6 +851,7 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_alpha_prepass_shader = nullptr;
 	m_pbr_vertex_shader = nullptr;
 	m_pbr_fragment_shader = nullptr;
+	m_pbr_prepass_fragment_shader = nullptr;
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
 		m_fragment_shaders[i] = nullptr;
@@ -1465,11 +1534,11 @@ void FeSdl3GpuContext::build_pbr_instance_batches(
 			continue;
 		}
 
+		const bool safe_translucent_object =
+			!image.translucent_depth || image.translucent_depth_prepass;
 		const bool batchable_object =
 			image.zbuffer &&
-			!image.translucent_depth &&
-			!image.translucent_depth_prepass &&
-			( image.geometry->pbr_material.alpha_mode != FeRenderPbrAlphaBlend ) &&
+			safe_translucent_object &&
 			( image.external_vertex_id != nullptr ) &&
 			( image.external_vertices != nullptr );
 		if ( !batchable_object )
@@ -1482,12 +1551,12 @@ void FeSdl3GpuContext::build_pbr_instance_batches(
 		while ( run_end < prepared_images.size() )
 		{
 			const PreparedImage &run_image = prepared_images[run_end];
+			const bool safe_run_translucent_object =
+				!run_image.translucent_depth || run_image.translucent_depth_prepass;
 			if ( !run_image.object_pbr
 				|| !run_image.geometry
 				|| !run_image.zbuffer
-				|| run_image.translucent_depth
-				|| run_image.translucent_depth_prepass
-				|| run_image.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend
+				|| !safe_run_translucent_object
 				|| !run_image.external_vertex_id
 				|| !run_image.external_vertices )
 			{
@@ -3119,6 +3188,12 @@ void FeSdl3GpuContext::release_pbr_pipeline()
 	{
 		SDL_ReleaseGPUShader( m_device, m_pbr_fragment_shader );
 		m_pbr_fragment_shader = nullptr;
+	}
+
+	if ( m_pbr_prepass_fragment_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_pbr_prepass_fragment_shader );
+		m_pbr_prepass_fragment_shader = nullptr;
 	}
 
 	if ( m_pbr_vertex_shader )
@@ -5345,12 +5420,15 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				custom_fragment_uniform_data.data(),
 				static_cast<Uint32>( custom_fragment_uniform_data.size() * sizeof( float ) ) );
 		}
+		const Uint32 sampler_count = depth_prepass
+			? 1u
+			: static_cast<Uint32>( sampler_bindings.size() );
 		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
 		SDL_BindGPUFragmentSamplers(
 			render_pass,
 			0,
 			sampler_bindings.data(),
-			static_cast<Uint32>( sampler_bindings.size() ) );
+			sampler_count );
 		SDL_DrawGPUPrimitives(
 			render_pass,
 			static_cast<Uint32>( prototype.vertex_count ),
@@ -5374,11 +5452,30 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				continue;
 			}
 
-			if ( use_preuploaded_pbr_instances && !image.pbr_instance_head )
+			if ( !image.pbr_instance_head && image.pbr_instance_count == 0 )
 				continue;
 
 			std::vector<const PreparedImage *> image_batch;
 			image_batch.push_back( &image );
+			if ( !use_preuploaded_pbr_instances && image.pbr_instance_count > 1 )
+			{
+				for ( std::size_t batch_index = 0; batch_index < prepared_images.size(); ++batch_index )
+				{
+					const PreparedImage &batch_image = prepared_images[batch_index];
+					if ( &batch_image == &image
+						|| !batch_image.object_pbr
+						|| batch_image.pbr_instance_head
+						|| batch_image.pbr_instance_first != image.pbr_instance_first )
+					{
+						continue;
+					}
+
+					image_batch.push_back( &batch_image );
+					if ( image_batch.size() >= image.pbr_instance_count )
+						break;
+				}
+			}
+
 			if ( !draw_pbr_images( image_batch, true ) )
 				return false;
 		}
@@ -5394,7 +5491,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		{
 			if ( !image.geometry )
 				continue;
-			if ( use_preuploaded_pbr_instances && !image.pbr_instance_head )
+			if ( !image.pbr_instance_head && image.pbr_instance_count == 0 )
 				continue;
 
 			std::vector<const PreparedImage *> image_batch;
@@ -5642,6 +5739,8 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	std::vector<PreparedImage> prepared_images;
 	std::vector<FeRenderVertex> vertex_stream;
 	prepare_geometry_batch( geometry, use_surface_targets, prepared_images, vertex_stream );
+	std::vector<PbrInstanceEntry> pbr_instance_data;
+	build_pbr_instance_batches( prepared_images, pbr_instance_data );
 	return render_prepared_geometry_batch(
 		render_pass,
 		command_buffer,
@@ -6193,6 +6292,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 
 	ShaderBlob vertex_blob = {};
 	ShaderBlob fragment_blob = {};
+	ShaderBlob prepass_fragment_blob = {};
 	if ( !compile_shader_blob( "__pbr_vertex__", build_pbr_vertex_shader(), true, vertex_blob ) )
 	{
 		FeLog() << "SDL: initialize_pbr_pipeline: failed to compile internal vertex shader" << std::endl;
@@ -6202,6 +6302,12 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	if ( !compile_shader_blob( "__pbr_fragment__", build_pbr_fragment_shader(), false, fragment_blob ) )
 	{
 		FeLog() << "SDL: initialize_pbr_pipeline: failed to compile internal fragment shader" << std::endl;
+		return false;
+	}
+
+	if ( !compile_shader_blob( "__pbr_prepass_fragment__", build_pbr_prepass_fragment_shader(), false, prepass_fragment_blob ) )
+	{
+		FeLog() << "SDL: initialize_pbr_pipeline: failed to compile internal prepass fragment shader" << std::endl;
 		return false;
 	}
 
@@ -6234,6 +6340,23 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	if ( !m_pbr_fragment_shader )
 	{
 		FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUShader failed for fragment shader" << std::endl;
+		release_pbr_pipeline();
+		return false;
+	}
+
+	SDL_GPUShaderCreateInfo prepass_fragment_info = {};
+	prepass_fragment_info.code_size = prepass_fragment_blob.code.size();
+	prepass_fragment_info.code = prepass_fragment_blob.code.data();
+	prepass_fragment_info.entrypoint = prepass_fragment_blob.entrypoint;
+	prepass_fragment_info.format = prepass_fragment_blob.format;
+	prepass_fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+	prepass_fragment_info.num_uniform_buffers = 1;
+	prepass_fragment_info.num_samplers = 1;
+
+	m_pbr_prepass_fragment_shader = SDL_CreateGPUShader( m_device, &prepass_fragment_info );
+	if ( !m_pbr_prepass_fragment_shader )
+	{
+		FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUShader failed for prepass fragment shader" << std::endl;
 		release_pbr_pipeline();
 		return false;
 	}
@@ -6327,6 +6450,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	pipeline_info.target_info.num_color_targets = 1;
 
 	SDL_GPUGraphicsPipelineCreateInfo prepass_info = pipeline_info;
+	prepass_info.fragment_shader = m_pbr_prepass_fragment_shader;
 	prepass_info.target_info.color_target_descriptions = &prepass_target;
 	configure_pipeline_depth_state( prepass_info, DepthPipelineWrite );
 	for ( int double_sided = 0; double_sided < 2; ++double_sided )

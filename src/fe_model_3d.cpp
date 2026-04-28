@@ -111,9 +111,24 @@ namespace
 		}
 	};
 
+	struct ModelPrimitiveObjectSpan
+	{
+		std::size_t object_index;
+		std::size_t first_vertex;
+		std::size_t vertex_count;
+
+		ModelPrimitiveObjectSpan()
+			: object_index( std::numeric_limits<std::size_t>::max() ),
+			  first_vertex( 0 ),
+			  vertex_count( 0 )
+		{
+		}
+	};
+
 	struct ModelPrimitive
 	{
 		std::vector<FeRenderVertex> vertices;
+		std::vector<ModelPrimitiveObjectSpan> object_spans;
 		ModelMaterial material;
 		std::size_t object_index;
 		float bounds_aspect;
@@ -2738,12 +2753,15 @@ void FeModel3D::load_model( const std::string &filename )
 				model_primitive.bounds_aspect = estimate_primitive_bounds_aspect( model_primitive );
 				model_primitive.target_aspect[0] = estimate_primitive_target_aspect( model_primitive, 0 );
 				model_primitive.target_aspect[1] = estimate_primitive_target_aspect( model_primitive, 1 );
+				ModelPrimitiveObjectSpan object_span;
+				object_span.object_index = object_index;
+				object_span.first_vertex = 0;
+				object_span.vertex_count = model_primitive.vertices.size();
+				model_primitive.object_spans.push_back( object_span );
 				const std::uint64_t material_hash =
 					compute_model_material_hash( model_primitive.material );
-				const std::uint64_t merge_hash =
-					hash_combine_model_u64( material_hash, static_cast<std::uint64_t>( object_index ) );
 				bool merged = false;
-				auto merge_it = primitive_merge_lookup.find( merge_hash );
+				auto merge_it = primitive_merge_lookup.find( material_hash );
 				if ( merge_it != primitive_merge_lookup.end() )
 				{
 					for ( std::size_t primitive_slot : merge_it->second )
@@ -2752,15 +2770,19 @@ void FeModel3D::load_model( const std::string &filename )
 							continue;
 
 						ModelPrimitive &existing_primitive = model->primitives[ primitive_slot ];
-						if ( existing_primitive.object_index != object_index )
-							continue;
 						if ( !model_material_matches( existing_primitive.material, model_primitive.material ) )
 							continue;
 
+						const std::size_t first_vertex = existing_primitive.vertices.size();
 						existing_primitive.vertices.insert(
 							existing_primitive.vertices.end(),
 							model_primitive.vertices.begin(),
 							model_primitive.vertices.end() );
+						ModelPrimitiveObjectSpan merged_span;
+						merged_span.object_index = object_index;
+						merged_span.first_vertex = first_vertex;
+						merged_span.vertex_count = model_primitive.vertices.size();
+						existing_primitive.object_spans.push_back( merged_span );
 						merged = true;
 						break;
 					}
@@ -2770,7 +2792,7 @@ void FeModel3D::load_model( const std::string &filename )
 				{
 					model->primitives.push_back( std::move( model_primitive ) );
 					const std::size_t primitive_slot = model->primitives.size() - 1;
-					primitive_merge_lookup[ merge_hash ].push_back( primitive_slot );
+					primitive_merge_lookup[ material_hash ].push_back( primitive_slot );
 				}
 			}
 		}
@@ -2817,7 +2839,8 @@ bool FeModel3D::geometry_cache_matches( float camera_light ) const
 		|| ( m_geometry_cache_occlusion != m_occlusion )
 		|| ( m_geometry_cache_zbuffer != get_zbuffer() )
 		|| ( m_geometry_cache_camera_light != camera_light )
-		|| ( m_geometry_cache_primitives.size() != m_geometry_cache.size() ) )
+		|| ( m_geometry_cache_primitives.size() != m_geometry_cache.size() )
+		|| ( m_geometry_cache_objects.size() != m_geometry_cache.size() ) )
 	{
 		return false;
 	}
@@ -3092,9 +3115,16 @@ void FeModel3D::refresh_geometry_cache() const
 				continue;
 
 			const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+			const std::size_t object_index =
+				( cache_index < m_geometry_cache_objects.size() )
+					? m_geometry_cache_objects[ cache_index ]
+					: primitive.object_index;
 			const bool object_color_override =
-				has_object_color_override( primitive.object_index );
-			const Color object_color = get_object_color( primitive.object_index );
+				( object_index != std::numeric_limits<std::size_t>::max() )
+				&& has_object_color_override( object_index );
+			const Color object_color = object_color_override
+				? get_object_color( object_index )
+				: Color::White;
 			const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
 			const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
 			const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
@@ -3142,9 +3172,16 @@ void FeModel3D::refresh_geometry_cache() const
 			find_override( m_model->primitives[ primitive_index ].material.name );
 		FeRenderGeometry &entry = m_geometry_cache[ cache_index ];
 		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+		const std::size_t object_index =
+			( cache_index < m_geometry_cache_objects.size() )
+				? m_geometry_cache_objects[ cache_index ]
+				: primitive.object_index;
 		const bool object_color_override =
-			has_object_color_override( primitive.object_index );
-		const Color object_color = get_object_color( primitive.object_index );
+			( object_index != std::numeric_limits<std::size_t>::max() )
+			&& has_object_color_override( object_index );
+		const Color object_color = object_color_override
+			? get_object_color( object_index )
+			: Color::White;
 		const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
 		const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
 		const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
@@ -3184,6 +3221,7 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 {
 	m_geometry_cache.clear();
 	m_geometry_cache_primitives.clear();
+	m_geometry_cache_objects.clear();
 	if ( !m_model || m_model->primitives.empty() )
 	{
 		m_geometry_cache_valid = false;
@@ -3232,18 +3270,28 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 	const float color_scale_b = static_cast<float>( m_color.b ) / 255.0f;
 	const float color_scale_a = static_cast<float>( m_color.a ) / 255.0f;
 	const bool model_alpha_blend = m_color.a < 255;
+	const std::size_t no_object_index = std::numeric_limits<std::size_t>::max();
 
 	m_geometry_cache.reserve( m_model->primitives.size() );
 	m_geometry_cache_primitives.reserve( m_model->primitives.size() );
-	for ( std::size_t primitive_index = 0; primitive_index < m_model->primitives.size(); ++primitive_index )
+	m_geometry_cache_objects.reserve( m_model->primitives.size() );
+
+	auto append_geometry_entry =
+		[&]( std::size_t primitive_index,
+			std::size_t object_index,
+			const FeRenderVertex *vertices,
+			std::size_t vertex_count )
 	{
 		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
-		if ( !get_object_visible( primitive.object_index ) )
-			continue;
+		if ( !vertices || vertex_count == 0 )
+			return;
 
 		const bool object_color_override =
-			has_object_color_override( primitive.object_index );
-		const Color object_color = get_object_color( primitive.object_index );
+			( object_index != no_object_index )
+			&& has_object_color_override( object_index );
+		const Color object_color = object_color_override
+			? get_object_color( object_index )
+			: Color::White;
 		const float object_scale_r = static_cast<float>( object_color.r ) / 255.0f;
 		const float object_scale_g = static_cast<float>( object_color.g ) / 255.0f;
 		const float object_scale_b = static_cast<float>( object_color.b ) / 255.0f;
@@ -3278,8 +3326,8 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		entry.pbr_material.double_sided = primitive.material.double_sided;
 		std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
 		std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
-		entry.external_vertices = primitive.vertices.empty() ? nullptr : primitive.vertices.data();
-		entry.external_vertex_count = primitive.vertices.size();
+		entry.external_vertices = vertices;
+		entry.external_vertex_count = vertex_count;
 		entry.external_vertex_id = entry.external_vertices;
 		entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
@@ -3348,6 +3396,85 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		{
 			m_geometry_cache.push_back( entry );
 			m_geometry_cache_primitives.push_back( primitive_index );
+			m_geometry_cache_objects.push_back( object_index );
+		}
+	};
+
+	for ( std::size_t primitive_index = 0; primitive_index < m_model->primitives.size(); ++primitive_index )
+	{
+		const ModelPrimitive &primitive = m_model->primitives[ primitive_index ];
+		if ( primitive.vertices.empty() )
+			continue;
+
+		if ( primitive.object_spans.empty() )
+		{
+			if ( primitive.object_index == no_object_index || get_object_visible( primitive.object_index ) )
+			{
+				append_geometry_entry(
+					primitive_index,
+					primitive.object_index,
+					primitive.vertices.data(),
+					primitive.vertices.size() );
+			}
+			continue;
+		}
+
+		bool all_visible = true;
+		bool any_color_override = false;
+		bool multiple_objects = false;
+		bool have_first_object = false;
+		std::size_t first_object_index = no_object_index;
+		for ( const ModelPrimitiveObjectSpan &span : primitive.object_spans )
+		{
+			if ( span.vertex_count == 0 )
+				continue;
+
+			const bool visible =
+				span.object_index == no_object_index || get_object_visible( span.object_index );
+			if ( !visible )
+				all_visible = false;
+			if ( span.object_index != no_object_index
+				&& has_object_color_override( span.object_index ) )
+			{
+				any_color_override = true;
+			}
+			if ( !have_first_object )
+			{
+				first_object_index = span.object_index;
+				have_first_object = true;
+			}
+			else if ( span.object_index != first_object_index )
+			{
+				multiple_objects = true;
+			}
+		}
+
+		if ( all_visible && ( !multiple_objects || !any_color_override ) )
+		{
+			append_geometry_entry(
+				primitive_index,
+				multiple_objects ? no_object_index : first_object_index,
+				primitive.vertices.data(),
+				primitive.vertices.size() );
+			continue;
+		}
+
+		for ( const ModelPrimitiveObjectSpan &span : primitive.object_spans )
+		{
+			if ( span.vertex_count == 0
+				|| span.first_vertex >= primitive.vertices.size()
+				|| span.first_vertex + span.vertex_count > primitive.vertices.size()
+				|| ( span.object_index != no_object_index
+					&& !get_object_visible( span.object_index ) ) )
+			{
+				continue;
+			}
+
+			append_geometry_entry(
+				primitive_index,
+				span.object_index,
+				primitive.vertices.data() + span.first_vertex,
+				span.vertex_count );
 		}
 	}
 
