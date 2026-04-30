@@ -381,6 +381,11 @@ namespace
 		return value / len;
 	}
 
+	Vec3f fallback_model_light_direction()
+	{
+		return normalize( Vec3f( 0.35f, 0.55f, -1.0f ) );
+	}
+
 	float safe_extent( float value )
 	{
 		return ( std::fabs( value ) > FE_EPSILON ) ? value : 1.0f;
@@ -3057,7 +3062,7 @@ void FeModel3D::refresh_geometry_cache() const
 		transformed_lights[0].position[0] = target_center.x;
 		transformed_lights[0].position[1] = target_center.y;
 		transformed_lights[0].position[2] = target_center.z + std::max( m_depth, 1.0f );
-		const Vec3f direction = normalize( Vec3f( -0.35f, -0.55f, -1.0f ) );
+		const Vec3f direction = fallback_model_light_direction();
 		transformed_lights[0].direction[0] = direction.x;
 		transformed_lights[0].direction[1] = direction.y;
 		transformed_lights[0].direction[2] = direction.z;
@@ -3346,7 +3351,7 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 			entry.lights[0].position[0] = target_center.x;
 			entry.lights[0].position[1] = target_center.y;
 			entry.lights[0].position[2] = target_center.z + std::max( m_depth, 1.0f );
-			const Vec3f direction = normalize( Vec3f( -0.35f, -0.55f, -1.0f ) );
+			const Vec3f direction = fallback_model_light_direction();
 			entry.lights[0].direction[0] = direction.x;
 			entry.lights[0].direction[1] = direction.y;
 			entry.lights[0].direction[2] = direction.z;

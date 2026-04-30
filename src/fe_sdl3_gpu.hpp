@@ -325,6 +325,7 @@ private:
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
 		bool use_preuploaded_pbr_instances,
+		bool encode_pbr_output_srgb,
 		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
 	bool render_geometry_batch(
@@ -335,6 +336,7 @@ private:
 		int viewport_height,
 		const std::vector<FeRenderGeometry> &geometry,
 		bool use_surface_targets,
+		bool encode_pbr_output_srgb,
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,

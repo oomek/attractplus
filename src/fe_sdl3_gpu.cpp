@@ -359,6 +359,12 @@ namespace
 		return plane_distance;
 	}
 
+	bool is_srgb_texture_format( SDL_GPUTextureFormat format )
+	{
+		return format == SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM_SRGB
+			|| format == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB;
+	}
+
 	Vec3f to_view_position( const Vec3f &world_position, int viewport_width, int viewport_height, float plane_distance )
 	{
 		return Vec3f(
@@ -578,9 +584,27 @@ namespace
 			"\tLightUniform lights[4];\n"
 			"} pbr;\n"
 			"const float PI = 3.14159265358979323846;\n"
+			"const float MIN_ROUGHNESS = 0.08;\n"
 			"vec3 srgb_to_linear( vec3 value )\n"
 			"{\n"
-			"\treturn pow( max( value, vec3( 0.0 ) ), vec3( 2.2 ) );\n"
+			"\tvalue = max( value, vec3( 0.0 ) );\n"
+			"\tbvec3 cutoff = lessThanEqual( value, vec3( 0.04045 ) );\n"
+			"\tvec3 lower = value / 12.92;\n"
+			"\tvec3 higher = pow( ( value + vec3( 0.055 ) ) / 1.055, vec3( 2.4 ) );\n"
+			"\treturn mix( higher, lower, cutoff );\n"
+			"}\n"
+			"vec3 linear_to_srgb( vec3 value )\n"
+			"{\n"
+			"\tvalue = max( value, vec3( 0.0 ) );\n"
+			"\tbvec3 cutoff = lessThanEqual( value, vec3( 0.0031308 ) );\n"
+			"\tvec3 lower = value * 12.92;\n"
+			"\tvec3 higher = 1.055 * pow( value, vec3( 1.0 / 2.4 ) ) - vec3( 0.055 );\n"
+			"\treturn mix( higher, lower, cutoff );\n"
+			"}\n"
+			"vec3 encode_pbr_color( vec3 value )\n"
+			"{\n"
+			"\tvalue = max( value, vec3( 0.0 ) );\n"
+			"\treturn pbr.artwork_control.z > 0.5 ? linear_to_srgb( value ) : value;\n"
 			"}\n"
 			"vec2 select_uv( float texcoord_set )\n"
 			"{\n"
@@ -642,7 +666,7 @@ namespace
 			"\tfloat NdotH = max( dot( N, H ), 0.0 );\n"
 			"\tfloat NdotH2 = NdotH * NdotH;\n"
 			"\tfloat denom = ( NdotH2 * ( a2 - 1.0 ) + 1.0 );\n"
-			"\treturn a2 / max( PI * denom * denom, 0.0001 );\n"
+			"\treturn a2 / max( PI * denom * denom, 0.0000001 );\n"
 			"}\n"
 			"float geometry_schlick_ggx( float NdotV, float roughness )\n"
 			"{\n"
@@ -684,18 +708,18 @@ namespace
 			"\n"
 			"\tvec4 mr_sample = sample_metallic_roughness();\n"
 			"\tfloat metallic = clamp( pbr.material_params.x * mr_sample.b, 0.0, 1.0 );\n"
-			"\tfloat roughness = clamp( pbr.material_params.y * mr_sample.g, 0.045, 1.0 );\n"
+			"\tfloat roughness = clamp( pbr.material_params.y * mr_sample.g, MIN_ROUGHNESS, 1.0 );\n"
 			"\tfloat occlusion = 1.0 + pbr.material_params.w * ( sample_occlusion() - 1.0 );\n"
 			"\tvec3 emissive = srgb_to_linear( sample_emissive() ) * pbr.emissive_factor.rgb;\n"
 			"\n"
 			"\tif ( pbr.control.z > 0.5 )\n"
 			"\t{\n"
-			"\t\tout_color = vec4( base_color.rgb * occlusion + emissive, base_color.a );\n"
+			"\t\tout_color = vec4( encode_pbr_color( base_color.rgb * occlusion + emissive ), base_color.a );\n"
 			"\t\treturn;\n"
 			"\t}\n"
 			"\n"
 			"\tvec3 V = normalize( -frag_view_position );\n"
-			"\tvec3 F0 = mix( vec3( 0.04 ), base_color.rgb, metallic );\n"
+			"\tvec3 F0 = vec3( 0.04 );\n"
 			"\tvec3 Lo = vec3( 0.0 );\n"
 			"\tint light_count = int( pbr.control.w + 0.5 );\n"
 			"\tfor ( int light_index = 0; light_index < light_count; ++light_index )\n"
@@ -752,7 +776,7 @@ namespace
 			"\tvec3 ambient = pbr.ambient_color.rgb * base_color.rgb * occlusion;\n"
 			"\tfloat camera_fill_factor = max( pbr.ambient_color.w, 0.0 ) * 0.01;\n"
 			"\tvec3 camera_fill = ( base_color.rgb * 0.8 + vec3( 0.2 ) ) * occlusion * camera_fill_factor;\n"
-			"\tout_color = vec4( ambient + camera_fill + Lo * occlusion + emissive, base_color.a );\n"
+			"\tout_color = vec4( encode_pbr_color( ambient + camera_fill + Lo * occlusion + emissive ), base_color.a );\n"
 			"}\n";
 	}
 
@@ -1888,6 +1912,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
 				true,
+				!is_srgb_texture_format( target_format ),
 				&temporary_pbr_buffers,
 				drew_anything ) )
 		{
@@ -2488,6 +2513,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
 				true,
+				!is_srgb_texture_format( swapchain_format ),
 				&temporary_pbr_buffers,
 				m_frame_stats.draw_ready ) )
 		{
@@ -2509,6 +2535,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				m_frame.viewport_height,
 				*overlay_geometry,
 				false,
+				!is_srgb_texture_format( swapchain_format ),
 				nullptr,
 				nullptr,
 				nullptr,
@@ -5038,6 +5065,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	Uint32 *cached_vertex_buffer_size,
 	std::uint64_t *cached_vertex_signature,
 	bool use_preuploaded_pbr_instances,
+	bool encode_pbr_output_srgb,
 	std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 	bool &drew_anything )
 {
@@ -5161,6 +5189,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				image.geometry->pbr_material.artwork_shader_emissive ? 1.0f : 0.0f;
 			fragment_uniforms.artwork_control[1] =
 				image.geometry->pbr_material.use_base_color_alpha ? 1.0f : 0.0f;
+			fragment_uniforms.artwork_control[2] = encode_pbr_output_srgb ? 1.0f : 0.0f;
 			fragment_uniforms.emissive_factor[3] =
 				( image.geometry->pbr_material.normal_texture.texture_id != nullptr ) ? 1.0f : 0.0f;
 			fragment_uniforms.material_params[0] = image.geometry->pbr_material.metallic_factor;
@@ -5727,6 +5756,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	int viewport_height,
 	const std::vector<FeRenderGeometry> &geometry,
 	bool use_surface_targets,
+	bool encode_pbr_output_srgb,
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
 	std::uint64_t *cached_vertex_signature,
@@ -5753,6 +5783,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		cached_vertex_buffer_size,
 		cached_vertex_signature,
 		false,
+		encode_pbr_output_srgb,
 		temporary_pbr_buffers,
 		drew_anything );
 }
@@ -5865,6 +5896,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					surface.height,
 					surface.geometry,
 					true,
+					true,
 					&entry.vertex_buffer,
 					&entry.vertex_buffer_size,
 					&entry.vertex_signature,
@@ -5959,6 +5991,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						surface.width,
 						surface.height,
 						surface.geometry,
+						true,
 						true,
 						&entry.vertex_buffer,
 						&entry.vertex_buffer_size,
