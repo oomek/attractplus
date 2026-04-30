@@ -172,6 +172,7 @@ struct FeRenderGeometry
 	int blend_mode;
 	bool zbuffer;
 	bool translucent_depth_prepass;
+	std::uintptr_t pbr_collapse_group;
 	const FeShader *shader;
 	bool custom_shader;
 	bool textured;

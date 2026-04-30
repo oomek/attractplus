@@ -181,6 +181,7 @@ FeRenderGeometry::FeRenderGeometry()
 	blend_mode( 0 ),
 	zbuffer( false ),
 	translucent_depth_prepass( false ),
+	pbr_collapse_group( 0 ),
 	shader( nullptr ),
 	custom_shader( false ),
 	textured( false ),
@@ -214,6 +215,7 @@ void FeRenderGeometry::clear()
 	blend_mode = 0;
 	zbuffer = false;
 	translucent_depth_prepass = false;
+	pbr_collapse_group = 0;
 	shader = nullptr;
 	custom_shader = false;
 	textured = false;

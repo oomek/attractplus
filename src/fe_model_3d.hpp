@@ -1,6 +1,7 @@
 #ifndef FE_MODEL3D_HPP
 #define FE_MODEL3D_HPP
 
+#include <cstdint>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -161,6 +162,7 @@ private:
 	float m_rotation;
 	Color m_color;
 	bool m_occlusion;
+	std::uintptr_t m_pbr_collapse_group;
 	std::shared_ptr<ModelData> m_model;
 	std::vector<std::unique_ptr<MaterialOverride>> m_overrides;
 	std::vector<ObjectState> m_object_states;

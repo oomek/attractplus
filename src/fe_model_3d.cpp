@@ -1782,6 +1782,7 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	  m_rotation( 0.0f ),
 	  m_color( Color::White ),
 	  m_occlusion( true ),
+	  m_pbr_collapse_group( 0 ),
 	  m_geometry_cache_valid( false ),
 	  m_geometry_cache_model( nullptr ),
 	  m_geometry_cache_pos( 0.0f, 0.0f ),
@@ -1798,6 +1799,7 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	  m_geometry_cache_zbuffer( false ),
 	  m_geometry_cache_camera_light( 0.0f )
 {
+	m_pbr_collapse_group = reinterpret_cast<std::uintptr_t>( this );
 	set_zbuffer( true );
 	load_model( filename );
 }
@@ -1812,6 +1814,7 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	  m_rotation( o ? o->m_rotation : 0.0f ),
 	  m_color( o ? o->m_color : Color::White ),
 	  m_occlusion( o ? o->m_occlusion : true ),
+	  m_pbr_collapse_group( 0 ),
 	  m_model( o ? o->m_model : nullptr ),
 	  m_geometry_cache_valid( false ),
 	  m_geometry_cache_model( nullptr ),
@@ -1829,6 +1832,8 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	  m_geometry_cache_zbuffer( false ),
 	  m_geometry_cache_camera_light( 0.0f )
 {
+	m_pbr_collapse_group = reinterpret_cast<std::uintptr_t>( this );
+
 	if ( !o )
 		return;
 
@@ -3311,6 +3316,7 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		entry.textured = true;
 		entry.blend_mode = use_alpha_blend ? FeBlend::Alpha : FeBlend::None;
 		entry.translucent_depth_prepass = model_alpha_blend && m_occlusion;
+		entry.pbr_collapse_group = m_pbr_collapse_group;
 		entry.pbr_material.use_base_color_alpha =
 			primitive.material.alpha_mode != FeRenderPbrAlphaOpaque;
 		entry.pbr_material.base_color_factor[0] =

@@ -648,6 +648,7 @@ namespace
 			|| !is_batchable_pbr_geometry( rhs )
 			|| lhs.get_vertex_count() != rhs.get_vertex_count()
 			|| lhs.external_vertex_id != rhs.external_vertex_id
+			|| lhs.pbr_collapse_group != rhs.pbr_collapse_group
 			|| lhs.texture_id != rhs.texture_id
 			|| lhs.texture_source_type != rhs.texture_source_type
 			|| lhs.texture_repeated != rhs.texture_repeated
@@ -764,6 +765,7 @@ namespace
 	{
 		std::uint64_t hash = 1469598103934665603ULL;
 		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( entry.external_vertex_id ) );
+		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.pbr_collapse_group ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.get_vertex_count() ) );
 		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( entry.texture_id ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_source_type ) );
@@ -1073,6 +1075,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.translucent_depth_prepass ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_collapse_group ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.get_vertex_count() ) );
 		if ( geometry.has_external_vertices() )
