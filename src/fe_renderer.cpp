@@ -121,6 +121,7 @@ void FeRenderPbrLight::clear()
 	range = 0.0f;
 	inner_cone_cos = 0.0f;
 	outer_cone_cos = 0.0f;
+	radius = 0.0f;
 }
 
 FeRenderPbrMaterial::FeRenderPbrMaterial()
@@ -192,7 +193,7 @@ FeRenderGeometry::FeRenderGeometry()
 	ambient_color[0] = 0.0f;
 	ambient_color[1] = 0.0f;
 	ambient_color[2] = 0.0f;
-	camera_light = 0.0f;
+	ambient_light = 0.0f;
 	fe_render_set_identity4( model_matrix );
 	fe_render_set_identity3( normal_matrix );
 }
@@ -228,7 +229,7 @@ void FeRenderGeometry::clear()
 	ambient_color[0] = 0.0f;
 	ambient_color[1] = 0.0f;
 	ambient_color[2] = 0.0f;
-	camera_light = 0.0f;
+	ambient_light = 0.0f;
 	fe_render_set_identity4( model_matrix );
 	fe_render_set_identity3( normal_matrix );
 }

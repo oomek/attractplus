@@ -1269,8 +1269,10 @@ bool FeVM::on_new_layout()
 		.Func(_SC("redraw"), &FePresent::redraw )
 	);
 
-	fe.Bind( _SC("CameraGlobals"), Class <FePresent, NoConstructor>()
-		.Prop( _SC("light"), &FePresent::get_camera_light, &FePresent::set_camera_light )
+	fe.Bind( _SC("Scene3DGlobals"), Class <FePresent, NoConstructor>()
+		.Prop( _SC("ambient_light"), &FePresent::get_3d_ambient_light, &FePresent::set_3d_ambient_light )
+		.Prop( _SC("light"), &FePresent::get_3d_light, &FePresent::set_3d_light )
+		.Prop( _SC("light_radius"), &FePresent::get_3d_light_radius, &FePresent::set_3d_light_radius )
 	);
 
 	// Create a slot for fe.layout.nv data
@@ -1532,7 +1534,7 @@ bool FeVM::on_new_layout()
 		monitors.Append( &m_mon[i] );
 
 	fe.SetInstance( _SC("layout"), (FePresent *)this );
-	fe.SetInstance( _SC("camera"), (FePresent *)this );
+	fe.SetInstance( _SC("scene3d"), (FePresent *)this );
 	fe.SetInstance( _SC("list"), (FePresent *)this );
 	fe.SetInstance( _SC("overlay"), this );
 	fe.SetInstance( _SC("ambient_sound"), &m_ambient_sound );

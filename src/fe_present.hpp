@@ -160,7 +160,9 @@ protected:
 	FeTransform m_layout_transform;
 	FeTransform m_ui_transform;
 	FePerspectiveCamera m_layout_camera;
-	float m_camera_light;
+	float m_3d_ambient_light;
+	float m_3d_light;
+	float m_3d_light_radius;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
@@ -247,8 +249,15 @@ protected:
 	void set_toggle_rotation( int );
 	void set_layout_font_name( const char * );
 	void set_preserve_aspect_ratio( bool );
+	void reset_scene3d_globals();
 
 public:
+	static constexpr float SCENE3D_DEFAULT_AMBIENT_LIGHT = 0.0f;
+	static constexpr float SCENE3D_DEFAULT_LIGHT = 100.0f;
+	static constexpr float SCENE3D_DEFAULT_LIGHT_RADIUS = 1.0f;
+	static constexpr float SCENE3D_LIGHT_POWER_SCALE = 2000.0f;
+	static constexpr float SCENE3D_LIGHT_RADIUS_SCALE = 0.1f;
+
 	FePresent( FeSettings *fesettings, FeWindow &wnd );
 	virtual ~FePresent( void );
 
@@ -322,8 +331,12 @@ public:
 	FeTime get_layout_time();
 	float get_layout_frame_time();
 	int get_refresh_rate();
-	float get_camera_light() const;
-	void set_camera_light( float light );
+	float get_3d_ambient_light() const;
+	void set_3d_ambient_light( float light );
+	float get_3d_light() const;
+	void set_3d_light( float light );
+	float get_3d_light_radius() const;
+	void set_3d_light_radius( float radius );
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
 	FeSdl3GpuContext &get_gpu_context() { return m_window.get_gpu_context(); }

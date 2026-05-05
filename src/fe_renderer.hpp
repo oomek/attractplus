@@ -115,6 +115,7 @@ struct FeRenderPbrLight
 	float range;
 	float inner_cone_cos;
 	float outer_cone_cos;
+	float radius;
 
 	FeRenderPbrLight();
 	void clear();
@@ -182,7 +183,7 @@ struct FeRenderGeometry
 	int light_count;
 	FeRenderPbrLight lights[4];
 	float ambient_color[3];
-	float camera_light;
+	float ambient_light;
 	float model_matrix[16];
 	float normal_matrix[9];
 

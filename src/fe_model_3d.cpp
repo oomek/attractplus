@@ -386,6 +386,54 @@ namespace
 		return normalize( Vec3f( 0.35f, 0.55f, -1.0f ) );
 	}
 
+	float average_abs_scale( const Vec3f &scale )
+	{
+		return ( std::fabs( scale.x ) + std::fabs( scale.y ) + std::fabs( scale.z ) ) / 3.0f;
+	}
+
+	void fill_fallback_model_light(
+		FeRenderPbrLight &light,
+		const Vec3f &target_center,
+		const Vec3f &scale,
+		float depth,
+		float power,
+		float radius )
+	{
+		const Vec3f direction = fallback_model_light_direction();
+		const Vec3f position = target_center - ( direction * std::max( depth, 1.0f ) );
+
+		light.clear();
+		light.type = FeRenderPbrLightPoint;
+		light.color[0] = 1.0f;
+		light.color[1] = 1.0f;
+		light.color[2] = 1.0f;
+		light.intensity = std::max( power, 0.0f );
+		light.position[0] = position.x;
+		light.position[1] = position.y;
+		light.position[2] = position.z;
+		light.direction[0] = direction.x;
+		light.direction[1] = direction.y;
+		light.direction[2] = direction.z;
+		light.radius = std::max( radius, 0.0f ) * average_abs_scale( scale );
+	}
+
+	void get_scene3d_light_settings(
+		float &ambient_light,
+		float &point_light,
+		float &point_light_radius )
+	{
+		ambient_light = FePresent::SCENE3D_DEFAULT_AMBIENT_LIGHT;
+		point_light = FePresent::SCENE3D_DEFAULT_LIGHT * FePresent::SCENE3D_LIGHT_POWER_SCALE;
+		point_light_radius = FePresent::SCENE3D_DEFAULT_LIGHT_RADIUS * FePresent::SCENE3D_LIGHT_RADIUS_SCALE;
+
+		if ( FePresent *fep = FePresent::script_get_fep() )
+		{
+			ambient_light = fep->get_3d_ambient_light();
+			point_light = fep->get_3d_light() * FePresent::SCENE3D_LIGHT_POWER_SCALE;
+			point_light_radius = fep->get_3d_light_radius() * FePresent::SCENE3D_LIGHT_RADIUS_SCALE;
+		}
+	}
+
 	float safe_extent( float value )
 	{
 		return ( std::fabs( value ) > FE_EPSILON ) ? value : 1.0f;
@@ -1797,7 +1845,9 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	  m_geometry_cache_color( Color::White ),
 	  m_geometry_cache_occlusion( false ),
 	  m_geometry_cache_zbuffer( false ),
-	  m_geometry_cache_camera_light( 0.0f )
+	  m_geometry_cache_3d_ambient_light( 0.0f ),
+	  m_geometry_cache_3d_light( 0.0f ),
+	  m_geometry_cache_3d_light_radius( 0.0f )
 {
 	m_pbr_collapse_group = reinterpret_cast<std::uintptr_t>( this );
 	set_zbuffer( true );
@@ -1830,7 +1880,9 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	  m_geometry_cache_color( Color::White ),
 	  m_geometry_cache_occlusion( false ),
 	  m_geometry_cache_zbuffer( false ),
-	  m_geometry_cache_camera_light( 0.0f )
+	  m_geometry_cache_3d_ambient_light( 0.0f ),
+	  m_geometry_cache_3d_light( 0.0f ),
+	  m_geometry_cache_3d_light_radius( 0.0f )
 {
 	m_pbr_collapse_group = reinterpret_cast<std::uintptr_t>( this );
 
@@ -2832,7 +2884,7 @@ void FeModel3D::load_model( const std::string &filename )
 	sync_object_handles();
 }
 
-bool FeModel3D::geometry_cache_matches( float camera_light ) const
+bool FeModel3D::geometry_cache_matches( float ambient_light, float point_light, float point_light_radius ) const
 {
 	if ( !m_geometry_cache_valid
 		|| ( m_geometry_cache_model != m_model.get() )
@@ -2848,7 +2900,9 @@ bool FeModel3D::geometry_cache_matches( float camera_light ) const
 		|| ( m_geometry_cache_color != m_color )
 		|| ( m_geometry_cache_occlusion != m_occlusion )
 		|| ( m_geometry_cache_zbuffer != get_zbuffer() )
-		|| ( m_geometry_cache_camera_light != camera_light )
+		|| ( m_geometry_cache_3d_ambient_light != ambient_light )
+		|| ( m_geometry_cache_3d_light != point_light )
+		|| ( m_geometry_cache_3d_light_radius != point_light_radius )
 		|| ( m_geometry_cache_primitives.size() != m_geometry_cache.size() )
 		|| ( m_geometry_cache_objects.size() != m_geometry_cache.size() ) )
 	{
@@ -2908,7 +2962,7 @@ bool FeModel3D::geometry_cache_matches( float camera_light ) const
 	return true;
 }
 
-void FeModel3D::update_geometry_cache_state( float camera_light ) const
+void FeModel3D::update_geometry_cache_state( float ambient_light, float point_light, float point_light_radius ) const
 {
 	m_geometry_cache_valid = true;
 	m_geometry_cache_model = m_model.get();
@@ -2924,7 +2978,9 @@ void FeModel3D::update_geometry_cache_state( float camera_light ) const
 	m_geometry_cache_color = m_color;
 	m_geometry_cache_occlusion = m_occlusion;
 	m_geometry_cache_zbuffer = get_zbuffer();
-	m_geometry_cache_camera_light = camera_light;
+	m_geometry_cache_3d_ambient_light = ambient_light;
+	m_geometry_cache_3d_light = point_light;
+	m_geometry_cache_3d_light_radius = point_light_radius;
 }
 
 void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size_t primitive_index ) const
@@ -3049,28 +3105,23 @@ void FeModel3D::refresh_geometry_cache() const
 	const float color_scale_b = static_cast<float>( m_color.b ) / 255.0f;
 	const float color_scale_a = static_cast<float>( m_color.a ) / 255.0f;
 	const bool model_alpha_blend = m_color.a < 255;
-	float camera_light = 0.0f;
-	if ( FePresent *fep = FePresent::script_get_fep() )
-		camera_light = fep->get_camera_light();
+	float ambient_light = 0.0f;
+	float point_light = 0.0f;
+	float point_light_radius = 0.0f;
+	get_scene3d_light_settings( ambient_light, point_light, point_light_radius );
 
 	FeRenderPbrLight transformed_lights[4];
 	int light_count = 0;
 	if ( m_model->lights.empty() )
 	{
 		light_count = 1;
-		transformed_lights[0].clear();
-		transformed_lights[0].type = FeRenderPbrLightDirectional;
-		transformed_lights[0].color[0] = 1.0f;
-		transformed_lights[0].color[1] = 1.0f;
-		transformed_lights[0].color[2] = 1.0f;
-		transformed_lights[0].intensity = 3.0f;
-		transformed_lights[0].position[0] = target_center.x;
-		transformed_lights[0].position[1] = target_center.y;
-		transformed_lights[0].position[2] = target_center.z + std::max( m_depth, 1.0f );
-		const Vec3f direction = fallback_model_light_direction();
-		transformed_lights[0].direction[0] = direction.x;
-		transformed_lights[0].direction[1] = direction.y;
-		transformed_lights[0].direction[2] = direction.z;
+		fill_fallback_model_light(
+			transformed_lights[0],
+			target_center,
+			scale,
+			m_depth,
+			point_light,
+			point_light_radius );
 	}
 	else
 	{
@@ -3158,14 +3209,14 @@ void FeModel3D::refresh_geometry_cache() const
 			entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 			entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
 			entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
-			entry.camera_light = camera_light;
+			entry.ambient_light = ambient_light;
 			entry.light_count = light_count;
 			std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
 			std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
 			for ( int light_index = 0; light_index < light_count; ++light_index )
 				entry.lights[ light_index ] = transformed_lights[ light_index ];
 		}
-		update_geometry_cache_state( camera_light );
+		update_geometry_cache_state( ambient_light, point_light, point_light_radius );
 		return;
 	}
 
@@ -3214,7 +3265,7 @@ void FeModel3D::refresh_geometry_cache() const
 		entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
-		entry.camera_light = camera_light;
+		entry.ambient_light = ambient_light;
 		entry.light_count = light_count;
 		std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
 		std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
@@ -3224,10 +3275,10 @@ void FeModel3D::refresh_geometry_cache() const
 			update_cached_material_state( entry, primitive_index );
 	}
 
-	update_geometry_cache_state( camera_light );
+	update_geometry_cache_state( ambient_light, point_light, point_light_radius );
 }
 
-void FeModel3D::rebuild_geometry_cache( float camera_light ) const
+void FeModel3D::rebuild_geometry_cache( float ambient_light, float point_light, float point_light_radius ) const
 {
 	m_geometry_cache.clear();
 	m_geometry_cache_primitives.clear();
@@ -3343,24 +3394,18 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		entry.ambient_color[0] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
 		entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
-		entry.camera_light = camera_light;
+		entry.ambient_light = ambient_light;
 
 		if ( m_model->lights.empty() )
 		{
 			entry.light_count = 1;
-			entry.lights[0].clear();
-			entry.lights[0].type = FeRenderPbrLightDirectional;
-			entry.lights[0].color[0] = 1.0f;
-			entry.lights[0].color[1] = 1.0f;
-			entry.lights[0].color[2] = 1.0f;
-			entry.lights[0].intensity = 3.0f;
-			entry.lights[0].position[0] = target_center.x;
-			entry.lights[0].position[1] = target_center.y;
-			entry.lights[0].position[2] = target_center.z + std::max( m_depth, 1.0f );
-			const Vec3f direction = fallback_model_light_direction();
-			entry.lights[0].direction[0] = direction.x;
-			entry.lights[0].direction[1] = direction.y;
-			entry.lights[0].direction[2] = direction.z;
+			fill_fallback_model_light(
+				entry.lights[0],
+				target_center,
+				scale,
+				m_depth,
+				point_light,
+				point_light_radius );
 		}
 		else
 		{
@@ -3489,7 +3534,7 @@ void FeModel3D::rebuild_geometry_cache( float camera_light ) const
 		}
 	}
 
-	update_geometry_cache_state( camera_light );
+	update_geometry_cache_state( ambient_light, point_light, point_light_radius );
 }
 
 bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
@@ -3497,13 +3542,14 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	if ( !m_model || m_model->primitives.empty() )
 		return false;
 
-	float camera_light = 0.0f;
-	if ( FePresent *fep = FePresent::script_get_fep() )
-		camera_light = fep->get_camera_light();
+	float ambient_light = 0.0f;
+	float point_light = 0.0f;
+	float point_light_radius = 0.0f;
+	get_scene3d_light_settings( ambient_light, point_light, point_light_radius );
 
 	if ( !m_geometry_cache_valid || ( m_geometry_cache_model != m_model.get() ) )
-		rebuild_geometry_cache( camera_light );
-	else if ( !geometry_cache_matches( camera_light ) )
+		rebuild_geometry_cache( ambient_light, point_light, point_light_radius );
+	else if ( !geometry_cache_matches( ambient_light, point_light, point_light_radius ) )
 		refresh_geometry_cache();
 
 	if ( m_geometry_cache.empty() )

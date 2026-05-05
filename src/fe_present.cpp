@@ -203,7 +203,9 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_frame_time( 0.0f ),
 	m_baseRotation( FeSettings::RotateNone ),
 	m_toggleRotation( FeSettings::RotateNone ),
-	m_camera_light( 0.0f ),
+	m_3d_ambient_light( SCENE3D_DEFAULT_AMBIENT_LIGHT ),
+	m_3d_light( SCENE3D_DEFAULT_LIGHT ),
+	m_3d_light_radius( SCENE3D_DEFAULT_LIGHT_RADIUS ),
 	m_refresh_rate( 0 ),
 	m_playMovies( true ),
 	m_user_page_size( -1 ),
@@ -221,6 +223,13 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_baseRotation = m_feSettings->get_screen_rotation();
 	m_layoutFontName = "";
 	init_monitors();
+}
+
+void FePresent::reset_scene3d_globals()
+{
+	m_3d_ambient_light = SCENE3D_DEFAULT_AMBIENT_LIGHT;
+	m_3d_light = SCENE3D_DEFAULT_LIGHT;
+	m_3d_light_radius = SCENE3D_DEFAULT_LIGHT_RADIUS;
 }
 
 void FePresent::init_monitors()
@@ -446,6 +455,7 @@ void FePresent::clear_layout()
 	m_layoutFontName = "";
 	m_user_page_size = -1;
 	m_preserve_aspect = false;
+	reset_scene3d_globals();
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
@@ -658,7 +668,7 @@ namespace
 			|| lhs.texture_content_version != rhs.texture_content_version
 			|| lhs.blend_mode != rhs.blend_mode
 			|| lhs.translucent_depth_prepass != rhs.translucent_depth_prepass
-			|| lhs.camera_light != rhs.camera_light
+			|| lhs.ambient_light != rhs.ambient_light
 			|| lhs.light_count != rhs.light_count )
 		{
 			return false;
@@ -711,7 +721,8 @@ namespace
 				|| lhs_light.intensity != rhs_light.intensity
 				|| lhs_light.range != rhs_light.range
 				|| lhs_light.inner_cone_cos != rhs_light.inner_cone_cos
-				|| lhs_light.outer_cone_cos != rhs_light.outer_cone_cos )
+				|| lhs_light.outer_cone_cos != rhs_light.outer_cone_cos
+				|| lhs_light.radius != rhs_light.radius )
 			{
 				return false;
 			}
@@ -775,7 +786,7 @@ namespace
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.translucent_depth_prepass ? 1 : 0 ) );
 		hash = hash_combine_pbr_batch( hash, entry.texture_content_version );
-		hash = hash_float_pbr_batch( hash, entry.camera_light );
+		hash = hash_float_pbr_batch( hash, entry.ambient_light );
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.light_count ) );
 
 		const FeRenderPbrMaterial &material = entry.pbr_material;
@@ -812,6 +823,7 @@ namespace
 			hash = hash_float_pbr_batch( hash, light.range );
 			hash = hash_float_pbr_batch( hash, light.inner_cone_cos );
 			hash = hash_float_pbr_batch( hash, light.outer_cone_cos );
+			hash = hash_float_pbr_batch( hash, light.radius );
 			for ( int i = 0; i < 3; ++i )
 			{
 				hash = hash_float_pbr_batch( hash, light.color[i] );
@@ -919,6 +931,17 @@ namespace
 				( transformed_direction.x * transformed_direction.x ) +
 				( transformed_direction.y * transformed_direction.y ) +
 				( light.direction[2] * light.direction[2] ) );
+			const Vec2f transformed_radius_x =
+				transform_direction_xy( transform, { light.radius, 0.0f } );
+			const Vec2f transformed_radius_y =
+				transform_direction_xy( transform, { 0.0f, light.radius } );
+			light.radius = 0.5f * (
+				std::sqrt(
+					( transformed_radius_x.x * transformed_radius_x.x ) +
+					( transformed_radius_x.y * transformed_radius_x.y ) ) +
+				std::sqrt(
+					( transformed_radius_y.x * transformed_radius_y.x ) +
+					( transformed_radius_y.y * transformed_radius_y.y ) ) );
 			if ( direction_length > 1.0e-6f )
 			{
 				light.direction[0] = transformed_direction.x / direction_length;
@@ -1122,7 +1145,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				seed = hash_float( seed, geometry.pbr_material.emissive_factor[i] );
 				seed = hash_float( seed, geometry.ambient_color[i] );
 			}
-			seed = hash_float( seed, geometry.camera_light );
+			seed = hash_float( seed, geometry.ambient_light );
 			seed = hash_float( seed, geometry.pbr_material.metallic_factor );
 			seed = hash_float( seed, geometry.pbr_material.roughness_factor );
 			seed = hash_float( seed, geometry.pbr_material.normal_scale );
@@ -1147,6 +1170,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				seed = hash_float( seed, light.range );
 				seed = hash_float( seed, light.inner_cone_cos );
 				seed = hash_float( seed, light.outer_cone_cos );
+				seed = hash_float( seed, light.radius );
 			}
 		}
 
@@ -1768,20 +1792,54 @@ void FePresent::set_perspective_default_z( float z )
 	flag_redraw();
 }
 
-float FePresent::get_camera_light() const
+float FePresent::get_3d_ambient_light() const
 {
-	return m_camera_light;
+	return m_3d_ambient_light;
 }
 
-void FePresent::set_camera_light( float light )
+void FePresent::set_3d_ambient_light( float light )
 {
 	if ( light < 0.0f )
 		light = 0.0f;
 
-	if ( light == m_camera_light )
+	if ( light == m_3d_ambient_light )
 		return;
 
-	m_camera_light = light;
+	m_3d_ambient_light = light;
+	flag_redraw();
+}
+
+float FePresent::get_3d_light() const
+{
+	return m_3d_light;
+}
+
+void FePresent::set_3d_light( float light )
+{
+	if ( light < 0.0f )
+		light = 0.0f;
+
+	if ( light == m_3d_light )
+		return;
+
+	m_3d_light = light;
+	flag_redraw();
+}
+
+float FePresent::get_3d_light_radius() const
+{
+	return m_3d_light_radius;
+}
+
+void FePresent::set_3d_light_radius( float radius )
+{
+	if ( radius < 0.0f )
+		radius = 0.0f;
+
+	if ( radius == m_3d_light_radius )
+		return;
+
+	m_3d_light_radius = radius;
 	flag_redraw();
 }
 

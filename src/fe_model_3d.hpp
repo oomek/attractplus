@@ -148,11 +148,11 @@ private:
 	void clear_override( const std::string &material_name );
 	void release_overrides();
 	void invalidate_geometry_cache() const;
-	bool geometry_cache_matches( float camera_light ) const;
-	void update_geometry_cache_state( float camera_light ) const;
+	bool geometry_cache_matches( float ambient_light, float point_light, float point_light_radius ) const;
+	void update_geometry_cache_state( float ambient_light, float point_light, float point_light_radius ) const;
 	void update_cached_material_state( FeRenderGeometry &entry, std::size_t primitive_index ) const;
 	void refresh_geometry_cache() const;
-	void rebuild_geometry_cache( float camera_light ) const;
+	void rebuild_geometry_cache( float ambient_light, float point_light, float point_light_radius ) const;
 
 	std::string m_file_name;
 	Vec2f m_pos;
@@ -181,7 +181,9 @@ private:
 	mutable Color m_geometry_cache_color;
 	mutable bool m_geometry_cache_occlusion;
 	mutable bool m_geometry_cache_zbuffer;
-	mutable float m_geometry_cache_camera_light;
+	mutable float m_geometry_cache_3d_ambient_light;
+	mutable float m_geometry_cache_3d_light;
+	mutable float m_geometry_cache_3d_light_radius;
 	mutable std::vector<std::size_t> m_geometry_cache_primitives;
 	mutable std::vector<std::size_t> m_geometry_cache_objects;
 	mutable std::vector<FeRenderGeometry> m_geometry_cache;

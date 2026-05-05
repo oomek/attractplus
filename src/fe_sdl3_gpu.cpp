@@ -727,11 +727,13 @@ namespace
 			"\t\tLightUniform light = pbr.lights[light_index];\n"
 			"\t\tfloat type = light.outer_type.y;\n"
 			"\t\tvec3 L = vec3( 0.0 );\n"
+			"\t\tvec3 specular_L = vec3( 0.0 );\n"
 			"\t\tfloat attenuation = 1.0;\n"
 			"\n"
 			"\t\tif ( type < 0.5 )\n"
 			"\t\t{\n"
 			"\t\t\tL = normalize( -light.direction_inner.xyz );\n"
+			"\t\t\tspecular_L = L;\n"
 			"\t\t\tattenuation = light.color_intensity.w;\n"
 			"\t\t}\n"
 			"\t\telse\n"
@@ -741,6 +743,19 @@ namespace
 			"\t\t\tif ( distance_to_light <= 0.0001 )\n"
 			"\t\t\t\tcontinue;\n"
 			"\t\t\tL = to_light / distance_to_light;\n"
+			"\t\t\tspecular_L = L;\n"
+			"\t\t\tfloat light_radius = max( light.outer_type.z, 0.0 );\n"
+			"\t\t\tif ( light_radius > 0.0 )\n"
+			"\t\t\t{\n"
+			"\t\t\t\tvec3 R = reflect( -V, N );\n"
+			"\t\t\t\tvec3 center_to_ray = dot( to_light, R ) * R - to_light;\n"
+			"\t\t\t\tfloat center_to_ray_length = length( center_to_ray );\n"
+			"\t\t\t\tif ( center_to_ray_length > 0.0001 )\n"
+			"\t\t\t\t{\n"
+			"\t\t\t\t\tvec3 closest_specular_point = to_light + center_to_ray * clamp( light_radius / center_to_ray_length, 0.0, 1.0 );\n"
+			"\t\t\t\t\tspecular_L = normalize( closest_specular_point );\n"
+			"\t\t\t\t}\n"
+			"\t\t\t}\n"
 			"\t\t\tattenuation = light.color_intensity.w / max( distance_to_light * distance_to_light, 0.0001 );\n"
 			"\t\t\tif ( light.position_range.w > 0.0 )\n"
 			"\t\t\t{\n"
@@ -755,28 +770,29 @@ namespace
 			"\t\t\t}\n"
 			"\t\t}\n"
 			"\n"
-			"\t\tvec3 H = normalize( V + L );\n"
+			"\t\tvec3 H = normalize( V + specular_L );\n"
 			"\t\tfloat NdotL = max( dot( N, L ), 0.0 );\n"
+			"\t\tfloat specular_NdotL = max( dot( N, specular_L ), 0.0 );\n"
 			"\t\tfloat NdotV = max( dot( N, V ), 0.0 );\n"
-			"\t\tif ( NdotL <= 0.0 || NdotV <= 0.0 )\n"
+			"\t\tif ( ( NdotL <= 0.0 && specular_NdotL <= 0.0 ) || NdotV <= 0.0 )\n"
 			"\t\t\tcontinue;\n"
 			"\n"
 			"\t\tfloat D = distribution_ggx( N, H, roughness );\n"
-			"\t\tfloat G = geometry_smith( N, V, L, roughness );\n"
+			"\t\tfloat G = geometry_smith( N, V, specular_L, roughness );\n"
 			"\t\tvec3 F = fresnel_schlick( max( dot( H, V ), 0.0 ), F0 );\n"
 			"\t\tvec3 numerator = D * G * F;\n"
-			"\t\tfloat denominator = max( 4.0 * NdotV * NdotL, 0.0001 );\n"
+			"\t\tfloat denominator = max( 4.0 * NdotV * specular_NdotL, 0.0001 );\n"
 			"\t\tvec3 specular = numerator / denominator;\n"
 			"\t\tvec3 kS = F;\n"
 			"\t\tvec3 kD = ( vec3( 1.0 ) - kS ) * ( 1.0 - metallic );\n"
 			"\t\tvec3 radiance = light.color_intensity.rgb * attenuation;\n"
-			"\t\tLo += ( kD * base_color.rgb / PI + specular ) * radiance * NdotL;\n"
+			"\t\tLo += ( kD * base_color.rgb / PI * NdotL + specular * specular_NdotL ) * radiance;\n"
 			"\t}\n"
 			"\n"
 			"\tvec3 ambient = pbr.ambient_color.rgb * base_color.rgb * occlusion;\n"
-			"\tfloat camera_fill_factor = max( pbr.ambient_color.w, 0.0 ) * 0.01;\n"
-			"\tvec3 camera_fill = ( base_color.rgb * 0.8 + vec3( 0.2 ) ) * occlusion * camera_fill_factor;\n"
-			"\tout_color = vec4( encode_pbr_color( ambient + camera_fill + Lo * occlusion + emissive ), base_color.a );\n"
+			"\tfloat ambient_fill_factor = max( pbr.ambient_color.w, 0.0 ) * 0.01;\n"
+			"\tvec3 ambient_fill = ( base_color.rgb * 0.8 + vec3( 0.2 ) ) * occlusion * ambient_fill_factor;\n"
+			"\tout_color = vec4( encode_pbr_color( ambient + ambient_fill + Lo * occlusion + emissive ), base_color.a );\n"
 			"}\n";
 	}
 
@@ -1331,7 +1347,7 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 		|| lhs_material.normal_scale != rhs_material.normal_scale
 		|| lhs_material.occlusion_strength != rhs_material.occlusion_strength
 		|| lhs_material.alpha_cutoff != rhs_material.alpha_cutoff
-		|| lhs.geometry->camera_light != rhs.geometry->camera_light
+		|| lhs.geometry->ambient_light != rhs.geometry->ambient_light
 		|| lhs.geometry->light_count != rhs.geometry->light_count )
 	{
 		return false;
@@ -1396,7 +1412,8 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 			|| lhs_light.intensity != rhs_light.intensity
 			|| lhs_light.range != rhs_light.range
 			|| lhs_light.inner_cone_cos != rhs_light.inner_cone_cos
-			|| lhs_light.outer_cone_cos != rhs_light.outer_cone_cos )
+			|| lhs_light.outer_cone_cos != rhs_light.outer_cone_cos
+			|| lhs_light.radius != rhs_light.radius )
 		{
 			return false;
 		}
@@ -1439,7 +1456,7 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash = hash_float_bits( hash, material.normal_scale );
 	hash = hash_float_bits( hash, material.occlusion_strength );
 	hash = hash_float_bits( hash, material.alpha_cutoff );
-	hash = hash_float_bits( hash, geometry.camera_light );
+	hash = hash_float_bits( hash, geometry.ambient_light );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.light_count ) );
 
 	for ( int i = 0; i < 4; ++i )
@@ -1486,6 +1503,7 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 		hash = hash_float_bits( hash, light.range );
 		hash = hash_float_bits( hash, light.inner_cone_cos );
 		hash = hash_float_bits( hash, light.outer_cone_cos );
+		hash = hash_float_bits( hash, light.radius );
 		for ( int i = 0; i < 3; ++i )
 		{
 			hash = hash_float_bits( hash, light.color[i] );
@@ -5183,7 +5201,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				fragment_uniforms.ambient_color[i] = image.geometry->ambient_color[i];
 				fragment_uniforms.artwork_control[i] = 0.0f;
 			}
-			fragment_uniforms.ambient_color[3] = image.geometry->camera_light;
+			fragment_uniforms.ambient_color[3] = image.geometry->ambient_light;
 			fragment_uniforms.artwork_control[3] = 0.0f;
 			fragment_uniforms.artwork_control[0] =
 				image.geometry->pbr_material.artwork_shader_emissive ? 1.0f : 0.0f;
@@ -5246,6 +5264,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				target.direction_inner[3] = light.inner_cone_cos;
 				target.outer_type[0] = light.outer_cone_cos;
 				target.outer_type[1] = static_cast<float>( light.type );
+				target.outer_type[2] = light.radius;
+				target.outer_type[3] = 0.0f;
 			}
 		};
 
