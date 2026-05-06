@@ -29,6 +29,7 @@ namespace
 	constexpr float FE_PI = 3.14159265358979323846f;
 	constexpr float FE_EPSILON = 1.0e-6f;
 	constexpr float FE_DEFAULT_MODEL_3D_SCALE = 100.0f;
+	constexpr float FE_SCENE3D_LIGHT_DISTANCE_SCALE = 10.0f;
 
 	struct ModelTangent
 	{
@@ -400,21 +401,24 @@ namespace
 		float radius )
 	{
 		const Vec3f direction = fallback_model_light_direction();
-		const Vec3f position = target_center - ( direction * std::max( depth, 1.0f ) );
+		const float base_distance = std::max( depth, 1.0f );
+		const float light_distance = base_distance * FE_SCENE3D_LIGHT_DISTANCE_SCALE;
+		const float distance_scale = light_distance / base_distance;
+		const Vec3f position = target_center - ( direction * light_distance );
 
 		light.clear();
 		light.type = FeRenderPbrLightPoint;
 		light.color[0] = 1.0f;
 		light.color[1] = 1.0f;
 		light.color[2] = 1.0f;
-		light.intensity = std::max( power, 0.0f );
+		light.intensity = std::max( power, 0.0f ) * distance_scale * distance_scale;
 		light.position[0] = position.x;
 		light.position[1] = position.y;
 		light.position[2] = position.z;
 		light.direction[0] = direction.x;
 		light.direction[1] = direction.y;
 		light.direction[2] = direction.z;
-		light.radius = std::max( radius, 0.0f ) * average_abs_scale( scale );
+		light.radius = std::max( radius, 0.0f ) * average_abs_scale( scale ) * distance_scale;
 	}
 
 	void get_scene3d_light_settings(
