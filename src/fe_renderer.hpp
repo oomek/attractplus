@@ -133,6 +133,7 @@ struct FeRenderPbrMaterial
 	float emissive_factor[3];
 	float metallic_factor;
 	float roughness_factor;
+	float ior;
 	float normal_scale;
 	float occlusion_strength;
 	float alpha_cutoff;

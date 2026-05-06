@@ -146,6 +146,7 @@ void FeRenderPbrMaterial::clear()
 	emissive_factor[2] = 0.0f;
 	metallic_factor = 1.0f;
 	roughness_factor = 1.0f;
+	ior = 1.5f;
 	normal_scale = 1.0f;
 	occlusion_strength = 1.0f;
 	alpha_cutoff = 0.5f;

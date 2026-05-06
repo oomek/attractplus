@@ -85,6 +85,7 @@ namespace
 		float emissive_factor[3];
 		float metallic_factor;
 		float roughness_factor;
+		float ior;
 		float normal_scale;
 		float occlusion_strength;
 		float alpha_cutoff;
@@ -95,6 +96,7 @@ namespace
 		ModelMaterial()
 			: metallic_factor( 1.0f ),
 			  roughness_factor( 1.0f ),
+			  ior( 1.5f ),
 			  normal_scale( 1.0f ),
 			  occlusion_strength( 1.0f ),
 			  alpha_cutoff( 0.5f ),
@@ -172,6 +174,7 @@ namespace
 			|| !model_texture_ref_matches( lhs.emissive_texture, rhs.emissive_texture )
 			|| lhs.metallic_factor != rhs.metallic_factor
 			|| lhs.roughness_factor != rhs.roughness_factor
+			|| lhs.ior != rhs.ior
 			|| lhs.normal_scale != rhs.normal_scale
 			|| lhs.occlusion_strength != rhs.occlusion_strength
 			|| lhs.alpha_cutoff != rhs.alpha_cutoff
@@ -236,6 +239,7 @@ namespace
 			hash = hash_model_float( hash, material.emissive_factor[i] );
 		hash = hash_model_float( hash, material.metallic_factor );
 		hash = hash_model_float( hash, material.roughness_factor );
+		hash = hash_model_float( hash, material.ior );
 		hash = hash_model_float( hash, material.normal_scale );
 		hash = hash_model_float( hash, material.occlusion_strength );
 		hash = hash_model_float( hash, material.alpha_cutoff );
@@ -2474,7 +2478,6 @@ void FeModel3D::load_model( const std::string &filename )
 	bool logged_volume = false;
 	bool logged_sheen = false;
 	bool logged_specular = false;
-	bool logged_ior = false;
 	bool logged_iridescence = false;
 	bool logged_diffuse_transmission = false;
 	bool logged_anisotropy = false;
@@ -2708,6 +2711,8 @@ void FeModel3D::load_model( const std::string &filename )
 					material.emissive_factor[1] *= emissive_strength;
 					material.emissive_factor[2] *= emissive_strength;
 				}
+				if ( primitive.material->has_ior )
+					material.ior = primitive.material->ior.ior;
 				if ( material.alpha_mode == FeRenderPbrAlphaOpaque
 					&& material.base_color_factor[3] >= ( 1.0f - FE_EPSILON )
 					&& material.double_sided
@@ -2734,8 +2739,6 @@ void FeModel3D::load_model( const std::string &filename )
 					log_material_extension_ignored( "KHR_materials_sheen", logged_sheen );
 				if ( primitive.material->has_specular )
 					log_material_extension_ignored( "KHR_materials_specular", logged_specular );
-				if ( primitive.material->has_ior )
-					log_material_extension_ignored( "KHR_materials_ior", logged_ior );
 				if ( primitive.material->has_iridescence )
 					log_material_extension_ignored( "KHR_materials_iridescence", logged_iridescence );
 				if ( primitive.material->has_diffuse_transmission )
@@ -3004,6 +3007,7 @@ void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size
 	entry.pbr_material.emissive_factor[0] = primitive.material.emissive_factor[0];
 	entry.pbr_material.emissive_factor[1] = primitive.material.emissive_factor[1];
 	entry.pbr_material.emissive_factor[2] = primitive.material.emissive_factor[2];
+	entry.pbr_material.ior = primitive.material.ior;
 	entry.pbr_material.artwork_shader =
 		( override_container && override_entry ) ? override_entry->shader : nullptr;
 	entry.pbr_material.artwork_shader_emissive =
@@ -3383,6 +3387,7 @@ void FeModel3D::rebuild_geometry_cache( float ambient_light, float point_light, 
 		entry.pbr_material.base_color_factor[3] = primitive.material.base_color_factor[3] * color_scale_a;
 		entry.pbr_material.metallic_factor = primitive.material.metallic_factor;
 		entry.pbr_material.roughness_factor = primitive.material.roughness_factor;
+		entry.pbr_material.ior = primitive.material.ior;
 		entry.pbr_material.normal_scale = primitive.material.normal_scale;
 		entry.pbr_material.occlusion_strength = primitive.material.occlusion_strength;
 		entry.pbr_material.alpha_cutoff = primitive.material.alpha_cutoff;

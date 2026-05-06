@@ -685,6 +685,16 @@ namespace
 			"{\n"
 			"\treturn F0 + ( 1.0 - F0 ) * pow( 1.0 - cosTheta, 5.0 );\n"
 			"}\n"
+			"vec3 fresnel_schlick_roughness( float cosTheta, vec3 F0, float roughness )\n"
+			"{\n"
+			"\treturn F0 + ( max( vec3( 1.0 - roughness ), F0 ) - F0 ) * pow( 1.0 - cosTheta, 5.0 );\n"
+			"}\n"
+			"float ior_to_f0( float ior )\n"
+			"{\n"
+			"\tfloat safe_ior = max( ior, 1.0 );\n"
+			"\tfloat value = ( safe_ior - 1.0 ) / ( safe_ior + 1.0 );\n"
+			"\treturn value * value;\n"
+			"}\n"
 			"void main()\n"
 			"{\n"
 			"\tvec4 base_sample = sample_base_color();\n"
@@ -720,7 +730,8 @@ namespace
 			"\t}\n"
 			"\n"
 			"\tvec3 V = normalize( -frag_view_position );\n"
-			"\tvec3 F0 = vec3( 0.04 );\n"
+			"\tvec3 F0 = vec3( ior_to_f0( pbr.artwork_control.w ) );\n"
+			"\tfloat NdotV_ambient = max( dot( N, V ), 0.0 );\n"
 			"\tvec3 Lo = vec3( 0.0 );\n"
 			"\tint light_count = int( pbr.control.w + 0.5 );\n"
 			"\tfor ( int light_index = 0; light_index < light_count; ++light_index )\n"
@@ -798,7 +809,8 @@ namespace
 			"\n"
 			"\tfloat ambient_level = clamp( max( pbr.ambient_color.w, 0.0 ) * 0.01, 0.0, 1.0 );\n"
 			"\tfloat ambient_factor = pbr.artwork_control.z > 0.5 ? srgb_to_linear( vec3( ambient_level ) ).r : ambient_level;\n"
-			"\tvec3 ambient = base_color.rgb * occlusion * ambient_factor;\n"
+			"\tvec3 ambient_fresnel = fresnel_schlick_roughness( NdotV_ambient, F0, roughness ) * ( 1.0 - metallic );\n"
+			"\tvec3 ambient = ( base_color.rgb * ( vec3( 1.0 ) - ambient_fresnel ) + ambient_fresnel ) * occlusion * ambient_factor;\n"
 			"\tout_color = vec4( encode_pbr_color( ambient + Lo * occlusion + emissive ), base_color.a );\n"
 			"}\n";
 	}
@@ -1351,6 +1363,7 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 		|| lhs_material.artwork_shader_emissive != rhs_material.artwork_shader_emissive
 		|| lhs_material.metallic_factor != rhs_material.metallic_factor
 		|| lhs_material.roughness_factor != rhs_material.roughness_factor
+		|| lhs_material.ior != rhs_material.ior
 		|| lhs_material.normal_scale != rhs_material.normal_scale
 		|| lhs_material.occlusion_strength != rhs_material.occlusion_strength
 		|| lhs_material.alpha_cutoff != rhs_material.alpha_cutoff
@@ -1460,6 +1473,7 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
 	hash = hash_float_bits( hash, material.metallic_factor );
 	hash = hash_float_bits( hash, material.roughness_factor );
+	hash = hash_float_bits( hash, material.ior );
 	hash = hash_float_bits( hash, material.normal_scale );
 	hash = hash_float_bits( hash, material.occlusion_strength );
 	hash = hash_float_bits( hash, material.alpha_cutoff );
@@ -5209,7 +5223,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				fragment_uniforms.artwork_control[i] = 0.0f;
 			}
 			fragment_uniforms.ambient_color[3] = image.geometry->ambient_light;
-			fragment_uniforms.artwork_control[3] = 0.0f;
+			fragment_uniforms.artwork_control[3] = image.geometry->pbr_material.ior;
 			fragment_uniforms.artwork_control[0] =
 				image.geometry->pbr_material.artwork_shader_emissive ? 1.0f : 0.0f;
 			fragment_uniforms.artwork_control[1] =

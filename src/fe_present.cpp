@@ -684,6 +684,7 @@ namespace
 			|| lhs_material.artwork_shader_emissive != rhs_material.artwork_shader_emissive
 			|| lhs_material.metallic_factor != rhs_material.metallic_factor
 			|| lhs_material.roughness_factor != rhs_material.roughness_factor
+			|| lhs_material.ior != rhs_material.ior
 			|| lhs_material.normal_scale != rhs_material.normal_scale
 			|| lhs_material.occlusion_strength != rhs_material.occlusion_strength
 			|| lhs_material.alpha_cutoff != rhs_material.alpha_cutoff )
@@ -798,6 +799,7 @@ namespace
 		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
 		hash = hash_float_pbr_batch( hash, material.metallic_factor );
 		hash = hash_float_pbr_batch( hash, material.roughness_factor );
+		hash = hash_float_pbr_batch( hash, material.ior );
 		hash = hash_float_pbr_batch( hash, material.normal_scale );
 		hash = hash_float_pbr_batch( hash, material.occlusion_strength );
 		hash = hash_float_pbr_batch( hash, material.alpha_cutoff );
@@ -1148,6 +1150,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			seed = hash_float( seed, geometry.ambient_light );
 			seed = hash_float( seed, geometry.pbr_material.metallic_factor );
 			seed = hash_float( seed, geometry.pbr_material.roughness_factor );
+			seed = hash_float( seed, geometry.pbr_material.ior );
 			seed = hash_float( seed, geometry.pbr_material.normal_scale );
 			seed = hash_float( seed, geometry.pbr_material.occlusion_strength );
 			seed = hash_float( seed, geometry.pbr_material.alpha_cutoff );
