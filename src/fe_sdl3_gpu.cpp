@@ -796,10 +796,10 @@ namespace
 			"\t\tLo += ( kD * base_color.rgb / PI + specular ) * radiance * NdotL;\n"
 			"\t}\n"
 			"\n"
-			"\tvec3 ambient = pbr.ambient_color.rgb * base_color.rgb * occlusion;\n"
-			"\tfloat ambient_fill_factor = max( pbr.ambient_color.w, 0.0 ) * 0.01;\n"
-			"\tvec3 ambient_fill = ( base_color.rgb * 0.8 + vec3( 0.2 ) ) * occlusion * ambient_fill_factor;\n"
-			"\tout_color = vec4( encode_pbr_color( ambient + ambient_fill + Lo * occlusion + emissive ), base_color.a );\n"
+			"\tfloat ambient_level = clamp( max( pbr.ambient_color.w, 0.0 ) * 0.01, 0.0, 1.0 );\n"
+			"\tfloat ambient_factor = pbr.artwork_control.z > 0.5 ? srgb_to_linear( vec3( ambient_level ) ).r : ambient_level;\n"
+			"\tvec3 ambient = base_color.rgb * occlusion * ambient_factor;\n"
+			"\tout_color = vec4( encode_pbr_color( ambient + Lo * occlusion + emissive ), base_color.a );\n"
 			"}\n";
 	}
 
