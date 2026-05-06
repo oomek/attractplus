@@ -517,6 +517,9 @@ namespace
 			"layout(location = 3) out vec3 frag_view_position;\n"
 			"layout(location = 4) out vec3 frag_view_normal;\n"
 			"layout(location = 5) out vec4 frag_view_tangent;\n"
+			"layout(location = 6) out vec3 frag_world_normal;\n"
+			"layout(location = 7) out vec4 frag_world_tangent;\n"
+			"layout(location = 8) out vec3 frag_world_view;\n"
 			"layout(set = 1, binding = 0) uniform PbrVertexUniforms\n"
 			"{\n"
 			"\tmat4 projection;\n"
@@ -529,6 +532,7 @@ namespace
 			"{\n"
 			"\tmat4 model = mat4( in_model_0, in_model_1, in_model_2, in_model_3 );\n"
 			"\tvec4 world_position = model * vec4( in_position, 1.0 );\n"
+			"\tvec3 camera_world_position = vec3( ubo.viewport_width * 0.5, ubo.viewport_height * 0.5, ubo.plane_distance );\n"
 			"\tvec3 view_position = vec3(\n"
 			"\t\tworld_position.x - ( ubo.viewport_width * 0.5 ),\n"
 			"\t\t( ubo.viewport_height * 0.5 ) - world_position.y,\n"
@@ -545,6 +549,9 @@ namespace
 			"\tfrag_view_position = view_position;\n"
 			"\tfrag_view_normal = normalize( vec3( world_normal.x, -world_normal.y, world_normal.z ) );\n"
 			"\tfrag_view_tangent = vec4( normalize( vec3( world_tangent.x, -world_tangent.y, world_tangent.z ) ), in_tangent.w );\n"
+			"\tfrag_world_normal = world_normal;\n"
+			"\tfrag_world_tangent = vec4( world_tangent, in_tangent.w );\n"
+			"\tfrag_world_view = camera_world_position - world_position.xyz;\n"
 			"}\n";
 	}
 
@@ -558,12 +565,16 @@ namespace
 			"layout(location = 3) in vec3 frag_view_position;\n"
 			"layout(location = 4) in vec3 frag_view_normal;\n"
 			"layout(location = 5) in vec4 frag_view_tangent;\n"
+			"layout(location = 6) in vec3 frag_world_normal;\n"
+			"layout(location = 7) in vec4 frag_world_tangent;\n"
+			"layout(location = 8) in vec3 frag_world_view;\n"
 			"layout(location = 0) out vec4 out_color;\n"
 			"layout(set = 2, binding = 0) uniform sampler2D base_color_texture;\n"
 			"layout(set = 2, binding = 1) uniform sampler2D metallic_roughness_texture;\n"
 			"layout(set = 2, binding = 2) uniform sampler2D normal_texture;\n"
 			"layout(set = 2, binding = 3) uniform sampler2D occlusion_texture;\n"
 			"layout(set = 2, binding = 4) uniform sampler2D emissive_texture;\n"
+			"layout(set = 2, binding = 5) uniform sampler2D hdri_texture;\n"
 			"struct LightUniform\n"
 			"{\n"
 			"\tvec4 color_intensity;\n"
@@ -579,6 +590,7 @@ namespace
 			"\tvec4 control;\n"
 			"\tvec4 ambient_color;\n"
 			"\tvec4 artwork_control;\n"
+			"\tvec4 hdri_control;\n"
 			"\tvec4 transforms_offset_scale[5];\n"
 			"\tvec4 transforms_texcoord_fit[5];\n"
 			"\tLightUniform lights[4];\n"
@@ -660,6 +672,19 @@ namespace
 			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[4].x ), 4, fit_alpha );\n"
 			"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
 			"}\n"
+			"vec2 equirect_uv( vec3 direction )\n"
+			"{\n"
+			"\tdirection = normalize( direction );\n"
+			"\tfloat u = atan( direction.z, direction.x ) / ( 2.0 * PI ) + 0.5;\n"
+			"\tfloat v = acos( clamp( direction.y, -1.0, 1.0 ) ) / PI;\n"
+			"\treturn vec2( u, v );\n"
+			"}\n"
+			"vec3 sample_hdri( vec3 direction, float lod_bias )\n"
+			"{\n"
+			"\tfloat lod = max( lod_bias, 0.0 );\n"
+			"\tvec3 value = textureLod( hdri_texture, equirect_uv( direction ), lod ).rgb;\n"
+			"\treturn srgb_to_linear( value );\n"
+			"}\n"
 			"float distribution_ggx( vec3 N, vec3 H, float roughness )\n"
 			"{\n"
 			"\tfloat a = roughness * roughness;\n"
@@ -707,14 +732,19 @@ namespace
 			"\t\tdiscard;\n"
 			"\n"
 			"\tvec3 N = normalize( frag_view_normal );\n"
+			"\tvec3 environment_N = normalize( vec3( frag_world_normal.x, -frag_world_normal.y, frag_world_normal.z ) );\n"
 			"\tif ( pbr.emissive_factor.w > 0.5 )\n"
 			"\t{\n"
+			"\t\tvec3 mapped = sample_normal_tex() * 2.0 - 1.0;\n"
+			"\t\tmapped.xy *= pbr.material_params.z;\n"
 			"\t\tvec3 tangent = normalize( frag_view_tangent.xyz );\n"
 			"\t\tvec3 bitangent = normalize( cross( N, tangent ) ) * frag_view_tangent.w;\n"
 			"\t\tmat3 tbn = mat3( tangent, bitangent, N );\n"
-			"\t\tvec3 mapped = sample_normal_tex() * 2.0 - 1.0;\n"
-			"\t\tmapped.xy *= pbr.material_params.z;\n"
 			"\t\tN = normalize( tbn * mapped );\n"
+			"\t\tvec3 environment_tangent = normalize( vec3( frag_world_tangent.x, -frag_world_tangent.y, frag_world_tangent.z ) );\n"
+			"\t\tvec3 environment_bitangent = normalize( cross( environment_N, environment_tangent ) ) * frag_world_tangent.w;\n"
+			"\t\tmat3 environment_tbn = mat3( environment_tangent, environment_bitangent, environment_N );\n"
+			"\t\tenvironment_N = normalize( environment_tbn * mapped );\n"
 			"\t}\n"
 			"\n"
 			"\tvec4 mr_sample = sample_metallic_roughness();\n"
@@ -809,8 +839,23 @@ namespace
 			"\n"
 			"\tfloat ambient_level = clamp( max( pbr.ambient_color.w, 0.0 ) * 0.01, 0.0, 1.0 );\n"
 			"\tfloat ambient_factor = pbr.artwork_control.z > 0.5 ? srgb_to_linear( vec3( ambient_level ) ).r : ambient_level;\n"
-			"\tvec3 ambient_fresnel = fresnel_schlick_roughness( NdotV_ambient, F0, roughness ) * ( 1.0 - metallic );\n"
-			"\tvec3 ambient = ( base_color.rgb * ( vec3( 1.0 ) - ambient_fresnel ) + ambient_fresnel ) * occlusion * ambient_factor;\n"
+			"\tvec3 ambient;\n"
+			"\tif ( pbr.hdri_control.x > 0.5 )\n"
+			"\t{\n"
+			"\t\tvec3 environment_V = normalize( vec3( frag_world_view.x, -frag_world_view.y, frag_world_view.z ) );\n"
+			"\t\tvec3 R = reflect( -environment_V, environment_N );\n"
+			"\t\tvec3 hdri_diffuse = sample_hdri( environment_N, 8.0 );\n"
+			"\t\tvec3 hdri_specular = sample_hdri( R, roughness * 8.0 );\n"
+			"\t\tvec3 ambient_F0 = mix( F0, base_color.rgb, metallic );\n"
+			"\t\tvec3 ambient_fresnel = fresnel_schlick_roughness( NdotV_ambient, ambient_F0, roughness );\n"
+			"\t\tvec3 ambient_diffuse = ( vec3( 1.0 ) - ambient_fresnel ) * ( 1.0 - metallic ) * base_color.rgb * hdri_diffuse;\n"
+			"\t\tambient = ( ambient_diffuse + ambient_fresnel * hdri_specular ) * occlusion * ambient_factor;\n"
+			"\t}\n"
+			"\telse\n"
+			"\t{\n"
+			"\t\tvec3 ambient_fresnel = fresnel_schlick_roughness( NdotV_ambient, F0, roughness ) * ( 1.0 - metallic );\n"
+			"\t\tambient = ( base_color.rgb * ( vec3( 1.0 ) - ambient_fresnel ) + ambient_fresnel ) * occlusion * ambient_factor;\n"
+			"\t}\n"
 			"\tout_color = vec4( encode_pbr_color( ambient + Lo * occlusion + emissive ), base_color.a );\n"
 			"}\n";
 	}
@@ -839,6 +884,7 @@ namespace
 			"\tvec4 control;\n"
 			"\tvec4 ambient_color;\n"
 			"\tvec4 artwork_control;\n"
+			"\tvec4 hdri_control;\n"
 			"\tvec4 transforms_offset_scale[5];\n"
 			"\tvec4 transforms_texcoord_fit[5];\n"
 			"\tLightUniform lights[4];\n"
@@ -926,8 +972,10 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 		m_pbr_prepass_pipelines[d] = nullptr;
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
+	m_linear_equirect_sampler = nullptr;
 	m_linear_mipmap_sampler = nullptr;
 	m_linear_mipmap_repeat_sampler = nullptr;
+	m_linear_mipmap_equirect_sampler = nullptr;
 	m_nearest_sampler = nullptr;
 	m_nearest_repeat_sampler = nullptr;
 	m_nearest_mipmap_sampler = nullptr;
@@ -1114,7 +1162,8 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 				&image.pbr_material.metallic_roughness_texture,
 				&image.pbr_material.normal_texture,
 				&image.pbr_material.occlusion_texture,
-				&image.pbr_material.emissive_texture
+				&image.pbr_material.emissive_texture,
+				&image.pbr_material.hdri_texture
 			};
 			for ( const FeRenderTextureBinding *binding : bindings )
 			{
@@ -1276,10 +1325,11 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 				&image.pbr_material.metallic_roughness_texture,
 				&image.pbr_material.normal_texture,
 				&image.pbr_material.occlusion_texture,
-				&image.pbr_material.emissive_texture
+				&image.pbr_material.emissive_texture,
+				&image.pbr_material.hdri_texture
 			};
 
-			for ( int binding_index = 0; binding_index < 5; ++binding_index )
+			for ( int binding_index = 0; binding_index < FE_RENDER_PBR_TEXTURE_COUNT; ++binding_index )
 			{
 				const FeRenderTextureBinding &binding = *bindings[binding_index];
 				SDL_GPUTexture *binding_texture = nullptr;
@@ -1411,12 +1461,13 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 		|| !binding_matches( lhs_material.metallic_roughness_texture, rhs_material.metallic_roughness_texture )
 		|| !binding_matches( lhs_material.normal_texture, rhs_material.normal_texture )
 		|| !binding_matches( lhs_material.occlusion_texture, rhs_material.occlusion_texture )
-		|| !binding_matches( lhs_material.emissive_texture, rhs_material.emissive_texture ) )
+		|| !binding_matches( lhs_material.emissive_texture, rhs_material.emissive_texture )
+		|| !binding_matches( lhs_material.hdri_texture, rhs_material.hdri_texture ) )
 	{
 		return false;
 	}
 
-	for ( int i = 0; i < 5; ++i )
+	for ( int i = 0; i < FE_RENDER_PBR_TEXTURE_COUNT; ++i )
 	{
 		if ( lhs.pbr_textures[i] != rhs.pbr_textures[i] )
 			return false;
@@ -1512,8 +1563,9 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash_binding( material.normal_texture );
 	hash_binding( material.occlusion_texture );
 	hash_binding( material.emissive_texture );
+	hash_binding( material.hdri_texture );
 
-	for ( int i = 0; i < 5; ++i )
+	for ( int i = 0; i < FE_RENDER_PBR_TEXTURE_COUNT; ++i )
 		hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.pbr_textures[i] ) );
 
 	for ( int light_index = 0; light_index < geometry.light_count; ++light_index )
@@ -2243,6 +2295,7 @@ namespace
 		float control[4];
 		float ambient_color[4];
 		float artwork_control[4];
+		float hdri_control[4];
 		float transforms_offset_scale[5][4];
 		float transforms_texcoord_fit[5][4];
 		FeSdl3GpuPbrLightUniform lights[4];
@@ -3052,6 +3105,7 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	}
 	else
 		std::memcpy( mapped, pixel_data.data(), upload_size );
+
 	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
 
 	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
@@ -3084,6 +3138,9 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
 	SDL_EndGPUCopyPass( copy_pass );
 
+	if ( entry.mipmapped && texture_info.num_levels > 1 )
+		SDL_GenerateMipmapsForGPUTexture( command_buffer, entry.gpu_texture );
+
 	const bool submitted = SDL_SubmitGPUCommandBuffer( command_buffer );
 	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 
@@ -3091,17 +3148,6 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	{
 		release_texture( entry );
 		return false;
-	}
-
-	if ( entry.mipmapped && texture_info.num_levels > 1 )
-	{
-		SDL_GPUCommandBuffer *mipmap_command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
-		if ( !mipmap_command_buffer )
-			return false;
-
-		SDL_GenerateMipmapsForGPUTexture( mipmap_command_buffer, entry.gpu_texture );
-		if ( !SDL_SubmitGPUCommandBuffer( mipmap_command_buffer ) )
-			return false;
 	}
 
 	return true;
@@ -3164,6 +3210,12 @@ void FeSdl3GpuContext::release_image_pipeline()
 		m_linear_repeat_sampler = nullptr;
 	}
 
+	if ( m_linear_equirect_sampler )
+	{
+		SDL_ReleaseGPUSampler( m_device, m_linear_equirect_sampler );
+		m_linear_equirect_sampler = nullptr;
+	}
+
 	if ( m_linear_mipmap_sampler )
 	{
 		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_sampler );
@@ -3174,6 +3226,12 @@ void FeSdl3GpuContext::release_image_pipeline()
 	{
 		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_repeat_sampler );
 		m_linear_mipmap_repeat_sampler = nullptr;
+	}
+
+	if ( m_linear_mipmap_equirect_sampler )
+	{
+		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_equirect_sampler );
+		m_linear_mipmap_equirect_sampler = nullptr;
 	}
 
 	if ( m_nearest_sampler )
@@ -3409,13 +3467,24 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	bool mipmapped,
 	bool smooth )
 {
+	return create_sampler( filter, mipmap_mode, address_mode, address_mode, mipmapped, smooth );
+}
+
+SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
+	SDL_GPUFilter filter,
+	SDL_GPUSamplerMipmapMode mipmap_mode,
+	SDL_GPUSamplerAddressMode address_mode_u,
+	SDL_GPUSamplerAddressMode address_mode_v,
+	bool mipmapped,
+	bool smooth )
+{
 	SDL_GPUSamplerCreateInfo sampler_info = {};
 	sampler_info.min_filter = filter;
 	sampler_info.mag_filter = filter;
 	sampler_info.mipmap_mode = mipmapped ? mipmap_mode : SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
-	sampler_info.address_mode_u = address_mode;
-	sampler_info.address_mode_v = address_mode;
-	sampler_info.address_mode_w = address_mode;
+	sampler_info.address_mode_u = address_mode_u;
+	sampler_info.address_mode_v = address_mode_v;
+	sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
 	sampler_info.mip_lod_bias = 0.0f;
 	sampler_info.max_anisotropy = 1.0f;
 	sampler_info.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
@@ -4249,7 +4318,8 @@ bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &i
 	fragment_info.format = fragment_blob.format;
 	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
 	fragment_info.num_uniform_buffers = 2;
-	fragment_info.num_samplers = static_cast<Uint32>( 5 + fragment_samplers.size() );
+	fragment_info.num_samplers =
+		static_cast<Uint32>( FE_RENDER_PBR_TEXTURE_COUNT + fragment_samplers.size() );
 
 	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
 	if ( !entry.fragment_shader )
@@ -4546,7 +4616,7 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		{
 			CustomSamplerBinding binding = {};
 			binding.name = uniform.name;
-			binding.slot = 5 + static_cast<int>( samplers.size() );
+			binding.slot = FE_RENDER_PBR_TEXTURE_COUNT + static_cast<int>( samplers.size() );
 			binding.current_texture = false;
 			binding.image = nullptr;
 			samplers.push_back( binding );
@@ -5203,7 +5273,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	auto fill_pbr_fragment_state =
 		[&]( const PreparedImage &image,
 			FeSdl3GpuPbrFragmentUniforms &fragment_uniforms,
-			SDL_GPUTextureSamplerBinding (&sampler_bindings)[5] )
+			SDL_GPUTextureSamplerBinding (&sampler_bindings)[FE_RENDER_PBR_TEXTURE_COUNT] )
 		{
 			const FeRenderTextureBinding *bindings[] =
 			{
@@ -5211,7 +5281,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				&image.geometry->pbr_material.metallic_roughness_texture,
 				&image.geometry->pbr_material.normal_texture,
 				&image.geometry->pbr_material.occlusion_texture,
-				&image.geometry->pbr_material.emissive_texture
+				&image.geometry->pbr_material.emissive_texture,
+				&image.geometry->pbr_material.hdri_texture
 			};
 
 			for ( int i = 0; i < 4; ++i )
@@ -5221,7 +5292,9 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				fragment_uniforms.emissive_factor[i] = image.geometry->pbr_material.emissive_factor[i];
 				fragment_uniforms.ambient_color[i] = image.geometry->ambient_color[i];
 				fragment_uniforms.artwork_control[i] = 0.0f;
+				fragment_uniforms.hdri_control[i] = 0.0f;
 			}
+			fragment_uniforms.hdri_control[3] = 0.0f;
 			fragment_uniforms.ambient_color[3] = image.geometry->ambient_light;
 			fragment_uniforms.artwork_control[3] = image.geometry->pbr_material.ior;
 			fragment_uniforms.artwork_control[0] =
@@ -5240,24 +5313,35 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			fragment_uniforms.control[2] = image.geometry->pbr_material.unlit ? 1.0f : 0.0f;
 			fragment_uniforms.control[3] = static_cast<float>( image.geometry->light_count );
 
-			for ( int binding_index = 0; binding_index < 5; ++binding_index )
+			fragment_uniforms.hdri_control[0] =
+				image.geometry->pbr_material.hdri_texture.texture_id ? 1.0f : 0.0f;
+
+			for ( int binding_index = 0; binding_index < FE_RENDER_PBR_TEXTURE_COUNT; ++binding_index )
 			{
 				const FeRenderTextureBinding &binding = *bindings[binding_index];
-				fragment_uniforms.transforms_offset_scale[binding_index][0] = binding.offset_u;
-				fragment_uniforms.transforms_offset_scale[binding_index][1] = binding.offset_v;
-				fragment_uniforms.transforms_offset_scale[binding_index][2] = binding.scale_u;
-				fragment_uniforms.transforms_offset_scale[binding_index][3] = binding.scale_v;
-				fragment_uniforms.transforms_texcoord_fit[binding_index][0] = static_cast<float>( binding.texcoord_set );
-				fragment_uniforms.transforms_texcoord_fit[binding_index][1] = binding.fit_scale_u;
-				fragment_uniforms.transforms_texcoord_fit[binding_index][2] = binding.fit_scale_v;
-				fragment_uniforms.transforms_texcoord_fit[binding_index][3] = 0.0f;
+				if ( binding_index < FE_RENDER_PBR_HDRI_TEXTURE_INDEX )
+				{
+					fragment_uniforms.transforms_offset_scale[binding_index][0] = binding.offset_u;
+					fragment_uniforms.transforms_offset_scale[binding_index][1] = binding.offset_v;
+					fragment_uniforms.transforms_offset_scale[binding_index][2] = binding.scale_u;
+					fragment_uniforms.transforms_offset_scale[binding_index][3] = binding.scale_v;
+					fragment_uniforms.transforms_texcoord_fit[binding_index][0] = static_cast<float>( binding.texcoord_set );
+					fragment_uniforms.transforms_texcoord_fit[binding_index][1] = binding.fit_scale_u;
+					fragment_uniforms.transforms_texcoord_fit[binding_index][2] = binding.fit_scale_v;
+					fragment_uniforms.transforms_texcoord_fit[binding_index][3] = 0.0f;
+				}
 				sampler_bindings[binding_index].texture =
 					image.pbr_textures[binding_index] ? image.pbr_textures[binding_index] : m_white_texture;
-				sampler_bindings[binding_index].sampler =
-					get_image_sampler(
-						binding.smooth,
-						binding.repeated,
-						binding.mipmap );
+				if ( binding_index == FE_RENDER_PBR_HDRI_TEXTURE_INDEX )
+					sampler_bindings[binding_index].sampler = binding.mipmap
+						? m_linear_mipmap_equirect_sampler
+						: m_linear_equirect_sampler;
+				else
+					sampler_bindings[binding_index].sampler =
+						get_image_sampler(
+							binding.smooth,
+							binding.repeated,
+							binding.mipmap );
 			}
 
 			for ( int light_index = 0; light_index < image.geometry->light_count; ++light_index )
@@ -5327,11 +5411,13 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			return true;
 
 		FeSdl3GpuPbrFragmentUniforms fragment_uniforms = {};
-		SDL_GPUTextureSamplerBinding base_sampler_bindings[5] = {};
+		SDL_GPUTextureSamplerBinding base_sampler_bindings[FE_RENDER_PBR_TEXTURE_COUNT] = {};
 		fill_pbr_fragment_state( prototype, fragment_uniforms, base_sampler_bindings );
 		std::vector<float> custom_fragment_uniform_data;
 		std::vector<SDL_GPUTextureSamplerBinding> sampler_bindings;
-		sampler_bindings.assign( base_sampler_bindings, base_sampler_bindings + 5 );
+		sampler_bindings.assign(
+			base_sampler_bindings,
+			base_sampler_bindings + FE_RENDER_PBR_TEXTURE_COUNT );
 		if ( use_custom_pbr_shader )
 		{
 			build_custom_uniform_data(
@@ -5339,7 +5425,9 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				prototype.pbr_custom_shader->fragment_uniforms,
 				custom_fragment_uniform_data,
 				prototype.geometry->pbr_material.artwork_shader );
-			sampler_bindings.resize( 5 + prototype.pbr_custom_shader->fragment_samplers.size() );
+			sampler_bindings.resize(
+				FE_RENDER_PBR_TEXTURE_COUNT +
+				prototype.pbr_custom_shader->fragment_samplers.size() );
 
 			for ( const CustomSamplerBinding &sampler : prototype.pbr_custom_shader->fragment_samplers )
 			{
@@ -6188,6 +6276,20 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
+	m_linear_equirect_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		false,
+		true );
+	if ( !m_linear_equirect_sampler )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear equirect sampler" << std::endl;
+		release_image_pipeline();
+		return false;
+	}
+
 	m_linear_mipmap_sampler = create_sampler(
 		SDL_GPU_FILTER_LINEAR,
 		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
@@ -6210,6 +6312,20 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	if ( !m_linear_mipmap_repeat_sampler )
 	{
 		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap repeat sampler" << std::endl;
+		release_image_pipeline();
+		return false;
+	}
+
+	m_linear_mipmap_equirect_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		true,
+		true );
+	if ( !m_linear_mipmap_equirect_sampler )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap equirect sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -6408,7 +6524,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 	fragment_info.format = fragment_blob.format;
 	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
 	fragment_info.num_uniform_buffers = 1;
-	fragment_info.num_samplers = 5;
+	fragment_info.num_samplers = FE_RENDER_PBR_TEXTURE_COUNT;
 
 	m_pbr_fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
 	if ( !m_pbr_fragment_shader )

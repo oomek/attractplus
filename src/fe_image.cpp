@@ -276,6 +276,12 @@ namespace
 	//
 	const int PLAY_COUNT=5;
 	constexpr float FE_DEGREES_TO_RADIANS = 3.14159265358979323846f / 180.0f;
+
+	unsigned long long next_texture_content_version()
+	{
+		static unsigned long long version = 1;
+		return version++;
+	}
 };
 
 FeTextureContainer::FeTextureContainer(
@@ -298,7 +304,7 @@ FeTextureContainer::FeTextureContainer(
 	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
 	m_entry( NULL ),
-	m_content_version( 1 )
+	m_content_version( next_texture_content_version() )
 {
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
@@ -385,7 +391,7 @@ bool FeTextureContainer::fix_masked_image()
 	m_pixel_cache = std::move( pixels );
 	m_pixel_cache_valid = true;
 	m_texture_size = { width, height };
-	++m_content_version;
+	m_content_version = next_texture_content_version();
 	notify_texture_change();
 	return true;
 }
@@ -454,7 +460,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 		m_pixel_cache_valid = false;
 	}
 	m_file_name = loaded_name;
-	++m_content_version;
+	m_content_version = next_texture_content_version();
 
 	return true;
 }
@@ -494,7 +500,7 @@ bool FeTextureContainer::try_to_load(
 		il.release_entry( &m_entry ); // don't need entry any more
 	}
 
-	++m_content_version;
+	m_content_version = next_texture_content_version();
 
 	return true;
 }
@@ -653,7 +659,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
 			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
 			m_pixel_cache_valid = true;
-			++m_content_version;
+			m_content_version = next_texture_content_version();
 
 			il.release_entry( &m_entry );
 			return true;
@@ -891,7 +897,7 @@ void FeTextureContainer::clear()
 	m_pixel_cache.clear();
 	m_pixel_cache_valid = false;
 	m_texture_size = { 0, 0 };
-	++m_content_version;
+	m_content_version = next_texture_content_version();
 
 	// If a movie is running, close it...
 	if ( m_movie )

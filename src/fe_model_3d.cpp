@@ -428,17 +428,22 @@ namespace
 	void get_scene3d_light_settings(
 		float &ambient_light,
 		float &point_light,
-		float &point_light_radius )
+		float &point_light_radius,
+		const FeBaseTextureContainer **hdri_texture = nullptr )
 	{
 		ambient_light = FePresent::SCENE3D_DEFAULT_AMBIENT_LIGHT;
 		point_light = FePresent::SCENE3D_DEFAULT_LIGHT * FePresent::SCENE3D_LIGHT_POWER_SCALE;
 		point_light_radius = FePresent::SCENE3D_DEFAULT_LIGHT_RADIUS * FePresent::SCENE3D_LIGHT_RADIUS_SCALE;
+		if ( hdri_texture )
+			*hdri_texture = nullptr;
 
 		if ( FePresent *fep = FePresent::script_get_fep() )
 		{
 			ambient_light = fep->get_3d_ambient_light();
 			point_light = fep->get_3d_light() * FePresent::SCENE3D_LIGHT_POWER_SCALE;
 			point_light_radius = fep->get_3d_light_radius() * FePresent::SCENE3D_LIGHT_RADIUS_SCALE;
+			if ( hdri_texture )
+				*hdri_texture = fep->get_3d_hdri_texture();
 		}
 	}
 
@@ -1145,6 +1150,52 @@ namespace
 		return binding.texture_id != nullptr && binding.dynamic;
 	}
 
+	bool render_texture_binding_matches( const FeRenderTextureBinding &lhs, const FeRenderTextureBinding &rhs )
+	{
+		return lhs.texture_id == rhs.texture_id
+			&& lhs.texture_source_type == rhs.texture_source_type
+			&& lhs.repeated == rhs.repeated
+			&& lhs.smooth == rhs.smooth
+			&& lhs.mipmap == rhs.mipmap
+			&& lhs.dynamic == rhs.dynamic
+			&& lhs.width == rhs.width
+			&& lhs.height == rhs.height
+			&& lhs.content_version == rhs.content_version
+			&& lhs.offset_u == rhs.offset_u
+			&& lhs.offset_v == rhs.offset_v
+			&& lhs.scale_u == rhs.scale_u
+			&& lhs.scale_v == rhs.scale_v
+			&& lhs.fit_scale_u == rhs.fit_scale_u
+			&& lhs.fit_scale_v == rhs.fit_scale_v
+			&& lhs.texcoord_set == rhs.texcoord_set;
+	}
+
+	void fill_render_texture_binding_from_container(
+		FeRenderTextureBinding &binding,
+		const FeBaseTextureContainer *container,
+		bool repeated,
+		bool smooth,
+		bool mipmap )
+	{
+		binding.clear();
+		if ( !container )
+			return;
+
+		const Vec2u texture_size = container->get_texture_size();
+		if ( texture_size.x == 0 || texture_size.y == 0 )
+			return;
+
+		binding.texture_id = container->get_texture_source_id();
+		binding.texture_source_type = container->get_texture_source_type();
+		binding.repeated = repeated;
+		binding.smooth = smooth;
+		binding.mipmap = mipmap;
+		binding.dynamic = container->is_volatile_texture();
+		binding.width = static_cast<float>( texture_size.x );
+		binding.height = static_cast<float>( texture_size.y );
+		binding.content_version = container->get_texture_content_version();
+	}
+
 	void fill_render_texture_binding(
 		FeRenderTextureBinding &binding,
 		const ModelTextureRef &source,
@@ -1155,19 +1206,12 @@ namespace
 		if ( !container )
 			return;
 
-		const Vec2u texture_size = container->get_texture_size();
-		if ( texture_size.x == 0 || texture_size.y == 0 )
-			return;
-
-		binding.texture_id = container->get_texture_source_id();
-		binding.texture_source_type = container->get_texture_source_type();
-		binding.repeated = override_container ? container->get_repeat() : source.repeated;
-		binding.smooth = override_container ? container->get_smooth() : source.smooth;
-		binding.mipmap = override_container ? container->get_mipmap() : source.mipmap;
-		binding.dynamic = container->is_volatile_texture();
-		binding.width = static_cast<float>( texture_size.x );
-		binding.height = static_cast<float>( texture_size.y );
-		binding.content_version = container->get_texture_content_version();
+		fill_render_texture_binding_from_container(
+			binding,
+			container,
+			override_container ? container->get_repeat() : source.repeated,
+			override_container ? container->get_smooth() : source.smooth,
+			override_container ? container->get_mipmap() : source.mipmap );
 		binding.offset_u = source.offset_u;
 		binding.offset_v = source.offset_v;
 		binding.scale_u = source.scale_u;
@@ -2891,7 +2935,11 @@ void FeModel3D::load_model( const std::string &filename )
 	sync_object_handles();
 }
 
-bool FeModel3D::geometry_cache_matches( float ambient_light, float point_light, float point_light_radius ) const
+bool FeModel3D::geometry_cache_matches(
+	float ambient_light,
+	float point_light,
+	float point_light_radius,
+	const FeRenderTextureBinding &hdri_texture ) const
 {
 	if ( !m_geometry_cache_valid
 		|| ( m_geometry_cache_model != m_model.get() )
@@ -2910,6 +2958,7 @@ bool FeModel3D::geometry_cache_matches( float ambient_light, float point_light, 
 		|| ( m_geometry_cache_3d_ambient_light != ambient_light )
 		|| ( m_geometry_cache_3d_light != point_light )
 		|| ( m_geometry_cache_3d_light_radius != point_light_radius )
+		|| !render_texture_binding_matches( m_geometry_cache_3d_hdri_texture, hdri_texture )
 		|| ( m_geometry_cache_primitives.size() != m_geometry_cache.size() )
 		|| ( m_geometry_cache_objects.size() != m_geometry_cache.size() ) )
 	{
@@ -2969,7 +3018,11 @@ bool FeModel3D::geometry_cache_matches( float ambient_light, float point_light, 
 	return true;
 }
 
-void FeModel3D::update_geometry_cache_state( float ambient_light, float point_light, float point_light_radius ) const
+void FeModel3D::update_geometry_cache_state(
+	float ambient_light,
+	float point_light,
+	float point_light_radius,
+	const FeRenderTextureBinding &hdri_texture ) const
 {
 	m_geometry_cache_valid = true;
 	m_geometry_cache_model = m_model.get();
@@ -2988,9 +3041,13 @@ void FeModel3D::update_geometry_cache_state( float ambient_light, float point_li
 	m_geometry_cache_3d_ambient_light = ambient_light;
 	m_geometry_cache_3d_light = point_light;
 	m_geometry_cache_3d_light_radius = point_light_radius;
+	m_geometry_cache_3d_hdri_texture = hdri_texture;
 }
 
-void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size_t primitive_index ) const
+void FeModel3D::update_cached_material_state(
+	FeRenderGeometry &entry,
+	std::size_t primitive_index,
+	const FeRenderTextureBinding &hdri_texture ) const
 {
 	if ( !m_model || primitive_index >= m_model->primitives.size() )
 		return;
@@ -3032,6 +3089,7 @@ void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size
 		entry.pbr_material.emissive_texture,
 		primitive.material.emissive_texture,
 		use_emissive_override ? override_container : nullptr );
+	entry.pbr_material.hdri_texture = hdri_texture;
 
 	if ( override_container && override_entry && override_entry->preserve_aspect_ratio )
 	{
@@ -3062,10 +3120,11 @@ void FeModel3D::update_cached_material_state( FeRenderGeometry &entry, std::size
 		|| binding_is_dynamic( entry.pbr_material.metallic_roughness_texture )
 		|| binding_is_dynamic( entry.pbr_material.normal_texture )
 		|| binding_is_dynamic( entry.pbr_material.occlusion_texture )
-		|| binding_is_dynamic( entry.pbr_material.emissive_texture );
+		|| binding_is_dynamic( entry.pbr_material.emissive_texture )
+		|| binding_is_dynamic( entry.pbr_material.hdri_texture );
 }
 
-void FeModel3D::refresh_geometry_cache() const
+void FeModel3D::refresh_geometry_cache( const FeRenderTextureBinding &hdri_texture ) const
 {
 	if ( !m_model || m_geometry_cache.empty() )
 		return;
@@ -3218,13 +3277,14 @@ void FeModel3D::refresh_geometry_cache() const
 			entry.ambient_color[1] = m_model->lights.empty() ? 0.08f : 0.03f;
 			entry.ambient_color[2] = m_model->lights.empty() ? 0.08f : 0.03f;
 			entry.ambient_light = ambient_light;
+			entry.pbr_material.hdri_texture = hdri_texture;
 			entry.light_count = light_count;
 			std::memcpy( entry.model_matrix, model_matrix, sizeof( model_matrix ) );
 			std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
 			for ( int light_index = 0; light_index < light_count; ++light_index )
 				entry.lights[ light_index ] = transformed_lights[ light_index ];
 		}
-		update_geometry_cache_state( ambient_light, point_light, point_light_radius );
+		update_geometry_cache_state( ambient_light, point_light, point_light_radius, hdri_texture );
 		return;
 	}
 
@@ -3279,14 +3339,19 @@ void FeModel3D::refresh_geometry_cache() const
 		std::memcpy( entry.normal_matrix, normal_matrix, sizeof( normal_matrix ) );
 		for ( int light_index = 0; light_index < light_count; ++light_index )
 			entry.lights[ light_index ] = transformed_lights[ light_index ];
+		entry.pbr_material.hdri_texture = hdri_texture;
 		if ( override_entry )
-			update_cached_material_state( entry, primitive_index );
+			update_cached_material_state( entry, primitive_index, hdri_texture );
 	}
 
-	update_geometry_cache_state( ambient_light, point_light, point_light_radius );
+	update_geometry_cache_state( ambient_light, point_light, point_light_radius, hdri_texture );
 }
 
-void FeModel3D::rebuild_geometry_cache( float ambient_light, float point_light, float point_light_radius ) const
+void FeModel3D::rebuild_geometry_cache(
+	float ambient_light,
+	float point_light,
+	float point_light_radius,
+	const FeRenderTextureBinding &hdri_texture ) const
 {
 	m_geometry_cache.clear();
 	m_geometry_cache_primitives.clear();
@@ -3456,7 +3521,7 @@ void FeModel3D::rebuild_geometry_cache( float ambient_light, float point_light, 
 			}
 		}
 
-		update_cached_material_state( entry, primitive_index );
+		update_cached_material_state( entry, primitive_index, hdri_texture );
 		if ( entry.get_vertex_count() > 0 )
 		{
 			m_geometry_cache.push_back( entry );
@@ -3543,7 +3608,7 @@ void FeModel3D::rebuild_geometry_cache( float ambient_light, float point_light, 
 		}
 	}
 
-	update_geometry_cache_state( ambient_light, point_light, point_light_radius );
+	update_geometry_cache_state( ambient_light, point_light, point_light_radius, hdri_texture );
 }
 
 bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
@@ -3554,12 +3619,21 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	float ambient_light = 0.0f;
 	float point_light = 0.0f;
 	float point_light_radius = 0.0f;
-	get_scene3d_light_settings( ambient_light, point_light, point_light_radius );
+	const FeBaseTextureContainer *hdri_container = nullptr;
+	get_scene3d_light_settings( ambient_light, point_light, point_light_radius, &hdri_container );
+	FeRenderTextureBinding hdri_texture;
+	if ( hdri_container )
+		fill_render_texture_binding_from_container(
+			hdri_texture,
+			hdri_container,
+			hdri_container->get_repeat(),
+			hdri_container->get_smooth(),
+			hdri_container->get_mipmap() );
 
 	if ( !m_geometry_cache_valid || ( m_geometry_cache_model != m_model.get() ) )
-		rebuild_geometry_cache( ambient_light, point_light, point_light_radius );
-	else if ( !geometry_cache_matches( ambient_light, point_light, point_light_radius ) )
-		refresh_geometry_cache();
+		rebuild_geometry_cache( ambient_light, point_light, point_light_radius, hdri_texture );
+	else if ( !geometry_cache_matches( ambient_light, point_light, point_light_radius, hdri_texture ) )
+		refresh_geometry_cache( hdri_texture );
 
 	if ( m_geometry_cache.empty() )
 		return false;

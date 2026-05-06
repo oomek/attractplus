@@ -89,7 +89,7 @@ private:
 	{
 		const FeRenderGeometry *geometry;
 		SDL_GPUTexture *gpu_texture;
-		SDL_GPUTexture *pbr_textures[5];
+		SDL_GPUTexture *pbr_textures[FE_RENDER_PBR_TEXTURE_COUNT];
 		std::size_t first_vertex;
 		std::size_t vertex_count;
 		int blend_mode;
@@ -258,6 +258,7 @@ private:
 	int get_requested_anisotropy() const;
 	bool update_anisotropy();
 	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth );
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth );
 	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped ) const;
 	SDL_GPUSampleCount get_requested_sample_count() const;
 	SDL_GPUSampleCount pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const;
@@ -376,8 +377,10 @@ private:
 	SDL_GPUShader *m_pbr_prepass_fragment_shader;
 	SDL_GPUSampler *m_linear_sampler;
 	SDL_GPUSampler *m_linear_repeat_sampler;
+	SDL_GPUSampler *m_linear_equirect_sampler;
 	SDL_GPUSampler *m_linear_mipmap_sampler;
 	SDL_GPUSampler *m_linear_mipmap_repeat_sampler;
+	SDL_GPUSampler *m_linear_mipmap_equirect_sampler;
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_sampler;

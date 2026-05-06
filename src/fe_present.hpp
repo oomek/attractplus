@@ -38,6 +38,7 @@
 class FeImage;
 class FeModel3D;
 class FeBaseTextureContainer;
+class FeTextureContainer;
 class FeText;
 class FeListBox;
 class FeRectangle;
@@ -163,6 +164,8 @@ protected:
 	float m_3d_ambient_light;
 	float m_3d_light;
 	float m_3d_light_radius;
+	std::string m_3d_hdri_filename;
+	FeTextureContainer *m_3d_hdri_texture;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
 	std::vector<FeSound *> m_sounds;
@@ -250,6 +253,7 @@ protected:
 	void set_layout_font_name( const char * );
 	void set_preserve_aspect_ratio( bool );
 	void reset_scene3d_globals();
+	void clear_3d_hdri_texture();
 
 public:
 	static constexpr float SCENE3D_DEFAULT_AMBIENT_LIGHT = 0.0f;
@@ -337,6 +341,9 @@ public:
 	void set_3d_light( float light );
 	float get_3d_light_radius() const;
 	void set_3d_light_radius( float radius );
+	const char *get_3d_hdri_filename() const;
+	void set_3d_hdri_filename( const char *filename );
+	const FeBaseTextureContainer *get_3d_hdri_texture() const;
 	bool get_mouse_pointer();
 	void set_mouse_pointer( bool );
 	FeSdl3GpuContext &get_gpu_context() { return m_window.get_gpu_context(); }
