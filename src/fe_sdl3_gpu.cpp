@@ -307,6 +307,16 @@ namespace
 		height = max_y - min_y;
 	}
 
+	bool is_cubemap_cross_size( unsigned int width, unsigned int height, unsigned int &face_size )
+	{
+		face_size = 0;
+		if ( width == 0 || height == 0 || ( width % 4 ) != 0 || ( height % 3 ) != 0 )
+			return false;
+
+		face_size = width / 4;
+		return face_size > 0 && face_size == ( height / 3 );
+	}
+
 	std::uint64_t hash_combine_u64( std::uint64_t seed, std::uint64_t value )
 	{
 		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
@@ -574,7 +584,7 @@ namespace
 			"layout(set = 2, binding = 2) uniform sampler2D normal_texture;\n"
 			"layout(set = 2, binding = 3) uniform sampler2D occlusion_texture;\n"
 			"layout(set = 2, binding = 4) uniform sampler2D emissive_texture;\n"
-			"layout(set = 2, binding = 5) uniform sampler2D hdri_texture;\n"
+			"layout(set = 2, binding = 5) uniform samplerCube cubemap_texture;\n"
 			"struct LightUniform\n"
 			"{\n"
 			"\tvec4 color_intensity;\n"
@@ -590,7 +600,7 @@ namespace
 			"\tvec4 control;\n"
 			"\tvec4 ambient_color;\n"
 			"\tvec4 artwork_control;\n"
-			"\tvec4 hdri_control;\n"
+			"\tvec4 cubemap_control;\n"
 			"\tvec4 transforms_offset_scale[5];\n"
 			"\tvec4 transforms_texcoord_fit[5];\n"
 			"\tLightUniform lights[4];\n"
@@ -598,6 +608,7 @@ namespace
 			"const float PI = 3.14159265358979323846;\n"
 			"const float MIN_ROUGHNESS = 0.08;\n"
 			"const float AREA_SPECULAR_SCALE = 18.0;\n"
+			"const float CUBEMAP_DIELECTRIC_HIGHLIGHT_BOOST = 4.0;\n"
 			"vec3 srgb_to_linear( vec3 value )\n"
 			"{\n"
 			"\tvalue = max( value, vec3( 0.0 ) );\n"
@@ -672,18 +683,45 @@ namespace
 			"\tvec2 uv = transform_uv( select_uv( pbr.transforms_texcoord_fit[4].x ), 4, fit_alpha );\n"
 			"\treturn texture( emissive_texture, uv ).rgb * fit_alpha;\n"
 			"}\n"
-			"vec2 equirect_uv( vec3 direction )\n"
+			"vec3 sample_cubemap_lod( vec3 direction, float lod_value )\n"
 			"{\n"
-			"\tdirection = normalize( direction );\n"
-			"\tfloat u = atan( direction.z, direction.x ) / ( 2.0 * PI ) + 0.5;\n"
-			"\tfloat v = acos( clamp( direction.y, -1.0, 1.0 ) ) / PI;\n"
-			"\treturn vec2( u, v );\n"
-			"}\n"
-			"vec3 sample_hdri( vec3 direction, float lod_bias )\n"
-			"{\n"
-			"\tfloat lod = max( lod_bias, 0.0 );\n"
-			"\tvec3 value = textureLod( hdri_texture, equirect_uv( direction ), lod ).rgb;\n"
+			"\tfloat lod = max( lod_value, 0.0 );\n"
+			"\tvec3 value = textureLod( cubemap_texture, normalize( direction ), lod ).rgb;\n"
 			"\treturn srgb_to_linear( value );\n"
+			"}\n"
+			"vec3 sample_cubemap_specular( vec3 direction, float roughness, float max_lod )\n"
+			"{\n"
+			"\tvec3 R = normalize( direction );\n"
+			"\tfloat lod = roughness * max_lod;\n"
+			"\tvec3 isotropic = sample_cubemap_lod( R, lod );\n"
+			"\tfloat gradient_lod = min( lod, 2.0 );\n"
+			"\tfloat gradient_scale = exp2( gradient_lod );\n"
+			"\tvec3 anisotropic = srgb_to_linear( textureGrad( cubemap_texture, R, dFdx( R ) * gradient_scale, dFdy( R ) * gradient_scale ).rgb );\n"
+			"\tfloat anisotropic_weight = 1.0 - smoothstep( 0.25, 0.55, roughness );\n"
+			"\treturn mix( isotropic, anisotropic, anisotropic_weight );\n"
+			"}\n"
+			"float cubemap_max_lod()\n"
+			"{\n"
+			"\treturn max( float( textureQueryLevels( cubemap_texture ) ) - 1.0, 0.0 );\n"
+			"}\n"
+			"void add_cubemap_irradiance_sample( vec3 N, vec3 direction, float lod, inout vec3 color, inout float weight_sum )\n"
+			"{\n"
+			"\tfloat weight = max( dot( N, normalize( direction ) ), 0.0 );\n"
+			"\tcolor += sample_cubemap_lod( direction, lod ) * weight;\n"
+			"\tweight_sum += weight;\n"
+			"}\n"
+			"vec3 sample_cubemap_irradiance( vec3 normal, float lod )\n"
+			"{\n"
+			"\tvec3 N = normalize( normal );\n"
+			"\tvec3 color = vec3( 0.0 );\n"
+			"\tfloat weight_sum = 0.0;\n"
+			"\tadd_cubemap_irradiance_sample( N, vec3( 1.0, 0.0, 0.0 ), lod, color, weight_sum );\n"
+			"\tadd_cubemap_irradiance_sample( N, vec3( -1.0, 0.0, 0.0 ), lod, color, weight_sum );\n"
+			"\tadd_cubemap_irradiance_sample( N, vec3( 0.0, 1.0, 0.0 ), lod, color, weight_sum );\n"
+			"\tadd_cubemap_irradiance_sample( N, vec3( 0.0, -1.0, 0.0 ), lod, color, weight_sum );\n"
+			"\tadd_cubemap_irradiance_sample( N, vec3( 0.0, 0.0, 1.0 ), lod, color, weight_sum );\n"
+			"\tadd_cubemap_irradiance_sample( N, vec3( 0.0, 0.0, -1.0 ), lod, color, weight_sum );\n"
+			"\treturn color / max( weight_sum, 0.0001 );\n"
 			"}\n"
 			"float distribution_ggx( vec3 N, vec3 H, float roughness )\n"
 			"{\n"
@@ -713,6 +751,20 @@ namespace
 			"vec3 fresnel_schlick_roughness( float cosTheta, vec3 F0, float roughness )\n"
 			"{\n"
 			"\treturn F0 + ( max( vec3( 1.0 - roughness ), F0 ) - F0 ) * pow( 1.0 - cosTheta, 5.0 );\n"
+			"}\n"
+			"vec3 environment_brdf_approx( vec3 specular_color, float roughness, float NdotV )\n"
+			"{\n"
+			"\tconst vec4 c0 = vec4( -1.0, -0.0275, -0.572, 0.022 );\n"
+			"\tconst vec4 c1 = vec4( 1.0, 0.0425, 1.04, -0.04 );\n"
+			"\tvec4 r = roughness * c0 + c1;\n"
+			"\tfloat a004 = min( r.x * r.x, exp2( -9.28 * NdotV ) ) * r.x + r.y;\n"
+			"\tvec2 brdf = vec2( -1.04, 1.04 ) * a004 + r.zw;\n"
+			"\treturn max( specular_color * brdf.x + brdf.y, vec3( 0.0 ) );\n"
+			"}\n"
+			"float cubemap_highlight_weight( vec3 color )\n"
+			"{\n"
+			"\tfloat peak = max( max( color.r, color.g ), color.b );\n"
+			"\treturn smoothstep( 0.08, 0.85, peak );\n"
 			"}\n"
 			"float ior_to_f0( float ior )\n"
 			"{\n"
@@ -840,16 +892,20 @@ namespace
 			"\tfloat ambient_level = clamp( max( pbr.ambient_color.w, 0.0 ) * 0.01, 0.0, 1.0 );\n"
 			"\tfloat ambient_factor = pbr.artwork_control.z > 0.5 ? srgb_to_linear( vec3( ambient_level ) ).r : ambient_level;\n"
 			"\tvec3 ambient;\n"
-			"\tif ( pbr.hdri_control.x > 0.5 )\n"
+			"\tif ( pbr.cubemap_control.x > 0.5 )\n"
 			"\t{\n"
 			"\t\tvec3 environment_V = normalize( vec3( frag_world_view.x, -frag_world_view.y, frag_world_view.z ) );\n"
 			"\t\tvec3 R = reflect( -environment_V, environment_N );\n"
-			"\t\tvec3 hdri_diffuse = sample_hdri( environment_N, 8.0 );\n"
-			"\t\tvec3 hdri_specular = sample_hdri( R, roughness * 8.0 );\n"
+			"\t\tfloat max_lod = cubemap_max_lod();\n"
+			"\t\tvec3 cubemap_diffuse = sample_cubemap_irradiance( environment_N, max_lod );\n"
+			"\t\tvec3 cubemap_specular = sample_cubemap_specular( R, roughness, max_lod );\n"
 			"\t\tvec3 ambient_F0 = mix( F0, base_color.rgb, metallic );\n"
 			"\t\tvec3 ambient_fresnel = fresnel_schlick_roughness( NdotV_ambient, ambient_F0, roughness );\n"
-			"\t\tvec3 ambient_diffuse = ( vec3( 1.0 ) - ambient_fresnel ) * ( 1.0 - metallic ) * base_color.rgb * hdri_diffuse;\n"
-			"\t\tambient = ( ambient_diffuse + ambient_fresnel * hdri_specular ) * occlusion * ambient_factor;\n"
+			"\t\tfloat highlight_boost = mix( CUBEMAP_DIELECTRIC_HIGHLIGHT_BOOST, 1.0, metallic );\n"
+			"\t\thighlight_boost = mix( 1.0, highlight_boost, cubemap_highlight_weight( cubemap_specular ) );\n"
+			"\t\tvec3 ambient_specular = cubemap_specular * environment_brdf_approx( ambient_F0, roughness, NdotV_ambient ) * highlight_boost;\n"
+			"\t\tvec3 ambient_diffuse = ( vec3( 1.0 ) - ambient_fresnel ) * ( 1.0 - metallic ) * base_color.rgb * cubemap_diffuse;\n"
+			"\t\tambient = ( ambient_diffuse + ambient_specular ) * occlusion * ambient_factor;\n"
 			"\t}\n"
 			"\telse\n"
 			"\t{\n"
@@ -884,7 +940,7 @@ namespace
 			"\tvec4 control;\n"
 			"\tvec4 ambient_color;\n"
 			"\tvec4 artwork_control;\n"
-			"\tvec4 hdri_control;\n"
+			"\tvec4 cubemap_control;\n"
 			"\tvec4 transforms_offset_scale[5];\n"
 			"\tvec4 transforms_texcoord_fit[5];\n"
 			"\tLightUniform lights[4];\n"
@@ -969,18 +1025,19 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 				m_pbr_pipelines[z][a][d] = nullptr;
 	m_alpha_prepass_pipeline = nullptr;
 	for ( int d = 0; d < 2; ++d )
-		m_pbr_prepass_pipelines[d] = nullptr;
+	m_pbr_prepass_pipelines[d] = nullptr;
 	m_linear_sampler = nullptr;
 	m_linear_repeat_sampler = nullptr;
-	m_linear_equirect_sampler = nullptr;
+	m_linear_cubemap_sampler = nullptr;
 	m_linear_mipmap_sampler = nullptr;
 	m_linear_mipmap_repeat_sampler = nullptr;
-	m_linear_mipmap_equirect_sampler = nullptr;
+	m_linear_mipmap_cubemap_sampler = nullptr;
 	m_nearest_sampler = nullptr;
 	m_nearest_repeat_sampler = nullptr;
 	m_nearest_mipmap_sampler = nullptr;
 	m_nearest_mipmap_repeat_sampler = nullptr;
 	m_white_texture = nullptr;
+	m_white_cube_texture = nullptr;
 	m_color_target_texture = nullptr;
 	m_color_target_width = 0;
 	m_color_target_height = 0;
@@ -1097,7 +1154,8 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			float texture_height,
 			bool texture_mipmap,
 			bool texture_dynamic,
-			unsigned long long texture_content_version )
+			unsigned long long texture_content_version,
+			bool texture_cube_map = false )
 		{
 			if ( !texture_id )
 				return;
@@ -1113,6 +1171,7 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			const float previous_width = entry.width;
 			const float previous_height = entry.height;
 			const bool previous_mipmapped = entry.mipmapped;
+			const bool previous_cube_map = entry.cube_map;
 			const unsigned long long content_version =
 				( texture_content_version != 0 )
 					? texture_content_version
@@ -1120,6 +1179,7 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			entry.width = texture_width;
 			entry.height = texture_height;
 			entry.mipmapped = texture_mipmap;
+			entry.cube_map = texture_cube_map;
 			entry.last_seen_frame = m_frame.frame_number;
 			if ( is_available() )
 			{
@@ -1130,6 +1190,7 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					( previous_width != texture_width ) ||
 					( previous_height != texture_height ) ||
 					( previous_mipmapped != texture_mipmap ) ||
+					( previous_cube_map != texture_cube_map ) ||
 					( has_explicit_content_version &&
 						entry.last_upload_content_version != content_version ) ||
 					( texture_dynamic && entry.last_upload_content_version != content_version );
@@ -1163,10 +1224,11 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 				&image.pbr_material.normal_texture,
 				&image.pbr_material.occlusion_texture,
 				&image.pbr_material.emissive_texture,
-				&image.pbr_material.hdri_texture
+				&image.pbr_material.cubemap_texture
 			};
-			for ( const FeRenderTextureBinding *binding : bindings )
+			for ( int binding_index = 0; binding_index < FE_RENDER_PBR_TEXTURE_COUNT; ++binding_index )
 			{
+				const FeRenderTextureBinding *binding = bindings[binding_index];
 				if ( !binding )
 					continue;
 
@@ -1177,7 +1239,8 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					binding->height,
 					binding->mipmap,
 					binding->dynamic,
-					binding->content_version );
+					binding->content_version,
+					binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX );
 			}
 		}
 	};
@@ -1326,7 +1389,7 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 				&image.pbr_material.normal_texture,
 				&image.pbr_material.occlusion_texture,
 				&image.pbr_material.emissive_texture,
-				&image.pbr_material.hdri_texture
+				&image.pbr_material.cubemap_texture
 			};
 
 			for ( int binding_index = 0; binding_index < FE_RENDER_PBR_TEXTURE_COUNT; ++binding_index )
@@ -1344,8 +1407,14 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 					auto it = m_textures.find( binding.texture_id );
 					binding_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
 				}
-				prepared.pbr_textures[binding_index] =
-					binding_texture ? binding_texture : ( ensure_white_texture() ? m_white_texture : nullptr );
+				if ( binding_texture )
+					prepared.pbr_textures[binding_index] = binding_texture;
+				else if ( binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX )
+					prepared.pbr_textures[binding_index] =
+						ensure_white_cube_texture() ? m_white_cube_texture : nullptr;
+				else
+					prepared.pbr_textures[binding_index] =
+						ensure_white_texture() ? m_white_texture : nullptr;
 			}
 
 			if ( !prepared.gpu_texture )
@@ -1462,7 +1531,7 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 		|| !binding_matches( lhs_material.normal_texture, rhs_material.normal_texture )
 		|| !binding_matches( lhs_material.occlusion_texture, rhs_material.occlusion_texture )
 		|| !binding_matches( lhs_material.emissive_texture, rhs_material.emissive_texture )
-		|| !binding_matches( lhs_material.hdri_texture, rhs_material.hdri_texture ) )
+		|| !binding_matches( lhs_material.cubemap_texture, rhs_material.cubemap_texture ) )
 	{
 		return false;
 	}
@@ -1563,7 +1632,7 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash_binding( material.normal_texture );
 	hash_binding( material.occlusion_texture );
 	hash_binding( material.emissive_texture );
-	hash_binding( material.hdri_texture );
+	hash_binding( material.cubemap_texture );
 
 	for ( int i = 0; i < FE_RENDER_PBR_TEXTURE_COUNT; ++i )
 		hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.pbr_textures[i] ) );
@@ -2295,7 +2364,7 @@ namespace
 		float control[4];
 		float ambient_color[4];
 		float artwork_control[4];
-		float hdri_control[4];
+		float cubemap_control[4];
 		float transforms_offset_scale[5][4];
 		float transforms_texcoord_fit[5][4];
 		FeSdl3GpuPbrLightUniform lights[4];
@@ -2728,6 +2797,7 @@ void FeSdl3GpuContext::shutdown()
 	clear_textures();
 	clear_geometry_buffers();
 	release_white_texture();
+	release_white_cube_texture();
 	release_vertex_buffer();
 	release_pbr_instance_buffer();
 	release_color_target();
@@ -2860,6 +2930,15 @@ void FeSdl3GpuContext::release_white_texture()
 	}
 }
 
+void FeSdl3GpuContext::release_white_cube_texture()
+{
+	if ( m_white_cube_texture )
+	{
+		SDL_ReleaseGPUTexture( m_device, m_white_cube_texture );
+		m_white_cube_texture = nullptr;
+	}
+}
+
 bool FeSdl3GpuContext::ensure_white_texture()
 {
 	if ( !m_device )
@@ -2948,6 +3027,102 @@ bool FeSdl3GpuContext::ensure_white_texture()
 	return true;
 }
 
+bool FeSdl3GpuContext::ensure_white_cube_texture()
+{
+	if ( !m_device )
+		return false;
+
+	if ( m_white_cube_texture )
+		return true;
+
+	SDL_GPUTextureCreateInfo texture_info = {};
+	texture_info.type = SDL_GPU_TEXTURETYPE_CUBE;
+	texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+	texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+	texture_info.width = 1;
+	texture_info.height = 1;
+	texture_info.layer_count_or_depth = 6;
+	texture_info.num_levels = 1;
+	texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+	texture_info.props = 0;
+
+	m_white_cube_texture = SDL_CreateGPUTexture( m_device, &texture_info );
+	if ( !m_white_cube_texture )
+		return false;
+
+	const Uint32 white_pixels[6] =
+	{
+		0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu,
+		0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu
+	};
+	SDL_GPUTransferBufferCreateInfo transfer_info = {};
+	transfer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+	transfer_info.size = sizeof( white_pixels );
+	transfer_info.props = 0;
+
+	SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
+	if ( !transfer_buffer )
+	{
+		release_white_cube_texture();
+		return false;
+	}
+
+	void *mapped = SDL_MapGPUTransferBuffer( m_device, transfer_buffer, false );
+	if ( !mapped )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		release_white_cube_texture();
+		return false;
+	}
+
+	std::memcpy( mapped, white_pixels, sizeof( white_pixels ) );
+	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
+
+	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command_buffer )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+		release_white_cube_texture();
+		return false;
+	}
+
+	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
+
+	SDL_GPUTextureTransferInfo source = {};
+	source.transfer_buffer = transfer_buffer;
+	source.offset = 0;
+	source.pixels_per_row = 1;
+	source.rows_per_layer = 1;
+
+	SDL_GPUTextureRegion destination = {};
+	destination.texture = m_white_cube_texture;
+	destination.mip_level = 0;
+	destination.x = 0;
+	destination.y = 0;
+	destination.z = 0;
+	destination.w = 1;
+	destination.h = 1;
+	destination.d = 1;
+
+	for ( Uint32 face_index = 0; face_index < 6; ++face_index )
+	{
+		source.offset = face_index * sizeof( Uint32 );
+		destination.layer = face_index;
+		SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
+	}
+	SDL_EndGPUCopyPass( copy_pass );
+
+	const bool submitted = SDL_SubmitGPUCommandBuffer( command_buffer );
+	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
+	if ( !submitted )
+	{
+		release_white_cube_texture();
+		return false;
+	}
+
+	return true;
+}
+
 bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry )
 {
 	if ( !m_device || !texture_id )
@@ -2965,26 +3140,36 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	if ( texture_source_type == FeRenderTextureSourceContainer )
 	{
 		const FeBaseTextureContainer *source_container = static_cast<const FeBaseTextureContainer *>( texture_id );
-		media_container = dynamic_cast<const FeTextureContainer *>( source_container );
-		if ( media_container &&
-			media_container->get_media() &&
-			media_container->get_media()->get_video_frame_serial() != 0 &&
-			media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+		if ( entry.cube_map )
 		{
-			direct_media_upload = true;
+			if ( source_container && source_container->copy_pixels_rgba_to( nullptr, 0, source_width, source_height ) )
+				direct_container = source_container;
+			else if ( !source_container || !source_container->copy_pixels_rgba( pixel_data, source_width, source_height ) )
+				return false;
 		}
-		else if ( media_container &&
-			media_container->get_media() &&
-			media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+		else
 		{
-			black_media_placeholder = true;
+			media_container = dynamic_cast<const FeTextureContainer *>( source_container );
+			if ( media_container &&
+				media_container->get_media() &&
+				media_container->get_media()->get_video_frame_serial() != 0 &&
+				media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+			{
+				direct_media_upload = true;
+			}
+			else if ( media_container &&
+				media_container->get_media() &&
+				media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+			{
+				black_media_placeholder = true;
+			}
+			else if ( source_container && source_container->copy_pixels_rgba_to( nullptr, 0, source_width, source_height ) )
+			{
+				direct_container = source_container;
+			}
+			else if ( !source_container || !source_container->copy_pixels_rgba( pixel_data, source_width, source_height ) )
+				return false;
 		}
-		else if ( source_container && source_container->copy_pixels_rgba_to( nullptr, 0, source_width, source_height ) )
-		{
-			direct_container = source_container;
-		}
-		else if ( !source_container || !source_container->copy_pixels_rgba( pixel_data, source_width, source_height ) )
-			return false;
 	}
 	else if ( texture_source_type == FeRenderTextureSourceFontPage )
 	{
@@ -3011,18 +3196,36 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	else
 		return false;
 
+	unsigned int upload_width = source_width;
+	unsigned int upload_height = source_height;
+	unsigned int upload_layers = 1;
+	if ( entry.cube_map )
+	{
+		unsigned int face_size = 0;
+		if ( !is_cubemap_cross_size( source_width, source_height, face_size ) )
+		{
+			FeLog() << "SDL: upload_texture: scene3d cubemap must be a 4x3 cubemap cross, got "
+				<< source_width << "x" << source_height << std::endl;
+			return false;
+		}
+
+		upload_width = face_size;
+		upload_height = face_size;
+		upload_layers = 6;
+	}
+
 	release_texture( entry );
 
 	SDL_GPUTextureCreateInfo texture_info = {};
-	texture_info.type = SDL_GPU_TEXTURETYPE_2D;
+	texture_info.type = entry.cube_map ? SDL_GPU_TEXTURETYPE_CUBE : SDL_GPU_TEXTURETYPE_2D;
 	texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 	texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
 	if ( entry.mipmapped )
 		texture_info.usage |= SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-	texture_info.width = source_width;
-	texture_info.height = source_height;
-	texture_info.layer_count_or_depth = 1;
-	texture_info.num_levels = entry.mipmapped ? get_mip_level_count( source_width, source_height ) : 1;
+	texture_info.width = upload_width;
+	texture_info.height = upload_height;
+	texture_info.layer_count_or_depth = upload_layers;
+	texture_info.num_levels = entry.mipmapped ? get_mip_level_count( upload_width, upload_height ) : 1;
 	texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	texture_info.props = 0;
 
@@ -3131,11 +3334,40 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	destination.x = 0;
 	destination.y = 0;
 	destination.z = 0;
-	destination.w = source_width;
-	destination.h = source_height;
+	destination.w = upload_width;
+	destination.h = upload_height;
 	destination.d = 1;
 
-	SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
+	if ( entry.cube_map )
+	{
+		struct FaceRect
+		{
+			Uint32 column;
+			Uint32 row;
+		};
+
+		const FaceRect faces[6] =
+		{
+			{ 2, 1 }, // +X
+			{ 0, 1 }, // -X
+			{ 1, 0 }, // +Y
+			{ 1, 2 }, // -Y
+			{ 1, 1 }, // +Z
+			{ 3, 1 }  // -Z
+		};
+
+		for ( Uint32 face_index = 0; face_index < upload_layers; ++face_index )
+		{
+			const FaceRect &face = faces[face_index];
+			source.offset =
+				( face.row * upload_height * source_width +
+					face.column * upload_width ) * 4;
+			destination.layer = face_index;
+			SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
+		}
+	}
+	else
+		SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
 	SDL_EndGPUCopyPass( copy_pass );
 
 	if ( entry.mipmapped && texture_info.num_levels > 1 )
@@ -3210,10 +3442,10 @@ void FeSdl3GpuContext::release_image_pipeline()
 		m_linear_repeat_sampler = nullptr;
 	}
 
-	if ( m_linear_equirect_sampler )
+	if ( m_linear_cubemap_sampler )
 	{
-		SDL_ReleaseGPUSampler( m_device, m_linear_equirect_sampler );
-		m_linear_equirect_sampler = nullptr;
+		SDL_ReleaseGPUSampler( m_device, m_linear_cubemap_sampler );
+		m_linear_cubemap_sampler = nullptr;
 	}
 
 	if ( m_linear_mipmap_sampler )
@@ -3228,10 +3460,10 @@ void FeSdl3GpuContext::release_image_pipeline()
 		m_linear_mipmap_repeat_sampler = nullptr;
 	}
 
-	if ( m_linear_mipmap_equirect_sampler )
+	if ( m_linear_mipmap_cubemap_sampler )
 	{
-		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_equirect_sampler );
-		m_linear_mipmap_equirect_sampler = nullptr;
+		SDL_ReleaseGPUSampler( m_device, m_linear_mipmap_cubemap_sampler );
+		m_linear_mipmap_cubemap_sampler = nullptr;
 	}
 
 	if ( m_nearest_sampler )
@@ -5282,7 +5514,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				&image.geometry->pbr_material.normal_texture,
 				&image.geometry->pbr_material.occlusion_texture,
 				&image.geometry->pbr_material.emissive_texture,
-				&image.geometry->pbr_material.hdri_texture
+				&image.geometry->pbr_material.cubemap_texture
 			};
 
 			for ( int i = 0; i < 4; ++i )
@@ -5292,9 +5524,9 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				fragment_uniforms.emissive_factor[i] = image.geometry->pbr_material.emissive_factor[i];
 				fragment_uniforms.ambient_color[i] = image.geometry->ambient_color[i];
 				fragment_uniforms.artwork_control[i] = 0.0f;
-				fragment_uniforms.hdri_control[i] = 0.0f;
+				fragment_uniforms.cubemap_control[i] = 0.0f;
 			}
-			fragment_uniforms.hdri_control[3] = 0.0f;
+			fragment_uniforms.cubemap_control[3] = 0.0f;
 			fragment_uniforms.ambient_color[3] = image.geometry->ambient_light;
 			fragment_uniforms.artwork_control[3] = image.geometry->pbr_material.ior;
 			fragment_uniforms.artwork_control[0] =
@@ -5313,13 +5545,13 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			fragment_uniforms.control[2] = image.geometry->pbr_material.unlit ? 1.0f : 0.0f;
 			fragment_uniforms.control[3] = static_cast<float>( image.geometry->light_count );
 
-			fragment_uniforms.hdri_control[0] =
-				image.geometry->pbr_material.hdri_texture.texture_id ? 1.0f : 0.0f;
+			fragment_uniforms.cubemap_control[0] =
+				image.geometry->pbr_material.cubemap_texture.texture_id ? 1.0f : 0.0f;
 
 			for ( int binding_index = 0; binding_index < FE_RENDER_PBR_TEXTURE_COUNT; ++binding_index )
 			{
 				const FeRenderTextureBinding &binding = *bindings[binding_index];
-				if ( binding_index < FE_RENDER_PBR_HDRI_TEXTURE_INDEX )
+				if ( binding_index < FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX )
 				{
 					fragment_uniforms.transforms_offset_scale[binding_index][0] = binding.offset_u;
 					fragment_uniforms.transforms_offset_scale[binding_index][1] = binding.offset_v;
@@ -5331,11 +5563,15 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 					fragment_uniforms.transforms_texcoord_fit[binding_index][3] = 0.0f;
 				}
 				sampler_bindings[binding_index].texture =
-					image.pbr_textures[binding_index] ? image.pbr_textures[binding_index] : m_white_texture;
-				if ( binding_index == FE_RENDER_PBR_HDRI_TEXTURE_INDEX )
+					image.pbr_textures[binding_index]
+						? image.pbr_textures[binding_index]
+						: ( binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX
+							? m_white_cube_texture
+							: m_white_texture );
+				if ( binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX )
 					sampler_bindings[binding_index].sampler = binding.mipmap
-						? m_linear_mipmap_equirect_sampler
-						: m_linear_equirect_sampler;
+						? m_linear_mipmap_cubemap_sampler
+						: m_linear_cubemap_sampler;
 				else
 					sampler_bindings[binding_index].sampler =
 						get_image_sampler(
@@ -6276,16 +6512,16 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
-	m_linear_equirect_sampler = create_sampler(
+	m_linear_cubemap_sampler = create_sampler(
 		SDL_GPU_FILTER_LINEAR,
 		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
-		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
 		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
 		false,
 		true );
-	if ( !m_linear_equirect_sampler )
+	if ( !m_linear_cubemap_sampler )
 	{
-		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear equirect sampler" << std::endl;
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear cubemap sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}
@@ -6316,16 +6552,16 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
-	m_linear_mipmap_equirect_sampler = create_sampler(
+	m_linear_mipmap_cubemap_sampler = create_sampler(
 		SDL_GPU_FILTER_LINEAR,
 		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
-		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
 		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
 		true,
 		true );
-	if ( !m_linear_mipmap_equirect_sampler )
+	if ( !m_linear_mipmap_cubemap_sampler )
 	{
-		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap equirect sampler" << std::endl;
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for linear mipmap cubemap sampler" << std::endl;
 		release_image_pipeline();
 		return false;
 	}

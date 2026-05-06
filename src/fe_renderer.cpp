@@ -136,7 +136,7 @@ void FeRenderPbrMaterial::clear()
 	normal_texture.clear();
 	occlusion_texture.clear();
 	emissive_texture.clear();
-	hdri_texture.clear();
+	cubemap_texture.clear();
 	artwork_shader = nullptr;
 	base_color_factor[0] = 1.0f;
 	base_color_factor[1] = 1.0f;

@@ -206,8 +206,8 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_3d_ambient_light( SCENE3D_DEFAULT_AMBIENT_LIGHT ),
 	m_3d_light( SCENE3D_DEFAULT_LIGHT ),
 	m_3d_light_radius( SCENE3D_DEFAULT_LIGHT_RADIUS ),
-	m_3d_hdri_filename(),
-	m_3d_hdri_texture( nullptr ),
+	m_3d_cubemap_filename(),
+	m_3d_cubemap_texture( nullptr ),
 	m_refresh_rate( 0 ),
 	m_playMovies( true ),
 	m_user_page_size( -1 ),
@@ -232,22 +232,22 @@ void FePresent::reset_scene3d_globals()
 	m_3d_ambient_light = SCENE3D_DEFAULT_AMBIENT_LIGHT;
 	m_3d_light = SCENE3D_DEFAULT_LIGHT;
 	m_3d_light_radius = SCENE3D_DEFAULT_LIGHT_RADIUS;
-	clear_3d_hdri_texture();
-	m_3d_hdri_filename.clear();
+	clear_3d_cubemap_texture();
+	m_3d_cubemap_filename.clear();
 }
 
-void FePresent::clear_3d_hdri_texture()
+void FePresent::clear_3d_cubemap_texture()
 {
-	if ( !m_3d_hdri_texture )
+	if ( !m_3d_cubemap_texture )
 		return;
 
 	std::vector<FeBaseTextureContainer *>::iterator it =
-		std::find( m_texturePool.begin(), m_texturePool.end(), m_3d_hdri_texture );
+		std::find( m_texturePool.begin(), m_texturePool.end(), m_3d_cubemap_texture );
 	if ( it != m_texturePool.end() )
 		m_texturePool.erase( it );
 
-	delete m_3d_hdri_texture;
-	m_3d_hdri_texture = nullptr;
+	delete m_3d_cubemap_texture;
+	m_3d_cubemap_texture = nullptr;
 }
 
 void FePresent::init_monitors()
@@ -728,7 +728,7 @@ namespace
 			|| !pbr_texture_binding_matches( lhs_material.normal_texture, rhs_material.normal_texture )
 			|| !pbr_texture_binding_matches( lhs_material.occlusion_texture, rhs_material.occlusion_texture )
 			|| !pbr_texture_binding_matches( lhs_material.emissive_texture, rhs_material.emissive_texture )
-			|| !pbr_texture_binding_matches( lhs_material.hdri_texture, rhs_material.hdri_texture ) )
+			|| !pbr_texture_binding_matches( lhs_material.cubemap_texture, rhs_material.cubemap_texture ) )
 		{
 			return false;
 		}
@@ -835,7 +835,7 @@ namespace
 		hash_pbr_texture_binding( material.normal_texture, hash );
 		hash_pbr_texture_binding( material.occlusion_texture, hash );
 		hash_pbr_texture_binding( material.emissive_texture, hash );
-		hash_pbr_texture_binding( material.hdri_texture, hash );
+		hash_pbr_texture_binding( material.cubemap_texture, hash );
 
 		for ( int light_index = 0; light_index < entry.light_count; ++light_index )
 		{
@@ -1160,7 +1160,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			seed = hash_texture_binding( geometry.pbr_material.normal_texture, seed );
 			seed = hash_texture_binding( geometry.pbr_material.occlusion_texture, seed );
 			seed = hash_texture_binding( geometry.pbr_material.emissive_texture, seed );
-			seed = hash_texture_binding( geometry.pbr_material.hdri_texture, seed );
+			seed = hash_texture_binding( geometry.pbr_material.cubemap_texture, seed );
 			for ( int i = 0; i < 4; ++i )
 				seed = hash_float( seed, geometry.pbr_material.base_color_factor[i] );
 			for ( int i = 0; i < 3; ++i )
@@ -1236,7 +1236,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				add_binding_dependency( geometry.pbr_material.normal_texture, current_surface, dependencies );
 				add_binding_dependency( geometry.pbr_material.occlusion_texture, current_surface, dependencies );
 				add_binding_dependency( geometry.pbr_material.emissive_texture, current_surface, dependencies );
-				add_binding_dependency( geometry.pbr_material.hdri_texture, current_surface, dependencies );
+				add_binding_dependency( geometry.pbr_material.cubemap_texture, current_surface, dependencies );
 			}
 
 			if ( !geometry.shader )
@@ -1868,39 +1868,49 @@ void FePresent::set_3d_light_radius( float radius )
 	flag_redraw();
 }
 
-const char *FePresent::get_3d_hdri_filename() const
+const char *FePresent::get_3d_cubemap_filename() const
 {
-	return m_3d_hdri_filename.c_str();
+	return m_3d_cubemap_filename.c_str();
 }
 
-void FePresent::set_3d_hdri_filename( const char *filename )
+void FePresent::set_3d_cubemap_filename( const char *filename )
 {
 	std::string clean_filename = filename ? clean_path( filename ) : "";
-	if ( clean_filename == m_3d_hdri_filename && ( clean_filename.empty() || m_3d_hdri_texture ) )
+	if ( clean_filename == m_3d_cubemap_filename && ( clean_filename.empty() || m_3d_cubemap_texture ) )
 		return;
 
-	clear_3d_hdri_texture();
-	m_3d_hdri_filename = clean_filename;
+	clear_3d_cubemap_texture();
+	m_3d_cubemap_filename = clean_filename;
 
-	if ( !m_3d_hdri_filename.empty() )
+	if ( !m_3d_cubemap_filename.empty() )
 	{
 		FeTextureContainer *container = new FeTextureContainer( false );
 		container->set_smooth( true );
 		container->set_repeat( false );
 		container->set_mipmap( true );
-		container->load_file( m_3d_hdri_filename.c_str() );
+		container->load_file( m_3d_cubemap_filename.c_str() );
 
 		const Vec2u texture_size = container->get_texture_size();
 		if ( texture_size.x == 0 || texture_size.y == 0 )
 		{
-			FeLog() << "FePresent: failed to load scene3d HDRI texture " << m_3d_hdri_filename << std::endl;
+			FeLog() << "FePresent: failed to load scene3d cubemap texture " << m_3d_cubemap_filename << std::endl;
+			delete container;
+		}
+		else if ( ( texture_size.x % 4 ) != 0 ||
+			( texture_size.y % 3 ) != 0 ||
+			( texture_size.x / 4 ) != ( texture_size.y / 3 ) )
+		{
+			FeLog() << "FePresent: scene3d cubemap texture must be a 4x3 cubemap cross: "
+				<< m_3d_cubemap_filename << " ("
+				<< texture_size.x << "x" << texture_size.y << ")"
+				<< std::endl;
 			delete container;
 		}
 		else
 		{
-			m_3d_hdri_texture = container;
+			m_3d_cubemap_texture = container;
 			m_texturePool.push_back( container );
-			FeDebug() << "FePresent: loaded scene3d HDRI texture "
+			FeDebug() << "FePresent: loaded scene3d cubemap "
 				<< container->get_file_name() << " ("
 				<< texture_size.x << "x" << texture_size.y << ")"
 				<< std::endl;
@@ -1910,9 +1920,9 @@ void FePresent::set_3d_hdri_filename( const char *filename )
 	flag_redraw();
 }
 
-const FeBaseTextureContainer *FePresent::get_3d_hdri_texture() const
+const FeBaseTextureContainer *FePresent::get_3d_cubemap_texture() const
 {
-	return m_3d_hdri_texture;
+	return m_3d_cubemap_texture;
 }
 
 const FeFontContainer *FePresent::get_pooled_font( const std::string &n )

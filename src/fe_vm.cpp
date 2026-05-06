@@ -1273,7 +1273,7 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("ambient_light"), &FePresent::get_3d_ambient_light, &FePresent::set_3d_ambient_light )
 		.Prop( _SC("light"), &FePresent::get_3d_light, &FePresent::set_3d_light )
 		.Prop( _SC("light_radius"), &FePresent::get_3d_light_radius, &FePresent::set_3d_light_radius )
-		.Prop( _SC("hdri_filename"), &FePresent::get_3d_hdri_filename, &FePresent::set_3d_hdri_filename )
+		.Prop( _SC("cubemap"), &FePresent::get_3d_cubemap_filename, &FePresent::set_3d_cubemap_filename )
 	);
 
 	// Create a slot for fe.layout.nv data

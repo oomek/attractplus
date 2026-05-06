@@ -56,7 +56,7 @@ enum FeRenderTextureSourceType
 };
 
 constexpr int FE_RENDER_PBR_TEXTURE_COUNT = 6;
-constexpr int FE_RENDER_PBR_HDRI_TEXTURE_INDEX = 5;
+constexpr int FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX = 5;
 
 struct FeRenderRawTextureSource
 {
@@ -131,7 +131,7 @@ struct FeRenderPbrMaterial
 	FeRenderTextureBinding normal_texture;
 	FeRenderTextureBinding occlusion_texture;
 	FeRenderTextureBinding emissive_texture;
-	FeRenderTextureBinding hdri_texture;
+	FeRenderTextureBinding cubemap_texture;
 	const FeShader *artwork_shader;
 	float base_color_factor[4];
 	float emissive_factor[3];

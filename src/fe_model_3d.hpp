@@ -152,22 +152,22 @@ private:
 		float ambient_light,
 		float point_light,
 		float point_light_radius,
-		const FeRenderTextureBinding &hdri_texture ) const;
+		const FeRenderTextureBinding &cubemap_texture ) const;
 	void update_geometry_cache_state(
 		float ambient_light,
 		float point_light,
 		float point_light_radius,
-		const FeRenderTextureBinding &hdri_texture ) const;
+		const FeRenderTextureBinding &cubemap_texture ) const;
 	void update_cached_material_state(
 		FeRenderGeometry &entry,
 		std::size_t primitive_index,
-		const FeRenderTextureBinding &hdri_texture ) const;
-	void refresh_geometry_cache( const FeRenderTextureBinding &hdri_texture ) const;
+		const FeRenderTextureBinding &cubemap_texture ) const;
+	void refresh_geometry_cache( const FeRenderTextureBinding &cubemap_texture ) const;
 	void rebuild_geometry_cache(
 		float ambient_light,
 		float point_light,
 		float point_light_radius,
-		const FeRenderTextureBinding &hdri_texture ) const;
+		const FeRenderTextureBinding &cubemap_texture ) const;
 
 	std::string m_file_name;
 	Vec2f m_pos;
@@ -199,7 +199,7 @@ private:
 	mutable float m_geometry_cache_3d_ambient_light;
 	mutable float m_geometry_cache_3d_light;
 	mutable float m_geometry_cache_3d_light_radius;
-	mutable FeRenderTextureBinding m_geometry_cache_3d_hdri_texture;
+	mutable FeRenderTextureBinding m_geometry_cache_3d_cubemap_texture;
 	mutable std::vector<std::size_t> m_geometry_cache_primitives;
 	mutable std::vector<std::size_t> m_geometry_cache_objects;
 	mutable std::vector<FeRenderGeometry> m_geometry_cache;

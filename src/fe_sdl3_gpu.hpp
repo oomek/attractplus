@@ -63,6 +63,7 @@ private:
 		float width;
 		float height;
 		bool mipmapped;
+		bool cube_map;
 		unsigned long long last_seen_frame;
 		unsigned long long last_upload_frame;
 		unsigned long long last_upload_content_version;
@@ -243,6 +244,8 @@ private:
 	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry );
 	void release_white_texture();
 	bool ensure_white_texture();
+	void release_white_cube_texture();
+	bool ensure_white_cube_texture();
 	void release_vertex_buffer();
 	void release_pbr_instance_buffer();
 	bool upload_gpu_vertex_buffer_data( const void *data, Uint32 size, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
@@ -377,10 +380,10 @@ private:
 	SDL_GPUShader *m_pbr_prepass_fragment_shader;
 	SDL_GPUSampler *m_linear_sampler;
 	SDL_GPUSampler *m_linear_repeat_sampler;
-	SDL_GPUSampler *m_linear_equirect_sampler;
+	SDL_GPUSampler *m_linear_cubemap_sampler;
 	SDL_GPUSampler *m_linear_mipmap_sampler;
 	SDL_GPUSampler *m_linear_mipmap_repeat_sampler;
-	SDL_GPUSampler *m_linear_mipmap_equirect_sampler;
+	SDL_GPUSampler *m_linear_mipmap_cubemap_sampler;
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_sampler;
@@ -390,6 +393,7 @@ private:
 	SDL_GPUGraphicsPipeline *m_pbr_prepass_pipelines[2];
 	SDL_GPUGraphicsPipeline *m_pbr_pipelines[3][2][2];
 	SDL_GPUTexture *m_white_texture;
+	SDL_GPUTexture *m_white_cube_texture;
 	SDL_GPUTexture *m_color_target_texture;
 	int m_color_target_width;
 	int m_color_target_height;
