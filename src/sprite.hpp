@@ -237,7 +237,7 @@ public :
     /// \return Local bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    sf::IntRect getLocalBounds() const;
+    sf::FloatRect getLocalBounds() const;
 
 	void setCrop( FloatEdges );
 	FloatEdges getCrop();

@@ -175,12 +175,13 @@ sf::Color FeSprite::getColor() const
 
 
 ////////////////////////////////////////////////////////////
-sf::IntRect FeSprite::getLocalBounds() const
+sf::FloatRect FeSprite::getLocalBounds() const
 {
-    int width = std::abs( m_textureRect.size.x );
-    int height = std::abs( m_textureRect.size.y );
+    float width = std::abs( m_textureRect.size.x );
+    float height = std::abs( m_textureRect.size.y );
 
-    return sf::IntRect({ 0, 0 }, { width, height });
+    return sf::FloatRect({ 0, 0 }, { width, height });
+
 }
 
 void FeSprite::setCrop( FloatEdges crop )
