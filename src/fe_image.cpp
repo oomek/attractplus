@@ -1336,7 +1336,7 @@ void FeImage::draw(sf::RenderTarget& target, sf::RenderStates states) const
 			states.shader = sh;
 	}
 	else
-		states.shader = FeBlend::get_default_shader( m_blend_mode );
+		states.shader = FeBlend::get_default_shader( m_blend_mode, true );
 
 	states.blendMode = FeBlend::get_blend_mode( m_blend_mode );
 	target.draw( m_sprite, states );

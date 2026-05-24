@@ -1640,6 +1640,9 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `BlendMode.Overlay`
    -  `BlendMode.Premultiplied` (default for surfaces)
    -  `BlendMode.None`
+   -  `BlendMode.IgnoreAlpha` - Replace color only. The current alpha mask of destination is kept.
+   -  `BlendMode.InvertAlpha` - Use the source alpha to cut into the destination alpha.
+   -  `BlendMode.InvertRGB` - Use the source colour to invert the destination colour.
 -  `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video. Setting this to `true` greatly improves the quality of scaled down images. The default value is `false`. It's advised to force anisotropic filtering in the display driver settings if the Image with auto generated mipmap is scaled by the ratio that is not isotropic.
 -  `volume` 🔶 - Get/set the volume of played video. Range is `[0...100]`
 -  `pan` 🔶 - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
@@ -1960,6 +1963,9 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
    -  `BlendMode.Overlay`
    -  `BlendMode.Premultiplied`
    -  `BlendMode.None`
+   -  `BlendMode.IgnoreAlpha` - Replace color only. The current alpha mask of destination is kept.
+   -  `BlendMode.InvertAlpha` - Use the source alpha to cut into the destination alpha.
+   -  `BlendMode.InvertRGB` - Use the source colour to invert the destination colour.
 
 **Member Functions**
 

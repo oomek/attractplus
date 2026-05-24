@@ -25,30 +25,42 @@
 
 namespace
 {
-	const char *DEFAULT_SHADER_GLSL_MULTIPLIED = \
+	const char *DEFAULT_SHADER_GLSL_TEXTURE_MULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
 		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_FragColor.w;}";
 
-	const char *DEFAULT_SHADER_GLSL_OVERLAY = \
+	const char *DEFAULT_SHADER_GLSL_TEXTURE_OVERLAY = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
 		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor = mix(vec4(0.5,0.5,0.5,1.0), gl_FragColor, gl_FragColor.w);}";
 
-	const char *DEFAULT_SHADER_GLSL_PREMULTIPLIED = \
+	const char *DEFAULT_SHADER_GLSL_TEXTURE_PREMULTIPLIED = \
 		"uniform sampler2D texture;" \
 		"void main(){" \
 		"vec4 pixel = texture2D(texture, gl_TexCoord[0].xy);" \
 		"gl_FragColor = gl_Color * pixel;" \
 		"gl_FragColor.xyz *= gl_Color.w;}";
 
+	const char *DEFAULT_SHADER_GLSL_MULTIPLIED = \
+		"void main(){" \
+		"gl_FragColor = gl_Color;" \
+		"gl_FragColor.xyz *= gl_FragColor.w;}";
+
+	const char *DEFAULT_SHADER_GLSL_OVERLAY = \
+		"void main(){" \
+		"gl_FragColor = gl_Color;" \
+		"gl_FragColor = mix(vec4(0.5,0.5,0.5,1.0), gl_FragColor, gl_FragColor.w);}";
+
+	sf::Shader *default_shader_texture_multiplied=NULL;
+	sf::Shader *default_shader_texture_overlay=NULL;
+	sf::Shader *default_shader_texture_premultiplied=NULL;
 	sf::Shader *default_shader_multiplied=NULL;
 	sf::Shader *default_shader_overlay=NULL;
-	sf::Shader *default_shader_premultiplied=NULL;
 };
 
 sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
@@ -73,6 +85,18 @@ sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
 		case FeBlend::Premultiplied:
 			return sf::BlendMode(sf::BlendMode::Factor::One, sf::BlendMode::Factor::OneMinusSrcAlpha);
 
+		case FeBlend::IgnoreAlpha:
+			return sf::BlendMode(sf::BlendMode::Factor::DstAlpha, sf::BlendMode::Factor::Zero, sf::BlendMode::Equation::Add,
+								 sf::BlendMode::Factor::Zero, sf::BlendMode::Factor::One, sf::BlendMode::Equation::Add);
+
+		case FeBlend::InvertAlpha:
+			return sf::BlendMode(sf::BlendMode::Factor::OneMinusDstAlpha, sf::BlendMode::Factor::OneMinusSrcAlpha, sf::BlendMode::Equation::Add,
+								 sf::BlendMode::Factor::OneMinusDstAlpha, sf::BlendMode::Factor::OneMinusSrcAlpha, sf::BlendMode::Equation::Add);
+
+		case FeBlend::InvertRGB:
+			return sf::BlendMode(sf::BlendMode::Factor::OneMinusDstColor, sf::BlendMode::Factor::OneMinusSrcAlpha, sf::BlendMode::Equation::Add,
+								 sf::BlendMode::Factor::One, sf::BlendMode::Factor::OneMinusSrcAlpha, sf::BlendMode::Equation::Add);
+
 		case FeBlend::None:
 			return sf::BlendNone;
 
@@ -82,23 +106,60 @@ sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
 	}
 }
 
-sf::Shader* FeBlend::get_default_shader( int blend_mode )
+sf::Shader* FeBlend::get_default_shader( int blend_mode, bool textured )
 {
+	if ( textured )
+	{
+		switch( blend_mode )
+		{
+			case FeBlend::Screen:
+			case FeBlend::Multiply:
+			case FeBlend::IgnoreAlpha:
+			case FeBlend::InvertAlpha:
+			case FeBlend::InvertRGB:
+				if ( !default_shader_texture_multiplied )
+				{
+					default_shader_texture_multiplied = new sf::Shader();
+					std::ignore = default_shader_texture_multiplied->loadFromMemory( DEFAULT_SHADER_GLSL_TEXTURE_MULTIPLIED, sf::Shader::Type::Fragment );
+				}
+				return default_shader_texture_multiplied;
+
+			case FeBlend::Overlay:
+				if ( !default_shader_texture_overlay )
+				{
+					default_shader_texture_overlay = new sf::Shader();
+					std::ignore = default_shader_texture_overlay->loadFromMemory( DEFAULT_SHADER_GLSL_TEXTURE_OVERLAY, sf::Shader::Type::Fragment );
+				}
+				return default_shader_texture_overlay;
+
+			case FeBlend::Premultiplied:
+				if ( !default_shader_texture_premultiplied )
+				{
+					default_shader_texture_premultiplied = new sf::Shader();
+					std::ignore = default_shader_texture_premultiplied->loadFromMemory( DEFAULT_SHADER_GLSL_TEXTURE_PREMULTIPLIED, sf::Shader::Type::Fragment );
+				}
+				return default_shader_texture_premultiplied;
+
+			default:
+				return NULL;
+		}
+	}
+
 	switch( blend_mode )
 	{
-		case FeBlend::Alpha:
-		case FeBlend::Add:
-		case FeBlend::Subtract:
-		case FeBlend::None:
-			return NULL;
 		case FeBlend::Screen:
 		case FeBlend::Multiply:
+		case FeBlend::Premultiplied:
+		case FeBlend::IgnoreAlpha:
+		case FeBlend::InvertAlpha:
+		case FeBlend::InvertRGB:
 			if ( !default_shader_multiplied )
 			{
 				default_shader_multiplied = new sf::Shader();
 				std::ignore = default_shader_multiplied->loadFromMemory( DEFAULT_SHADER_GLSL_MULTIPLIED, sf::Shader::Type::Fragment );
 			}
 			return default_shader_multiplied;
+
 		case FeBlend::Overlay:
 			if ( !default_shader_overlay )
 			{
@@ -106,13 +167,7 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 				std::ignore = default_shader_overlay->loadFromMemory( DEFAULT_SHADER_GLSL_OVERLAY, sf::Shader::Type::Fragment );
 			}
 			return default_shader_overlay;
-		case FeBlend::Premultiplied:
-			if ( !default_shader_premultiplied )
-			{
-				default_shader_premultiplied = new sf::Shader();
-				std::ignore = default_shader_premultiplied->loadFromMemory( DEFAULT_SHADER_GLSL_PREMULTIPLIED, sf::Shader::Type::Fragment );
-			}
-			return default_shader_premultiplied;
+
 		default:
 			return NULL;
 	}
@@ -120,6 +175,24 @@ sf::Shader* FeBlend::get_default_shader( int blend_mode )
 
 void FeBlend::clear_default_shaders()
 {
+	if ( default_shader_texture_multiplied )
+	{
+		delete default_shader_texture_multiplied;
+		default_shader_texture_multiplied = NULL;
+	}
+
+	if ( default_shader_texture_overlay )
+	{
+		delete default_shader_texture_overlay;
+		default_shader_texture_overlay = NULL;
+	}
+
+	if ( default_shader_texture_premultiplied )
+	{
+		delete default_shader_texture_premultiplied;
+		default_shader_texture_premultiplied = NULL;
+	}
+
 	if ( default_shader_multiplied )
 	{
 		delete default_shader_multiplied;
@@ -130,11 +203,5 @@ void FeBlend::clear_default_shaders()
 	{
 		delete default_shader_overlay;
 		default_shader_overlay = NULL;
-	}
-
-	if ( default_shader_premultiplied )
-	{
-		delete default_shader_premultiplied;
-		default_shader_premultiplied = NULL;
 	}
 }
