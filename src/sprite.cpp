@@ -354,7 +354,13 @@ void FeSprite::updateGeometry()
 	}
 
 	// Padding enlarges the position to overlap the image bounds
-	FloatEdges spadding = FloatEdges( m_padding.left / scale.x, m_padding.top / scale.y, m_padding.right / scale.x, m_padding.bottom / scale.y );
+	float padding_scale = has_border ? m_border_scale : 1.f;
+	FloatEdges spadding = FloatEdges(
+		m_padding.left * padding_scale / scale.x,
+		m_padding.top * padding_scale / scale.y,
+		m_padding.right * padding_scale / scale.x,
+		m_padding.bottom * padding_scale / scale.y
+	);
 	pos.left -= spadding.left;
 	pos.top -= spadding.top;
 	pos.right = std::max( pos.left, pos.right + spadding.right );
