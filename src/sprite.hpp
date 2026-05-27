@@ -257,6 +257,7 @@ public :
 	void setPadding( const IntEdges &p );
 	void setScale( const sf::Vector2f &s );
 	float getBorderScale() const;
+	float getPaddingScale( const sf::Vector2f &size ) const;
 	void setBorderScale( float s );
 
 	using sf::Transformable::getRotation;

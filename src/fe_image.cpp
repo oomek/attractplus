@@ -1419,10 +1419,10 @@ void FeImage::scale()
 
 	// Populate the fit_rect so users can get the resulting image dimensions
 	const IntEdges& padding = m_sprite.getPadding();
-	const IntEdges& border = m_sprite.getBorder();
-	float padding_scale = ( border.left || border.top || border.right || border.bottom )
-		? m_sprite.getBorderScale()
-		: 1.f;
+	float padding_scale = m_sprite.getPaddingScale( sf::Vector2f(
+		std::abs( tex_size.x * scale.x ),
+		std::abs( tex_size.y * scale.y )
+	));
 	sf::Vector2f scaled_padding = sf::Vector2f(
 		( padding.left + padding.right ) * padding_scale,
 		( padding.top + padding.bottom ) * padding_scale

@@ -324,6 +324,19 @@ float FeSprite::getBorderScale() const
 	return m_border_scale;
 }
 
+float FeSprite::getPaddingScale( const sf::Vector2f &size ) const
+{
+	if ( !m_border.left && !m_border.top && !m_border.right && !m_border.bottom )
+		return 1.f;
+
+	float padding_scale = m_border_scale;
+	float x = m_border.left + m_border.right - m_padding.left - m_padding.right;
+	float y = m_border.top + m_border.bottom - m_padding.top - m_padding.bottom;
+	if ( x > 0.f ) padding_scale = std::min( padding_scale, size.x / x );
+	if ( y > 0.f ) padding_scale = std::min( padding_scale, size.y / y );
+	return padding_scale;
+}
+
 void FeSprite::setBorderScale( float s )
 {
 	if ( s != m_border_scale )
@@ -358,8 +371,12 @@ void FeSprite::updateGeometry()
 		tex.bottom -= scrop.bottom;
 	}
 
+	float padding_scale = getPaddingScale( sf::Vector2f(
+		( pos.right - pos.left ) * scale.x,
+		( pos.bottom - pos.top ) * scale.y
+	));
+
 	// Padding enlarges the position to overlap the image bounds
-	float padding_scale = has_border ? m_border_scale : 1.f;
 	FloatEdges spadding = FloatEdges(
 		m_padding.left * padding_scale / scale.x,
 		m_padding.top * padding_scale / scale.y,
@@ -381,14 +398,7 @@ void FeSprite::updateGeometry()
 		sf::Vector2f total_size = sf::Vector2f( pos.right - pos.left, pos.bottom - pos.top );
 		FloatEdges sborder = FloatEdges( m_border.left / scale.x, m_border.top / scale.y, m_border.right / scale.x, m_border.bottom / scale.y );
 
-		// Run twice, once to scale x, once to scale y (or vice-versa)
-		float s = m_border_scale;
-		for ( int i=0; i<2; i++)
-			s *= std::min(
-				total_size.x / std::max( ( sborder.left + sborder.right ) * s, total_size.x ),
-				total_size.y / std::max( ( sborder.top + sborder.bottom ) * s, total_size.y )
-			);
-
+		float s = padding_scale;
 		FloatEdges border = FloatEdges( sborder.left * s, sborder.top * s, sborder.right * s, sborder.bottom * s );
 
 		// Prepare pos/tex points for the slices
