@@ -1075,6 +1075,7 @@ bool FeSurfaceTextureContainer::get_smooth() const
 void FeSurfaceTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
+	if ( m_mipmap ) std::ignore = m_texture.generateMipmap();
 }
 
 bool FeSurfaceTextureContainer::get_mipmap() const

@@ -206,20 +206,25 @@ void FeSprite::draw(sf::RenderTarget& target, sf::RenderStates states) const
 		states.transform *= getTransform();
 		states.texture = m_texture;
 		if ( m_vertices[0].color.a > 0 )
-			target.draw( m_vertices, states );
-
-		// Set anisotropic filtering
-		FePresent *fep = FePresent::script_get_fep();
-		if ( fep )
 		{
-			int af_mode = fep->get_fes()->get_anisotropic();
-			if ( af_mode > 0 )
+			FePresent *fep = FePresent::script_get_fep();
+			if ( fep )
 			{
-				GLfloat aniso_max;
-				glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso_max );
-				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, (GLfloat)std::min( (int)aniso_max, af_mode ));
-				glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.25 );
+				int af_mode = fep->get_fes()->get_anisotropic();
+				if ( af_mode > 0 )
+				{
+					GLfloat aniso_max = 0.0f;
+					glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &aniso_max );
+					if ( aniso_max >= 1.0f )
+					{
+						glBindTexture( GL_TEXTURE_2D, m_texture->getNativeHandle() );
+						glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::min( aniso_max, static_cast<GLfloat>( af_mode )));
+						glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.25f );
+					}
+				}
 			}
+
+			target.draw( m_vertices, states );
 		}
 	}
 }
