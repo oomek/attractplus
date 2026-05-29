@@ -116,6 +116,8 @@ public:
 	void set_justify(int j);
 	void set_align(int a);
 	void set_font(const char *f);
+	int get_type() const;
+	bool get_magic() const;
 
 protected:
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;

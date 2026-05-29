@@ -272,6 +272,16 @@ const char *FeText::get_string_wrapped()
 	return m_string_wrapped.c_str();
 }
 
+int FeText::get_type() const
+{
+	return FePresentableTypeText;
+}
+
+bool FeText::get_magic() const
+{
+	return ( m_string.find( '[' ) != std::string::npos );
+}
+
 void FeText::set_string(const char *s)
 {
 	m_string=s;

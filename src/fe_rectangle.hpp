@@ -117,6 +117,7 @@ public:
 	void set_blend_mode( int b );
 
 	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
+	int get_type() const;
 
 protected:
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;

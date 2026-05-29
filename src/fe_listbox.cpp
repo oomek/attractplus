@@ -706,6 +706,11 @@ int FeListBox::get_align()
 	return (int)m_base_text.getAlignment();
 }
 
+int FeListBox::get_type() const
+{
+	return FePresentableTypeListbox;
+}
+
 void FeListBox::set_no_margin( bool m )
 {
 	if ( m == m_base_text.getNoMargin() )

@@ -106,6 +106,16 @@ const char *FeBaseTextureContainer::get_file_name() const
 	return NULL;
 }
 
+int FeBaseTextureContainer::get_type() const
+{
+	return 0;
+}
+
+bool FeBaseTextureContainer::get_magic() const
+{
+	return false;
+}
+
 void FeBaseTextureContainer::set_trigger( int t )
 {
 }
@@ -805,6 +815,27 @@ const char *FeTextureContainer::get_file_name() const
 	return m_file_name.c_str();
 }
 
+int FeTextureContainer::get_type() const
+{
+	switch ( m_type )
+	{
+		case IsArtwork:
+			return FePresentableTypeArtwork;
+
+		case IsDynamic:
+			return FePresentableTypeImage;
+
+		case IsStatic:
+		default:
+			return FePresentableTypeImage;
+	}
+}
+
+bool FeTextureContainer::get_magic() const
+{
+	return ( m_type == IsDynamic );
+}
+
 void FeTextureContainer::set_trigger( int t )
 {
 	m_art_update_trigger = t;
@@ -1111,6 +1142,11 @@ void FeSurfaceTextureContainer::set_redraw( bool r )
 bool FeSurfaceTextureContainer::get_redraw() const
 {
 	return m_redraw;
+}
+
+int FeSurfaceTextureContainer::get_type() const
+{
+	return FePresentableTypeSurface;
 }
 
 FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
@@ -1624,6 +1660,19 @@ int FeImage::getVideoTime() const
 const char *FeImage::getFileName() const
 {
 	return m_tex->get_file_name();
+}
+
+int FeImage::get_type() const
+{
+	if ( m_tex )
+		return m_tex->get_type();
+
+	return 0;
+}
+
+bool FeImage::get_magic() const
+{
+	return m_tex && m_tex->get_magic();
 }
 
 void FeImage::setFileName( const char *n )
