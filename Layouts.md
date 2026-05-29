@@ -1728,7 +1728,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `height` - Get/set height of text (in layout coordinates).
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
--  `magic` 🔶 - Get whether `msg` contains [_Magic Tokens_](#magic-tokens) (boolean).
+-  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
 -  `rotation` - Get/set rotation of text. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.

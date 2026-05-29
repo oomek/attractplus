@@ -2978,18 +2978,19 @@ void FeSettings::get_exit_question( std::string &exit_question ) const
 //
 // Perform substitutions of the [MagicString] sequences occurring in str
 //
-void FeSettings::do_text_substitutions( std::string &str, int filter_offset, int index_offset )
+bool FeSettings::do_text_substitutions( std::string &str, int filter_offset, int index_offset )
 {
 	int filter_index = get_filter_index_from_offset( filter_offset );
 	int rom_index = get_rom_index( filter_index, index_offset );
-	do_text_substitutions_absolute( str, filter_index, rom_index );
+	return do_text_substitutions_absolute( str, filter_index, rom_index );
 }
 
 //
 // Perform substitutions of the [MagicString] sequences occurring in str
 //
-void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_index, int rom_index )
+bool FeSettings::do_text_substitutions_absolute( std::string &str, int filter_index, int rom_index )
 {
+	bool processed = false;
 	size_t pos = str.find( '[' );
 	while ( pos != std::string::npos )
 	{
@@ -3004,10 +3005,13 @@ void FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 		{
 			str.replace( pos, close-pos+1, rep );
 			pos += rep.size() - 1;
+			processed = true;
 		}
 
 		pos = str.find( '[', pos+1 );
 	}
+
+	return processed;
 }
 
 namespace {

@@ -460,8 +460,8 @@ public:
 
 	int get_rom_index( int filter_index, int offset ) const;
 
-	void do_text_substitutions( std::string &str, int filter_offset, int index_offset );
-	void do_text_substitutions_absolute( std::string &str, int filter_index, int rom_index );
+	bool do_text_substitutions( std::string &str, int filter_offset, int index_offset );
+	bool do_text_substitutions_absolute( std::string &str, int filter_index, int rom_index );
 	bool get_token_value( std::string &token, int filter_index, int rom_index, std::string &value );
 	bool get_special_token_value( std::string &token, int filter_index, int rom_index, std::string &value );
 
