@@ -478,6 +478,11 @@ int FeRectangle::get_corner_point_count() const
 	return m_corner_point_count;
 }
 
+int FeRectangle::get_type() const
+{
+	return FePresentableTypeRectangle;
+}
+
 void FeRectangle::set_corner_point_count( int n )
 {
 	m_corner_point_count = n;

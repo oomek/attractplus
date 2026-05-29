@@ -184,6 +184,7 @@ public:
 	void set_format_string( const char *s );
 	int get_selected_row() const;
 	void set_selected_row( int r );
+	int get_type() const;
 private:
 	void update_list_settings( FeSettings *s );
 	void refresh_selection();

@@ -1542,6 +1542,11 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
+-  `type` 🔶 - Get the image object type. Images return `Type.Image`, artwork returns `Type.Artwork`, and surfaces return `Type.Surface`.
+-  `magic` 🔶 - Get whether the image object uses [_Magic Tokens_](#magic-tokens) (boolean). For example:
+   ```squirrel
+   if ( image.type == Type.Image && image.magic == true ) { }
+   ```
 -  `rotation` - Get/set rotation of image around its rotation origin. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for image. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for image. Range is `[0...255]`. Default value is `255`.
@@ -1722,6 +1727,8 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
+-  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
+-  `magic` 🔶 - Get whether `msg` contains [_Magic Tokens_](#magic-tokens) (boolean).
 -  `rotation` - Get/set rotation of text. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.
@@ -1798,6 +1805,8 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
+-  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
+-  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
 -  `rotation` - Get/set rotation of listbox. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.
@@ -1896,6 +1905,8 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
+-  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
+-  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
 -  `rotation` - Get/set rotation of the rectangle around its origin. Range is `[0...360]`. Default value is `0`.
 -  `red` - Get/set red colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `green` - Get/set green colour level for the rectangle. Range is `[0...255]`. Default value is `255`.

@@ -116,6 +116,8 @@ public:
 
 	virtual void release_audio( bool );
 	virtual void on_redraw_surfaces();
+	virtual int get_type() const;
+	virtual bool get_magic() const;
 
 protected:
 	FeBaseTextureContainer();
@@ -204,6 +206,8 @@ public:
 
 	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
 	FeMedia *get_media() const;
+	int get_type() const;
+	bool get_magic() const;
 
 protected:
 	FeTextureContainer *get_derived_texture_container();
@@ -278,6 +282,7 @@ public:
 	bool get_redraw() const;
 
 	FePresentableParent *get_presentable_parent();
+	int get_type() const;
 
 private:
 	sf::RenderTexture m_texture;
@@ -527,6 +532,8 @@ public:
 	FeText *add_text( const char *, int, int, int, int );
 	FeListBox *add_listbox( int, int, int, int );
 	FeRectangle *add_rectangle( float, float, float, float );
+	int get_type() const;
+	bool get_magic() const;
 
 protected:
 	FeBaseTextureContainer *m_tex;

@@ -36,6 +36,16 @@ namespace sf
 	class Color;
 };
 
+enum FePresentableType
+{
+	FePresentableTypeImage = 1 << 0,
+	FePresentableTypeArtwork = 1 << 1,
+	FePresentableTypeSurface = 1 << 2,
+	FePresentableTypeText = 1 << 3,
+	FePresentableTypeListbox = 1 << 4,
+	FePresentableTypeRectangle = 1 << 5
+};
+
 class FeBasePresentable
 {
 private:
@@ -101,6 +111,8 @@ public:
 
 	int get_zorder();
 	void set_zorder( int );
+	virtual bool get_magic() const;
+	virtual int get_type() const;
 };
 
 class FeImage;
