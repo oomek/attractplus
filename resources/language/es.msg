@@ -186,6 +186,8 @@ Displays Menu;Mostrar menú
 Previous Filter;Filtro anterior
 Next Filter;Filtro posterior
 Filters Menu;Menú de filtros
+Next Layout;Diseño siguiente
+Previous Layout;Diseño anterior
 Toggle Layout;Cambiar tema
 Toggle Movie;Cambiar video
 Toggle Mute;Silenciar
@@ -420,7 +422,8 @@ _help_control_selection_delay;Establece el retardo en milisegundos antes de que 
 _help_control_selection_max_step;Establece el tamaño máximo de paso para el movimiento de selección. El valor predeterminado es 128.
 _help_control_toggle_flip;Configura el(los) control(es) que cambia si la pantalla debe ser rotada o no 180 grados
 _help_control_toggle_fullscreen;Alterna el modo de ventana entre pantalla completa y ventana.
-_help_control_toggle_layout;Configura el(los) control(es) que cambia el script de tema a usar (Depende del tema que está usando si esto hace algo)
+_help_control_prev_layout;Configura el(los) control(es) que cambia el script de tema a usar (Depende del tema que está usando si esto hace algo)
+_help_control_next_layout;Configura el(los) control(es) que cambia el script de tema a usar (Depende del tema que está usando si esto hace algo)
 _help_control_toggle_movie;Configura el(los) control(es) que cambia si los videos son o no reproducidos
 _help_control_toggle_mute;Configura el(los) control(es) que silencia o no el sonido del frontend
 _help_control_toggle_rotate_left;Configura el(los) control(es) que cambia si la pantalla debe ser rotada o no 90 grados a la izquierda
