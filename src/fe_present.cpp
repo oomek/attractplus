@@ -1443,12 +1443,12 @@ void FePresent::pre_run()
 				its != m_musics.end(); ++its )
 		(*its)->set_playing( false );
 
-	sf::PlaybackDevice::setDeviceToNull();
+	std::ignore = sf::PlaybackDevice::setDeviceToNull();
 }
 
 void FePresent::post_run()
 {
-	sf::PlaybackDevice::setDeviceToDefault();
+	std::ignore = sf::PlaybackDevice::setDeviceToDefault();
 
 	std::vector<FeSound *>::iterator its;
 
