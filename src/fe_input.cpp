@@ -908,7 +908,8 @@ const char *FeInputMap::commandStrings[] =
 	"configure",
 	"layout_options",
 	"plugin_options",
-	"toggle_layout",
+	"prev_layout",
+	"next_layout",
 	"reload_layout",
 	"reload_config",
 	"reset_window",
@@ -971,7 +972,8 @@ const char *FeInputMap::commandDispStrings[] =
 	"Configure",
 	"Layout Options",
 	"Plugin Options",
-	"Toggle Layout",
+	"Previous Layout",
+	"Next Layout",
 	"Reload Layout",
 	"Reload Config",
 	"Reset Window",
@@ -1609,7 +1611,7 @@ FeInputMap::Command FeInputMap::string_to_command( const std::string &s )
 	}
 
 	//
-	// Redirect signals for backward compatibility
+	// Redirect deprecated signals for backward compatibility
 	//
 	if ( s.compare( "prev_list" ) == 0 ) // in 1.5: prev_list -> prev_display
 		return PrevDisplay;
@@ -1623,6 +1625,8 @@ FeInputMap::Command FeInputMap::string_to_command( const std::string &s )
 		return ExitToDesktop;
 	else if ( s.compare( "reload" ) == 0 ) // after 3.1.0: reload -> reload_layout
 		return ReloadLayout;
+	else if ( s.compare( "toggle_layout" ) == 0 ) // after 3.3.0: toggle_layout -> next_layout
+		return NextLayout;
 
 	return LAST_COMMAND;
 }

@@ -186,6 +186,8 @@ Displays Menu;显示器菜单
 Previous Filter;上一分类
 Next Filter;下一分类
 Filters Menu;分类管理菜单
+Next Layout;下一个布局
+Previous Layout;上一个布局
 Toggle Layout;切换布局
 Toggle Movie;切换影片
 Toggle Mute;静音
@@ -420,7 +422,8 @@ _help_control_selection_delay;设置按键重复开始前的延迟时间(毫秒)
 _help_control_selection_max_step;设置选择移动的最大步进大小, 默认值为 128
 _help_control_toggle_flip;设置用于切换显示屏是否旋转180度的控件
 _help_control_toggle_fullscreen;在全屏和窗口模式之间切换
-_help_control_toggle_layout;设置切换要使用的布局脚本的控件(是否生效取决于您使用的布局)
+_help_control_prev_layout;设置切换要使用的布局脚本的控件(是否生效取决于您使用的布局)
+_help_control_next_layout;设置切换要使用的布局脚本的控件(是否生效取决于您使用的布局)
 _help_control_toggle_movie;设置切换是否播放视频的控件
 _help_control_toggle_mute;设置用于静音/取消静音前端声音的控件
 _help_control_toggle_rotate_left;设置切换是否将显示屏向左旋转 90 度的控件左

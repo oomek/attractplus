@@ -104,7 +104,7 @@
 
 Layouts define what gets displayed to the user. They consist of a `layout.nut` file and a collection of related resources (images, other scripts, etc.). Layouts are located in the `layouts/` directory, each in its own separate subdirectory or [archive](#language-extensions).
 
-Layouts can have one or more `layout*.nut` files, which may be cycled between using the "Toggle Layout" command.
+Layouts can have one or more `layout*.nut` files, which may be cycled between using the "Next/Previous Layout" commands.
 
 ```squirrel
 local flw = fe.layout.width
@@ -934,7 +934,8 @@ Signal that a particular frontend action should occur.
    -  `"prev_filter"`
    -  `"next_filter"`
    -  `"filters_menu"`
-   -  `"toggle_layout"`
+   -  `"prev_layout"`
+   -  `"next_layout"`
    -  `"toggle_movie"`
    -  `"toggle_mute"`
    -  `"toggle_rotate_right"`

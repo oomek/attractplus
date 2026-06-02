@@ -186,6 +186,8 @@ Displays Menu;Liste des Listes d'affichage
 Previous Filter;Filtre précédent
 Next Filter;Filtre suivant
 Filters Menu;Menu des filtres
+Next Layout;Mise en page suivante
+Previous Layout;Mise en page précédente
 Toggle Layout;Basculer le thème
 Toggle Movie;Basculer la vidéo
 Toggle Mute;Basculer en mode silence
@@ -420,7 +422,8 @@ _help_control_selection_delay;Définir le délai en millisecondes avant le débu
 _help_control_selection_max_step;Définit la taille de pas maximale pour le mouvement de sélection. (par défaut: 128).
 _help_control_toggle_flip;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 180 degrés
 _help_control_toggle_fullscreen;Basculer entre le mode Plein écran et le mode Fenêtré
-_help_control_toggle_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
+_help_control_prev_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
+_help_control_next_layout;Définit le(s) contrôle(s) qui  active(nt)/désactive(nt) le script du theme utilisé (Ceci dépend du theme que vous utilisez)
 _help_control_toggle_movie;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la lecture des vidéos.
 _help_control_toggle_mute;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) le son.
 _help_control_toggle_rotate_left;Définit le(s) contrôle(s) qui active(nt)/désactive(nt) la rotation de l'écran de 90 degrés sur la gauche

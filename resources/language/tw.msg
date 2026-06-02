@@ -186,6 +186,8 @@ Displays Menu;主選單
 Previous Filter;上一個遊戲過濾
 Next Filter;下一個遊戲過濾
 Filters Menu;遊戲過濾選單
+Next Layout;下一個佈局
+Previous Layout;上一個佈局
 Toggle Layout;切換畫面佈局
 Toggle Movie;切換影片
 Toggle Mute;切換靜音
@@ -420,7 +422,8 @@ _help_control_selection_delay;設定按鍵重複開始前的延遲時間 (以毫
 _help_control_selection_max_step;設定選擇移動的最大步進大小。預設值為 128
 _help_control_toggle_flip;設定「將顯示畫面旋轉 180 度」的控制鍵
 _help_control_toggle_fullscreen;在全螢幕和視窗模式之間切換
-_help_control_toggle_layout;設定「切換畫面佈局」的控制鍵 (主題資料夾中含有多個畫面佈局檔案時才會進行切換)
+_help_control_prev_layout;設定「切換畫面佈局」的控制鍵 (主題資料夾中含有多個畫面佈局檔案時才會進行切換)
+_help_control_next_layout;設定「切換畫面佈局」的控制鍵 (主題資料夾中含有多個畫面佈局檔案時才會進行切換)
 _help_control_toggle_movie;設定「切換影片播放」的控制鍵
 _help_control_toggle_mute;設定「切換聲音靜音」的控制鍵
 _help_control_toggle_rotate_left;設定「將顯示畫面向左旋轉 90 度」的控制鍵

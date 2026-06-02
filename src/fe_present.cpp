@@ -1139,8 +1139,12 @@ bool FePresent::handle_event( FeInputMap::Command c )
 		}
 		break;
 
-	case FeInputMap::ToggleLayout:
-		m_feSettings->toggle_layout();
+	case FeInputMap::PrevLayout:
+		m_feSettings->change_layout( -1 );
+		load_layout();
+		break;
+	case FeInputMap::NextLayout:
+		m_feSettings->change_layout( 1 );
 		load_layout();
 		break;
 
