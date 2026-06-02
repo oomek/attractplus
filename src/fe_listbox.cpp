@@ -706,6 +706,11 @@ int FeListBox::get_align()
 	return (int)m_base_text.getAlignment();
 }
 
+int FeListBox::get_case()
+{
+	return (int)m_base_text.getCase();
+}
+
 int FeListBox::get_type() const
 {
 	return FePresentableTypeListbox;
@@ -883,6 +888,20 @@ void FeListBox::set_align(int a)
 
 	for ( int i=0; i < getRowCount(); i++ )
 		m_texts[i].setAlignment( (FeTextPrimitive::Alignment)a );
+
+	if ( m_scripted )
+		FePresent::script_flag_redraw();
+}
+
+void FeListBox::set_case(int c)
+{
+	if ( c == m_base_text.getCase() )
+		return;
+
+	m_base_text.setCase( (FeTextPrimitive::Case)c );
+
+	for ( int i=0; i < getRowCount(); i++ )
+		m_texts[i].setCase( (FeTextPrimitive::Case)c );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();

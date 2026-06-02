@@ -39,6 +39,13 @@ public:
 		Middle=32
 	};
 
+	enum Case {
+		None =			0,
+		Uppercase =		1 << 0,
+		Lowercase =		1 << 1,
+		Capitalize =	1 << 2
+	};
+
 	FeTextPrimitive();
 
 	FeTextPrimitive( const sf::Font *font,
@@ -71,6 +78,7 @@ public:
 	void setCharacterSpacing( float );
 	void setLineSpacing( float );
 	void setAlignment( Alignment );
+	void setCase( Case );
 	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};
 	void setPosition( const sf::Vector2f & );
 	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
@@ -103,6 +111,7 @@ public:
 	float getLineSpacing() const;
 	int getLineSpacingFactored( const sf::Font *, int ) const;
 	Alignment getAlignment() const;
+	Case getCase() const;
 	sf::Vector2f getPosition() const;
 	sf::Vector2f getSize() const;
 	float getRotation() const;
@@ -121,6 +130,7 @@ private:
 	sf::RectangleShape m_bgRect;
 	mutable std::vector<sf::JustifyText> m_texts;
 	Alignment m_align;
+	Case m_case;
 	int m_justify;
 
 	// this is set to -1 when "no word wrapping" is set.

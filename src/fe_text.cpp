@@ -362,6 +362,11 @@ int FeText::get_align()
 	return (int)m_draw_text.getAlignment();
 }
 
+int FeText::get_case()
+{
+	return (int)m_draw_text.getCase();
+}
+
 const char *FeText::get_font()
 {
 	return m_font_name.c_str();
@@ -520,6 +525,15 @@ void FeText::set_align(int a)
 	if ( a != m_draw_text.getAlignment() )
 	{
 		m_draw_text.setAlignment( (FeTextPrimitive::Alignment)a);
+		FePresent::script_do_update( this );
+	}
+}
+
+void FeText::set_case(int c)
+{
+	if ( c != m_draw_text.getCase() )
+	{
+		m_draw_text.setCase( (FeTextPrimitive::Case)c );
 		FePresent::script_do_update( this );
 	}
 }

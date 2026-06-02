@@ -1774,6 +1774,11 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Align.MiddleLeft`
    -  `Align.MiddleRight`
    -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
+-  `case` - Get/set the displayed message case. Can be one or more of the following values:
+   -  `Case.None` (default)
+   -  `Case.Uppercase`
+   -  `Case.Lowercase`
+   -  `Case.Capitalize`
 -  `word_wrap` - Get/set whether word wrapping is enabled in this text (boolean). Default is `false`.
 -  `msg_width` - Get the width of the text message, in layout coordinates.
 -  `msg_height` 🔶 - Get the height of the text message, in layout coordinates.
@@ -1872,6 +1877,11 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Align.MiddleLeft`
    -  `Align.MiddleRight`
    -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
+-  `case` - Get/set the displayed message case. Can be one or more of the following values:
+   -  `Case.None` (default)
+   -  `Case.Uppercase`
+   -  `Case.Lowercase`
+   -  `Case.Capitalize`
 -  `sel_mode` 🔶 - Get/set the selection mode. Controls how the listbox behaves when navigating. Can be one of the following values:
    -  `Selection.Static` (default) - The selection remains fixed at the `sel_row` (middle by default) while the list scrolls.
    -  `Selection.Moving` - The selection moves freely, and the list scrolls when the `sel_margin` is reached. When the list edge is reached the selection enters the margin.
