@@ -86,7 +86,7 @@ sf::BlendMode FeBlend::get_blend_mode( int blend_mode )
 			return sf::BlendMode(sf::BlendMode::Factor::One, sf::BlendMode::Factor::OneMinusSrcAlpha);
 
 		case FeBlend::IgnoreAlpha:
-			return sf::BlendMode(sf::BlendMode::Factor::DstAlpha, sf::BlendMode::Factor::Zero, sf::BlendMode::Equation::Add,
+			return sf::BlendMode(sf::BlendMode::Factor::DstAlpha, sf::BlendMode::Factor::OneMinusSrcAlpha, sf::BlendMode::Equation::Add,
 								 sf::BlendMode::Factor::Zero, sf::BlendMode::Factor::One, sf::BlendMode::Equation::Add);
 
 		case FeBlend::InvertAlpha:

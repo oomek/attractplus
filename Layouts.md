@@ -1641,7 +1641,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `BlendMode.Overlay`
    -  `BlendMode.Premultiplied` (default for surfaces)
    -  `BlendMode.None`
-   -  `BlendMode.IgnoreAlpha` - Replace color only. The current alpha mask of destination is kept.
+   -  `BlendMode.IgnoreAlpha` - Blend source color over the destination while keeping the destination alpha mask unchanged.
    -  `BlendMode.InvertAlpha` - Use the source alpha to cut into the destination alpha.
    -  `BlendMode.InvertRGB` - Use the source colour to invert the destination colour.
 -  `mipmap` - Get/set the automatic generation of mipmap for the image/artwork/video. Setting this to `true` greatly improves the quality of scaled down images. The default value is `false`. It's advised to force anisotropic filtering in the display driver settings if the Image with auto generated mipmap is scaled by the ratio that is not isotropic.
@@ -1974,7 +1974,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
    -  `BlendMode.Overlay`
    -  `BlendMode.Premultiplied`
    -  `BlendMode.None`
-   -  `BlendMode.IgnoreAlpha` - Replace color only. The current alpha mask of destination is kept.
+   -  `BlendMode.IgnoreAlpha` - Blend source color over the destination while keeping the destination alpha mask unchanged.
    -  `BlendMode.InvertAlpha` - Use the source alpha to cut into the destination alpha.
    -  `BlendMode.InvertRGB` - Use the source colour to invert the destination colour.
 
