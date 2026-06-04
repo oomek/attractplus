@@ -62,6 +62,7 @@ void process_args( int argc, char *argv[],
 			bool &process_console,
 			std::string &startup_display,
 			std::string &startup_filter,
+			std::string &startup_rom,
 			std::string &log_file,
 			FeLogLevel &log_level,
 			bool &window_topmost,
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
 	bool process_console = false;
 	std::string startup_display;
 	std::string startup_filter;
+	std::string startup_rom;
 	int last_fullscreen_mode = FeSettings::WindowType::Fullscreen;
 	int last_window_mode = FeSettings::WindowType::Window;
 	int last_display_index = -1;
@@ -89,7 +91,7 @@ int main(int argc, char *argv[])
 #endif
 
 	nowide::args a( argc, argv );
-	process_args( argc, argv, config_path, process_console, startup_display, startup_filter, log_file, log_level, window_topmost, window_args );
+	process_args( argc, argv, config_path, process_console, startup_display, startup_filter, startup_rom, log_file, log_level, window_topmost, window_args );
 
 	FeSettings feSettings( config_path );
 	feSettings.set_window_topmost( window_topmost );
@@ -221,11 +223,12 @@ int main(int argc, char *argv[])
 	// Only show intro if there are displays configured
 	if ( !(feSettings.displays_count() < 1) )
 	{
+		// Display set by commandline so startup with provided selection
 		if ( !startup_display.empty() )
 		{
-			// Display set by commandline so startup with provided selection
 			feSettings.set_info( FeSettings::StartupMode, "show_last_selection" );
 
+			// Find display by name, or by index
 			int display_index = feSettings.get_display_index_from_name( startup_display );
 			if ( display_index < 0 )
 				display_index = std::clamp( as_int( startup_display ), 0, (int)(*feSettings.get_displays()).size() - 1 );
@@ -234,11 +237,44 @@ int main(int argc, char *argv[])
 
 			if ( !startup_filter.empty() )
 			{
+				// Find filter by name, or by index
 				int filter_index = feSettings.get_filter_index_from_name( startup_filter );
 				if ( filter_index < 0 )
 					filter_index = std::clamp( as_int( startup_filter ), 0, feSettings.get_display( display_index )->get_filter_count() - 1 );
 				FeLog() << "Startup Filter: '" << startup_filter << "' = " << filter_index << std::endl;
-				feSettings.set_current_selection( filter_index, -1 );
+
+				if ( !startup_rom.empty() )
+				{
+					// Find rom by name, or by index
+					int rom_index = as_int( startup_rom );
+					if ( as_str( rom_index ) != startup_rom )
+					{
+						rom_index = -1;
+						feSettings.set_current_selection( filter_index, rom_index );
+						std::string escaped_rom = escape_regex(startup_rom);
+						if (
+							feSettings.set_search_rule( "Title equals " + escaped_rom ) ||
+							feSettings.set_search_rule( "Title equals " + startup_rom ) ||
+							feSettings.set_search_rule( "Title contains " + escaped_rom ) ||
+							feSettings.set_search_rule( "Title contains " + startup_rom )
+						)
+						{
+							FeRomInfo* rom = feSettings.get_rom_absolute( filter_index, 0 );
+							feSettings.set_search_rule( "" );
+							rom_index = feSettings.get_rom_index( filter_index, rom );
+							feSettings.set_current_selection( filter_index, rom_index );
+						}
+					}
+					else
+					{
+						feSettings.set_current_selection( filter_index, rom_index );
+					}
+					FeLog() << "Startup Rom: '" << startup_rom << "' = " << rom_index << std::endl;
+				}
+				else
+				{
+					feSettings.set_current_selection( filter_index, -1 );
+				}
 			}
 		}
 		else

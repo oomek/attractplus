@@ -1395,6 +1395,15 @@ int FeSettings::get_filter_size( int filter_index ) const
 	return m_rl.filter_size( filter_index );
 }
 
+// Return index of given rom in filter, -1 if not found
+int FeSettings::get_rom_index( int filter_index, FeRomInfo* rom ) const
+{
+	for ( int i=0, n=m_rl.filter_size( filter_index ); i<n; ++i )
+		if ( m_rl.lookup( filter_index, i ) == *rom )
+			return i;
+	return -1;
+}
+
 int FeSettings::get_rom_index( int filter_index, int offset ) const
 {
 	int retval, rl_size;
@@ -1442,7 +1451,7 @@ int FeSettings::get_rom_index( int filter_index, int offset ) const
 	return retval;
 }
 
-void FeSettings::set_search_rule( const std::string &rule_str )
+bool FeSettings::set_search_rule( const std::string &rule_str )
 {
 	FeDebug() << "set_search_rule = '" << rule_str << "'" << std::endl;
 
@@ -1452,16 +1461,16 @@ void FeSettings::set_search_rule( const std::string &rule_str )
 	m_clone_index = -1;
 
 	if ( rule_str.empty() )
-		return;
+		return false;
 
 	// The search rule is not stored if it fails to parse
 	FeRule rule;
 	if ( rule.process_setting( "", rule_str, "" ) )
-		return;
+		return false;
 
 	// The search rule is not stored if it fails to init (bad regex)
 	if ( !rule.init() )
-		return;
+		return false;
 
 	int filter_index = get_current_filter_index();
 	for ( int i=0; i<m_rl.filter_size( filter_index ); i++ )
@@ -1472,8 +1481,11 @@ void FeSettings::set_search_rule( const std::string &rule_str )
 	}
 
 	// The search rule is not stored if there are no results
-	if ( !m_current_search.empty() )
-		m_current_search_str = rule_str;
+	if ( m_current_search.empty() )
+		return false;
+
+	m_current_search_str = rule_str;
+	return true;
 }
 
 bool FeSettings::switch_to_clone_group( int idx )

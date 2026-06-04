@@ -952,6 +952,11 @@ namespace
 
 }
 
+std::string escape_regex(const std::string& text) {
+    static const std::regex metacharacters(R"([\.\^\$\+\-\(\)\[\]\{\}\|\?\*\\\u00A0])");
+    return std::regex_replace(text, metacharacters, R"(\$&)");
+}
+
 bool token_helper(
 	const std::string &from,
 	size_t &pos,

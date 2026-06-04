@@ -430,12 +430,10 @@ public:
 	int get_filter_size( int filter_index ) const;
 	int get_filter_count() const;
 
-	// apply a search rule (see FeRule) to the currently selected
-	// filter
-	//
-	// set to an empty string to clear the current search
-	//
-	void set_search_rule( const std::string &rule );
+	// Apply a search rule (see FeRule) to the currently selected filter
+	// - Set to an empty string to clear the current search
+	// - Returns true when results are found, false (and clears the rule) otherwise
+	bool set_search_rule( const std::string &rule );
 	const std::string &get_search_rule() const;
 
 	bool switch_to_clone_group( int index = -1 ); // set index to the index of the clone to select.  -1=default
@@ -466,6 +464,7 @@ public:
 	void set_current_layout_file( const std::string &layout_file );
 
 	int get_rom_index( int filter_index, int offset ) const;
+	int get_rom_index( int filter_index, FeRomInfo* rom ) const;
 
 	bool do_text_substitutions( std::string &str, int filter_offset, int index_offset );
 	bool do_text_substitutions_absolute( std::string &str, int filter_index, int rom_index );
