@@ -146,45 +146,45 @@ void FeRectangle::set_outline( float o )
 	}
 }
 
-int FeRectangle::get_olr() const
+int FeRectangle::get_outline_red() const
 {
 	return m_rect.getOutlineColor().r;
 }
 
-int FeRectangle::get_olg() const
+int FeRectangle::get_outline_green() const
 {
 	return m_rect.getOutlineColor().g;
 }
 
-int FeRectangle::get_olb() const
+int FeRectangle::get_outline_blue() const
 {
 	return m_rect.getOutlineColor().b;
 }
 
-int FeRectangle::get_ola() const
+int FeRectangle::get_outline_alpha() const
 {
 	return m_rect.getOutlineColor().a;
 }
 
-void FeRectangle::set_olr( int r )
+void FeRectangle::set_outline_red( int r )
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( r, c.g, c.b, c.a );
 }
 
-void FeRectangle::set_olg( int g )
+void FeRectangle::set_outline_green( int g )
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( c.r, g, c.b, c.a );
 }
 
-void FeRectangle::set_olb( int b )
+void FeRectangle::set_outline_blue( int b )
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( c.r, c.g, b, c.a );
 }
 
-void FeRectangle::set_ola( int a )
+void FeRectangle::set_outline_alpha( int a )
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( c.r, c.g, c.b, a );

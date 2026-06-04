@@ -1839,10 +1839,10 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `sel_green` - Get/set green colour level for the selection text. Range is `[0...255]`. Default value is `255`.
 -  `sel_blue` - Get/set blue colour level for the selection text. Range is `[0...255]`. Default value is `0`.
 -  `sel_alpha` - Get/set alpha level for the selection text. Range is `[0...255]`. Default value is `255`.
--  `selbg_red` - Get/set red colour level for the selection background. Range is `[0...255]`. Default value is `0`.
--  `selbg_green` - Get/set green colour level for the selection background. Range is `[0...255]`. Default value is `0`.
--  `selbg_blue` - Get/set blue colour level for the selection background. Range is `[0...255]`. Default value is `255`.
--  `selbg_alpha` - Get/set alpha level for the selection background. Range is `[0...255]`. Default value is `255`.
+-  `sel_bg_red` - Get/set red colour level for the selection background. Range is `[0...255]`. Default value is `0`.
+-  `sel_bg_green` - Get/set green colour level for the selection background. Range is `[0...255]`. Default value is `0`.
+-  `sel_bg_blue` - Get/set blue colour level for the selection background. Range is `[0...255]`. Default value is `255`.
+-  `sel_bg_alpha` - Get/set alpha level for the selection background. Range is `[0...255]`. Default value is `255`.
 -  `outline_red` - Get/set red colour level for the text outline. Range is `[0...255]`. Default value is `0`.
 -  `outline_green` - Get/set green colour level for the text outline. Range is `[0...255]`. Default value is `0`.
 -  `outline_blue` - Get/set blue colour level for the text outline. Range is `[0...255]`. Default value is `0`.
@@ -1915,9 +1915,9 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 
 -  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text. Range is `[0...255]`.
 -  `set_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text background. Range is `[0...255]`.
--  `set_sel_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection text. Range is `[0...255]`.
--  `set_selbg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection background. Range is `[0...255]`.
 -  `set_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the text outline. Range is `[0...255]`.
+-  `set_sel_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection text. Range is `[0...255]`.
+-  `set_sel_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection background. Range is `[0...255]`.
 -  `set_sel_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the selection text outline. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the listbox position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the listbox position and size (in layout coordinates).

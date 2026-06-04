@@ -1436,7 +1436,7 @@ bool FeOverlay::layout_focus(
 	label_list.setSelBgColor( edit ? m_blur_color : m_focus_color );
 	label_list.set_a( edit ? m_disable_alpha : m_enable_alpha );
 	value_list.setSelBgColor( edit ? m_focus_color : m_blur_color );
-	value_list.set_sela( disabled ? m_disable_alpha : m_enable_alpha );
+	value_list.set_sel_alpha( disabled ? m_disable_alpha : m_enable_alpha );
 	return true;
 }
 
@@ -1453,7 +1453,7 @@ bool FeOverlay::text_index(
 	if ( index < 0 )
 	{
 		text.setString( "" );
-		list.set_sela( m_enable_alpha );
+		list.set_sel_alpha( m_enable_alpha );
 		return true;
 	}
 
@@ -1473,7 +1473,7 @@ bool FeOverlay::text_index(
 	// Hide list text and show with index if it overlaps
 	bool fits = ( w1 + w2 ) <= width;
 	text.setString( prefix + ( fits ? "" : val ) );
-	list.set_sela( fits ? m_enable_alpha : 0 );
+	list.set_sel_alpha( fits ? m_enable_alpha : 0 );
 
 	return true;
 }

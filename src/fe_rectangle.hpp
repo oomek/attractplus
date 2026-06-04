@@ -74,10 +74,10 @@ public:
 	float get_anchor_y() const;
 	float get_rotation_origin_x() const;
 	float get_rotation_origin_y() const;
-	int get_olr() const;
-	int get_olg() const;
-	int get_olb() const;
-	int get_ola() const;
+	int get_outline_red() const;
+	int get_outline_green() const;
+	int get_outline_blue() const;
+	int get_outline_alpha() const;
 
 	float get_corner_radius() const;
 	float get_corner_radius_x() const;
@@ -97,10 +97,10 @@ public:
 	void set_anchor_y( float y );
 	void set_rotation_origin_x( float x );
 	void set_rotation_origin_y( float y );
-	void set_olr( int r );
-	void set_olg( int g );
-	void set_olb( int b );
-	void set_ola( int a );
+	void set_outline_red( int r );
+	void set_outline_green( int g );
+	void set_outline_blue( int b );
+	void set_outline_alpha( int a );
 	void set_outline_rgb( int r, int g, int b );
 	void set_outline_rgb( int r, int g, int b, int a );
 

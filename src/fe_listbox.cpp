@@ -157,25 +157,25 @@ float FeListBox::get_outline()
 	return m_base_text.getOutlineThickness();
 }
 
-void FeListBox::set_olr(int r)
+void FeListBox::set_outline_red(int r)
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( r, c.g, c.b, c.a );
 }
 
-void FeListBox::set_olg(int g)
+void FeListBox::set_outline_green(int g)
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( c.r, g, c.b, c.a );
 }
 
-void FeListBox::set_olb(int b)
+void FeListBox::set_outline_blue(int b)
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( c.r, c.g, b, c.a );
 }
 
-void FeListBox::set_ola(int a)
+void FeListBox::set_outline_alpha(int a)
 {
 	sf::Color c = getOutlineColor();
 	set_outline_rgb( c.r, c.g, c.b, a );
@@ -224,25 +224,25 @@ float FeListBox::get_sel_outline()
 	return m_selOutlineThickness;
 }
 
-void FeListBox::set_selolr(int r)
+void FeListBox::set_sel_outline_red(int r)
 {
 	sf::Color c = getSelOutlineColor();
 	set_sel_outline_rgb( r, c.g, c.b, c.a );
 }
 
-void FeListBox::set_selolg(int g)
+void FeListBox::set_sel_outline_green(int g)
 {
 	sf::Color c = getSelOutlineColor();
 	set_sel_outline_rgb( c.r, g, c.b, c.a );
 }
 
-void FeListBox::set_selolb(int b)
+void FeListBox::set_sel_outline_blue(int b)
 {
 	sf::Color c = getSelOutlineColor();
 	set_sel_outline_rgb( c.r, c.g, b, c.a );
 }
 
-void FeListBox::set_selola(int a)
+void FeListBox::set_sel_outline_alpha(int a)
 {
 	sf::Color c = getSelOutlineColor();
 	set_sel_outline_rgb( c.r, c.g, c.b, a );
@@ -691,62 +691,62 @@ int FeListBox::getFilterOffset() const
 	return m_filter_offset;
 }
 
-int FeListBox::get_bgr()
+int FeListBox::get_bg_red()
 {
 	return m_base_text.getBgColor().r;
 }
 
-int FeListBox::get_bgg()
+int FeListBox::get_bg_green()
 {
 	return m_base_text.getBgColor().g;
 }
 
-int FeListBox::get_bgb()
+int FeListBox::get_bg_blue()
 {
 	return m_base_text.getBgColor().b;
 }
 
-int FeListBox::get_bga()
+int FeListBox::get_bg_alpha()
 {
 	return m_base_text.getBgColor().a;
 }
 
-int FeListBox::get_olr()
+int FeListBox::get_outline_red()
 {
 	return getOutlineColor().r;
 }
 
-int FeListBox::get_olg()
+int FeListBox::get_outline_green()
 {
 	return getOutlineColor().g;
 }
 
-int FeListBox::get_olb()
+int FeListBox::get_outline_blue()
 {
 	return getOutlineColor().b;
 }
 
-int FeListBox::get_ola()
+int FeListBox::get_outline_alpha()
 {
 	return getOutlineColor().a;
 }
 
-int FeListBox::get_selolr()
+int FeListBox::get_sel_outline_red()
 {
 	return getSelOutlineColor().r;
 }
 
-int FeListBox::get_selolg()
+int FeListBox::get_sel_outline_green()
 {
 	return getSelOutlineColor().g;
 }
 
-int FeListBox::get_selolb()
+int FeListBox::get_sel_outline_blue()
 {
 	return getSelOutlineColor().b;
 }
 
-int FeListBox::get_selola()
+int FeListBox::get_sel_outline_alpha()
 {
 	return getSelOutlineColor().a;
 }
@@ -861,25 +861,25 @@ void FeListBox::setBgColor( sf::Color c )
 		FePresent::script_flag_redraw();
 }
 
-void FeListBox::set_bgr(int r)
+void FeListBox::set_bg_red(int r)
 {
 	sf::Color c = m_base_text.getBgColor();
 	set_bg_rgb( r, c.g, c.b, c.a );
 }
 
-void FeListBox::set_bgg(int g)
+void FeListBox::set_bg_green(int g)
 {
 	sf::Color c = m_base_text.getBgColor();
 	set_bg_rgb( c.r, g, c.b, c.a );
 }
 
-void FeListBox::set_bgb(int b)
+void FeListBox::set_bg_blue(int b)
 {
 	sf::Color c = m_base_text.getBgColor();
 	set_bg_rgb( c.r, c.g, b, c.a );
 }
 
-void FeListBox::set_bga(int a)
+void FeListBox::set_bg_alpha(int a)
 {
 	sf::Color c = m_base_text.getBgColor();
 	set_bg_rgb( c.r, c.g, c.b, a );
@@ -1004,45 +1004,45 @@ void FeListBox::set_case(int c)
 		FePresent::script_flag_redraw();
 }
 
-int FeListBox::get_selr()
+int FeListBox::get_sel_red()
 {
 	return m_selColour.r;
 }
 
-int FeListBox::get_selg()
+int FeListBox::get_sel_green()
 {
 	return m_selColour.g;
 }
 
-int FeListBox::get_selb()
+int FeListBox::get_sel_blue()
 {
 	return m_selColour.b;
 }
 
-int FeListBox::get_sela()
+int FeListBox::get_sel_alpha()
 {
 	return m_selColour.a;
 }
 
-void FeListBox::set_selr(int r)
+void FeListBox::set_sel_red(int r)
 {
 	sf::Color c = m_selColour;
 	set_sel_rgb( r, c.g, c.b, c.a );
 }
 
-void FeListBox::set_selg(int g)
+void FeListBox::set_sel_green(int g)
 {
 	sf::Color c = m_selColour;
 	set_sel_rgb( c.r, g, c.b, c.a );
 }
 
-void FeListBox::set_selb(int b)
+void FeListBox::set_sel_blue(int b)
 {
 	sf::Color c = m_selColour;
 	set_sel_rgb( c.r, c.g, b, c.a );
 }
 
-void FeListBox::set_sela(int a)
+void FeListBox::set_sel_alpha(int a)
 {
 	sf::Color c = m_selColour;
 	set_sel_rgb( c.r, c.g, c.b, a );
@@ -1058,22 +1058,22 @@ void FeListBox::set_sel_rgb( int r, int g, int b, int a )
 	setSelColor(sf::Color( r, g, b, a ));
 }
 
-int FeListBox::get_selbgr()
+int FeListBox::get_sel_bg_red()
 {
 	return m_selBg.r;
 }
 
-int FeListBox::get_selbgg()
+int FeListBox::get_sel_bg_green()
 {
 	return m_selBg.g;
 }
 
-int FeListBox::get_selbgb()
+int FeListBox::get_sel_bg_blue()
 {
 	return m_selBg.b;
 }
 
-int FeListBox::get_selbga()
+int FeListBox::get_sel_bg_alpha()
 {
 	return m_selBg.a;
 }
@@ -1083,36 +1083,36 @@ const char *FeListBox::get_font()
 	return m_font_name.c_str();
 }
 
-void FeListBox::set_selbgr(int r)
+void FeListBox::set_sel_bg_red(int r)
 {
 	sf::Color c = m_selBg;
-	set_selbg_rgb( r, c.g, c.b, c.a );
+	set_sel_bg_rgb( r, c.g, c.b, c.a );
 }
 
-void FeListBox::set_selbgg(int g)
+void FeListBox::set_sel_bg_green(int g)
 {
 	sf::Color c = m_selBg;
-	set_selbg_rgb( c.r, g, c.b, c.a );
+	set_sel_bg_rgb( c.r, g, c.b, c.a );
 }
 
-void FeListBox::set_selbgb(int b)
+void FeListBox::set_sel_bg_blue(int b)
 {
 	sf::Color c = m_selBg;
-	set_selbg_rgb( c.r, c.g, b, c.a );
+	set_sel_bg_rgb( c.r, c.g, b, c.a );
 }
 
-void FeListBox::set_selbga(int a)
+void FeListBox::set_sel_bg_alpha(int a)
 {
 	sf::Color c = m_selBg;
-	set_selbg_rgb( c.r, c.g, c.b, a );
+	set_sel_bg_rgb( c.r, c.g, c.b, a );
 }
 
-void FeListBox::set_selbg_rgb( int r, int g, int b )
+void FeListBox::set_sel_bg_rgb( int r, int g, int b )
 {
-	set_selbg_rgb( r, g, b, m_selBg.a );
+	set_sel_bg_rgb( r, g, b, m_selBg.a );
 }
 
-void FeListBox::set_selbg_rgb( int r, int g, int b, int a )
+void FeListBox::set_sel_bg_rgb( int r, int g, int b, int a )
 {
 	setSelBgColor(sf::Color( r, g, b, a ));
 }
