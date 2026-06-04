@@ -45,6 +45,9 @@ namespace FeUtil
     std::wstring widen( const std::string& s );
 }
 
+// Escape text for use as literal regex pattern
+std::string escape_regex( const std::string &text );
+
 //
 // Utility functions for processing config files:
 //
