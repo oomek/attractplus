@@ -535,6 +535,9 @@ namespace {
 		fs.Func( _SC("get_file_mtime"), &FeVM::cb_get_file_mtime );
 		fs.Func( _SC("set_file_mtime"), &FeVM::cb_set_file_mtime );
 		fs.Func( _SC("copy_file"), &FeVM::cb_copy_file );
+		fs.Func( _SC("read_file"), &FeVM::cb_read_file );
+		fs.Func( _SC("write_file"), &FeVM::cb_write_file );
+		fs.Func( _SC("append_file"), &FeVM::cb_append_file );
 		fs.Func( _SC("get_dir"), &FeVM::cb_get_dir );
 		fs.Func( _SC("make_dir"), &FeVM::cb_make_dir );
 
@@ -3008,6 +3011,23 @@ bool FeVM::cb_set_file_mtime( const char *file, time_t mtime )
 bool FeVM::cb_copy_file( const char *src, const char *dst )
 {
 	return copy_file( src, dst );
+}
+
+const char *FeVM::cb_read_file( const char *src )
+{
+	static std::string content;
+	if ( !read_file_content( src, content ) ) content.clear();
+	return content.c_str();
+}
+
+bool FeVM::cb_write_file( const char *dst, const char *content )
+{
+	return write_file_content( dst, content );
+}
+
+bool FeVM::cb_append_file( const char *dst, const char *content )
+{
+	return append_file_content( dst, content );
 }
 
 Sqrat::Array FeVM::cb_get_dir( const char *path )
