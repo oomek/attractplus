@@ -421,7 +421,18 @@ bool read_file_content( const std::string &file, std::string &content )
 
 bool write_file_content( const std::string &file, const std::string content )
 {
-	nowide::ofstream f( file );
+	nowide::ofstream f( file, std::ios::binary );
+	if ( !f.is_open() )
+		return false;
+
+	f << content;
+	f.close();
+	return true;
+}
+
+bool append_file_content( const std::string &file, const std::string content )
+{
+	nowide::ofstream f( file, std::ios::binary | std::ios_base::app );
 	if ( !f.is_open() )
 		return false;
 

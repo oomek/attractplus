@@ -228,6 +228,9 @@ bool read_file_content( const std::string &file, std::string &content );
 // write the contents to the given file, return true on success
 bool write_file_content( const std::string &file, const std::string content );
 
+// Append the contents to the given file, return true on success
+bool append_file_content( const std::string &file, const std::string content );
+
 // Check if provided path exists and whether it's a file or a directory
 // Returns one of the following: IsFile, IsDirectory, IsNotFound
 int check_path( const std::string &file );

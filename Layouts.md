@@ -90,6 +90,9 @@
    -  [`fs.get_dir()`](#fsget_dir-) 🔶
    -  [`fs.make_dir()`](#fsmake_dir-) 🔶
    -  [`fs.copy_file()`](#fscopy_file-) 🔶
+   -  [`fs.read_file()`](#fsread_file-) 🔶
+   -  [`fs.write_file()`](#fswrite_file-) 🔶
+   -  [`fs.append_file()`](#fsappend_file-) 🔶
 -  [Constants](#constants)
 -  [Language Extensions](#language-extensions)
    -  [Math](#math-) 🔶
@@ -2224,6 +2227,62 @@ Copy file from source to destination.
 
 -  `src_file` - Path of the source file to be copied.
 -  `dst_file` - Path of the destination file including the filename.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
+
+---
+
+### `fs.read_file()` 🔶
+
+```squirrel
+fs.read_file( src_file )
+```
+
+Returns the contents of the given file.
+
+**Parameters**
+
+-  `src_file` - Path of the file to be read.
+
+**Return Value**
+
+-  `string` containing the file contents.
+
+---
+
+### `fs.write_file()` 🔶
+
+```squirrel
+fs.write_file( dst_file, contents )
+```
+
+Write the contents to the given file, overwriting any existing content.
+
+**Parameters**
+
+-  `dst_file` - Path of the file to write.
+-  `contents` - String to write to the file.
+
+**Return Value**
+
+-  `true` if succeeded, `false` otherwise.
+
+---
+
+### `fs.append_file()` 🔶
+
+```squirrel
+fs.append_file( dst_file, contents )
+```
+
+Write the contents to the given file, appending any existing content.
+
+**Parameters**
+
+-  `dst_file` - Path of the file to append.
+-  `contents` - String to append to the file.
 
 **Return Value**
 
