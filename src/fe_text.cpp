@@ -81,16 +81,20 @@ void FeText::setRotation( float r )
 	FePresent::script_do_update( this );
 }
 
+void FeText::set_rgb(int r, int g, int b, int a)
+{
+	FeBasePresentable::set_rgb(r, g, b, a);
+	if ( m_link_outline_alpha )
+		set_ola( -1 );
+}
+
 void FeText::setColor( sf::Color c )
 {
-	if ( c != m_draw_text.getColor() )
-	{
-		m_draw_text.setColor( c );
-		sf::Color o = m_draw_text.getOutlineColor();
-		o.a = c.a;
-		m_draw_text.setOutlineColor( o );
-		FePresent::script_flag_redraw();
-	}
+	if ( c == m_draw_text.getColor() )
+		return;
+
+	m_draw_text.setColor( c );
+	FePresent::script_flag_redraw();
 }
 
 sf::Color FeText::getColor() const
@@ -319,6 +323,46 @@ int FeText::get_bga()
 	return m_draw_text.getBgColor().a;
 }
 
+int FeText::get_bgolr()
+{
+	return m_draw_text.getBgOutlineColor().r;
+}
+
+int FeText::get_bgolg()
+{
+	return m_draw_text.getBgOutlineColor().g;
+}
+
+int FeText::get_bgolb()
+{
+	return m_draw_text.getBgOutlineColor().b;
+}
+
+int FeText::get_bgola()
+{
+	return m_draw_text.getBgOutlineColor().a;
+}
+
+int FeText::get_olr()
+{
+	return m_draw_text.getOutlineColor().r;
+}
+
+int FeText::get_olg()
+{
+	return m_draw_text.getOutlineColor().g;
+}
+
+int FeText::get_olb()
+{
+	return m_draw_text.getOutlineColor().b;
+}
+
+int FeText::get_ola()
+{
+	return m_draw_text.getOutlineColor().a;
+}
+
 int FeText::get_charsize()
 {
 	if ( m_user_charsize > 0 )
@@ -374,105 +418,135 @@ const char *FeText::get_font()
 
 void FeText::set_bgr(int r)
 {
-	sf::Color c=m_draw_text.getBgColor();
-
-	if ( r != c.r )
-	{
-		c.r=r;
-		m_draw_text.setBgColor(c);
-		FePresent::script_flag_redraw();
-	}
+	sf::Color c = m_draw_text.getBgColor();
+	set_bg_rgb( r, c.g, c.b, c.a );
 }
 
 void FeText::set_bgg(int g)
 {
-	sf::Color c=m_draw_text.getBgColor();
-
-	if ( g != c.g )
-	{
-		c.g=g;
-		m_draw_text.setBgColor(c);
-		FePresent::script_flag_redraw();
-	}
+	sf::Color c = m_draw_text.getBgColor();
+	set_bg_rgb( c.r, g, c.b, c.a );
 }
 
 void FeText::set_bgb(int b)
 {
-	sf::Color c=m_draw_text.getBgColor();
-
-	if ( b != c.b )
-	{
-		c.b=b;
-		m_draw_text.setBgColor(c);
-		FePresent::script_flag_redraw();
-	}
+	sf::Color c = m_draw_text.getBgColor();
+	set_bg_rgb( c.r, c.g, b, c.a );
 }
 
 void FeText::set_bga(int a)
 {
-	sf::Color c=m_draw_text.getBgColor();
+	sf::Color c = m_draw_text.getBgColor();
+	set_bg_rgb( c.r, c.g, c.b, a );
+}
 
-	if ( a != c.a )
+void FeText::set_bg_rgb( int r, int g, int b )
+{
+	sf::Color old = m_draw_text.getBgColor();
+	sf::Color col = sf::Color( r, g, b, old.a );
+	if ( col != old )
+		set_bg_rgb( r, g, b, col.a == 0 ? 255 : col.a ); // legacy - force alpha if none
+}
+
+void FeText::set_bg_rgb( int r, int g, int b, int a )
+{
+	sf::Color old = m_draw_text.getBgColor();
+	sf::Color col = sf::Color( r, g, b, a );
+	if ( col != old )
 	{
-		c.a=a;
-		m_draw_text.setBgColor(c);
-		sf::Color o = m_draw_text.getBgOutlineColor();
-		o.a = c.a;
-		m_draw_text.setBgOutlineColor( o );
+		m_draw_text.setBgColor( col );
+		FePresent::script_flag_redraw();
+	}
+	if ( m_link_bg_outline_alpha )
+		set_bgola( -1 );
+}
+
+void FeText::set_bgolr(int r)
+{
+	sf::Color c = m_draw_text.getBgOutlineColor();
+	set_bg_outline_rgb( r, c.g, c.b, c.a );
+}
+
+void FeText::set_bgolg(int g)
+{
+	sf::Color c = m_draw_text.getBgOutlineColor();
+	set_bg_outline_rgb( c.r, g, c.b, c.a );
+}
+
+void FeText::set_bgolb(int b)
+{
+	sf::Color c = m_draw_text.getBgOutlineColor();
+	set_bg_outline_rgb( c.r, c.g, b, c.a );
+}
+
+void FeText::set_bgola(int a)
+{
+	sf::Color c = m_draw_text.getBgOutlineColor();
+	set_bg_outline_rgb( c.r, c.g, c.b, a );
+}
+
+void FeText::set_bg_outline_rgb( int r, int g, int b )
+{
+	sf::Color old = m_draw_text.getBgOutlineColor();
+	sf::Color col = sf::Color( r, g, b, old.a );
+	if ( col != old )
+		set_bg_outline_rgb( r, g, b, m_link_bg_outline_alpha ? -1 : ( col.a == 0 ? 255 : col.a ) ); // legacy - force alpha if none
+}
+
+void FeText::set_bg_outline_rgb( int r, int g, int b, int a )
+{
+	m_link_bg_outline_alpha = a == -1;
+	if ( m_link_bg_outline_alpha ) a = get_bga();
+	sf::Color old = m_draw_text.getBgOutlineColor();
+	sf::Color col = sf::Color( r, g, b, a );
+	if ( col != old )
+	{
+		m_draw_text.setBgOutlineColor( col );
 		FePresent::script_flag_redraw();
 	}
 }
 
-void FeText::set_bg_rgb(int r, int g, int b )
+void FeText::set_olr(int r)
 {
-	sf::Color c=m_draw_text.getBgColor();
-
-	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
-	{
-		c.r=r;
-		c.g=g;
-		c.b=b;
-
-		if ( c.a == 0 )
-			c.a = 255;
-
-		m_draw_text.setBgColor(c);
-		FePresent::script_flag_redraw();
-	}
+	sf::Color c = m_draw_text.getOutlineColor();
+	set_outline_rgb( r, c.g, c.b, c.a );
 }
 
-void FeText::set_bg_outline_rgb(int r, int g, int b )
+void FeText::set_olg(int g)
 {
-	sf::Color c=m_draw_text.getBgOutlineColor();
-
-	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
-	{
-		c.r=r;
-		c.g=g;
-		c.b=b;
-
-		if ( c.a == 0 )
-			c.a = 255;
-
-		m_draw_text.setBgOutlineColor(c);
-		FePresent::script_flag_redraw();
-	}
+	sf::Color c = m_draw_text.getOutlineColor();
+	set_outline_rgb( c.r, g, c.b, c.a );
 }
 
-void FeText::set_outline_rgb(int r, int g, int b )
+void FeText::set_olb(int b)
 {
-	sf::Color c=m_draw_text.getOutlineColor();
+	sf::Color c = m_draw_text.getOutlineColor();
+	set_outline_rgb( c.r, c.g, b, c.a );
+}
 
-	if ( ( r != c.r ) || ( g != c.g ) || ( b != c.b ) )
+void FeText::set_ola(int a)
+{
+	sf::Color c = m_draw_text.getOutlineColor();
+	set_outline_rgb( c.r, c.g, c.b, a );
+}
+
+void FeText::set_outline_rgb( int r, int g, int b )
+{
+	sf::Color old = m_draw_text.getOutlineColor();
+	sf::Color col = sf::Color( r, g, b, old.a );
+	if ( col != old )
+		set_outline_rgb( r, g, b, m_link_outline_alpha ? -1 : ( col.a == 0 ? 255 : col.a ) ); // legacy - force alpha if none
+}
+
+void FeText::set_outline_rgb( int r, int g, int b, int a )
+{
+	m_link_outline_alpha = a == -1;
+	if ( m_link_outline_alpha ) a = get_a();
+	sf::Color old = m_draw_text.getOutlineColor();
+	sf::Color col = sf::Color( r, g, b, a );
+	if ( col != old )
 	{
-		c.r=r;
-		c.g=g;
-		c.b=b;
-
-		if ( c.a == 0 )
-			c.a = 255;
-
-		m_draw_text.setOutlineColor(c);
+		m_draw_text.setOutlineColor( col );
 		FePresent::script_flag_redraw();
 	}
 }

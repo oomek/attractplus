@@ -125,6 +125,14 @@ public:
 	int get_bgg();
 	int get_bgb();
 	int get_bga();
+	int get_olr();
+	int get_olg();
+	int get_olb();
+	int get_ola();
+	int get_selolr();
+	int get_selolg();
+	int get_selolb();
+	int get_selola();
 	int get_charsize();
 	int get_glyph_size();
 	float get_spacing();
@@ -142,7 +150,16 @@ public:
 	void set_bgg(int g);
 	void set_bgb(int b);
 	void set_bga(int a);
+	void set_olr(int r);
+	void set_olg(int g);
+	void set_olb(int b);
+	void set_ola(int a);
+	void set_selolr(int r);
+	void set_selolg(int g);
+	void set_selolb(int b);
+	void set_selola(int a);
 	void set_bg_rgb( int, int, int );
+	void set_bg_rgb( int, int, int, int );
 	void set_charsize(int s);
 	void set_spacing(float s);
 	void set_rows(int r);
@@ -162,6 +179,7 @@ public:
 	void set_selb(int b);
 	void set_sela(int a);
 	void set_sel_rgb( int, int, int );
+	void set_sel_rgb( int, int, int, int );
 	int get_selbgr();
 	int get_selbgg();
 	int get_selbgb();
@@ -171,7 +189,9 @@ public:
 
 	void set_outline( float );
 	void set_outline_rgb( int, int, int );
+	void set_outline_rgb( int, int, int, int );
 	void set_sel_outline_rgb( int, int, int );
+	void set_sel_outline_rgb( int, int, int, int );
 	void set_sel_outline( float );
 
 	float get_outline();
@@ -182,6 +202,7 @@ public:
 	void set_selbgb(int b);
 	void set_selbga(int a);
 	void set_selbg_rgb( int, int, int );
+	void set_selbg_rgb( int, int, int, int );
 	void set_font( const char *f );
 	void set_format_string( const char *s );
 	int get_selected_row() const;

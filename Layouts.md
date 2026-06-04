@@ -1669,7 +1669,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 
 **Member Functions**
 
--  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the image. Range is `[0...255]`.
+-  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the image. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the image position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the image position and size (in layout coordinates).
 -  `set_fit_anchor( x, y )` 🔶 - Set the texture anchor, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
@@ -1734,16 +1734,24 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
 -  `rotation` - Get/set rotation of text. Range is `[0...360]`. Default value is `0`.
--  `red` - Get/set red colour level for text. Range is `[0...255]`. Default value is `255`.
--  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.
--  `blue` - Get/set blue colour level for text. Range is `[0...255]`. Default value is `255`.
--  `alpha` - Get/set alpha level for text. Range is `[0...255]`. Default value is `255`.
 -  `index_offset` - Get/set offset from current game selection for text info to display. For example, set to `-1` to show text info for the previous list entry, or `1` for the next list entry. Default value is `0`.
 -  `filter_offset` - Get/set filter offset from current filter for the text info to display. For example, set to `-1` to show text info for a selection in the previous filter, or `1` for the next filter, etc. Default value is `0`.
--  `bg_red` - Get/set red colour level for text background. Range is `[0...255]`. Default value is `0`.
--  `bg_green` - Get/set green colour level for text background. Range is `[0...255]`. Default value is `0`.
--  `bg_blue` - Get/set blue colour level for text background. Range is `[0...255]`. Default value is `0`.
--  `bg_alpha` - Get/set alpha level for text background. Range is `[0...255]`. Default value is `0` (transparent).
+-  `red` - Get/set red colour level for the text. Range is `[0...255]`. Default value is `255`.
+-  `green` - Get/set green colour level for the text. Range is `[0...255]`. Default value is `255`.
+-  `blue` - Get/set blue colour level for the text. Range is `[0...255]`. Default value is `255`.
+-  `alpha` - Get/set alpha level for the text. Range is `[0...255]`. Default value is `255`.
+-  `bg_red` - Get/set red colour level for the text background. Range is `[0...255]`. Default value is `0`.
+-  `bg_green` - Get/set green colour level for the text background. Range is `[0...255]`. Default value is `0`.
+-  `bg_blue` - Get/set blue colour level for the text background. Range is `[0...255]`. Default value is `0`.
+-  `bg_alpha` - Get/set alpha level for the text background. Range is `[0...255]`. Default value is `0` (transparent).
+-  `outline_red` - Get/set red colour level for the text outline. Range is `[0...255]`. Default value is `0`.
+-  `outline_green` - Get/set green colour level for the text outline. Range is `[0...255]`. Default value is `0`.
+-  `outline_blue` - Get/set blue colour level for the text outline. Range is `[0...255]`. Default value is `0`.
+-  `outline_alpha` - Get/set alpha level for the text outline. Range is `[0...255]`. Default value is `255`.
+-  `bg_outline_red` - Get/set red colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
+-  `bg_outline_green` - Get/set green colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
+-  `bg_outline_blue` - Get/set blue colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
+-  `bg_outline_alpha` - Get/set alpha level for the text background outline. Range is `[0...255]`. Default value is `0` (transparent).
 -  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
@@ -1794,10 +1802,10 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 **Member Functions**
 
 -  `get_cursor_pos( index )` - Return the cursor `x` position relative to to the object for the given index. Does not work when `word_wrap` is `true`. Range is `[0...msg.len()]`
--  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the text. Range is `[0...255]`.
--  `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for the text background. Range is `[0...255]`.
--  `set_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the text outline. Range is `[0...255]`.
--  `set_bg_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the outline of the text background. Range is `[0...255]`.
+-  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text. Range is `[0...255]`.
+-  `set_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text background. Range is `[0...255]`.
+-  `set_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the text outline. Range is `[0...255]`.
+-  `set_bg_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the outline of the text background. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the text position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the text position and size (in layout coordinates).
 
@@ -1823,18 +1831,26 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `alpha` - Get/set alpha level for text. Range is `[0...255]`. Default value is `255`.
 -  `index_offset` - Not used.
 -  `filter_offset` - Get/set filter offset from current filter for the text info to display. For example, set to `-1` to show info for the previous filter, or `1` for the next filter, etc. Default value is `0`.
--  `bg_red` - Get/set red colour level for background. Range is `[0...255]`. Default value is `0`.
--  `bg_green` - Get/set green colour level for background. Range is `[0...255]`. Default value is `0`.
--  `bg_blue` - Get/set blue colour level for background. Range is `[0...255]`. Default value is `0`.
--  `bg_alpha` - Get/set alpha level for background. Range is `[0...255]`. Default value is `0` (transparent).
--  `sel_red` - Get/set red colour level for selection text. Range is `[0...255]`. Default value is `255`.
--  `sel_green` - Get/set green colour level for selection text. Range is `[0...255]`. Default value is `255`.
--  `sel_blue` - Get/set blue colour level for selection text. Range is `[0...255]`. Default value is `0`.
--  `sel_alpha` - Get/set alpha level for selection text. Range is `[0...255]`. Default value is `255`.
--  `selbg_red` - Get/set red colour level for selection background. Range is `[0...255]`. Default value is `0`.
--  `selbg_green` - Get/set green colour level for selection background. Range is `[0...255]`. Default value is `0`.
--  `selbg_blue` - Get/set blue colour level for selection background. Range is `[0...255]`. Default value is `255`.
--  `selbg_alpha` - Get/set alpha level for selection background. Range is `[0...255]`. Default value is `255`.
+-  `bg_red` - Get/set red colour level for the background. Range is `[0...255]`. Default value is `0`.
+-  `bg_green` - Get/set green colour level for the background. Range is `[0...255]`. Default value is `0`.
+-  `bg_blue` - Get/set blue colour level for the background. Range is `[0...255]`. Default value is `0`.
+-  `bg_alpha` - Get/set alpha level for the background. Range is `[0...255]`. Default value is `0` (transparent).
+-  `sel_red` - Get/set red colour level for the selection text. Range is `[0...255]`. Default value is `255`.
+-  `sel_green` - Get/set green colour level for the selection text. Range is `[0...255]`. Default value is `255`.
+-  `sel_blue` - Get/set blue colour level for the selection text. Range is `[0...255]`. Default value is `0`.
+-  `sel_alpha` - Get/set alpha level for the selection text. Range is `[0...255]`. Default value is `255`.
+-  `selbg_red` - Get/set red colour level for the selection background. Range is `[0...255]`. Default value is `0`.
+-  `selbg_green` - Get/set green colour level for the selection background. Range is `[0...255]`. Default value is `0`.
+-  `selbg_blue` - Get/set blue colour level for the selection background. Range is `[0...255]`. Default value is `255`.
+-  `selbg_alpha` - Get/set alpha level for the selection background. Range is `[0...255]`. Default value is `255`.
+-  `outline_red` - Get/set red colour level for the text outline. Range is `[0...255]`. Default value is `0`.
+-  `outline_green` - Get/set green colour level for the text outline. Range is `[0...255]`. Default value is `0`.
+-  `outline_blue` - Get/set blue colour level for the text outline. Range is `[0...255]`. Default value is `0`.
+-  `outline_alpha` - Get/set alpha level for the text outline. Range is `[0...255]`. Default value is `255`.
+-  `sel_outline_red` - Get/set red colour level for the selection text outline. Range is `[0...255]`. Default value is `0`.
+-  `sel_outline_green` - Get/set green colour level for the selection text outline. Range is `[0...255]`. Default value is `0`.
+-  `sel_outline_blue` - Get/set blue colour level for the selection text outline. Range is `[0...255]`. Default value is `0`.
+-  `sel_outline_alpha` - Get/set alpha level for the selection text outline. Range is `[0...255]`. Default value is `255`.
 -  `rows` - Get/set the number of listbox rows. Default value is `11`.
 -  `list_align` - Get/set the row alignment for the `Selection.Moving` mode. Only affects listbox's where `list_size` is less than the number of `rows`.
    -  `ListAlign.Top` (default) - Aligns options to the top.
@@ -1897,12 +1913,12 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 
 **Member Functions**
 
--  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the text. Range is `[0...255]`.
--  `set_bg_rgb( r, g, b )` - Set the red, green and blue colour values for the text background. Range is `[0...255]`.
--  `set_sel_rgb( r, g, b )` - Set the red, green and blue colour values for the selection text. Range is `[0...255]`.
--  `set_selbg_rgb( r, g, b )` - Set the red, green and blue colour values for the selection background. Range is `[0...255]`.
--  `set_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the text outline. Range is `[0...255]`.
--  `set_sel_outline_rgb( r, g, b )` 🔶 - Set the red, green and blue colour values for the selection text outline. Range is `[0...255]`.
+-  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text. Range is `[0...255]`.
+-  `set_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text background. Range is `[0...255]`.
+-  `set_sel_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection text. Range is `[0...255]`.
+-  `set_selbg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection background. Range is `[0...255]`.
+-  `set_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the text outline. Range is `[0...255]`.
+-  `set_sel_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the selection text outline. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the listbox position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the listbox position and size (in layout coordinates).
 
@@ -1980,10 +1996,10 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 
 **Member Functions**
 
--  `set_rgb( r, g, b )` - Set the red, green and blue colour values for the rectangle. Range is `[0...255]`.
+-  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the rectangle. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the rectangle position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the rectangle position and size (in layout coordinates).
--  `set_outline_rgb( r, g, b )` - Set the red, green and blue colour values for the rectangle outline. Range is `[0...255]`.
+-  `set_outline_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the rectangle outline. Range is `[0...255]`.
 -  `set_anchor( x, y )` - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_corner_radius( x, y )` - Set the corner x and y radius (in layout coordinates).

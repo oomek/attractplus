@@ -20,6 +20,7 @@
  *
  */
 
+#include "fe_color.hpp"
 #include "fe_util.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
@@ -3842,9 +3843,9 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case UIColor:
 	{
-		sf::Color col;
-		if ( str_to_color( value, col ) )
-			color_to_rgb( col, m_ui_color );
+		FeColor col;
+		if ( col.fromString( value ) )
+			m_ui_color = col.toRgbString();
 		break;
 	}
 

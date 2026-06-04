@@ -55,6 +55,7 @@ void addLine(sf::VertexArray& vertices,
              float            thickness,
              float            outlineThickness = 0)
 {
+    if ( color.a == 0 ) return;
     const float top    = std::floor(lineTop + offset - (thickness / 2) + 0.5f);
     const float bottom = top + std::floor(thickness + 0.5f);
 
@@ -69,6 +70,7 @@ void addLine(sf::VertexArray& vertices,
 // Add a glyph quad to the vertex array
 void addGlyphQuad(sf::VertexArray& vertices, sf::Vector2f position, sf::Color color, const sf::Glyph& glyph, float italicShear)
 {
+    if ( color.a == 0 ) return;
     const sf::Vector2f padding(1.f, 1.f);
 
     const sf::Vector2f p1 = glyph.bounds.position - padding;
