@@ -192,8 +192,14 @@ std::string sq_escape_string( const std::string value )
 	return out;
 }
 
-std::string sq_obj_to_json( HSQOBJECT obj, int indent )
+std::string sq_obj_to_json( HSQOBJECT obj )
 {
+	return _sq_obj_to_json( obj, 0 );
+}
+
+std::string _sq_obj_to_json( HSQOBJECT obj, int indent )
+{
+	static std::string tab = "    "; // tab is 4 spaces
 	std::string retval;
 	Sqrat::Object sobj( obj );
 
@@ -223,14 +229,14 @@ std::string sq_obj_to_json( HSQOBJECT obj, int indent )
 		retval += "{\n";
 		{
 			for ( int i=0; i<indent; i++ )
-				retval += "\t";
+				retval += tab;
 
 			Sqrat::Object::iterator it;
 
 			bool got_obj = sobj.Next( it );
 			while ( got_obj )
 			{
-				std::string val = sq_obj_to_json( it.getValue(), indent + 1 );
+				std::string val = _sq_obj_to_json( it.getValue(), indent + 1 );
 
 				//
 				// Ignore completely if val comes back empty
@@ -241,9 +247,9 @@ std::string sq_obj_to_json( HSQOBJECT obj, int indent )
 					continue;
 				}
 
-				std::string key = sq_obj_to_json( it.getKey(), 0 );
+				std::string key = _sq_obj_to_json( it.getKey(), 0 );
 
-				retval += "\t";
+				retval += tab;
 				retval += key;
 				retval += ": ";
 				retval += val;
@@ -254,7 +260,7 @@ std::string sq_obj_to_json( HSQOBJECT obj, int indent )
 
 				retval += "\n";
 				for ( int i=0; i<indent; i++ )
-					retval += "\t";
+					retval += tab;
 			}
 		}
 		retval += "}";
@@ -267,7 +273,7 @@ std::string sq_obj_to_json( HSQOBJECT obj, int indent )
 			bool first=true;
 			while ( sobj.Next( it ) )
 			{
-				std::string val = sq_obj_to_json( it.getValue(), indent );
+				std::string val = _sq_obj_to_json( it.getValue(), indent );
 
 				if ( !val.empty() )
 				{
@@ -317,16 +323,18 @@ std::string sq_slot_to_json( std::string name )
 }
 
 // Run squirrel code
-void sq_run_code( std::string code )
+bool sq_run_code( std::string code )
 {
 	try
 	{
 		Sqrat::Script sc;
 		sc.CompileString( code );
 		sc.Run();
+		return true;
 	}
 	catch ( const Sqrat::Exception &e )
 	{
 		FeLog() << "Error compiling " << code << " - " << e.Message() << std::endl;
+		return false;
 	}
 }

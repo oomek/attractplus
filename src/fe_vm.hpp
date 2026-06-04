@@ -264,6 +264,9 @@ public:
 	static const char *cb_get_clipboard();
 	static void cb_set_clipboard( const char * );
 
+	static const char *cb_json_stringify( const Sqrat::Object );
+	static Sqrat::Object cb_json_parse( const char * );
+
 	static const char *cb_get_game_info( int, int, int );
 	static const char *cb_get_game_info( int, int );
 	static const char *cb_get_game_info( int );

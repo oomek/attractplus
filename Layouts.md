@@ -2242,6 +2242,8 @@ Attract-Mode Plus includes all [Squirrel Standard Library](https://web.archive.o
 -  `join( arr, delim )` 🔶 - Returns a string containing concatenated array values separated with the given delimiter.
 -  `get_clipboard()` 🔶 - Returns the contents of the OS clipboard.
 -  `set_clipboard( value )` 🔶 - Sets the contents of the OS clipboard.
+-  `json_parse( string )` 🔶 - Convert a JSON string into an object.
+-  `json_stringify( object )` 🔶 - Convert an object into a JSON string.
 
 ---
 

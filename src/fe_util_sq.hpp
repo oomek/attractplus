@@ -76,9 +76,10 @@ void fe_register_global_func(
 	SQFUNCTION f,
 	const char *name );
 
-std::string sq_obj_to_json( HSQOBJECT obj, int indent=0 );
+std::string _sq_obj_to_json( HSQOBJECT obj, int indent ); // used for json recursion - use "sq_obj_to_json" instead
+std::string sq_obj_to_json( HSQOBJECT obj );
 std::string sq_escape_string( const std::string value );
 std::string sq_slot_to_json( std::string name );
-void sq_run_code( std::string code );
+bool sq_run_code( std::string code );
 
 #endif
