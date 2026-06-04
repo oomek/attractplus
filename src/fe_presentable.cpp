@@ -22,6 +22,7 @@
 
 #include "fe_presentable.hpp"
 #include "fe_present.hpp"
+#include "fe_color.hpp"
 
 FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	: m_parent( p ),
@@ -147,39 +148,36 @@ int FeBasePresentable::get_a() const
 
 void FeBasePresentable::set_r(int r)
 {
-	sf::Color c=getColor();
-	c.r=r;
-	setColor(c);
+	sf::Color c = getColor();
+	set_rgb( r, c.g, c.b, c.a );
 }
 
 void FeBasePresentable::set_g(int g)
 {
-	sf::Color c=getColor();
-	c.g=g;
-	setColor(c);
+	sf::Color c = getColor();
+	set_rgb( c.r, g, c.b, c.a );
 }
 
 void FeBasePresentable::set_b(int b)
 {
-	sf::Color c=getColor();
-	c.b=b;
-	setColor(c);
+	sf::Color c = getColor();
+	set_rgb( c.r, c.g, b, c.a );
 }
 
 void FeBasePresentable::set_a(int a)
 {
-	sf::Color c=getColor();
-	c.a=a;
-	setColor(c);
+	sf::Color c = getColor();
+	set_rgb( c.r, c.g, c.b, a );
 }
 
 void FeBasePresentable::set_rgb(int r, int g, int b)
 {
-	sf::Color c=getColor();
-	c.r=r;
-	c.g=g;
-	c.b=b;
-	setColor(c);
+	set_rgb( r, g, b, getColor().a );
+}
+
+void FeBasePresentable::set_rgb(int r, int g, int b, int a)
+{
+	setColor(sf::Color( r, g, b, a ));
 }
 
 bool FeBasePresentable::get_visible() const

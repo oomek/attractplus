@@ -93,6 +93,14 @@ public:
 	int get_bgg();
 	int get_bgb();
 	int get_bga();
+	int get_bgolr();
+	int get_bgolg();
+	int get_bgolb();
+	int get_bgola();
+	int get_olr();
+	int get_olg();
+	int get_olb();
+	int get_ola();
 	int get_charsize();
 	int get_glyph_size();
 	float get_spacing();
@@ -107,9 +115,21 @@ public:
 	void set_bgg(int g);
 	void set_bgb(int b);
 	void set_bga(int a);
+	void set_bgolr(int r);
+	void set_bgolg(int g);
+	void set_bgolb(int b);
+	void set_bgola(int a);
+	void set_olr(int r);
+	void set_olg(int g);
+	void set_olb(int b);
+	void set_ola(int a);
+	void set_rgb(int r, int g, int b, int a) override;
 	void set_bg_rgb( int, int, int );
+	void set_bg_rgb( int, int, int, int );
 	void set_bg_outline_rgb( int, int, int );
+	void set_bg_outline_rgb( int, int, int, int );
 	void set_outline_rgb( int, int, int );
+	void set_outline_rgb( int, int, int, int );
 	void set_charsize(int s);
 	void set_spacing(float s);
 	void set_line_spacing(float s);
@@ -141,6 +161,8 @@ private:
 	sf::Vector2f m_position;	// unscaled position
 	float m_scale_factor;
 	bool m_magic;
+	bool m_link_outline_alpha{true}; // legacy - outline_alpha linked to alpha
+	bool m_link_bg_outline_alpha{true}; // legacy - bg_outline_alpha linked to bg_alpha
 };
 
 #endif

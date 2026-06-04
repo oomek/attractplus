@@ -101,6 +101,7 @@ public:
 	void set_b(int b);
 	void set_a(int a);
 	void set_rgb(int r, int g, int b);
+	virtual void set_rgb(int r, int g, int b, int a);
 
 	virtual bool get_visible() const;
 	void set_visible( bool );

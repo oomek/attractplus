@@ -101,7 +101,8 @@ public:
 	void set_olg( int g );
 	void set_olb( int b );
 	void set_ola( int a );
-	void set_olrgb( int r, int g, int b );
+	void set_outline_rgb( int r, int g, int b );
+	void set_outline_rgb( int r, int g, int b, int a );
 
 	void set_corner_radius( float r );
 	void set_corner_radius( float rx, float ry );
