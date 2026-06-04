@@ -60,6 +60,8 @@
 #include <stdarg.h>
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <sstream>
 
 #ifndef SFML_SYSTEM_WINDOWS
 #include <sys/stat.h>
@@ -356,6 +358,17 @@ void FeVM::load_layout_nv() {
 	sq_run_code( "if (\"layout\" in fe) try { fe.layout.nv = " + layout_nv + "[\"" + key + "\"] } catch (err) { fe.layout.nv = {} }" );
 }
 
+namespace {
+	std::string temp_id()
+	{
+		std::stringstream id;
+		id << std::setfill('0') << "temp_"
+			<< std::setw(10) << SqMath::random( 0, std::numeric_limits<int>::max() )
+			<< std::setw(10) << SqMath::random( 0, std::numeric_limits<int>::max() );
+		return id.str();
+	}
+}
+
 // Save the fe.layout.nv for the *last loaded* layout
 void FeVM::save_layout_nv() {
 	if ( m_last_layout.empty() )
@@ -367,7 +380,7 @@ void FeVM::save_layout_nv() {
 
 	// All layout nv's are stored in one table
 	// - Rebuild the full table in a temp variable, save it, then remove it
-	std::string temp = "_fe_layout_nv";
+	std::string temp = temp_id();
 	std::string key = sq_escape_string( m_last_layout );
 	sq_run_code( "try { " + temp + " <- " + layout_nv + "\n" + temp + "[\"" + key + "\"] <- fe.layout.nv } catch(err) {}" );
 	std::string json = sq_slot_to_json( temp );
@@ -526,6 +539,9 @@ namespace {
 		rt.Func( _SC("join"), &sq_join );
 		rt.Func( _SC("get_clipboard"), &FeVM::cb_get_clipboard );
 		rt.Func( _SC("set_clipboard"), &FeVM::cb_set_clipboard );
+
+		rt.Func( _SC("json_stringify"), &FeVM::cb_json_stringify );
+		rt.Func( _SC("json_parse"), &FeVM::cb_json_parse );
 
 		// Filesystem namespace
 		Sqrat::Table fs( vm );
@@ -3513,8 +3529,9 @@ const char *FeVM::cb_get_text( const char *t, int index_offset, int filter_offse
 
 	std::string translation = _( t );
 	fes->do_text_substitutions( translation, filter_offset, index_offset);
-	static std::string retval; // must be static to work with Squirrel
-	retval = translation; // static must be re-assigned to update
+
+	static std::string retval;
+	retval = translation;
 	return retval.c_str();
 }
 
@@ -3530,6 +3547,9 @@ const char *FeVM::cb_get_text( const char *t )
 
 const char *FeVM::cb_get_clipboard()
 {
+	// NOTE: squirrel requires "const char *" return types
+	// however, returning a c_str() value is dangerous since the string it points to gets destroyed
+	// the workaround is to use a static string
 	static std::string retval;
 	retval = clipboard_get_content();
 	return retval.c_str();
@@ -3538,6 +3558,24 @@ const char *FeVM::cb_get_clipboard()
 void FeVM::cb_set_clipboard( const char *value )
 {
 	clipboard_set_content( as_str( value ) );
+}
+
+const char *FeVM::cb_json_stringify( const Sqrat::Object obj )
+{
+	// Use our custom json strigify
+	static std::string json;
+	json = sq_obj_to_json( obj.GetObject() );
+	return json.c_str();
+}
+
+Sqrat::Object FeVM::cb_json_parse( const char *value )
+{
+	// Squirrel accepts JSON, so attempt to assign it to a temp var and return it
+	std::string temp = temp_id();
+	sq_run_code( "try { " + temp + " <- " + value + " } catch (err) { " + temp + " <- null }" );
+	Sqrat::Object obj = Sqrat::RootTable().GetSlot( scsqchar( temp ) );
+	sq_run_code( "try { delete " + temp + " } catch (err) {}" );
+	return obj;
 }
 
 // Draw the default layout when the user layout is empty
