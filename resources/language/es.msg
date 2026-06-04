@@ -156,6 +156,8 @@ Tags;Etiquetas
 PlayedCount;Partidas jugadas
 PlayedTime;Tiempo jugado
 PlayedLast;Último juego jugado
+PlayedSession;Sesión jugada
+PlayedLongest;Jugada más larga
 FileIsAvailable;Archivo disponible
 Shuffle;Aleatorio
 

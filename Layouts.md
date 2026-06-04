@@ -205,9 +205,11 @@ The following _Magic Tokens_ are supported:
    -  `[TagList]` - The tags attached to the game, formatted with `🏷` icons
 -  Stats
    -  `[PlayedCount]` - The number of times the game has been played
-   -  `[PlayedTime]` - The number of seconds the game has been played
+   -  `[PlayedTime]` - The duration in seconds the game has been played in total
    -  `[PlayedLast]` - The timestamp the game was last played
    -  `[PlayedAgo]` - The last played date formatted relative to now, for example: `5 Minutes Ago`
+   -  `[PlayedSession]` - The duration in seconds the game was played in the last session
+   -  `[PlayedLongest]` - The duration in seconds of the longest play session
    -  `[Score]` - The user score for the game. Range is `[0.0...5.0]`
    -  `[ScoreStar]` - The score displayed as a number of stars, for example: `★★★`
    -  `[ScoreStarAlt]` - The score displayed as a number of stars plus empty slots, for example: `★★★☆☆`
@@ -768,6 +770,8 @@ Get information about the selected game.
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
    -  `Info.PlayedLast`
+   -  `Info.PlayedSession`
+   -  `Info.PlayedLongest`
    -  `Info.Score`
    -  `Info.Votes`
    -  `Info.FileIsAvailable`
@@ -827,6 +831,8 @@ Set information about the selected game.
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
    -  `Info.PlayedLast`
+   -  `Info.PlayedSession`
+   -  `Info.PlayedLongest`
    -  `Info.Score`
    -  `Info.Votes`
 -  `value` - The value to set.
@@ -1495,6 +1501,8 @@ This class is a container for information about the available filters. Instances
    -  `Info.PlayedCount`
    -  `Info.PlayedTime`
    -  `Info.PlayedLast`
+   -  `Info.PlayedSession`
+   -  `Info.PlayedLongest`
    -  `Info.Score`
    -  `Info.Votes`
    -  `Info.FileIsAvailable`

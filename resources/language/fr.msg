@@ -156,6 +156,8 @@ Tags;Mots clés
 PlayedCount;Compteur de jeu
 PlayedTime;Temps de jeu
 PlayedLast;Dernier jeu joué
+PlayedSession;Session jouée
+PlayedLongest;Session la plus longue
 FileIsAvailable;Fichier disponible
 Shuffle;Mélanger
 

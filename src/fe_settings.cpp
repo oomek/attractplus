@@ -3018,12 +3018,11 @@ bool FeSettings::do_text_substitutions_absolute( std::string &str, int filter_in
 
 namespace {
 	//
-	// Format PlayedTime to "# Unit(s)" where Units is Seconds, Minutes, Hours, or Days
+	// Format seconds to "# Unit(s)" where Units is Seconds, Minutes, Hours, or Days
 	// - A single decimal is shown for time over 1 hour
 	//
-	std::string get_played_time_display_string( std::string value )
+	std::string get_time_duration_string( int seconds )
 	{
-		int seconds = as_int( value );
 		float val;
 		std::string unit;
 
@@ -3062,11 +3061,11 @@ namespace {
 	}
 
 	//
-	// Format PlayedLast to "YYYY-mm-dd HH:MM:SS"
+	// Format timestamp to "YYYY-mm-dd HH:MM:SS" or "Never" if zero
 	//
-	std::string get_played_last_display_string( std::string value )
+	std::string get_datetime_string( int ts )
 	{
-		std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+		std::time_t timestamp = static_cast<std::time_t>( ts );
 
 		if ( timestamp == 0 )
 			return _( "Never" );
@@ -3077,11 +3076,11 @@ namespace {
 	}
 
 	//
-	// Format PlayedLast to "# Unit(s) Ago"
+	// Format timestamp to "# Unit(s) Ago"
 	//
-	std::string get_played_ago_display_string( std::string value )
+	std::string get_time_relative_string( int ts )
 	{
-		std::time_t timestamp = static_cast<std::time_t>( as_int( value ) );
+		std::time_t timestamp = static_cast<std::time_t>( ts );
 
 		if ( timestamp == 0 )
 			return _( "Never" );
@@ -3158,10 +3157,16 @@ bool FeSettings::get_token_value( std::string &token, int filter_index, int rom_
 			return true;
 		}
 		case FeRomInfo::PlayedTime:
-			value = get_played_time_display_string( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedTime ) );
+			value = get_time_duration_string( as_int(get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedTime )) );
+			return true;
+		case FeRomInfo::PlayedSession:
+			value = get_time_duration_string( as_int(get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedSession )) );
+			return true;
+		case FeRomInfo::PlayedLongest:
+			value = get_time_duration_string( as_int(get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLongest )) );
 			return true;
 		case FeRomInfo::PlayedLast:
-			value = get_played_last_display_string( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast ) );
+			value = get_datetime_string( as_int(get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast )) );
 			return true;
 		case FeRomInfo::Score:
 			value = as_str( as_float( get_rom_info_absolute( filter_index, rom_index, (FeRomInfo::Index)i ) ), 1 );
@@ -3276,7 +3281,7 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 				return true;
 			}
 		case FeRomInfo::PlayedAgo:
-			value = get_played_ago_display_string( get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast ) );
+			value = get_time_relative_string( as_int(get_rom_info_absolute( filter_index, rom_index, FeRomInfo::PlayedLast )) );
 			return true;
 		case FeRomInfo::ScoreStar:
 			{
