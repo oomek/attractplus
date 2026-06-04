@@ -159,6 +159,8 @@ Tags;Tags
 PlayedCount;PlayedCount
 PlayedTime;PlayedTime
 PlayedLast;PlayedLast
+PlayedSession;PlayedSession
+PlayedLongest;PlayedLongest
 FileIsAvailable;FileIsAvailable
 Shuffle;Shuffle
 

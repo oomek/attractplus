@@ -159,6 +159,8 @@ Tags;分類標籤
 PlayedCount;遊戲次數
 PlayedTime;遊戲時間
 PlayedLast;上次遊玩時間
+PlayedSession;已播放會話
+PlayedLongest;播放時長最長
 FileIsAvailable;檔案可用性
 Shuffle;隨機播放
 

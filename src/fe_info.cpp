@@ -70,6 +70,8 @@ const char *FeRomInfo::indexStrings[] =
 	"PlayedCount",
 	"PlayedTime",
 	"PlayedLast",
+	"PlayedSession",
+	"PlayedLongest",
 	"Score",
 	"Votes",
 	"FileIsAvailable",
@@ -110,6 +112,8 @@ const std::vector<FeRomInfo::Index> FeRomInfo::Stats = {
 	FeRomInfo::PlayedCount,
 	FeRomInfo::PlayedTime,
 	FeRomInfo::PlayedLast,
+	FeRomInfo::PlayedSession,
+	FeRomInfo::PlayedLongest,
 	FeRomInfo::Score,
 	FeRomInfo::Votes
 };
@@ -139,6 +143,8 @@ const bool FeRomInfo::isNumeric( Index index )
 		|| ( index == FeRomInfo::PlayedCount )
 		|| ( index == FeRomInfo::PlayedTime )
 		|| ( index == FeRomInfo::PlayedLast )
+		|| ( index == FeRomInfo::PlayedSession )
+		|| ( index == FeRomInfo::PlayedLongest )
 		|| ( index == FeRomInfo::Score )
 		|| ( index == FeRomInfo::Votes )
 		|| ( index == FeRomInfo::Shuffle );
@@ -280,6 +286,8 @@ bool FeRomInfo::load_stats(
 	std::string played_count;
 	std::string played_time;
 	std::string played_last;
+	std::string played_session;
+	std::string played_longest;
 	std::string score;
 	std::string votes;
 
@@ -289,11 +297,15 @@ bool FeRomInfo::load_stats(
 		nowide::ifstream myfile( filename );
 		if ( myfile.is_open() )
 		{
+			// NOTE: this order must not be changed, and must match `save_stats` order
+			// - Any new stats must be added to the end
 			if ( myfile.good() ) getline( myfile, played_count );
 			if ( myfile.good() ) getline( myfile, played_time );
 			if ( myfile.good() ) getline( myfile, played_last );
 			if ( myfile.good() ) getline( myfile, score );
 			if ( myfile.good() ) getline( myfile, votes );
+			if ( myfile.good() ) getline( myfile, played_session );
+			if ( myfile.good() ) getline( myfile, played_longest );
 			myfile.close();
 		}
 	}
@@ -301,6 +313,8 @@ bool FeRomInfo::load_stats(
 	m_info[PlayedCount] = played_count.empty() ? "0" : played_count;
 	m_info[PlayedTime] = played_time.empty() ? "0" : played_time;
 	m_info[PlayedLast] = played_last.empty() ? "0" : played_last;
+	m_info[PlayedSession] = played_session.empty() ? "0" : played_session;
+	m_info[PlayedLongest] = played_longest.empty() ? "0" : played_longest;
 	m_info[Score] = score.empty() ? "0" : score;
 	m_info[Votes] = votes.empty() ? "0" : votes;
 	return true;
@@ -314,6 +328,8 @@ bool FeRomInfo::update_stats( const std::string &path, int count_incr, int playe
 	m_info[PlayedCount] = as_str( as_int( m_info[PlayedCount] ) + count_incr );
 	m_info[PlayedTime] = as_str( as_int( m_info[PlayedTime] ) + played_incr );
 	m_info[PlayedLast] = as_str( std::time(0) );
+	m_info[PlayedSession] = as_str( played_incr );
+	m_info[PlayedLongest] = as_str( std::max( as_int( m_info[PlayedLongest] ), played_incr ) );
 
 	return save_stats( path );
 }
@@ -333,11 +349,14 @@ bool FeRomInfo::save_stats( const std::string &path )
 		return false;
 	}
 
+	// NOTE: this order must match `load_stats` order
 	myfile << m_info[PlayedCount] << std::endl
 		<< m_info[PlayedTime] << std::endl
 		<< m_info[PlayedLast] << std::endl
 		<< m_info[Score] << std::endl
-		<< m_info[Votes] << std::endl;
+		<< m_info[Votes] << std::endl
+		<< m_info[PlayedSession] << std::endl
+		<< m_info[PlayedLongest] << std::endl;
 	myfile.close();
 	return true;
 }

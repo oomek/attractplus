@@ -159,6 +159,8 @@ Tags;태그 정보
 PlayedCount;플레이 횟수
 PlayedTime;플레이 시간
 PlayedLast;마지막 재생 시간
+PlayedSession;플레이 세션
+PlayedLongest;가장 오래 플레이한 세션
 FileIsAvailable;롬파일 존재여부
 Shuffle;셔플
 
