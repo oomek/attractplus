@@ -394,12 +394,27 @@ std::string utf32_to_utf8( const std::basic_string<std::uint32_t> & );
 //
 std::string clean_str( const std::string & );
 
+// Returns > 0 if value is "truthy" (Yes, On, True)
+// - Will match value of corresponding is_str_falsy
+// - Also checks translated value
+const int is_str_truthy( const std::string value );
+
+// Returns > 0 if value is "falsy" (No, Off, False)
+// - Will match value of corresponding is_str_truthy
+// - Also checks translated value
+const int is_str_falsy( const std::string value );
+
 //
 // Return bool representing given string
 // - "yes" or "true" = true, anything else = false
 // - If permissive "no" or "false" = false, anything else = true
 //
 bool config_str_to_bool( const std::string &s, bool permissive = false );
+
+//
+// Return FE_CFG_YES_STR or FE_CFG_NO_STR
+//
+const char *bool_to_config_str( const bool &b );
 
 //
 // Return the name of the operating system.

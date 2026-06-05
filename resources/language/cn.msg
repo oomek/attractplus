@@ -100,7 +100,9 @@ Overview;概览
 Plugins;插件
 Power Saving;省电模式
 Remove Input;移除-设置按键
-Reverse Order;反向播放
+Sort Order;排序
+Ascending;上升
+Descending;下降
 Rule;规则
 Scrape Artwork;搜刮插图
 Scrape Fanart;搜刮玩家自制 (Fanart)
@@ -476,7 +478,7 @@ _help_filter_delete;删除此筛选器
 _help_filter_exception;配置此过滤器例外。如果游戏符合例外, 则会将其列在过滤器中。规则和例外将按列出的顺序应用
 _help_filter_list_limit;如果您希望限制排序列表的大小, 请将其设置为非零值。前 X 个条目使用正值(例如, “10”表示前 10 个条目), 后 X 个条目使用负值(例如, “-25”表示后 25 个条目), 或使用“0”表示无限制。
 _help_filter_name;此过滤器的名称
-_help_filter_reverse_order;反转已排序的收藏集/ROM 列表的顺序。默认排序方式为：信息按字母“A”到“Z”排列, 统计数据按“从大到小”排列, 或者选择“不排序”时按源列表顺序排列。
+_help_filter_sort_order;收藏/ROM列表的排序方式。升序排列，信息按字母顺序“A”到字母“Z”排列，统计数据按文件大小“从小到大”排列，不排序则按文件来源顺序排列。降序排列与上述顺序相反。
 _help_filter_rule;配置此筛选规则。游戏必须符合所有筛选规则(或一个例外)才能被列入筛选器。
 _help_filter_sort_by;您希望用于对游戏合集/ROM列表进行排序的游戏信息属性。设置为“No Sort”可保留源合集/ROM列表的顺序。
 _help_game_custom_args;设置此项可覆盖此游戏的默认命令行参数。如果希望不使用任何参数进行覆盖, 请将其设置为[nothing]。以下参数将被相应替换：[name]、[romext]、[rompath]、[emulator]、[romfilename]、[system]、[systemn]。

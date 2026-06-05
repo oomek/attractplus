@@ -100,7 +100,9 @@ Overview;Panoramica
 Plugins;Plugin
 Power Saving;Risparmio energetico
 Remove Input;Eliminare il controllo
-Reverse Order;Ordine inverso
+Sort Order;Ordine di visualizzazione
+Ascending;In salita
+Descending;In discesa
 Rule;Regola
 Scrape Artwork;Recupera le immagini
 Scrape Fanart;Recupera le fanart
@@ -476,7 +478,7 @@ _help_filter_delete;Cancella questo filtro
 _help_filter_exception;Configura l'eccezione
 _help_filter_list_limit;Imposta un valore diverso da zero se vuoi limitare il numero di voci presenti nella lista. Utilizza un valore positivo per recuperare i primi titoli (per esempio "10" restituirà i primi 10 titoli), un valore negativo per recuperare gli ultimi (per esempio "-25" restituirà gli ultimi 25 titoli), oppure "0" per averli tutti
 _help_filter_name;Il nome di questo filtro
-_help_filter_reverse_order;Inverti l'ordine della raccolta/elenco rom ordinati. L'ordine predefinito è "dalla A alla Z" per le informazioni, "dal più grande al più piccolo" per le statistiche o l'ordine dell'elenco sorgente per "Nessun ordinamento".
+_help_filter_sort_order;L'ordine di visualizzazione della collezione/lista ROM. Crescente è "Dalla A alla Z" per le informazioni, "Dal più piccolo al più grande" per le statistiche e l'ordine di origine per "Nessun ordinamento". Decrescente è l'inverso di questi ordini.
 _help_filter_rule;Configura le regole per il filtro
 _help_filter_sort_by;L'attributo del gioco che deve essere utilizzato per ordinare la lista. Imposta "Nessun ordinamento" per mantenere l'ordinamento originale della lista
 _help_game_custom_args;Imposta dei parametri differenti per questo gioco

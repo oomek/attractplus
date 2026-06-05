@@ -1282,13 +1282,32 @@ int year_as_int( const std::string &s )
 	return as_int( y );
 }
 
+const int is_str_truthy( const std::string value )
+{
+	if ( icompare( value, "Yes" ) == 0 || icompare( value, _( "Yes" )) == 0 ) return 1;
+	if ( icompare( value, "On" ) == 0 || icompare( value, _( "On" )) == 0 ) return 2;
+	if ( icompare( value, "True" ) == 0 || icompare( value, _( "True" )) == 0 ) return 3;
+	return 0;
+}
+
+const int is_str_falsy( const std::string value )
+{
+	if ( icompare( value, "No" ) == 0 || icompare( value, _( "No" )) == 0 ) return 1;
+	if ( icompare( value, "Off" ) == 0 || icompare( value, _( "Off" )) == 0 ) return 2;
+	if ( icompare( value, "False" ) == 0 || icompare( value, _( "False" )) == 0 ) return 3;
+	return 0;
+}
 
 bool config_str_to_bool( const std::string &s, bool permissive )
 {
-	return permissive
-		? !(( icompare( s, "no" ) == 0 ) || ( icompare( s, "false" ) == 0 ))
-		: (( icompare( s, "yes" ) == 0 ) || ( icompare( s, "true" ) == 0 ));
+	return permissive ? !is_str_falsy( s ) : is_str_truthy( s );
 }
+
+const char *bool_to_config_str( const bool &b )
+{
+	return b ? FE_CFG_YES_STR : FE_CFG_NO_STR;
+}
+
 
 const char *get_OS_string()
 {

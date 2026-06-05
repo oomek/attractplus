@@ -471,7 +471,11 @@ public:
 	bool get_token_value( std::string &token, int filter_index, int rom_index, std::string &value );
 	bool get_special_token_value( std::string &token, int filter_index, int rom_index, std::string &value );
 
-	void get_current_sort( FeRomInfo::Index &idx, bool &rev, int &limit );
+	FeFilter *get_current_filter();
+	FeRomInfo::Index get_sort_by();
+	bool get_ascending_order();
+	bool get_reverse_order();
+	int get_list_limit();
 
 	const std::string &get_current_display_title() const;
 	const std::string &get_rom_info( int filter_offset, int rom_offset, FeRomInfo::Index index );

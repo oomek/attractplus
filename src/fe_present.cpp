@@ -997,32 +997,22 @@ int FePresent::get_selection_index() const
 
 int FePresent::get_sort_by() const
 {
-	FeRomInfo::Index idx;
-	bool rev;
-	int limit;
-
-	m_feSettings->get_current_sort( idx, rev, limit );
-	return idx;
+	return m_feSettings->get_sort_by();
 }
 
 bool FePresent::get_reverse_order() const
 {
-	FeRomInfo::Index idx;
-	bool rev;
-	int limit;
+	return m_feSettings->get_reverse_order();
+}
 
-	m_feSettings->get_current_sort( idx, rev, limit );
-	return rev;
+bool FePresent::get_ascending_order() const
+{
+	return m_feSettings->get_ascending_order();
 }
 
 int FePresent::get_list_limit() const
 {
-	FeRomInfo::Index idx;
-	bool rev;
-	int limit;
-
-	m_feSettings->get_current_sort( idx, rev, limit );
-	return limit;
+	return m_feSettings->get_list_limit();
 }
 
 void FePresent::set_selection_index( int index )

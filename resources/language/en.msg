@@ -100,7 +100,9 @@ Overview;Overview
 Plugins;Plugins
 Power Saving;Power Saving
 Remove Input;Remove Input
-Reverse Order;Reverse Order
+Sort Order;Sort Order
+Ascending;Ascending
+Descending;Descending
 Rule;Rule
 Scrape Artwork;Scrape Artwork
 Scrape Fanart;Scrape Fanart
@@ -476,7 +478,7 @@ _help_filter_delete;Delete this filter
 _help_filter_exception;Configure this filter exception.  If a game matches an exception it will be listed in the filter.  Rules and exceptions get applied in the order that they are listed
 _help_filter_list_limit;Set this to a non-zero value if you wish to limit the size of a sorted list.  Use a positive value for the first X entries (i.e. "10" gives the first 10 entries), a negative value for the last X entries (i.e. "-25" gives the last 25 entries), or "0" for no limit
 _help_filter_name;The name for this filter
-_help_filter_reverse_order;Reverse the order of the sorted collection/romlist.  Default order is "A to Z" for info, "Largest to Smallest" for stats, or the source list order for "No Sort"
+_help_filter_sort_order;The sorting order of the collection/romlist.  Ascending is "A to Z" for info, "Smallest to Largest" for stats, and the source order for "No Sort".  Descending is the reverse of those orders.
 _help_filter_rule;Configure this filter rule.  A game must match all filter rules (or a single exception) to be listed in a filter
 _help_filter_sort_by;The game information attribute that you wish to sort the collection/romlist by.  Set to "No Sort" to keep the ordering from the source collection/romlist
 _help_game_custom_args;Set this to override the default command line arguments for this game.  Set this to [nothing] if you want to override with no parameters.  The following get substituted appropriately: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]

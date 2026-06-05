@@ -1367,7 +1367,8 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("index"), &FeFilter::get_rom_index )
 		.Prop( _SC("size"), &FeFilter::get_size )
 		.Prop( _SC("sort_by"), &FeFilter::get_sort_by )
-		.Prop( _SC("reverse_order"), &FeFilter::get_reverse_order )
+		.Prop( _SC("ascending_order"), &FeFilter::get_ascending_order )
+		.Prop( _SC("reverse_order"), &FeFilter::get_reverse_order ) // Deprecated 3.2.3+, use sort_asc
 		.Prop( _SC("list_limit"), &FeFilter::get_list_limit )
 	);
 
@@ -2162,7 +2163,8 @@ public:
 				.Prop( _SC("index"), &FeFilter::get_rom_index )
 				.Prop( _SC("size"), &FeFilter::get_size )
 				.Prop( _SC("sort_by"), &FeFilter::get_sort_by )
-				.Prop( _SC("reverse_order"), &FeFilter::get_reverse_order )
+				.Prop( _SC("ascending_order"), &FeFilter::get_ascending_order )
+				.Prop( _SC("reverse_order"), &FeFilter::get_reverse_order ) // Deprecated 3.2.3+, use sort_asc
 				.Prop( _SC("list_limit"), &FeFilter::get_list_limit )
 			);
 
@@ -3210,12 +3212,7 @@ const char *FeVM::cb_get_game_info( int index, int offset, int filter_offset )
 
 	case FeRomInfo::LAST_INDEX+3: // SortValue
 		{
-			FeRomInfo::Index sort_by;
-			bool reverse_sort;
-			int list_limit;
-
-			fev->m_feSettings->get_current_sort( sort_by, reverse_sort, list_limit );
-
+			FeRomInfo::Index sort_by = fev->m_feSettings->get_sort_by();
 			retval = fev->m_feSettings->get_rom_info( filter_offset, offset,
 				( sort_by == FeRomInfo::LAST_INDEX ) ? FeRomInfo::Title : sort_by );
 		}
