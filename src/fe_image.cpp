@@ -352,6 +352,18 @@ bool FeTextureContainer::fix_masked_image()
 struct RGBAPixel { std::uint8_t r,g,b,a; };
 static std::vector<RGBAPixel> s_black_pixels;
 
+static void fill_texture_black( sf::Texture &texture )
+{
+	size_t required_pixels = texture.getSize().x * texture.getSize().y;
+	if ( required_pixels == 0 )
+		return;
+
+	if ( s_black_pixels.size() < required_pixels )
+		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
+
+	texture.update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
+}
+
 #ifndef NO_MOVIE
 bool FeTextureContainer::load_with_ffmpeg(
 	const std::string &filename,
@@ -406,10 +418,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 	if ( res && !is_image )
 	{
 		// Fill the first video frame with an opaque black colour
-		size_t required_pixels = m_texture.getSize().x * m_texture.getSize().y;
-		if ( s_black_pixels.size() < required_pixels )
-    		s_black_pixels.resize( required_pixels, { 0, 0, 0, 255 });
-		m_texture.update( reinterpret_cast<std::uint8_t*>( s_black_pixels.data() ));
+		fill_texture_black( m_texture );
 	}
 
 	m_texture.setSmooth( m_smooth );
@@ -960,6 +969,14 @@ int FeTextureContainer::get_fft_bands() const
 		return m_movie->get_fft_bands();
 	else
 		return m_fft_bands;
+}
+
+void FeTextureContainer::clear_video_frame()
+{
+#ifndef NO_MOVIE
+	if ( m_movie )
+		fill_texture_black( m_texture );
+#endif
 }
 
 float FeTextureContainer::get_sample_aspect_ratio() const
