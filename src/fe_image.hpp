@@ -194,6 +194,7 @@ public:
 
 	void set_fft_bands( int );
 	int get_fft_bands() const;
+	void clear_video_frame();
 
 	float get_vu_mono() const;
 	float get_vu_left() const;

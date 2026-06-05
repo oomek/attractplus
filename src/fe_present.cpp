@@ -1434,6 +1434,13 @@ void FePresent::pre_run()
 {
 	on_transition( ToGame, FromToNoValue );
 	set_video_play_state( false );
+	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
+				itm != m_texturePool.end(); ++itm )
+	{
+		FeTextureContainer *tex = dynamic_cast<FeTextureContainer *>( *itm );
+		if ( tex )
+			tex->clear_video_frame();
+	}
 
 	for ( std::vector<FeSound *>::iterator its=m_sounds.begin();
 				its != m_sounds.end(); ++its )
