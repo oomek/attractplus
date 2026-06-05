@@ -62,6 +62,7 @@ public:
 	int type;		// see Opt namespace for values
 	bool trigger_reload = false; // this option will trigger a ui reload on change
 	bool trigger_colour = false; // special case for menu colour options
+	bool preset_controlled = false; // this option is controlled by a preset
 
 	std::string setting;	// the name of the setting
 	std::string help_msg;	// the help message for this option
@@ -205,6 +206,12 @@ public:
 	//
 	virtual bool save( FeConfigContext &ctx );
 
+	// Apply preset values to context immediately when preset selection changes
+	virtual void apply_preset_to_context( FeConfigContext &ctx, int preset_index ) {}
+
+	// Handle when a non-preset option changes - set preset field to "Custom" if applicable
+	virtual void handle_preset_override( FeConfigContext &ctx, int changed_option_index ) {}
+
 	// When true will cause display_config_dialog to save and exit on every change
 	// Used to create "live" menus, such as Layout Options
 	// main.cpp must then re-display the menu until user explicitly exits
@@ -228,6 +235,9 @@ protected:
 		FeConfigContext &ctx, FeBaseConfigMenu *& submenu );
 
 	bool save_helper( FeConfigContext &ctx, int first_idx=0 );
+	void apply_presets_if_changed( FeConfigContext &ctx, int first_idx );
+	void apply_preset_to_context( FeConfigContext &ctx, int preset_index ) override;
+	void handle_preset_override( FeConfigContext &ctx, int changed_option_index ) override;
 
 	FeSettings::FePresentState m_state;
 	int m_script_id;
@@ -235,6 +245,9 @@ protected:
 	FeScriptConfigurable *m_per_display;
 	std::string m_file_path;
 	std::string m_file_name;
+
+public:
+	void update_preset_controlled_options( FeConfigContext &ctx );
 };
 
 class FeLayoutEditMenu : public FeScriptConfigMenu
