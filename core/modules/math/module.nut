@@ -1,0 +1,1 @@
+// This is a dummy file that replaces math module since all math functions are now internal

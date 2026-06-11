@@ -1,7 +1,6 @@
 /attract
 *.o
 obj
-core
 *.dll
 *.exe
 /*.cfg
