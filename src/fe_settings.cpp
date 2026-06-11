@@ -72,6 +72,10 @@ const char *FE_ART_EXTENSIONS[]		=
 
 #ifdef DATA_PATH
 const char *FE_DATA_PATH = DATA_PATH;
+#elif defined(SFML_SYSTEM_WINDOWS)
+// Load files from folders beside the executable, then
+// fall back to bundled package assets in core folder.
+const char *FE_DATA_PATH = "./core/";
 #else
 const char *FE_DATA_PATH = NULL;
 #endif

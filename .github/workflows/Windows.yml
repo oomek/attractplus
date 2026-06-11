@@ -92,7 +92,7 @@ jobs:
         done
         find "${GITHUB_WORKSPACE}"/am/obj/sfml/install/lib/ -name "*.dll" -o -name "*.so" -o -name "*.dylib" -exec cp -v {} "${GITHUB_WORKSPACE}"/artifacts/ \;
         cp am/attract* "${GITHUB_WORKSPACE}"/artifacts/
-        cp -R am/config/* "${GITHUB_WORKSPACE}"/artifacts/
+        cp -R am/core "${GITHUB_WORKSPACE}"/artifacts/
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:

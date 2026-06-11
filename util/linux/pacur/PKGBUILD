@@ -186,5 +186,5 @@ package() {
     cp util/linux/attract-mode-plus.png ${pkgdir}/usr/share/icons/hicolor/512x512/apps
     cp util/linux/attract-mode-plus.desktop ${pkgdir}/usr/share/applications
     cp util/linux/attract-mode-plus.appdata.xml ${pkgdir}/usr/share/appdata
-    cp -r config/* ${pkgdir}/usr/share/attractplus
+    cp -r core/* ${pkgdir}/usr/share/attractplus
 }

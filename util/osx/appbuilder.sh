@@ -143,8 +143,7 @@ echo "Library paths updated successfully!"
 echo STEP 5 - POPULATE BUNDLE FOLDER
 
 # Copy assets to bundle folder
-# cp -r $basedir/config "$bundlecontent"/
-cp -a $basedir/config/ "$bundlecontent"/share/attractplus
+cp -a $basedir/core/ "$bundlecontent"/share/attractplus
 cp -a $basedir/attractplus "$bundlecontent"/MacOS/
 cp -a $basedir/util/osx/attractplus.icns "$bundlecontent"/Resources/
 cp -a $basedir/util/osx/AppIcon.icns "$bundlecontent"/Resources/

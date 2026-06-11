@@ -52,7 +52,7 @@ NPROC=$(getconf _NPROCESSORS_ONLN)
 LLIMIT=$(awk 'BEGIN{printf"%.1f",'${NPROC}'/2}')
 
 make -C .. clean
-eval make -C .. -j${NPROC} -l${LLIMIT} ${MAKEOPTS} DATA_PATH=../config/ $@
+eval make -C .. -j${NPROC} -l${LLIMIT} ${MAKEOPTS} DATA_PATH=../core/ $@
 ### end: make
 
 function finish {
@@ -68,8 +68,8 @@ APPCONTENT="${SCRATCH}"/disk/Attract.app/Contents
 # Create bundle folder structure
 mkdir -p "${APPCONTENT}"/{MacOS,Resources,libs}
 
-cp -r ../config "${APPCONTENT}"/
-[[ -d ../../extras ]] && cp -r ../../extras/* "${APPCONTENT}"/config/
+cp -r ../core "${APPCONTENT}"/
+[[ -d ../../extras ]] && cp -r ../../extras/* "${APPCONTENT}"/core/
 cp -a ../attract "${APPCONTENT}"/MacOS/
 cp -a "${SCRIPT_PATH}"/attract.icns "${APPCONTENT}"/Resources/
 cp -a "${SCRIPT_PATH}"/launch.sh "${APPCONTENT}"/MacOS/

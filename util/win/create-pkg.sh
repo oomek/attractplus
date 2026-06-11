@@ -37,8 +37,8 @@ SCRATCH=$(mktemp -d -t package.XXXXXXXX)
 APP="${SCRATCH}"/install
 mkdir -p "${APP}"
 
-# configuration
-cp -r ../config/* "${APP}"
+# package assets
+cp -r ../core "${APP}"
 
 # documentation
 cp -a ../License.txt ../*.md "${APP}"/

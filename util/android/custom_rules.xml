@@ -2,22 +2,22 @@
 <project>
     <target name="-pre-compile">
 
-        <!-- copy config files to assets -->
-        <property name="config.dir" location="../../config" />
-        <echo message="Copying '${config.dir}' to assets" />
+        <!-- copy core files to assets -->
+        <property name="core.dir" location="../../core" />
+        <echo message="Copying '${core.dir}' to assets" />
 
         <copy todir="assets">
-         <fileset dir="../../config" />
+         <fileset dir="../../core" />
         </copy>
 
-        <!-- create manifest of copied config files -->
+        <!-- create manifest of copied core files -->
         <path id="example.path">
-         <fileset dir="../../config" />
+         <fileset dir="../../core" />
         </path>
 
         <!-- Format path -->
         <pathconvert pathsep="${line.separator}" property="echo.path.compile" refid="example.path">
-         <map from="${config.dir}/" to="" />
+         <map from="${core.dir}/" to="" />
         </pathconvert>
 
         <echo file="assets/manifest.txt">${echo.path.compile}${line.separator}</echo>

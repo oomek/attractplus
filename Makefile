@@ -684,10 +684,10 @@ $(DATA_PATH):
 install: $(DATA_PATH)
 	install -D $(EXE) $(DESTDIR)$(bindir)/$(EXE)
 	mkdir -p $(DESTDIR)$(DATA_PATH)
-	cp -r config/* $(DESTDIR)$(DATA_PATH)
+	cp -r core/* $(DESTDIR)$(DATA_PATH)
 
 smallclean:
-	-$(RM) $(OBJ_DIR)/*.o *~ core $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h
+	-$(RM) $(OBJ_DIR)/*.o *~ $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h
 
 clean:
-	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~ core
+	-$(RM) -r $(OBJ_DIR)/*.o $(EXPAT_OBJ_DIR)/*.o $(SQUIRREL_OBJ_DIR)/*.o $(SQSTDLIB_OBJ_DIR)/*.o $(AUDIO_OBJ_DIR)/*.o $(NOWIDE_OBJ_DIR)/*.o $(OBJ_DIR)/*.a $(OBJ_DIR)/*.res $(SFML_OBJ_DIR)/* $(SFML_TOKEN) $(RES_FONTS_DIR)/*.h $(RES_IMGS_DIR)/*.h $(RES_LANGUAGE_DIR)/*.h *~
