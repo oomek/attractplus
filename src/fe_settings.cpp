@@ -2632,11 +2632,11 @@ void FeSettings::change_layout( int inc )
 			layout_path,
 			list );
 
-	size_t n = list.size();
+	int n = static_cast<int>( list.size() );
 	if ( n <= 1 ) // nothing to do if there isn't more than one file
 		return;
 
-	unsigned int index=0;
+	int index=0;
 	for ( unsigned int i=0; i<n; i++ )
 	{
 		if ( layout_file.compare( list[i] ) == 0 )
