@@ -29,7 +29,7 @@
 
 FeTextPrimitive::FeTextPrimitive( )
 	: m_texts( 1, sf::JustifyText( *FePresent::script_get_fep()->get_default_font() )),
-	m_align( Centre ),
+	m_align( MiddleCentre ),
 	m_case( None ),
 	m_justify( sf::JustifyText::None ),
 	m_first_line( 1 ),
@@ -53,7 +53,7 @@ FeTextPrimitive::FeTextPrimitive(
 			unsigned int charactersize,
 			Alignment align )
 	: m_texts( 1, sf::JustifyText( *font )),
-	m_align( align ),
+	m_align( MiddleCentre ),
 	m_case( None ),
 	m_justify( sf::JustifyText::None ),
 	m_first_line( 1 ),
@@ -65,6 +65,7 @@ FeTextPrimitive::FeTextPrimitive(
 	m_word_wrap( false ),
 	m_needs_pos_set( false )
 {
+	setAlignment( align );
 	setColor( colour );
 	setBgColor( bgcolour );
 	setCharacterSize( charactersize );
@@ -589,6 +590,21 @@ void FeTextPrimitive::setSize( const sf::Vector2f &s )
 
 void FeTextPrimitive::setAlignment( Alignment a )
 {
+	switch ( a )
+	{
+		case Left:
+			a = MiddleLeft;
+			break;
+		case Centre:
+			a = MiddleCentre;
+			break;
+		case Right:
+			a = MiddleRight;
+			break;
+		default:
+			break;
+	}
+
 	m_align = a;
 	m_needs_pos_set = true;
 }
