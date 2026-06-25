@@ -423,6 +423,8 @@ void FeTextPrimitive::set_positions() const
 	spacing = getLineSpacingFactored( font, spacing );
 
 	sf::Vector2f rectPos = m_bgRect.getPosition();
+	sf::Vector2f rectOrigin = m_bgRect.getOrigin();
+	sf::Vector2f rectTopLeft = rectPos - rectOrigin;
 	sf::FloatRect rectSize = sf::FloatRect( m_bgRect.getPosition(), m_bgRect.getSize() );
 
 	for ( int i=0; i < (int)m_texts.size(); i++ )
@@ -440,24 +442,24 @@ void FeTextPrimitive::set_positions() const
 
 		// set position x
 		if ( m_align & Left )
-			textPos.x = rectPos.x - outline;
+			textPos.x = rectTopLeft.x - outline;
 		else if ( m_align & Right )
-			textPos.x = rectPos.x + floorf( rectSize.size.x ) - textSize.size.x + outline;
+			textPos.x = rectTopLeft.x + floorf( rectSize.size.x ) - textSize.size.x + outline;
 		else if ( m_align & Centre )
-			textPos.x = rectPos.x + floorf(( rectSize.size.x - textSize.size.x ) / 2.0 );
+			textPos.x = rectTopLeft.x + floorf(( rectSize.size.x - textSize.size.x ) / 2.0 );
 
 		if ( m_align & ( Top | Bottom | Middle ))
 			textPos.x -= textSize.position.x;
 
 		// set position y
 		if ( m_align & Top )
-			textPos.y = rectPos.y + ceilf( spacing * i - charSize + glyphSize );
+			textPos.y = rectTopLeft.y + ceilf( spacing * i - charSize + glyphSize );
 		else if ( m_align & Bottom )
-			textPos.y = rectPos.y + floorf( rectSize.size.y  - charSize - spacing * ( m_texts.size() - i - 1 ));
+			textPos.y = rectTopLeft.y + floorf( rectSize.size.y  - charSize - spacing * ( m_texts.size() - i - 1 ));
 		else if ( m_align & Middle )
-			textPos.y = rectPos.y + floorf( spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
+			textPos.y = rectTopLeft.y + floorf( spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
 		else
-			textPos.y = rectPos.y + ceilf( spacing * i + ( rectSize.size.y - ( spacing * m_texts.size() )) / 2.0 );
+			textPos.y = rectTopLeft.y + ceilf( spacing * i + ( rectSize.size.y - ( spacing * m_texts.size() )) / 2.0 );
 
 		if ( m_align & Top ) textPos.y += margin;
 		if ( m_align & Bottom ) textPos.y -= margin;
@@ -576,6 +578,11 @@ sf::Vector2f FeTextPrimitive::getSize() const
 	return m_bgRect.getSize();
 }
 
+sf::Vector2f FeTextPrimitive::getOrigin() const
+{
+	return m_bgRect.getOrigin();
+}
+
 void FeTextPrimitive::setPosition( const sf::Vector2f &p )
 {
 	m_bgRect.setPosition( p );
@@ -585,6 +592,12 @@ void FeTextPrimitive::setPosition( const sf::Vector2f &p )
 void FeTextPrimitive::setSize( const sf::Vector2f &s )
 {
 	m_bgRect.setSize( s );
+	m_needs_pos_set = true;
+}
+
+void FeTextPrimitive::setOrigin( const sf::Vector2f &o )
+{
+	m_bgRect.setOrigin( o );
 	m_needs_pos_set = true;
 }
 

@@ -39,6 +39,19 @@ class FeFontContainer;
 class FeListBox : public FeBasePresentable, public sf::Drawable
 {
 public:
+	enum Alignment
+	{
+		Left,
+		Centre,
+		Right,
+		Top,
+		Bottom,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight
+	};
+
 	enum SelectionMode
 	{
 		Static=0,
@@ -77,6 +90,12 @@ public:
 	sf::Color getColor() const;
 	sf::Color getOutlineColor() const;
 	sf::Color getSelOutlineColor() const;
+	int get_anchor_type() const;
+	int get_rotation_origin_type() const;
+	float get_anchor_x() const;
+	float get_anchor_y() const;
+	float get_rotation_origin_x() const;
+	float get_rotation_origin_y() const;
 
 	int getIndexOffset() const;
 	void setIndexOffset( int );
@@ -92,6 +111,14 @@ public:
 	void setSelStyle( int );
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
+	void set_anchor( float x, float y );
+	void set_anchor_type( int t );
+	void set_rotation_origin( float x, float y );
+	void set_rotation_origin_type( int t );
+	void set_anchor_x( float x );
+	void set_anchor_y( float y );
+	void set_rotation_origin_x( float x );
+	void set_rotation_origin_y( float y );
 
 	bool getSelectedText( FeTextPrimitive* &sel );
 
@@ -212,6 +239,8 @@ private:
 	void update_list_settings( FeSettings *s );
 	void refresh_selection();
 	void refresh_list();
+	void update_row_geometry();
+	sf::Vector2f alignTypeToVector( int a );
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_custom_list;
@@ -221,6 +250,12 @@ private:
 	sf::Color m_selColour;
 	sf::Color m_selBg;
 	sf::Color m_selOutlineColour;
+	sf::Vector2f m_position;
+	sf::Vector2f m_size;
+	sf::Vector2f m_anchor;
+	sf::Vector2f m_rotation_origin;
+	FeListBox::Alignment m_anchor_type;
+	FeListBox::Alignment m_rotation_origin_type;
 	float m_selOutlineThickness;
 	int m_selStyle;
 	int m_rows;
