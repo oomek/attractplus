@@ -35,6 +35,19 @@ class FeSettings;
 class FeText : public FeBasePresentable, public sf::Drawable
 {
 public:
+	enum Alignment
+	{
+		Left,
+		Centre,
+		Right,
+		Top,
+		Bottom,
+		TopLeft,
+		TopRight,
+		BottomLeft,
+		BottomRight
+	};
+
 	FeText( FePresentableParent &p,
 		const std::string &str, int x, int y, int w, int h );
 
@@ -49,6 +62,20 @@ public:
 	void setRotation( float );
 	sf::Color getColor() const;
 	void setColor( sf::Color );
+	int get_anchor_type() const;
+	int get_rotation_origin_type() const;
+	float get_anchor_x() const;
+	float get_anchor_y() const;
+	float get_rotation_origin_x() const;
+	float get_rotation_origin_y() const;
+	void set_anchor( float x, float y );
+	void set_anchor_type( int t );
+	void set_rotation_origin( float x, float y );
+	void set_rotation_origin_type( int t );
+	void set_anchor_x( float x );
+	void set_anchor_y( float y );
+	void set_rotation_origin_x( float x );
+	void set_rotation_origin_y( float y );
 
 	// Overrides from base class:
 	//
@@ -149,6 +176,8 @@ private:
 	FeText &operator=( const FeText & );
 
 	void update_font_size();
+	void update_transform();
+	sf::Vector2f alignTypeToVector( int a );
 
 	FeTextPrimitive m_draw_text;
 	std::string m_string;
@@ -159,6 +188,11 @@ private:
 	int m_user_charsize;	 	// -1 if no charsize specified
 	sf::Vector2f m_size;		// unscaled size
 	sf::Vector2f m_position;	// unscaled position
+	sf::Vector2f m_anchor;
+	sf::Vector2f m_rotation_origin;
+	FeText::Alignment m_anchor_type;
+	FeText::Alignment m_rotation_origin_type;
+	float m_rotation;
 	float m_scale_factor;
 	bool m_magic;
 	bool m_link_outline_alpha{true}; // legacy - outline_alpha linked to alpha

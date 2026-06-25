@@ -92,6 +92,7 @@ public:
 	void setPosition( const sf::Vector2f & );
 	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
 	void setSize( const sf::Vector2f & );
+	void setOrigin( const sf::Vector2f & );
 	void setStyle( int );
 	void setJustify( int );
 	void setRotation( float );
@@ -123,6 +124,7 @@ public:
 	Case getCase() const;
 	sf::Vector2f getPosition() const;
 	sf::Vector2f getSize() const;
+	sf::Vector2f getOrigin() const;
 	float getRotation() const;
 	int getStyle() const;
 	int getJustify() const;
