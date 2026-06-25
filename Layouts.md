@@ -1780,19 +1780,15 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Justify.Word` - Increase space between words to fill line.
    -  `Justify.Character` - Increase space between characters to fill line.
 -  `align` - Get/set the text alignment. Can be one of the following values:
-   -  ~~`Align.Centre`~~ (default)
-   -  ~~`Align.Left`~~
-   -  ~~`Align.Right`~~
-   -  `Align.TopCentre`
+   -  `Align.Left`
+   -  `Align.Centre` (default)
+   -  `Align.Right`
+   -  `Align.Top`
+   -  `Align.Bottom`
    -  `Align.TopLeft`
    -  `Align.TopRight`
-   -  `Align.BottomCentre`
    -  `Align.BottomLeft`
    -  `Align.BottomRight`
-   -  `Align.MiddleCentre`
-   -  `Align.MiddleLeft`
-   -  `Align.MiddleRight`
-   -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
 -  `case` - Get/set the displayed message case. Can be one or more of the following values:
    -  `Case.None` (default)
    -  `Case.Uppercase`
@@ -1891,19 +1887,15 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Justify.Word` - Increase space between words to fill line.
    -  `Justify.Character` - Increase space between characters to fill line.
 -  `align` - Get/set the text alignment. Can be one of the following values:
-   -  ~~`Align.Centre`~~ (default)
-   -  ~~`Align.Left`~~
-   -  ~~`Align.Right`~~
-   -  `Align.TopCentre`
+   -  `Align.Left`
+   -  `Align.Centre` (default)
+   -  `Align.Right`
+   -  `Align.Top`
+   -  `Align.Bottom`
    -  `Align.TopLeft`
    -  `Align.TopRight`
-   -  `Align.BottomCentre`
    -  `Align.BottomLeft`
    -  `Align.BottomRight`
-   -  `Align.MiddleCentre`
-   -  `Align.MiddleLeft`
-   -  `Align.MiddleRight`
-   -  The last 3 alignment modes have the same function as the first 3, but they are more accurate. The first 3 modes are preserved for compatibility.
 -  `case` - Get/set the displayed message case. Can be one or more of the following values:
    -  `Case.None` (default)
    -  `Case.Uppercase`
