@@ -113,6 +113,7 @@ public:
 
 	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
 	int get_type() const;
+	void refresh_script_geometry() override;
 
 protected:
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
@@ -140,6 +141,7 @@ private:
 	bool m_corner_ratio_x;
 	bool m_corner_ratio_y;
 	bool m_corner_auto;
+	float m_outline;
 	FeBlend::Mode m_blend_mode;
 
 	void scale();
