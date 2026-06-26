@@ -62,6 +62,11 @@ FeCoordinateSpace FePresentableParent::get_coordinate_space( bool ) const
 	return FeCoordinateSpace();
 }
 
+sf::Vector2f FePresentableParent::get_grid_offset( bool ) const
+{
+	return sf::Vector2f( 0, 0 );
+}
+
 void FePresentableParent::refresh_script_geometry()
 {
 	for ( std::vector<FeBasePresentable *>::iterator itr=elements.begin();
@@ -84,16 +89,17 @@ void FeBasePresentable::set_scale_factor( float, float )
 sf::Vector2f FeBasePresentable::convert_position( const sf::Vector2f &p ) const
 {
 	FeCoordinateSpace space = m_parent ? m_parent->get_coordinate_space( get_grid_uniform() ) : FeCoordinateSpace();
+	sf::Vector2f offset = m_parent ? m_parent->get_grid_offset( get_grid_uniform() ) : sf::Vector2f( 0, 0 );
 
 	switch ( get_grid() )
 	{
 		case GridPercent:
 			return sf::Vector2f(
 				space.origin.x + space.size.x * p.x / 100.0f,
-				space.origin.y + space.size.y * p.y / 100.0f );
+				space.origin.y + space.size.y * p.y / 100.0f ) + offset;
 		case GridPixel:
 		default:
-			return p;
+			return p + offset;
 	}
 }
 

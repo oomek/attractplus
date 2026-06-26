@@ -102,6 +102,7 @@ public:
 	int get_height();
 	int get_num();
 	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
+	sf::Vector2f get_grid_offset( bool uniform=true ) const;
 
 	sf::Transform transform;
 	sf::Vector2i size;
@@ -170,6 +171,7 @@ protected:
 	bool m_mouse_pointer_visible;
 	int m_grid;
 	bool m_grid_uniform;
+	sf::Vector2f m_grid_offset;
 	float m_aspect_ratio;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
@@ -294,6 +296,12 @@ public:
 	void set_layout_grid( int );
 	bool get_layout_grid_uniform() const;
 	void set_layout_grid_uniform( bool );
+	float get_layout_grid_offset_x() const;
+	float get_layout_grid_offset_y() const;
+	sf::Vector2f get_layout_grid_offset( bool uniform ) const;
+	void set_layout_grid_offset_x( float );
+	void set_layout_grid_offset_y( float );
+	void set_layout_grid_offset( float, float );
 
 	// Get a font from the font pool, loading it if necessary
 	const FeFontContainer *get_pooled_font( const std::vector < std::string > &l );
