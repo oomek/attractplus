@@ -372,11 +372,13 @@ The default `blend_mode` for artwork is `BlendMode.Alpha`
 ```squirrel
 fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
+fe.add_surface( x, y, w, h, pixel_w, pixel_h ) 🔶
 ```
 
 Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`Image`](#feadd_image), [`Artwork`](#feadd_artwork), [`Text`](#feadd_text), [`Listbox`](#feadd_listbox) and [`Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
 A surface's texture size is fixed upon creation. Later changes to `width` or `height` will not change the texture's dimensions.
+When `pixel_w` and `pixel_h` are omitted, the texture size is derived from `w` and `h` using the current `grid`.
 
 The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
@@ -384,8 +386,10 @@ The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
 -  `x` - The x coordinate of the top left corner of the surface (in layout coordinates).
 -  `y` - The y coordinate of the top left corner of the surface (in layout coordinates).
--  `w` - The width of the surface texture (in pixels).
--  `h` - The height of the surface texture (in pixels).
+-  `w` - The width of the surface (in layout coordinates).
+-  `h` - The height of the surface (in layout coordinates).
+-  `pixel_w` - The width of the surface texture (in pixels).
+-  `pixel_h` - The height of the surface texture (in pixels).
 
 **Return Value**
 

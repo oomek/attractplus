@@ -472,3 +472,14 @@ FeImage *FePresentableParent::add_surface(float x, float y, int w, int h)
 
 	return NULL;
 }
+
+FeImage *FePresentableParent::add_surface(
+		float x, float y, float w, float h, int pixel_w, int pixel_h )
+{
+	FePresent *fep = FePresent::script_get_fep();
+
+	if ( fep )
+		return fep->add_surface( x, y, w, h, pixel_w, pixel_h, *this );
+
+	return NULL;
+}
