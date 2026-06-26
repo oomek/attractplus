@@ -54,6 +54,7 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_corner_ratio_x( false ),
 	m_corner_ratio_y( false ),
 	m_corner_auto( false ),
+	m_outline( 0 ),
 	m_blend_mode( FeBlend::Alpha )
 {
 	setColor( sf::Color::White );
@@ -136,16 +137,17 @@ void FeRectangle::setOutlineColor( sf::Color c )
 
 float FeRectangle::get_outline()
 {
-	return m_rect.getOutlineThickness();
+	return m_outline;
 }
 
 void FeRectangle::set_outline( float o )
 {
-	if ( o != m_rect.getOutlineThickness() )
-	{
-		m_rect.setOutlineThickness( o );
-		FePresent::script_flag_redraw();
-	}
+	if ( o == m_outline )
+		return;
+
+	m_outline = o;
+	m_rect.setOutlineThickness( grid_height_to_pixels( m_outline ));
+	FePresent::script_flag_redraw();
 }
 
 int FeRectangle::get_outline_red() const
@@ -405,6 +407,12 @@ int FeRectangle::get_blend_mode() const
 void FeRectangle::set_blend_mode( int b )
 {
 	m_blend_mode = (FeBlend::Mode)b;
+}
+
+void FeRectangle::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	m_rect.setOutlineThickness( grid_height_to_pixels( m_outline ));
 }
 
 float FeRectangle::get_corner_radius() const
