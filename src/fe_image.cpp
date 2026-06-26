@@ -1171,6 +1171,12 @@ FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 	return this;
 }
 
+FeCoordinateSpace FeSurfaceTextureContainer::get_coordinate_space( bool ) const
+{
+	sf::Vector2u size = m_texture.getSize();
+	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( size ));
+}
+
 FeImage::FeImage(
 	FePresentableParent &p,
 	FeBaseTextureContainer *tc,
