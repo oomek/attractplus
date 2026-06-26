@@ -204,6 +204,7 @@ protected:
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_surface(float x, float y, int w, int h, FePresentableParent &p);
+	FeImage *add_surface(float x, float y, float w, float h, int pixel_w, int pixel_h, FePresentableParent &p);
 	FeSound *add_sound(const char *n);
 	FeMusic *add_music(const char *n);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);

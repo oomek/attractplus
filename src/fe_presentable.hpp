@@ -187,6 +187,7 @@ public:
 	FeListBox *add_listbox(int, int, int, int);
 	FeRectangle *add_rectangle(float, float, float, float);
 	FeImage *add_surface(float, float, int, int);
+	FeImage *add_surface(float, float, float, float, int, int);
 	FeImage *add_surface(int, int);
 };
 

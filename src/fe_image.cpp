@@ -2388,6 +2388,15 @@ FeImage *FeImage::add_surface(float x, float y, int w, int h)
 	return NULL;
 }
 
+FeImage *FeImage::add_surface(float x, float y, float w, float h, int pixel_w, int pixel_h)
+{
+	FePresentableParent *p = m_tex->get_presentable_parent();
+	if ( p )
+		return p->add_surface( x, y, w, h, pixel_w, pixel_h );
+
+	return NULL;
+}
+
 FePresentableParent *FeImage::get_presentable_parent()
 {
 	return m_tex->get_presentable_parent();
