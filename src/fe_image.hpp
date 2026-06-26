@@ -283,6 +283,7 @@ public:
 	bool get_redraw() const;
 
 	FePresentableParent *get_presentable_parent();
+	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	int get_type() const;
 
 private:

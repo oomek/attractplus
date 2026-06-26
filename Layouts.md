@@ -1364,6 +1364,11 @@ This class is a container for global layout settings. The instance of this class
 
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
+-  `aspect_ratio` - Get/set the layout aspect ratio. Default value is `0.0`. Setting `width` or `height` resets it to `0.0`.
+-  `grid` - Get/set the default coordinate grid, This can be one of the following values:
+   -  `Grid.Pixel` (default) - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+-  `grid_uniform` - Get/set whether the Percent grid uses a square grid or is stretched to layout size. Default value is `true`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1551,6 +1556,11 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+-  `grid_uniform` - Get/set whether this object's Percent grid uses a square grid,
+    or is stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1741,6 +1751,11 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+-  `grid_uniform` - Get/set whether this object's Percent grid uses a square grid,
+    or is stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1832,6 +1847,11 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+-  `grid_uniform` - Get/set whether this object's Percent grid uses a square grid,
+    or is stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -1945,6 +1965,11 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set the y position of the rectangle (in layout coordinates).
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+-  `grid_uniform` - Get/set whether this object's Percent grid uses a square grid,
+    or is stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
