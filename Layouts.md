@@ -1369,6 +1369,8 @@ This class is a container for global layout settings. The instance of this class
    -  `Grid.Pixel` (default) - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
 -  `grid_uniform` - Get/set whether the Percent grid uses a square grid or is stretched to layout size. Default value is `true`.
+-  `grid_offset_x` - Get/set the layout x offset in `grid` coordinates.
+-  `grid_offset_y` - Get/set the layout y offset in `grid` coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1388,6 +1390,7 @@ This class is a container for global layout settings. The instance of this class
 
 **Member Functions**
 
+-  `set_grid_offset( x, y )` - Set the layout offset in `grid` coordinates.
 -  `redraw()` 🔶 - Adds the ability to process `tick()` and redraw the screen during computationally intensive loops in transition and signal callbacks. DO NOT call this function inside `tick()` callback. It will result in an infinite loop and the frontend will crash.
 
 **Notes**

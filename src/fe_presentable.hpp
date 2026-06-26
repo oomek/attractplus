@@ -173,6 +173,7 @@ public:
 	int get_nesting_level();
 	void set_nesting_level( int );
 	virtual FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
+	virtual sf::Vector2f get_grid_offset( bool uniform=true ) const;
 	void refresh_script_geometry();
 
 	FeImage *add_image(const char *,float, float, float, float);

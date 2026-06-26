@@ -191,6 +191,15 @@ FeCoordinateSpace FeMonitor::get_coordinate_space( bool uniform ) const
 	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( size ));
 }
 
+sf::Vector2f FeMonitor::get_grid_offset( bool uniform ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+		return fep->get_layout_grid_offset( uniform );
+
+	return sf::Vector2f( 0, 0 );
+}
+
 FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	: m_feSettings( fesettings ),
 	m_window( wnd ),
@@ -210,6 +219,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_mouse_pointer_visible( false ),
 	m_grid( GridPixel ),
 	m_grid_uniform( true ),
+	m_grid_offset( 0, 0 ),
 	m_aspect_ratio( 0.0f ),
 	m_listBox( NULL ),
 	m_emptyShader( NULL ),
@@ -490,6 +500,7 @@ void FePresent::clear_layout()
 	m_overlay_lb = NULL;
 	m_grid = GridPixel;
 	m_grid_uniform = true;
+	m_grid_offset = sf::Vector2f( 0, 0 );
 	m_aspect_ratio = 0.0f;
 
 	FeImageLoader &il = FeImageLoader::get_ref();
@@ -905,6 +916,60 @@ bool FePresent::get_layout_grid_uniform() const
 void FePresent::set_layout_grid_uniform( bool u )
 {
 	m_grid_uniform = u;
+}
+
+float FePresent::get_layout_grid_offset_x() const
+{
+	return m_grid_offset.x;
+}
+
+float FePresent::get_layout_grid_offset_y() const
+{
+	return m_grid_offset.y;
+}
+
+sf::Vector2f FePresent::get_layout_grid_offset( bool uniform ) const
+{
+	switch ( m_grid )
+	{
+		case GridPercent:
+		{
+			sf::Vector2f size( m_layoutSize );
+			if ( uniform )
+			{
+				float side = std::min( size.x, size.y );
+				size = sf::Vector2f( side, side );
+			}
+
+			return sf::Vector2f(
+				size.x * m_grid_offset.x / 100.0f,
+				size.y * m_grid_offset.y / 100.0f );
+		}
+
+		case GridPixel:
+		default:
+			return m_grid_offset;
+	}
+}
+
+void FePresent::set_layout_grid_offset_x( float x )
+{
+	set_layout_grid_offset( x, m_grid_offset.y );
+}
+
+void FePresent::set_layout_grid_offset_y( float y )
+{
+	set_layout_grid_offset( m_grid_offset.x, y );
+}
+
+void FePresent::set_layout_grid_offset( float x, float y )
+{
+	if (( x != m_grid_offset.x ) || ( y != m_grid_offset.y ))
+	{
+		m_grid_offset = sf::Vector2f( x, y );
+		refresh_script_geometry();
+		flag_redraw();
+	}
 }
 
 void FePresent::set_layout_width( float w )

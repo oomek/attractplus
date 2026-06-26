@@ -1259,6 +1259,8 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("aspect_ratio"), &FePresent::get_layout_aspect_ratio, &FePresent::set_layout_aspect_ratio )
 		.Prop( _SC("grid"), &FePresent::get_layout_grid, &FePresent::set_layout_grid )
 		.Prop( _SC("grid_uniform"), &FePresent::get_layout_grid_uniform, &FePresent::set_layout_grid_uniform )
+		.Prop( _SC("grid_offset_x"), &FePresent::get_layout_grid_offset_x, &FePresent::set_layout_grid_offset_x )
+		.Prop( _SC("grid_offset_y"), &FePresent::get_layout_grid_offset_y, &FePresent::set_layout_grid_offset_y )
 		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
 		// orient property deprecated as of 1.3.2, use "base_rotation" instead
 		.Prop( _SC("orient"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )
@@ -1270,6 +1272,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("frame_time"), &FePresent::get_layout_frame_time )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 		.Func(_SC("redraw"), &FePresent::redraw )
+		.Func(_SC("set_grid_offset"), &FePresent::set_layout_grid_offset )
 	);
 
 	// Create a slot for fe.layout.nv data
