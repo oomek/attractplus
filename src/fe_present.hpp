@@ -109,6 +109,8 @@ public:
 	int get_width();
 	int get_height();
 	int get_num();
+	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
+	Vec2f get_grid_offset( bool uniform=true ) const;
 
 	FeTransform transform;
 	Vec2i size;
@@ -180,6 +182,10 @@ protected:
 	bool m_layout_crop;
 	bool m_custom_overlay;
 	bool m_mouse_pointer_visible;
+	int m_grid;
+	bool m_grid_uniform;
+	Vec2f m_grid_offset;
+	float m_aspect_ratio;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	Vec2i m_layoutSize;
@@ -212,13 +218,14 @@ protected:
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
-	FeImage *add_surface(float x, float y, int w, int h, FePresentableParent &p);
+	FeImage *add_surface(float x, float y, float w, float h, int texture_width, int texture_height, FePresentableParent &p);
 	FeSound *add_sound(const char *n);
 	FeMusic *add_music(const char *n);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
 	FeShader *compile_shader(FeShader::Type type, const char *shader1, const char *shader2);
 	float get_layout_width() const;
 	float get_layout_height() const;
+	float get_layout_aspect_ratio() const;
 	int get_base_rotation() const;
 	int get_toggle_rotation() const;
 	const char *get_display_name() const;
@@ -238,10 +245,12 @@ protected:
 	const char *get_layout_font_name() const;
 	bool get_preserve_aspect_ratio();
 	bool get_layout_crop();
+	Vec2i get_surface_texture_size( FePresentableParent &p, float w, float h, int grid, bool grid_uniform ) const;
 
 	void set_selection_index( int );
 	void set_layout_width( float );
 	void set_layout_height( float );
+	void set_layout_aspect_ratio( float );
 	float get_perspective_fov() const;
 	void set_perspective_fov( float fov );
 	float get_perspective_near() const;
@@ -257,6 +266,9 @@ protected:
 	void reset_scene3d_globals();
 	void clear_3d_cubemap_texture();
 	void set_layout_crop( bool );
+	Vec2i get_default_layout_size() const;
+	void apply_layout_aspect_ratio();
+	void refresh_script_geometry();
 
 public:
 	static constexpr float SCENE3D_DEFAULT_AMBIENT_LIGHT = 0.0f;
@@ -316,6 +328,16 @@ public:
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;
+	int get_layout_grid() const;
+	void set_layout_grid( int );
+	bool get_layout_grid_uniform() const;
+	void set_layout_grid_uniform( bool );
+	float get_layout_grid_offset_x() const;
+	float get_layout_grid_offset_y() const;
+	Vec2f get_layout_grid_offset( bool uniform ) const;
+	void set_layout_grid_offset_x( float );
+	void set_layout_grid_offset_y( float );
+	void set_layout_grid_offset( float, float );
 
 	// Get a font from the font pool, loading it if necessary
 	const FeFontContainer *get_pooled_font( const std::vector < std::string > &l );
@@ -323,6 +345,7 @@ public:
 
 	const Vec2i &get_layout_size() const { return m_layoutSize; }
 	const Vec2i get_screen_size();
+	Vec2f window_to_layout_grid_pos( const Vec2i &pos ) const;
 	FeShader *get_empty_shader();
 
 	// Returns true if a script has set custom overlay controls.

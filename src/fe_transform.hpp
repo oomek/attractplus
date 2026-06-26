@@ -59,6 +59,22 @@ public:
 			( m10 * point.x ) + ( m11 * point.y ) + m12 );
 	}
 
+	[[nodiscard]] FeTransform getInverse() const
+	{
+		const float determinant = ( m00 * m11 ) - ( m01 * m10 );
+		if ( determinant == 0.0f )
+			return FeTransform();
+
+		const float inverse = 1.0f / determinant;
+		return FeTransform(
+			m11 * inverse,
+			-m01 * inverse,
+			( m01 * m12 - m11 * m02 ) * inverse,
+			-m10 * inverse,
+			m00 * inverse,
+			( m10 * m02 - m00 * m12 ) * inverse );
+	}
+
 	FeTransform &translate( const Vec2f &offset )
 	{
 		return combine( FeTransform( 1.0f, 0.0f, offset.x, 0.0f, 1.0f, offset.y ) );

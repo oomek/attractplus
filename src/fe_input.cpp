@@ -673,13 +673,12 @@ FeInputSingle::FeInputSingle( const std::string &str )
 
 	if ( val.compare( "Mouse" ) == 0 )
 	{
-		m_type = Mouse;
-
 		token_helper( str, pos, val, FE_WHITESPACE );
 		while ( mouseStrings[i] != NULL )
 		{
 			if ( val.compare( mouseStrings[i] ) == 0 )
 			{
+				m_type = Mouse;
 				m_code = i;
 				break;
 			}
@@ -688,13 +687,12 @@ FeInputSingle::FeInputSingle( const std::string &str )
 	}
 	else if ( val.compare( "Touch" ) == 0 )
 	{
-		m_type = Touch;
-
 		token_helper( str, pos, val, FE_WHITESPACE );
 		while ( touchStrings[i] != NULL )
 		{
 			if ( val.compare( touchStrings[i] ) == 0 )
 			{
+				m_type = Touch;
 				m_code = i;
 				break;
 			}
@@ -704,13 +702,13 @@ FeInputSingle::FeInputSingle( const std::string &str )
 	else if ( val.compare( 0, 3, "Joy" ) == 0 )
 	{
 		int num = as_int( val.substr( 3 ) );
-		m_type = (Type)(Joystick0 + num);
 
 		token_helper( str, pos, val, FE_WHITESPACE );
 		while ( joyStrings[i] != NULL )
 		{
 			if ( val.compare( 0, strlen(joyStrings[i]), joyStrings[i] ) == 0 )
 			{
+				m_type = (Type)(Joystick0 + num);
 				if ( i == JoyButton0 )
 				{
 					int temp = as_int( val.substr( strlen( joyStrings[i] ) ) );

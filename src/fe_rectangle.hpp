@@ -115,6 +115,7 @@ public:
 	int get_blend_mode() const;
 	void set_blend_mode( int b );
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
+	void refresh_script_geometry() override;
 
 private:
 	FeRectangle &operator=( const FeRectangle & );
@@ -144,6 +145,7 @@ private:
 	bool m_corner_ratio_x;
 	bool m_corner_ratio_y;
 	bool m_corner_auto;
+	float m_outline;
 	FeBlend::Mode m_blend_mode;
 
 	void scale();

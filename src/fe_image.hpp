@@ -301,6 +301,7 @@ public:
 	int get_height() const;
 
 	FePresentableParent *get_presentable_parent();
+	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	int get_type() const;
 
 private:
@@ -546,8 +547,9 @@ public:
 	FeImage *add_artwork( const char *, float, float );
 	FeImage *add_artwork( const char * );
 	FeModel3D *add_model_3d( const char * );
-	FeImage *add_surface( float, float, int, int );
-	FeImage *add_surface( int, int );
+	FeImage *add_surface( float, float, float, float );
+	FeImage *add_surface( float, float, float, float, int, int );
+	FeImage *add_surface( float, float );
 	FeImage *add_clone( FeImage * );
 	FeText *add_text( const char *, int, int, int, int );
 	FeListBox *add_listbox( int, int, int, int );
