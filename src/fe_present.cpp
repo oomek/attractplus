@@ -730,7 +730,21 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentableParent &p )
 {
 	sf::Vector2i texture_size = get_surface_texture_size( p, m_grid, m_grid_uniform, w, h );
-	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer( texture_size.x, texture_size.y );
+	return add_surface( x, y, w, h, texture_size.x, texture_size.y, p );
+}
+
+FeImage *FePresent::add_surface(
+		float x,
+		float y,
+		float w,
+		float h,
+		int pixel_w,
+		int pixel_h,
+		FePresentableParent &p )
+{
+	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer(
+		to_texture_size( pixel_w ),
+		to_texture_size( pixel_h ));
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 	new_surface->set_nesting_level( p.get_nesting_level() + 1 );
 
