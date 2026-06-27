@@ -40,8 +40,10 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_position( x, y ),
 	m_size( w, h ),
 	m_origin( 0.f, 0.f ),
+	m_transform_origin( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
+	m_transform_origin_type( TopLeft ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_rotation ( 0.0 ),
@@ -210,6 +212,11 @@ float FeRectangle::get_origin_y() const
 	return m_origin.y;
 }
 
+int FeRectangle::get_transform_origin_type() const
+{
+	return (FeRectangle::Alignment)m_transform_origin_type;
+}
+
 int FeRectangle::get_anchor_type() const
 {
 	return (FeRectangle::Alignment)m_anchor_type;
@@ -218,6 +225,16 @@ int FeRectangle::get_anchor_type() const
 int FeRectangle::get_rotation_origin_type() const
 {
 	return (FeRectangle::Alignment)m_rotation_origin_type;
+}
+
+float FeRectangle::get_transform_origin_x() const
+{
+	return m_transform_origin.x;
+}
+
+float FeRectangle::get_transform_origin_y() const
+{
+	return m_transform_origin.y;
 }
 
 float FeRectangle::get_anchor_x() const
@@ -260,6 +277,28 @@ void FeRectangle::set_origin_y( float y )
 	}
 }
 
+void FeRectangle::set_transform_origin( float x, float y )
+{
+	if (
+		x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x ||
+		y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y
+	)
+	{
+		m_transform_origin = sf::Vector2f( x, y );
+		m_anchor = sf::Vector2f( x, y );
+		m_rotation_origin = sf::Vector2f( x, y );
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeRectangle::set_transform_origin_type( int t )
+{
+	m_transform_origin_type = (FeRectangle::Alignment)t;
+	sf::Vector2f a = alignTypeToVector( t );
+	set_transform_origin( a.x, a.y );
+}
+
 void FeRectangle::set_anchor( float x, float y )
 {
 	if ( x != m_anchor.x || y != m_anchor.y )
@@ -292,6 +331,30 @@ void FeRectangle::set_rotation_origin_type( int t )
 	m_rotation_origin_type = (FeRectangle::Alignment)t;
 	sf::Vector2f o = alignTypeToVector( t );
 	set_rotation_origin( o.x, o.y );
+}
+
+void FeRectangle::set_transform_origin_x( float x )
+{
+	if ( x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x )
+	{
+		m_transform_origin.x = x;
+		m_anchor.x = x;
+		m_rotation_origin.x = x;
+		scale();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeRectangle::set_transform_origin_y( float y )
+{
+	if ( y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y )
+	{
+		m_transform_origin.y = y;
+		m_anchor.y = y;
+		m_rotation_origin.y = y;
+		scale();
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeRectangle::set_anchor_x( float x )

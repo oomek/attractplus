@@ -37,8 +37,10 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	m_user_charsize( -1 ),
 	m_size( w, h ),
 	m_position( x, y ),
+	m_transform_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
+	m_transform_origin_type( TopLeft ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_rotation( 0.0 ),
@@ -93,6 +95,11 @@ void FeText::setRotation( float r )
 	FePresent::script_do_update( this );
 }
 
+int FeText::get_transform_origin_type() const
+{
+	return (FeText::Alignment)m_transform_origin_type;
+}
+
 int FeText::get_anchor_type() const
 {
 	return (FeText::Alignment)m_anchor_type;
@@ -101,6 +108,16 @@ int FeText::get_anchor_type() const
 int FeText::get_rotation_origin_type() const
 {
 	return (FeText::Alignment)m_rotation_origin_type;
+}
+
+float FeText::get_transform_origin_x() const
+{
+	return m_transform_origin.x;
+}
+
+float FeText::get_transform_origin_y() const
+{
+	return m_transform_origin.y;
 }
 
 float FeText::get_anchor_x() const
@@ -121,6 +138,28 @@ float FeText::get_rotation_origin_x() const
 float FeText::get_rotation_origin_y() const
 {
 	return m_rotation_origin.y;
+}
+
+void FeText::set_transform_origin( float x, float y )
+{
+	if (
+		x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x ||
+		y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y
+	)
+	{
+		m_transform_origin = sf::Vector2f( x, y );
+		m_anchor = sf::Vector2f( x, y );
+		m_rotation_origin = sf::Vector2f( x, y );
+		update_transform();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_transform_origin_type( int t )
+{
+	m_transform_origin_type = (FeText::Alignment)t;
+	sf::Vector2f a = alignTypeToVector( t );
+	set_transform_origin( a.x, a.y );
 }
 
 void FeText::set_anchor( float x, float y )
@@ -155,6 +194,30 @@ void FeText::set_rotation_origin_type( int t )
 	m_rotation_origin_type = (FeText::Alignment)t;
 	sf::Vector2f o = alignTypeToVector( t );
 	set_rotation_origin( o.x, o.y );
+}
+
+void FeText::set_transform_origin_x( float x )
+{
+	if ( x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x )
+	{
+		m_transform_origin.x = x;
+		m_anchor.x = x;
+		m_rotation_origin.x = x;
+		update_transform();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_transform_origin_y( float y )
+{
+	if ( y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y )
+	{
+		m_transform_origin.y = y;
+		m_anchor.y = y;
+		m_rotation_origin.y = y;
+		update_transform();
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeText::set_anchor_x( float x )

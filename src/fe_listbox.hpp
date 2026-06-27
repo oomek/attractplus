@@ -90,8 +90,11 @@ public:
 	sf::Color getColor() const;
 	sf::Color getOutlineColor() const;
 	sf::Color getSelOutlineColor() const;
+	int get_transform_origin_type() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;
+	float get_transform_origin_x() const;
+	float get_transform_origin_y() const;
 	float get_anchor_x() const;
 	float get_anchor_y() const;
 	float get_rotation_origin_x() const;
@@ -111,10 +114,14 @@ public:
 	void setSelStyle( int );
 	int getSelStyle();
 	void setTextScale( const sf::Vector2f & );
+	void set_transform_origin( float x, float y );
+	void set_transform_origin_type( int t );
 	void set_anchor( float x, float y );
 	void set_anchor_type( int t );
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
+	void set_transform_origin_x( float x );
+	void set_transform_origin_y( float y );
 	void set_anchor_x( float x );
 	void set_anchor_y( float y );
 	void set_rotation_origin_x( float x );
@@ -252,8 +259,10 @@ private:
 	sf::Color m_selOutlineColour;
 	sf::Vector2f m_position;
 	sf::Vector2f m_size;
+	sf::Vector2f m_transform_origin;
 	sf::Vector2f m_anchor;
 	sf::Vector2f m_rotation_origin;
+	FeListBox::Alignment m_transform_origin_type;
 	FeListBox::Alignment m_anchor_type;
 	FeListBox::Alignment m_rotation_origin_type;
 	float m_selOutlineThickness;
