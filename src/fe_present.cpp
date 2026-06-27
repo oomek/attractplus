@@ -185,6 +185,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_playMovies( true ),
 	m_user_page_size( -1 ),
 	m_preserve_aspect( false ),
+	m_layout_crop( true ),
 	m_custom_overlay( false ),
 	m_mouse_pointer_visible( false ),
 	m_listBox( NULL ),
@@ -461,6 +462,7 @@ void FePresent::clear_layout()
 	m_layoutFontName = "";
 	m_user_page_size = -1;
 	m_preserve_aspect = false;
+	m_layout_crop = true;
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
@@ -567,10 +569,58 @@ void FePresent::sort_zorder()
 void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 {
 	std::vector<FeBasePresentable *>::const_iterator itl;
+	const sf::View previous_view = target.getView();
+	const sf::Vector2u target_size = target.getSize();
+
+	if ( m_layout_crop && (( target_size.x == 0 ) || ( target_size.y == 0 )))
+		return;
 
 	//
 	for ( unsigned int i=0; i<m_mon.size(); i++ )
 	{
+		if ( m_layout_crop )
+		{
+			sf::Vector2f monitor_pos = m_mon[i].transform.transformPoint({ 0, 0 });
+			float monitor_left = monitor_pos.x;
+			float monitor_top = monitor_pos.y;
+			float monitor_right = monitor_pos.x + m_mon[i].size.x;
+			float monitor_bottom = monitor_pos.y + m_mon[i].size.y;
+
+			float clip_left = monitor_left;
+			float clip_top = monitor_top;
+			float clip_right = monitor_right;
+			float clip_bottom = monitor_bottom;
+
+			if ( i == 0 )
+			{
+				sf::Vector2f p0 = m_layout_transform.transformPoint({ 0, 0 });
+				sf::Vector2f p1 = m_layout_transform.transformPoint({ static_cast<float>( m_layoutSize.x ), 0 });
+				sf::Vector2f p2 = m_layout_transform.transformPoint({ 0, static_cast<float>( m_layoutSize.y )});
+				sf::Vector2f p3 = m_layout_transform.transformPoint({ static_cast<float>( m_layoutSize.x ), static_cast<float>( m_layoutSize.y )});
+
+				clip_left = std::min({ p0.x, p1.x, p2.x, p3.x });
+				clip_top = std::min({ p0.y, p1.y, p2.y, p3.y });
+				clip_right = std::max({ p0.x, p1.x, p2.x, p3.x });
+				clip_bottom = std::max({ p0.y, p1.y, p2.y, p3.y });
+			}
+
+			float left = std::max({ clip_left, monitor_left, 0.0f });
+			float top = std::max({ clip_top, monitor_top, 0.0f });
+			float right = std::min({ clip_right, monitor_right, static_cast<float>( target_size.x )});
+			float bottom = std::min({ clip_bottom, monitor_bottom, static_cast<float>( target_size.y )});
+			float width = right - left;
+			float height = bottom - top;
+
+			if (( width <= 0.0f ) || ( height <= 0.0f ))
+				continue;
+
+			sf::View monitor_view( sf::FloatRect({ left, top }, { width, height }));
+			monitor_view.setViewport( sf::FloatRect(
+				{ left / target_size.x, top / target_size.y },
+				{ width / target_size.x, height / target_size.y }));
+			target.setView( monitor_view );
+		}
+
 		// use m_transform on monitor 0
 		states.transform = i ? m_mon[i].transform : m_layout_transform;
 		for ( itl=m_mon[i].elements.begin(); itl != m_mon[i].elements.end(); ++itl )
@@ -579,6 +629,9 @@ void FePresent::draw( sf::RenderTarget& target, sf::RenderStates states ) const
 				target.draw( (*itl)->drawable(), states );
 		}
 	}
+
+	if ( m_layout_crop )
+		target.setView( previous_view );
 }
 
 FeImage *FePresent::add_image( bool is_artwork,
@@ -1728,6 +1781,20 @@ void FePresent::set_preserve_aspect_ratio( bool p )
 bool FePresent::get_preserve_aspect_ratio()
 {
 	return m_preserve_aspect;
+}
+
+void FePresent::set_layout_crop( bool c )
+{
+	if ( c != m_layout_crop )
+	{
+		m_layout_crop = c;
+		flag_redraw();
+	}
+}
+
+bool FePresent::get_layout_crop()
+{
+	return m_layout_crop;
 }
 
 bool FePresent::get_overlay_custom_controls( FeText *&t, FeListBox *&lb )
