@@ -164,6 +164,7 @@ protected:
 	bool m_playMovies;
 	int m_user_page_size;
 	bool m_preserve_aspect;
+	bool m_layout_crop;
 	bool m_custom_overlay;
 	bool m_mouse_pointer_visible;
 
@@ -221,6 +222,7 @@ protected:
 	const char *get_search_rule();
 	const char *get_layout_font_name() const;
 	bool get_preserve_aspect_ratio();
+	bool get_layout_crop();
 
 	void set_selection_index( int );
 	void set_layout_width( float );
@@ -229,6 +231,7 @@ protected:
 	void set_toggle_rotation( int );
 	void set_layout_font_name( const char * );
 	void set_preserve_aspect_ratio( bool );
+	void set_layout_crop( bool );
 
 public:
 	FePresent( FeSettings *fesettings, FeWindow &wnd );
