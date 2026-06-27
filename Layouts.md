@@ -1745,6 +1745,16 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
 -  `rotation` - Get/set rotation of text. Range is `[0...360]`. Default value is `0`.
+-  `transform_origin` 🔶 - Get/set the midpoint for position, scale, and rotation. Can be set to one of the following modes:
+   -  `Origin.Left`
+   -  `Origin.Centre`
+   -  `Origin.Right`
+   -  `Origin.Top`
+   -  `Origin.Bottom`
+   -  `Origin.TopLeft` (default)
+   -  `Origin.TopRight`
+   -  `Origin.BottomLeft`
+   -  `Origin.BottomRight`
 -  `anchor` 🔶 - Set the midpoint for position and scale. Can be set to one of the following modes:
    -  `Anchor.Left`
    -  `Anchor.Centre`
@@ -1765,6 +1775,8 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+-  `transform_origin_x` 🔶 - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
+-  `transform_origin_y` 🔶 - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_y` 🔶 - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` 🔶 - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -1839,6 +1851,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `set_bg_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the outline of the text background. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the text position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the text position and size (in layout coordinates).
+-  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 
@@ -1858,6 +1871,16 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
 -  `rotation` - Get/set rotation of listbox. Range is `[0...360]`. Default value is `0`.
+-  `transform_origin` 🔶 - Get/set the midpoint for position, scale, and rotation. Can be set to one of the following modes:
+   -  `Origin.Left`
+   -  `Origin.Centre`
+   -  `Origin.Right`
+   -  `Origin.Top`
+   -  `Origin.Bottom`
+   -  `Origin.TopLeft` (default)
+   -  `Origin.TopRight`
+   -  `Origin.BottomLeft`
+   -  `Origin.BottomRight`
 -  `anchor` 🔶 - Set the midpoint for position and scale. Can be set to one of the following modes:
    -  `Anchor.Left`
    -  `Anchor.Centre`
@@ -1878,6 +1901,8 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+-  `transform_origin_x` 🔶 - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
+-  `transform_origin_y` 🔶 - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_y` 🔶 - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` 🔶 - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -1974,6 +1999,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `set_sel_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the selection text outline. Range is `[0...255]`.
 -  `set_pos( x, y )` - Set the listbox position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the listbox position and size (in layout coordinates).
+-  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 
@@ -2004,6 +2030,16 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `outline_alpha` - Get/set alpha level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `origin_x` - (deprecated) Get/set the x position of the local origin for the rectangle. The origin defines the centre point for any positioning or rotation of the rectangle. Default origin in `( 0, 0 )` (top-left corner).
 -  `origin_y` - (deprecated) Get/set the y position of the local origin for the rectangle. The origin defines the centre point for any positioning or rotation of the rectangle. Default origin is `( 0, 0 )` (top-left corner).
+-  `transform_origin` - Get/set the midpoint for position, scale, and rotation. Can be set to one of the following modes:
+   -  `Origin.Left`
+   -  `Origin.Centre`
+   -  `Origin.Right`
+   -  `Origin.Top`
+   -  `Origin.Bottom`
+   -  `Origin.TopLeft` (default)
+   -  `Origin.TopRight`
+   -  `Origin.BottomLeft`
+   -  `Origin.BottomRight`
 -  `anchor` Set the midpoint for position and scale. Can be set to one of the following modes:
    -  `Anchor.Left`
    -  `Anchor.Centre`
@@ -2024,6 +2060,8 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+-  `transform_origin_x` - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
+-  `transform_origin_y` - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_y` - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -2055,6 +2093,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `set_pos( x, y )` - Set the rectangle position (in layout coordinates).
 -  `set_pos( x, y, width, height )` - Set the rectangle position and size (in layout coordinates).
 -  `set_outline_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the rectangle outline. Range is `[0...255]`.
+-  `set_transform_origin( x, y )` - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_corner_radius( x, y )` - Set the corner x and y radius (in layout coordinates).

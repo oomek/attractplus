@@ -62,16 +62,23 @@ public:
 	void setRotation( float );
 	sf::Color getColor() const;
 	void setColor( sf::Color );
+	int get_transform_origin_type() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;
+	float get_transform_origin_x() const;
+	float get_transform_origin_y() const;
 	float get_anchor_x() const;
 	float get_anchor_y() const;
 	float get_rotation_origin_x() const;
 	float get_rotation_origin_y() const;
+	void set_transform_origin( float x, float y );
+	void set_transform_origin_type( int t );
 	void set_anchor( float x, float y );
 	void set_anchor_type( int t );
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
+	void set_transform_origin_x( float x );
+	void set_transform_origin_y( float y );
 	void set_anchor_x( float x );
 	void set_anchor_y( float y );
 	void set_rotation_origin_x( float x );
@@ -188,8 +195,10 @@ private:
 	int m_user_charsize;	 	// -1 if no charsize specified
 	sf::Vector2f m_size;		// unscaled size
 	sf::Vector2f m_position;	// unscaled position
+	sf::Vector2f m_transform_origin;
 	sf::Vector2f m_anchor;
 	sf::Vector2f m_rotation_origin;
+	FeText::Alignment m_transform_origin_type;
 	FeText::Alignment m_anchor_type;
 	FeText::Alignment m_rotation_origin_type;
 	float m_rotation;

@@ -37,8 +37,10 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_selOutlineColour( sf::Color::Black ),
 	m_position( x, y ),
 	m_size( w, h ),
+	m_transform_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
+	m_transform_origin_type( TopLeft ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_selOutlineThickness( 0 ),
@@ -79,8 +81,10 @@ FeListBox::FeListBox(
 	m_selOutlineColour( sf::Color::Black ),
 	m_position( 0.f, 0.f ),
 	m_size( 0.f, 0.f ),
+	m_transform_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
+	m_transform_origin_type( TopLeft ),
 	m_anchor_type( TopLeft ),
 	m_rotation_origin_type( TopLeft ),
 	m_selOutlineThickness( 0 ),
@@ -155,6 +159,11 @@ sf::Color FeListBox::getColor() const
 	return m_base_text.getColor();
 }
 
+int FeListBox::get_transform_origin_type() const
+{
+	return (FeListBox::Alignment)m_transform_origin_type;
+}
+
 int FeListBox::get_anchor_type() const
 {
 	return (FeListBox::Alignment)m_anchor_type;
@@ -163,6 +172,16 @@ int FeListBox::get_anchor_type() const
 int FeListBox::get_rotation_origin_type() const
 {
 	return (FeListBox::Alignment)m_rotation_origin_type;
+}
+
+float FeListBox::get_transform_origin_x() const
+{
+	return m_transform_origin.x;
+}
+
+float FeListBox::get_transform_origin_y() const
+{
+	return m_transform_origin.y;
 }
 
 float FeListBox::get_anchor_x() const
@@ -183,6 +202,28 @@ float FeListBox::get_rotation_origin_x() const
 float FeListBox::get_rotation_origin_y() const
 {
 	return m_rotation_origin.y;
+}
+
+void FeListBox::set_transform_origin( float x, float y )
+{
+	if (
+		x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x ||
+		y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y
+	)
+	{
+		m_transform_origin = sf::Vector2f( x, y );
+		m_anchor = sf::Vector2f( x, y );
+		m_rotation_origin = sf::Vector2f( x, y );
+		update_row_geometry();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeListBox::set_transform_origin_type( int t )
+{
+	m_transform_origin_type = (FeListBox::Alignment)t;
+	sf::Vector2f a = alignTypeToVector( t );
+	set_transform_origin( a.x, a.y );
 }
 
 void FeListBox::set_anchor( float x, float y )
@@ -217,6 +258,30 @@ void FeListBox::set_rotation_origin_type( int t )
 	m_rotation_origin_type = (FeListBox::Alignment)t;
 	sf::Vector2f o = alignTypeToVector( t );
 	set_rotation_origin( o.x, o.y );
+}
+
+void FeListBox::set_transform_origin_x( float x )
+{
+	if ( x != m_transform_origin.x || x != m_anchor.x || x != m_rotation_origin.x )
+	{
+		m_transform_origin.x = x;
+		m_anchor.x = x;
+		m_rotation_origin.x = x;
+		update_row_geometry();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeListBox::set_transform_origin_y( float y )
+{
+	if ( y != m_transform_origin.y || y != m_anchor.y || y != m_rotation_origin.y )
+	{
+		m_transform_origin.y = y;
+		m_anchor.y = y;
+		m_rotation_origin.y = y;
+		update_row_geometry();
+		FePresent::script_flag_redraw();
+	}
 }
 
 void FeListBox::set_anchor_x( float x )
