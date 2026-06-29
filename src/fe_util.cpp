@@ -2320,36 +2320,19 @@ bool get_capslock_state()
 
 sf::Vector2f align_type_to_vector( int type )
 {
-	switch( type )
-	{
-		case 0: // Left
-			return sf::Vector2f( 0.0f, 0.5f );
+	bool left = type & FeAlign::Left;
+	bool right = type & FeAlign::Right;
+	bool top = type & FeAlign::Top;
+	bool bottom = type & FeAlign::Bottom;
 
-		case 1: // Centre
-			return sf::Vector2f( 0.5f, 0.5f );
+	float x = 0.5f;
+	float y = 0.5f;
 
-		case 2: // Right
-			return sf::Vector2f( 1.0f, 0.5f );
+	if ( left != right )
+		x = left ? 0.0f : 1.0f;
 
-		case 3: // Top
-			return sf::Vector2f( 0.5f, 0.0f );
+	if ( top != bottom )
+		y = top ? 0.0f : 1.0f;
 
-		case 4: // Bottom
-			return sf::Vector2f( 0.5f, 1.0f );
-
-		case 5: // TopLeft
-			return sf::Vector2f( 0.0f, 0.0f );
-
-		case 6: // TopRight
-			return sf::Vector2f( 1.0f, 0.0f );
-
-		case 7: // BottomLeft
-			return sf::Vector2f( 0.0f, 1.0f );
-
-		case 8: // BottomRight
-			return sf::Vector2f( 1.0f, 1.0f );
-
-		default:
-			return sf::Vector2f( 0.0f, 0.0f );
-	}
+	return sf::Vector2f( x, y );
 }

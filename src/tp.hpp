@@ -23,6 +23,7 @@
 #ifndef TEXT_Primitive_HPP
 #define TEXT_Primitive_HPP
 
+#include "fe_align.hpp"
 #include "justify_text.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
@@ -30,24 +31,6 @@
 class FeTextPrimitive : public sf::Drawable
 {
 public:
-	enum Alignment {
-		Left=1,
-		Centre=2,
-		Right=4,
-		Top=8,
-		Bottom=16,
-		Middle=32,
-		TopLeft=Top | Left,
-		TopCentre=Top | Centre,
-		TopRight=Top | Right,
-		BottomLeft=Bottom | Left,
-		BottomCentre=Bottom | Centre,
-		BottomRight=Bottom | Right,
-		MiddleLeft=Middle | Left,
-		MiddleCentre=Middle | Centre,
-		MiddleRight=Middle | Right
-	};
-
 	enum Case {
 		None =			0,
 		Uppercase =		1 << 0,
@@ -61,7 +44,7 @@ public:
 			sf::Color colour,
 			sf::Color bgcolour,
 			unsigned int charactersize,
-			Alignment align=MiddleCentre );
+			FeAlign align=FeAlign::Centre );
 
 	FeTextPrimitive( const FeTextPrimitive & );
 
@@ -86,7 +69,7 @@ public:
 	void setCharacterSize( unsigned int );
 	void setCharacterSpacing( float );
 	void setLineSpacing( float );
-	void setAlignment( Alignment );
+	void setAlignment( FeAlign );
 	void setCase( Case );
 	void setPosition( int x, int y ) {return setPosition(sf::Vector2f(x,y));};
 	void setPosition( const sf::Vector2f & );
@@ -120,7 +103,7 @@ public:
 	float getCharacterSpacing() const;
 	float getLineSpacing() const;
 	int getLineSpacingFactored( const sf::Font *, int ) const;
-	Alignment getAlignment() const;
+	FeAlign getAlignment() const;
 	Case getCase() const;
 	sf::Vector2f getPosition() const;
 	sf::Vector2f getSize() const;
@@ -140,7 +123,7 @@ public:
 private:
 	sf::RectangleShape m_bgRect;
 	mutable std::vector<sf::JustifyText> m_texts;
-	Alignment m_align;
+	FeAlign m_align;
 	Case m_case;
 	int m_justify;
 

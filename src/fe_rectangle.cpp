@@ -43,9 +43,9 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_transform_origin( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
-	m_transform_origin_type( TopLeft ),
-	m_anchor_type( TopLeft ),
-	m_rotation_origin_type( TopLeft ),
+	m_transform_origin_type( FeAlign::TopLeft ),
+	m_anchor_type( FeAlign::TopLeft ),
+	m_rotation_origin_type( FeAlign::TopLeft ),
 	m_rotation ( 0.0 ),
 	m_corner_point_count( 12 ),
 	m_corner_point_actual( -1 ),
@@ -214,17 +214,17 @@ float FeRectangle::get_origin_y() const
 
 int FeRectangle::get_transform_origin_type() const
 {
-	return (FeRectangle::Alignment)m_transform_origin_type;
+	return m_transform_origin_type;
 }
 
 int FeRectangle::get_anchor_type() const
 {
-	return (FeRectangle::Alignment)m_anchor_type;
+	return m_anchor_type;
 }
 
 int FeRectangle::get_rotation_origin_type() const
 {
-	return (FeRectangle::Alignment)m_rotation_origin_type;
+	return m_rotation_origin_type;
 }
 
 float FeRectangle::get_transform_origin_x() const
@@ -294,7 +294,7 @@ void FeRectangle::set_transform_origin( float x, float y )
 
 void FeRectangle::set_transform_origin_type( int t )
 {
-	m_transform_origin_type = (FeRectangle::Alignment)t;
+	m_transform_origin_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
@@ -311,7 +311,7 @@ void FeRectangle::set_anchor( float x, float y )
 
 void FeRectangle::set_anchor_type( int t )
 {
-	m_anchor_type = (FeRectangle::Alignment)t;
+	m_anchor_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
@@ -328,7 +328,7 @@ void FeRectangle::set_rotation_origin( float x, float y )
 
 void FeRectangle::set_rotation_origin_type( int t )
 {
-	m_rotation_origin_type = (FeRectangle::Alignment)t;
+	m_rotation_origin_type = static_cast<FeAlign>( t );
 	sf::Vector2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }

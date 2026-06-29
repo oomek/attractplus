@@ -1186,16 +1186,16 @@ FeImage::FeImage(
 	m_auto_size( w == 0, h == 0 ),
 	m_origin( 0.f, 0.f ),
 	m_transform_origin( 0.f, 0.f ),
-	m_transform_origin_type( TopLeft ),
+	m_transform_origin_type( FeAlign::TopLeft ),
 	m_anchor( 0.f, 0.f ),
-	m_anchor_type( TopLeft ),
+	m_anchor_type( FeAlign::TopLeft ),
 	m_rotation( 0.0 ),
 	m_rotation_origin( 0.f, 0.f ),
-	m_rotation_origin_type( TopLeft ),
+	m_rotation_origin_type( FeAlign::TopLeft ),
 	m_crop( true ),
 	m_fit( Fill ),
 	m_fit_anchor( 0.5f, 0.5f ),
-	m_fit_anchor_type( Centre ),
+	m_fit_anchor_type( FeAlign::Centre ),
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
@@ -1702,22 +1702,22 @@ float FeImage::get_origin_y() const
 
 int FeImage::get_transform_origin_type() const
 {
-	return (FeImage::Alignment)m_transform_origin_type;
+	return m_transform_origin_type;
 }
 
 int FeImage::get_anchor_type() const
 {
-	return (FeImage::Alignment)m_anchor_type;
+	return m_anchor_type;
 }
 
 int FeImage::get_fit_anchor_type() const
 {
-	return (FeImage::Alignment)m_fit_anchor_type;
+	return m_fit_anchor_type;
 }
 
 int FeImage::get_rotation_origin_type() const
 {
-	return (FeImage::Alignment)m_rotation_origin_type;
+	return m_rotation_origin_type;
 }
 
 float FeImage::get_transform_origin_x() const
@@ -1866,7 +1866,7 @@ void FeImage::set_transform_origin( float x, float y )
 
 void FeImage::set_transform_origin_type( int t )
 {
-	m_transform_origin_type = (FeImage::Alignment)t;
+	m_transform_origin_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
@@ -1883,7 +1883,7 @@ void FeImage::set_anchor( float x, float y )
 
 void FeImage::set_anchor_type( int t )
 {
-	m_anchor_type = (FeImage::Alignment)t;
+	m_anchor_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
@@ -1900,7 +1900,7 @@ void FeImage::set_fit_anchor( float x, float y )
 
 void FeImage::set_fit_anchor_type( int t )
 {
-	m_fit_anchor_type = (FeImage::Alignment)t;
+	m_fit_anchor_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_fit_anchor( a.x, a.y );
 }
@@ -1917,7 +1917,7 @@ void FeImage::set_rotation_origin( float x, float y )
 
 void FeImage::set_rotation_origin_type( int t )
 {
-	m_rotation_origin_type = (FeImage::Alignment)t;
+	m_rotation_origin_type = static_cast<FeAlign>( t );
 	sf::Vector2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }

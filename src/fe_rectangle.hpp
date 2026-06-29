@@ -24,6 +24,7 @@
 #define FE_RECTANGLE_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_align.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "rounded_rectangle_shape.hpp"
@@ -33,20 +34,6 @@ class FeSettings;
 class FeRectangle : public sf::Drawable, public FeBasePresentable
 {
 public:
-	public:
-	enum Alignment
-	{
-		Left,
-		Centre,
-		Right,
-		Top,
-		Bottom,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight
-	};
-
 	FeRectangle( FePresentableParent &p,
 		float x, float y, float w, float h );
 
@@ -141,9 +128,9 @@ private:
 	sf::Vector2f m_transform_origin;
 	sf::Vector2f m_rotation_origin;
 	sf::Vector2f m_anchor;
-	FeRectangle::Alignment m_transform_origin_type;
-	FeRectangle::Alignment m_anchor_type;
-	FeRectangle::Alignment m_rotation_origin_type;
+	FeAlign m_transform_origin_type;
+	FeAlign m_anchor_type;
+	FeAlign m_rotation_origin_type;
 	float m_rotation;
 
 	int m_corner_point_count;

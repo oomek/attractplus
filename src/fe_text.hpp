@@ -24,6 +24,7 @@
 #define FE_TEXT_HPP
 
 #include <SFML/Graphics.hpp>
+#include "fe_align.hpp"
 #include "fe_presentable.hpp"
 #include "tp.hpp"
 
@@ -35,19 +36,6 @@ class FeSettings;
 class FeText : public FeBasePresentable, public sf::Drawable
 {
 public:
-	enum Alignment
-	{
-		Left,
-		Centre,
-		Right,
-		Top,
-		Bottom,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight
-	};
-
 	FeText( FePresentableParent &p,
 		const std::string &str, int x, int y, int w, int h );
 
@@ -197,9 +185,9 @@ private:
 	sf::Vector2f m_transform_origin;
 	sf::Vector2f m_anchor;
 	sf::Vector2f m_rotation_origin;
-	FeText::Alignment m_transform_origin_type;
-	FeText::Alignment m_anchor_type;
-	FeText::Alignment m_rotation_origin_type;
+	FeAlign m_transform_origin_type;
+	FeAlign m_anchor_type;
+	FeAlign m_rotation_origin_type;
 	float m_rotation;
 	float m_scale_factor;
 	bool m_magic;
