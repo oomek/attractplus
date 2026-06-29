@@ -158,7 +158,7 @@ void FeText::set_transform_origin( float x, float y )
 void FeText::set_transform_origin_type( int t )
 {
 	m_transform_origin_type = (FeText::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	sf::Vector2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
 
@@ -175,7 +175,7 @@ void FeText::set_anchor( float x, float y )
 void FeText::set_anchor_type( int t )
 {
 	m_anchor_type = (FeText::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	sf::Vector2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
 
@@ -192,7 +192,7 @@ void FeText::set_rotation_origin( float x, float y )
 void FeText::set_rotation_origin_type( int t )
 {
 	m_rotation_origin_type = (FeText::Alignment)t;
-	sf::Vector2f o = alignTypeToVector( t );
+	sf::Vector2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }
 
@@ -327,42 +327,6 @@ void FeText::update_transform()
 	m_draw_text.setOrigin( origin );
 	m_draw_text.setPosition( pos );
 	m_draw_text.setRotation( m_rotation );
-}
-
-sf::Vector2f FeText::alignTypeToVector( int type )
-{
-	switch( type )
-	{
-		case Left:
-			return sf::Vector2f( 0.0f, 0.5f );
-
-		case Centre:
-			return sf::Vector2f( 0.5f, 0.5f );
-
-		case Right:
-			return sf::Vector2f( 1.0f, 0.5f );
-
-		case Top:
-			return sf::Vector2f( 0.5f, 0.0f );
-
-		case Bottom:
-			return sf::Vector2f( 0.5f, 1.0f );
-
-		case TopLeft:
-			return sf::Vector2f( 0.0f, 0.0f );
-
-		case TopRight:
-			return sf::Vector2f( 1.0f, 0.0f );
-
-		case BottomLeft:
-			return sf::Vector2f( 0.0f, 1.0f );
-
-		case BottomRight:
-			return sf::Vector2f( 1.0f, 1.0f );
-
-		default:
-			return sf::Vector2f( 0.0f, 0.0f );
-	}
 }
 
 void FeText::on_new_selection( FeSettings *feSettings )

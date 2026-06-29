@@ -159,7 +159,6 @@ private:
 	void update_corner_radius();
 	void update_corner_ratio();
 	void update_corner_points();
-	sf::Vector2f alignTypeToVector( int a );
 };
 
 #endif

@@ -2317,3 +2317,39 @@ bool get_capslock_state()
 
 	return false;
 }
+
+sf::Vector2f align_type_to_vector( int type )
+{
+	switch( type )
+	{
+		case 0: // Left
+			return sf::Vector2f( 0.0f, 0.5f );
+
+		case 1: // Centre
+			return sf::Vector2f( 0.5f, 0.5f );
+
+		case 2: // Right
+			return sf::Vector2f( 1.0f, 0.5f );
+
+		case 3: // Top
+			return sf::Vector2f( 0.5f, 0.0f );
+
+		case 4: // Bottom
+			return sf::Vector2f( 0.5f, 1.0f );
+
+		case 5: // TopLeft
+			return sf::Vector2f( 0.0f, 0.0f );
+
+		case 6: // TopRight
+			return sf::Vector2f( 1.0f, 0.0f );
+
+		case 7: // BottomLeft
+			return sf::Vector2f( 0.0f, 1.0f );
+
+		case 8: // BottomRight
+			return sf::Vector2f( 1.0f, 1.0f );
+
+		default:
+			return sf::Vector2f( 0.0f, 0.0f );
+	}
+}
