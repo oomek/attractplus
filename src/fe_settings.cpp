@@ -2386,24 +2386,35 @@ const std::string &FeSettings::get_filter_name( int filter_index )
 	return f->get_name();
 }
 
-void FeSettings::get_current_sort( FeRomInfo::Index &idx, bool &rev, int &limit )
+FeFilter *FeSettings::get_current_filter()
 {
-	idx = FeRomInfo::LAST_INDEX;
-	rev = false;
-	limit = 0;
+	return ( m_current_display < 0 )
+		? NULL
+		: m_displays[m_current_display].get_filter( m_displays[m_current_display].get_current_filter_index() );
+}
 
-	if ( m_current_display < 0 )
-		return;
+FeRomInfo::Index FeSettings::get_sort_by()
+{
+	FeFilter *f = get_current_filter();
+	return f ? f->get_sort_by() : FeRomInfo::LAST_INDEX;
+}
 
-	FeFilter *f = m_displays[m_current_display].get_filter(
-			m_displays[m_current_display].get_current_filter_index() );
+bool FeSettings::get_ascending_order()
+{
+	FeFilter *f = get_current_filter();
+	return f ? f->get_ascending_order() : true;
+}
 
-	if ( f )
-	{
-		idx = f->get_sort_by();
-		rev = f->get_reverse_order();
-		limit = f->get_list_limit();
-	}
+bool FeSettings::get_reverse_order()
+{
+	FeFilter *f = get_current_filter();
+	return f ? f->get_reverse_order() : false;
+}
+
+int FeSettings::get_list_limit()
+{
+	FeFilter *f = get_current_filter();
+	return f ? f->get_list_limit() : 0;
 }
 
 void FeSettings::step_current_selection( int step )
@@ -3240,20 +3251,14 @@ bool FeSettings::get_special_token_value( std::string &token, int filter_index, 
 			return true;
 		case FeRomInfo::SortName:
 		{
-			FeRomInfo::Index sort_by;
-			bool reverse_sort;
-			int list_limit;
-			get_current_sort( sort_by, reverse_sort, list_limit );
+			FeRomInfo::Index sort_by = get_sort_by();
 			std::string sort_token = ( sort_by == FeRomInfo::LAST_INDEX ) ? "None" : FeRomInfo::indexStrings[sort_by];
 			value = _( sort_token );
 			return true;
 		}
 		case FeRomInfo::SortValue:
 		{
-			FeRomInfo::Index sort_by;
-			bool reverse_sort;
-			int list_limit;
-			get_current_sort( sort_by, reverse_sort, list_limit );
+			FeRomInfo::Index sort_by = get_sort_by();
 			std::string sort_token = FeRomInfo::indexStrings[ ( sort_by == FeRomInfo::LAST_INDEX ) ? FeRomInfo::Title : sort_by ];
 			return get_token_value( sort_token, filter_index, rom_index, value );
 		}
@@ -3529,7 +3534,7 @@ const std::string FeSettings::get_info( int index ) const
 #ifdef SFML_SYSTEM_WINDOWS
 	case HideConsole:
 #endif
-		return ( get_info_bool( index ) ? FE_CFG_YES_STR : FE_CFG_NO_STR );
+		return bool_to_config_str( get_info_bool( index ) );
 	case VideoDecoder:
 #ifdef NO_MOVIE
 		return "software";

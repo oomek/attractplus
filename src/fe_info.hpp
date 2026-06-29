@@ -304,7 +304,14 @@ private:
 class FeFilter : public FeBaseConfigurable
 {
 public:
-	enum Index { Rule=0, Exception, SortBy, ReverseOrder, ListLimit };
+	enum Index {
+		Rule=0,
+		Exception,
+		SortBy,
+		AscendingOrder,
+		ReverseOrder, // Deprecated 3.2.3+
+		ListLimit
+	};
 	static const char *indexStrings[];
 
 	FeFilter( const std::string &name );
@@ -329,13 +336,15 @@ public:
 	std::vector<FeRule> &get_rules() { return m_rules; };
 	int get_rule_count() const { return m_rules.size(); };
 
-	FeRomInfo::Index get_sort_by() const { return m_sort_by; }
-	bool get_reverse_order() const { return m_reverse_order; }
-	int get_list_limit() const { return m_list_limit; }
+	FeRomInfo::Index get_sort_by() const;
+	bool get_ascending_order() const;
+	bool get_reverse_order() const;
+	int get_list_limit() const;
 
-	void set_sort_by( FeRomInfo::Index i ) { m_sort_by=i; }
-	void set_reverse_order( bool r ) { m_reverse_order=r; }
-	void set_list_limit( int p ) { m_list_limit=p; }
+	void set_sort_by( FeRomInfo::Index i );
+	void set_ascending_order( bool a );
+	void set_reverse_order( bool r );
+	void set_list_limit( int p );
 
 	// Returns true if any of the targets are used by sort or filter rules
 	bool test_for_targets( std::set<FeRomInfo::Index> targets ) const;
@@ -351,7 +360,9 @@ private:
 		// x values, Negative value limits to the last abs(x) values.
 	int m_size;
 	FeRomInfo::Index m_sort_by;
-	bool m_reverse_order;
+	bool m_asc_order;
+	bool m_asc_order_exists;
+	bool m_reverse_order; // Deprecated 3.2.3+
 };
 
 class FeScriptConfigurable : public FeBaseConfigurable

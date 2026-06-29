@@ -62,34 +62,16 @@ int get_char_idx( unsigned char c )
 	return 0;
 }
 
-// Returns > 0 if value is "truthy", will match value of corresponding falsy
-const int is_truthy( const std::string value )
-{
-	if ( icompare( value, _( "Yes" )) == 0 ) return 1;
-	if ( icompare( value, _( "On" )) == 0 ) return 2;
-	if ( icompare( value, _( "True" )) == 0 ) return 3;
-	return 0;
-}
-
-// Returns > 0 if value is "falsy", will match value of corresponding truthy
-const int is_falsy( const std::string value )
-{
-	if ( icompare( value, _( "No" )) == 0 ) return 1;
-	if ( icompare( value, _( "Off" )) == 0 ) return 2;
-	if ( icompare( value, _( "False" )) == 0 ) return 3;
-	return 0;
-}
-
 // Returns true if the given list has a matching pair of truthy/falsy options in any order
 const bool is_bool_list( const std::vector<std::string> &values )
 {
 	if ( values.size() != 2 ) return false;
-	int v0 = is_truthy( values[0] );
-	int v1 = is_falsy( values[1] );
+	int v0 = is_str_truthy( values[0] );
+	int v1 = is_str_falsy( values[1] );
 	if ( !v0 || !v1 )
 	{
-		v0 = is_falsy( values[0] );
-		v1 = is_truthy( values[1] );
+		v0 = is_str_falsy( values[0] );
+		v1 = is_str_truthy( values[1] );
 	}
 	return v0 && v1 && ( v0 == v1 );
 }
@@ -103,7 +85,7 @@ std::string get_pill_glyph( bool checked )
 void swap_bool_to_pill_glyphs( std::vector<std::string> &right_list, const std::vector<FeMenuOpt> &opt_list, int idx )
 {
 	if ( !is_bool_list( opt_list[idx].values_list )) return;
-	right_list[ idx ] = get_pill_glyph( is_truthy( right_list[ idx ] ) );
+	right_list[ idx ] = get_pill_glyph( is_str_truthy( right_list[ idx ] ) );
 }
 
 };
@@ -1779,7 +1761,7 @@ int FeOverlay::display_config_dialog(
 			int original_value = ctx.curr_opt().get_vindex();
 			int new_value = ( original_value == 0 ) ? 1 : 0;
 			ctx.curr_opt().set_value( new_value );
-			ctx.right_list[ ctx.curr_sel ] = get_pill_glyph( is_truthy( ctx.curr_opt().values_list[new_value] ) );
+			ctx.right_list[ ctx.curr_sel ] = get_pill_glyph( is_str_truthy( ctx.curr_opt().values_list[new_value] ) );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
 			layout_focus( sdialog, vdialog, LayoutFocus::Edit );

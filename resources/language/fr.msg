@@ -100,7 +100,9 @@ Overview;Aperçu
 Plugins;Plugins
 Power Saving;Économie d'énergie
 Remove Input;Enlever le contrôle
-Reverse Order;Ordre inverse
+Sort Order;Ordre de tri
+Ascending;Ascendant
+Descending;Descendant
 Rule;Règle
 Scrape Artwork;Aspirer les Artworks
 Scrape Fanart;Aspire les 'Fanart'
@@ -476,7 +478,7 @@ _help_filter_delete;Supprimer ce filtre
 _help_filter_exception;Configurer cette exception de filtre. Si un jeu correspond à une exception, il sera ajouté au filtre. Les règles et exceptions sont appliquées dans l'ordre de leur apparition.
 _help_filter_list_limit;Saisir un nombre différent de zéro pour limiter la taille de la liste triée. Un nombre positif remonte les X premières valeurs (ex : "10" donne les 10 premières valeurs), un nombre négatif remonte les X dernières valeurs (ex : "-25" donne les 25 dernières valeurs). "0" affiche toute la liste.
 _help_filter_name;Nom du filtre
-_help_filter_reverse_order;Inverser l'ordre de tri de la collection/liste de ROM L'ordre par défaut est «A à Z» pour les informations, «Du plus grand au plus petit» pour les statistiques, ou l'ordre de la liste source pour «Aucun tri».
+_help_filter_sort_order;L'ordre de tri de la collection/romlist. Le tri croissant correspond à « A à Z » pour les informations, « Du plus petit au plus grand » pour les statistiques, et l'ordre source pour « Aucun tri ». Le tri décroissant correspond à l'ordre inverse.
 _help_filter_rule;Configurer le filtre
 _help_filter_sort_by;C'est l'information du jeu par lequel vous souhaitez classer votre liste. Sélectionner "Non classé" pour conserver l'ordre de la liste de rom source.
 _help_game_custom_args;Définir cette option pour remplacer les arguments de ligne de commande par défaut de ce jeu. Laisser vide si vous souhaitez les remplacer sans paramètres. Les éléments suivants sont remplacés correctement: [nom], [romext], [chemin_rom], [émulateur], [nom_fichier_rom], [système], [n_système]

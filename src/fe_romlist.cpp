@@ -538,7 +538,7 @@ void FeRomList::sort_filter_entry(
 
 	// Sort and limit the filtered list
 	FeRomInfo::Index sort_by = f->get_sort_by();
-	bool rev = f->get_reverse_order();
+	bool rev = !f->get_ascending_order();
 	int limit = f->get_list_limit();
 
 	// Sorting
@@ -552,7 +552,7 @@ void FeRomList::sort_filter_entry(
 		for ( itg = clone_group.begin(); itg != clone_group.end(); ++itg )
 			std::stable_sort( (*itg).second.begin(), (*itg).second.end(), FeRomListSorter2( sort_by, rev ) );
 	}
-	else if ( rev != false )
+	else if ( rev )
 	{
 		// If not sorted the romlist entry order is used - but may still be reversed
 		std::reverse( filter_list.begin(), filter_list.end() );

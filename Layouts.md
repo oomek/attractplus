@@ -1509,7 +1509,7 @@ This class is a container for information about the available filters. Instances
    -  `Info.Score`
    -  `Info.Votes`
    -  `Info.FileIsAvailable`
--  `reverse_order` - [boolean] Will be equal to `true` if the list order has been reversed.
+-  `ascending_order` - [boolean] Will be `true` if the list is sorted in ascending order, `false` if descending.
 -  `list_limit` - Get the value of the list limit applied to the filter game list.
 
 ---
