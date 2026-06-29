@@ -25,6 +25,7 @@
 
 #include <SFML/Graphics.hpp>
 #include <sqrat.h>
+#include "fe_align.hpp"
 #include "sprite.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
@@ -295,19 +296,6 @@ private:
 class FeImage : public sf::Drawable, public FeBasePresentable
 {
 public:
-	enum Alignment
-	{
-		Left,
-		Centre,
-		Right,
-		Top,
-		Bottom,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight
-	};
-
 	enum Fit
 	{
 		Fill,
@@ -545,19 +533,19 @@ protected:
 
 	sf::Vector2f m_origin;
 	sf::Vector2f m_transform_origin;
-	FeImage::Alignment m_transform_origin_type;
+	FeAlign m_transform_origin_type;
 
 	sf::Vector2f m_anchor;
-	FeImage::Alignment m_anchor_type;
+	FeAlign m_anchor_type;
 
 	float m_rotation;
 	sf::Vector2f m_rotation_origin;
-	FeImage::Alignment m_rotation_origin_type;
+	FeAlign m_rotation_origin_type;
 
 	bool m_crop;
 	FeImage::Fit m_fit;
 	sf::Vector2f m_fit_anchor;
-	FeImage::Alignment m_fit_anchor_type;
+	FeAlign m_fit_anchor_type;
 
 	FeBlend::Mode m_blend_mode;
 	bool m_preserve_aspect_ratio;

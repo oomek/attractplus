@@ -40,9 +40,9 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	m_transform_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
-	m_transform_origin_type( TopLeft ),
-	m_anchor_type( TopLeft ),
-	m_rotation_origin_type( TopLeft ),
+	m_transform_origin_type( FeAlign::TopLeft ),
+	m_anchor_type( FeAlign::TopLeft ),
+	m_rotation_origin_type( FeAlign::TopLeft ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
 	m_magic( false )
@@ -97,17 +97,17 @@ void FeText::setRotation( float r )
 
 int FeText::get_transform_origin_type() const
 {
-	return (FeText::Alignment)m_transform_origin_type;
+	return m_transform_origin_type;
 }
 
 int FeText::get_anchor_type() const
 {
-	return (FeText::Alignment)m_anchor_type;
+	return m_anchor_type;
 }
 
 int FeText::get_rotation_origin_type() const
 {
-	return (FeText::Alignment)m_rotation_origin_type;
+	return m_rotation_origin_type;
 }
 
 float FeText::get_transform_origin_x() const
@@ -157,7 +157,7 @@ void FeText::set_transform_origin( float x, float y )
 
 void FeText::set_transform_origin_type( int t )
 {
-	m_transform_origin_type = (FeText::Alignment)t;
+	m_transform_origin_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
@@ -174,7 +174,7 @@ void FeText::set_anchor( float x, float y )
 
 void FeText::set_anchor_type( int t )
 {
-	m_anchor_type = (FeText::Alignment)t;
+	m_anchor_type = static_cast<FeAlign>( t );
 	sf::Vector2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
@@ -191,7 +191,7 @@ void FeText::set_rotation_origin( float x, float y )
 
 void FeText::set_rotation_origin_type( int t )
 {
-	m_rotation_origin_type = (FeText::Alignment)t;
+	m_rotation_origin_type = static_cast<FeAlign>( t );
 	sf::Vector2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }
@@ -578,7 +578,7 @@ int FeText::get_justify()
 
 int FeText::get_align()
 {
-	return (int)m_draw_text.getAlignment();
+	return m_draw_text.getAlignment();
 }
 
 int FeText::get_case()
@@ -771,9 +771,10 @@ void FeText::set_justify(int j)
 
 void FeText::set_align(int a)
 {
-	if ( a != m_draw_text.getAlignment() )
+	FeAlign align = static_cast<FeAlign>( a );
+	if ( align != m_draw_text.getAlignment() )
 	{
-		m_draw_text.setAlignment( (FeTextPrimitive::Alignment)a);
+		m_draw_text.setAlignment( align );
 		FePresent::script_do_update( this );
 	}
 }

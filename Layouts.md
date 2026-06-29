@@ -1624,6 +1624,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+   -  `Anchor` and `Origin` values are bitmaskable for example `Anchor.Left | Anchor.Top` is equivalent to `Anchor.TopLeft`.
 -  `transform_origin_x` 🔶 - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `transform_origin_y` 🔶 - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -1775,6 +1776,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+   -  `Anchor` and `Origin` values are bitmaskable for example `Anchor.Left | Anchor.Top` is equivalent to `Anchor.TopLeft`.
 -  `transform_origin_x` 🔶 - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `transform_origin_y` 🔶 - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -1825,6 +1827,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Align.TopRight`
    -  `Align.BottomLeft`
    -  `Align.BottomRight`
+   -  `Align` values are bitmaskable for example `Align.Left | Align.Top` is equivalent to `Align.TopLeft`.
 -  `case` - Get/set the displayed message case. Can be one or more of the following values:
    -  `Case.None` (default)
    -  `Case.Uppercase`
@@ -1901,6 +1904,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+   -  `Anchor` and `Origin` values are bitmaskable for example `Anchor.Left | Anchor.Top` is equivalent to `Anchor.TopLeft`.
 -  `transform_origin_x` 🔶 - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `transform_origin_y` 🔶 - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` 🔶 - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
@@ -1971,6 +1975,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Align.TopRight`
    -  `Align.BottomLeft`
    -  `Align.BottomRight`
+   -  `Align` values are bitmaskable for example `Align.Left | Align.Top` is equivalent to `Align.TopLeft`.
 -  `case` - Get/set the displayed message case. Can be one or more of the following values:
    -  `Case.None` (default)
    -  `Case.Uppercase`
@@ -2060,6 +2065,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
    -  `Origin.TopRight`
    -  `Origin.BottomLeft`
    -  `Origin.BottomRight`
+   -  `Anchor` and `Origin` values are bitmaskable for example `Anchor.Left | Anchor.Top` is equivalent to `Anchor.TopLeft`.
 -  `transform_origin_x` - Get/set the x position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_x` or `rotation_origin_x` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `transform_origin_y` - Get/set the y position of the midpoint for position, scale, and rotation. This value will become invalid if `anchor_y` or `rotation_origin_y` is manually changed afterward. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `anchor_x` - Get/set the x position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
