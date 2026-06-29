@@ -3667,6 +3667,8 @@ Sqrat::Object FeVM::cb_json_parse( const char *value )
 // Draw the default layout when the user layout is empty
 void FeVM::init_with_default_layout()
 {
+	set_layout_grid( GridPixel );
+
 	float flw = m_layoutSize.x;
 	float flh = m_layoutSize.y;
 
