@@ -2424,11 +2424,11 @@ FeImage *FeImage::add_surface(float x, float y, int w, int h)
 	return NULL;
 }
 
-FeImage *FeImage::add_surface(float x, float y, float w, float h, int pixel_w, int pixel_h)
+FeImage *FeImage::add_surface(float x, float y, float w, float h, int texture_width, int texture_height)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
-		return p->add_surface( x, y, w, h, pixel_w, pixel_h );
+		return p->add_surface( x, y, w, h, texture_width, texture_height );
 
 	return NULL;
 }

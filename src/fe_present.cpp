@@ -738,13 +738,13 @@ FeImage *FePresent::add_surface(
 		float y,
 		float w,
 		float h,
-		int pixel_w,
-		int pixel_h,
+		int texture_width,
+		int texture_height,
 		FePresentableParent &p )
 {
 	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer(
-		to_texture_size( pixel_w ),
-		to_texture_size( pixel_h ));
+		to_texture_size( texture_width ),
+		to_texture_size( texture_height ));
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 	new_surface->set_nesting_level( p.get_nesting_level() + 1 );
 
