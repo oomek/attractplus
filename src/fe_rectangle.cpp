@@ -295,7 +295,7 @@ void FeRectangle::set_transform_origin( float x, float y )
 void FeRectangle::set_transform_origin_type( int t )
 {
 	m_transform_origin_type = (FeRectangle::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	sf::Vector2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
 
@@ -312,7 +312,7 @@ void FeRectangle::set_anchor( float x, float y )
 void FeRectangle::set_anchor_type( int t )
 {
 	m_anchor_type = (FeRectangle::Alignment)t;
-	sf::Vector2f a = alignTypeToVector( t );
+	sf::Vector2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
 
@@ -329,7 +329,7 @@ void FeRectangle::set_rotation_origin( float x, float y )
 void FeRectangle::set_rotation_origin_type( int t )
 {
 	m_rotation_origin_type = (FeRectangle::Alignment)t;
-	sf::Vector2f o = alignTypeToVector( t );
+	sf::Vector2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }
 
@@ -606,42 +606,6 @@ void FeRectangle::update_corner_ratio()
 	}
 
 	update_corner_radius();
-}
-
-sf::Vector2f FeRectangle::alignTypeToVector( int type )
-{
-	switch( type )
-	{
-		case Left:
-			return sf::Vector2f( 0.0f, 0.5f );
-
-		case Centre:
-			return sf::Vector2f( 0.5f, 0.5f );
-
-		case Right:
-			return sf::Vector2f( 1.0f, 0.5f );
-
-		case Top:
-			return sf::Vector2f( 0.5f, 0.0f );
-
-		case Bottom:
-			return sf::Vector2f( 0.5f, 1.0f );
-
-		case TopLeft:
-			return sf::Vector2f( 0.0f, 0.0f );
-
-		case TopRight:
-			return sf::Vector2f( 1.0f, 0.0f );
-
-		case BottomLeft:
-			return sf::Vector2f( 0.0f, 1.0f );
-
-		case BottomRight:
-			return sf::Vector2f( 1.0f, 1.0f );
-
-		default:
-			return sf::Vector2f( 0.0f, 0.0f );
-	}
 }
 
 void FeRectangle::draw( sf::RenderTarget &target, sf::RenderStates states ) const

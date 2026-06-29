@@ -247,7 +247,6 @@ private:
 	void refresh_selection();
 	void refresh_list();
 	void update_row_geometry();
-	sf::Vector2f alignTypeToVector( int a );
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_custom_list;

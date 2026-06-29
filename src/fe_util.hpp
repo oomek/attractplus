@@ -499,4 +499,7 @@ int get_token_index( const char *tokens[], const std::string &token );
 // Return true if capslock enabled
 bool get_capslock_state();
 
+// Convert Anchor/Origin alignment enum values to normalised coordinates
+sf::Vector2f align_type_to_vector( int type );
+
 #endif // FE_UTIL_HPP

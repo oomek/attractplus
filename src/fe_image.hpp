@@ -569,7 +569,6 @@ protected:
 	void scale();
 	int resolveFit() const;
 	float resolveAspectRatio() const;
-	sf::Vector2f alignTypeToVector( int a );
 
 	void draw( sf::RenderTarget& target, sf::RenderStates states ) const;
 
