@@ -2710,7 +2710,8 @@ FeImage* FeVM::cb_add_surface( float x, float y, int w, int h )
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
-	FeImage *ret = fev->add_surface( x, y, w, h, fev->m_mon[0] );
+	sf::Vector2i texture_size = fev->get_surface_texture_size( fev->m_mon[0], w, h );
+	FeImage *ret = fev->add_surface( x, y, w, h, texture_size.x, texture_size.y, fev->m_mon[0] );
 
 	// Add the surface to the "fe.obj" array in Squirrel
 	//

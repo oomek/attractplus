@@ -582,23 +582,6 @@ namespace
 		return std::max( 1, static_cast<int>( std::fabs( v ) + 0.5f ));
 	}
 
-	sf::Vector2i get_surface_texture_size(
-		FePresentableParent &p, int grid, bool uniform, int w, int h )
-	{
-		FeCoordinateSpace space = p.get_coordinate_space( uniform );
-
-		switch ( grid )
-		{
-			case GridPercent:
-				return sf::Vector2i(
-					to_texture_size( space.size.x * w / 100.0f ),
-					to_texture_size( space.size.y * h / 100.0f ));
-
-			case GridPixel:
-			default:
-				return sf::Vector2i( to_texture_size( w ), to_texture_size( h ));
-		}
-	}
 };
 
 void FePresent::sort_zorder()
@@ -725,12 +708,6 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 	flag_redraw();
 	p.elements.push_back( new_rc );
 	return new_rc;
-}
-
-FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentableParent &p )
-{
-	sf::Vector2i texture_size = get_surface_texture_size( p, m_grid, m_grid_uniform, w, h );
-	return add_surface( x, y, w, h, texture_size.x, texture_size.y, p );
 }
 
 FeImage *FePresent::add_surface(
@@ -1958,6 +1935,23 @@ void FePresent::set_preserve_aspect_ratio( bool p )
 bool FePresent::get_preserve_aspect_ratio()
 {
 	return m_preserve_aspect;
+}
+
+sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, int w, int h ) const
+{
+	FeCoordinateSpace space = p.get_coordinate_space( m_grid_uniform );
+
+	switch ( m_grid )
+	{
+		case GridPercent:
+			return sf::Vector2i(
+				to_texture_size( space.size.x * w / 100.0f ),
+				to_texture_size( space.size.y * h / 100.0f ));
+
+		case GridPixel:
+		default:
+			return sf::Vector2i( to_texture_size( w ), to_texture_size( h ));
+	}
 }
 
 bool FePresent::get_overlay_custom_controls( FeText *&t, FeListBox *&lb )

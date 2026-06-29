@@ -202,7 +202,6 @@ protected:
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
-	FeImage *add_surface(float x, float y, int w, int h, FePresentableParent &p);
 	FeImage *add_surface(float x, float y, float w, float h, int texture_width, int texture_height, FePresentableParent &p);
 	FeSound *add_sound(const char *n);
 	FeMusic *add_music(const char *n);
@@ -229,6 +228,7 @@ protected:
 	const char *get_search_rule();
 	const char *get_layout_font_name() const;
 	bool get_preserve_aspect_ratio();
+	sf::Vector2i get_surface_texture_size( FePresentableParent &p, int w, int h ) const;
 
 	void set_selection_index( int );
 	void set_layout_width( float );

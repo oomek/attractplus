@@ -468,7 +468,10 @@ FeImage *FePresentableParent::add_surface(float x, float y, int w, int h)
 	FePresent *fep = FePresent::script_get_fep();
 
 	if ( fep )
-		return fep->add_surface( x, y, w, h, *this );
+	{
+		sf::Vector2i texture_size = fep->get_surface_texture_size( *this, w, h );
+		return fep->add_surface( x, y, w, h, texture_size.x, texture_size.y, *this );
+	}
 
 	return NULL;
 }
