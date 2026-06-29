@@ -36,7 +36,6 @@ jobs:
         echo "fe_version=${fe_version}" >> $GITHUB_OUTPUT
     - name: Install MacOS brew
       run: |
-        brew pin ruby@3.3
         brew update
         brew upgrade
         brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo sfml openal-soft
