@@ -528,9 +528,9 @@ public:
 	FeImage *add_artwork( const char *, float, float, float, float );
 	FeImage *add_artwork( const char *, float, float );
 	FeImage *add_artwork( const char * );
-	FeImage *add_surface( float, float, int, int );
+	FeImage *add_surface( float, float, float, float );
 	FeImage *add_surface( float, float, float, float, int, int );
-	FeImage *add_surface( int, int );
+	FeImage *add_surface( float, float );
 	FeImage *add_clone( FeImage * );
 	FeText *add_text( const char *, int, int, int, int );
 	FeListBox *add_listbox( int, int, int, int );

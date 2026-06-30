@@ -228,7 +228,7 @@ protected:
 	const char *get_search_rule();
 	const char *get_layout_font_name() const;
 	bool get_preserve_aspect_ratio();
-	sf::Vector2i get_surface_texture_size( FePresentableParent &p, int w, int h ) const;
+	sf::Vector2i get_surface_texture_size( FePresentableParent &p, float w, float h ) const;
 
 	void set_selection_index( int );
 	void set_layout_width( float );

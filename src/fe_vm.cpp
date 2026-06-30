@@ -860,6 +860,7 @@ bool FeVM::on_new_layout()
 		.Enum( _SC("Grid"), Enumeration()
 			.Const( _SC("Pixel"), GridPixel )
 			.Const( _SC("Percent"), GridPercent )
+			.Const( _SC("Ratio"), GridRatio )
 			)
 		.Enum( _SC("Overlay"), Enumeration()
 			.Const( "Custom", 0 )
@@ -1104,8 +1105,8 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_listbox"), &FeImage::add_listbox )
 		.Func( _SC("add_rectangle"), &FeImage::add_rectangle )
 		.Overload<FeImage * (FeImage::*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
-		.Overload<FeImage * (FeImage::*)(float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
-		.Overload<FeImage * (FeImage::*)(int, int)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeImage * (FeImage::*)(float, float, float, float)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeImage * (FeImage::*)(float, float)>(_SC("add_surface"), &FeImage::add_surface)
 	);
 
 	fe.Bind( _SC("Text"),
@@ -1396,8 +1397,8 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
 		.Func( _SC("add_rectangle"), &FePresentableParent::add_rectangle )
 		.Overload<FeImage * (FePresentableParent::*)(float, float, float, float, int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
-		.Overload<FeImage * (FePresentableParent::*)(float, float, int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
-		.Overload<FeImage * (FePresentableParent::*)(int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
+		.Overload<FeImage * (FePresentableParent::*)(float, float, float, float)>(_SC("add_surface"), &FePresentableParent::add_surface)
+		.Overload<FeImage * (FePresentableParent::*)(float, float)>(_SC("add_surface"), &FePresentableParent::add_surface)
 	);
 
 	fe.Bind( _SC("Monitor"),
@@ -1440,8 +1441,8 @@ bool FeVM::on_new_layout()
 	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
 	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
 	fe.Overload<FeImage* (*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
-	fe.Overload<FeImage* (*)(float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
-	fe.Overload<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(float, float, float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeMusic* (*)(const char *)>(_SC("add_music"), &FeVM::cb_add_music);
@@ -2137,6 +2138,7 @@ public:
 			.Enum( _SC("Grid"), Sqrat::Enumeration()
 				.Const( _SC("Pixel"), GridPixel )
 				.Const( _SC("Percent"), GridPercent )
+				.Const( _SC("Ratio"), GridRatio )
 			)
 			.Enum( _SC("PathTest"), Sqrat::Enumeration()
 				.Const( "IsFile", FeVM::IsFile )
@@ -2700,12 +2702,12 @@ FeRectangle* FeVM::cb_add_rectangle( float x, float y, float w, float h )
 	return ret;
 }
 
-FeImage* FeVM::cb_add_surface( int w, int h )
+FeImage* FeVM::cb_add_surface( float w, float h )
 {
 	return cb_add_surface( 0, 0, w, h );
 }
 
-FeImage* FeVM::cb_add_surface( float x, float y, int w, int h )
+FeImage* FeVM::cb_add_surface( float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );

@@ -93,6 +93,10 @@ sf::Vector2f FeBasePresentable::convert_position( const sf::Vector2f &p ) const
 
 	switch ( get_grid() )
 	{
+		case GridRatio:
+			return sf::Vector2f(
+				space.origin.x + space.size.x * p.x,
+				space.origin.y + space.size.y * p.y ) + offset;
 		case GridPercent:
 			return sf::Vector2f(
 				space.origin.x + space.size.x * p.x / 100.0f,
@@ -109,6 +113,8 @@ sf::Vector2f FeBasePresentable::convert_size( const sf::Vector2f &s ) const
 
 	switch ( get_grid() )
 	{
+		case GridRatio:
+			return sf::Vector2f( space.size.x * s.x, space.size.y * s.y );
 		case GridPercent:
 			return sf::Vector2f( space.size.x * s.x / 100.0f, space.size.y * s.y / 100.0f );
 		case GridPixel:
@@ -458,12 +464,12 @@ FeRectangle *FePresentableParent::add_rectangle(float x, float y, float w, float
 	return NULL;
 }
 
-FeImage *FePresentableParent::add_surface(int w, int h)
+FeImage *FePresentableParent::add_surface(float w, float h)
 {
 	return add_surface( 0, 0, w, h );
 }
 
-FeImage *FePresentableParent::add_surface(float x, float y, int w, int h)
+FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 {
 	FePresent *fep = FePresent::script_get_fep();
 
