@@ -49,7 +49,8 @@ enum FePresentableType
 enum FeGrid
 {
 	GridPixel = 1,
-	GridPercent
+	GridPercent,
+	GridRatio
 };
 
 struct FeCoordinateSpace
@@ -186,9 +187,9 @@ public:
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);
 	FeRectangle *add_rectangle(float, float, float, float);
-	FeImage *add_surface(float, float, int, int);
+	FeImage *add_surface(float, float, float, float);
 	FeImage *add_surface(float, float, float, float, int, int);
-	FeImage *add_surface(int, int);
+	FeImage *add_surface(float, float);
 };
 
 #endif
