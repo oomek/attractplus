@@ -976,6 +976,20 @@ sf::Vector2f FePresent::get_layout_grid_offset( bool uniform ) const
 {
 	switch ( m_grid )
 	{
+		case GridRatio:
+		{
+			sf::Vector2f size( m_layoutSize );
+			if ( uniform )
+			{
+				float side = std::min( size.x, size.y );
+				size = sf::Vector2f( side, side );
+			}
+
+			return sf::Vector2f(
+				size.x * m_grid_offset.x,
+				size.y * m_grid_offset.y );
+		}
+
 		case GridPercent:
 		{
 			sf::Vector2f size( m_layoutSize );
@@ -2007,12 +2021,17 @@ bool FePresent::get_layout_crop()
 	return m_layout_crop;
 }
 
-sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, int w, int h ) const
+sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float w, float h ) const
 {
 	FeCoordinateSpace space = p.get_coordinate_space( m_grid_uniform );
 
 	switch ( m_grid )
 	{
+		case GridRatio:
+			return sf::Vector2i(
+				to_texture_size( space.size.x * w ),
+				to_texture_size( space.size.y * h ));
+
 		case GridPercent:
 			return sf::Vector2i(
 				to_texture_size( space.size.x * w / 100.0f ),
