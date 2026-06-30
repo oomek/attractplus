@@ -579,11 +579,6 @@ namespace
 		return ( one->get_zorder() < two->get_zorder() );
 	}
 
-	int to_texture_size( float v )
-	{
-		return std::max( 1, static_cast<int>( std::fabs( v ) + 0.5f ));
-	}
-
 };
 
 void FePresent::sort_zorder()
@@ -773,8 +768,8 @@ FeImage *FePresent::add_surface(
 		FePresentableParent &p )
 {
 	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer(
-		to_texture_size( texture_width ),
-		to_texture_size( texture_height ));
+		std::max( 0, texture_width ),
+		std::max( 0, texture_height ));
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 	new_surface->set_nesting_level( p.get_nesting_level() + 1 );
 
@@ -2024,23 +2019,25 @@ bool FePresent::get_layout_crop()
 sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float w, float h ) const
 {
 	FeCoordinateSpace space = p.get_coordinate_space( m_grid_uniform );
+	sf::Vector2f display_size;
 
 	switch ( m_grid )
 	{
 		case GridRatio:
-			return sf::Vector2i(
-				to_texture_size( space.size.x * w ),
-				to_texture_size( space.size.y * h ));
+			display_size = sf::Vector2f( space.size.x * w, space.size.y * h );
+			break;
 
 		case GridPercent:
-			return sf::Vector2i(
-				to_texture_size( space.size.x * w / 100.0f ),
-				to_texture_size( space.size.y * h / 100.0f ));
+			display_size = sf::Vector2f( space.size.x * w / 100.0f, space.size.y * h / 100.0f );
+			break;
 
 		case GridPixel:
 		default:
-			return sf::Vector2i( to_texture_size( w ), to_texture_size( h ));
+			display_size = sf::Vector2f( w, h );
+			break;
 	}
+
+	return sf::Vector2i( static_cast<int>( display_size.x ), static_cast<int>( display_size.y ));
 }
 
 bool FePresent::get_overlay_custom_controls( FeText *&t, FeListBox *&lb )
