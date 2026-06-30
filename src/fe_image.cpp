@@ -1049,7 +1049,9 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 		FeSettings *fes = fep->get_fes();
 		if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
 	}
-	if ( m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
+	if (( width > 0 )
+		&& ( height > 0 )
+		&& m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
 		m_texture.clear( sf::Color::Transparent );
 }
 

@@ -476,6 +476,27 @@ FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 	if ( fep )
 	{
 		sf::Vector2i texture_size = fep->get_surface_texture_size( *this, w, h );
+		FeCoordinateSpace space = get_coordinate_space( fep->m_grid_uniform );
+
+		switch ( fep->m_grid )
+		{
+			case GridRatio:
+				w = space.size.x != 0.0f ? texture_size.x / space.size.x : 0.0f;
+				h = space.size.y != 0.0f ? texture_size.y / space.size.y : 0.0f;
+				break;
+
+			case GridPercent:
+				w = space.size.x != 0.0f ? texture_size.x * 100.0f / space.size.x : 0.0f;
+				h = space.size.y != 0.0f ? texture_size.y * 100.0f / space.size.y : 0.0f;
+				break;
+
+			case GridPixel:
+			default:
+				w = texture_size.x;
+				h = texture_size.y;
+				break;
+		}
+
 		return fep->add_surface( x, y, w, h, texture_size.x, texture_size.y, *this );
 	}
 
