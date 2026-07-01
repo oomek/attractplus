@@ -918,7 +918,7 @@ sf::Vector2f FePresent::get_layout_grid_offset( bool uniform ) const
 {
 	switch ( m_grid )
 	{
-		case GridRatio:
+		case GridNormalised:
 		{
 			sf::Vector2f size( m_layoutSize );
 			if ( uniform )
@@ -1953,7 +1953,7 @@ sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float 
 
 	switch ( m_grid )
 	{
-		case GridRatio:
+		case GridNormalised:
 			display_size = sf::Vector2f( space.size.x * w, space.size.y * h );
 			break;
 
