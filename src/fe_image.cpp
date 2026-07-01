@@ -1049,7 +1049,9 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 		FeSettings *fes = fep->get_fes();
 		if ( fes ) ctx.antiAliasingLevel = fes->get_antialiasing();
 	}
-	if ( m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
+	if (( width > 0 )
+		&& ( height > 0 )
+		&& m_texture.resize({ static_cast<unsigned int>(width), static_cast<unsigned int>(height) }, ctx ) )
 		m_texture.clear( sf::Color::Transparent );
 }
 
@@ -1169,6 +1171,12 @@ int FeSurfaceTextureContainer::get_type() const
 FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 {
 	return this;
+}
+
+FeCoordinateSpace FeSurfaceTextureContainer::get_coordinate_space( bool ) const
+{
+	sf::Vector2u size = m_texture.getSize();
+	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( size ));
 }
 
 FeImage::FeImage(
@@ -2404,16 +2412,25 @@ FeRectangle *FeImage::add_rectangle(float x, float y, float w, float h)
 	return NULL;
 }
 
-FeImage *FeImage::add_surface(int w, int h)
+FeImage *FeImage::add_surface(float w, float h)
 {
 	return add_surface( 0, 0, w, h );
 }
 
-FeImage *FeImage::add_surface(float x, float y, int w, int h)
+FeImage *FeImage::add_surface(float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
 		return p->add_surface( x, y, w, h );
+
+	return NULL;
+}
+
+FeImage *FeImage::add_surface(float x, float y, float w, float h, int texture_width, int texture_height)
+{
+	FePresentableParent *p = m_tex->get_presentable_parent();
+	if ( p )
+		return p->add_surface( x, y, w, h, texture_width, texture_height );
 
 	return NULL;
 }

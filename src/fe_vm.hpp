@@ -211,8 +211,9 @@ public:
 	static FeText *cb_add_text(const char *,int, int, int, int);
 	static FeListBox *cb_add_listbox(int, int, int, int);
 	static FeRectangle *cb_add_rectangle(float, float, float, float);
-	static FeImage *cb_add_surface(float, float, int, int);
-	static FeImage *cb_add_surface(int, int);
+	static FeImage *cb_add_surface(float, float, float, float);
+	static FeImage *cb_add_surface(float, float, float, float, int, int);
+	static FeImage *cb_add_surface(float, float);
 	static FeSound *cb_add_sound(const char *, bool);
 	static FeSound *cb_add_sound(const char *);
 	static FeMusic *cb_add_music(const char *);

@@ -857,6 +857,11 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Listbox"), FePresentableTypeListbox )
 			.Const( _SC("Rectangle"), FePresentableTypeRectangle )
 			)
+		.Enum( _SC("Grid"), Enumeration()
+			.Const( _SC("Pixel"), GridPixel )
+			.Const( _SC("Percent"), GridPercent )
+			.Const( _SC("Normalised"), GridNormalised )
+			)
 		.Enum( _SC("Overlay"), Enumeration()
 			.Const( "Custom", 0 )
 			.Const( "Exit", FeInputMap::Exit )
@@ -991,6 +996,8 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("zorder"), &FeBasePresentable::get_zorder, &FeBasePresentable::set_zorder )
 		.Prop(_SC("magic"), &FeBasePresentable::get_magic )
 		.Prop(_SC("type"), &FeBasePresentable::get_type )
+		.Prop(_SC("grid"), &FeBasePresentable::get_grid, &FeBasePresentable::set_grid )
+		.Prop(_SC("grid_uniform"), &FeBasePresentable::get_grid_uniform, &FeBasePresentable::set_grid_uniform )
 		.Overload<void (FeBasePresentable::*)(int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(int, int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(float, float)>(_SC("set_pos"), &FeBasePresentable::set_pos)
@@ -1097,8 +1104,9 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_text"), &FeImage::add_text )
 		.Func( _SC("add_listbox"), &FeImage::add_listbox )
 		.Func( _SC("add_rectangle"), &FeImage::add_rectangle )
-		.Overload<FeImage * (FeImage::*)(float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
-		.Overload<FeImage * (FeImage::*)(int, int)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeImage * (FeImage::*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeImage * (FeImage::*)(float, float, float, float)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeImage * (FeImage::*)(float, float)>(_SC("add_surface"), &FeImage::add_surface)
 	);
 
 	fe.Bind( _SC("Text"),
@@ -1250,6 +1258,11 @@ bool FeVM::on_new_layout()
 	fe.Bind( _SC("LayoutGlobals"), Class <FePresent, NoConstructor>()
 		.Prop( _SC("width"), &FePresent::get_layout_width, &FePresent::set_layout_width )
 		.Prop( _SC("height"), &FePresent::get_layout_height, &FePresent::set_layout_height )
+		.Prop( _SC("aspect_ratio"), &FePresent::get_layout_aspect_ratio, &FePresent::set_layout_aspect_ratio )
+		.Prop( _SC("grid"), &FePresent::get_layout_grid, &FePresent::set_layout_grid )
+		.Prop( _SC("grid_uniform"), &FePresent::get_layout_grid_uniform, &FePresent::set_layout_grid_uniform )
+		.Prop( _SC("grid_offset_x"), &FePresent::get_layout_grid_offset_x, &FePresent::set_layout_grid_offset_x )
+		.Prop( _SC("grid_offset_y"), &FePresent::get_layout_grid_offset_y, &FePresent::set_layout_grid_offset_y )
 		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
 		// orient property deprecated as of 1.3.2, use "base_rotation" instead
 		.Prop( _SC("orient"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )
@@ -1261,6 +1274,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("frame_time"), &FePresent::get_layout_frame_time )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 		.Func(_SC("redraw"), &FePresent::redraw )
+		.Func(_SC("set_grid_offset"), &FePresent::set_layout_grid_offset )
 	);
 
 	// Create a slot for fe.layout.nv data
@@ -1382,8 +1396,9 @@ bool FeVM::on_new_layout()
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
 		.Func( _SC("add_rectangle"), &FePresentableParent::add_rectangle )
-		.Overload<FeImage * (FePresentableParent::*)(float, float, int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
-		.Overload<FeImage * (FePresentableParent::*)(int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
+		.Overload<FeImage * (FePresentableParent::*)(float, float, float, float, int, int)>(_SC("add_surface"), &FePresentableParent::add_surface)
+		.Overload<FeImage * (FePresentableParent::*)(float, float, float, float)>(_SC("add_surface"), &FePresentableParent::add_surface)
+		.Overload<FeImage * (FePresentableParent::*)(float, float)>(_SC("add_surface"), &FePresentableParent::add_surface)
 	);
 
 	fe.Bind( _SC("Monitor"),
@@ -1425,8 +1440,9 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
 	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
 	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
-	fe.Overload<FeImage* (*)(float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
-	fe.Overload<FeImage* (*)(int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(float, float, float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeImage* (*)(float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeMusic* (*)(const char *)>(_SC("add_music"), &FeVM::cb_add_music);
@@ -2119,6 +2135,11 @@ public:
 				.Const( _SC("Playing"), FePlaybackStatusPlaying )
 				.Const( _SC("Ended"), FePlaybackStatusEnded )
 			)
+			.Enum( _SC("Grid"), Sqrat::Enumeration()
+				.Const( _SC("Pixel"), GridPixel )
+				.Const( _SC("Percent"), GridPercent )
+				.Const( _SC("Normalised"), GridNormalised )
+			)
 			.Enum( _SC("PathTest"), Sqrat::Enumeration()
 				.Const( "IsFile", FeVM::IsFile )
 				.Const( "IsDirectory", FeVM::IsDirectory )
@@ -2681,17 +2702,33 @@ FeRectangle* FeVM::cb_add_rectangle( float x, float y, float w, float h )
 	return ret;
 }
 
-FeImage* FeVM::cb_add_surface( int w, int h )
+FeImage* FeVM::cb_add_surface( float w, float h )
 {
 	return cb_add_surface( 0, 0, w, h );
 }
 
-FeImage* FeVM::cb_add_surface( float x, float y, int w, int h )
+FeImage* FeVM::cb_add_surface( float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
 
-	FeImage *ret = fev->add_surface( x, y, w, h, fev->m_mon[0] );
+	FeImage *ret = fev->m_mon[0].add_surface( x, y, w, h );
+
+	// Add the surface to the "fe.obj" array in Squirrel
+	//
+	Sqrat::Object fe ( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+	Sqrat::Array obj( fe.GetSlot( _SC("obj") ) );
+	obj.Append( ret );
+
+	return ret;
+}
+
+FeImage* FeVM::cb_add_surface( float x, float y, float w, float h, int texture_width, int texture_height )
+{
+	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+
+	FeImage *ret = fev->add_surface( x, y, w, h, texture_width, texture_height, fev->m_mon[0] );
 
 	// Add the surface to the "fe.obj" array in Squirrel
 	//
@@ -3601,6 +3638,8 @@ Sqrat::Object FeVM::cb_json_parse( const char *value )
 // Draw the default layout when the user layout is empty
 void FeVM::init_with_default_layout()
 {
+	set_layout_grid( GridPixel );
+
 	float flw = m_layoutSize.x;
 	float flh = m_layoutSize.y;
 
