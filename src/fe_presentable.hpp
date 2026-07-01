@@ -50,7 +50,7 @@ enum FeGrid
 {
 	GridPixel = 1,
 	GridPercent,
-	GridRatio
+	GridNormalised
 };
 
 struct FeCoordinateSpace

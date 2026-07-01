@@ -93,7 +93,7 @@ sf::Vector2f FeBasePresentable::convert_position( const sf::Vector2f &p ) const
 
 	switch ( get_grid() )
 	{
-		case GridRatio:
+		case GridNormalised:
 			return sf::Vector2f(
 				space.origin.x + space.size.x * p.x,
 				space.origin.y + space.size.y * p.y ) + offset;
@@ -113,7 +113,7 @@ sf::Vector2f FeBasePresentable::convert_size( const sf::Vector2f &s ) const
 
 	switch ( get_grid() )
 	{
-		case GridRatio:
+		case GridNormalised:
 			return sf::Vector2f( space.size.x * s.x, space.size.y * s.y );
 		case GridPercent:
 			return sf::Vector2f( space.size.x * s.x / 100.0f, space.size.y * s.y / 100.0f );
@@ -480,7 +480,7 @@ FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 
 		switch ( fep->m_grid )
 		{
-			case GridRatio:
+			case GridNormalised:
 				w = space.size.x != 0.0f ? texture_size.x / space.size.x : 0.0f;
 				h = space.size.y != 0.0f ? texture_size.y / space.size.y : 0.0f;
 				break;

@@ -1372,8 +1372,8 @@ This class is a container for global layout settings. The instance of this class
 -  `grid` - Get/set the default coordinate grid, This can be one of the following values:
    -  `Grid.Pixel` (default) - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
-   -  `Grid.Ratio` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether Percent and Ratio grids use a square grid, or are stretched to layout size. Default value is `true`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether Percent and Normalised grids use a square grid, or are stretched to layout size. Default value is `true`.
 -  `grid_offset_x` - Get/set the layout x offset in `grid` coordinates.
 -  `grid_offset_y` - Get/set the layout y offset in `grid` coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
@@ -1568,9 +1568,8 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
-   -  `Grid.Ratio` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Ratio grids use a square grid, or are stretched to layout size.
-   Defaults to `fe.layout.grid_uniform` when created.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1765,9 +1764,8 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
-   -  `Grid.Ratio` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Ratio grids use a square grid, or are stretched to layout size.
-   Defaults to `fe.layout.grid_uniform` when created.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1899,9 +1897,8 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
-   -  `Grid.Ratio` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Ratio grids use a square grid, or are stretched to layout size.
-   Defaults to `fe.layout.grid_uniform` when created.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2055,9 +2052,8 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
-   -  `Grid.Ratio` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Ratio grids use a square grid, or are stretched to layout size.
-   Defaults to `fe.layout.grid_uniform` when created.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
