@@ -24,6 +24,7 @@
 #define FE_PRESENTABLE_HPP
 
 #include "fe_types.hpp"
+#include <string>
 #include <vector>
 
 class FeSettings;
@@ -78,8 +79,16 @@ public:
 		ZYX
 	};
 
-private:
+protected:
 	FePresentableParent *m_parent;
+	bool m_snap_x;
+	bool m_snap_y;
+	bool m_snap_width;
+	bool m_snap_height;
+	Vec2f m_snap_offset;
+	Vec2f snap_draw_position( const Vec2f &pos ) const;
+
+private:
 	FeShader *m_shader;
 	bool m_visible;
 	bool m_zbuffer;
@@ -92,15 +101,16 @@ private:
 	Vec2f m_script_size;
 	int m_grid;
 	bool m_grid_uniform;
+	bool m_pixel_snap;
 	bool m_script_geometry_set;
 
 protected:
-	Vec2f convert_position( const Vec2f &p ) const;
-	Vec2f convert_size( const Vec2f &s ) const;
 	float grid_width_to_pixels( float s ) const;
 	float pixels_to_grid_width( float s ) const;
 	float grid_height_to_pixels( float s ) const;
 	float pixels_to_grid_height( float s ) const;
+	Vec2f pos_from_grid_units( const Vec2f &p, bool snap=true ) const;
+	Vec2f size_from_grid_units( const Vec2f &s, bool snap=true ) const;
 
 public:
 	FeBasePresentable( FePresentableParent &p );
@@ -144,11 +154,15 @@ public:
 
 	void set_pos(float x, float y);
 	void set_pos(float x, float y, float w, float h);
+	bool set_animated_property( const std::string &name, float value, bool snap=false );
+	float snap_grid_destination_to_pixels( const std::string &name, float destination ) const;
 
 	int get_grid() const;
 	void set_grid( int g );
 	bool get_grid_uniform() const;
 	void set_grid_uniform( bool u );
+	bool get_pixel_snap() const;
+	void set_pixel_snap( bool s );
 	void set_parent( FePresentableParent &p );
 	void set_script_geometry( float x, float y, float w, float h );
 	virtual void refresh_script_geometry();
@@ -207,6 +221,8 @@ public:
 	void set_nesting_level( int );
 	virtual FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	virtual Vec2f get_grid_offset( bool uniform=true ) const;
+	virtual Vec2f snap_position_to_pixel( const Vec2f &p ) const;
+	virtual Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 	void refresh_script_geometry();
 
 	FeImage *add_image(const char *,float, float, float, float);

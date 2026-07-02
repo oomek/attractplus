@@ -826,11 +826,16 @@ void FeRectangle::scale()
 	pos += Vec2f(
 		( m_rotation_origin.x - m_anchor.x ) * size.x,
 		( m_rotation_origin.y -  m_anchor.y ) * size.y );
+	Vec2f origin(
+		m_origin.x + m_rotation_origin.x * size.x,
+		m_origin.y + m_rotation_origin.y * size.y );
+	m_snap_offset = Vec2f(
+		-m_anchor.x * size.x - m_origin.x,
+		-m_anchor.y * size.y - m_origin.y );
+	pos = snap_draw_position( pos );
 
 	m_render_position = pos;
 	m_render_size = size;
-	m_render_origin = Vec2f(
-		m_origin.x + m_rotation_origin.x * size.x,
-		m_origin.y + m_rotation_origin.y * size.y );
+	m_render_origin = origin;
 
 }

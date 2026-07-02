@@ -461,6 +461,10 @@ void FeListBox::update_row_geometry()
 		( m_rotation_origin.x - m_anchor.x ) * size.x,
 		( m_rotation_origin.y - m_anchor.y ) * size.y
 	);
+	m_snap_offset = Vec2f( -m_anchor.x * size.x, -m_anchor.y * size.y );
+	Vec2f snapped_top_left = snap_draw_position( top_left );
+	pivot += snapped_top_left - top_left;
+	top_left = snapped_top_left;
 	int actual_spacing = (int)size.y / row_count;
 
 	m_base_text.setPosition( top_left );

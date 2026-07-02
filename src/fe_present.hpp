@@ -111,6 +111,8 @@ public:
 	int get_num();
 	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	Vec2f get_grid_offset( bool uniform=true ) const;
+	Vec2f snap_position_to_pixel( const Vec2f &p ) const;
+	Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 
 	FeTransform transform;
 	Vec2i size;
@@ -184,6 +186,7 @@ protected:
 	bool m_mouse_pointer_visible;
 	int m_grid;
 	bool m_grid_uniform;
+	bool m_pixel_snap;
 	Vec2f m_grid_offset;
 	float m_aspect_ratio;
 
@@ -332,6 +335,8 @@ public:
 	void set_layout_grid( int );
 	bool get_layout_grid_uniform() const;
 	void set_layout_grid_uniform( bool );
+	bool get_layout_pixel_snap() const;
+	void set_layout_pixel_snap( bool );
 	float get_layout_grid_offset_x() const;
 	float get_layout_grid_offset_y() const;
 	Vec2f get_layout_grid_offset( bool uniform ) const;

@@ -21,6 +21,7 @@
  */
 
 #include "fe_present.hpp"
+#include "fe_animation.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
 #include "fe_model_3d.hpp"
@@ -222,6 +223,35 @@ Vec2f FeMonitor::get_grid_offset( bool uniform ) const
 	return Vec2f( 0, 0 );
 }
 
+Vec2f FeMonitor::snap_position_to_pixel( const Vec2f &p ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+	{
+		const FeTransform &layout_transform = fep->get_transform();
+		Vec2f pixel = layout_transform.transformPoint( p );
+		pixel.x = std::round( pixel.x );
+		pixel.y = std::round( pixel.y );
+		return layout_transform.getInverse().transformPoint( pixel );
+	}
+
+	return FePresentableParent::snap_position_to_pixel( p );
+}
+
+Vec2f FeMonitor::snap_size_to_pixel( const Vec2f &s ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+	{
+		Vec2f scale( fep->get_layout_scale_x(), fep->get_layout_scale_y() );
+		return Vec2f(
+			scale.x != 0.0f ? std::round( s.x * scale.x ) / scale.x : s.x,
+			scale.y != 0.0f ? std::round( s.y * scale.y ) / scale.y : s.y );
+	}
+
+	return FePresentableParent::snap_size_to_pixel( s );
+}
+
 FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	: m_feSettings( fesettings ),
 	m_window( wnd ),
@@ -247,6 +277,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_mouse_pointer_visible( false ),
 	m_grid( GridPixel ),
 	m_grid_uniform( true ),
+	m_pixel_snap( false ),
 	m_grid_offset( 0, 0 ),
 	m_aspect_ratio( 0.0f ),
 	m_listBox( NULL ),
@@ -494,6 +525,7 @@ void FePresent::clear_resources()
 void FePresent::clear_layout()
 {
 	m_window.get_gpu_context().clear_layout_resources();
+	FeAnimation::clear();
 
 	//
 	// keep toggle rotation, base rotation and mute state through clear
@@ -515,6 +547,7 @@ void FePresent::clear_layout()
 	m_overlay_lb = NULL;
 	m_grid = GridPixel;
 	m_grid_uniform = true;
+	m_pixel_snap = false;
 	m_grid_offset = Vec2f( 0, 0 );
 	m_aspect_ratio = 0.0f;
 
@@ -1879,6 +1912,16 @@ void FePresent::set_layout_grid_uniform( bool u )
 	m_grid_uniform = u;
 }
 
+bool FePresent::get_layout_pixel_snap() const
+{
+	return m_pixel_snap;
+}
+
+void FePresent::set_layout_pixel_snap( bool s )
+{
+	m_pixel_snap = s;
+}
+
 float FePresent::get_layout_grid_offset_x() const
 {
 	return m_grid_offset.x;
@@ -2694,8 +2737,8 @@ void FePresent::load_layout( bool initial_load )
 	else
 		var = FromToFrontend;
 
+	init_monitors();
 	clear_layout();
-
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Layout_Showing );
 

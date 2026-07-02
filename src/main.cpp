@@ -338,7 +338,6 @@ int main(int argc, char *argv[])
 					window.on_exit();
 					window.initial_create();
 					feSettings.reset_input();
-					feVM.init_monitors();
 				}
 
 				// Settings have changed, reload the display
@@ -482,7 +481,6 @@ int main(int argc, char *argv[])
 					if ( resize )
 					{
 						window.on_resize( Vec2u( resize->size.x, resize->size.y ) );
-						feVM.init_monitors();
 						feVM.load_layout();
 						redraw = true;
 					}
@@ -715,7 +713,6 @@ int main(int argc, char *argv[])
 				{
 					window.on_exit();
 					window.initial_create();
-					feVM.init_monitors();
 					feVM.load_layout();
 					continue;
 				}
@@ -747,7 +744,6 @@ int main(int argc, char *argv[])
 					{
 						window.on_exit();
 						window.initial_create();
-						feVM.init_monitors();
 					}
 
 					// Settings have changed, reload the display
@@ -1047,7 +1043,6 @@ int main(int argc, char *argv[])
 							feSettings.save();
 							window.on_exit();
 							window.initial_create();
-							feVM.init_monitors();
 							feVM.load_layout();
 						}
 					}

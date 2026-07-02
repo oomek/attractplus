@@ -21,12 +21,20 @@
  */
 
 #include "fe_presentable.hpp"
+#include "fe_animation.hpp"
 #include "fe_present.hpp"
 #include "fe_model_3d.hpp"
 #include "fe_color.hpp"
 
+#include <cmath>
+
 FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	: m_parent( &p ),
+	m_snap_x( false ),
+	m_snap_y( false ),
+	m_snap_width( false ),
+	m_snap_height( false ),
+	m_snap_offset( 0, 0 ),
 	m_shader( NULL ),
 	m_visible( true ),
 	m_zbuffer( false ),
@@ -39,17 +47,22 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	m_script_size( 0, 0 ),
 	m_grid( 0 ),
 	m_grid_uniform( true ),
+	m_pixel_snap( false ),
 	m_script_geometry_set( false )
 {
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep && fep->get_script_id() < 0 )
+	{
 		m_grid_uniform = fep->get_layout_grid_uniform();
+		m_pixel_snap = fep->get_layout_pixel_snap();
+	}
 	else if ( fep )
 		m_grid = GridPixel;
 }
 
 FeBasePresentable::~FeBasePresentable()
 {
+	FeAnimation::remove( this );
 }
 
 FePresentableParent::FePresentableParent( )
@@ -75,6 +88,16 @@ Vec2f FePresentableParent::get_grid_offset( bool ) const
 	return Vec2f( 0, 0 );
 }
 
+Vec2f FePresentableParent::snap_position_to_pixel( const Vec2f &p ) const
+{
+	return Vec2f( std::round( p.x ), std::round( p.y ));
+}
+
+Vec2f FePresentableParent::snap_size_to_pixel( const Vec2f &s ) const
+{
+	return Vec2f( std::round( s.x ), std::round( s.y ));
+}
+
 void FePresentableParent::refresh_script_geometry()
 {
 	for ( std::vector<FeBasePresentable *>::iterator itr=elements.begin();
@@ -98,46 +121,68 @@ void FeBasePresentable::on_transform_update()
 {
 }
 
-Vec2f FeBasePresentable::convert_position( const Vec2f &p ) const
+Vec2f FeBasePresentable::pos_from_grid_units( const Vec2f &p, bool snap ) const
 {
 	FeCoordinateSpace space = m_parent ? m_parent->get_coordinate_space( get_grid_uniform() ) : FeCoordinateSpace();
 	Vec2f offset = m_parent ? m_parent->get_grid_offset( get_grid_uniform() ) : Vec2f( 0, 0 );
+	Vec2f pos;
 
 	switch ( get_grid() )
 	{
 		case GridNormalised:
-			return Vec2f(
+			pos = Vec2f(
 				space.origin.x + space.size.x * p.x,
 				space.origin.y + space.size.y * p.y ) + offset;
+			break;
 		case GridPercent:
-			return Vec2f(
+			pos = Vec2f(
 				space.origin.x + space.size.x * p.x / 100.0f,
 				space.origin.y + space.size.y * p.y / 100.0f ) + offset;
+			break;
 		case GridPixel:
 		default:
-			return p + offset;
+			pos = p + offset;
+			break;
 	}
+
+	if ( snap && get_pixel_snap() && m_parent )
+	{
+		Vec2f snapped = m_parent->snap_position_to_pixel( pos );
+		if ( !m_snap_width ) pos.x = snapped.x;
+		if ( !m_snap_height ) pos.y = snapped.y;
+	}
+
+	return pos;
 }
 
-Vec2f FeBasePresentable::convert_size( const Vec2f &s ) const
+Vec2f FeBasePresentable::size_from_grid_units( const Vec2f &s, bool snap ) const
 {
 	FeCoordinateSpace space = m_parent ? m_parent->get_coordinate_space( get_grid_uniform() ) : FeCoordinateSpace();
+	Vec2f size;
 
 	switch ( get_grid() )
 	{
 		case GridNormalised:
-			return Vec2f( space.size.x * s.x, space.size.y * s.y );
+			size = Vec2f( space.size.x * s.x, space.size.y * s.y );
+			break;
 		case GridPercent:
-			return Vec2f( space.size.x * s.x / 100.0f, space.size.y * s.y / 100.0f );
+			size = Vec2f( space.size.x * s.x / 100.0f, space.size.y * s.y / 100.0f );
+			break;
 		case GridPixel:
 		default:
-			return s;
+			size = s;
+			break;
 	}
+
+	if ( snap && get_pixel_snap() && m_parent )
+		size = m_parent->snap_size_to_pixel( size );
+
+	return size;
 }
 
 float FeBasePresentable::grid_width_to_pixels( float s ) const
 {
-	return convert_size( Vec2f( s, 0 )).x;
+	return size_from_grid_units( Vec2f( s, 0 ), false ).x;
 }
 
 float FeBasePresentable::pixels_to_grid_width( float s ) const
@@ -158,7 +203,7 @@ float FeBasePresentable::pixels_to_grid_width( float s ) const
 
 float FeBasePresentable::grid_height_to_pixels( float s ) const
 {
-	return convert_size( Vec2f( 0, s )).y;
+	return size_from_grid_units( Vec2f( 0, s ), false ).y;
 }
 
 float FeBasePresentable::pixels_to_grid_height( float s ) const
@@ -175,6 +220,20 @@ float FeBasePresentable::pixels_to_grid_height( float s ) const
 		default:
 			return s;
 	}
+}
+
+Vec2f FeBasePresentable::snap_draw_position( const Vec2f &pos ) const
+{
+	if ( !get_pixel_snap() || !m_parent || ( getRotation() != 0.0f )
+			|| !( ( m_snap_x && m_snap_width ) || ( m_snap_y && m_snap_height ) ) )
+		return pos;
+
+	Vec2f edge = getPosition() + m_snap_offset;
+	Vec2f snapped = m_parent->snap_position_to_pixel( edge );
+	Vec2f adjusted = pos;
+	if ( m_snap_x && m_snap_width ) adjusted.x += snapped.x - edge.x;
+	if ( m_snap_y && m_snap_height ) adjusted.y += snapped.y - edge.y;
+	return adjusted;
 }
 
 int FeBasePresentable::getIndexOffset() const
@@ -212,16 +271,24 @@ float FeBasePresentable::get_z() const
 
 void FeBasePresentable::set_x( float x )
 {
+	FeAnimation::remove( this, _SC("x") );
 	m_script_pos.x = x;
 	m_script_geometry_set = true;
-	setPosition( convert_position( m_script_pos ));
+	m_snap_x = get_pixel_snap() && m_parent;
+	Vec2f pos = getPosition();
+	pos.x = pos_from_grid_units( m_script_pos ).x;
+	setPosition( pos );
 }
 
 void FeBasePresentable::set_y( float y )
 {
+	FeAnimation::remove( this, _SC("y") );
 	m_script_pos.y = y;
 	m_script_geometry_set = true;
-	setPosition( convert_position( m_script_pos ));
+	m_snap_y = get_pixel_snap() && m_parent;
+	Vec2f pos = getPosition();
+	pos.y = pos_from_grid_units( m_script_pos ).y;
+	setPosition( pos );
 }
 
 void FeBasePresentable::set_z( float z )
@@ -247,32 +314,160 @@ float FeBasePresentable::get_height() const
 
 void FeBasePresentable::set_width( float w )
 {
+	FeAnimation::remove( this, _SC("width") );
 	m_script_size.x = w;
 	m_script_geometry_set = true;
-	setSize( convert_size( m_script_size ));
+	m_snap_width = get_pixel_snap() && m_parent;
+	Vec2f size = getSize();
+	size.x = size_from_grid_units( m_script_size ).x;
+	setSize( size );
 }
 
 void FeBasePresentable::set_height( float h )
 {
+	FeAnimation::remove( this, _SC("height") );
 	m_script_size.y = h;
 	m_script_geometry_set = true;
-	setSize( convert_size( m_script_size ));
+	m_snap_height = get_pixel_snap() && m_parent;
+	Vec2f size = getSize();
+	size.y = size_from_grid_units( m_script_size ).y;
+	setSize( size );
 }
 
 void FeBasePresentable::set_pos(float x, float y)
 {
+	FeAnimation::remove( this, _SC("x") );
+	FeAnimation::remove( this, _SC("y") );
 	m_script_pos = Vec2f( x, y );
 	m_script_geometry_set = true;
-	setPosition( convert_position( m_script_pos ));
+	m_snap_x = get_pixel_snap() && m_parent;
+	m_snap_y = m_snap_x;
+	setPosition( pos_from_grid_units( m_script_pos ));
 }
 
 void FeBasePresentable::set_pos(float x, float y, float w, float h)
 {
+	FeAnimation::remove( this, _SC("x") );
+	FeAnimation::remove( this, _SC("y") );
+	FeAnimation::remove( this, _SC("width") );
+	FeAnimation::remove( this, _SC("height") );
 	m_script_pos = Vec2f( x, y );
 	m_script_size = Vec2f( w, h );
 	m_script_geometry_set = true;
-	setPosition( convert_position( m_script_pos ));
-	setSize( convert_size( m_script_size ));
+	m_snap_x = get_pixel_snap() && m_parent;
+	m_snap_y = m_snap_x;
+	m_snap_width = m_snap_x;
+	m_snap_height = m_snap_x;
+	setPosition( pos_from_grid_units( m_script_pos ));
+	setSize( size_from_grid_units( m_script_size ));
+}
+
+bool FeBasePresentable::set_animated_property( const std::string &name, float value, bool snap )
+{
+	if ( name == "x" )
+	{
+		m_script_pos.x = value;
+		m_script_geometry_set = true;
+		m_snap_x = snap && get_pixel_snap() && m_parent;
+		Vec2f pos = getPosition();
+		pos.x = pos_from_grid_units( m_script_pos, snap ).x;
+		setPosition( pos );
+		return true;
+	}
+	else if ( name == "y" )
+	{
+		m_script_pos.y = value;
+		m_script_geometry_set = true;
+		m_snap_y = snap && get_pixel_snap() && m_parent;
+		Vec2f pos = getPosition();
+		pos.y = pos_from_grid_units( m_script_pos, snap ).y;
+		setPosition( pos );
+		return true;
+	}
+	else if ( name == "width" )
+	{
+		m_script_size.x = value;
+		m_script_geometry_set = true;
+		m_snap_width = snap && get_pixel_snap() && m_parent;
+		Vec2f size = getSize();
+		size.x = size_from_grid_units( m_script_size, snap ).x;
+		setSize( size );
+		return true;
+	}
+	else if ( name == "height" )
+	{
+		m_script_size.y = value;
+		m_script_geometry_set = true;
+		m_snap_height = snap && get_pixel_snap() && m_parent;
+		Vec2f size = getSize();
+		size.y = size_from_grid_units( m_script_size, snap ).y;
+		setSize( size );
+		return true;
+	}
+
+	return false;
+}
+
+float FeBasePresentable::snap_grid_destination_to_pixels( const std::string &name, float destination ) const
+{
+	if ( !get_pixel_snap() || !m_parent )
+		return destination;
+
+	bool position = ( name == "x" ) || ( name == "y" );
+	bool size = ( name == "width" ) || ( name == "height" );
+	if ( !position && !size )
+		return destination;
+
+	bool x_axis = ( name == "x" ) || ( name == "width" );
+	FeCoordinateSpace space = m_parent->get_coordinate_space( get_grid_uniform() );
+	float value;
+
+	if ( position )
+	{
+		Vec2f pos = m_script_pos;
+		if ( x_axis )
+			pos.x = destination;
+		else
+			pos.y = destination;
+
+		bool snap_edge = ( x_axis && m_snap_width ) || ( !x_axis && m_snap_height );
+		Vec2f snapped;
+		if ( snap_edge )
+		{
+			Vec2f edge = pos_from_grid_units( pos ) + m_snap_offset;
+			snapped = m_parent->snap_position_to_pixel( edge ) - m_snap_offset;
+		}
+		else
+			snapped = pos_from_grid_units( pos );
+
+		Vec2f offset = m_parent->get_grid_offset( get_grid_uniform() );
+		value = x_axis ? snapped.x - offset.x : snapped.y - offset.y;
+	}
+	else
+	{
+		Vec2f size = m_script_size;
+		if ( x_axis )
+			size.x = destination;
+		else
+			size.y = destination;
+
+		Vec2f snapped = size_from_grid_units( size );
+		value = x_axis ? snapped.x : snapped.y;
+	}
+
+	float extent = x_axis ? space.size.x : space.size.y;
+	float origin = position ? ( x_axis ? space.origin.x : space.origin.y ) : 0.0f;
+
+	switch ( get_grid() )
+	{
+		case GridNormalised:
+			return extent != 0.0f ? ( value - origin ) / extent : 0.0f;
+		case GridPercent:
+			return extent != 0.0f ? ( value - origin ) * 100.0f / extent : 0.0f;
+		case GridPixel:
+		default:
+			return value;
+	}
 }
 
 int FeBasePresentable::get_grid() const
@@ -307,6 +502,20 @@ void FeBasePresentable::set_grid_uniform( bool u )
 	}
 }
 
+bool FeBasePresentable::get_pixel_snap() const
+{
+	return m_pixel_snap;
+}
+
+void FeBasePresentable::set_pixel_snap( bool s )
+{
+	if ( s != m_pixel_snap )
+	{
+		m_pixel_snap = s;
+		refresh_script_geometry();
+	}
+}
+
 void FeBasePresentable::set_parent( FePresentableParent &p )
 {
 	m_parent = &p;
@@ -325,8 +534,12 @@ void FeBasePresentable::refresh_script_geometry()
 	if ( !m_script_geometry_set )
 		return;
 
-	setPosition( convert_position( m_script_pos ));
-	setSize( convert_size( m_script_size ));
+	m_snap_x = get_pixel_snap() && m_parent;
+	m_snap_y = m_snap_x;
+	m_snap_width = m_snap_x;
+	m_snap_height = m_snap_x;
+	setPosition( pos_from_grid_units( m_script_pos ));
+	setSize( size_from_grid_units( m_script_size ));
 }
 
 int FeBasePresentable::get_r() const
