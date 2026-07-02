@@ -98,7 +98,7 @@
    -  [Math](#math-) 🔶
    -  [Vector](#vector-) 🔶
    -  [Easing](#easing-) 🔶
-
+   -  [Animation](#animation-) 🔶
 ---
 
 ## Overview
@@ -2604,3 +2604,61 @@ for (local t=0; t<=d; t++)
 ```
 
 The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic` algorithm to decelerate the change as `t` approaches `d`.
+
+---
+
+### Animation 🔶
+
+All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`, `fe.add_clone()`, `fe.add_text()`, `fe.add_listbox()` and `fe.add_rectangle()` support the `animate()` member function.
+
+**Member Functions**
+
+-  `animate( property, destination, time, easing )` - Animate a property to a destination value over `time` in milliseconds.
+
+**Parameters**
+
+-  `property` - [string] Case-sensitive property name to animate.
+-  `destination_value` - [number] Final value for the property.
+-  `time` - [number] Animation duration in milliseconds. Must be greater than `0`.
+-  `easing_enum` - [int] One of the `Ease` constants below.
+
+Starting a new animation on the same object and property replaces the previous animation and starts from the property's current value. Animations are one-shot; looping, pausing, chaining, callbacks and multi-property syntax are not part of this function.
+
+**Supported Properties**
+
+-  Common: `x`, `y`, `width`, `height`, `rotation`, `red`, `green`, `blue`, `alpha`.
+-  Geometry where present: `origin_x`, `origin_y`, `transform_origin_x`, `transform_origin_y`, `anchor_x`, `anchor_y`, `rotation_origin_x`, `rotation_origin_y`.
+-  Image, artwork and surface: `fit_anchor_x`, `fit_anchor_y`, `skew_x`, `skew_y`, `pinch_x`, `pinch_y`, `subimg_x`, `subimg_y`, `subimg_width`, `subimg_height`, `force_aspect_ratio`, `volume`, `pan`, `padding_left`, `padding_right`, `padding_top`, `padding_bottom`, `border_left`, `border_right`, `border_top`, `border_bottom`, `border_scale`.
+-  Text: `bg_red`, `bg_green`, `bg_blue`, `bg_alpha`, `bg_outline_red`, `bg_outline_green`, `bg_outline_blue`, `bg_outline_alpha`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `char_spacing`, `line_spacing`, `outline`, `bg_outline`, `margin`.
+-  ListBox: `bg_red`, `bg_green`, `bg_blue`, `bg_alpha`, `sel_red`, `sel_green`, `sel_blue`, `sel_alpha`, `sel_bg_red`, `sel_bg_green`, `sel_bg_blue`, `sel_bg_alpha`, `selbg_red`, `selbg_green`, `selbg_blue`, `selbg_alpha`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `sel_outline_red`, `sel_outline_green`, `sel_outline_blue`, `sel_outline_alpha`, `char_spacing`, `outline`, `sel_outline`, `margin`.
+-  Rectangle: `outline`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `corner_radius`, `corner_radius_x`, `corner_radius_y`, `corner_ratio`, `corner_ratio_x`, `corner_ratio_y`.
+
+Boolean properties, strings, object references, read-only values, and enum or flag-style properties such as `visible`, `shader`, `grid`, `fit`, `blend_mode`, `style`, `align`, `case`, `video_flags` and `file_name` are not animatable.
+
+**Ease Constants**
+
+-  `Ease.Linear`
+-  `Ease.InQuad`, `Ease.OutQuad`, `Ease.InOutQuad`, `Ease.OutInQuad`
+-  `Ease.InCubic`, `Ease.OutCubic`, `Ease.InOutCubic`, `Ease.OutInCubic`
+-  `Ease.InQuart`, `Ease.OutQuart`, `Ease.InOutQuart`, `Ease.OutInQuart`
+-  `Ease.InQuint`, `Ease.OutQuint`, `Ease.InOutQuint`, `Ease.OutInQuint`
+-  `Ease.InSine`, `Ease.OutSine`, `Ease.InOutSine`, `Ease.OutInSine`
+-  `Ease.InExpo`, `Ease.OutExpo`, `Ease.InOutExpo`, `Ease.OutInExpo`
+-  `Ease.InExpo2`, `Ease.OutExpo2`, `Ease.InOutExpo2`, `Ease.OutInExpo2`
+-  `Ease.InCirc`, `Ease.OutCirc`, `Ease.InOutCirc`, `Ease.OutInCirc`
+-  `Ease.InBack`, `Ease.OutBack`, `Ease.InOutBack`, `Ease.OutInBack`
+-  `Ease.InBack2`, `Ease.OutBack2`, `Ease.InOutBack2`, `Ease.OutInBack2`
+-  `Ease.InBounce`, `Ease.OutBounce`, `Ease.InOutBounce`, `Ease.OutInBounce`
+-  `Ease.InBounce2`, `Ease.OutBounce2`, `Ease.InOutBounce2`, `Ease.OutInBounce2`
+-  `Ease.InElastic`, `Ease.OutElastic`, `Ease.InOutElastic`, `Ease.OutInElastic`
+-  `Ease.InElastic2`, `Ease.OutElastic2`, `Ease.InOutElastic2`, `Ease.OutInElastic2`
+
+`Ease` does not include `steps` or `cubic_bezier`; use the global `ease` table directly when those extra parameters are needed.
+
+**Example**
+
+```squirrel
+local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
+img.animate( "x", 200, 1000, Ease.OutCubic )
+img.animate( "alpha", 100, 500, Ease.Linear )
+```

@@ -21,6 +21,7 @@
  */
 
 #include "fe_present.hpp"
+#include "fe_animate.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
 #include "fe_text.hpp"
@@ -483,6 +484,8 @@ void FePresent::clear_resources()
 //
 void FePresent::clear_layout()
 {
+	FeAnimate::clear();
+
 	//
 	// keep toggle rotation, base rotation and mute state through clear
 	//
