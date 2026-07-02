@@ -21,6 +21,7 @@
  */
 
 #include "fe_presentable.hpp"
+#include "fe_animate.hpp"
 #include "fe_present.hpp"
 #include "fe_color.hpp"
 
@@ -42,6 +43,7 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 
 FeBasePresentable::~FeBasePresentable()
 {
+	FeAnimate::remove( this );
 }
 
 FePresentableParent::FePresentableParent( )

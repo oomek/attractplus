@@ -30,6 +30,7 @@ LOCAL_SRC_FILES := \
         src/scraper_general.cpp \
         src/scraper_net.cpp \
         src/fe_config.cpp \
+        src/fe_animate.cpp \
         src/fe_presentable.cpp \
         src/fe_present.cpp \
         src/sprite.cpp \
