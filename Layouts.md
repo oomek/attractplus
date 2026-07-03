@@ -2622,8 +2622,6 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 -  `time` - [number] Animation duration in milliseconds. Must be greater than `0`.
 -  `easing_enum` - [int] One of the `Ease` constants below.
 
-Starting a new animation on the same object and property replaces the previous animation and starts from the property's current value. Animations are one-shot; looping, pausing, chaining, callbacks and multi-property syntax are not part of this function.
-
 **Supported Properties**
 
 -  Common: `x`, `y`, `width`, `height`, `rotation`, `red`, `green`, `blue`, `alpha`.
@@ -2638,6 +2636,7 @@ Boolean properties, strings, object references, read-only values, and enum or fl
 **Ease Constants**
 
 -  `Ease.Linear`
+-  `Ease.Inertia`
 -  `Ease.InQuad`, `Ease.OutQuad`, `Ease.InOutQuad`, `Ease.OutInQuad`
 -  `Ease.InCubic`, `Ease.OutCubic`, `Ease.InOutCubic`, `Ease.OutInCubic`
 -  `Ease.InQuart`, `Ease.OutQuart`, `Ease.InOutQuart`, `Ease.OutInQuart`
