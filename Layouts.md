@@ -2613,7 +2613,7 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 
 **Member Functions**
 
--  `animate( property, destination, time, easing )` - Animate a property to a destination value over `time` in milliseconds.
+-  `animate( property, destination, time, easing )` - Animate a property to a destination value over `time` in milliseconds. Returns an animation object for setting optional easing parameters.
 
 **Parameters**
 
@@ -2621,6 +2621,22 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 -  `destination_value` - [number] Final value for the property.
 -  `time` - [number] Animation duration in milliseconds. Must be greater than `0`.
 -  `easing_enum` - [int] One of the `Ease` constants below.
+
+**Animation Object**
+
+Use the returned object to change optional easing settings.
+
+```squirrel
+local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
+local anim = img.animate( "x", 50, 1000, Ease.Inertia )
+anim.mass = 0.5
+```
+
+-  `mass` - [number] Inertia filter mass for `Ease.Inertia`. Values are in the range `[0.0...1.0]`.
+-  `period` - [number] Period override for `Ease.*Bounce2`, `Ease.*Elastic` and `Ease.*Elastic2`.
+-  `amplitude` - [number] Amplitude override for `Ease.*Elastic`.
+-  `strength` - [number] Overshoot strength override for `Ease.*Back`.
+-  `running` - [bool] `true` while the animation is still active.
 
 **Supported Properties**
 
@@ -2660,4 +2676,10 @@ Boolean properties, strings, object references, read-only values, and enum or fl
 local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
 img.animate( "x", 200, 1000, Ease.OutCubic )
 img.animate( "alpha", 100, 500, Ease.Linear )
+
+local inertia = img.animate( "y", 100, 1200, Ease.Inertia )
+inertia.mass = 0.5
+
+local bounce = img.animate( "rotation", 360, 800, Ease.OutBounce2 )
+bounce.period = 0.35
 ```

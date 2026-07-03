@@ -93,6 +93,33 @@ enum FeEase
 	EaseCount
 };
 
+class FeAnimation
+{
+public:
+	FeAnimation();
+	FeAnimation( int id, float mass );
+
+	float get_mass() const;
+	void set_mass( float value );
+	float get_period() const;
+	void set_period( float value );
+	float get_amplitude() const;
+	void set_amplitude( float value );
+	float get_strength() const;
+	void set_strength( float value );
+	bool get_running() const;
+
+private:
+	int m_id;
+	float m_mass;
+	float m_period;
+	float m_amplitude;
+	float m_strength;
+	bool m_period_set;
+	bool m_amplitude_set;
+	bool m_strength_set;
+};
+
 class FeAnimate
 {
 public:
