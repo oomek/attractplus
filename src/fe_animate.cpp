@@ -51,6 +51,8 @@ namespace
 		FeBasePresentable *drawable;
 		const FeAnimateProperty *property;
 		FeEaseFunc ease;
+		Sqrat::Object obj;
+		const SQChar *slot;
 		float start;
 		float destination;
 		float duration_ms;
@@ -191,6 +193,8 @@ namespace
 		FeBasePresentable *drawable,
 		const FeAnimateProperty *property,
 		FeEaseFunc ease,
+		Sqrat::Object &obj,
+		const SQChar *slot,
 		float destination,
 		float duration_ms,
 		int now_ms )
@@ -211,6 +215,8 @@ namespace
 		animation.drawable = drawable;
 		animation.property = property;
 		animation.ease = ease;
+		animation.obj = obj;
+		animation.slot = slot;
 		animation.start = property->get( drawable );
 		animation.destination = destination;
 		animation.duration_ms = duration_ms;
@@ -249,8 +255,9 @@ void FeAnimate::register_property(
 
 SQInteger FeAnimate::script_animate( HSQUIRRELVM vm )
 {
-	if ( sq_gettop( vm ) != 5 )
-		return sq_throwerror( vm, _SC("animate() expects property, destination, time, easing") );
+	SQInteger arg_count = sq_gettop( vm );
+	if ( arg_count < 3 || arg_count > 6 )
+		return sq_throwerror( vm, _SC("animate() requires property, destination") );
 
 	FeBasePresentable *drawable = Sqrat::ClassType<FeBasePresentable>::GetInstance( vm, 1 );
 	if ( !drawable )
@@ -272,18 +279,51 @@ SQInteger FeAnimate::script_animate( HSQUIRRELVM vm )
 	if ( !get_numeric_arg( vm, 3, destination ))
 		return sq_throwerror( vm, _SC("animate() destination must be numeric") );
 
-	float duration_ms = 0.0f;
-	if ( !get_numeric_arg( vm, 4, duration_ms ) || ( duration_ms <= 0.0f ))
-		return sq_throwerror( vm, _SC("animate() time must be a positive number of milliseconds") );
+	float duration_ms = 1000.0f; // Default to 1 second
+	if ( arg_count >= 4 )
+		if ( !get_numeric_arg( vm, 4, duration_ms ) )
+			return sq_throwerror( vm, _SC("animate() invalid time value") );
+	duration_ms = std::max( 0.f, duration_ms );
 
-	if ( sq_gettype( vm, 5 ) != OT_INTEGER )
-		return sq_throwerror( vm, _SC("animate() easing must be an Ease value") );
+	FeEaseFunc ease = ease_functions[ 0 ]; // Default to Linear
+	Sqrat::Object obj;
+	const SQChar *slot = NULL;
 
-	SQInteger ease_value = 0;
-	sq_getinteger( vm, 5, &ease_value );
-	FeEaseFunc ease = get_ease_function( static_cast<int>( ease_value ));
-	if ( !ease )
-		return sq_throwerror( vm, _SC("animate() easing is not a supported Ease value") );
+	if ( arg_count == 5 )
+	{
+		// Only function name provided
+		obj = Sqrat::RootTable( vm );
+
+		if ( sq_gettype( vm, 5 ) == OT_INTEGER )
+		{
+			SQInteger ease_value = 0;
+			sq_getinteger( vm, 5, &ease_value );
+			ease = get_ease_function( static_cast<int>( ease_value ));
+			if ( !ease )
+				return sq_throwerror( vm, _SC("animate() easing is not a supported Ease value") );
+		}
+		else if ( sq_gettype( vm, 5 ) == OT_STRING )
+		{
+			sq_getstring( vm, 5, &slot );
+		}
+	}
+
+	if ( arg_count == 6 )
+	{
+		// Both env and function name provided
+		HSQOBJECT po;
+		sq_getstackobj( vm, 5, &po );
+		sq_getstring( vm, 6, &slot );
+		obj = po;
+	}
+
+	if ( slot )
+	{
+		Sqrat::Function cb = Sqrat::Function( obj, slot );
+
+		if ( cb.IsNull() )
+			return sq_throwerror( vm, _SC("animate() invalid callback found") );
+	}
 
 	bool property_name_found = false;
 	const FeAnimateProperty *property = find_property( property_name, drawable, property_name_found );
@@ -306,7 +346,7 @@ SQInteger FeAnimate::script_animate( HSQUIRRELVM vm )
 
 	FePresent *fep = FePresent::script_get_fep();
 	int now_ms = fep ? fep->get_layout_ms() : 0;
-	replace_animation( drawable, property, ease, destination, duration_ms, now_ms );
+	replace_animation( drawable, property, ease, obj, slot, destination, duration_ms, now_ms );
 	FePresent::script_flag_redraw();
 
 	return 0;
@@ -334,11 +374,15 @@ bool FeAnimate::tick( int now_ms )
 			continue;
 		}
 
-		float value = animation.ease(
-			elapsed,
-			animation.start,
-			animation.destination - animation.start,
-			animation.duration_ms );
+		float t = elapsed;
+		float b = animation.start;
+		float c = animation.destination - animation.start;
+		float d = animation.duration_ms;
+
+		// TODO: cache the function like FeCallback does, or store in place of ease
+		float value = animation.slot
+			? Sqrat::Function( animation.obj, animation.slot ).Evaluate<float>(t, b, c, d)
+			: animation.ease(t, b, c, d);
 
 		animation.property->set( animation.drawable, value );
 		redraw = true;
