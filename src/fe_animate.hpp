@@ -33,6 +33,7 @@ class FeBasePresentable;
 enum FeEase
 {
 	EaseLinear = 0,
+	EaseInertia,
 	EaseInQuad,
 	EaseOutQuad,
 	EaseInOutQuad,

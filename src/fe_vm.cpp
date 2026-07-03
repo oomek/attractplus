@@ -222,6 +222,7 @@ namespace
 		Sqrat::Enumeration ease;
 		ease
 			.Const( _SC("Linear"), EaseLinear )
+			.Const( _SC("Inertia"), EaseInertia )
 			.Const( _SC("InQuad"), EaseInQuad )
 			.Const( _SC("OutQuad"), EaseOutQuad )
 			.Const( _SC("InOutQuad"), EaseInOutQuad )
