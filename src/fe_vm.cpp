@@ -1046,6 +1046,15 @@ bool FeVM::on_new_layout()
 #define ANIM_PROP( name, getter, setter ) \
 		.Prop( FeAnimate::animated_property( name, getter, setter ), getter, setter )
 
+	fe.Bind( _SC("Animation"),
+		Class<FeAnimation, CopyOnly<FeAnimation> >()
+		.Prop(_SC("mass"), &FeAnimation::get_mass, &FeAnimation::set_mass )
+		.Prop(_SC("period"), &FeAnimation::get_period, &FeAnimation::set_period )
+		.Prop(_SC("amplitude"), &FeAnimation::get_amplitude, &FeAnimation::set_amplitude )
+		.Prop(_SC("strength"), &FeAnimation::get_strength, &FeAnimation::set_strength )
+		.Prop(_SC("running"), &FeAnimation::get_running )
+	);
+
 	// Base Presentable Object Class
 	//
 	fe.Bind( _SC("Presentable"),

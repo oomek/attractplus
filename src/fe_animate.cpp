@@ -46,11 +46,13 @@ namespace
 		FeAnimate::PropertySetter set;
 	};
 
-	struct FeAnimation
+	struct FeAnimationState
 	{
+		int id;
 		FeBasePresentable *drawable;
 		const FeAnimateProperty *property;
 		FeEaseFunc ease;
+		int ease_id;
 		Sqrat::Object obj;
 		const SQChar *slot;
 		bool inertia;
@@ -60,6 +62,12 @@ namespace
 		int start_ms;
 		float current_val;
 		float mass;
+		float period;
+		float amplitude;
+		float strength;
+		bool period_set;
+		bool amplitude_set;
+		bool strength_set;
 		float buffer[3];
 	};
 
@@ -129,9 +137,9 @@ namespace
 		( sizeof( ease_functions ) / sizeof( ease_functions[0] )) == EaseCount,
 		"Ease enum and easing function table are out of sync" );
 
-	std::vector<FeAnimation> &animations()
+	std::vector<FeAnimationState> &animations()
 	{
-		static std::vector<FeAnimation> list;
+		static std::vector<FeAnimationState> list;
 		return list;
 	}
 
@@ -194,7 +202,101 @@ namespace
 		return ease_functions[ease];
 	}
 
-	float apply_inertia( FeAnimation &animation, float current_val, float elapsed )
+	int new_animation_id()
+	{
+		static int next_id = 1;
+		return next_id++;
+	}
+
+	FeAnimationState *find_animation( int id )
+	{
+		for ( FeAnimationState &animation : animations() )
+			if ( animation.id == id )
+				return &animation;
+
+		return NULL;
+	}
+
+	float apply_ease( const FeAnimationState &animation, float t, float b, float c, float d )
+	{
+		switch ( animation.ease_id )
+		{
+			case EaseInBack:
+				if ( animation.strength_set )
+					return SqEase::in_back( t, b, c, d, animation.strength );
+				break;
+			case EaseOutBack:
+				if ( animation.strength_set )
+					return SqEase::out_back( t, b, c, d, animation.strength );
+				break;
+			case EaseInOutBack:
+				if ( animation.strength_set )
+					return SqEase::in_out_back( t, b, c, d, animation.strength );
+				break;
+			case EaseOutInBack:
+				if ( animation.strength_set )
+					return SqEase::out_in_back( t, b, c, d, animation.strength );
+				break;
+
+			case EaseInBounce2:
+				if ( animation.period_set )
+					return SqEase::in_bounce2( t, b, c, d, animation.period );
+				break;
+			case EaseOutBounce2:
+				if ( animation.period_set )
+					return SqEase::out_bounce2( t, b, c, d, animation.period );
+				break;
+			case EaseInOutBounce2:
+				if ( animation.period_set )
+					return SqEase::in_out_bounce2( t, b, c, d, animation.period );
+				break;
+			case EaseOutInBounce2:
+				if ( animation.period_set )
+					return SqEase::out_in_bounce2( t, b, c, d, animation.period );
+				break;
+
+			case EaseInElastic:
+				if ( animation.amplitude_set && animation.period_set )
+					return SqEase::in_elastic( t, b, c, d, animation.amplitude, animation.period );
+				break;
+			case EaseOutElastic:
+				if ( animation.amplitude_set && animation.period_set )
+					return SqEase::out_elastic( t, b, c, d, animation.amplitude, animation.period );
+				break;
+			case EaseInOutElastic:
+				if ( animation.amplitude_set && animation.period_set )
+					return SqEase::in_out_elastic( t, b, c, d, animation.amplitude, animation.period );
+				break;
+			case EaseOutInElastic:
+				if ( animation.amplitude_set && animation.period_set )
+					return SqEase::out_in_elastic( t, b, c, d, animation.amplitude, animation.period );
+				break;
+
+			case EaseInElastic2:
+				if ( animation.period_set )
+					return SqEase::in_elastic2( t, b, c, d, animation.period );
+				break;
+			case EaseOutElastic2:
+				if ( animation.period_set )
+					return SqEase::out_elastic2( t, b, c, d, animation.period );
+				break;
+			case EaseInOutElastic2:
+				if ( animation.period_set )
+					return SqEase::in_out_elastic2( t, b, c, d, animation.period );
+				break;
+			case EaseOutInElastic2:
+				if ( animation.period_set )
+					return SqEase::out_in_elastic2( t, b, c, d, animation.period );
+				break;
+
+			default:
+				break;
+		}
+
+		return animation.ease( t, b, c, d );
+	}
+
+	float apply_inertia( FeAnimationState &animation, float current_val, float elapsed )
 	{
 		FePresent *fep = FePresent::script_get_fep();
 		float t = elapsed / animation.duration_ms;
@@ -230,10 +332,11 @@ namespace
 		return animation.buffer[2];
 	}
 
-	void replace_animation(
+	FeAnimation replace_animation(
 		FeBasePresentable *drawable,
 		const FeAnimateProperty *property,
 		FeEaseFunc ease,
+		int ease_id,
 		Sqrat::Object &obj,
 		const SQChar *slot,
 		bool inertia,
@@ -241,12 +344,14 @@ namespace
 		float duration_ms,
 		int now_ms )
 	{
-		std::vector<FeAnimation> &list = animations();
+		std::vector<FeAnimationState> &list = animations();
 
-		FeAnimation animation;
+		FeAnimationState animation;
+		animation.id = new_animation_id();
 		animation.drawable = drawable;
 		animation.property = property;
 		animation.ease = ease;
+		animation.ease_id = ease_id;
 		animation.obj = obj;
 		animation.slot = slot;
 		animation.inertia = inertia;
@@ -256,11 +361,17 @@ namespace
 		animation.start_ms = now_ms;
 		animation.current_val = animation.start_val;
 		animation.mass = 1.0f;
+		animation.period = 0.0f;
+		animation.amplitude = 0.0f;
+		animation.strength = 0.0f;
+		animation.period_set = false;
+		animation.amplitude_set = false;
+		animation.strength_set = false;
 		animation.buffer[0] = animation.start_val;
 		animation.buffer[1] = animation.start_val;
 		animation.buffer[2] = animation.start_val;
 
-		for ( std::vector<FeAnimation>::iterator it = list.begin(); it != list.end(); ++it )
+		for ( std::vector<FeAnimationState>::iterator it = list.begin(); it != list.end(); ++it )
 		{
 			if (( it->drawable != drawable ) || ( it->property->name != property->name ))
 				continue;
@@ -280,7 +391,117 @@ namespace
 		}
 
 		list.push_back( animation );
+		return FeAnimation( animation.id, animation.mass );
 	}
+}
+
+FeAnimation::FeAnimation()
+	: m_id( 0 ),
+	m_mass( 1.0f ),
+	m_period( 0.0f ),
+	m_amplitude( 0.0f ),
+	m_strength( 0.0f ),
+	m_period_set( false ),
+	m_amplitude_set( false ),
+	m_strength_set( false )
+{
+}
+
+FeAnimation::FeAnimation( int id, float mass )
+	: m_id( id ),
+	m_mass( mass ),
+	m_period( 0.0f ),
+	m_amplitude( 0.0f ),
+	m_strength( 0.0f ),
+	m_period_set( false ),
+	m_amplitude_set( false ),
+	m_strength_set( false )
+{
+}
+
+float FeAnimation::get_mass() const
+{
+	return m_mass;
+}
+
+void FeAnimation::set_mass( float value )
+{
+	if ( !std::isfinite( value ))
+		return;
+
+	m_mass = std::clamp( value, 0.0f, 1.0f );
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+		animation->mass = m_mass;
+}
+
+float FeAnimation::get_period() const
+{
+	return m_period;
+}
+
+void FeAnimation::set_period( float value )
+{
+	if ( !std::isfinite( value ))
+		return;
+
+	m_period = value;
+	m_period_set = true;
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+	{
+		animation->period = m_period;
+		animation->period_set = true;
+	}
+}
+
+float FeAnimation::get_amplitude() const
+{
+	return m_amplitude;
+}
+
+void FeAnimation::set_amplitude( float value )
+{
+	if ( !std::isfinite( value ))
+		return;
+
+	m_amplitude = value;
+	m_amplitude_set = true;
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+	{
+		animation->amplitude = m_amplitude;
+		animation->amplitude_set = true;
+	}
+}
+
+float FeAnimation::get_strength() const
+{
+	return m_strength;
+}
+
+void FeAnimation::set_strength( float value )
+{
+	if ( !std::isfinite( value ))
+		return;
+
+	m_strength = value;
+	m_strength_set = true;
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+	{
+		animation->strength = m_strength;
+		animation->strength_set = true;
+	}
+}
+
+bool FeAnimation::get_running() const
+{
+	return find_animation( m_id ) != NULL;
 }
 
 void FeAnimate::register_property(
@@ -406,23 +627,24 @@ SQInteger FeAnimate::script_animate( HSQUIRRELVM vm )
 
 	FePresent *fep = FePresent::script_get_fep();
 	int now_ms = fep ? fep->get_layout_ms() : 0;
-	replace_animation( drawable, property, ease, obj, slot, ease_id == EaseInertia, dest_val, duration_ms, now_ms );
+	FeAnimation animation = replace_animation( drawable, property, ease, ease_id, obj, slot, ease_id == EaseInertia, dest_val, duration_ms, now_ms );
 	FePresent::script_flag_redraw();
+	Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, animation );
 
-	return 0;
+	return 1;
 }
 
 bool FeAnimate::tick( int now_ms )
 {
-	std::vector<FeAnimation> &list = animations();
+	std::vector<FeAnimationState> &list = animations();
 	if ( list.empty() )
 		return false;
 
 	bool redraw = false;
 
-	for ( std::vector<FeAnimation>::size_type i=0; i < list.size(); )
+	for ( std::vector<FeAnimationState>::size_type i=0; i < list.size(); )
 	{
-		FeAnimation &animation = list[i];
+		FeAnimationState &animation = list[i];
 		float elapsed = static_cast<float>( now_ms - animation.start_ms );
 		if ( elapsed < 0.0f )
 			elapsed = 0.0f;
@@ -442,8 +664,8 @@ bool FeAnimate::tick( int now_ms )
 
 		// TODO: cache the function like FeCallback does, or store in place of ease
 		float current_val = animation.slot
-			? Sqrat::Function( animation.obj, animation.slot ).Evaluate<float>(t, b, c, d)
-			: animation.ease(t, b, c, d);
+			? Sqrat::Function( animation.obj, animation.slot ).Evaluate<float>( t, b, c, d )
+			: apply_ease( animation, t, b, c, d );
 		animation.current_val = current_val;
 
 		if ( animation.inertia )
@@ -462,12 +684,12 @@ bool FeAnimate::tick( int now_ms )
 
 void FeAnimate::remove( FeBasePresentable *drawable )
 {
-	std::vector<FeAnimation> &list = animations();
+	std::vector<FeAnimationState> &list = animations();
 	list.erase(
 		std::remove_if(
 			list.begin(),
 			list.end(),
-			[drawable]( const FeAnimation &animation )
+			[drawable]( const FeAnimationState &animation )
 			{
 				return animation.drawable == drawable;
 			}),
