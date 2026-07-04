@@ -129,7 +129,7 @@ public:
 
 	static SQInteger script_animate( HSQUIRRELVM vm );
 	static bool tick( int now_ms );
-	static void remove( FeBasePresentable *drawable );
+	static void remove( FeBasePresentable *drawable, const SQChar *property_name=NULL );
 	static void clear();
 
 	static void register_property( const SQChar *name, const std::type_info &owner, PropertyMatcher matches, PropertyGetter get, PropertySetter set );

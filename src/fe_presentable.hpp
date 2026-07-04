@@ -24,6 +24,7 @@
 #define FE_PRESENTABLE_HPP
 
 #include <SFML/System/Vector2.hpp>
+#include <string>
 #include <vector>
 
 class FeSettings;
@@ -82,6 +83,7 @@ private:
 	sf::Vector2f m_script_size;
 	int m_grid;
 	bool m_grid_uniform;
+	bool m_pixel_snap;
 	bool m_script_geometry_set;
 
 protected:
@@ -91,6 +93,8 @@ protected:
 	float pixels_to_grid_width( float s ) const;
 	float grid_height_to_pixels( float s ) const;
 	float pixels_to_grid_height( float s ) const;
+	sf::Vector2f pos_from_grid_units( const sf::Vector2f &p, bool snap=true ) const;
+	sf::Vector2f size_from_grid_units( const sf::Vector2f &s, bool snap=true ) const;
 
 public:
 	FeBasePresentable( FePresentableParent &p );
@@ -129,11 +133,15 @@ public:
 
 	void set_pos(float x, float y);
 	void set_pos(float x, float y, float w, float h);
+	bool set_animated_property( const std::string &name, float value, bool snap=false );
+	float snap_grid_destination_to_pixels( const std::string &name, float destination ) const;
 
 	int get_grid() const;
 	void set_grid( int g );
 	bool get_grid_uniform() const;
 	void set_grid_uniform( bool u );
+	bool get_pixel_snap() const;
+	void set_pixel_snap( bool s );
 	void set_parent( FePresentableParent &p );
 	void set_script_geometry( float x, float y, float w, float h );
 	virtual void refresh_script_geometry();
@@ -180,6 +188,8 @@ public:
 	void set_nesting_level( int );
 	virtual FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	virtual sf::Vector2f get_grid_offset( bool uniform=true ) const;
+	virtual sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
+	virtual sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 	void refresh_script_geometry();
 
 	FeImage *add_image(const char *,float, float, float, float);

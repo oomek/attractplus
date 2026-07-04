@@ -201,6 +201,35 @@ sf::Vector2f FeMonitor::get_grid_offset( bool uniform ) const
 	return sf::Vector2f( 0, 0 );
 }
 
+sf::Vector2f FeMonitor::snap_position_to_pixel( const sf::Vector2f &p ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+	{
+		const sf::Transform &layout_transform = fep->get_transform();
+		sf::Vector2f pixel = layout_transform.transformPoint( p );
+		pixel.x = std::round( pixel.x );
+		pixel.y = std::round( pixel.y );
+		return layout_transform.getInverse().transformPoint( pixel );
+	}
+
+	return FePresentableParent::snap_position_to_pixel( p );
+}
+
+sf::Vector2f FeMonitor::snap_size_to_pixel( const sf::Vector2f &s ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+	{
+		sf::Vector2f scale( fep->get_layout_scale_x(), fep->get_layout_scale_y() );
+		return sf::Vector2f(
+			scale.x != 0.0f ? std::round( s.x * scale.x ) / scale.x : s.x,
+			scale.y != 0.0f ? std::round( s.y * scale.y ) / scale.y : s.y );
+	}
+
+	return FePresentableParent::snap_size_to_pixel( s );
+}
+
 FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	: m_feSettings( fesettings ),
 	m_window( wnd ),
@@ -221,6 +250,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_mouse_pointer_visible( false ),
 	m_grid( GridPixel ),
 	m_grid_uniform( true ),
+	m_pixel_snap( false ),
 	m_grid_offset( 0, 0 ),
 	m_aspect_ratio( 0.0f ),
 	m_listBox( NULL ),
@@ -505,6 +535,7 @@ void FePresent::clear_layout()
 	m_overlay_lb = NULL;
 	m_grid = GridPixel;
 	m_grid_uniform = true;
+	m_pixel_snap = false;
 	m_grid_offset = sf::Vector2f( 0, 0 );
 	m_aspect_ratio = 0.0f;
 
@@ -958,6 +989,16 @@ bool FePresent::get_layout_grid_uniform() const
 void FePresent::set_layout_grid_uniform( bool u )
 {
 	m_grid_uniform = u;
+}
+
+bool FePresent::get_layout_pixel_snap() const
+{
+	return m_pixel_snap;
+}
+
+void FePresent::set_layout_pixel_snap( bool s )
+{
+	m_pixel_snap = s;
 }
 
 float FePresent::get_layout_grid_offset_x() const

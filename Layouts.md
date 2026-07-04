@@ -1374,6 +1374,7 @@ This class is a container for global layout settings. The instance of this class
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
 -  `grid_uniform` - Get/set whether Percent and Normalised grids use a square grid, or are stretched to layout size. Default value is `true`.
+-  `pixel_snap` - Get/set whether drawable geometry snaps to display pixels. Default value is `false`.
 -  `grid_offset_x` - Get/set the layout x offset in `grid` coordinates.
 -  `grid_offset_y` - Get/set the layout y offset in `grid` coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
@@ -1570,6 +1571,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
 -  `grid_uniform` - Get/set whether the image's Percent and Normalised grids use a square grid, or are stretched to layout size. Images created by layouts default to `fe.layout.grid_uniform`; images created by plugins default to `true`.
+-  `pixel_snap` - Get/set whether the image's geometry snaps to display pixels. Images created by layouts default to `fe.layout.pixel_snap`; images created by plugins default to `false`.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1766,6 +1768,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
 -  `grid_uniform` - Get/set whether the text's Percent and Normalised grids use a square grid, or are stretched to layout size. Text created by layouts defaults to `fe.layout.grid_uniform`; text created by plugins defaults to `true`.
+-  `pixel_snap` - Get/set whether the text's geometry snaps to display pixels. Text created by layouts defaults to `fe.layout.pixel_snap`; text created by plugins defaults to `false`.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1899,6 +1902,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
 -  `grid_uniform` - Get/set whether the listbox's Percent and Normalised grids use a square grid, or are stretched to layout size. Listboxes created by layouts default to `fe.layout.grid_uniform`; listboxes created by plugins default to `true`.
+-  `pixel_snap` - Get/set whether the listbox's geometry snaps to display pixels. Listboxes created by layouts default to `fe.layout.pixel_snap`; listboxes created by plugins default to `false`.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2054,6 +2058,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
 -  `grid_uniform` - Get/set whether the rectangle's Percent and Normalised grids use a square grid, or are stretched to layout size. Rectangles created by layouts default to `fe.layout.grid_uniform`; rectangles created by plugins default to `true`.
+-  `pixel_snap` - Get/set whether the rectangle's geometry snaps to display pixels. Rectangles created by layouts default to `fe.layout.pixel_snap`; rectangles created by plugins default to `false`.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.

@@ -103,6 +103,8 @@ public:
 	int get_num();
 	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	sf::Vector2f get_grid_offset( bool uniform=true ) const;
+	sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
+	sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 
 	sf::Transform transform;
 	sf::Vector2i size;
@@ -171,6 +173,7 @@ protected:
 	bool m_mouse_pointer_visible;
 	int m_grid;
 	bool m_grid_uniform;
+	bool m_pixel_snap;
 	sf::Vector2f m_grid_offset;
 	float m_aspect_ratio;
 
@@ -297,6 +300,8 @@ public:
 	void set_layout_grid( int );
 	bool get_layout_grid_uniform() const;
 	void set_layout_grid_uniform( bool );
+	bool get_layout_pixel_snap() const;
+	void set_layout_pixel_snap( bool );
 	float get_layout_grid_offset_x() const;
 	float get_layout_grid_offset_y() const;
 	sf::Vector2f get_layout_grid_offset( bool uniform ) const;
