@@ -21,6 +21,7 @@
  */
 
 #include "fe_animate.hpp"
+#include "fe_image.hpp"
 #include "fe_present.hpp"
 #include "fe_presentable.hpp"
 #include "sq_ease.hpp"
@@ -56,8 +57,10 @@ namespace
 		Sqrat::Object obj;
 		const SQChar *slot;
 		bool inertia;
-		float start_val;
-		float dest_val;
+		float anim_start_val;
+		float anim_dest_val;
+		float prop_dest_val;
+		float prop_last_val;
 		float duration_ms;
 		int start_ms;
 		float current_val;
@@ -340,11 +343,25 @@ namespace
 		Sqrat::Object &obj,
 		const SQChar *slot,
 		bool inertia,
-		float dest_val,
+		float prop_dest_val,
 		float duration_ms,
 		int now_ms )
 	{
 		std::vector<FeAnimationState> &list = animations();
+		float prop_start_val = property->get( drawable );
+		float anim_start_val = drawable->snap_grid_destination_to_pixels( property->name, prop_start_val );
+		float anim_dest_val = drawable->snap_grid_destination_to_pixels( property->name, prop_dest_val );
+
+		if (( property->name == "width" ) || ( property->name == "height" ))
+		{
+			if ( FeImage *image = dynamic_cast<FeImage *>( drawable ))
+			{
+				if ( property->name == "width" )
+					image->set_auto_width( false );
+				else
+					image->set_auto_height( false );
+			}
+		}
 
 		FeAnimationState animation;
 		animation.id = new_animation_id();
@@ -355,11 +372,13 @@ namespace
 		animation.obj = obj;
 		animation.slot = slot;
 		animation.inertia = inertia;
-		animation.start_val = property->get( drawable );
-		animation.dest_val = dest_val;
+		animation.anim_start_val = anim_start_val;
+		animation.anim_dest_val = anim_dest_val;
+		animation.prop_dest_val = prop_dest_val;
 		animation.duration_ms = duration_ms;
 		animation.start_ms = now_ms;
-		animation.current_val = animation.start_val;
+		animation.current_val = animation.anim_start_val;
+		animation.prop_last_val = prop_start_val;
 		animation.mass = 1.0f;
 		animation.period = 0.0f;
 		animation.amplitude = 0.0f;
@@ -367,19 +386,29 @@ namespace
 		animation.period_set = false;
 		animation.amplitude_set = false;
 		animation.strength_set = false;
-		animation.buffer[0] = animation.start_val;
-		animation.buffer[1] = animation.start_val;
-		animation.buffer[2] = animation.start_val;
+		animation.buffer[0] = animation.anim_start_val;
+		animation.buffer[1] = animation.anim_start_val;
+		animation.buffer[2] = animation.anim_start_val;
 
 		for ( std::vector<FeAnimationState>::iterator it = list.begin(); it != list.end(); ++it )
 		{
 			if (( it->drawable != drawable ) || ( it->property->name != property->name ))
 				continue;
 
+			if ( property->get( drawable ) != it->prop_last_val )
+			{
+				list.erase( it );
+				break;
+			}
+
+			if ( it->prop_dest_val == prop_dest_val )
+				return FeAnimation( it->id, it->mass );
+
 			if ( inertia && it->inertia )
 			{
-				animation.start_val = it->current_val;
+				animation.anim_start_val = it->current_val;
 				animation.current_val = it->current_val;
+				animation.prop_last_val = it->prop_last_val;
 				animation.mass = it->mass;
 				animation.buffer[0] = it->buffer[0];
 				animation.buffer[1] = it->buffer[1];
@@ -390,8 +419,22 @@ namespace
 			break;
 		}
 
+		if ( prop_start_val == animation.prop_dest_val )
+		{
+			if ( !drawable->set_animated_property( property->name, animation.prop_dest_val, true ))
+				property->set( drawable, animation.prop_dest_val );
+
+			return FeAnimation();
+		}
+
 		list.push_back( animation );
 		return FeAnimation( animation.id, animation.mass );
+	}
+
+	void set_animation_value( FeAnimationState &animation, float value, bool snap=false )
+	{
+		if ( !animation.drawable->set_animated_property( animation.property->name, value, snap ))
+			animation.property->set( animation.drawable, value );
 	}
 }
 
@@ -554,8 +597,8 @@ SQInteger FeAnimate::script_animate( HSQUIRRELVM vm )
 			|| ( property_name[0] == '\0' ))
 		return sq_throwerror( vm, _SC("animate() property must be a non-empty string") );
 
-	float dest_val = 0.0f;
-	if ( !get_numeric_arg( vm, 3, dest_val ))
+	float prop_dest_val = 0.0f;
+	if ( !get_numeric_arg( vm, 3, prop_dest_val ))
 		return sq_throwerror( vm, _SC("animate() destination must be numeric") );
 
 	float duration_ms = 1000.0f; // Default to 1 second
@@ -627,7 +670,7 @@ SQInteger FeAnimate::script_animate( HSQUIRRELVM vm )
 
 	FePresent *fep = FePresent::script_get_fep();
 	int now_ms = fep ? fep->get_layout_ms() : 0;
-	FeAnimation animation = replace_animation( drawable, property, ease, ease_id, obj, slot, ease_id == EaseInertia, dest_val, duration_ms, now_ms );
+	FeAnimation animation = replace_animation( drawable, property, ease, ease_id, obj, slot, ease_id == EaseInertia, prop_dest_val, duration_ms, now_ms );
 	FePresent::script_flag_redraw();
 	Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, animation );
 
@@ -645,21 +688,27 @@ bool FeAnimate::tick( int now_ms )
 	for ( std::vector<FeAnimationState>::size_type i=0; i < list.size(); )
 	{
 		FeAnimationState &animation = list[i];
+		if ( animation.property->get( animation.drawable ) != animation.prop_last_val )
+		{
+			list.erase( list.begin() + i );
+			continue;
+		}
+
 		float elapsed = static_cast<float>( now_ms - animation.start_ms );
 		if ( elapsed < 0.0f )
 			elapsed = 0.0f;
 
 		if ( elapsed >= animation.duration_ms )
 		{
-			animation.property->set( animation.drawable, animation.dest_val );
+			set_animation_value( animation, animation.prop_dest_val, true );
 			list.erase( list.begin() + i );
 			redraw = true;
 			continue;
 		}
 
 		float t = elapsed;
-		float b = animation.start_val;
-		float c = animation.dest_val - animation.start_val;
+		float b = animation.anim_start_val;
+		float c = animation.anim_dest_val - animation.anim_start_val;
 		float d = animation.duration_ms;
 
 		// TODO: cache the function like FeCallback does, or store in place of ease
@@ -671,7 +720,8 @@ bool FeAnimate::tick( int now_ms )
 		if ( animation.inertia )
 			current_val = apply_inertia( animation, current_val, elapsed );
 
-		animation.property->set( animation.drawable, current_val );
+		set_animation_value( animation, current_val );
+		animation.prop_last_val = animation.property->get( animation.drawable );
 		redraw = true;
 		++i;
 	}
@@ -682,16 +732,19 @@ bool FeAnimate::tick( int now_ms )
 	return redraw;
 }
 
-void FeAnimate::remove( FeBasePresentable *drawable )
+void FeAnimate::remove( FeBasePresentable *drawable, const SQChar *property_name )
 {
 	std::vector<FeAnimationState> &list = animations();
 	list.erase(
 		std::remove_if(
 			list.begin(),
 			list.end(),
-			[drawable]( const FeAnimationState &animation )
+			[drawable, property_name]( const FeAnimationState &animation )
 			{
-				return animation.drawable == drawable;
+				if ( animation.drawable != drawable )
+					return false;
+
+				return !property_name || ( animation.property->name == property_name );
 			}),
 		list.end() );
 }
