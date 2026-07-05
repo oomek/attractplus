@@ -715,11 +715,11 @@ bool FeAnimate::tick( int now_ms )
 		float current_val = animation.slot
 			? Sqrat::Function( animation.obj, animation.slot ).Evaluate<float>( t, b, c, d )
 			: apply_ease( animation, t, b, c, d );
-		animation.current_val = current_val;
 
 		if ( animation.inertia )
 			current_val = apply_inertia( animation, current_val, elapsed );
 
+		animation.current_val = current_val;
 		set_animation_value( animation, current_val );
 		animation.prop_last_val = animation.property->get( animation.drawable );
 		redraw = true;
