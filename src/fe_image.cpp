@@ -1173,10 +1173,15 @@ FePresentableParent *FeSurfaceTextureContainer::get_presentable_parent()
 	return this;
 }
 
-FeCoordinateSpace FeSurfaceTextureContainer::get_coordinate_space( bool ) const
+FeCoordinateSpace FeSurfaceTextureContainer::get_coordinate_space( bool uniform ) const
 {
 	sf::Vector2u size = m_texture.getSize();
-	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( size ));
+	sf::Vector2f parent_size( size );
+	if ( !uniform )
+		return FeCoordinateSpace( sf::Vector2f( 0, 0 ), parent_size );
+
+	float side = std::min( parent_size.x, parent_size.y );
+	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( side, side ));
 }
 
 FeImage::FeImage(
