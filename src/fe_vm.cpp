@@ -278,7 +278,9 @@ namespace
 			.Const( _SC("InElastic2"), EaseInElastic2 )
 			.Const( _SC("OutElastic2"), EaseOutElastic2 )
 			.Const( _SC("InOutElastic2"), EaseInOutElastic2 )
-			.Const( _SC("OutInElastic2"), EaseOutInElastic2 );
+			.Const( _SC("OutInElastic2"), EaseOutInElastic2 )
+			.Const( _SC("Bezier"), EaseBezier )
+			.Const( _SC("Steps"), EaseSteps );
 
 		Sqrat::ConstTable().Enum( _SC("Ease"), ease );
 	}
@@ -1048,10 +1050,19 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Animation"),
 		Class<FeAnimation, CopyOnly<FeAnimation> >()
+		.Prop(_SC("to"), &FeAnimation::get_to, &FeAnimation::set_to )
+		.Prop(_SC("time"), &FeAnimation::get_time, &FeAnimation::set_time )
+		.Prop(_SC("ease"), &FeAnimation::get_ease, &FeAnimation::set_ease )
 		.Prop(_SC("mass"), &FeAnimation::get_mass, &FeAnimation::set_mass )
 		.Prop(_SC("period"), &FeAnimation::get_period, &FeAnimation::set_period )
 		.Prop(_SC("amplitude"), &FeAnimation::get_amplitude, &FeAnimation::set_amplitude )
 		.Prop(_SC("strength"), &FeAnimation::get_strength, &FeAnimation::set_strength )
+		.Prop(_SC("x1"), &FeAnimation::get_x1, &FeAnimation::set_x1 )
+		.Prop(_SC("y1"), &FeAnimation::get_y1, &FeAnimation::set_y1 )
+		.Prop(_SC("x2"), &FeAnimation::get_x2, &FeAnimation::set_x2 )
+		.Prop(_SC("y2"), &FeAnimation::get_y2, &FeAnimation::set_y2 )
+		.Prop(_SC("steps"), &FeAnimation::get_steps, &FeAnimation::set_steps )
+		.Prop(_SC("jump"), &FeAnimation::get_jump, &FeAnimation::set_jump )
 		.Prop(_SC("running"), &FeAnimation::get_running )
 	);
 
@@ -1083,7 +1094,7 @@ bool FeVM::on_new_layout()
 		.Overload<void (FeBasePresentable::*)(int, int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(float, float)>(_SC("set_pos"), &FeBasePresentable::set_pos)
 		.Overload<void (FeBasePresentable::*)(float, float, float, float)>(_SC("set_pos"), &FeBasePresentable::set_pos)
-		.SquirrelFunc(_SC("animate"), &FeAnimate::script_animate)
+		.SquirrelFunc(_SC("move"), &FeAnimate::script_move)
 	);
 
 	fe.Bind( _SC("Image"),
