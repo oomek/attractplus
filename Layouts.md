@@ -2614,33 +2614,41 @@ The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic
 
 ### Animation 🔶
 
-All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`, `fe.add_clone()`, `fe.add_text()`, `fe.add_listbox()` and `fe.add_rectangle()` support the `animate()` member function.
+All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`, `fe.add_clone()`, `fe.add_text()`, `fe.add_listbox()` and `fe.add_rectangle()` support the `move()` member function.
 
 **Member Functions**
 
--  `animate( property, destination, time, easing )` - Animate a property to a destination value over `time` in milliseconds. Returns an animation object for setting optional easing parameters.
+-  `move( property )` - Return the animation object for `property`.
+-  `move( property, destination, time, ease )` - Animate a property to `destination` over `time` milliseconds. Returns the animation object.
 
 **Parameters**
 
 -  `property` - [string] Case-sensitive property name to animate.
--  `destination_value` - [number] Final value for the property.
--  `time` - [number] Animation duration in milliseconds. Must be greater than `0`.
--  `easing_enum` - [int] One of the `Ease` constants below.
+-  `destination` - [number] Final value for the property.
+-  `time` - [number] Animation duration in milliseconds. Defaults to `1000`.
+-  `ease` - One of the `Ease` constants below. Defaults to `Ease.Inertia`.
 
 **Animation Object**
 
-Use the returned object to change optional easing settings.
+Use the returned object to change the destination, timing and optional ease settings. Setting `to` starts or restarts the animation using the current stored settings. The object is not erased when the animation finishes, so settings such as `mass`, `period`, `amplitude`, `strength`, `x1`, `y1`, `x2` and `y2` are preserved for later `to` changes.
 
 ```squirrel
 local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
-local anim = img.animate( "x", 50, 1000, Ease.Inertia )
-anim.mass = 0.5
+img.move( "x", 50, 1000, Ease.Inertia )
+img.move( "x" ).mass = 0.5
+img.move( "x" ).to = 200
 ```
 
+-  `to` - [number] Destination value. Assigning this starts or restarts the animation.
+-  `time` - [number] Animation duration in milliseconds.
+-  `ease` - One of the `Ease` constants below.
 -  `mass` - [number] Inertia filter mass for `Ease.Inertia`. Values are in the range `[0.0...1.0]`.
 -  `period` - [number] Period override for `Ease.*Bounce2`, `Ease.*Elastic` and `Ease.*Elastic2`.
 -  `amplitude` - [number] Amplitude override for `Ease.*Elastic`.
 -  `strength` - [number] Overshoot strength override for `Ease.*Back`.
+-  `x1`, `y1`, `x2`, `y2` - [number] Cubic Bezier control points for `Ease.Bezier`.
+-  `steps` - [number] Number of steps for `Ease.Steps`. Values lower than `1` become `1`.
+-  `jump` - Step position for `Ease.Steps`. May be one of the `Jump` constants.
 -  `running` - [bool] `true` while the animation is still active.
 
 **Supported Properties**
@@ -2672,19 +2680,30 @@ Boolean properties, strings, object references, read-only values, and enum or fl
 -  `Ease.InBounce2`, `Ease.OutBounce2`, `Ease.InOutBounce2`, `Ease.OutInBounce2`
 -  `Ease.InElastic`, `Ease.OutElastic`, `Ease.InOutElastic`, `Ease.OutInElastic`
 -  `Ease.InElastic2`, `Ease.OutElastic2`, `Ease.InOutElastic2`, `Ease.OutInElastic2`
-
-`Ease` does not include `steps` or `cubic_bezier`; use the global `ease` table directly when those extra parameters are needed.
+-  `Ease.Bezier`
+-  `Ease.Steps`
 
 **Example**
 
 ```squirrel
 local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
-img.animate( "x", 200, 1000, Ease.OutCubic )
-img.animate( "alpha", 100, 500, Ease.Linear )
+img.move( "x", 200, 1000, Ease.OutCubic )
+img.move( "alpha", 100, 500, Ease.Linear )
 
-local inertia = img.animate( "y", 100, 1200, Ease.Inertia )
-inertia.mass = 0.5
+img.move( "y", 100, 1200, Ease.Inertia )
+img.move( "y" ).mass = 0.5
+img.move( "y" ).to = 150
 
-local bounce = img.animate( "rotation", 360, 800, Ease.OutBounce2 )
-bounce.period = 0.35
+img.move( "rotation", 360, 800, Ease.OutBounce2 )
+img.move( "rotation" ).period = 0.35
+
+img.move( "width", 500, 700, Ease.Bezier )
+img.move( "width" ).x1 = 0.25
+img.move( "width" ).y1 = 0.1
+img.move( "width" ).x2 = 0.25
+img.move( "width" ).y2 = 1.0
+
+img.move( "alpha", 0, 900, Ease.Steps )
+img.move( "alpha" ).steps = 5
+img.move( "alpha" ).jump = Jump.End
 ```

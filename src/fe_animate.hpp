@@ -90,15 +90,22 @@ enum FeEase
 	EaseOutElastic2,
 	EaseInOutElastic2,
 	EaseOutInElastic2,
+	EaseBezier,
+	EaseSteps,
 	EaseCount
 };
 
 class FeAnimation
 {
 public:
-	FeAnimation();
-	FeAnimation( int id, float mass );
+	FeAnimation( int id );
 
+	float get_to() const;
+	void set_to( float value );
+	float get_time() const;
+	void set_time( float value );
+	int get_ease() const;
+	void set_ease( int value );
 	float get_mass() const;
 	void set_mass( float value );
 	float get_period() const;
@@ -107,14 +114,35 @@ public:
 	void set_amplitude( float value );
 	float get_strength() const;
 	void set_strength( float value );
+	float get_x1() const;
+	void set_x1( float value );
+	float get_y1() const;
+	void set_y1( float value );
+	float get_x2() const;
+	void set_x2( float value );
+	float get_y2() const;
+	void set_y2( float value );
+	float get_steps() const;
+	void set_steps( float value );
+	int get_jump() const;
+	void set_jump( int value );
 	bool get_running() const;
 
 private:
 	int m_id;
+	float m_to;
+	float m_time;
+	int m_ease;
 	float m_mass;
 	float m_period;
 	float m_amplitude;
 	float m_strength;
+	float m_x1;
+	float m_y1;
+	float m_x2;
+	float m_y2;
+	float m_steps;
+	int m_jump;
 	bool m_period_set;
 	bool m_amplitude_set;
 	bool m_strength_set;
@@ -127,7 +155,7 @@ public:
 	typedef std::function<float ( FeBasePresentable * )> PropertyGetter;
 	typedef std::function<void ( FeBasePresentable *, float )> PropertySetter;
 
-	static SQInteger script_animate( HSQUIRRELVM vm );
+	static SQInteger script_move( HSQUIRRELVM vm );
 	static bool tick( int now_ms );
 	static void remove( FeBasePresentable *drawable, const SQChar *property_name=NULL );
 	static void clear();
