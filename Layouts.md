@@ -2649,6 +2649,7 @@ img.move( "x" ).to = 200
 -  `x1`, `y1`, `x2`, `y2` - [number] Cubic Bezier control points for `Ease.Bezier`.
 -  `steps` - [number] Number of steps for `Ease.Steps`. Values lower than `1` become `1`.
 -  `jump` - Step position for `Ease.Steps`. May be one of the `Jump` constants.
+-  `repeat` - [bool] Restart the animation when it completes.
 -  `running` - [bool] `true` while the animation is still active.
 
 **Supported Properties**
@@ -2706,4 +2707,7 @@ img.move( "width" ).y2 = 1.0
 img.move( "alpha", 0, 900, Ease.Steps )
 img.move( "alpha" ).steps = 5
 img.move( "alpha" ).jump = Jump.End
+
+img.move( "rotation", 360, 1000 )
+img.move( "rotation" ).repeat = true
 ```

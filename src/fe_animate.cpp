@@ -76,6 +76,7 @@ namespace
 		float y2;
 		float steps;
 		int jump;
+		bool repeat;
 		bool period_set;
 		bool amplitude_set;
 		bool strength_set;
@@ -437,6 +438,7 @@ namespace
 		animation.y2 = 1.0f;
 		animation.steps = 1.0f;
 		animation.jump = JumpEnd;
+		animation.repeat = false;
 		animation.period_set = false;
 		animation.amplitude_set = false;
 		animation.strength_set = false;
@@ -517,6 +519,7 @@ FeAnimation::FeAnimation( int id )
 	m_y2( 1.0f ),
 	m_steps( 1.0f ),
 	m_jump( JumpEnd ),
+	m_repeat( false ),
 	m_period_set( false ),
 	m_amplitude_set( false ),
 	m_strength_set( false )
@@ -773,6 +776,21 @@ void FeAnimation::set_jump( int value )
 		animation->jump = m_jump;
 }
 
+bool FeAnimation::get_repeat() const
+{
+	FeAnimationState *animation = find_animation( m_id );
+	return animation ? animation->repeat : m_repeat;
+}
+
+void FeAnimation::set_repeat( bool value )
+{
+	m_repeat = value;
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+		animation->repeat = m_repeat;
+}
+
 bool FeAnimation::get_running() const
 {
 	FeAnimationState *animation = find_animation( m_id );
@@ -980,10 +998,18 @@ bool FeAnimate::tick( int now_ms )
 
 		if ( elapsed >= animation.duration_ms )
 		{
-			set_animation_value( animation, animation.prop_dest_val, true );
-			animation.current_val = animation.anim_dest_val;
+			float next_val = animation.repeat ? animation.anim_start_val : animation.prop_dest_val;
+			set_animation_value( animation, next_val, true );
+			animation.current_val = animation.repeat ? animation.anim_start_val : animation.anim_dest_val;
 			animation.prop_last_val = animation.property->get( animation.drawable );
-			animation.running = false;
+			animation.running = animation.repeat;
+			if ( animation.repeat )
+			{
+				animation.start_ms = now_ms;
+				animation.buffer[0] = animation.anim_start_val;
+				animation.buffer[1] = animation.anim_start_val;
+				animation.buffer[2] = animation.anim_start_val;
+			}
 			redraw = true;
 			++i;
 			continue;

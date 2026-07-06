@@ -126,6 +126,8 @@ public:
 	void set_steps( float value );
 	int get_jump() const;
 	void set_jump( int value );
+	bool get_repeat() const;
+	void set_repeat( bool value );
 	bool get_running() const;
 
 private:
@@ -143,6 +145,7 @@ private:
 	float m_y2;
 	float m_steps;
 	int m_jump;
+	bool m_repeat;
 	bool m_period_set;
 	bool m_amplitude_set;
 	bool m_strength_set;
