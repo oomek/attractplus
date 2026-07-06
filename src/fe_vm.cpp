@@ -1063,6 +1063,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("y2"), &FeAnimation::get_y2, &FeAnimation::set_y2 )
 		.Prop(_SC("steps"), &FeAnimation::get_steps, &FeAnimation::set_steps )
 		.Prop(_SC("jump"), &FeAnimation::get_jump, &FeAnimation::set_jump )
+		.Prop(_SC("repeat"), &FeAnimation::get_repeat, &FeAnimation::set_repeat )
 		.Prop(_SC("running"), &FeAnimation::get_running )
 	);
 
