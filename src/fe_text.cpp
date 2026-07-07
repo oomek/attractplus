@@ -322,6 +322,8 @@ void FeText::update_transform()
 		m_rotation_origin.x * m_size.x,
 		m_rotation_origin.y * m_size.y
 	);
+	m_snap_offset = sf::Vector2f( -m_anchor.x * m_size.x, -m_anchor.y * m_size.y );
+	pos = snap_draw_position( pos );
 
 	m_draw_text.setSize( m_size );
 	m_draw_text.setOrigin( origin );

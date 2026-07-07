@@ -1471,6 +1471,10 @@ void FeImage::scale()
 			( tex_size.y * scale.y ) + (( scaled_padding.y - crop.top - crop.bottom ) * flip.y )
 		)
 	);
+	m_snap_offset = m_fit_rect.position;
+	sf::Vector2f snapped_pos = snap_draw_position( pos );
+	m_fit_rect.position += snapped_pos - pos;
+	pos = snapped_pos;
 
 	// Apply the transformations
 	m_sprite.setCrop( crop );

@@ -74,8 +74,16 @@ struct FeCoordinateSpace
 
 class FeBasePresentable
 {
-private:
+protected:
 	FePresentableParent *m_parent;
+	bool m_snap_x;
+	bool m_snap_y;
+	bool m_snap_width;
+	bool m_snap_height;
+	sf::Vector2f m_snap_offset;
+	sf::Vector2f snap_draw_position( const sf::Vector2f &pos ) const;
+
+private:
 	FeShader *m_shader;
 	bool m_visible;
 	int m_zorder;
