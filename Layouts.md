@@ -2620,6 +2620,7 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 
 -  `move( property )` - Return the animation object for `property`.
 -  `move( property, destination, time, ease )` - Animate a property to `destination` over `time` milliseconds. Returns the animation object.
+-  `move( property, destination, time, ease, force )` - Animate a property and replace the existing animation from the current property value when `force` is `true`, even when `destination` matches the current stored destination.
 
 **Parameters**
 
@@ -2627,6 +2628,7 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 -  `destination` - [number] Final value for the property.
 -  `time` - [number] Animation duration in milliseconds. Defaults to `1000`.
 -  `ease` - One of the `Ease` constants below. Defaults to `Ease.Inertia`.
+-  `force` - [bool] Restart even when the destination is unchanged. Defaults to `false`.
 
 **Animation Object**
 
@@ -2710,4 +2712,6 @@ img.move( "alpha" ).jump = Jump.End
 
 img.move( "rotation", 360, 1000 )
 img.move( "rotation" ).repeat = true
+
+img.move( "y", 10, 2000, Ease.OutExpo2, true )
 ```
