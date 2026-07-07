@@ -1063,6 +1063,10 @@ bool FeAnimate::tick( int now_ms )
 			continue;
 		}
 
+		animation.anim_dest_val = animation.drawable->snap_grid_destination_to_pixels(
+			animation.property->name,
+			animation.prop_dest_val );
+
 		float elapsed = static_cast<float>( now_ms - animation.start_ms );
 		if ( elapsed < 0.0f )
 			elapsed = 0.0f;
