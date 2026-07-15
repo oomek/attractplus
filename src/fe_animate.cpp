@@ -495,26 +495,8 @@ namespace
 		FePresent::script_flag_redraw();
 	}
 
-	int start_animation( FeAnimationState &animation, float prop_dest_val, int now_ms, bool force=false )
+	int start_animation( FeAnimationState &animation, float prop_dest_val, int now_ms )
 	{
-		if ( force )
-		{
-			FeAnimationState replacement = animation;
-			FeBasePresentable *drawable = animation.drawable;
-			const FeAnimateProperty *property = animation.property;
-			float prop_start_val = property->get( drawable );
-			float anim_start_val = prop_start_val == animation.prop_last_val
-				? animation.current_val
-				: drawable->snap_grid_destination_to_pixels( property->name, prop_start_val );
-
-			prepare_animated_property( drawable, property );
-			FeAnimate::remove( drawable, property->name.c_str() );
-
-			animations().push_back( replacement );
-			reset_animation( animations().back(), prop_dest_val, now_ms, anim_start_val );
-			return animations().back().id;
-		}
-
 		if (( animation.prop_dest_val == prop_dest_val )
 				&& ( animation.property->get( animation.drawable ) == animation.prop_last_val ))
 			return animation.id;
@@ -522,7 +504,7 @@ namespace
 		prepare_animated_property( animation.drawable, animation.property );
 
 		float prop_start_val = animation.property->get( animation.drawable );
-		bool continuing = !force && animation.running && ( prop_start_val == animation.prop_last_val );
+		bool continuing = animation.running && ( prop_start_val == animation.prop_last_val );
 		float anim_start_val = continuing
 			? animation.current_val
 			: animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_start_val );
@@ -881,8 +863,10 @@ void FeAnimate::register_property(
 SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 {
 	SQInteger arg_count = sq_gettop( vm );
-	if (( arg_count < 2 ) || ( arg_count > 7 ))
+	if ( arg_count < 2 )
 		return sq_throwerror( vm, _SC("move() requires property") );
+	if ( arg_count > 6 )
+		return sq_throwerror( vm, _SC("move() too many arguments") );
 
 	FeBasePresentable *drawable = Sqrat::ClassType<FeBasePresentable>::GetInstance( vm, 1 );
 	if ( !drawable )
@@ -900,25 +884,12 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 			|| ( property_name[0] == '\0' ))
 		return sq_throwerror( vm, _SC("move() property must be a non-empty string") );
 
-	bool force_restart = false;
-	SQInteger value_arg_count = arg_count;
-	if (( value_arg_count >= 6 ) && ( sq_gettype( vm, value_arg_count ) == OT_BOOL ))
-	{
-		SQBool force = SQFalse;
-		sq_getbool( vm, value_arg_count, &force );
-		force_restart = force != SQFalse;
-		--value_arg_count;
-	}
-
-	if ( value_arg_count > 6 )
-		return sq_throwerror( vm, _SC("move() force flag must be a bool") );
-
-	bool has_destination = value_arg_count >= 3;
+	bool has_destination = arg_count >= 3;
 	float prop_dest_val = 0.0f;
 	if ( has_destination && !get_numeric_arg( vm, 3, prop_dest_val ))
 		return sq_throwerror( vm, _SC("move() destination must be numeric") );
 
-	bool has_time = value_arg_count >= 4;
+	bool has_time = arg_count >= 4;
 	float duration_ms = 1000.0f;
 	if ( has_time )
 	{
@@ -934,7 +905,7 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 	std::string slot;
 	bool use_callback = false;
 
-	if ( value_arg_count == 5 )
+	if ( arg_count == 5 )
 	{
 		if ( sq_gettype( vm, 5 ) == OT_INTEGER )
 		{
@@ -958,7 +929,7 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 			return sq_throwerror( vm, _SC("move() invalid ease or callback") );
 	}
 
-	if ( value_arg_count == 6 )
+	if ( arg_count == 6 )
 	{
 		if ( sq_gettype( vm, 6 ) != OT_STRING )
 			return sq_throwerror( vm, _SC("move() callback name must be a string") );
@@ -1003,7 +974,6 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 	float prop_value = animation.property->get( animation.drawable );
 
 	if ( has_destination
-			&& !force_restart
 			&& ( animation.prop_dest_val == prop_dest_val )
 			&& ( prop_value == animation.prop_last_val ))
 	{
@@ -1031,7 +1001,7 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 	{
 		FePresent *fep = FePresent::script_get_fep();
 		int now_ms = fep ? fep->get_layout_ms() : 0;
-		result_id = start_animation( animation, prop_dest_val, now_ms, force_restart );
+		result_id = start_animation( animation, prop_dest_val, now_ms );
 	}
 
 	Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, FeAnimation( result_id ) );
