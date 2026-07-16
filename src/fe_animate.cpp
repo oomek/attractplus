@@ -973,14 +973,6 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 	FeAnimationState &animation = get_animation_state( drawable, property );
 	float prop_value = animation.property->get( animation.drawable );
 
-	if ( has_destination
-			&& ( animation.prop_dest_val == prop_dest_val )
-			&& ( prop_value == animation.prop_last_val ))
-	{
-		Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, FeAnimation( animation.id ) );
-		return 1;
-	}
-
 	if ( has_time )
 		animation.duration_ms = duration_ms;
 
@@ -993,6 +985,14 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 		animation.slot = slot;
 		animation.use_callback = true;
 		animation.inertia = false;
+	}
+
+	if ( has_destination
+			&& ( animation.prop_dest_val == prop_dest_val )
+			&& ( prop_value == animation.prop_last_val ))
+	{
+		Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, FeAnimation( animation.id ) );
+		return 1;
 	}
 
 	int result_id = animation.id;
