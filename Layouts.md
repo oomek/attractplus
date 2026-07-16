@@ -2618,7 +2618,7 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 
 **Member Functions**
 
--  `move( property )` - Return the animation object for `property`.
+-  `move( property )` Returns the animation object for the property.
 -  `move( property, destination, time, ease )` - Animate a property to `destination` over `time` milliseconds. Returns the animation object.
 
 **Parameters**
@@ -2628,18 +2628,27 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 -  `time` - [number] Animation duration in milliseconds. Defaults to `1000`.
 -  `ease` - One of the `Ease` constants below. Defaults to `Ease.Inertia`.
 
-**Animation Object**
-
-Use the returned object to change the destination, timing and optional ease settings. Setting `to` starts or restarts the animation using the current stored settings. The object is not erased when the animation finishes, so settings such as `mass`, `period`, `amplitude`, `strength`, `x1`, `y1`, `x2` and `y2` are preserved for later `to` changes.
+**Example**
 
 ```squirrel
 local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
-img.move( "x", 50, 1000, Ease.Inertia )
-img.move( "x" ).mass = 0.5
-img.move( "x" ).to = 200
+
+// Option 1
+img.move( "y", 10, 1000, Ease.Linear )
+
+//Option 2
+img.move( "y" ).time = 1000
+img.move( "y" ).ease = Ease.Linear
+img.move( "y" ).to = 10
+
+// Option 3
+local anim = img.move( "y" )
+anim.time = 1000
+anim.ease = Ease.Linear
+anim.to = 50
 ```
 
--  `to` - [number] Destination value. Assigning this starts or restarts the animation.
+-  `to` - [number] Destination value. Assigning this sets a new destination.
 -  `time` - [number] Animation duration in milliseconds.
 -  `ease` - One of the `Ease` constants below.
 -  `mass` - [number] Inertia filter mass for `Ease.Inertia`. Values are in the range `[0.0...1.0]`.
@@ -2684,16 +2693,17 @@ Boolean properties, strings, object references, read-only values, and enum or fl
 -  `Ease.Bezier`
 -  `Ease.Steps`
 
-**Example**
+**More examples**
 
 ```squirrel
 local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
 img.move( "x", 200, 1000, Ease.OutCubic )
 img.move( "alpha", 100, 500, Ease.Linear )
 
-img.move( "y", 100, 1200, Ease.Inertia )
+img.move( "y").time = 2000
+img.move( "y" ).ease = Ease.Inertia
 img.move( "y" ).mass = 0.5
-img.move( "y" ).to = 150
+img.move( "y" ).to = 100
 
 img.move( "rotation", 360, 800, Ease.OutBounce2 )
 img.move( "rotation" ).period = 0.35
@@ -2710,6 +2720,4 @@ img.move( "alpha" ).jump = Jump.End
 
 img.move( "rotation", 360, 1000 )
 img.move( "rotation" ).repeat = true
-
-img.move( "y", 10, 2000, Ease.OutExpo2, true )
 ```
