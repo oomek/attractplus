@@ -1550,7 +1550,10 @@ void FePresent::set_video_play_state( bool state )
 {
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 				itm != m_texturePool.end(); ++itm )
-		(*itm)->set_play_state( state );
+	{
+		const bool play = state && !( (*itm)->get_video_flags() & VF_NoAutoStart );
+		(*itm)->set_play_state( play );
+	}
 }
 
 void FePresent::set_audio_loudness( bool enabled )
