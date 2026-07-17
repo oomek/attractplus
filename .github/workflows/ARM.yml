@@ -58,9 +58,9 @@ jobs:
         setup-hook: |
           test "${{matrix.os}}" = "bookworm" && backports_url="http://deb.debian.org/debian" || backports_url="http://archive.debian.org/debian/"
           echo "deb ${backports_url} ${{matrix.os}}-backports main" > /etc/apt/sources.list.d/debian-backports.list
-          apt update -o 'Acquire::Retries=5'
-          apt-get install -y -q --fix-missing build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libxi-dev ca-certificates
-          apt-get install -y -t ${{matrix.os}}-backports cmake
+          apt update -o 'Acquire::Retries=5' -o 'Acquire::http::Timeout=60'
+          apt-get install -y -q --fix-missing -o 'Acquire::Retries=5' -o 'Acquire::http::Timeout=60' build-essential cmake pkgconf libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libavformat-dev libfontconfig1-dev libfreetype6-dev libswscale-dev libswresample-dev libarchive-dev libjpeg-dev libglu1-mesa-dev libgbm-dev libdrm-dev libegl1-mesa-dev libcurl4-gnutls-dev libxi-dev ca-certificates
+          apt-get install -y -t ${{matrix.os}}-backports -o 'Acquire::Retries=5' -o 'Acquire::http::Timeout=60' cmake
 
     - name: Rename artifacts
       run: |
