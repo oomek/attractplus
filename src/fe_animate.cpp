@@ -57,7 +57,6 @@ namespace
 		Sqrat::Object obj;
 		std::string slot;
 		bool use_callback;
-		bool inertia;
 		bool running;
 		float anim_start_val;
 		float anim_dest_val;
@@ -86,7 +85,7 @@ namespace
 	const FeEaseFunc ease_functions[] =
 	{
 		&SqEase::linear,
-		&SqEase::out_expo2, // Inertia
+		&SqEase::out_expo2, // Base curve for EaseInertia
 		&SqEase::in_quad,
 		&SqEase::out_quad,
 		&SqEase::in_out_quad,
@@ -258,15 +257,24 @@ namespace
 
 		animation.ease = get_ease_function( ease_id );
 		animation.ease_id = ease_id;
-		animation.inertia = ease_id == EaseInertia;
 		animation.use_callback = false;
 		animation.slot.clear();
 	}
 
-	float apply_ease( const FeAnimationState &animation, float t, float b, float c, float d )
+	float apply_ease( FeAnimationState &animation, float t, float b, float c, float d )
 	{
 		switch ( animation.ease_id )
 		{
+			case EaseInertia:
+			{
+				FePresent *fep = FePresent::script_get_fep();
+				float refresh_rate = fep ? static_cast<float>( fep->get_refresh_rate() ) : 60.0f;
+				if ( fep && ( fep->get_layout_frame_time() > 0.0f ))
+					refresh_rate = 1000.0f / fep->get_layout_frame_time();
+
+				return SqEase::inertia( t, b, c, d, animation.mass, refresh_rate, animation.buffer );
+			}
+
 			case EaseBezier:
 				return SqEase::cubic_bezier( t, b, c, d, animation.x1, animation.y1, animation.x2, animation.y2 );
 
@@ -348,42 +356,6 @@ namespace
 		return animation.ease( t, b, c, d );
 	}
 
-	float apply_inertia( FeAnimationState &animation, float current_val, float elapsed )
-	{
-		FePresent *fep = FePresent::script_get_fep();
-		float t = elapsed / animation.duration_ms;
-
-		if ( t < 1.0f )
-		{
-			t *= t; t *= t; t *= t;
-			t = 1.0f - t;
-
-			const float pi = 3.14159265358979323846f;
-			float refresh_rate = static_cast<float>( fep->get_refresh_rate() );
-
-			if ( fep->get_layout_frame_time() > 0.0f )
-				refresh_rate = 1000.0f / fep->get_layout_frame_time();
-
-			float coeff = std::sin(( 4.0f * pi ) / ( 8.0f + refresh_rate * animation.duration_ms * 0.000825f * animation.mass ));
-
-			animation.buffer[0] += coeff * ( current_val - animation.buffer[0] );
-			animation.buffer[1] += coeff * ( animation.buffer[0] - animation.buffer[1] );
-			animation.buffer[2] += coeff * ( animation.buffer[1] - animation.buffer[2] );
-
-			animation.buffer[0] = t * ( animation.buffer[0] - current_val ) + current_val;
-			animation.buffer[1] = t * ( animation.buffer[1] - current_val ) + current_val;
-			animation.buffer[2] = t * ( animation.buffer[2] - current_val ) + current_val;
-		}
-		else
-		{
-			animation.buffer[0] = current_val;
-			animation.buffer[1] = current_val;
-			animation.buffer[2] = current_val;
-		}
-
-		return animation.buffer[2];
-	}
-
 	void set_animation_value( FeAnimationState &animation, float value, bool snap=false )
 	{
 		if ( !animation.drawable->set_animated_property( animation.property->name, value, snap ))
@@ -419,7 +391,6 @@ namespace
 		animation.ease = ease_functions[ EaseInertia ];
 		animation.ease_id = EaseInertia;
 		animation.use_callback = false;
-		animation.inertia = true;
 		animation.running = false;
 		animation.anim_start_val = anim_val;
 		animation.anim_dest_val = anim_val;
@@ -442,9 +413,7 @@ namespace
 		animation.period_set = false;
 		animation.amplitude_set = false;
 		animation.strength_set = false;
-		animation.buffer[0] = anim_val;
-		animation.buffer[1] = anim_val;
-		animation.buffer[2] = anim_val;
+		SqEase::reset_inertia( animation.buffer, anim_val );
 
 		list.push_back( animation );
 		return list.back();
@@ -459,40 +428,6 @@ namespace
 			return *animation;
 
 		return create_animation_state( drawable, property );
-	}
-
-	void reset_animation(
-		FeAnimationState &animation,
-		float prop_dest_val,
-		int now_ms,
-		float anim_start_val )
-	{
-		float anim_dest_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_dest_val );
-
-		animation.id = new_animation_id();
-		animation.running = false;
-		animation.anim_start_val = anim_start_val;
-		animation.anim_dest_val = anim_dest_val;
-		animation.prop_dest_val = prop_dest_val;
-		animation.start_ms = now_ms;
-		animation.current_val = anim_start_val;
-		animation.buffer[0] = anim_start_val;
-		animation.buffer[1] = anim_start_val;
-		animation.buffer[2] = anim_start_val;
-
-		set_animation_value( animation, anim_start_val );
-		animation.prop_last_val = animation.property->get( animation.drawable );
-
-		if (( anim_start_val == anim_dest_val ) || ( animation.duration_ms <= 0.0f ))
-		{
-			set_animation_value( animation, prop_dest_val, true );
-			animation.current_val = anim_dest_val;
-			animation.prop_last_val = animation.property->get( animation.drawable );
-		}
-		else
-			animation.running = true;
-
-		FePresent::script_flag_redraw();
 	}
 
 	int start_animation( FeAnimationState &animation, float prop_dest_val, int now_ms )
@@ -517,12 +452,8 @@ namespace
 		animation.start_ms = now_ms;
 		animation.current_val = anim_start_val;
 
-		if ( !( animation.inertia && continuing ))
-		{
-			animation.buffer[0] = anim_start_val;
-			animation.buffer[1] = anim_start_val;
-			animation.buffer[2] = anim_start_val;
-		}
+		if (( animation.ease_id != EaseInertia ) || !continuing )
+			SqEase::reset_inertia( animation.buffer, anim_start_val );
 
 		if (( anim_start_val == anim_dest_val ) || ( animation.duration_ms <= 0.0f ))
 		{
@@ -984,7 +915,6 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 		animation.obj = obj;
 		animation.slot = slot;
 		animation.use_callback = true;
-		animation.inertia = false;
 	}
 
 	if ( has_destination
@@ -1051,9 +981,7 @@ bool FeAnimate::tick( int now_ms )
 			if ( animation.repeat )
 			{
 				animation.start_ms = now_ms;
-				animation.buffer[0] = animation.anim_start_val;
-				animation.buffer[1] = animation.anim_start_val;
-				animation.buffer[2] = animation.anim_start_val;
+				SqEase::reset_inertia( animation.buffer, animation.anim_start_val );
 			}
 
 			redraw = true;
@@ -1070,9 +998,6 @@ bool FeAnimate::tick( int now_ms )
 		float current_val = animation.use_callback
 			? Sqrat::Function( animation.obj, animation.slot.c_str() ).Evaluate<float>( t, b, c, d )
 			: apply_ease( animation, t, b, c, d );
-
-		if ( animation.inertia )
-			current_val = apply_inertia( animation, current_val, elapsed );
 
 		animation.current_val = current_val;
 		set_animation_value( animation, current_val );
