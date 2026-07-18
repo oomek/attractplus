@@ -209,7 +209,14 @@ void SqEase::reset_inertia( float buffer[3], float value )
 
 float SqEase::inertia( float t, float b, float c, float d, float mass, float refresh_rate, float buffer[3] )
 {
-	float current_val = out_expo2( t, b, c, d );
+	if ( d <= 0.0f )
+	{
+		float value = b + c;
+		reset_inertia( buffer, value );
+		return value;
+	}
+
+	float value = out_expo2( std::clamp( t, 0.0f, d ), b, c, d );
 	float ratio = t / d;
 
 	if ( ratio < 1.0f )
@@ -220,16 +227,16 @@ float SqEase::inertia( float t, float b, float c, float d, float mass, float ref
 		const float pi = 3.14159265358979323846f;
 		float coeff = sin(( 4.0f * pi ) / ( 8.0f + refresh_rate * d * 0.000825f * mass ));
 
-		buffer[0] += coeff * ( current_val - buffer[0] );
+		buffer[0] += coeff * ( value - buffer[0] );
 		buffer[1] += coeff * ( buffer[0] - buffer[1] );
 		buffer[2] += coeff * ( buffer[1] - buffer[2] );
 
-		buffer[0] = ratio * ( buffer[0] - current_val ) + current_val;
-		buffer[1] = ratio * ( buffer[1] - current_val ) + current_val;
-		buffer[2] = ratio * ( buffer[2] - current_val ) + current_val;
+		buffer[0] = ratio * ( buffer[0] - value ) + value;
+		buffer[1] = ratio * ( buffer[1] - value ) + value;
+		buffer[2] = ratio * ( buffer[2] - value ) + value;
 	}
 	else
-		reset_inertia( buffer, current_val );
+		reset_inertia( buffer, value );
 
 	return buffer[2];
 }

@@ -440,9 +440,22 @@ namespace
 
 		float prop_start_val = animation.property->get( animation.drawable );
 		bool continuing = animation.running && ( prop_start_val == animation.prop_last_val );
-		float anim_start_val = continuing
-			? animation.current_val
-			: animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_start_val );
+		bool inertia = !animation.use_callback
+			&& ( animation.ease_id == EaseInertia )
+			&& ( animation.duration_ms > 0.0f );
+
+		float anim_start_val;
+		if ( continuing && inertia )
+			anim_start_val = animation.ease(
+				static_cast<float>( now_ms - animation.start_ms ),
+				animation.anim_start_val,
+				animation.anim_dest_val - animation.anim_start_val,
+				animation.duration_ms );
+		else if ( continuing )
+			anim_start_val = animation.current_val;
+		else
+			anim_start_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_start_val );
+
 		float anim_dest_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_dest_val );
 
 		animation.anim_start_val = anim_start_val;
@@ -452,7 +465,7 @@ namespace
 		animation.start_ms = now_ms;
 		animation.current_val = anim_start_val;
 
-		if (( animation.ease_id != EaseInertia ) || !continuing )
+		if ( !continuing || !inertia )
 			SqEase::reset_inertia( animation.buffer, anim_start_val );
 
 		if (( anim_start_val == anim_dest_val ) || ( animation.duration_ms <= 0.0f ))
