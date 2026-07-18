@@ -134,7 +134,11 @@ sf::Vector2f FeBasePresentable::pos_from_grid_units( const sf::Vector2f &p, bool
 	}
 
 	if ( snap && get_pixel_snap() && m_parent )
-		pos = m_parent->snap_position_to_pixel( pos );
+	{
+		sf::Vector2f snapped = m_parent->snap_position_to_pixel( pos );
+		if ( !m_snap_width ) pos.x = snapped.x;
+		if ( !m_snap_height ) pos.y = snapped.y;
+	}
 
 	return pos;
 }
