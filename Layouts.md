@@ -2670,8 +2670,6 @@ anim.to = 50
 -  ListBox: `bg_red`, `bg_green`, `bg_blue`, `bg_alpha`, `sel_red`, `sel_green`, `sel_blue`, `sel_alpha`, `sel_bg_red`, `sel_bg_green`, `sel_bg_blue`, `sel_bg_alpha`, `selbg_red`, `selbg_green`, `selbg_blue`, `selbg_alpha`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `sel_outline_red`, `sel_outline_green`, `sel_outline_blue`, `sel_outline_alpha`, `char_spacing`, `outline`, `sel_outline`, `margin`.
 -  Rectangle: `outline`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `corner_radius`, `corner_radius_x`, `corner_radius_y`, `corner_ratio`, `corner_ratio_x`, `corner_ratio_y`.
 
-Boolean properties, strings, object references, read-only values, and enum or flag-style properties such as `visible`, `shader`, `grid`, `fit`, `blend_mode`, `style`, `align`, `case`, `video_flags` and `file_name` are not animatable.
-
 **Ease Constants**
 
 -  `Ease.Linear`
