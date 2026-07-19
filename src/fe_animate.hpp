@@ -159,7 +159,7 @@ public:
 	typedef std::function<void ( FeBasePresentable *, float )> PropertySetter;
 
 	static SQInteger script_move( HSQUIRRELVM vm );
-	static bool tick( int now_ms );
+	static bool tick();
 	static void remove( FeBasePresentable *drawable, const SQChar *property_name=NULL );
 	static void clear();
 
