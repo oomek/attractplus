@@ -988,8 +988,8 @@ bool FeAnimate::tick()
 
 	FePresent *fep = FePresent::script_get_fep();
 	float frame_ms = fep ? fep->get_layout_frame_time() : 0.0f;
-	if ( fep && ( frame_ms <= 0.0f ) && ( fep->get_refresh_rate() > 0 ))
-		frame_ms = 1000.0f / fep->get_refresh_rate();
+	if ( frame_ms <= 0.0f )
+		return false;
 
 	bool redraw = false;
 
