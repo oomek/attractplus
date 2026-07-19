@@ -1823,7 +1823,7 @@ bool FeVM::on_tick()
 	using namespace Sqrat;
 	m_redraw_triggered = process_console_input();
 
-	if ( FeAnimate::tick( m_layout_time.getElapsedTime().asMilliseconds() ) )
+	if ( FeAnimate::tick() )
 		m_redraw_triggered = true;
 
 	if ( m_sort_zorder_triggered )
@@ -1936,7 +1936,7 @@ void FeVM::on_transition(
 		//
 		if (( !worklist.empty() ) && ( m_window.isOpen() ))
 		{
-			FeAnimate::tick( m_layout_time.getElapsedTime().asMilliseconds() );
+			FeAnimate::tick();
 
 			if ( m_sort_zorder_triggered )
 			{

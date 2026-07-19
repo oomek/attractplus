@@ -63,7 +63,7 @@ namespace
 		float prop_dest_val;
 		float prop_last_val;
 		float duration_ms;
-		int start_ms;
+		float start_ms;
 		float current_val;
 		float mass;
 		float period;
@@ -397,7 +397,7 @@ namespace
 		animation.prop_dest_val = prop_val;
 		animation.prop_last_val = prop_val;
 		animation.duration_ms = 1000.0f;
-		animation.start_ms = 0;
+		animation.start_ms = 0.0f;
 		animation.current_val = anim_val;
 		animation.mass = 1.0f;
 		animation.period = 0.0f;
@@ -430,11 +430,17 @@ namespace
 		return create_animation_state( drawable, property );
 	}
 
-	int start_animation( FeAnimationState &animation, float prop_dest_val, int now_ms )
+	int start_animation( FeAnimationState &animation, float prop_dest_val )
 	{
 		if (( animation.prop_dest_val == prop_dest_val )
 				&& ( animation.property->get( animation.drawable ) == animation.prop_last_val ))
 			return animation.id;
+
+		FePresent *fep = FePresent::script_get_fep();
+		float now_ms = fep ? fep->get_layout_time().asSeconds() * 1000.0f : 0.0f;
+		float frame_ms = fep ? fep->get_layout_frame_time() : 0.0f;
+		if ( fep && ( frame_ms <= 0.0f ) && ( fep->get_refresh_rate() > 0 ))
+			frame_ms = 1000.0f / fep->get_refresh_rate();
 
 		prepare_animated_property( animation.drawable, animation.property );
 
@@ -446,11 +452,19 @@ namespace
 
 		float anim_start_val;
 		if ( continuing && inertia )
+		{
+			float elapsed = now_ms - animation.start_ms + frame_ms;
+			if ( elapsed < 0.0f )
+				elapsed = 0.0f;
+			if ( elapsed > animation.duration_ms )
+				elapsed = animation.duration_ms;
+
 			anim_start_val = animation.ease(
-				static_cast<float>( now_ms - animation.start_ms ),
+				elapsed,
 				animation.anim_start_val,
 				animation.anim_dest_val - animation.anim_start_val,
 				animation.duration_ms );
+		}
 		else if ( continuing )
 			anim_start_val = animation.current_val;
 		else
@@ -520,11 +534,7 @@ void FeAnimation::set_to( float value )
 
 	FeAnimationState *animation = find_animation( m_id );
 	if ( animation )
-	{
-		FePresent *fep = FePresent::script_get_fep();
-		int now_ms = fep ? fep->get_layout_ms() : 0;
-		start_animation( *animation, m_to, now_ms );
-	}
+		start_animation( *animation, m_to );
 }
 
 float FeAnimation::get_time() const
@@ -941,21 +951,23 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 	int result_id = animation.id;
 
 	if ( has_destination )
-	{
-		FePresent *fep = FePresent::script_get_fep();
-		int now_ms = fep ? fep->get_layout_ms() : 0;
-		result_id = start_animation( animation, prop_dest_val, now_ms );
-	}
+		result_id = start_animation( animation, prop_dest_val );
 
 	Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, FeAnimation( result_id ) );
 	return 1;
 }
 
-bool FeAnimate::tick( int now_ms )
+bool FeAnimate::tick()
 {
 	std::vector<FeAnimationState> &list = animations();
 	if ( list.empty() )
 		return false;
+
+	FePresent *fep = FePresent::script_get_fep();
+	float now_ms = fep ? fep->get_layout_time().asSeconds() * 1000.0f : 0.0f;
+	float frame_ms = fep ? fep->get_layout_frame_time() : 0.0f;
+	if ( fep && ( frame_ms <= 0.0f ) && ( fep->get_refresh_rate() > 0 ))
+		frame_ms = 1000.0f / fep->get_refresh_rate();
 
 	bool redraw = false;
 
@@ -980,11 +992,11 @@ bool FeAnimate::tick( int now_ms )
 			animation.property->name,
 			animation.prop_dest_val );
 
-		float elapsed = static_cast<float>( now_ms - animation.start_ms );
+		float elapsed = now_ms - animation.start_ms + frame_ms;
 		if ( elapsed < 0.0f )
 			elapsed = 0.0f;
 
-		if ( elapsed >= animation.duration_ms )
+		if ( elapsed > animation.duration_ms )
 		{
 			float next_val = animation.repeat ? animation.anim_start_val : animation.prop_dest_val;
 			set_animation_value( animation, next_val, true );
@@ -993,7 +1005,7 @@ bool FeAnimate::tick( int now_ms )
 			animation.running = animation.repeat;
 			if ( animation.repeat )
 			{
-				animation.start_ms = now_ms;
+				animation.start_ms = now_ms + frame_ms;
 				SqEase::reset_inertia( animation.buffer, animation.anim_start_val );
 			}
 
