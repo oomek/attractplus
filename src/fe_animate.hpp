@@ -102,6 +102,8 @@ public:
 
 	float get_to() const;
 	void set_to( float value );
+	float get_duration() const;
+	void set_duration( float value );
 	float get_time() const;
 	void set_time( float value );
 	int get_ease() const;
@@ -133,6 +135,7 @@ public:
 private:
 	int m_id;
 	float m_to;
+	float m_duration;
 	float m_time;
 	int m_ease;
 	float m_mass;
