@@ -436,11 +436,6 @@ namespace
 				&& ( animation.property->get( animation.drawable ) == animation.prop_last_val ))
 			return animation.id;
 
-		FePresent *fep = FePresent::script_get_fep();
-		float frame_ms = fep ? fep->get_layout_frame_time() : 0.0f;
-		if ( fep && ( frame_ms <= 0.0f ) && ( fep->get_refresh_rate() > 0 ))
-			frame_ms = 1000.0f / fep->get_refresh_rate();
-
 		prepare_animated_property( animation.drawable, animation.property );
 
 		float prop_start_val = animation.property->get( animation.drawable );
@@ -452,7 +447,7 @@ namespace
 		float anim_start_val;
 		if ( continuing && inertia )
 		{
-			float elapsed = animation.time_ms + frame_ms;
+			float elapsed = animation.time_ms;
 			if ( elapsed < 0.0f )
 				elapsed = 0.0f;
 			if ( elapsed > animation.duration_ms )
@@ -476,7 +471,7 @@ namespace
 		animation.prop_to_val = prop_to_val;
 		animation.prop_last_val = prop_start_val;
 		animation.time_ms = 0.0f;
-		animation.current_val = anim_start_val;
+		animation.current_val = ( continuing && inertia ) ? prop_start_val : anim_start_val;
 
 		if ( !continuing || !inertia )
 			SqEase::reset_inertia( animation.buffer, anim_start_val );
