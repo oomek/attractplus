@@ -59,11 +59,11 @@ namespace
 		bool use_callback;
 		bool running;
 		float anim_start_val;
-		float anim_dest_val;
-		float prop_dest_val;
+		float anim_to_val;
+		float prop_to_val;
 		float prop_last_val;
 		float duration_ms;
-		float start_ms;
+		float time_ms;
 		float current_val;
 		float mass;
 		float period;
@@ -393,11 +393,11 @@ namespace
 		animation.use_callback = false;
 		animation.running = false;
 		animation.anim_start_val = anim_val;
-		animation.anim_dest_val = anim_val;
-		animation.prop_dest_val = prop_val;
+		animation.anim_to_val = anim_val;
+		animation.prop_to_val = prop_val;
 		animation.prop_last_val = prop_val;
 		animation.duration_ms = 1000.0f;
-		animation.start_ms = 0.0f;
+		animation.time_ms = 0.0f;
 		animation.current_val = anim_val;
 		animation.mass = 1.0f;
 		animation.period = 0.0f;
@@ -430,14 +430,13 @@ namespace
 		return create_animation_state( drawable, property );
 	}
 
-	int start_animation( FeAnimationState &animation, float prop_dest_val )
+	int start_animation( FeAnimationState &animation, float prop_to_val )
 	{
-		if (( animation.prop_dest_val == prop_dest_val )
+		if (( animation.prop_to_val == prop_to_val )
 				&& ( animation.property->get( animation.drawable ) == animation.prop_last_val ))
 			return animation.id;
 
 		FePresent *fep = FePresent::script_get_fep();
-		float now_ms = fep ? fep->get_layout_time().asSeconds() * 1000.0f : 0.0f;
 		float frame_ms = fep ? fep->get_layout_frame_time() : 0.0f;
 		if ( fep && ( frame_ms <= 0.0f ) && ( fep->get_refresh_rate() > 0 ))
 			frame_ms = 1000.0f / fep->get_refresh_rate();
@@ -453,7 +452,7 @@ namespace
 		float anim_start_val;
 		if ( continuing && inertia )
 		{
-			float elapsed = now_ms - animation.start_ms + frame_ms;
+			float elapsed = animation.time_ms + frame_ms;
 			if ( elapsed < 0.0f )
 				elapsed = 0.0f;
 			if ( elapsed > animation.duration_ms )
@@ -462,7 +461,7 @@ namespace
 			anim_start_val = animation.ease(
 				elapsed,
 				animation.anim_start_val,
-				animation.anim_dest_val - animation.anim_start_val,
+				animation.anim_to_val - animation.anim_start_val,
 				animation.duration_ms );
 		}
 		else if ( continuing )
@@ -470,23 +469,24 @@ namespace
 		else
 			anim_start_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_start_val );
 
-		float anim_dest_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_dest_val );
+		float anim_to_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_to_val );
 
 		animation.anim_start_val = anim_start_val;
-		animation.anim_dest_val = anim_dest_val;
-		animation.prop_dest_val = prop_dest_val;
+		animation.anim_to_val = anim_to_val;
+		animation.prop_to_val = prop_to_val;
 		animation.prop_last_val = prop_start_val;
-		animation.start_ms = now_ms;
+		animation.time_ms = 0.0f;
 		animation.current_val = anim_start_val;
 
 		if ( !continuing || !inertia )
 			SqEase::reset_inertia( animation.buffer, anim_start_val );
 
-		if (( anim_start_val == anim_dest_val ) || ( animation.duration_ms <= 0.0f ))
+		if (( anim_start_val == anim_to_val ) || ( animation.duration_ms <= 0.0f ))
 		{
-			set_animation_value( animation, prop_dest_val, true );
-			animation.current_val = anim_dest_val;
+			set_animation_value( animation, prop_to_val, true );
+			animation.current_val = anim_to_val;
 			animation.prop_last_val = animation.property->get( animation.drawable );
+			animation.time_ms = animation.duration_ms;
 			animation.running = false;
 		}
 		else
@@ -500,7 +500,8 @@ namespace
 FeAnimation::FeAnimation( int id )
 	: m_id( id ),
 	m_to( 0.0f ),
-	m_time( 1000.0f ),
+	m_duration( 1000.0f ),
+	m_time( 0.0f ),
 	m_ease( EaseInertia ),
 	m_mass( 1.0f ),
 	m_period( 0.0f ),
@@ -522,7 +523,7 @@ FeAnimation::FeAnimation( int id )
 float FeAnimation::get_to() const
 {
 	FeAnimationState *animation = find_animation( m_id );
-	return animation ? animation->prop_dest_val : m_to;
+	return animation ? animation->prop_to_val : m_to;
 }
 
 void FeAnimation::set_to( float value )
@@ -537,10 +538,32 @@ void FeAnimation::set_to( float value )
 		start_animation( *animation, m_to );
 }
 
+float FeAnimation::get_duration() const
+{
+	FeAnimationState *animation = find_animation( m_id );
+	return animation ? animation->duration_ms : m_duration;
+}
+
+void FeAnimation::set_duration( float value )
+{
+	if ( !std::isfinite( value ))
+		return;
+
+	m_duration = std::max( 0.0f, value );
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+	{
+		animation->duration_ms = m_duration;
+		if ( animation->time_ms > animation->duration_ms )
+			animation->time_ms = animation->duration_ms;
+	}
+}
+
 float FeAnimation::get_time() const
 {
 	FeAnimationState *animation = find_animation( m_id );
-	return animation ? animation->duration_ms : m_time;
+	return animation ? animation->time_ms : m_time;
 }
 
 void FeAnimation::set_time( float value )
@@ -552,7 +575,7 @@ void FeAnimation::set_time( float value )
 
 	FeAnimationState *animation = find_animation( m_id );
 	if ( animation )
-		animation->duration_ms = m_time;
+		animation->time_ms = std::min( m_time, animation->duration_ms );
 }
 
 int FeAnimation::get_ease() const
@@ -838,17 +861,17 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 			|| ( property_name[0] == '\0' ))
 		return sq_throwerror( vm, _SC("move() property must be a non-empty string") );
 
-	bool has_destination = arg_count >= 3;
-	float prop_dest_val = 0.0f;
-	if ( has_destination && !get_numeric_arg( vm, 3, prop_dest_val ))
-		return sq_throwerror( vm, _SC("move() destination must be numeric") );
+	bool has_to = arg_count >= 3;
+	float prop_to_val = 0.0f;
+	if ( has_to && !get_numeric_arg( vm, 3, prop_to_val ))
+		return sq_throwerror( vm, _SC("move() to must be numeric") );
 
-	bool has_time = arg_count >= 4;
+	bool has_duration = arg_count >= 4;
 	float duration_ms = 1000.0f;
-	if ( has_time )
+	if ( has_duration )
 	{
 		if ( !get_numeric_arg( vm, 4, duration_ms ))
-			return sq_throwerror( vm, _SC("move() invalid time value") );
+			return sq_throwerror( vm, _SC("move() duration must be numeric") );
 
 		duration_ms = std::max( 0.f, duration_ms );
 	}
@@ -927,7 +950,7 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 	FeAnimationState &animation = get_animation_state( drawable, property );
 	float prop_value = animation.property->get( animation.drawable );
 
-	if ( has_time )
+	if ( has_duration )
 		animation.duration_ms = duration_ms;
 
 	if ( has_ease )
@@ -940,8 +963,8 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 		animation.use_callback = true;
 	}
 
-	if ( has_destination
-			&& ( animation.prop_dest_val == prop_dest_val )
+	if ( has_to
+			&& ( animation.prop_to_val == prop_to_val )
 			&& ( prop_value == animation.prop_last_val ))
 	{
 		Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, FeAnimation( animation.id ) );
@@ -950,8 +973,8 @@ SQInteger FeAnimate::script_move( HSQUIRRELVM vm )
 
 	int result_id = animation.id;
 
-	if ( has_destination )
-		result_id = start_animation( animation, prop_dest_val );
+	if ( has_to )
+		result_id = start_animation( animation, prop_to_val );
 
 	Sqrat::ClassType<FeAnimation>::PushInstanceCopy( vm, FeAnimation( result_id ) );
 	return 1;
@@ -964,7 +987,6 @@ bool FeAnimate::tick()
 		return false;
 
 	FePresent *fep = FePresent::script_get_fep();
-	float now_ms = fep ? fep->get_layout_time().asSeconds() * 1000.0f : 0.0f;
 	float frame_ms = fep ? fep->get_layout_frame_time() : 0.0f;
 	if ( fep && ( frame_ms <= 0.0f ) && ( fep->get_refresh_rate() > 0 ))
 		frame_ms = 1000.0f / fep->get_refresh_rate();
@@ -988,35 +1010,35 @@ bool FeAnimate::tick()
 			continue;
 		}
 
-		animation.anim_dest_val = animation.drawable->snap_grid_destination_to_pixels(
+		animation.anim_to_val = animation.drawable->snap_grid_destination_to_pixels(
 			animation.property->name,
-			animation.prop_dest_val );
+			animation.prop_to_val );
 
-		float elapsed = now_ms - animation.start_ms + frame_ms;
-		if ( elapsed < 0.0f )
-			elapsed = 0.0f;
+		animation.time_ms += frame_ms;
 
-		if ( elapsed > animation.duration_ms )
+		if ( animation.time_ms > animation.duration_ms )
 		{
-			float next_val = animation.repeat ? animation.anim_start_val : animation.prop_dest_val;
+			float next_val = animation.repeat ? animation.anim_start_val : animation.prop_to_val;
 			set_animation_value( animation, next_val, true );
-			animation.current_val = animation.repeat ? animation.anim_start_val : animation.anim_dest_val;
+			animation.current_val = animation.repeat ? animation.anim_start_val : animation.anim_to_val;
 			animation.prop_last_val = animation.property->get( animation.drawable );
 			animation.running = animation.repeat;
 			if ( animation.repeat )
 			{
-				animation.start_ms = now_ms + frame_ms;
+				animation.time_ms = 0.0f;
 				SqEase::reset_inertia( animation.buffer, animation.anim_start_val );
 			}
+			else
+				animation.time_ms = animation.duration_ms;
 
 			redraw = true;
 			++i;
 			continue;
 		}
 
-		float t = elapsed;
+		float t = animation.time_ms;
 		float b = animation.anim_start_val;
-		float c = animation.anim_dest_val - animation.anim_start_val;
+		float c = animation.anim_to_val - animation.anim_start_val;
 		float d = animation.duration_ms;
 
 		// TODO: cache the function like FeCallback does, or store in place of ease

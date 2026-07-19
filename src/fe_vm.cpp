@@ -1051,6 +1051,7 @@ bool FeVM::on_new_layout()
 	fe.Bind( _SC("Animation"),
 		Class<FeAnimation, CopyOnly<FeAnimation> >()
 		.Prop(_SC("to"), &FeAnimation::get_to, &FeAnimation::set_to )
+		.Prop(_SC("duration"), &FeAnimation::get_duration, &FeAnimation::set_duration )
 		.Prop(_SC("time"), &FeAnimation::get_time, &FeAnimation::set_time )
 		.Prop(_SC("ease"), &FeAnimation::get_ease, &FeAnimation::set_ease )
 		.Prop(_SC("mass"), &FeAnimation::get_mass, &FeAnimation::set_mass )

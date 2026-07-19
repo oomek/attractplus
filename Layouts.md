@@ -2619,13 +2619,13 @@ All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`
 **Member Functions**
 
 -  `move( property )` Returns the animation object for the property.
--  `move( property, destination, time, ease )` - Animate a property to `destination` over `time` milliseconds. Returns the animation object.
+-  `move( property, to, duration, ease )` - Animate a property to `to` over `duration` milliseconds. Returns the animation object.
 
 **Parameters**
 
 -  `property` - [string] Case-sensitive property name to animate.
--  `destination` - [number] Final value for the property.
--  `time` - [number] Animation duration in milliseconds. Defaults to `1000`.
+-  `to` - [number] Final value for the property.
+-  `duration` - [number] Animation duration in milliseconds. Defaults to `1000`.
 -  `ease` - One of the `Ease` constants below. Defaults to `Ease.Inertia`.
 
 **Example**
@@ -2636,20 +2636,21 @@ local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
 // Option 1
 img.move( "y", 10, 1000, Ease.Linear )
 
-//Option 2
-img.move( "y" ).time = 1000
+// Option 2
+img.move( "y" ).duration = 1000
 img.move( "y" ).ease = Ease.Linear
 img.move( "y" ).to = 10
 
 // Option 3
 local anim = img.move( "y" )
-anim.time = 1000
+anim.duration = 1000
 anim.ease = Ease.Linear
 anim.to = 50
 ```
 
--  `to` - [number] Destination value. Assigning this sets a new destination.
--  `time` - [number] Animation duration in milliseconds.
+-  `to` - [number] Final value. Assigning this sets a new value to animate toward.
+-  `duration` - [number] Animation duration in milliseconds.
+-  `time` - [number] Current animation time in milliseconds. Setting this changes the animation playhead.
 -  `ease` - One of the `Ease` constants below.
 -  `mass` - [number] Inertia filter mass for `Ease.Inertia`. Values are in the range `[0.0...1.0]`.
 -  `period` - [number] Period override for `Ease.*Bounce2`, `Ease.*Elastic` and `Ease.*Elastic2`.
@@ -2698,7 +2699,7 @@ local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
 img.move( "x", 200, 1000, Ease.OutCubic )
 img.move( "alpha", 100, 500, Ease.Linear )
 
-img.move( "y").time = 2000
+img.move( "y" ).duration = 2000
 img.move( "y" ).ease = Ease.Inertia
 img.move( "y" ).mass = 0.5
 img.move( "y" ).to = 100
