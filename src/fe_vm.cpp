@@ -410,6 +410,7 @@ void FeVM::post_command( FeInputMap::Command c )
 bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, bool &from_ui )
 {
 	from_ui = false;
+	ev = std::nullopt;
 
 	if ( !m_posted_commands.empty() )
 	{
@@ -439,7 +440,6 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<sf::Event> &ev, b
 		}
 	}
 
-	ev = std::nullopt; // An empty event
 	return false;
 }
 
