@@ -1895,6 +1895,15 @@ void FeVM::on_transition(
 		//
 		ASSERT( DefaultVM::Get() );
 
+		if (( ttime > 0 ) && ( m_window.isOpen() ))
+		{
+			sf::Time current_time = m_layout_time.getElapsedTime();
+			m_frame_time = ( current_time - m_layout_time_old ).asSeconds() * 1000.0f;
+			m_layout_time_old = current_time;
+
+			FeAnimate::tick();
+		}
+
 		//
 		// Call each remaining transition callback on each pass through
 		// the worklist
@@ -1937,12 +1946,6 @@ void FeVM::on_transition(
 		//
 		if (( !worklist.empty() ) && ( m_window.isOpen() ))
 		{
-			sf::Time current_time = m_layout_time.getElapsedTime();
-			m_frame_time = ( current_time - m_layout_time_old ).asSeconds() * 1000.0f;
-			m_layout_time_old = current_time;
-
-			FeAnimate::tick();
-
 			if ( m_sort_zorder_triggered )
 			{
 				sort_zorder();
