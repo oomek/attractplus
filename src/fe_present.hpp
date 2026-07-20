@@ -216,6 +216,7 @@ protected:
 	Sqrat::Array get_tags_available() const;
 	int get_selection_index() const;
 	int get_sort_by() const;
+	bool get_ascending_order() const;
 	bool get_reverse_order() const;
 	int get_list_limit() const;
 	void set_search_rule( const char * );

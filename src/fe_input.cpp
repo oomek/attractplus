@@ -1810,7 +1810,7 @@ void FeSoundInfo::save( nowide::ofstream &f ) const
 	for ( int i=0; i<3; i++ )
 		write_pair( f, settingStrings[i], as_str( get_set_volume( (SoundType)i ) ), 1 );
 
-	write_pair( f, settingStrings[3], m_loudness ? FE_CFG_YES_STR : FE_CFG_NO_STR, 1 );
+	write_pair( f, settingStrings[3], bool_to_config_str( m_loudness ), 1 );
 
 	for ( it=m_sounds.begin(); it!=m_sounds.end(); ++it )
 		write_pair( f, FeInputMap::commandStrings[ (*it).first ], (*it).second, 1 );
