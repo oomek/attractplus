@@ -1610,6 +1610,7 @@ void FePresent::load_layout( bool initial_load )
 
 	clear_layout();
 
+	init_monitors();
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Layout_Showing );
 

@@ -316,7 +316,6 @@ int main(int argc, char *argv[])
 				{
 					window.on_exit();
 					window.initial_create();
-					feVM.init_monitors();
 				}
 
 				// Settings have changed, reload the display
@@ -460,7 +459,6 @@ int main(int argc, char *argv[])
 					if ( resize )
 					{
 						window.get_win().setView( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
-						feVM.init_monitors();
 						feVM.load_layout();
 						redraw = true;
 					}
@@ -693,7 +691,6 @@ int main(int argc, char *argv[])
 				{
 					window.on_exit();
 					window.initial_create();
-					feVM.init_monitors();
 					feVM.load_layout();
 					continue;
 				}
@@ -725,7 +722,6 @@ int main(int argc, char *argv[])
 					{
 						window.on_exit();
 						window.initial_create();
-						feVM.init_monitors();
 					}
 
 					// Settings have changed, reload the display
@@ -1031,7 +1027,6 @@ int main(int argc, char *argv[])
 							feSettings.save();
 							window.on_exit();
 							window.initial_create();
-							feVM.init_monitors();
 							feVM.load_layout();
 						}
 					}

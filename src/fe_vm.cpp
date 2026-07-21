@@ -1880,6 +1880,7 @@ void FeVM::on_transition(
 
 	FeStableClock clk;
 	int ttime = 0;
+	bool reload_layout = false;
 
 	std::vector<FeCallback *> worklist( m_trans.size() );
 	for ( unsigned int i=0; i < m_trans.size(); i++ )
@@ -1967,9 +1968,19 @@ void FeVM::on_transition(
 			// - Otherwise keypresses bank up and are dumped on the frontend when the worklist is complete
 			// - Also fixes Linux SFML 2.2-2.3 flicker on multi monitor setup during animated transitions.
 			//
-			while ( const std::optional ev = m_window.pollEvent() ) {}
+			while ( const std::optional ev = m_window.pollEvent() )
+			{
+				if ( const auto* resize = ev->getIf<sf::Event::Resized>() )
+				{
+					m_window.get_win().setView( sf::View( sf::FloatRect({ 0, 0 }, { static_cast<float>( resize->size.x ), static_cast<float>( resize->size.y )})));
+					reload_layout = true;
+				}
+			}
 		}
 	}
+
+	if ( reload_layout )
+		post_command( FeInputMap::ReloadLayout );
 }
 
 bool FeVM::script_handle_event( FeInputMap::Command c )
