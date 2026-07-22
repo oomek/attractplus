@@ -908,15 +908,15 @@ Check if a specific keyboard key, mouse button, joystick button or joystick dire
 fe.get_input_pos( input_id )
 ```
 
-Return the current position for the specified joystick axis.
+Return the current position for the specified joystick axis, mouse axis, or mouse wheel.
 
 **Parameters**
 
--  `input_id` - [string] the input to test. The format of this string is the same as that used in the `attract.cfg` file. For example, `"Joy0 Up"` is the up direction on the first joystick, `"Mouse Up"` is the y position of the mouse, and `"Mouse WheelUp"` is the delta of an upward mouse wheel scroll.
+-  `input_id` - [string] the input to test. The format of this string is the same as that used in the `attract.cfg` file. For example, `"Joy0 Up"` is the up direction on the first joystick, `"Mouse Left"`/`"Mouse Right"` are the x position of the mouse, `"Mouse Up"`/`"Mouse Down"` are the y position of the mouse, and `"Mouse WheelUp"` is the delta of an upward mouse wheel scroll.
 
 **Return Value**
 
--  Current position of the specified axis, in range `[0...100]`.
+-  Current position of the specified axis. Joystick axes return `[0...100]`. Mouse positions return layout coordinates in the `fe.layout.grid` coordinates. Mouse wheel inputs return the wheel delta.
 
 ---
 
@@ -1565,7 +1565,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
--  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid` coordinates. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
@@ -1825,7 +1825,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `bg_outline_green` - Get/set green colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_blue` - Get/set blue colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_alpha` - Get/set alpha level for the text background outline. Range is `[0...255]`. Default value is `0` (transparent).
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
+-  `char_size` - Get/set the forced character size in layout coordinates, using this object's grid. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
@@ -1865,7 +1865,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `line_height` 🔶 - Get the distance between two lines of text in layout coordinates.
 -  `first_line_hint` 🔶 - Get/set the line in the formatted text that is shown as first line in the text object
 -  `font` - Get/set the filename of the font used for this text. If not set default font is used.
--  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the `char_size`.
+-  `margin` - Get/set the margin spacing to sides of the text in `fe.layout.grid` coordinates, using this object's grid. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `shader` - Get/set the GLSL shader for this text. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the Text's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
@@ -1973,7 +1973,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `ListAlign.Bottom` - Aligns options to the bottom.
    -  `ListAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
 -  `list_size` - Get the size of the list shown by the listbox. When the listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
+-  `char_size` - Get/set the forced character size in `fe.layout.grid` coordinates, using this object's grid. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
 -  `glyph_size` - Get the height in pixels of the capital letter.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
@@ -2018,7 +2018,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
 -  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
--  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
+-  `margin` - Get/set the margin spacing to sides of the text in `fe.layout.grid` coordinates, using this object's grid. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
 -  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.

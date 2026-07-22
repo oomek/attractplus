@@ -27,6 +27,7 @@
 #include "fe_util.hpp"
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 
 const std::string DEFAULT_FORMAT_STRING = "[Title]";
 
@@ -48,6 +49,7 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_rows( 11 ),
 	m_list_align( FeAlign::Top ),
 	m_userCharSize( 0 ),
+	m_userMargin( -1 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
@@ -92,6 +94,7 @@ FeListBox::FeListBox(
 	m_rows( rows ),
 	m_list_align( FeAlign::Top ),
 	m_userCharSize( charactersize ),
+	m_userMargin( -1 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
@@ -473,15 +476,7 @@ void FeListBox::update_row_geometry()
 
 void FeListBox::init_dimensions()
 {
-	sf::Vector2f size = getSize();
-
-	int actual_spacing = (int)size.y / m_rows;
-	int char_size = ( m_userCharSize > 0 ) ? m_userCharSize
-		: ( actual_spacing > 12 ) ? actual_spacing - 4
-		: 8;
-
-	m_base_text.setTextScale( sf::Vector2f( 1.0, 1.0 ) / m_scale_factor );
-	m_base_text.setCharacterSize( char_size * m_scale_factor );
+	update_text_metrics();
 
 	// Add or remove text elements to match row count
 	while ( getRowCount() < m_rows )
@@ -496,6 +491,29 @@ void FeListBox::init_dimensions()
 	update_row_geometry();
 
 	update_styles();
+}
+
+void FeListBox::update_text_metrics()
+{
+	sf::Vector2f size = getSize();
+
+	int actual_spacing = (int)size.y / m_rows;
+	float char_size = ( m_userCharSize > 0 )
+		? ( m_scripted ? grid_height_to_pixels( m_userCharSize ) : m_userCharSize )
+		: ( actual_spacing > 12 ) ? actual_spacing - 4.0f
+		: 8.0f;
+
+	m_base_text.setTextScale( sf::Vector2f( 1.0, 1.0 ) / m_scale_factor );
+	unsigned int scaled_char_size = static_cast<unsigned int>(
+		std::round( std::max( 1.0f, char_size * m_scale_factor )));
+	m_base_text.setCharacterSize( scaled_char_size );
+	update_margin();
+
+	for ( int i=0; i < getRowCount(); i++ )
+	{
+		m_texts[i].setTextScale( m_base_text.getTextScale() );
+		m_texts[i].setCharacterSize( scaled_char_size );
+	}
 }
 
 void FeListBox::update_styles()
@@ -826,6 +844,17 @@ void FeListBox::set_scale_factor( float scale_x, float scale_y )
 	m_scale_factor = ( scale_x > scale_y ) ? scale_x : scale_y;
 	if ( m_scale_factor <= 0.f )
 		m_scale_factor = 1.f;
+
+	update_text_metrics();
+	update_row_geometry();
+}
+
+void FeListBox::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+
+	update_text_metrics();
+	update_row_geometry();
 }
 
 void FeListBox::draw( sf::RenderTarget &target, sf::RenderStates states ) const
@@ -938,7 +967,7 @@ int FeListBox::get_sel_outline_alpha()
 	return getSelOutlineColor().a;
 }
 
-int FeListBox::get_charsize()
+float FeListBox::get_charsize()
 {
 	return m_userCharSize;
 }
@@ -1004,10 +1033,12 @@ int FeListBox::get_type() const
 
 void FeListBox::set_no_margin( bool m )
 {
-	if ( m == m_base_text.getNoMargin() )
+	float margin = m ? 0.0f : -1.0f;
+	if ( margin == m_userMargin )
 		return;
 
-	m_base_text.setNoMargin( m );
+	m_userMargin = margin;
+	update_margin();
 
 	if ( m_scripted )
 		FePresent::script_do_update( this );
@@ -1015,23 +1046,40 @@ void FeListBox::set_no_margin( bool m )
 
 bool FeListBox::get_no_margin()
 {
-	return m_base_text.getNoMargin();
+	return ( m_userMargin >= 0.0f );
 }
 
-void FeListBox::set_margin( int m )
+void FeListBox::set_margin( float m )
 {
-	if ( m == m_base_text.getMargin() )
+	float margin = ( m < 0.0f ) ? -1.0f : m;
+	if ( margin == m_userMargin )
 		return;
 
-	m_base_text.setMargin( m );
+	m_userMargin = margin;
+	update_margin();
 
 	if ( m_scripted )
 		FePresent::script_do_update( this );
 }
 
-int FeListBox::get_margin()
+float FeListBox::get_margin()
 {
-	return m_base_text.getMargin();
+	return m_userMargin;
+}
+
+void FeListBox::update_margin()
+{
+	int margin = -1;
+	if ( m_userMargin >= 0.0f )
+	{
+		float margin_pixels = m_scripted ? grid_height_to_pixels( m_userMargin ) : m_userMargin;
+		margin = static_cast<int>( std::round( std::max( 0.0f, margin_pixels )));
+	}
+
+	m_base_text.setMargin( margin );
+
+	for ( int i=0; i < getRowCount(); i++ )
+		m_texts[i].setMargin( margin );
 }
 
 void FeListBox::setBgColor( sf::Color c )
@@ -1083,7 +1131,7 @@ void FeListBox::set_bg_rgb( int r, int g, int b, int a )
 	setBgColor(sf::Color( r, g, b, a ));
 }
 
-void FeListBox::set_charsize(int s)
+void FeListBox::set_charsize(float s)
 {
 	if ( s == m_userCharSize )
 		return;

@@ -232,7 +232,7 @@ public:
 	static void cb_remove_signal_handler( Sqrat::Object, const char *);
 	static void cb_remove_signal_handler( const char * );
 	static bool cb_get_input_state( const char *input );
-	static int cb_get_input_pos( const char *input );
+	static float cb_get_input_pos( const char *input );
 	static bool do_nut(const char *);
 	static bool load_module( const char *module_file );
 	static void print_to_console( const char *str );

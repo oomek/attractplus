@@ -123,6 +123,27 @@ sf::Vector2f FeBasePresentable::convert_size( const sf::Vector2f &s ) const
 	}
 }
 
+float FeBasePresentable::grid_height_to_pixels( float s ) const
+{
+	return convert_size( sf::Vector2f( 0, s )).y;
+}
+
+float FeBasePresentable::pixels_to_grid_height( float s ) const
+{
+	FeCoordinateSpace space = m_parent ? m_parent->get_coordinate_space( get_grid_uniform() ) : FeCoordinateSpace();
+
+	switch ( get_grid() )
+	{
+		case GridNormalised:
+			return space.size.y != 0.0f ? s / space.size.y : 0.0f;
+		case GridPercent:
+			return space.size.y != 0.0f ? s * 100.0f / space.size.y : 0.0f;
+		case GridPixel:
+		default:
+			return s;
+	}
+}
+
 int FeBasePresentable::getIndexOffset() const
 {
 	return 0;

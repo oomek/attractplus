@@ -84,8 +84,11 @@ private:
 	bool m_grid_uniform;
 	bool m_script_geometry_set;
 
+protected:
 	sf::Vector2f convert_position( const sf::Vector2f &p ) const;
 	sf::Vector2f convert_size( const sf::Vector2f &s ) const;
+	float grid_height_to_pixels( float s ) const;
+	float pixels_to_grid_height( float s ) const;
 
 public:
 	FeBasePresentable( FePresentableParent &p );
@@ -131,7 +134,7 @@ public:
 	void set_grid_uniform( bool u );
 	void set_parent( FePresentableParent &p );
 	void set_script_geometry( float x, float y, float w, float h );
-	void refresh_script_geometry();
+	virtual void refresh_script_geometry();
 
 	int get_r() const;
 	int get_g() const;

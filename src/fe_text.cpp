@@ -25,6 +25,8 @@
 #include "fe_util.hpp"
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 
 FeText::FeText( FePresentableParent &p, const std::string &str,
@@ -35,6 +37,7 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	m_index_offset( 0 ),
 	m_filter_offset( 0 ),
 	m_user_charsize( -1 ),
+	m_user_margin( -1 ),
 	m_size( w, h ),
 	m_position( x, y ),
 	m_transform_origin( 0.f, 0.f ),
@@ -302,14 +305,29 @@ void FeText::on_new_list( FeSettings *s )
 
 void FeText::update_font_size()
 {
-	int char_size = 8 * m_scale_factor;
+	float char_size = 8.0f;
 	if ( m_user_charsize > 0 )
-		char_size = m_user_charsize * m_scale_factor;
+		char_size = grid_height_to_pixels( m_user_charsize );
 	else if ( m_size.y > 12 )
-		char_size = ( m_size.y - 4 ) * m_scale_factor;
+		char_size = m_size.y - 4;
+
+	unsigned int scaled_char_size = static_cast<unsigned int>(
+		std::round( std::max( 1.0f, char_size * m_scale_factor )));
 
 	m_draw_text.setTextScale( sf::Vector2f( 1.f / m_scale_factor, 1.f / m_scale_factor ) );
-	m_draw_text.setCharacterSize( char_size );
+	m_draw_text.setCharacterSize( scaled_char_size );
+}
+
+void FeText::update_margin()
+{
+	if ( m_user_margin < 0 )
+	{
+		m_draw_text.setMargin( -1 );
+		return;
+	}
+
+	m_draw_text.setMargin( static_cast<int>(
+		std::round( std::max( 0.0f, grid_height_to_pixels( m_user_margin )))));
 }
 
 void FeText::update_transform()
@@ -347,6 +365,16 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 	m_scale_factor = ( scale_x > scale_y ) ? scale_x : scale_y;
 	if ( m_scale_factor <= 0.f )
 		m_scale_factor = 1.f;
+
+	update_font_size();
+	update_margin();
+}
+
+void FeText::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	update_font_size();
+	update_margin();
 }
 
 void FeText::draw( sf::RenderTarget &target, sf::RenderStates states ) const
@@ -375,24 +403,30 @@ bool FeText::get_word_wrap()
 
 void FeText::set_no_margin( bool m )
 {
-	m_draw_text.setNoMargin( m );
+	m_user_margin = m ? 0.0f : -1.0f;
+	update_margin();
 	FePresent::script_do_update( this );
 }
 
 bool FeText::get_no_margin()
 {
-	return m_draw_text.getNoMargin();
+	return ( m_user_margin >= 0.0f );
 }
 
-void FeText::set_margin( int m )
+void FeText::set_margin( float m )
 {
-	m_draw_text.setMargin( m );
+	float margin = ( m < 0.0f ) ? -1.0f : m;
+	if ( margin == m_user_margin )
+		return;
+
+	m_user_margin = margin;
+	update_margin();
 	FePresent::script_do_update( this );
 }
 
-int FeText::get_margin()
+float FeText::get_margin()
 {
-	return m_draw_text.getMargin();
+	return m_user_margin;
 }
 
 void FeText::set_outline( float t )
@@ -538,12 +572,12 @@ int FeText::get_outline_alpha()
 	return m_draw_text.getOutlineColor().a;
 }
 
-int FeText::get_charsize()
+float FeText::get_charsize()
 {
 	if ( m_user_charsize > 0 )
 		return m_user_charsize;
 
-	return m_draw_text.getCharacterSize();
+	return pixels_to_grid_height( m_draw_text.getCharacterSize() );
 }
 
 int FeText::get_glyph_size()
@@ -726,7 +760,7 @@ void FeText::set_outline_rgb( int r, int g, int b, int a )
 	}
 }
 
-void FeText::set_charsize(int s)
+void FeText::set_charsize(float s)
 {
 	if ( s != m_user_charsize )
 	{

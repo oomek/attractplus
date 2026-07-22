@@ -90,8 +90,8 @@ public:
 
 	void set_no_margin( bool );
 	bool get_no_margin();
-	void set_margin( int );
-	int get_margin();
+	void set_margin( float );
+	float get_margin();
 	void set_outline( float );
 	float get_outline();
 	void set_bg_outline( float );
@@ -123,7 +123,7 @@ public:
 	int get_outline_green();
 	int get_outline_blue();
 	int get_outline_alpha();
-	int get_charsize();
+	float get_charsize();
 	int get_glyph_size();
 	float get_spacing();
 	float get_line_spacing();
@@ -152,7 +152,7 @@ public:
 	void set_bg_outline_rgb( int, int, int, int );
 	void set_outline_rgb( int, int, int );
 	void set_outline_rgb( int, int, int, int );
-	void set_charsize(int s);
+	void set_charsize(float s);
 	void set_spacing(float s);
 	void set_line_spacing(float s);
 	void set_style(int s);
@@ -162,6 +162,7 @@ public:
 	void set_font(const char *f);
 	int get_type() const;
 	bool get_magic() const;
+	void refresh_script_geometry() override;
 
 protected:
 	void draw( sf::RenderTarget &target, sf::RenderStates states ) const;
@@ -171,6 +172,7 @@ private:
 	FeText &operator=( const FeText & );
 
 	void update_font_size();
+	void update_margin();
 	void update_transform();
 
 	FeTextPrimitive m_draw_text;
@@ -179,7 +181,8 @@ private:
 	std::string m_font_name;
 	int m_index_offset;
 	int m_filter_offset;
-	int m_user_charsize;	 	// -1 if no charsize specified
+	float m_user_charsize;	 	// -1 if no charsize specified
+	float m_user_margin;	 	// -1 if automatic margin is used
 	sf::Vector2f m_size;		// unscaled size
 	sf::Vector2f m_position;	// unscaled position
 	sf::Vector2f m_transform_origin;

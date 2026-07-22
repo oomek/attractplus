@@ -1005,6 +1005,47 @@ sf::Vector2f FePresent::get_layout_grid_offset( bool uniform ) const
 	}
 }
 
+sf::Vector2f FePresent::window_to_layout_grid_pos( const sf::Vector2i &pos ) const
+{
+	sf::Vector2f layout_pos = m_layout_transform.getInverse().transformPoint( sf::Vector2f( pos ));
+
+	switch ( m_grid )
+	{
+		case GridNormalised:
+		case GridPercent:
+		{
+			sf::Vector2f parent_size( m_layoutSize );
+			sf::Vector2f space_origin( 0, 0 );
+			sf::Vector2f space_size = parent_size;
+
+			if ( m_grid_uniform )
+			{
+				float side = std::min( parent_size.x, parent_size.y );
+				space_size = sf::Vector2f( side, side );
+				space_origin = sf::Vector2f(
+					( parent_size.x - space_size.x ) / 2.0f,
+					( parent_size.y - space_size.y ) / 2.0f );
+			}
+
+			layout_pos -= space_origin + get_layout_grid_offset( m_grid_uniform );
+
+			if ( m_grid == GridNormalised )
+			{
+				return sf::Vector2f(
+					space_size.x != 0.0f ? layout_pos.x / space_size.x : 0.0f,
+					space_size.y != 0.0f ? layout_pos.y / space_size.y : 0.0f );
+			}
+
+			return sf::Vector2f(
+				space_size.x != 0.0f ? layout_pos.x * 100.0f / space_size.x : 0.0f,
+				space_size.y != 0.0f ? layout_pos.y * 100.0f / space_size.y : 0.0f );
+		}
+		case GridPixel:
+		default:
+			return layout_pos - get_layout_grid_offset( false );
+	}
+}
+
 void FePresent::set_layout_grid_offset_x( float x )
 {
 	set_layout_grid_offset( x, m_grid_offset.y );

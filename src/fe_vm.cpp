@@ -1492,7 +1492,7 @@ bool FeVM::on_new_layout()
 	fe.Overload<void (*)(const char *)>(_SC("remove_signal_handler"), &FeVM::cb_remove_signal_handler);
 	fe.Overload<void (*)(Object, const char *)>(_SC("remove_signal_handler"), &FeVM::cb_remove_signal_handler);
 	fe.Func<bool (*)(const char *)>(_SC("get_input_state"), &FeVM::cb_get_input_state);
-	fe.Func<int (*)(const char *)>(_SC("get_input_pos"), &FeVM::cb_get_input_pos);
+	fe.Func<float (*)(const char *)>(_SC("get_input_pos"), &FeVM::cb_get_input_pos);
 	fe.Func<bool (*)(const char *)>(_SC("do_nut"), &FeVM::do_nut);
 	fe.Func<bool (*)(const char *)>(_SC("load_module"), &FeVM::load_module);
 	fe.Func<void (*)(const char *)>(_SC("log"), &FeVM::print_to_console);
@@ -2959,10 +2959,22 @@ bool FeVM::cb_get_input_state( const char *input )
 	return FeInputMapEntry( input ).get_current_state( fev->m_feSettings->get_joy_thresh() );
 }
 
-int FeVM::cb_get_input_pos( const char *input )
+float FeVM::cb_get_input_pos( const char *input )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	if ( !input )
+		return 0.0f;
+
+	bool mouse_x = ( strcmp( input, "Mouse Left" ) == 0 ) || ( strcmp( input, "Mouse Right" ) == 0 );
+	bool mouse_y = ( strcmp( input, "Mouse Up" ) == 0 ) || ( strcmp( input, "Mouse Down" ) == 0 );
+	if ( mouse_x || mouse_y )
+	{
+		sf::Vector2f pos = fev->window_to_layout_grid_pos(
+			sf::Mouse::getPosition( fev->m_window.get_win() ));
+		return mouse_x ? pos.x : pos.y;
+	}
+
 	return FeInputSingle( input ).get_current_pos( fev->m_window );
 }
 
