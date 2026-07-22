@@ -59,6 +59,7 @@ namespace
 		bool use_callback;
 		bool running;
 		float anim_start_val;
+		float anim_base_start_val;
 		float anim_to_val;
 		float prop_to_val;
 		float prop_last_val;
@@ -82,6 +83,13 @@ namespace
 		bool strength_set;
 		bool buffer_dirty;
 		float buffer[3];
+	};
+
+	struct FeAnimationParams
+	{
+		float time_ms;
+		float start_val;
+		float change_val;
 	};
 
 	const FeEaseFunc ease_functions[] =
@@ -408,6 +416,7 @@ namespace
 		animation.use_callback = false;
 		animation.running = false;
 		animation.anim_start_val = anim_val;
+		animation.anim_base_start_val = anim_val;
 		animation.anim_to_val = anim_val;
 		animation.prop_to_val = prop_val;
 		animation.prop_last_val = prop_val;
@@ -457,6 +466,46 @@ namespace
 		return std::fmod( t, animation.duration_ms );
 	}
 
+	FeAnimationParams get_animation_params(
+		const FeAnimationState &animation,
+		float time_ms,
+		bool complete_on_duration=false )
+	{
+		float total_duration = animation.duration_ms * animation.play_count;
+		int iteration = static_cast<int>( std::floor(
+			std::clamp( animation.time_ms, 0.0f, total_duration ) / animation.duration_ms ));
+		if ( complete_on_duration )
+			--iteration;
+
+		bool odd_iteration = ( iteration % 2 ) == 1;
+		bool reverse = ( animation.direction == Reverse )
+			|| ( animation.direction == Alternate && odd_iteration )
+			|| ( animation.direction == AlternateReverse && !odd_iteration );
+		bool inertia = animation.ease_id == EaseInertia;
+
+		if ( reverse && !inertia )
+			time_ms = animation.duration_ms - time_ms;
+
+		bool use_base_start = inertia
+			&& ( iteration == 0 )
+			&& ( animation.anim_base_start_val != animation.anim_start_val );
+		float start_val = use_base_start
+			? animation.anim_base_start_val
+			: animation.anim_start_val;
+		float to_val = animation.anim_to_val;
+
+		if ( reverse && inertia )
+		{
+			to_val = animation.anim_start_val;
+			if ( !use_base_start
+					|| ( animation.direction != AlternateReverse )
+					|| ( animation.play_count <= 1.0f ))
+				start_val = animation.anim_to_val;
+		}
+
+		return { time_ms, start_val, to_val - start_val };
+	}
+
 	FeAnimationState &get_animation_state(
 		FeBasePresentable *drawable,
 		const FeAnimateProperty *property )
@@ -483,27 +532,39 @@ namespace
 			&& ( animation.duration_ms > 0.0f );
 
 		float anim_start_val;
+		float anim_base_start_val;
 		if ( continuing && inertia )
 		{
-			anim_start_val = animation.ease(
-				get_animation_loop_time( animation ),
-				animation.anim_start_val,
-				animation.anim_to_val - animation.anim_start_val,
+			FeAnimationParams params = get_animation_params(
+				animation,
+				get_animation_loop_time( animation ));
+			anim_base_start_val = animation.ease(
+				params.time_ms,
+				params.start_val,
+				params.change_val,
 				animation.duration_ms );
+			anim_start_val = prop_start_val;
 		}
 		else if ( continuing )
+		{
 			anim_start_val = animation.current_val;
+			anim_base_start_val = anim_start_val;
+		}
 		else
+		{
 			anim_start_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_start_val );
+			anim_base_start_val = anim_start_val;
+		}
 
 		float anim_to_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_to_val );
 
 		animation.anim_start_val = anim_start_val;
+		animation.anim_base_start_val = anim_base_start_val;
 		animation.anim_to_val = anim_to_val;
 		animation.prop_to_val = prop_to_val;
 		animation.prop_last_val = prop_start_val;
 		animation.time_ms = 0.0f;
-		animation.current_val = ( continuing && inertia ) ? prop_start_val : anim_start_val;
+		animation.current_val = anim_start_val;
 		animation.buffer_dirty = !continuing || !inertia;
 
 		if (( anim_start_val == anim_to_val ) || ( animation.duration_ms <= 0.0f ))
@@ -1062,23 +1123,15 @@ bool FeAnimate::tick()
 		if ( next_time < prev_time ) animation.buffer_dirty = true;
 
 		bool complete_on_duration = !animation.running && next_time == animation.duration_ms;
-		int iteration = std::floor( std::clamp( animation.time_ms, 0.0f, total_duration ) / animation.duration_ms ) - ( complete_on_duration ? 1 : 0 );
-		bool odd_iteration = ( iteration % 2 ) == 1;
-		bool alternate = ( animation.direction == Reverse )
-			|| ( animation.direction == Alternate && odd_iteration )
-			|| ( animation.direction == AlternateReverse && !odd_iteration );
-		bool reverse = alternate && animation.ease_id != EaseInertia;
-		bool invert = alternate && animation.ease_id == EaseInertia;
-
-		float t = reverse ? animation.duration_ms - next_time : next_time;
-		float b = invert ? animation.anim_to_val : animation.anim_start_val;
-		float c = invert ? ( animation.anim_start_val - animation.anim_to_val ) : ( animation.anim_to_val - animation.anim_start_val );
-		float d = animation.duration_ms;
+		FeAnimationParams params = get_animation_params(
+			animation,
+			next_time,
+			complete_on_duration );
 
 		// TODO: cache the function like FeCallback does, or store in place of ease
 		float current_val = animation.use_callback
-			? Sqrat::Function( animation.obj, animation.slot.c_str() ).Evaluate<float>( t, b, c, d )
-			: apply_ease( animation, t, b, c, d );
+			? Sqrat::Function( animation.obj, animation.slot.c_str() ).Evaluate<float>( params.time_ms, params.start_val, params.change_val, animation.duration_ms )
+			: apply_ease( animation, params.time_ms, params.start_val, params.change_val, animation.duration_ms );
 
 		animation.current_val = current_val;
 		set_animation_value( animation, current_val );
