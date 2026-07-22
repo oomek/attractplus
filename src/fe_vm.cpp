@@ -845,6 +845,7 @@ bool FeVM::on_new_layout()
 		.Const( _SC("OS"), get_OS_string() )
 		.Const( _SC("ShadersAvailable"), sf::Shader::isAvailable() )
 		.Const( _SC("FeConfigDirectory"), m_feSettings->get_config_dir().c_str() )
+		.Const( _SC("Infinity"), std::numeric_limits<float>::infinity())
 #ifdef DATA_PATH
 		.Const( _SC("FeDataDirectory"), DATA_PATH )
 #else
@@ -1009,6 +1010,12 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Playing"), FePlaybackStatusPlaying )
 			.Const( _SC("Ended"), FePlaybackStatusEnded )
 			)
+		.Enum( _SC("Direction"), Enumeration()
+			.Const( _SC("Normal"), FeDirection::Normal )
+			.Const( _SC("Reverse"), FeDirection::Reverse )
+			.Const( _SC("Alternate"), FeDirection::Alternate )
+			.Const( _SC("AlternateReverse"), FeDirection::AlternateReverse )
+			)
 		;
 	register_ease_enum();
 
@@ -1064,7 +1071,8 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("y2"), &FeAnimation::get_y2, &FeAnimation::set_y2 )
 		.Prop(_SC("steps"), &FeAnimation::get_steps, &FeAnimation::set_steps )
 		.Prop(_SC("jump"), &FeAnimation::get_jump, &FeAnimation::set_jump )
-		.Prop(_SC("repeat"), &FeAnimation::get_repeat, &FeAnimation::set_repeat )
+		.Prop(_SC("play_count"), &FeAnimation::get_play_count, &FeAnimation::set_play_count )
+		.Prop(_SC("direction"), &FeAnimation::get_direction, &FeAnimation::set_direction )
 		.Prop(_SC("running"), &FeAnimation::get_running )
 	);
 

@@ -75,10 +75,12 @@ namespace
 		float y2;
 		float steps;
 		int jump;
-		bool repeat;
+		int direction;
+		float play_count;
 		bool period_set;
 		bool amplitude_set;
 		bool strength_set;
+		bool buffer_dirty;
 		float buffer[3];
 	};
 
@@ -226,6 +228,14 @@ namespace
 			|| ( jump == JumpBoth );
 	}
 
+	bool is_valid_direction( int dir )
+	{
+		return ( dir == Normal )
+			|| ( dir == Reverse )
+			|| ( dir == Alternate )
+			|| ( dir == AlternateReverse );
+	}
+
 	int new_animation_id()
 	{
 		static int next_id = 1;
@@ -272,6 +282,11 @@ namespace
 				if ( fep && ( fep->get_layout_frame_time() > 0.0f ))
 					refresh_rate = 1000.0f / fep->get_layout_frame_time();
 
+				if ( animation.buffer_dirty )
+				{
+					animation.buffer_dirty = false;
+					SqEase::reset_inertia( animation.buffer, b );
+				}
 				return SqEase::inertia( t, b, c, d, animation.mass, refresh_rate, animation.buffer );
 			}
 
@@ -409,14 +424,37 @@ namespace
 		animation.y2 = 1.0f;
 		animation.steps = 1.0f;
 		animation.jump = JumpEnd;
-		animation.repeat = false;
+		animation.direction = Normal;
+		animation.play_count = 1.0f;
 		animation.period_set = false;
 		animation.amplitude_set = false;
 		animation.strength_set = false;
-		SqEase::reset_inertia( animation.buffer, anim_val );
+		animation.buffer_dirty = true;
 
 		list.push_back( animation );
 		return list.back();
+	}
+
+	// Returns animation time for the current iteration
+	// - (0 <= value < duration) for each iteration
+	// - (value == duration) for final iteration
+	float get_animation_loop_time( FeAnimationState animation ) {
+		if ( animation.play_count == 0.0f )
+			return 0.f;
+
+		float total_duration = animation.duration_ms * animation.play_count;
+		float t = std::clamp( animation.time_ms, 0.0f, total_duration );
+
+		// if running return looped time (NOTE: never actually hits duration)
+		if ( t < total_duration )
+			return std::fmod( t, animation.duration_ms );
+
+		// if complete (and integral play count) return final duration
+		if ( std::fmod( animation.play_count, 1.0f ) == 0.0f )
+			return animation.duration_ms;
+
+		// if complate (and fractional play count) return fractional duration
+		return std::fmod( t, animation.duration_ms );
 	}
 
 	FeAnimationState &get_animation_state(
@@ -447,14 +485,8 @@ namespace
 		float anim_start_val;
 		if ( continuing && inertia )
 		{
-			float elapsed = animation.time_ms;
-			if ( elapsed < 0.0f )
-				elapsed = 0.0f;
-			if ( elapsed > animation.duration_ms )
-				elapsed = animation.duration_ms;
-
 			anim_start_val = animation.ease(
-				elapsed,
+				get_animation_loop_time( animation ),
 				animation.anim_start_val,
 				animation.anim_to_val - animation.anim_start_val,
 				animation.duration_ms );
@@ -472,9 +504,7 @@ namespace
 		animation.prop_last_val = prop_start_val;
 		animation.time_ms = 0.0f;
 		animation.current_val = ( continuing && inertia ) ? prop_start_val : anim_start_val;
-
-		if ( !continuing || !inertia )
-			SqEase::reset_inertia( animation.buffer, anim_start_val );
+		animation.buffer_dirty = !continuing || !inertia;
 
 		if (( anim_start_val == anim_to_val ) || ( animation.duration_ms <= 0.0f ))
 		{
@@ -508,7 +538,8 @@ FeAnimation::FeAnimation( int id )
 	m_y2( 1.0f ),
 	m_steps( 1.0f ),
 	m_jump( JumpEnd ),
-	m_repeat( false ),
+	m_play_count( 1.0f ),
+	m_direction( Normal ),
 	m_period_set( false ),
 	m_amplitude_set( false ),
 	m_strength_set( false )
@@ -548,11 +579,7 @@ void FeAnimation::set_duration( float value )
 
 	FeAnimationState *animation = find_animation( m_id );
 	if ( animation )
-	{
 		animation->duration_ms = m_duration;
-		if ( animation->time_ms > animation->duration_ms )
-			animation->time_ms = animation->duration_ms;
-	}
 }
 
 float FeAnimation::get_time() const
@@ -566,11 +593,11 @@ void FeAnimation::set_time( float value )
 	if ( !std::isfinite( value ))
 		return;
 
-	m_time = std::max( 0.0f, value );
+	m_time = value;
 
 	FeAnimationState *animation = find_animation( m_id );
 	if ( animation )
-		animation->time_ms = std::min( m_time, animation->duration_ms );
+		animation->time_ms = m_time;
 }
 
 int FeAnimation::get_ease() const
@@ -783,19 +810,37 @@ void FeAnimation::set_jump( int value )
 		animation->jump = m_jump;
 }
 
-bool FeAnimation::get_repeat() const
+int FeAnimation::get_direction() const
 {
 	FeAnimationState *animation = find_animation( m_id );
-	return animation ? animation->repeat : m_repeat;
+	return animation ? animation->direction : m_direction;
 }
 
-void FeAnimation::set_repeat( bool value )
+void FeAnimation::set_direction( int value )
 {
-	m_repeat = value;
+	if ( !is_valid_direction( value ))
+		return;
+
+	m_direction = value;
 
 	FeAnimationState *animation = find_animation( m_id );
 	if ( animation )
-		animation->repeat = m_repeat;
+		animation->direction = m_direction;
+}
+
+float FeAnimation::get_play_count() const
+{
+	FeAnimationState *animation = find_animation( m_id );
+	return animation ? animation->play_count : m_play_count;
+}
+
+void FeAnimation::set_play_count( float value )
+{
+	m_play_count = std::max( 0.0f, value );
+
+	FeAnimationState *animation = find_animation( m_id );
+	if ( animation )
+		animation->play_count = m_play_count;
 }
 
 bool FeAnimation::get_running() const
@@ -1009,31 +1054,25 @@ bool FeAnimate::tick()
 			animation.property->name,
 			animation.prop_to_val );
 
+		float total_duration = animation.duration_ms * animation.play_count;
+		float prev_time = get_animation_loop_time( animation );
 		animation.time_ms += frame_ms;
+		animation.running = animation.time_ms < total_duration;
+		float next_time = get_animation_loop_time( animation );
+		if ( next_time < prev_time ) animation.buffer_dirty = true;
 
-		if ( animation.time_ms > animation.duration_ms )
-		{
-			float next_val = animation.repeat ? animation.anim_start_val : animation.prop_to_val;
-			set_animation_value( animation, next_val, true );
-			animation.current_val = animation.repeat ? animation.anim_start_val : animation.anim_to_val;
-			animation.prop_last_val = animation.property->get( animation.drawable );
-			animation.running = animation.repeat;
-			if ( animation.repeat )
-			{
-				animation.time_ms = 0.0f;
-				SqEase::reset_inertia( animation.buffer, animation.anim_start_val );
-			}
-			else
-				animation.time_ms = animation.duration_ms;
+		bool complete_on_duration = !animation.running && next_time == animation.duration_ms;
+		int iteration = std::floor( std::clamp( animation.time_ms, 0.0f, total_duration ) / animation.duration_ms ) - ( complete_on_duration ? 1 : 0 );
+		bool odd_iteration = ( iteration % 2 ) == 1;
+		bool alternate = ( animation.direction == Reverse )
+			|| ( animation.direction == Alternate && odd_iteration )
+			|| ( animation.direction == AlternateReverse && !odd_iteration );
+		bool reverse = alternate && animation.ease_id != EaseInertia;
+		bool invert = alternate && animation.ease_id == EaseInertia;
 
-			redraw = true;
-			++i;
-			continue;
-		}
-
-		float t = animation.time_ms;
-		float b = animation.anim_start_val;
-		float c = animation.anim_to_val - animation.anim_start_val;
+		float t = reverse ? animation.duration_ms - next_time : next_time;
+		float b = invert ? animation.anim_to_val : animation.anim_start_val;
+		float c = invert ? ( animation.anim_start_val - animation.anim_to_val ) : ( animation.anim_to_val - animation.anim_start_val );
 		float d = animation.duration_ms;
 
 		// TODO: cache the function like FeCallback does, or store in place of ease

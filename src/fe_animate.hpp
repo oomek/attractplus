@@ -30,6 +30,14 @@
 
 class FeBasePresentable;
 
+enum FeDirection
+{
+	Normal = 0,
+	Reverse,
+	Alternate,
+	AlternateReverse
+};
+
 enum FeEase
 {
 	EaseLinear = 0,
@@ -128,8 +136,10 @@ public:
 	void set_steps( float value );
 	int get_jump() const;
 	void set_jump( int value );
-	bool get_repeat() const;
-	void set_repeat( bool value );
+	float get_play_count() const;
+	void set_play_count( float value );
+	int get_direction() const;
+	void set_direction( int value );
 	bool get_running() const;
 
 private:
@@ -148,7 +158,8 @@ private:
 	float m_y2;
 	float m_steps;
 	int m_jump;
-	bool m_repeat;
+	int m_direction;
+	float m_play_count;
 	bool m_period_set;
 	bool m_amplitude_set;
 	bool m_strength_set;
