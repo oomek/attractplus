@@ -85,11 +85,12 @@ namespace
 		float buffer[3];
 	};
 
-	struct FeAnimationParams
+	struct FeEaseParams
 	{
-		float time_ms;
-		float start_val;
-		float change_val;
+		float t;
+		float b;
+		float c;
+		float d;
 	};
 
 	const FeEaseFunc ease_functions[] =
@@ -466,7 +467,7 @@ namespace
 		return std::fmod( t, animation.duration_ms );
 	}
 
-	FeAnimationParams get_animation_params(
+	FeEaseParams get_ease_params(
 		const FeAnimationState &animation,
 		float time_ms,
 		bool complete_on_duration=false )
@@ -503,7 +504,7 @@ namespace
 				start_val = animation.anim_to_val;
 		}
 
-		return { time_ms, start_val, to_val - start_val };
+		return { time_ms, start_val, to_val - start_val, animation.duration_ms };
 	}
 
 	FeAnimationState &get_animation_state(
@@ -535,14 +536,10 @@ namespace
 		float anim_base_start_val;
 		if ( continuing && inertia )
 		{
-			FeAnimationParams params = get_animation_params(
+			FeEaseParams params = get_ease_params(
 				animation,
 				get_animation_loop_time( animation ));
-			anim_base_start_val = animation.ease(
-				params.time_ms,
-				params.start_val,
-				params.change_val,
-				animation.duration_ms );
+			anim_base_start_val = animation.ease( params.t, params.b, params.c, params.d );
 			anim_start_val = prop_start_val;
 		}
 		else if ( continuing )
@@ -1123,15 +1120,15 @@ bool FeAnimate::tick()
 		if ( next_time < prev_time ) animation.buffer_dirty = true;
 
 		bool complete_on_duration = !animation.running && next_time == animation.duration_ms;
-		FeAnimationParams params = get_animation_params(
+		FeEaseParams params = get_ease_params(
 			animation,
 			next_time,
 			complete_on_duration );
 
 		// TODO: cache the function like FeCallback does, or store in place of ease
 		float current_val = animation.use_callback
-			? Sqrat::Function( animation.obj, animation.slot.c_str() ).Evaluate<float>( params.time_ms, params.start_val, params.change_val, animation.duration_ms )
-			: apply_ease( animation, params.time_ms, params.start_val, params.change_val, animation.duration_ms );
+			? Sqrat::Function( animation.obj, animation.slot.c_str() ).Evaluate<float>( params.t, params.b, params.c, params.d )
+			: apply_ease( animation, params.t, params.b, params.c, params.d );
 
 		animation.current_val = current_val;
 		set_animation_value( animation, current_val );
