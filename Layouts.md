@@ -2650,7 +2650,7 @@ anim.to = 50
 
 -  `to` - [number] Final value. Assigning this sets a new value to animate toward.
 -  `duration` - [number] Animation duration in milliseconds.
--  `time` - [number] Current animation time in milliseconds. Setting this changes the animation playhead.
+-  `time` - [number] Get/set the animation playhead in milliseconds. Negative values delay the animation start.
 -  `ease` - One of the `Ease` constants below.
 -  `mass` - [number] Inertia filter mass for `Ease.Inertia`. Values are in the range `[0.0...1.0]`.
 -  `period` - [number] Period override for `Ease.*Bounce2`, `Ease.*Elastic` and `Ease.*Elastic2`.
@@ -2659,7 +2659,12 @@ anim.to = 50
 -  `x1`, `y1`, `x2`, `y2` - [number] Cubic Bezier control points for `Ease.Bezier`.
 -  `steps` - [number] Number of steps for `Ease.Steps`. Values lower than `1` become `1`.
 -  `jump` - Step position for `Ease.Steps`. May be one of the `Jump` constants.
--  `repeat` - [bool] Restart the animation when it completes.
+-  `play_count` - [number] Number of times to play the animation. May be fractional, or `Infinite`. Default is `1.0`.
+-  `direction` - The direction of the animation. This can be one of the following values:
+   - `Direction.Normal` (default) - Animate from the current value towards the `to` value.
+   - `Direction.Reverse` - Animate from the `to` value towards the current value.
+   - `Direction.Alternate` - Alternate between `Normal` and `Reverse` for each iteration (requires `play_count` > `1.0`).
+   - `Direction.AlternateReverse` - Alternate between `Reverse` and `Normal` for each iteration (requires `play_count` > `1.0`).
 -  `running` - [bool] `true` while the animation is still active.
 
 **Supported Properties**
