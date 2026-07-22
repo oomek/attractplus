@@ -310,6 +310,7 @@ public:
 
 	const sf::Vector2i &get_layout_size() const { return m_layoutSize; }
 	const sf::Vector2i get_screen_size();
+	sf::Vector2f window_to_layout_grid_pos( const sf::Vector2i &pos ) const;
 	FeShader *get_empty_shader();
 
 	// Returns true if a script has set custom overlay controls.
