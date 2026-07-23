@@ -122,6 +122,14 @@ namespace
 				<< sf::Joystick::getIdentification(i).name.toAnsiString()
 				<< ")" << std::endl;
 	}
+
+	bool input_releases_later( const sf::Event &e )
+	{
+		return e.is<sf::Event::KeyPressed>()
+			|| e.is<sf::Event::JoystickButtonPressed>()
+			|| e.is<sf::Event::MouseButtonPressed>()
+			|| e.is<sf::Event::JoystickMoved>();
+	}
 };
 
 sf::Vector2i FeInputMouse::m_pos_last = { INT_MAX, INT_MAX };
@@ -1168,13 +1176,15 @@ void FeInputMap::on_joystick_connect()
 	joy_raw_map_init( m_joy_config );
 }
 
-FeInputMap::Command FeInputMap::get_command_from_tracked_keys() const
+FeInputMap::Command FeInputMap::get_command_from_tracked_keys( const FeInputSingle &trigger ) const
 {
 	FeInputMap::Command retval = FeInputMap::LAST_COMMAND;
 
 	// Rank is the number of inputs a command requires (ie: key combos)
 	// - Commands with higher ranks will be chosen over lower ones
 	size_t rank = 0;
+
+	bool use_trigger = ( trigger.get_type() != FeInputSingle::Unsupported );
 
 	for ( std::set<FeInputSingle>::iterator itt = m_tracked_keys.begin(); itt != m_tracked_keys.end(); ++itt )
 	{
@@ -1195,6 +1205,9 @@ FeInputMap::Command FeInputMap::get_command_from_tracked_keys() const
 		{
 			bool found = true;
 			size_t it_rank = (*itv)->inputs.size();
+
+			if ( use_trigger && ((*itv)->inputs.find( trigger ) == (*itv)->inputs.end()) )
+				continue;
 
 			// Exit early if this command is outranked
 			if ( it_rank <= rank ) continue;
@@ -1271,12 +1284,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 			}
 
 			if ( itr != m_tracked_keys.end() )
-			{
-				FeInputMap::Command c = get_command_from_tracked_keys();
 				m_tracked_keys.erase( itr );
-				if ( c != LAST_COMMAND )
-					return c;
-			}
 		}
 	}
 
@@ -1288,12 +1296,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 		if ( itr != m_tracked_keys.end() )
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
 			m_tracked_keys.erase( itr );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
 	}
 
 	// Joystick button has been released
@@ -1304,12 +1307,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 		if ( itr != m_tracked_keys.end() )
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
 			m_tracked_keys.erase( itr );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
 	}
 
 	// Mouse button has been released
@@ -1320,25 +1318,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
 		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
 		if ( itr != m_tracked_keys.end() )
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
 			m_tracked_keys.erase( itr );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
-	}
-
-	// Touch event has ended
-	else if ( e.is<sf::Event::TouchEnded>() )
-	{
-		if ( m_single_map.find( index ) != m_single_map.end() )
-		{
-			m_tracked_keys.insert( index );
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			m_tracked_keys.erase( index );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
 	}
 
 	// Ignore unsupported input
@@ -1352,30 +1332,16 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	if ( it == m_single_map.end() )
 		return LAST_COMMAND;
 
-	// Add any other mapped key to the list
-	m_tracked_keys.insert( index );
+	// Add the mapped input and trigger as soon as the full mapping is down.
+	bool new_input = m_tracked_keys.insert( index ).second;
+	FeInputMap::Command c = new_input ? get_command_from_tracked_keys( index ) : LAST_COMMAND;
 
-	//
-	// Special case:
-	// If this is a repeatable command, trigger on the PRESS event.
-	// For everything else trigger on RELEASE.
-	//
-	std::vector<FeInputMapEntry*>::const_iterator itv;
-	for ( itv = (*it).second.begin(); itv != (*it).second.end(); ++itv )
-	{
-		FeInputMap::Command cmd = (*itv)->command;
-		if ( is_repeatable_command( cmd ) || ( is_ui_command( cmd ) && ( cmd != Back )))
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			if ( c != LAST_COMMAND )
-			{
-				m_tracked_keys.erase( index );
-				return c;
-			}
-		}
-	}
+	// Wheel, mouse movement, and touch gestures do not provide matching release
+	// events, so they cannot remain in the held-input tracker.
+	if ( !input_releases_later( e ) )
+		m_tracked_keys.erase( index );
 
-	return LAST_COMMAND;
+	return c;
 }
 
 FeInputMap::Command FeInputMap::input_conflict_check( const FeInputMapEntry &e )
