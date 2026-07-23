@@ -148,6 +148,7 @@ private:
 		FeInputMap::Command extra_exit
 	);
 
+	void wait_for_input_release( const std::vector<sf::Drawable *> &draw_list );
 	void init_event_loop( FeEventLoopCtx & );
 	bool event_loop( FeEventLoopCtx & );
 

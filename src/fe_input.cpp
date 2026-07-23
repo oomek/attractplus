@@ -1027,6 +1027,8 @@ bool my_sort_fn( FeInputMapEntry *a, FeInputMapEntry *b )
 
 void FeInputMap::initialize_mappings()
 {
+	clear_held_inputs();
+
 	if ( m_inputs.empty() )
 	{
 		//
@@ -1168,61 +1170,10 @@ void FeInputMap::on_joystick_connect()
 	joy_raw_map_init( m_joy_config );
 }
 
-FeInputMap::Command FeInputMap::get_command_from_tracked_keys() const
+void FeInputMap::clear_held_inputs()
 {
-	FeInputMap::Command retval = FeInputMap::LAST_COMMAND;
-
-	// Rank is the number of inputs a command requires (ie: key combos)
-	// - Commands with higher ranks will be chosen over lower ones
-	size_t rank = 0;
-
-	for ( std::set<FeInputSingle>::iterator itt = m_tracked_keys.begin(); itt != m_tracked_keys.end(); ++itt )
-	{
-		std::map<FeInputSingle, std::vector<FeInputMapEntry*>>::const_iterator it;
-		it = m_single_map.find( *itt );
-
-		if ( it == m_single_map.end() )
-		{
-			// this should not happen!
-			// it means an un-mapped key has been added to m_tracked_keys
-			ASSERT( 0 );
-			continue;
-		}
-
-		// Multiple commands may be mapped to a single key
-		std::vector<FeInputMapEntry*>::const_iterator itv;
-		for ( itv = (*it).second.begin(); itv != (*it).second.end(); ++itv )
-		{
-			bool found = true;
-			size_t it_rank = (*itv)->inputs.size();
-
-			// Exit early if this command is outranked
-			if ( it_rank <= rank ) continue;
-
-			// Check if all keys for this command are tracked
-			for ( std::set<FeInputSingle>::const_iterator its = (*itv)->inputs.begin(); its != (*itv)->inputs.end(); ++its )
-			{
-				if ( m_tracked_keys.find( *its ) == m_tracked_keys.end() )
-				{
-					found = false;
-					break;
-				}
-			}
-
-			// Select this command for return
-			if ( found ) {
-				retval = (*itv)->command;
-				rank = it_rank;
-			}
-		}
-	}
-
-	return retval;
-}
-
-void FeInputMap::clear_tracked_keys()
-{
-	m_tracked_keys.clear();
+	m_held_inputs.clear();
+	m_combo_consumed_inputs.clear();
 }
 
 void FeInputMap::clear()
@@ -1230,7 +1181,8 @@ void FeInputMap::clear()
 	m_single_map.clear();
 	m_inputs.clear();
 	m_defaults.clear();
-	m_tracked_keys.clear();
+	m_held_inputs.clear();
+	m_combo_consumed_inputs.clear();
 	m_joy_config.clear();
 	m_mmove_count = 0;
 }
@@ -1242,40 +1194,34 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	// Window focus has changed
 	if ( e.is<sf::Event::FocusLost>() || e.is<sf::Event::FocusGained>() )
 	{
-		clear_tracked_keys();
+		clear_held_inputs();
 	}
 
 	// Window has closed
 	if ( e.is<sf::Event::Closed>() )
 	{
-		clear_tracked_keys();
+		clear_held_inputs();
 		return ExitToDesktop;
 	}
 
+	std::set<FeInputSingle>::iterator released_itr = m_held_inputs.end();
+
 	// Joystick has moved
-	else if ( e.is<sf::Event::JoystickMoved>() )
+	if ( e.is<sf::Event::JoystickMoved>() )
 	{
 		if ( !index.get_current_state( joy_thresh ) )
 		{
 			const auto* event = e.getIf<sf::Event::JoystickMoved>();
 
-			// Special - released joystick needs to check for tracked pos/neg keys, since index will be empty
+			// Special - released joystick needs to check for held pos/neg keys, since index will be empty
 			sf::Event pos = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
 			FeInputSingle tt( pos, mc_rect, joy_thresh, has_focus );
-			std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
+			released_itr = m_held_inputs.find( tt );
 
-			if ( itr == m_tracked_keys.end() ) {
+			if ( released_itr == m_held_inputs.end() ) {
 				sf::Event neg = sf::Event::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
 				FeInputSingle tt( neg, mc_rect, joy_thresh, has_focus );
-				itr = m_tracked_keys.find( tt );
-			}
-
-			if ( itr != m_tracked_keys.end() )
-			{
-				FeInputMap::Command c = get_command_from_tracked_keys();
-				m_tracked_keys.erase( itr );
-				if ( c != LAST_COMMAND )
-					return c;
+				released_itr = m_held_inputs.find( tt );
 			}
 		}
 	}
@@ -1286,14 +1232,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		sf::Event te = e;
 		if ( const auto* key = e.getIf<sf::Event::KeyReleased>() ) te = sf::Event::KeyPressed{ key->code };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
-		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
-		if ( itr != m_tracked_keys.end() )
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			m_tracked_keys.erase( itr );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
+		released_itr = m_held_inputs.find( tt );
 	}
 
 	// Joystick button has been released
@@ -1302,14 +1241,7 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		sf::Event te = e;
 		if ( const auto* joy = e.getIf<sf::Event::JoystickButtonReleased>() ) te = sf::Event::JoystickButtonPressed{ joy->joystickId, joy->button };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
-		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
-		if ( itr != m_tracked_keys.end() )
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			m_tracked_keys.erase( itr );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
+		released_itr = m_held_inputs.find( tt );
 	}
 
 	// Mouse button has been released
@@ -1318,26 +1250,44 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 		sf::Event te = e;
 		if ( const auto* mouse = e.getIf<sf::Event::MouseButtonReleased>() ) te = sf::Event::MouseButtonPressed{ mouse->button };
 		FeInputSingle tt( te, mc_rect, joy_thresh, has_focus );
-		std::set<FeInputSingle>::iterator itr = m_tracked_keys.find( tt );
-		if ( itr != m_tracked_keys.end() )
-		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			m_tracked_keys.erase( itr );
-			if ( c != LAST_COMMAND )
-				return c;
-		}
+		released_itr = m_held_inputs.find( tt );
 	}
 
-	// Touch event has ended
-	else if ( e.is<sf::Event::TouchEnded>() )
+	if ( released_itr != m_held_inputs.end() )
 	{
-		if ( m_single_map.find( index ) != m_single_map.end() )
+		FeInputSingle released_input = *released_itr;
+		m_held_inputs.erase( released_itr );
+
+		if ( m_combo_consumed_inputs.erase( released_input ) > 0 )
+			return LAST_COMMAND;
+
+		std::map<FeInputSingle, std::vector<FeInputMapEntry*>>::const_iterator released_map;
+		released_map = m_single_map.find( released_input );
+		if ( released_map != m_single_map.end() )
 		{
-			m_tracked_keys.insert( index );
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			m_tracked_keys.erase( index );
-			if ( c != LAST_COMMAND )
-				return c;
+			const FeInputMapEntry *single_input_mapping = nullptr;
+			bool has_combo_mapping = false;
+
+			std::vector<FeInputMapEntry*>::const_iterator itv;
+			for ( itv = (*released_map).second.begin(); itv != (*released_map).second.end(); ++itv )
+			{
+				if ( (*itv)->inputs.size() == 1 )
+				{
+					if ( !single_input_mapping )
+						single_input_mapping = *itv;
+				}
+				else
+					has_combo_mapping = true;
+			}
+
+			if ( single_input_mapping && has_combo_mapping )
+			{
+				Command command = single_input_mapping->command;
+				bool is_direction = is_ui_command( command ) && ( command != Back );
+
+				if ( !is_repeatable_command( command ) && !is_direction )
+					return command;
+			}
 		}
 	}
 
@@ -1352,30 +1302,128 @@ FeInputMap::Command FeInputMap::map_input( const sf::Event &e, const sf::IntRect
 	if ( it == m_single_map.end() )
 		return LAST_COMMAND;
 
-	// Add any other mapped key to the list
-	m_tracked_keys.insert( index );
+	// Combo inputs fire when the final input is pressed. Repeatable navigation
+	// still fires on its own press, so it can keep repeating.
+	bool new_input = m_held_inputs.insert( index ).second;
+	const FeInputMapEntry *single_input_mapping = nullptr;
+	const FeInputMapEntry *combo_mapping = nullptr;
+	bool has_combo_mapping = false;
 
-	//
-	// Special case:
-	// If this is a repeatable command, trigger on the PRESS event.
-	// For everything else trigger on RELEASE.
-	//
 	std::vector<FeInputMapEntry*>::const_iterator itv;
 	for ( itv = (*it).second.begin(); itv != (*it).second.end(); ++itv )
 	{
-		FeInputMap::Command cmd = (*itv)->command;
-		if ( is_repeatable_command( cmd ) || ( is_ui_command( cmd ) && ( cmd != Back )))
+		if ( (*itv)->inputs.size() == 1 )
 		{
-			FeInputMap::Command c = get_command_from_tracked_keys();
-			if ( c != LAST_COMMAND )
+			if ( !single_input_mapping )
+				single_input_mapping = *itv;
+		}
+		else
+			has_combo_mapping = true;
+	}
+
+	if ( new_input )
+	{
+		size_t longest_input_count = 1;
+
+		for ( std::set<FeInputSingle>::iterator itt = m_held_inputs.begin(); itt != m_held_inputs.end(); ++itt )
+		{
+			std::map<FeInputSingle, std::vector<FeInputMapEntry*>>::const_iterator held_map;
+			held_map = m_single_map.find( *itt );
+			if ( held_map == m_single_map.end() )
 			{
-				m_tracked_keys.erase( index );
-				return c;
+				ASSERT( 0 );
+				continue;
+			}
+
+			for ( itv = (*held_map).second.begin(); itv != (*held_map).second.end(); ++itv )
+			{
+				bool found = true;
+				bool blocked = false;
+				size_t input_count = (*itv)->inputs.size();
+
+				if ((*itv)->inputs.find( index ) == (*itv)->inputs.end() )
+					continue;
+
+				if ( input_count <= longest_input_count )
+					continue;
+
+				for ( std::set<FeInputSingle>::const_iterator its = (*itv)->inputs.begin(); its != (*itv)->inputs.end(); ++its )
+				{
+					if ( m_held_inputs.find( *its ) == m_held_inputs.end() )
+					{
+						found = false;
+						break;
+					}
+
+					if ( *its == index )
+						continue;
+
+					std::map<FeInputSingle, std::vector<FeInputMapEntry*>>::const_iterator held_input_map;
+					held_input_map = m_single_map.find( *its );
+					if ( held_input_map == m_single_map.end() )
+						continue;
+
+					const FeInputMapEntry *held_single_input_mapping = nullptr;
+					std::vector<FeInputMapEntry*>::const_iterator held_itv;
+					for ( held_itv = (*held_input_map).second.begin(); held_itv != (*held_input_map).second.end(); ++held_itv )
+					{
+						if ( (*held_itv)->inputs.size() == 1 )
+						{
+							held_single_input_mapping = *held_itv;
+							break;
+						}
+					}
+
+					if ( held_single_input_mapping )
+					{
+						Command command = held_single_input_mapping->command;
+						bool is_direction = is_ui_command( command ) && ( command != Back );
+
+						if ( is_repeatable_command( command ) || is_direction )
+						{
+							blocked = true;
+							break;
+						}
+					}
+				}
+
+				if ( found && !blocked ) {
+					combo_mapping = *itv;
+					longest_input_count = input_count;
+				}
 			}
 		}
 	}
 
-	return LAST_COMMAND;
+	bool single_input_deferred = false;
+
+	if ( single_input_mapping && has_combo_mapping )
+	{
+		Command command = single_input_mapping->command;
+		bool is_direction = is_ui_command( command ) && ( command != Back );
+
+		single_input_deferred = !is_repeatable_command( command ) && !is_direction;
+	}
+
+	FeInputMap::Command c = LAST_COMMAND;
+
+	if ( combo_mapping )
+		c = combo_mapping->command;
+	else if ( new_input && single_input_mapping && !single_input_deferred )
+		c = single_input_mapping->command;
+
+	if ( combo_mapping )
+		m_combo_consumed_inputs.insert( combo_mapping->inputs.begin(), combo_mapping->inputs.end() );
+
+	// Wheel, mouse movement, and touch gestures do not provide matching release
+	// events, so they cannot remain in the held-input set.
+	if ( !( e.is<sf::Event::KeyPressed>()
+		|| e.is<sf::Event::JoystickButtonPressed>()
+		|| e.is<sf::Event::MouseButtonPressed>()
+		|| e.is<sf::Event::JoystickMoved>() ))
+		m_held_inputs.erase( index );
+
+	return c;
 }
 
 FeInputMap::Command FeInputMap::input_conflict_check( const FeInputMapEntry &e )
@@ -1429,6 +1477,17 @@ bool FeInputMap::get_current_state( FeInputMap::Command c, int joy_thresh ) cons
 	for ( it=m_inputs.begin(); it!=m_inputs.end(); ++it )
 	{
 		if (( (*it).command == c ) && (*it).get_current_state( joy_thresh ) )
+			return true;
+	}
+
+	return false;
+}
+
+bool FeInputMap::is_input_held( int joy_thresh ) const
+{
+	for ( std::set<FeInputSingle>::const_iterator it=m_held_inputs.begin(); it!=m_held_inputs.end(); ++it )
+	{
+		if ( (*it).get_current_state( joy_thresh ) )
 			return true;
 	}
 

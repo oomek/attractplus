@@ -96,7 +96,6 @@ private:
 	bool m_process_console_input;
 	const FeScriptConfigurable *m_script_cfg;
 	int m_script_id;
-	sf::Time m_last_ui_cmd;
 	std::string m_last_layout;
 
 	std::queue< FeInputMap::Command > m_posted_commands;

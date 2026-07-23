@@ -220,12 +220,13 @@ public:
 	// Test if any of the inputs mapped to command c are pressed
 	//
 	bool get_current_state( FeInputMap::Command c, int joy_thresh ) const;
+	bool is_input_held( int joy_thresh ) const;
 
 	// call this after all the mappings have been loaded (with either process_setting calls or set_mapping()
 	void initialize_mappings();
-	// clear m_tracked_keys (call when focus is lost to prevent holding expired keys)
-	void clear_tracked_keys();
-	// clear all mappings and tracked keys
+	// clear held inputs (call when focus is lost to prevent holding expired keys)
+	void clear_held_inputs();
+	// clear all mappings and held inputs
 	void clear();
 
 	// fix mappings when joystick connected/disconnected
@@ -255,8 +256,6 @@ public:
 
 private:
 
-	Command get_command_from_tracked_keys() const;
-
 	// TO allow for key combos, we maintain an initial map of all single input events, mapping
 	// them to all of the entries in m_inputs that contain the same single input
 	//
@@ -272,8 +271,9 @@ private:
 
 	std::vector< Command > m_defaults;
 
-	// Used to track the keys that are currently "down" and of interest
-	mutable std::set< FeInputSingle > m_tracked_keys;
+	// Inputs currently held down
+	mutable std::set< FeInputSingle > m_held_inputs;
+	std::set< FeInputSingle > m_combo_consumed_inputs;
 
 	// Config for mapping joysticks by name to specific id #s
 	std::vector< std::pair< int, std::string > > m_joy_config;

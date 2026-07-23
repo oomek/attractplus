@@ -877,6 +877,9 @@ void FeOverlay::input_map_dialog(
 	sf::RenderWindow &rwnd = m_wnd.get_win();
 	m_feSettings.init_mouse_capture( &rwnd );
 
+	std::vector<sf::Drawable *> release_draw_list = { &bg, &message };
+	wait_for_input_release( release_draw_list );
+
 	// Centre the mouse in case the user is mapping a mouse move event
 	sf::Mouse::setPosition( sf::Vector2i( m_screen_size ) / 2, rwnd );
 
@@ -910,7 +913,10 @@ void FeOverlay::input_map_dialog(
 			if ( ev.has_value() )
 			{
 				if ( ev->is<sf::Event::Closed>() )
+				{
+					m_feSettings.reset_input();
 					return;
+				}
 
 				if ( multi_mode && (( ev->is<sf::Event::KeyReleased>() )
 						|| ( ev->is<sf::Event::JoystickButtonReleased>() )
@@ -971,6 +977,7 @@ void FeOverlay::input_map_dialog(
 		{
 			res = entry;
 			conflict = m_feSettings.input_conflict_check( entry );
+			m_feSettings.reset_input();
 			return;
 		}
 
@@ -993,6 +1000,8 @@ void FeOverlay::input_map_dialog(
 		else
 			sf::sleep( sf::milliseconds( 30 ) );
 	}
+
+	m_feSettings.reset_input();
 }
 
 bool FeOverlay::config_dialog( int default_sel, FeInputMap::Command extra_exit )
@@ -1560,6 +1569,7 @@ int FeOverlay::display_config_dialog(
 		c.extra_exit = extra_exit;
 		c.page_size = sdialog.get_rows() / 2;
 
+		layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
 		init_event_loop( c );
 		text_index( vdialog, vindex, ctx.right_list, -1 );
 		layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
@@ -1782,7 +1792,7 @@ int FeOverlay::display_config_dialog(
 			ctx.right_list[ ctx.curr_sel ] = get_pill_glyph( is_truthy( ctx.curr_opt().values_list[new_value] ) );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
-			layout_focus( sdialog, vdialog, LayoutFocus::Edit );
+			layout_focus( sdialog, vdialog, LayoutFocus::Select );
 
 			ctx.save_req = true;
 
@@ -1825,21 +1835,26 @@ bool FeOverlay::check_for_cancel()
 
 void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 {
+	wait_for_input_release( ctx.draw_list );
+}
+
+void FeOverlay::wait_for_input_release( const std::vector<sf::Drawable *> &draw_list )
+{
 	//
-	// Make sure the Back and Select buttons are NOT down, to avoid immediately
-	// triggering an exit/selection
+	// Make sure the input that opened the loop is released before accepting
+	// commands in the new loop.
 	//
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	sf::Clock timer;
 	while (( timer.getElapsedTime() < sf::seconds( 6 ) )
-			&& ( m_feSettings.get_current_state( FeInputMap::Back )
+			&& ( m_feSettings.is_input_held()
+				|| m_feSettings.get_current_state( FeInputMap::Back )
 				|| m_feSettings.get_current_state( FeInputMap::ExitToDesktop )
 				|| m_feSettings.get_current_state( FeInputMap::Select ) ))
 	{
 		while ( const std::optional ev = m_wnd.pollEvent() )
-		{
-		}
+			m_feSettings.map_input( *ev );
 
 		if ( m_fePresent.tick() )
 		{
@@ -1849,8 +1864,8 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 			m_wnd.clear();
 			m_wnd.draw( m_fePresent, t );
 
-			for ( std::vector<sf::Drawable *>::const_iterator itr=ctx.draw_list.begin();
-					itr < ctx.draw_list.end(); ++itr )
+			for ( std::vector<sf::Drawable *>::const_iterator itr=draw_list.begin();
+					itr < draw_list.end(); ++itr )
 				m_wnd.draw( *(*itr), t );
 
 			m_wnd.display();
@@ -1858,6 +1873,8 @@ void FeOverlay::init_event_loop( FeEventLoopCtx &ctx )
 		else
 			sf::sleep( sf::milliseconds( 30 ) );
 	}
+
+	m_feSettings.reset_input();
 }
 
 //
@@ -2089,6 +2106,8 @@ public:
 bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 			std::basic_string<std::uint32_t> &str, FeTextPrimitive *tp )
 {
+	wait_for_input_release( d );
+
 	sf::Clock cursor_timer;
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
@@ -2114,7 +2133,10 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 			if ( ev.has_value() )
 			{
 				if ( ev->is<sf::Event::Closed>() )
+				{
+					m_feSettings.reset_input();
 					return false;
+				}
 
 				else if ( const auto* txt = ev->getIf<sf::Event::TextEntered>() )
 				{
@@ -2170,9 +2192,11 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 						break;
 
 					case sf::Keyboard::Key::Enter:
+						m_feSettings.reset_input();
 						return true;
 
 					case sf::Keyboard::Key::Escape:
+						m_feSettings.reset_input();
 						return false;
 
 					case sf::Keyboard::Key::End:
@@ -2320,9 +2344,11 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 							break;
 
 						case FeInputMap::Back:
+							m_feSettings.reset_input();
 							return false;
 
 						case FeInputMap::Select:
+							m_feSettings.reset_input();
 							return true;
 						default:
 							break;
@@ -2385,6 +2411,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 		}
 
 	}
+	m_feSettings.reset_input();
 	return true;
 }
 
