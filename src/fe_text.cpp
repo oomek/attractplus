@@ -38,6 +38,8 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	m_filter_offset( 0 ),
 	m_user_charsize( -1 ),
 	m_user_margin( -1 ),
+	m_user_outline( 0 ),
+	m_user_bg_outline( 0 ),
 	m_size( w, h ),
 	m_position( x, y ),
 	m_transform_origin( 0.f, 0.f ),
@@ -330,6 +332,12 @@ void FeText::update_margin()
 		std::round( std::max( 0.0f, grid_height_to_pixels( m_user_margin )))));
 }
 
+void FeText::update_outline()
+{
+	m_draw_text.setOutlineThickness( grid_height_to_pixels( m_user_outline ));
+	m_draw_text.setBgOutlineThickness( grid_height_to_pixels( m_user_bg_outline ));
+}
+
 void FeText::update_transform()
 {
 	sf::Vector2f pos = m_position + sf::Vector2f(
@@ -368,6 +376,7 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 
 	update_font_size();
 	update_margin();
+	update_outline();
 }
 
 void FeText::refresh_script_geometry()
@@ -375,6 +384,7 @@ void FeText::refresh_script_geometry()
 	FeBasePresentable::refresh_script_geometry();
 	update_font_size();
 	update_margin();
+	update_outline();
 }
 
 void FeText::draw( sf::RenderTarget &target, sf::RenderStates states ) const
@@ -431,24 +441,34 @@ float FeText::get_margin()
 
 void FeText::set_outline( float t )
 {
-	m_draw_text.setOutlineThickness( t );
+	t = std::max( 0.0f, t );
+	if ( t == m_user_outline )
+		return;
+
+	m_user_outline = t;
+	update_outline();
 	FePresent::script_do_update( this );
 }
 
 float FeText::get_outline()
 {
-	return m_draw_text.getOutlineThickness();
+	return m_user_outline;
 }
 
 void FeText::set_bg_outline( float t )
 {
-	m_draw_text.setBgOutlineThickness( t );
+	t = std::max( 0.0f, t );
+	if ( t == m_user_bg_outline )
+		return;
+
+	m_user_bg_outline = t;
+	update_outline();
 	FePresent::script_do_update( this );
 }
 
 float FeText::get_bg_outline()
 {
-	return m_draw_text.getBgOutlineThickness();
+	return m_user_bg_outline;
 }
 
 void FeText::set_first_line_hint( int l )
@@ -510,6 +530,16 @@ float FeText::get_cursor_pos( int i )
 	int pos = std::clamp( i, 0, (int)m_string.size() );
 	std::basic_string<std::uint32_t> str = utf8_to_utf32( m_string );
 	return m_draw_text.setString( str, pos ).x - ( m_draw_text.getPosition().x - m_draw_text.getOrigin().x );
+}
+
+float FeText::get_actual_width()
+{
+	return pixels_to_grid_width( m_draw_text.getActualWidth() );
+}
+
+float FeText::get_actual_height()
+{
+	return pixels_to_grid_height( m_draw_text.getActualHeight() );
 }
 
 int FeText::get_bg_red()
@@ -580,9 +610,9 @@ float FeText::get_charsize()
 	return pixels_to_grid_height( m_draw_text.getCharacterSize() );
 }
 
-int FeText::get_glyph_size()
+float FeText::get_glyph_size()
 {
-	return m_draw_text.getGlyphSize();
+	return pixels_to_grid_height( m_draw_text.getGlyphSize() );
 }
 
 float FeText::get_spacing()
@@ -595,9 +625,10 @@ float FeText::get_line_spacing()
 	return m_draw_text.getLineSpacing();
 }
 
-int FeText::get_line_height()
+float FeText::get_line_height()
 {
-	return m_draw_text.getLineSpacingFactored( m_draw_text.getFont(), m_draw_text.getCharacterSize() );
+	return pixels_to_grid_height(
+		m_draw_text.getLineSpacingFactored( m_draw_text.getFont(), m_draw_text.getCharacterSize() ));
 }
 
 int FeText::get_style()

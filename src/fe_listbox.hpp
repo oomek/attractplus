@@ -156,7 +156,7 @@ public:
 	int get_sel_outline_blue();
 	int get_sel_outline_alpha();
 	float get_charsize();
-	int get_glyph_size();
+	float get_glyph_size();
 	float get_spacing();
 	int get_rows();
 	int get_list_align();
@@ -238,6 +238,7 @@ private:
 	void update_row_geometry();
 	void update_text_metrics();
 	void update_margin();
+	void update_outline();
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_custom_list;
@@ -261,6 +262,7 @@ private:
 	FeAlign m_list_align;
 	float m_userCharSize;
 	float m_userMargin;
+	float m_userOutlineThickness;
 	int m_filter_offset;
 	float m_rotation;
 	float m_scale_factor;

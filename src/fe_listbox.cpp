@@ -50,6 +50,7 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_list_align( FeAlign::Top ),
 	m_userCharSize( 0 ),
 	m_userMargin( -1 ),
+	m_userOutlineThickness( 0 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
@@ -95,6 +96,7 @@ FeListBox::FeListBox(
 	m_list_align( FeAlign::Top ),
 	m_userCharSize( charactersize ),
 	m_userMargin( -1 ),
+	m_userOutlineThickness( 0 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
@@ -309,10 +311,12 @@ void FeListBox::set_rotation_origin_y( float y )
 
 void FeListBox::set_outline( float t )
 {
-	if ( t == m_base_text.getOutlineThickness() )
+	t = std::max( 0.0f, t );
+	if ( t == m_userOutlineThickness )
 		return;
 
-	m_base_text.setOutlineThickness( t );
+	m_userOutlineThickness = t;
+	update_outline();
 
 	if ( m_scripted )
 		FePresent::script_do_update( this );
@@ -320,7 +324,7 @@ void FeListBox::set_outline( float t )
 
 float FeListBox::get_outline()
 {
-	return m_base_text.getOutlineThickness();
+	return m_userOutlineThickness;
 }
 
 void FeListBox::set_outline_red(int r)
@@ -374,12 +378,12 @@ void FeListBox::setOutlineColor( sf::Color c )
 
 void FeListBox::set_sel_outline( float t )
 {
+	t = std::max( 0.0f, t );
 	if ( t == m_selOutlineThickness )
 		return;
 
 	m_selOutlineThickness = t;
-	FeTextPrimitive *sel;
-	if ( getSelectedText( sel ) ) sel->setOutlineThickness( m_selOutlineThickness );
+	update_outline();
 
 	if ( m_scripted )
 		FePresent::script_do_update( this );
@@ -508,6 +512,7 @@ void FeListBox::update_text_metrics()
 		std::round( std::max( 1.0f, char_size * m_scale_factor )));
 	m_base_text.setCharacterSize( scaled_char_size );
 	update_margin();
+	update_outline();
 
 	for ( int i=0; i < getRowCount(); i++ )
 	{
@@ -522,6 +527,9 @@ void FeListBox::update_styles()
 	sf::Color bgColor = m_base_text.getBgColor();
 	sf::Color outlineColour = m_base_text.getOutlineColor();
 	float outlineThickness = m_base_text.getOutlineThickness();
+	float selOutlineThickness = m_scripted
+		? grid_height_to_pixels( m_selOutlineThickness )
+		: m_selOutlineThickness;
 	int style = m_base_text.getStyle();
 
 	for ( int i=0; i< m_rows; i++ )
@@ -531,7 +539,7 @@ void FeListBox::update_styles()
 			m_texts[i].setColor( m_selColour );
 			m_texts[i].setBgColor( m_selBg );
 			m_texts[i].setOutlineColor( m_selOutlineColour );
-			m_texts[i].setOutlineThickness( m_selOutlineThickness );
+			m_texts[i].setOutlineThickness( selOutlineThickness );
 			m_texts[i].setStyle( m_selStyle );
 			continue;
 		}
@@ -972,9 +980,9 @@ float FeListBox::get_charsize()
 	return m_userCharSize;
 }
 
-int FeListBox::get_glyph_size()
+float FeListBox::get_glyph_size()
 {
-	return m_base_text.getGlyphSize();
+	return m_scripted ? pixels_to_grid_height( m_base_text.getGlyphSize() ) : m_base_text.getGlyphSize();
 }
 
 float FeListBox::get_spacing()
@@ -1080,6 +1088,21 @@ void FeListBox::update_margin()
 
 	for ( int i=0; i < getRowCount(); i++ )
 		m_texts[i].setMargin( margin );
+}
+
+void FeListBox::update_outline()
+{
+	float outline = m_scripted
+		? grid_height_to_pixels( m_userOutlineThickness )
+		: m_userOutlineThickness;
+	float sel_outline = m_scripted
+		? grid_height_to_pixels( m_selOutlineThickness )
+		: m_selOutlineThickness;
+
+	m_base_text.setOutlineThickness( outline );
+
+	for ( int i=0; i < getRowCount(); i++ )
+		m_texts[i].setOutlineThickness(( i == m_selected_row ) ? sel_outline : outline );
 }
 
 void FeListBox::setBgColor( sf::Color c )

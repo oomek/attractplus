@@ -108,8 +108,8 @@ public:
 
 	float get_cursor_pos( int i );
 
-	int get_actual_width() { return m_draw_text.getActualWidth(); };
-	int get_actual_height() { return m_draw_text.getActualHeight(); };
+	float get_actual_width();
+	float get_actual_height();
 
 	int get_bg_red();
 	int get_bg_green();
@@ -124,10 +124,10 @@ public:
 	int get_outline_blue();
 	int get_outline_alpha();
 	float get_charsize();
-	int get_glyph_size();
+	float get_glyph_size();
 	float get_spacing();
 	float get_line_spacing();
-	int get_line_height();
+	float get_line_height();
 	int get_style();
 	int get_justify();
 	int get_align();
@@ -173,6 +173,7 @@ private:
 
 	void update_font_size();
 	void update_margin();
+	void update_outline();
 	void update_transform();
 
 	FeTextPrimitive m_draw_text;
@@ -183,6 +184,8 @@ private:
 	int m_filter_offset;
 	float m_user_charsize;	 	// -1 if no charsize specified
 	float m_user_margin;	 	// -1 if automatic margin is used
+	float m_user_outline;
+	float m_user_bg_outline;
 	sf::Vector2f m_size;		// unscaled size
 	sf::Vector2f m_position;	// unscaled position
 	sf::Vector2f m_transform_origin;
