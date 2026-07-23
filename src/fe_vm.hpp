@@ -211,8 +211,9 @@ public:
 	static FeText *cb_add_text(const char *,int, int, int, int);
 	static FeListBox *cb_add_listbox(int, int, int, int);
 	static FeRectangle *cb_add_rectangle(float, float, float, float);
-	static FeImage *cb_add_surface(float, float, int, int);
-	static FeImage *cb_add_surface(int, int);
+	static FeImage *cb_add_surface(float, float, float, float);
+	static FeImage *cb_add_surface(float, float, float, float, int, int);
+	static FeImage *cb_add_surface(float, float);
 	static FeSound *cb_add_sound(const char *, bool);
 	static FeSound *cb_add_sound(const char *);
 	static FeMusic *cb_add_music(const char *);
@@ -231,7 +232,7 @@ public:
 	static void cb_remove_signal_handler( Sqrat::Object, const char *);
 	static void cb_remove_signal_handler( const char * );
 	static bool cb_get_input_state( const char *input );
-	static int cb_get_input_pos( const char *input );
+	static float cb_get_input_pos( const char *input );
 	static bool do_nut(const char *);
 	static bool load_module( const char *module_file );
 	static void print_to_console( const char *str );

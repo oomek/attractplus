@@ -372,11 +372,13 @@ The default `blend_mode` for artwork is `BlendMode.Alpha`
 ```squirrel
 fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
+fe.add_surface( x, y, w, h, pixel_w, pixel_h ) 🔶
 ```
 
 Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`Image`](#feadd_image), [`Artwork`](#feadd_artwork), [`Text`](#feadd_text), [`Listbox`](#feadd_listbox) and [`Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
 A surface's texture size is fixed upon creation. Later changes to `width` or `height` will not change the texture's dimensions.
+When `pixel_w` and `pixel_h` are omitted, the texture size is derived from `w` and `h` using the current `grid`.
 
 The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
@@ -384,8 +386,10 @@ The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
 -  `x` - The x coordinate of the top left corner of the surface (in layout coordinates).
 -  `y` - The y coordinate of the top left corner of the surface (in layout coordinates).
--  `w` - The width of the surface texture (in pixels).
--  `h` - The height of the surface texture (in pixels).
+-  `w` - The width of the surface (in layout coordinates).
+-  `h` - The height of the surface (in layout coordinates).
+-  `pixel_w` - The width of the surface texture (in pixels).
+-  `pixel_h` - The height of the surface texture (in pixels).
 
 **Return Value**
 
@@ -904,15 +908,15 @@ Check if a specific keyboard key, mouse button, joystick button or joystick dire
 fe.get_input_pos( input_id )
 ```
 
-Return the current position for the specified joystick axis.
+Return the current position for the specified joystick axis, mouse axis, or mouse wheel.
 
 **Parameters**
 
--  `input_id` - [string] the input to test. The format of this string is the same as that used in the `attract.cfg` file. For example, `"Joy0 Up"` is the up direction on the first joystick, `"Mouse Up"` is the y position of the mouse, and `"Mouse WheelUp"` is the delta of an upward mouse wheel scroll.
+-  `input_id` - [string] the input to test. The format of this string is the same as that used in the `attract.cfg` file. For example, `"Joy0 Up"` is the up direction on the first joystick, `"Mouse Left"`/`"Mouse Right"` are the x position of the mouse, `"Mouse Up"`/`"Mouse Down"` are the y position of the mouse, and `"Mouse WheelUp"` is the delta of an upward mouse wheel scroll.
 
 **Return Value**
 
--  Current position of the specified axis, in range `[0...100]`.
+-  Current position of the specified axis. Joystick axes return `[0...100]`. Mouse positions return coordinates in the active `fe.layout.grid`. Mouse wheel inputs return the wheel delta.
 
 ---
 
@@ -1364,6 +1368,14 @@ This class is a container for global layout settings. The instance of this class
 
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
+-  `aspect_ratio` - Get/set the layout aspect ratio. Default value is `0.0`. Setting `width` or `height` resets it to `0.0`.
+-  `grid` - Get/set the default coordinate grid, This can be one of the following values:
+   -  `Grid.Pixel` (default) - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether Percent and Normalised grids use a square grid, or are stretched to layout size. Default value is `true`.
+-  `grid_offset_x` - Get/set the layout x offset in `grid` coordinates.
+-  `grid_offset_y` - Get/set the layout y offset in `grid` coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1384,6 +1396,7 @@ This class is a container for global layout settings. The instance of this class
 
 **Member Functions**
 
+-  `set_grid_offset( x, y )` - Set the layout offset in `grid` coordinates.
 -  `redraw()` 🔶 - Adds the ability to process `tick()` and redraw the screen during computationally intensive loops in transition and signal callbacks. DO NOT call this function inside `tick()` callback. It will result in an infinite loop and the frontend will crash.
 
 **Notes**
@@ -1552,6 +1565,11 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid` coordinates. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1743,6 +1761,11 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1802,12 +1825,12 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `bg_outline_green` - Get/set green colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_blue` - Get/set blue colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_alpha` - Get/set alpha level for the text background outline. Range is `[0...255]`. Default value is `0` (transparent).
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
--  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
+-  `char_size` - Get/set the forced character size in this object's `grid` coordinates. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
+-  `glyph_size` - Get the height of the capital letter in this object's `grid` coordinates. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
--  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
--  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background. Default value is `0.0`
+-  `outline` 🔶 - Get/set the thickness of the outline applied to the text in this object's `grid` coordinates. Default value is `0.0`.
+-  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background in this object's `grid` coordinates. Default value is `0.0`
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
@@ -1835,14 +1858,14 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Case.Lowercase`
    -  `Case.Capitalize`
 -  `word_wrap` - Get/set whether word wrapping is enabled in this text (boolean). Default is `false`.
--  `msg_width` - Get the width of the text message, in layout coordinates.
--  `msg_height` 🔶 - Get the height of the text message, in layout coordinates.
+-  `msg_width` - Get the width of the text message in this object's `grid` coordinates.
+-  `msg_height` 🔶 - Get the height of the text message in this object's `grid` coordinates.
 -  `lines` 🔶 - Get the maximum line count that can be fitted inside the text box.
 -  `lines_total` 🔶 - Get the total line count of the formatted text message.
--  `line_height` 🔶 - Get the distance between two lines of text in layout coordinates.
+-  `line_height` 🔶 - Get the distance between two lines of text in this object's `grid` coordinates.
 -  `first_line_hint` 🔶 - Get/set the line in the formatted text that is shown as first line in the text object
 -  `font` - Get/set the filename of the font used for this text. If not set default font is used.
--  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the `char_size`.
+-  `margin` - Get/set the margin spacing to sides of the text in this object's `grid` coordinates. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `shader` - Get/set the GLSL shader for this text. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the Text's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
@@ -1871,6 +1894,11 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -1945,11 +1973,11 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `ListAlign.Bottom` - Aligns options to the bottom.
    -  `ListAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
 -  `list_size` - Get the size of the list shown by the listbox. When the listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
--  `glyph_size` - Get the height in pixels of the capital letter.
+-  `char_size` - Get/set the forced character size in this object's `grid` coordinates. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
+-  `glyph_size` - Get the height of the capital letter in this object's `grid` coordinates.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
--  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
--  `sel_outline` 🔶 - Get/set the thickness of the outline applied to the selection text. Default value is `0.0`.
+-  `outline` 🔶 - Get/set the thickness of the outline applied to the text in this object's `grid` coordinates. Default value is `0.0`.
+-  `sel_outline` 🔶 - Get/set the thickness of the outline applied to the selection text in this object's `grid` coordinates. Default value is `0.0`.
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
@@ -1990,7 +2018,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
 -  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
--  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
+-  `margin` - Get/set the margin spacing to sides of the text in this object's `grid` coordinates. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
 -  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
@@ -2021,6 +2049,11 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set the y position of the rectangle (in layout coordinates).
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
