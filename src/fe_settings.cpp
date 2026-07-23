@@ -1271,7 +1271,7 @@ void FeSettings::load_state()
 
 void FeSettings::reset_input()
 {
-	m_inputmap.clear_tracked_keys();
+	m_inputmap.clear_held_inputs();
 }
 
 FeInputMap::Command FeSettings::map_input( const std::optional<sf::Event> &e )
@@ -1306,6 +1306,11 @@ void FeSettings::set_default_command( FeInputMap::Command c, FeInputMap::Command
 bool FeSettings::get_current_state( FeInputMap::Command c )
 {
 	return m_inputmap.get_current_state( c, m_joy_thresh );
+}
+
+bool FeSettings::is_input_held()
+{
+	return m_inputmap.is_input_held( m_joy_thresh );
 }
 
 bool FeSettings::get_key_state( std::string key )
