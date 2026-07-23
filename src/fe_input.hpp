@@ -255,7 +255,7 @@ public:
 
 private:
 
-	Command get_command_from_tracked_keys() const;
+	Command get_command_from_tracked_keys( const FeInputSingle &trigger=FeInputSingle() ) const;
 
 	// TO allow for key combos, we maintain an initial map of all single input events, mapping
 	// them to all of the entries in m_inputs that contain the same single input

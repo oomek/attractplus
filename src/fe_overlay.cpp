@@ -1560,6 +1560,7 @@ int FeOverlay::display_config_dialog(
 		c.extra_exit = extra_exit;
 		c.page_size = sdialog.get_rows() / 2;
 
+		layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
 		init_event_loop( c );
 		text_index( vdialog, vindex, ctx.right_list, -1 );
 		layout_focus( sdialog, vdialog, ( ctx.curr_opt().type == Opt::INFO ) ? LayoutFocus::Disabled : LayoutFocus::Select );
@@ -1782,7 +1783,7 @@ int FeOverlay::display_config_dialog(
 			ctx.right_list[ ctx.curr_sel ] = get_pill_glyph( is_truthy( ctx.curr_opt().values_list[new_value] ) );
 
 			vdialog.setCustomText( ctx.curr_sel, ctx.right_list );
-			layout_focus( sdialog, vdialog, LayoutFocus::Edit );
+			layout_focus( sdialog, vdialog, LayoutFocus::Select );
 
 			ctx.save_req = true;
 
