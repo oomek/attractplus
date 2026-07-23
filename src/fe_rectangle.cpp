@@ -645,10 +645,13 @@ void FeRectangle::scale()
 	}
 
 	pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * size.x, ( m_rotation_origin.y -  m_anchor.y ) * size.y );
+	sf::Vector2f origin( m_origin.x + m_rotation_origin.x * size.x, m_origin.y + m_rotation_origin.y * size.y );
+	m_snap_offset = sf::Vector2f( -m_anchor.x * size.x - m_origin.x, -m_anchor.y * size.y - m_origin.y );
+	pos = snap_draw_position( pos );
 
 	m_rect.setPosition( pos );
 	m_rect.setRotation( sf::degrees( m_rotation ));
 	m_rect.setSize( size );
-	m_rect.setOrigin({( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y )});
+	m_rect.setOrigin( origin );
 
 }

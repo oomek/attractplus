@@ -98,7 +98,7 @@
    -  [Math](#math-) 🔶
    -  [Vector](#vector-) 🔶
    -  [Easing](#easing-) 🔶
-
+   -  [Animation](#animation-) 🔶
 ---
 
 ## Overview
@@ -372,11 +372,13 @@ The default `blend_mode` for artwork is `BlendMode.Alpha`
 ```squirrel
 fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
+fe.add_surface( x, y, w, h, pixel_w, pixel_h ) 🔶
 ```
 
 Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`Image`](#feadd_image), [`Artwork`](#feadd_artwork), [`Text`](#feadd_text), [`Listbox`](#feadd_listbox) and [`Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
 A surface's texture size is fixed upon creation. Later changes to `width` or `height` will not change the texture's dimensions.
+When `pixel_w` and `pixel_h` are omitted, the texture size is derived from `w` and `h` using the current `grid`.
 
 The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
@@ -384,8 +386,10 @@ The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
 -  `x` - The x coordinate of the top left corner of the surface (in layout coordinates).
 -  `y` - The y coordinate of the top left corner of the surface (in layout coordinates).
--  `w` - The width of the surface texture (in pixels).
--  `h` - The height of the surface texture (in pixels).
+-  `w` - The width of the surface (in layout coordinates).
+-  `h` - The height of the surface (in layout coordinates).
+-  `pixel_w` - The width of the surface texture (in pixels).
+-  `pixel_h` - The height of the surface texture (in pixels).
 
 **Return Value**
 
@@ -1364,6 +1368,15 @@ This class is a container for global layout settings. The instance of this class
 
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
+-  `aspect_ratio` - Get/set the layout aspect ratio. Default value is `0.0`. Setting `width` or `height` resets it to `0.0`.
+-  `grid` - Get/set the default coordinate grid, This can be one of the following values:
+   -  `Grid.Pixel` (default) - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether Percent and Normalised grids use a square grid, or are stretched to layout size. Default value is `true`.
+-  `pixel_snap` - Get/set whether drawable geometry snaps to display pixels. Default value is `false`.
+-  `grid_offset_x` - Get/set the layout x offset in `grid` coordinates.
+-  `grid_offset_y` - Get/set the layout y offset in `grid` coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1384,6 +1397,7 @@ This class is a container for global layout settings. The instance of this class
 
 **Member Functions**
 
+-  `set_grid_offset( x, y )` - Set the layout offset in `grid` coordinates.
 -  `redraw()` 🔶 - Adds the ability to process `tick()` and redraw the screen during computationally intensive loops in transition and signal callbacks. DO NOT call this function inside `tick()` callback. It will result in an infinite loop and the frontend will crash.
 
 **Notes**
@@ -1552,6 +1566,12 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `pixel_snap` - Get/set whether this object's geometry snaps to display pixels. Defaults to `fe.layout.pixel_snap` when created.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1743,6 +1763,12 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `pixel_snap` - Get/set whether this object's geometry snaps to display pixels. Defaults to `fe.layout.pixel_snap` when created.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1871,6 +1897,12 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `pixel_snap` - Get/set whether this object's geometry snaps to display pixels. Defaults to `fe.layout.pixel_snap` when created.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2021,6 +2053,12 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set the y position of the rectangle (in layout coordinates).
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
+-  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+   -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `pixel_snap` - Get/set whether this object's geometry snaps to display pixels. Defaults to `fe.layout.pixel_snap` when created.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
@@ -2571,3 +2609,119 @@ for (local t=0; t<=d; t++)
 ```
 
 The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic` algorithm to decelerate the change as `t` approaches `d`.
+
+---
+
+### Animation 🔶
+
+All objects returned by `fe.add_image()`, `fe.add_artwork()`, `fe.add_surface()`, `fe.add_clone()`, `fe.add_text()`, `fe.add_listbox()` and `fe.add_rectangle()` support the `move()` member function.
+
+**Member Functions**
+
+-  `move( property )` Returns the animation object for the property.
+-  `move( property, to, duration, ease )` - Animate a property to `to` over `duration` milliseconds. Returns the animation object.
+
+**Parameters**
+
+-  `property` - [string] Case-sensitive property name to animate.
+-  `to` - [number] Final value for the property.
+-  `duration` - [number] Animation duration in milliseconds. Defaults to `1000`.
+-  `ease` - One of the `Ease` constants below. Defaults to `Ease.Inertia`.
+
+**Example**
+
+```squirrel
+local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
+
+// Option 1
+img.move( "y", 10, 1000, Ease.Linear )
+
+// Option 2
+img.move( "y" ).duration = 1000
+img.move( "y" ).ease = Ease.Linear
+img.move( "y" ).to = 10
+
+// Option 3
+local anim = img.move( "y" )
+anim.duration = 1000
+anim.ease = Ease.Linear
+anim.to = 50
+```
+
+-  `to` - [number] Final value. Assigning this sets a new value to animate toward.
+-  `duration` - [number] Animation duration in milliseconds.
+-  `time` - [number] Get/set the animation playhead in milliseconds. Negative values delay the animation start.
+-  `ease` - One of the `Ease` constants below.
+-  `mass` - [number] Inertia filter mass for `Ease.Inertia`. Values are in the range `[0.0...1.0]`.
+-  `period` - [number] Period override for `Ease.*Bounce2`, `Ease.*Elastic` and `Ease.*Elastic2`.
+-  `amplitude` - [number] Amplitude override for `Ease.*Elastic`.
+-  `strength` - [number] Overshoot strength override for `Ease.*Back`.
+-  `x1`, `y1`, `x2`, `y2` - [number] Cubic Bezier control points for `Ease.Bezier`.
+-  `steps` - [number] Number of steps for `Ease.Steps`. Values lower than `1` become `1`.
+-  `jump` - Step position for `Ease.Steps`. May be one of the `Jump` constants.
+-  `play_count` - [number] Number of times to play the animation. May be fractional, or `Infinite`. Default is `1.0`.
+-  `direction` - The direction of the animation. This can be one of the following values:
+   - `Direction.Normal` (default) - Animate from the current value towards the `to` value.
+   - `Direction.Reverse` - Animate from the `to` value towards the current value.
+   - `Direction.Alternate` - Alternate between `Normal` and `Reverse` for each iteration (requires `play_count` > `1.0`).
+   - `Direction.AlternateReverse` - Alternate between `Reverse` and `Normal` for each iteration (requires `play_count` > `1.0`).
+-  `running` - [bool] `true` while the animation is still active.
+
+**Supported Properties**
+
+-  Common: `x`, `y`, `width`, `height`, `rotation`, `red`, `green`, `blue`, `alpha`.
+-  Geometry where present: `origin_x`, `origin_y`, `transform_origin_x`, `transform_origin_y`, `anchor_x`, `anchor_y`, `rotation_origin_x`, `rotation_origin_y`.
+-  Image, artwork and surface: `fit_anchor_x`, `fit_anchor_y`, `skew_x`, `skew_y`, `pinch_x`, `pinch_y`, `subimg_x`, `subimg_y`, `subimg_width`, `subimg_height`, `force_aspect_ratio`, `volume`, `pan`, `padding_left`, `padding_right`, `padding_top`, `padding_bottom`, `border_left`, `border_right`, `border_top`, `border_bottom`, `border_scale`.
+-  Text: `bg_red`, `bg_green`, `bg_blue`, `bg_alpha`, `bg_outline_red`, `bg_outline_green`, `bg_outline_blue`, `bg_outline_alpha`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `char_spacing`, `line_spacing`, `outline`, `bg_outline`, `margin`.
+-  ListBox: `bg_red`, `bg_green`, `bg_blue`, `bg_alpha`, `sel_red`, `sel_green`, `sel_blue`, `sel_alpha`, `sel_bg_red`, `sel_bg_green`, `sel_bg_blue`, `sel_bg_alpha`, `selbg_red`, `selbg_green`, `selbg_blue`, `selbg_alpha`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `sel_outline_red`, `sel_outline_green`, `sel_outline_blue`, `sel_outline_alpha`, `char_spacing`, `outline`, `sel_outline`, `margin`.
+-  Rectangle: `outline`, `outline_red`, `outline_green`, `outline_blue`, `outline_alpha`, `corner_radius`, `corner_radius_x`, `corner_radius_y`, `corner_ratio`, `corner_ratio_x`, `corner_ratio_y`.
+
+**Ease Constants**
+
+-  `Ease.Linear`
+-  `Ease.Inertia`
+-  `Ease.InQuad`, `Ease.OutQuad`, `Ease.InOutQuad`, `Ease.OutInQuad`
+-  `Ease.InCubic`, `Ease.OutCubic`, `Ease.InOutCubic`, `Ease.OutInCubic`
+-  `Ease.InQuart`, `Ease.OutQuart`, `Ease.InOutQuart`, `Ease.OutInQuart`
+-  `Ease.InQuint`, `Ease.OutQuint`, `Ease.InOutQuint`, `Ease.OutInQuint`
+-  `Ease.InSine`, `Ease.OutSine`, `Ease.InOutSine`, `Ease.OutInSine`
+-  `Ease.InExpo`, `Ease.OutExpo`, `Ease.InOutExpo`, `Ease.OutInExpo`
+-  `Ease.InExpo2`, `Ease.OutExpo2`, `Ease.InOutExpo2`, `Ease.OutInExpo2`
+-  `Ease.InCirc`, `Ease.OutCirc`, `Ease.InOutCirc`, `Ease.OutInCirc`
+-  `Ease.InBack`, `Ease.OutBack`, `Ease.InOutBack`, `Ease.OutInBack`
+-  `Ease.InBack2`, `Ease.OutBack2`, `Ease.InOutBack2`, `Ease.OutInBack2`
+-  `Ease.InBounce`, `Ease.OutBounce`, `Ease.InOutBounce`, `Ease.OutInBounce`
+-  `Ease.InBounce2`, `Ease.OutBounce2`, `Ease.InOutBounce2`, `Ease.OutInBounce2`
+-  `Ease.InElastic`, `Ease.OutElastic`, `Ease.InOutElastic`, `Ease.OutInElastic`
+-  `Ease.InElastic2`, `Ease.OutElastic2`, `Ease.InOutElastic2`, `Ease.OutInElastic2`
+-  `Ease.Bezier`
+-  `Ease.Steps`
+
+**More examples**
+
+```squirrel
+local img = fe.add_image( "logo.png", 0, 0, 300, 100 )
+img.move( "x", 200, 1000, Ease.OutCubic )
+img.move( "alpha", 100, 500, Ease.Linear )
+
+img.move( "y" ).duration = 2000
+img.move( "y" ).ease = Ease.Inertia
+img.move( "y" ).mass = 0.5
+img.move( "y" ).to = 100
+
+img.move( "rotation", 360, 800, Ease.OutBounce2 )
+img.move( "rotation" ).period = 0.35
+
+img.move( "width", 500, 700, Ease.Bezier )
+img.move( "width" ).x1 = 0.25
+img.move( "width" ).y1 = 0.1
+img.move( "width" ).x2 = 0.25
+img.move( "width" ).y2 = 1.0
+
+img.move( "alpha", 0, 900, Ease.Steps )
+img.move( "alpha" ).steps = 5
+img.move( "alpha" ).jump = Jump.End
+
+img.move( "rotation", 360, 1000 )
+img.move( "rotation" ).repeat = true
+```
