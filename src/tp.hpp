@@ -94,6 +94,7 @@ public:
 	void setPosition( const Vec2f & );
 	void setSize( int w, int h ) { return setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
 	void setSize( const Vec2f & );
+	void setOrigin( const Vec2f & );
 	void setStyle( int );
 	void setJustify( int );
 	void setRotation( float );
@@ -126,6 +127,7 @@ public:
 	Case getCase() const;
 	Vec2f getPosition() const;
 	Vec2f getSize() const;
+	Vec2f getOrigin() const;
 	float getRotation() const;
 	int getStyle() const;
 	int getJustify() const;
@@ -142,6 +144,7 @@ public:
 private:
 	Vec2f m_bg_position;
 	Vec2f m_bg_size;
+	Vec2f m_bg_origin;
 	Color m_bg_color;
 	Color m_bg_outline_color;
 	float m_bg_outline_thickness;

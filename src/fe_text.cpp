@@ -37,10 +37,16 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	m_user_charsize( -1 ),
 	m_size( w, h ),
 	m_position( x, y ),
+	m_anchor( 0.f, 0.f ),
+	m_rotation_origin( 0.f, 0.f ),
+	m_anchor_type( TopLeft ),
+	m_rotation_origin_type( TopLeft ),
+	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
 	m_magic( false )
 {
 	update_font_size();
+	update_transform();
 }
 
 void FeText::setFont( const FeFont &f )
@@ -56,6 +62,7 @@ Vec2f FeText::getPosition() const
 void FeText::setPosition( const Vec2f &p )
 {
 	m_position = p;
+	update_transform();
 	FePresent::script_do_update( this );
 }
 
@@ -67,18 +74,107 @@ Vec2f FeText::getSize() const
 void FeText::setSize( const Vec2f &s )
 {
 	m_size = s;
+	update_transform();
 	FePresent::script_do_update( this );
 }
 
 float FeText::getRotation() const
 {
-	return m_draw_text.getRotation();
+	return m_rotation;
 }
 
 void FeText::setRotation( float r )
 {
-	m_draw_text.setRotation( r );
+	if ( r == m_rotation )
+		return;
+
+	m_rotation = r;
+	update_transform();
 	FePresent::script_do_update( this );
+}
+
+int FeText::get_anchor_type() const
+{
+	return (FeText::Alignment)m_anchor_type;
+}
+
+int FeText::get_rotation_origin_type() const
+{
+	return (FeText::Alignment)m_rotation_origin_type;
+}
+
+float FeText::get_anchor_x() const
+{
+	return m_anchor.x;
+}
+
+float FeText::get_anchor_y() const
+{
+	return m_anchor.y;
+}
+
+float FeText::get_rotation_origin_x() const
+{
+	return m_rotation_origin.x;
+}
+
+float FeText::get_rotation_origin_y() const
+{
+	return m_rotation_origin.y;
+}
+
+void FeText::set_anchor( float x, float y )
+{
+	if ( x != m_anchor.x || y != m_anchor.y )
+	{
+		m_anchor = Vec2f( x, y );
+		update_transform();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_anchor_type( int t )
+{
+	m_anchor_type = (FeText::Alignment)t;
+	Vec2f a = alignTypeToVector( t );
+	set_anchor( a.x, a.y );
+}
+
+void FeText::set_rotation_origin( float x, float y )
+{
+	if ( x != m_rotation_origin.x || y != m_rotation_origin.y )
+	{
+		m_rotation_origin = Vec2f( x, y );
+		update_transform();
+		FePresent::script_flag_redraw();
+	}
+}
+
+void FeText::set_rotation_origin_type( int t )
+{
+	m_rotation_origin_type = (FeText::Alignment)t;
+	Vec2f o = alignTypeToVector( t );
+	set_rotation_origin( o.x, o.y );
+}
+
+void FeText::set_anchor_x( float x )
+{
+	set_anchor( x, get_anchor_y() );
+}
+
+void FeText::set_anchor_y( float y )
+{
+	set_anchor( get_anchor_x(), y );
+}
+
+void FeText::set_rotation_origin_x( float x )
+{
+	set_rotation_origin( x, get_rotation_origin_y() );
+}
+
+void FeText::set_rotation_origin_y( float y )
+{
+	set_rotation_origin( get_rotation_origin_x(), y );
 }
 
 void FeText::set_rgb(int r, int g, int b, int a)
@@ -138,8 +234,7 @@ void FeText::on_new_list( FeSettings *s )
 	if ( m_string.size() > 0 )
 		update_font_size();
 
-	m_draw_text.setPosition( m_position );
-	m_draw_text.setSize( m_size );
+	update_transform();
 }
 
 void FeText::update_font_size()
@@ -152,6 +247,59 @@ void FeText::update_font_size()
 
 	m_draw_text.setTextScale( Vec2f( 1.f / m_scale_factor, 1.f / m_scale_factor ) );
 	m_draw_text.setCharacterSize( char_size );
+}
+
+void FeText::update_transform()
+{
+	Vec2f pos = m_position + Vec2f(
+		( m_rotation_origin.x - m_anchor.x ) * m_size.x,
+		( m_rotation_origin.y - m_anchor.y ) * m_size.y
+	);
+	Vec2f origin = Vec2f(
+		m_rotation_origin.x * m_size.x,
+		m_rotation_origin.y * m_size.y
+	);
+
+	m_draw_text.setSize( m_size );
+	m_draw_text.setOrigin( origin );
+	m_draw_text.setPosition( pos );
+	m_draw_text.setRotation( m_rotation );
+}
+
+Vec2f FeText::alignTypeToVector( int type )
+{
+	switch( type )
+	{
+		case Left:
+			return Vec2f( 0.0f, 0.5f );
+
+		case Centre:
+			return Vec2f( 0.5f, 0.5f );
+
+		case Right:
+			return Vec2f( 1.0f, 0.5f );
+
+		case Top:
+			return Vec2f( 0.5f, 0.0f );
+
+		case Bottom:
+			return Vec2f( 0.5f, 1.0f );
+
+		case TopLeft:
+			return Vec2f( 0.0f, 0.0f );
+
+		case TopRight:
+			return Vec2f( 1.0f, 0.0f );
+
+		case BottomLeft:
+			return Vec2f( 0.0f, 1.0f );
+
+		case BottomRight:
+			return Vec2f( 1.0f, 1.0f );
+
+		default:
+			return Vec2f( 0.0f, 0.0f );
+	}
 }
 
 void FeText::on_new_selection( FeSettings *feSettings )
@@ -178,8 +326,7 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 		m_scale_factor = 1.f;
 
 	update_font_size();
-	m_draw_text.setPosition( m_position );
-	m_draw_text.setSize( m_size );
+	update_transform();
 }
 
 void FeText::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
@@ -315,7 +462,7 @@ float FeText::get_cursor_pos( int i )
 		return 0;
 	int pos = std::clamp( i, 0, (int)m_string.size() );
 	std::basic_string<std::uint32_t> str = utf8_to_utf32( m_string );
-	return m_draw_text.setString( str, pos ).x - m_draw_text.getPosition().x;
+	return m_draw_text.setString( str, pos ).x - ( m_draw_text.getPosition().x - m_draw_text.getOrigin().x );
 }
 
 int FeText::get_bg_red()
