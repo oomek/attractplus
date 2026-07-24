@@ -223,7 +223,7 @@ void FeListBox::set_transform_origin( float x, float y )
 void FeListBox::set_transform_origin_type( int t )
 {
 	m_transform_origin_type = (FeListBox::Alignment)t;
-	Vec2f a = alignTypeToVector( t );
+	Vec2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
 
@@ -240,7 +240,7 @@ void FeListBox::set_anchor( float x, float y )
 void FeListBox::set_anchor_type( int t )
 {
 	m_anchor_type = (FeListBox::Alignment)t;
-	Vec2f a = alignTypeToVector( t );
+	Vec2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
 
@@ -257,7 +257,7 @@ void FeListBox::set_rotation_origin( float x, float y )
 void FeListBox::set_rotation_origin_type( int t )
 {
 	m_rotation_origin_type = (FeListBox::Alignment)t;
-	Vec2f o = alignTypeToVector( t );
+	Vec2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }
 
@@ -497,42 +497,6 @@ void FeListBox::init_dimensions()
 	update_row_geometry();
 
 	update_styles();
-}
-
-Vec2f FeListBox::alignTypeToVector( int type )
-{
-	switch( type )
-	{
-		case Left:
-			return Vec2f( 0.0f, 0.5f );
-
-		case Centre:
-			return Vec2f( 0.5f, 0.5f );
-
-		case Right:
-			return Vec2f( 1.0f, 0.5f );
-
-		case Top:
-			return Vec2f( 0.5f, 0.0f );
-
-		case Bottom:
-			return Vec2f( 0.5f, 1.0f );
-
-		case TopLeft:
-			return Vec2f( 0.0f, 0.0f );
-
-		case TopRight:
-			return Vec2f( 1.0f, 0.0f );
-
-		case BottomLeft:
-			return Vec2f( 0.0f, 1.0f );
-
-		case BottomRight:
-			return Vec2f( 1.0f, 1.0f );
-
-		default:
-			return Vec2f( 0.0f, 0.0f );
-	}
 }
 
 void FeListBox::update_styles()

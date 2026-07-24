@@ -598,7 +598,6 @@ protected:
 	void scale();
 	int resolveFit() const;
 	float resolveAspectRatio() const;
-	Vec2f alignTypeToVector( int a );
 
 private:
 	std::vector<float> m_fft_data_zero;

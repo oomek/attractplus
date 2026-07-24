@@ -163,7 +163,6 @@ private:
 	void update_corner_radius();
 	void update_corner_ratio();
 	void update_corner_points();
-	Vec2f alignTypeToVector( int a );
 	std::size_t get_shape_point_count() const;
 	Vec2f get_shape_point( std::size_t index ) const;
 	static Vec2f get_shape_point( std::size_t index, const Vec2f &size, const Vec2f &radius, unsigned int corner_point_count );

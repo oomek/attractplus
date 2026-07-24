@@ -2397,3 +2397,39 @@ bool get_capslock_state()
 
 	return false;
 }
+
+Vec2f align_type_to_vector( int type )
+{
+	switch( type )
+	{
+		case 0: // Left
+			return Vec2f( 0.0f, 0.5f );
+
+		case 1: // Centre
+			return Vec2f( 0.5f, 0.5f );
+
+		case 2: // Right
+			return Vec2f( 1.0f, 0.5f );
+
+		case 3: // Top
+			return Vec2f( 0.5f, 0.0f );
+
+		case 4: // Bottom
+			return Vec2f( 0.5f, 1.0f );
+
+		case 5: // TopLeft
+			return Vec2f( 0.0f, 0.0f );
+
+		case 6: // TopRight
+			return Vec2f( 1.0f, 0.0f );
+
+		case 7: // BottomLeft
+			return Vec2f( 0.0f, 1.0f );
+
+		case 8: // BottomRight
+			return Vec2f( 1.0f, 1.0f );
+
+		default:
+			return Vec2f( 0.0f, 0.0f );
+	}
+}

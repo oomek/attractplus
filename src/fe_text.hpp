@@ -181,7 +181,6 @@ private:
 
 	void update_font_size();
 	void update_transform();
-	Vec2f alignTypeToVector( int a );
 
 	FeTextPrimitive m_draw_text;
 	std::string m_string;
