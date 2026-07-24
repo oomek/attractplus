@@ -55,7 +55,7 @@ FeTextPrimitive::FeTextPrimitive( )
 	m_bg_outline_color( Color::Black ),
 	m_bg_outline_thickness( 0.0f ),
 	m_bg_rotation( 0.0f ),
-	m_align( Centre ),
+	m_align( MiddleCentre ),
 	m_case( None ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
@@ -85,7 +85,7 @@ FeTextPrimitive::FeTextPrimitive(
 	m_bg_outline_color( Color::Black ),
 	m_bg_outline_thickness( 0.0f ),
 	m_bg_rotation( 0.0f ),
-	m_align( align ),
+	m_align( MiddleCentre ),
 	m_case( None ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
@@ -97,6 +97,7 @@ FeTextPrimitive::FeTextPrimitive(
 	m_word_wrap( false ),
 	m_needs_pos_set( false )
 {
+	setAlignment( align );
 	setColor( colour );
 	setBgColor( bgcolour );
 	setCharacterSize( charactersize );
@@ -787,6 +788,21 @@ void FeTextPrimitive::setSize( const Vec2f &s )
 
 void FeTextPrimitive::setAlignment( Alignment a )
 {
+	switch ( a )
+	{
+		case Left:
+			a = MiddleLeft;
+			break;
+		case Centre:
+			a = MiddleCentre;
+			break;
+		case Right:
+			a = MiddleRight;
+			break;
+		default:
+			break;
+	}
+
 	m_align = a;
 	m_needs_pos_set = true;
 }

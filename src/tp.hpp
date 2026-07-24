@@ -38,7 +38,16 @@ public:
 		Right=4,
 		Top=8,
 		Bottom=16,
-		Middle=32
+		Middle=32,
+		TopLeft=Top | Left,
+		TopCentre=Top | Centre,
+		TopRight=Top | Right,
+		BottomLeft=Bottom | Left,
+		BottomCentre=Bottom | Centre,
+		BottomRight=Bottom | Right,
+		MiddleLeft=Middle | Left,
+		MiddleCentre=Middle | Centre,
+		MiddleRight=Middle | Right
 	};
 
 	enum Case {
@@ -54,7 +63,7 @@ public:
 			Color colour,
 			Color bgcolour,
 			unsigned int charactersize,
-			Alignment align=Centre );
+			Alignment align=MiddleCentre );
 
 	FeTextPrimitive( const FeTextPrimitive & );
 
