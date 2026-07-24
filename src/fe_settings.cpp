@@ -2601,7 +2601,7 @@ bool FeSettings::set_tag_absolute( const std::string &tag, bool add_tag, int fil
 	return m_rl.set_tag( *r, m_displays[m_current_display], tag, add_tag );
 }
 
-void FeSettings::toggle_layout()
+void FeSettings::change_layout( int inc )
 {
 	std::vector<std::string> list;
 
@@ -2616,11 +2616,12 @@ void FeSettings::toggle_layout()
 			layout_path,
 			list );
 
-	if ( list.size() <= 1 ) // nothing to do if there isn't more than one file
+	const int count = static_cast<int>( list.size() );
+	if ( count <= 1 ) // nothing to do if there isn't more than one file
 		return;
 
-	unsigned int index=0;
-	for ( unsigned int i=0; i< list.size(); i++ )
+	int index = 0;
+	for ( int i = 0; i < count; ++i )
 	{
 		if ( layout_file.compare( list[i] ) == 0 )
 		{
@@ -2629,7 +2630,8 @@ void FeSettings::toggle_layout()
 		}
 	}
 
-	layout_file = list[ ( index + 1 ) % list.size() ];
+	index = ( index + inc ) % count;
+	layout_file = list[ index < 0 ? index + count : index ];
 
 	if ( m_current_display < 0 )
 		m_menu_layout_file = layout_file;

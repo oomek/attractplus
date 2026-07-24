@@ -186,6 +186,8 @@ Displays Menu;Menù dei display
 Previous Filter;Filtro precedente
 Next Filter;Filtro successivo
 Filters Menu;Menù dei filtri
+Next Layout;Layout successivo
+Previous Layout;Layout precedente
 Toggle Layout;Pagina successiva tema
 Toggle Movie;Pausa video
 Toggle Mute;Muto
@@ -420,7 +422,8 @@ _help_control_selection_delay;Imposta il ritardo in millisecondi prima dell'iniz
 _help_control_selection_max_step;Imposta la dimensione massima del passo per il movimento di selezione. Il valore predefinito è 128.
 _help_control_toggle_flip;Configura i controlli per ruotare display di 180 gradi
 _help_control_toggle_fullscreen;Alterna la modalità finestra tra Schermo intero e Finestra
-_help_control_toggle_layout;Configura i controlli per cambiare la pagina del tema. Tale funzione dipende da come è stato costruito il tema stesso: con alcuni potrebbe non succedere nulla.
+_help_control_prev_layout;Configura i controlli per cambiare la pagina del tema. Tale funzione dipende da come è stato costruito il tema stesso: con alcuni potrebbe non succedere nulla.
+_help_control_next_layout;Configura i controlli per cambiare la pagina del tema. Tale funzione dipende da come è stato costruito il tema stesso: con alcuni potrebbe non succedere nulla.
 _help_control_toggle_movie;Configura i controlli per attivare/disattivare l'esecuzione dei video
 _help_control_toggle_mute;Configura i controlli che disabilitano e riabilitano l'audio del frontend
 _help_control_toggle_rotate_left;Configura i controlli per ruotare il display a sinistra di 90 gradi

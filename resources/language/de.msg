@@ -186,6 +186,8 @@ Displays Menu;Bildschirm Menü
 Previous Filter;Vorheriger Filter
 Next Filter;Nächster Filter
 Filters Menu;Filter-Menü
+Next Layout;Nächstes Layout
+Previous Layout;Vorheriges Layout
 Toggle Layout;Thema wechseln
 Toggle Movie;Movie wechseln
 Toggle Mute;Stummschaltung wechseln
@@ -420,7 +422,8 @@ _help_control_selection_delay;Legt die Verzögerung in Millisekunden fest, bevor
 _help_control_selection_max_step;Legt die maximale Schrittgröße für die Auswahlbewegung fest. Standardwert: 128.
 _help_control_toggle_flip;Definiere die Taste(n), die den Bildschirm um 180 Grad drehen
 _help_control_toggle_fullscreen;Fenstermodus zwischen Vollbild und Fenster umschalten
-_help_control_toggle_layout;Definiere die Taste(n), die das Thema wechseln (Dies funktioniert nicht bei allen Themen)
+_help_control_prev_layout;Definiere die Taste(n), die das Thema wechseln (Dies funktioniert nicht bei allen Themen)
+_help_control_next_layout;Definiere die Taste(n), die das Thema wechseln (Dies funktioniert nicht bei allen Themen)
 _help_control_toggle_movie;Definiere die Taste(n) für Videos an/aus
 _help_control_toggle_mute;Definiere die Taste(n) für Frontend-Klänge an/aus
 _help_control_toggle_rotate_left;Definiere die Taste(n) für eine 90 Grad Drehung des Bildschirms gegen den Uhrzeigersinn

@@ -186,6 +186,8 @@ Displays Menu;Displays Menu
 Previous Filter;Previous Filter
 Next Filter;Next Filter
 Filters Menu;Filters Menu
+Next Layout;Next Layout
+Previous Layout;Previous Layout
 Toggle Layout;Toggle Layout
 Toggle Movie;Toggle Movie
 Toggle Mute;Toggle Mute
@@ -420,7 +422,8 @@ _help_control_selection_delay;Set the delay in milliseconds before key repeat be
 _help_control_selection_max_step;Set the maximum step size for selection movement, default is 128
 _help_control_toggle_flip;Set the control(s) that toggle whether the display should be rotated 180 degrees
 _help_control_toggle_fullscreen;Toggle the Window Mode between Fullscreen and Window
-_help_control_toggle_layout;Set the control(s) that toggle the layout script to use (It depends on the layout you are using whether this does anything)
+_help_control_prev_layout;Set the control(s) that toggle the layout script to use (It depends on the layout you are using whether this does anything)
+_help_control_next_layout;Set the control(s) that toggle the layout script to use (It depends on the layout you are using whether this does anything)
 _help_control_toggle_movie;Set the control(s) that toggle whether or not videos should be played
 _help_control_toggle_mute;Set the control(s) that mute/unmute frontend sound
 _help_control_toggle_rotate_left;Set the control(s) that toggle whether the display should be rotated 90 degrees to the left
