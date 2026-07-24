@@ -1632,15 +1632,27 @@ void FeImage::scale()
 	);
 
 	// Populate the fit_rect so users can get the resulting image dimensions
-	IntEdges padding = m_sprite.getPadding();
+	const IntEdges& padding = m_sprite.getPadding();
+	const IntEdges& border = m_sprite.getBorder();
+	float padding_scale = ( border.left || border.top || border.right || border.bottom )
+		? m_sprite.getBorderScale()
+		: 1.f;
+	Vec2f scaled_padding(
+		( padding.left + padding.right ) * padding_scale,
+		( padding.top + padding.bottom ) * padding_scale
+	);
+	Vec2f scaled_padding_origin(
+		padding.left * padding_scale,
+		padding.top * padding_scale
+	);
 	m_fit_rect = FloatRect(
 		Vec2f(
-			pos.x - pos_rotation.x + offset.x - ( origin.x * scale.x ) + (( crop.left - padding.left ) * flip.x ) - m_pos.x,
-			pos.y - pos_rotation.y + offset.y - ( origin.y * scale.y ) + (( crop.top - padding.top ) * flip.y ) - m_pos.y
+			pos.x - pos_rotation.x + offset.x - ( origin.x * scale.x ) + (( crop.left - scaled_padding_origin.x ) * flip.x ) - m_pos.x,
+			pos.y - pos_rotation.y + offset.y - ( origin.y * scale.y ) + (( crop.top - scaled_padding_origin.y ) * flip.y ) - m_pos.y
 		),
 		Vec2f(
-			( tex_size.x * scale.x ) + (( padding.left + padding.right - crop.left - crop.right ) * flip.x ),
-			( tex_size.y * scale.y ) + (( padding.top + padding.bottom - crop.top - crop.bottom ) * flip.y )
+			( tex_size.x * scale.x ) + (( scaled_padding.x - crop.left - crop.right ) * flip.x ),
+			( tex_size.y * scale.y ) + (( scaled_padding.y - crop.top - crop.bottom ) * flip.y )
 		)
 	);
 

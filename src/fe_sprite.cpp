@@ -397,11 +397,12 @@ void FeSprite::updateGeometry()
 		tex.bottom -= scaled_crop.bottom;
 	}
 
+	float padding_scale = has_border ? m_border_scale : 1.f;
 	const FloatEdges scaled_padding(
-		static_cast<float>( m_padding.left ) / scale_abs.x,
-		static_cast<float>( m_padding.top ) / scale_abs.y,
-		static_cast<float>( m_padding.right ) / scale_abs.x,
-		static_cast<float>( m_padding.bottom ) / scale_abs.y );
+		static_cast<float>( m_padding.left ) * padding_scale / scale_abs.x,
+		static_cast<float>( m_padding.top ) * padding_scale / scale_abs.y,
+		static_cast<float>( m_padding.right ) * padding_scale / scale_abs.x,
+		static_cast<float>( m_padding.bottom ) * padding_scale / scale_abs.y );
 	pos.left -= scaled_padding.left;
 	pos.top -= scaled_padding.top;
 	pos.right = std::max( pos.left, pos.right + scaled_padding.right );
