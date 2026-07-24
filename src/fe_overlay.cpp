@@ -24,6 +24,7 @@
 #include "fe_overlay.hpp"
 #include "fe_settings.hpp"
 #include "fe_config.hpp"
+#include "fe_color.hpp"
 #include "fe_util.hpp"
 #include <SDL3/SDL.h>
 #include "base64.hpp"
@@ -373,10 +374,10 @@ void FeOverlay::init()
 void FeOverlay::style_init()
 {
 	// Defaults to the first uiColorTokens value, which is the class blue
-	Color col;
-	if ( !str_to_color( m_feSettings.get_info( FeSettings::UIColor ), col ))
-		str_to_color( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ], col );
-	style_init( col );
+	FeColor col;
+	if ( !col.fromString( m_feSettings.get_info( FeSettings::UIColor ) ))
+		col.fromString( FeSettings::uiColorTokens[ FE_DEFAULT_UI_COLOR_TOKEN ] );
+	style_init( col.getColor() );
 }
 
 void FeOverlay::style_init( Color theme_color )
@@ -1753,10 +1754,9 @@ int FeOverlay::display_config_dialog(
 						// Special case for menu colour option only
 						if ( refresh_colour )
 						{
-							Color col;
-							str_to_color( FeSettings::uiColorTokens[ c.sel ], col );
+							FeColor col( FeSettings::uiColorTokens[ c.sel ] );
 
-							style_init( col );
+							style_init( col.getColor() );
 							theme_letterbox( letterbox_top );
 							theme_letterbox( letterbox_bottom );
 							theme_border( border_top );

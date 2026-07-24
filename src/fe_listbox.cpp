@@ -158,10 +158,39 @@ float FeListBox::get_outline()
 	return m_base_text.getOutlineThickness();
 }
 
-void FeListBox::set_outline_rgb(int r, int g, int b )
+void FeListBox::set_olr(int r)
+{
+	Color c = getOutlineColor();
+	set_outline_rgb( r, c.g, c.b, c.a );
+}
+
+void FeListBox::set_olg(int g)
+{
+	Color c = getOutlineColor();
+	set_outline_rgb( c.r, g, c.b, c.a );
+}
+
+void FeListBox::set_olb(int b)
+{
+	Color c = getOutlineColor();
+	set_outline_rgb( c.r, c.g, b, c.a );
+}
+
+void FeListBox::set_ola(int a)
+{
+	Color c = getOutlineColor();
+	set_outline_rgb( c.r, c.g, c.b, a );
+}
+
+void FeListBox::set_outline_rgb( int r, int g, int b )
 {
 	float a = getOutlineColor().a;
-	setOutlineColor( Color( r, g, b, a ? a : 255 ) );
+	set_outline_rgb( r, g, b, a == 0 ? 255 : a ); // legacy - force alpha if none
+}
+
+void FeListBox::set_outline_rgb( int r, int g, int b, int a )
+{
+	setOutlineColor( Color( r, g, b, a ) );
 }
 
 Color FeListBox::getOutlineColor() const
@@ -196,10 +225,39 @@ float FeListBox::get_sel_outline()
 	return m_selOutlineThickness;
 }
 
-void FeListBox::set_sel_outline_rgb(int r, int g, int b )
+void FeListBox::set_selolr(int r)
+{
+	Color c = getSelOutlineColor();
+	set_sel_outline_rgb( r, c.g, c.b, c.a );
+}
+
+void FeListBox::set_selolg(int g)
+{
+	Color c = getSelOutlineColor();
+	set_sel_outline_rgb( c.r, g, c.b, c.a );
+}
+
+void FeListBox::set_selolb(int b)
+{
+	Color c = getSelOutlineColor();
+	set_sel_outline_rgb( c.r, c.g, b, c.a );
+}
+
+void FeListBox::set_selola(int a)
+{
+	Color c = getSelOutlineColor();
+	set_sel_outline_rgb( c.r, c.g, c.b, a );
+}
+
+void FeListBox::set_sel_outline_rgb( int r, int g, int b )
 {
 	float a = getSelOutlineColor().a;
-	setSelOutlineColor( Color( r, g, b, a ? a : 255 ) );
+	set_sel_outline_rgb( r, g, b, a == 0 ? 255 : a ); // legacy - force alpha if none
+}
+
+void FeListBox::set_sel_outline_rgb( int r, int g, int b, int a )
+{
+	setSelOutlineColor( Color( r, g, b, a ) );
 }
 
 Color FeListBox::getSelOutlineColor() const
@@ -214,7 +272,8 @@ void FeListBox::setSelOutlineColor( Color c )
 
 	m_selOutlineColour = c;
 	FeTextPrimitive *sel;
-	if ( getSelectedText( sel ) ) sel->setOutlineColor( m_selOutlineColour );
+	if ( getSelectedText( sel ) )
+		sel->setOutlineColor( m_selOutlineColour );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
@@ -668,6 +727,46 @@ int FeListBox::get_bga()
 	return m_base_text.getBgColor().a;
 }
 
+int FeListBox::get_olr()
+{
+	return getOutlineColor().r;
+}
+
+int FeListBox::get_olg()
+{
+	return getOutlineColor().g;
+}
+
+int FeListBox::get_olb()
+{
+	return getOutlineColor().b;
+}
+
+int FeListBox::get_ola()
+{
+	return getOutlineColor().a;
+}
+
+int FeListBox::get_selolr()
+{
+	return getSelOutlineColor().r;
+}
+
+int FeListBox::get_selolg()
+{
+	return getSelOutlineColor().g;
+}
+
+int FeListBox::get_selolb()
+{
+	return getSelOutlineColor().b;
+}
+
+int FeListBox::get_selola()
+{
+	return getSelOutlineColor().a;
+}
+
 int FeListBox::get_charsize()
 {
 	return m_userCharSize;
@@ -780,39 +879,37 @@ void FeListBox::setBgColor( Color c )
 
 void FeListBox::set_bgr(int r)
 {
-	Color c=m_base_text.getBgColor();
-	c.r=r;
-	setBgColor( c );
+	Color c = m_base_text.getBgColor();
+	set_bg_rgb( r, c.g, c.b, c.a );
 }
 
 void FeListBox::set_bgg(int g)
 {
-	Color c=m_base_text.getBgColor();
-	c.g=g;
-	setBgColor( c );
+	Color c = m_base_text.getBgColor();
+	set_bg_rgb( c.r, g, c.b, c.a );
 }
 
 void FeListBox::set_bgb(int b)
 {
-	Color c=m_base_text.getBgColor();
-	c.b=b;
-	setBgColor( c );
+	Color c = m_base_text.getBgColor();
+	set_bg_rgb( c.r, c.g, b, c.a );
 }
 
 void FeListBox::set_bga(int a)
 {
-	Color c=m_base_text.getBgColor();
-	c.a=a;
-	setBgColor( c );
+	Color c = m_base_text.getBgColor();
+	set_bg_rgb( c.r, c.g, c.b, a );
 }
 
-void FeListBox::set_bg_rgb(int r, int g, int b )
+void FeListBox::set_bg_rgb( int r, int g, int b )
 {
-	Color c=m_base_text.getBgColor();
-	c.r=r;
-	c.g=g;
-	c.b=b;
-	setBgColor(c);
+	Color c = m_base_text.getBgColor();
+	set_bg_rgb( r, g, b, c.a );
+}
+
+void FeListBox::set_bg_rgb( int r, int g, int b, int a )
+{
+	setBgColor( Color( r, g, b, a ) );
 }
 
 void FeListBox::set_charsize(int s)
@@ -946,38 +1043,35 @@ int FeListBox::get_sela()
 void FeListBox::set_selr(int r)
 {
 	Color c = m_selColour;
-	c.r=r;
-	setSelColor( c );
+	set_sel_rgb( r, c.g, c.b, c.a );
 }
 
 void FeListBox::set_selg(int g)
 {
 	Color c = m_selColour;
-	c.g=g;
-	setSelColor( c );
+	set_sel_rgb( c.r, g, c.b, c.a );
 }
 
 void FeListBox::set_selb(int b)
 {
 	Color c = m_selColour;
-	c.b=b;
-	setSelColor( c );
+	set_sel_rgb( c.r, c.g, b, c.a );
 }
 
 void FeListBox::set_sela(int a)
 {
 	Color c = m_selColour;
-	c.a=a;
-	setSelColor( c );
+	set_sel_rgb( c.r, c.g, c.b, a );
 }
 
-void FeListBox::set_sel_rgb(int r, int g, int b )
+void FeListBox::set_sel_rgb( int r, int g, int b )
 {
-	Color c = m_selColour;
-	c.r = r;
-	c.g = g;
-	c.b = b;
-	setSelColor( c );
+	set_sel_rgb( r, g, b, m_selColour.a );
+}
+
+void FeListBox::set_sel_rgb( int r, int g, int b, int a )
+{
+	setSelColor( Color( r, g, b, a ) );
 }
 
 int FeListBox::get_selbgr()
@@ -1008,38 +1102,35 @@ const char *FeListBox::get_font()
 void FeListBox::set_selbgr(int r)
 {
 	Color c = m_selBg;
-	c.r=r;
-	setSelBgColor( c );
+	set_selbg_rgb( r, c.g, c.b, c.a );
 }
 
 void FeListBox::set_selbgg(int g)
 {
 	Color c = m_selBg;
-	c.g=g;
-	setSelBgColor( c );
+	set_selbg_rgb( c.r, g, c.b, c.a );
 }
 
 void FeListBox::set_selbgb(int b)
 {
 	Color c = m_selBg;
-	c.b=b;
-	setSelBgColor( c );
+	set_selbg_rgb( c.r, c.g, b, c.a );
 }
 
 void FeListBox::set_selbga(int a)
 {
 	Color c = m_selBg;
-	c.a=a;
-	setSelBgColor( c );
+	set_selbg_rgb( c.r, c.g, c.b, a );
 }
 
-void FeListBox::set_selbg_rgb(int r, int g, int b )
+void FeListBox::set_selbg_rgb( int r, int g, int b )
 {
-	Color c = m_selBg;
-	c.r = r;
-	c.g = g;
-	c.b = b;
-	setSelBgColor( c );
+	set_selbg_rgb( r, g, b, m_selBg.a );
+}
+
+void FeListBox::set_selbg_rgb( int r, int g, int b, int a )
+{
+	setSelBgColor( Color( r, g, b, a ) );
 }
 
 void FeListBox::set_font( const char *f )

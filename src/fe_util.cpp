@@ -2348,56 +2348,6 @@ std::vector<std::string> create_range( int from, int to, int size )
 	return create_range( from, to, size, from, to );
 }
 
-
-bool str_to_color( const std::string &str, Color &col )
-{
-	if ( rgb_to_color( str, col ) ) return true;
-	if ( hex_to_color( str, col ) ) return true;
-	return false;
-}
-
-bool rgb_to_color( const std::string &str, Color &col )
-{
-	std::smatch m;
-	if ( !std::regex_search( str, m, std::regex( "^(\\d{1,3})[, ]+(\\d{1,3})[, ]+(\\d{1,3})$" ) ) )
-		return false;
-
-	col = Color(
-		static_cast<std::uint8_t>( as_int( m[1].str() ) ),
-		static_cast<std::uint8_t>( as_int( m[2].str() ) ),
-		static_cast<std::uint8_t>( as_int( m[3].str() ) ) );
-	return true;
-}
-
-bool hex_to_color( const std::string &str, Color &col )
-{
-	std::smatch m;
-	if ( !std::regex_search( str, m, std::regex( "^#?([0-9A-F]{6})$" ) ) )
-		return false;
-
-	const unsigned int hex = static_cast<unsigned int>( std::stoul( m[1].str(), nullptr, 16 ) );
-	col = Color(
-		static_cast<std::uint8_t>( ( hex >> 16 ) & 0xff ),
-		static_cast<std::uint8_t>( ( hex >> 8 ) & 0xff ),
-		static_cast<std::uint8_t>( hex & 0xff ) );
-	return true;
-}
-
-void color_to_rgb( const Color &col, std::string &str )
-{
-	str = as_str( col.r ) + "," + as_str( col.g ) + "," + as_str( col.b );
-}
-
-void color_to_hex( const Color &col, std::string &str )
-{
-	std::stringstream hex;
-	hex << "#"
-		<< std::hex << std::setw(2) << std::setfill('0') << (int)col.r
-		<< std::hex << std::setw(2) << std::setfill('0') << (int)col.g
-		<< std::hex << std::setw(2) << std::setfill('0') << (int)col.b;
-	str = hex.str();
-}
-
 int get_token_index( const char *tokens[], const std::string &token )
 {
 	int i = 0;

@@ -130,6 +130,7 @@ RES_LANGUAGE_FILE=$(RES_LANGUAGE_DIR)/language.h
 _DEP =\
 	fe_base.hpp \
 	fe_file.cpp \
+	fe_color.hpp \
 	fe_util.hpp \
 	fe_util_sq.hpp \
 	fe_info.hpp \
@@ -177,6 +178,7 @@ _DEP =\
 _OBJ =\
 	fe_base.o \
 	fe_file.o \
+	fe_color.o \
 	fe_util.o \
 	fe_util_sq.o \
 	fe_cmdline.o \
