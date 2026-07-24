@@ -1637,7 +1637,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `BlendMode.Multiply`
    -  `BlendMode.Overlay`
    -  `BlendMode.Premultiplied` (default for surfaces)
-   -  `BlendMode.IgnoreAlpha` - Replace color only. The current alpha mask of destination is kept.
+   -  `BlendMode.IgnoreAlpha` - Blend source color over the destination while keeping the destination alpha mask unchanged.
    -  `BlendMode.InvertAlpha` - Use the source alpha to cut into the destination alpha.
    -  `BlendMode.InvertRGB` - Use the source colour to invert the destination colour.
    -  `BlendMode.None`
@@ -1970,7 +1970,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
    -  `BlendMode.Multiply`
    -  `BlendMode.Overlay`
    -  `BlendMode.Premultiplied`
-   -  `BlendMode.IgnoreAlpha` - Replace color only. The current alpha mask of destination is kept.
+   -  `BlendMode.IgnoreAlpha` - Blend source color over the destination while keeping the destination alpha mask unchanged.
    -  `BlendMode.InvertAlpha` - Use the source alpha to cut into the destination alpha.
    -  `BlendMode.InvertRGB` - Use the source colour to invert the destination colour.
    -  `BlendMode.None`

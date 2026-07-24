@@ -95,7 +95,7 @@ FeBlend::State FeBlend::get_state( int blend_mode )
 
 		case FeBlend::IgnoreAlpha:
 			state.src_color_factor = DstAlpha;
-			state.dst_color_factor = Zero;
+			state.dst_color_factor = OneMinusSrcAlpha;
 			state.src_alpha_factor = Zero;
 			state.dst_alpha_factor = One;
 			break;
