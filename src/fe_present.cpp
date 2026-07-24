@@ -1535,6 +1535,7 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 
 	new_text->setFont( *get_layout_font() );
 	new_text->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_text->on_new_selection( m_feSettings );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;

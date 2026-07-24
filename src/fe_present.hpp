@@ -359,7 +359,7 @@ public:
 	static void script_unregister_texture_container( FeBaseTextureContainer * );
 	static void script_flag_redraw();
 	static void script_flag_sort_zorder();
-	static void script_process_magic_strings( std::string &str,
+	static bool script_process_magic_strings( std::string &str,
 			int filter_offset,
 			int index_offset );
 	static std::string script_get_base_path();

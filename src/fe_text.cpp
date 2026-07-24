@@ -37,7 +37,8 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	m_user_charsize( -1 ),
 	m_size( w, h ),
 	m_position( x, y ),
-	m_scale_factor( 1.0 )
+	m_scale_factor( 1.0 ),
+	m_magic( false )
 {
 	update_font_size();
 }
@@ -153,11 +154,11 @@ void FeText::on_new_selection( FeSettings *feSettings )
 {
 	std::string str = m_string;
 
-	FePresent::script_process_magic_strings( str,
+	m_magic = FePresent::script_process_magic_strings( str,
 			m_filter_offset,
 			m_index_offset );
 
-	feSettings->do_text_substitutions( str, m_filter_offset, m_index_offset );
+	m_magic = feSettings->do_text_substitutions( str, m_filter_offset, m_index_offset ) || m_magic;
 
 	m_draw_text.setString( str );
 }
@@ -294,12 +295,13 @@ int FeText::get_type() const
 
 bool FeText::get_magic() const
 {
-	return m_string.find( '[' ) != std::string::npos;
+	return m_magic;
 }
 
 void FeText::set_string(const char *s)
 {
 	m_string=s;
+	m_magic=false;
 	FePresent::script_do_update( this );
 }
 

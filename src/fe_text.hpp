@@ -135,6 +135,7 @@ private:
 	Vec2f m_size;		// unscaled size
 	Vec2f m_position;	// unscaled position
 	float m_scale_factor;
+	bool m_magic;
 };
 
 #endif

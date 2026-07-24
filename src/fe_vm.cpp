@@ -2027,16 +2027,17 @@ FePresent *FePresent::script_get_fep()
 	return NULL;
 }
 
-void FePresent::script_process_magic_strings( std::string &str,
+bool FePresent::script_process_magic_strings( std::string &str,
 		int filter_offset,
 		int index_offset )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	if ( !vm )
-		return;
+		return false;
 
 	const char *TOK = "[!";
 	int TOK_LEN = 2;
+	bool processed = false;
 
 	size_t pos = str.find( TOK );
 	while ( pos != std::string::npos )
@@ -2069,6 +2070,7 @@ void FePresent::script_process_magic_strings( std::string &str,
 
 				str.replace( pos, end-pos+1, result );
 				pos += result.size();
+				processed = true;
 			}
 			else
 			{
@@ -2090,6 +2092,8 @@ void FePresent::script_process_magic_strings( std::string &str,
 
 		pos = str.find( TOK, pos );
 	}
+
+	return processed;
 }
 
 //
