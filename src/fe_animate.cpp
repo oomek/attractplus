@@ -1115,6 +1115,11 @@ bool FeAnimate::tick()
 		float total_duration = animation.duration_ms * animation.play_count;
 		float prev_time = get_animation_loop_time( animation );
 		animation.time_ms = std::min( animation.time_ms + frame_ms, total_duration );
+
+		// Discard residual time left caused by floating point error
+		if (( total_duration - animation.time_ms ) <= 0.01f )
+			animation.time_ms = total_duration;
+
 		animation.running = animation.time_ms < total_duration;
 		float next_time = get_animation_loop_time( animation );
 		if ( next_time < prev_time ) animation.buffer_dirty = true;
