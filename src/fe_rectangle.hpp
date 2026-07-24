@@ -71,8 +71,11 @@ public:
 
 	float get_origin_x() const;
 	float get_origin_y() const;
+	int get_transform_origin_type() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;
+	float get_transform_origin_x() const;
+	float get_transform_origin_y() const;
 	float get_anchor_x() const;
 	float get_anchor_y() const;
 	float get_rotation_origin_x() const;
@@ -93,10 +96,14 @@ public:
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );
+	void set_transform_origin( float x, float y );
+	void set_transform_origin_type( int t );
 	void set_anchor( float x, float y );
 	void set_anchor_type( int t );
 	void set_rotation_origin( float x, float y );
 	void set_rotation_origin_type( int t );
+	void set_transform_origin_x( float x );
+	void set_transform_origin_y( float y );
 	void set_anchor_x( float x );
 	void set_anchor_y( float y );
 	void set_rotation_origin_x( float x );
@@ -128,12 +135,14 @@ private:
 	Vec2f m_position;
 	Vec2f m_size;
 	Vec2f m_origin;
+	Vec2f m_transform_origin;
 	Vec2f m_rotation_origin;
 	Vec2f m_anchor;
 	Vec2f m_render_position;
 	Vec2f m_render_size;
 	Vec2f m_render_origin;
 	Vec2f m_corner_radius_actual;
+	FeRectangle::Alignment m_transform_origin_type;
 	FeRectangle::Alignment m_anchor_type;
 	FeRectangle::Alignment m_rotation_origin_type;
 	float m_rotation;
