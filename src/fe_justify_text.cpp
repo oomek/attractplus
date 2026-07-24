@@ -76,7 +76,6 @@ void addLine(
 	float thickness,
 	float outlineThickness = 0)
 {
-	if ( color.a == 0 ) return;
 	const float top = std::floor( lineTop + offset - ( thickness / 2 ) + 0.5f );
 	const float bottom = top + std::floor( thickness + 0.5f );
 
@@ -96,7 +95,6 @@ void addGlyphQuad(
 	const FeGlyph &glyph,
 	float italicShear )
 {
-	if ( color.a == 0 ) return;
 	const Vec2f padding( 1.f, 1.f );
 
 	const Vec2f p1( glyph.bounds.position.x - padding.x, glyph.bounds.position.y - padding.y );
