@@ -114,7 +114,7 @@ bool FeNetTask::do_task( long *code )
 
 	curl_easy_setopt( curl_handle, CURLOPT_URL, m_url.c_str() );
 
-	res = curl_easy_perform( curl_handle );
+		res = curl_easy_perform( curl_handle );
 
 	if ( res != CURLE_OK )
 	{
@@ -123,7 +123,7 @@ bool FeNetTask::do_task( long *code )
 			long rcode;
 			curl_easy_getinfo( curl_handle, CURLINFO_RESPONSE_CODE, &rcode );
 
-			FeDebug() << " * Http error: " << rcode << " (" << m_url << ")" << std::endl;
+			fe_log_threadsafe( " * Http error: " + std::to_string( rcode ) + " (" + m_url + ")" );
 
 			if ( code )
 				*code = rcode;
@@ -137,13 +137,11 @@ bool FeNetTask::do_task( long *code )
 				 res == CURLE_OPERATION_TIMEDOUT ||
 				 res == CURLE_COULDNT_RESOLVE_PROXY )
 			{
-				FeDebug() << " - Network error: " << m_result
-						<< " (" << m_url << ")" << std::endl;
+				fe_log_threadsafe( " - Network error: " + m_result + " (" + m_url + ")" );
 			}
 			else
 			{
-				FeLog() << " ! Error processing request: " << m_result
-						<< " (" << m_url << ")" << std::endl;
+				fe_log_threadsafe( " ! Error processing request: " + m_result + " (" + m_url + ")" );
 			}
 		}
 
@@ -158,8 +156,7 @@ bool FeNetTask::do_task( long *code )
 		nowide::ofstream outfile( m_filename.c_str(), std::ios_base::binary );
 		if ( !outfile.is_open() )
 		{
-			FeLog() << " ! Unable to open file for writing: "
-				<< m_filename << std::endl;
+			fe_log_threadsafe( " ! Unable to open file for writing: " + m_filename );
 			return false;
 		}
 
@@ -290,6 +287,9 @@ FeNetWorker::~FeNetWorker()
 
 void FeNetWorker::work_process()
 {
+	unsigned long thread_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
+	fe_log_threadsafe( "WORKER thread " + std::to_string( thread_id ) + " started." );
+
 	while ( m_proceed && !m_queue.all_done() )
 	{
 		bool res=false;
@@ -297,10 +297,24 @@ void FeNetWorker::work_process()
 
 		if ( m_queue.get_next_task( t ) )
 		{
-			// Perform task
-			//
 			long code( 0 );
-			res = t.do_task( &code );
+			int retry_count = 0;
+			const int MAX_RETRIES = 3;
+
+			do
+			{
+				res = t.do_task( &code );
+
+				if ( !res && ( t.m_type == FeNetTask::FileTask || t.m_type == FeNetTask::SpecialFileTask ) )
+				{
+					retry_count++;
+					if ( retry_count <= MAX_RETRIES )
+					{
+						fe_log_threadsafe( " - Retrying download (attempt " + std::to_string( retry_count + 1 ) + "/" + std::to_string( MAX_RETRIES + 1 ) + ")" );
+						std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
+					}
+				}
+			} while ( !res && ( t.m_type == FeNetTask::FileTask || t.m_type == FeNetTask::SpecialFileTask ) && retry_count <= MAX_RETRIES );
 
 			m_queue.done_with_task( t, res );
 
@@ -313,12 +327,13 @@ void FeNetWorker::work_process()
 				}
 			}
 		}
-
-		if ( !res ) // sleep if there is nothing in the queue
+		else
+		{
 			std::this_thread::sleep_for( std::chrono::milliseconds( 10 ) );
+		}
 	}
 
-	FeDebug() << "WORKER thread process completed." << std::endl;
+	fe_log_threadsafe( "WORKER thread " + std::to_string( thread_id ) + " process completed." );
 }
 
 FeVersionChecker::FeVersionChecker()

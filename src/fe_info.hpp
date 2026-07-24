@@ -475,6 +475,7 @@ public:
 		Steam,
 		Thegamesdb,
 		Scummvm,
+		Screenscraper,
 		Listsoftware_tgdb,	// "mess" + thegamesdb.net
 		LAST_INFOSOURCE
 	};

@@ -43,6 +43,8 @@ public:
 		BufferTask=-4
 	};
 
+	friend class FeNetWorker;
+
 	FeNetTask( const FeNetTask & );
 	const FeNetTask &operator=( const FeNetTask & );
 

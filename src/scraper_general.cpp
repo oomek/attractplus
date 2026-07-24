@@ -540,6 +540,11 @@ bool FeSettings::apply_xml_import( FeImporterContext &c )
 			cancelled = !thegamesdb_scraper( c );
 		break;
 
+	case FeEmulatorInfo::Screenscraper:
+		if ( c.use_net )
+			cancelled = !screenscraper_scraper( c );
+		break;
+
 	case FeEmulatorInfo::Scummvm:
 		scummvm_build( c );
 		if ( c.use_net )
@@ -862,7 +867,7 @@ bool FeSettings::scrape_artwork( const std::string &emu_name, UiUpdate uiu, void
 	FeImporterContext ctx( *emu, romlist );
 	ctx.uiupdate = uiu;
 	ctx.uiupdatedata = uid;
-	ctx.use_net = false;
+	ctx.use_net = true;
 
 	if ( file_exists( fn ) )
 	{
@@ -883,14 +888,41 @@ bool FeSettings::scrape_artwork( const std::string &emu_name, UiUpdate uiu, void
 	ctx.scrape_art = true;
 	confirm_directory( get_config_dir(), FE_SCRAPER_SUBDIR );
 
-	// do the mame-specific scrapers first followed
-	// by the more general thegamesdb scraper.
-	// These return false if the user cancels...
-	//
-	if ( general_mame_scraper( ctx ) )
+	bool cancelled = false;
+	FeEmulatorInfo::InfoSource is = ctx.emulator.get_info_source();
+
+	switch ( is )
 	{
-		ctx.progress_past = ctx.progress_past + ctx.progress_range;
-		thegamesdb_scraper( ctx );
+	case FeEmulatorInfo::Screenscraper:
+		if ( ctx.use_net )
+			cancelled = !screenscraper_scraper( ctx );
+		break;
+
+	case FeEmulatorInfo::Steam:
+	case FeEmulatorInfo::Scummvm:
+		if ( ctx.use_net )
+			cancelled = !thegamesdb_scraper( ctx );
+		break;
+
+	case FeEmulatorInfo::Listsoftware_tgdb:
+		if ( ctx.use_net )
+			cancelled = !thegamesdb_scraper( ctx );
+		break;
+
+	case FeEmulatorInfo::Listxml:
+	case FeEmulatorInfo::Listsoftware:
+	case FeEmulatorInfo::Thegamesdb:
+		if ( ctx.use_net )
+			cancelled = !thegamesdb_scraper( ctx );
+		break;
+
+	default:
+		if ( general_mame_scraper( ctx ) )
+		{
+			ctx.progress_past = ctx.progress_past + ctx.progress_range;
+			thegamesdb_scraper( ctx );
+		}
+		break;
 	}
 
 	if ( uiu )

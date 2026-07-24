@@ -71,6 +71,7 @@ void fe_set_log_file( const std::string & );
 void fe_set_log_level( enum FeLogLevel );
 void fe_print_version();
 const char *fe_get_log_level_string();
+void fe_log_threadsafe( const std::string & );
 
 class FeBaseConfigurable
 {

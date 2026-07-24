@@ -189,6 +189,7 @@ _OBJ =\
 	scraper_general.o \
 	scraper_net.o \
 	scraper_gamesdb.o \
+	scraper_screenscraper.o \
 	fe_config.o \
 	fe_presentable.o \
 	fe_renderer.o \

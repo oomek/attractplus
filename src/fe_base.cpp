@@ -33,6 +33,7 @@ extern "C"
 #include <sstream>
 #include <iomanip>
 #include <SDL3/SDL.h>
+#include <mutex>
 #include "nowide/fstream.hpp"
 #include "nowide/iostream.hpp"
 
@@ -80,6 +81,7 @@ namespace {
 	nowide::ofstream g_nullstream( "/dev/null" );
 #endif
 	enum FeLogLevel g_log_level=FeLog_Info;
+	std::mutex g_log_mutex;
 
 	void ffmpeg_log_callback( void *ptr, int level, const char *fmt, va_list vargs )
 	{
@@ -118,6 +120,16 @@ void fe_set_log_file( const std::string &fn )
 	else
 		g_logfile.open( fn.c_str() );
 }
+
+void fe_log_threadsafe( const std::string &msg )
+{
+	if ( g_log_level == FeLog_Debug )
+	{
+		std::lock_guard<std::mutex> lock( g_log_mutex );
+		FeLog() << msg << std::endl;
+	}
+}
+
 
 void fe_set_log_level( enum FeLogLevel f )
 {
