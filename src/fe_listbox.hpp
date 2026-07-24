@@ -134,6 +134,7 @@ public:
 	int get_style();
 	int get_justify();
 	int get_align();
+	int get_case();
 	int get_type() const;
 	int get_selection_mode();
 	int get_selection_margin();
@@ -149,6 +150,7 @@ public:
 	void set_style(int s);
 	void set_justify(int j);
 	void set_align(int a);
+	void set_case(int c);
 	void set_selection_mode(int m);
 	void set_selection_margin(int m);
 	int get_selr();

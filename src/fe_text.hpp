@@ -103,6 +103,7 @@ public:
 	int get_style();
 	int get_justify();
 	int get_align();
+	int get_case();
 	const char *get_font();
 	void set_bgr(int r);
 	void set_bgg(int g);
@@ -117,6 +118,7 @@ public:
 	void set_style(int s);
 	void set_justify(int j);
 	void set_align(int a);
+	void set_case(int c);
 	void set_font(const char *f);
 
 private:

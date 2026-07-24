@@ -56,6 +56,7 @@ FeTextPrimitive::FeTextPrimitive( )
 	m_bg_outline_thickness( 0.0f ),
 	m_bg_rotation( 0.0f ),
 	m_align( Centre ),
+	m_case( None ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
@@ -85,6 +86,7 @@ FeTextPrimitive::FeTextPrimitive(
 	m_bg_outline_thickness( 0.0f ),
 	m_bg_rotation( 0.0f ),
 	m_align( align ),
+	m_case( None ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
 	m_lines( 1 ),
@@ -115,7 +117,8 @@ void FeTextPrimitive::setFrom( const FeTextPrimitive &c )
 	m_bg_rotation = c.m_bg_rotation;
 	m_texts = c.m_texts;
 	m_align = c.m_align;
-	m_justify = c.m_justify,
+	m_case = c.m_case;
+	m_justify = c.m_justify;
 	m_first_line = c.m_first_line;
 	m_lines = c.m_lines;
 	m_lines_total = c.m_lines_total;
@@ -294,14 +297,35 @@ void FeTextPrimitive::setString( const std::string &t )
 	// UTF-8 character encoding is assumed.
 	// Convert to UTF-32 before handing the string to the text layout engine.
 	//
-	std::basic_string<std::uint32_t> tmp = utf8_to_utf32( t );
+	std::basic_string<std::uint32_t> text = utf8_to_utf32( t );
+
+	if ( m_case & Case::Lowercase )
+		std::transform( text.begin(), text.end(), text.begin(), []( std::uint32_t c ) { return std::tolower( c ); } );
+
+	if ( m_case & Case::Uppercase )
+		std::transform( text.begin(), text.end(), text.begin(), []( std::uint32_t c ) { return std::toupper( c ); } );
+
+	if ( m_case & Case::Capitalize )
+	{
+		bool start_word = true;
+		for ( size_t i=0, n=text.size(); i<n; ++i )
+		{
+			if ( std::isspace( text[i] ) || ( std::ispunct( text[i] ) && text[i] != '_' ) )
+				start_word = true;
+			else if ( start_word )
+			{
+				text[i] = std::toupper( text[i] );
+				start_word = false;
+			}
+		}
+	}
 
 	// We need to add one trailing space to the string
 	// for the word wrap function to work properly
 	//
-	std::fill_n( back_inserter( tmp ), 1, L' ' );
+	std::fill_n( back_inserter( text ), 1, L' ' );
 
-	setString( tmp );
+	setString( text );
 }
 
 Vec2f FeTextPrimitive::setString(
@@ -770,6 +794,17 @@ void FeTextPrimitive::setAlignment( Alignment a )
 FeTextPrimitive::Alignment FeTextPrimitive::getAlignment() const
 {
 	return m_align;
+}
+
+void FeTextPrimitive::setCase( Case c )
+{
+	m_case = c;
+	m_needs_pos_set = true;
+}
+
+FeTextPrimitive::Case FeTextPrimitive::getCase() const
+{
+	return m_case;
 }
 
 void FeTextPrimitive::setStyle( int s )
