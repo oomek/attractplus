@@ -82,6 +82,8 @@ public:
 	const char *get_string();
 	void set_string(const char *s);
 	const char *get_string_wrapped();
+	int get_type() const;
+	bool get_magic() const;
 
 	float get_cursor_pos( int i );
 

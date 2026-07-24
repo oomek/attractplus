@@ -86,6 +86,8 @@ public:
 
 	virtual void load_file( const char *n );
 	virtual const char *get_file_name() const;
+	virtual int get_type() const;
+	virtual bool get_magic() const;
 	virtual void set_trigger( int );
 	virtual int get_trigger() const;
 
@@ -177,6 +179,8 @@ public:
 
 	void load_file( const char *n );
 	const char *get_file_name() const;
+	int get_type() const;
+	bool get_magic() const;
 	void set_trigger( int );
 	int get_trigger() const;
 
@@ -295,6 +299,7 @@ public:
 	int get_height() const;
 
 	FePresentableParent *get_presentable_parent();
+	int get_type() const;
 
 private:
 	bool m_clear;
@@ -396,6 +401,8 @@ public:
 
 	void setFileName( const char * );
 	const char *getFileName() const;
+	int get_type() const;
+	bool get_magic() const;
 
 	void setTrigger( int );
 	int getTrigger() const;

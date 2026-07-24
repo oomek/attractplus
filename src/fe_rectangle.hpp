@@ -89,6 +89,7 @@ public:
 	float get_corner_ratio_x() const;
 	float get_corner_ratio_y() const;
 	int get_corner_point_count() const;
+	int get_type() const;
 
 	void set_origin_x( float x );
 	void set_origin_y( float y );

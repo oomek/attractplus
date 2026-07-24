@@ -332,6 +332,16 @@ void FeBasePresentable::set_zorder( int pos )
 	FePresent::script_flag_redraw();
 }
 
+bool FeBasePresentable::get_magic() const
+{
+	return false;
+}
+
+int FeBasePresentable::get_type() const
+{
+	return 0;
+}
+
 int FePresentableParent::get_nesting_level()
 {
 	return m_nesting_level;

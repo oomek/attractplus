@@ -134,6 +134,7 @@ public:
 	int get_style();
 	int get_justify();
 	int get_align();
+	int get_type() const;
 	int get_selection_mode();
 	int get_selection_margin();
 	void set_bgr(int r);
