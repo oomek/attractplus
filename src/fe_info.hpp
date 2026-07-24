@@ -125,6 +125,8 @@ public:
 		PlayedCount,
 		PlayedTime,
 		PlayedLast,
+		PlayedSession,
+		PlayedLongest,
 		Score,
 		Votes,
 

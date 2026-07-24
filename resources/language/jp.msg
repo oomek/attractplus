@@ -159,6 +159,8 @@ Tags;タッグ
 PlayedCount;プレイ数
 PlayedTime;プレイ時間
 PlayedLast;前回のプレイ日時
+PlayedSession;プレイセッション
+PlayedLongest;最長プレイ時間
 FileIsAvailable;Romファイルの存在
 Shuffle;シャッフル
 

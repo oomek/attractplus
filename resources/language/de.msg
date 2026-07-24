@@ -159,6 +159,8 @@ Tags;Markierungen
 PlayedCount;Male gespielt
 PlayedTime;Zeit gespielt
 PlayedLast;Zuletzt gespielt
+PlayedSession;Spielsitzung
+PlayedLongest;Längste Spielzeit
 FileIsAvailable;Datei ist vorhanden
 Shuffle;Zufallswiedergabe
 
