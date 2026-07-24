@@ -1096,6 +1096,12 @@ int FeTextureContainer::get_fft_bands() const
 		return m_fft_bands;
 }
 
+void FeTextureContainer::clear_video_frame()
+{
+	if ( m_movie )
+		m_movie->clear_video_frame();
+}
+
 float FeTextureContainer::get_sample_aspect_ratio() const
 {
 	if ( m_movie )

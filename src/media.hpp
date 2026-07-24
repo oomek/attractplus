@@ -76,6 +76,7 @@ public:
 	bool get_video_frame_dimensions( unsigned int &width, unsigned int &height );
 	bool copy_video_frame_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
 	bool copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
+	void clear_video_frame();
 	unsigned long long get_video_frame_serial() const;
 
 	FeTime get_video_time();

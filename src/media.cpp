@@ -239,6 +239,7 @@ public:
 	void init_rgba_buffer();
 	bool copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
 	bool copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
+	void clear_rgba_frame();
 	void video_thread();
 };
 
@@ -620,6 +621,12 @@ bool FeVideoImp::copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsi
 
 	std::memcpy( pixels, rgba_buffer[0], data_size );
 	return true;
+}
+
+void FeVideoImp::clear_rgba_frame()
+{
+	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
+	frame_serial.store( 0, std::memory_order_release );
 }
 
 void FeVideoImp::video_thread()
@@ -1609,6 +1616,12 @@ bool FeMedia::copy_video_frame_rgba( std::vector<unsigned char> &pixels, unsigne
 bool FeMedia::copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height )
 {
 	return m_video && m_video->copy_rgba_frame_to( pixels, pixel_count, width, height );
+}
+
+void FeMedia::clear_video_frame()
+{
+	if ( m_video )
+		m_video->clear_rgba_frame();
 }
 
 unsigned long long FeMedia::get_video_frame_serial() const
