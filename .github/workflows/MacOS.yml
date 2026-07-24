@@ -12,9 +12,8 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# This is only for SFML2, shall be removed when bumping to SFML3
 env:
-  PKG_CONFIG_PATH: "/opt/homebrew/opt/openal-soft/lib/pkgconfig"
+  HOMEBREW_NO_AUTO_UPDATE: "1"
 
 jobs:
 
@@ -38,7 +37,6 @@ jobs:
     - name: Install MacOS brew
       run: |
         brew update
-        brew upgrade
         brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo
     #~ - name: MacOS switch to GCC
       #~ run: |
