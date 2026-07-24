@@ -28,6 +28,7 @@
 #include <set>
 #include <SDL3/SDL_platform_defines.h>
 #include "fe_types.hpp"
+#include "fe_align.hpp"
 #include "nowide/fstream.hpp"
 
 #ifdef FE_DEBUG
@@ -497,6 +498,6 @@ int get_token_index( const char *tokens[], const std::string &token );
 // Return true if capslock enabled
 bool get_capslock_state();
 
-// Convert Anchor/Origin alignment enum values to normalised coordinates
+// Convert Anchor/Origin/Align values to normalised coordinates
 Vec2f align_type_to_vector( int type );
 #endif // FE_UTIL_HPP

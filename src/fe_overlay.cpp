@@ -1228,7 +1228,7 @@ FeTextPrimitive FeOverlay::layout_header( int style )
 	text.setMargin( 0 );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
-	text.setAlignment( (FeTextPrimitive::Alignment)( FeTextPrimitive::Middle | (( style & LayoutStyle::Centre ) ? FeTextPrimitive::Centre : FeTextPrimitive::Left) ) );
+	text.setAlignment( FeAlign::Centre | (( style & LayoutStyle::Centre ) ? FeAlign::Centre : FeAlign::Left ) );
 	return text;
 }
 
@@ -1251,7 +1251,7 @@ FeTextPrimitive FeOverlay::layout_footer()
 	text.setMargin( m_text_margin );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
-	text.setAlignment( static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Middle | FeTextPrimitive::Centre ) );
+	text.setAlignment( FeAlign::Centre );
 	return text;
 }
 
@@ -1353,7 +1353,7 @@ FeTextPrimitive FeOverlay::layout_index( int style )
 	text.setMargin( m_text_margin );
 	text.setTextScale( m_text_scale );
 	text.setColor( m_text_color );
-	text.setAlignment( (FeTextPrimitive::Alignment)( FeTextPrimitive::Middle | FeTextPrimitive::Left ) );
+	text.setAlignment( FeAlign::Centre | FeAlign::Left );
 	return text;
 }
 
@@ -1410,7 +1410,7 @@ FeListBox FeOverlay::layout_list( int style )
 	FeListBox list( m_overlay_parent );
 	list.setFont( *m_font );
 	list.set_charsize( charsize );
-	list.set_align( FeTextPrimitive::Middle | FeTextPrimitive::Centre );
+	list.set_align( FeAlign::Centre );
 	list.set_margin( m_text_margin );
 	list.setTextScale( m_text_scale );
 	list.set_rows( rows );
@@ -2164,7 +2164,7 @@ bool FeOverlay::edit_loop( std::vector<FeOverlayDrawItem> d,
 		tp->getColor(),
 		Color::Transparent,
 		static_cast<unsigned int>( tp->getCharacterSize() / tp->getTextScale().x ),
-		static_cast<FeTextPrimitive::Alignment>( FeTextPrimitive::Left | FeTextPrimitive::Middle )
+		FeAlign::Left | FeAlign::Centre
 	);
 	cursor.setTextScale( tp->getTextScale() );
 	cursor.setNoMargin( true );

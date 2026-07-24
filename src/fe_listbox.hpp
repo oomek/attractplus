@@ -24,6 +24,7 @@
 #define FE_LISTBOX_HPP
 
 #include "fe_types.hpp"
+#include "fe_align.hpp"
 #include "fe_presentable.hpp"
 #include "fe_renderer.hpp"
 #include "tp.hpp"
@@ -40,19 +41,6 @@ class FeFontContainer;
 class FeListBox : public FeBasePresentable
 {
 public:
-	enum Alignment
-	{
-		Left,
-		Centre,
-		Right,
-		Top,
-		Bottom,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight
-	};
-
 	enum SelectionMode
 	{
 		Static=0,
@@ -261,13 +249,13 @@ private:
 	Vec2f m_transform_origin;
 	Vec2f m_anchor;
 	Vec2f m_rotation_origin;
-	FeListBox::Alignment m_transform_origin_type;
-	FeListBox::Alignment m_anchor_type;
-	FeListBox::Alignment m_rotation_origin_type;
+	FeAlign m_transform_origin_type;
+	FeAlign m_anchor_type;
+	FeAlign m_rotation_origin_type;
 	float m_selOutlineThickness;
 	int m_selStyle;
 	int m_rows;
-	int m_list_align;
+	FeAlign m_list_align;
 	int m_userCharSize;
 	int m_filter_offset;
 	float m_rotation;

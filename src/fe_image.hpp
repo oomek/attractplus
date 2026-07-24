@@ -28,6 +28,7 @@
 #include <sqrat.h>
 #include "fe_sprite.hpp"
 #include "fe_renderer.hpp"
+#include "fe_align.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "sqrat_array_wrapper.hpp"
@@ -318,19 +319,6 @@ public:
 class FeImage : public FeBasePresentable
 {
 public:
-	enum Alignment
-	{
-		Left,
-		Centre,
-		Right,
-		Top,
-		Bottom,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight
-	};
-
 	enum Fit
 	{
 		Fill,
@@ -574,19 +562,19 @@ protected:
 
 	Vec3f m_origin;
 	Vec2f m_transform_origin;
-	FeImage::Alignment m_transform_origin_type;
+	FeAlign m_transform_origin_type;
 
 	Vec3f m_anchor;
-	FeImage::Alignment m_anchor_type;
+	FeAlign m_anchor_type;
 
 	float m_rotation;
 	Vec3f m_rotation_origin;
-	FeImage::Alignment m_rotation_origin_type;
+	FeAlign m_rotation_origin_type;
 
 	bool m_crop;
 	FeImage::Fit m_fit;
 	Vec2f m_fit_anchor;
-	FeImage::Alignment m_fit_anchor_type;
+	FeAlign m_fit_anchor_type;
 
 	FeBlend::Mode m_blend_mode;
 	bool m_preserve_aspect_ratio;

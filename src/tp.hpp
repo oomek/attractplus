@@ -27,29 +27,12 @@
 #include "fe_renderer.hpp"
 #include "fe_font.hpp"
 #include "fe_types.hpp"
+#include "fe_align.hpp"
 #include <vector>
 
 class FeTextPrimitive
 {
 public:
-	enum Alignment {
-		Left=1,
-		Centre=2,
-		Right=4,
-		Top=8,
-		Bottom=16,
-		Middle=32,
-		TopLeft=Top | Left,
-		TopCentre=Top | Centre,
-		TopRight=Top | Right,
-		BottomLeft=Bottom | Left,
-		BottomCentre=Bottom | Centre,
-		BottomRight=Bottom | Right,
-		MiddleLeft=Middle | Left,
-		MiddleCentre=Middle | Centre,
-		MiddleRight=Middle | Right
-	};
-
 	enum Case {
 		None =			0,
 		Uppercase =		1 << 0,
@@ -63,7 +46,7 @@ public:
 			Color colour,
 			Color bgcolour,
 			unsigned int charactersize,
-			Alignment align=MiddleCentre );
+			FeAlign align=FeAlign::Centre );
 
 	FeTextPrimitive( const FeTextPrimitive & );
 
@@ -88,7 +71,7 @@ public:
 	void setCharacterSize( unsigned int );
 	void setCharacterSpacing( float );
 	void setLineSpacing( float );
-	void setAlignment( Alignment );
+	void setAlignment( FeAlign );
 	void setCase( Case );
 	void setPosition( int x, int y ) { return setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) ); };
 	void setPosition( const Vec2f & );
@@ -123,7 +106,7 @@ public:
 	float getCharacterSpacing() const;
 	float getLineSpacing() const;
 	int getLineSpacingFactored( const FeFont *, int ) const;
-	Alignment getAlignment() const;
+	FeAlign getAlignment() const;
 	Case getCase() const;
 	Vec2f getPosition() const;
 	Vec2f getSize() const;
@@ -150,7 +133,7 @@ private:
 	float m_bg_outline_thickness;
 	float m_bg_rotation;
 	mutable std::vector<FeJustifyText> m_texts;
-	Alignment m_align;
+	FeAlign m_align;
 	Case m_case;
 	int m_justify;
 

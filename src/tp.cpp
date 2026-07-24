@@ -25,6 +25,7 @@
 #include <cmath>
 #include <algorithm>
 
+#include "fe_util.hpp"
 #include "fe_present.hpp"
 
 namespace
@@ -56,7 +57,7 @@ FeTextPrimitive::FeTextPrimitive( )
 	m_bg_outline_color( Color::Black ),
 	m_bg_outline_thickness( 0.0f ),
 	m_bg_rotation( 0.0f ),
-	m_align( MiddleCentre ),
+	m_align( FeAlign::Centre ),
 	m_case( None ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
@@ -78,7 +79,7 @@ FeTextPrimitive::FeTextPrimitive(
 			Color colour,
 			Color bgcolour,
 			unsigned int charactersize,
-			Alignment align )
+			FeAlign align )
 	: m_texts( 1, FeJustifyText( *font ) ),
 	m_bg_position( 0.0f, 0.0f ),
 	m_bg_size( 0.0f, 0.0f ),
@@ -87,7 +88,7 @@ FeTextPrimitive::FeTextPrimitive(
 	m_bg_outline_color( Color::Black ),
 	m_bg_outline_thickness( 0.0f ),
 	m_bg_rotation( 0.0f ),
-	m_align( MiddleCentre ),
+	m_align( FeAlign::Centre ),
 	m_case( None ),
 	m_justify( FeJustifyText::None ),
 	m_first_line( 1 ),
@@ -373,9 +374,7 @@ Vec2f FeTextPrimitive::setString(
 		: m_margin * 2.0;
 
 	float fit_width = m_bg_size.x - margin;
-	float fit_height = ( m_align & ( Top | Bottom | Middle ))
-		? rectSize.size.y + spacing - glyphSize - margin
-		: rectSize.size.y;
+	float fit_height = rectSize.size.y + spacing - glyphSize - margin;
 
 	int max_lines = (int)floorf( fit_height / spacing );
 	m_lines = std::clamp( max_lines, 1, m_lines_total );
@@ -473,6 +472,8 @@ void FeTextPrimitive::set_positions() const
 	const Vec2f rectPos( m_bg_position );
 	const Vec2f rectTopLeft = rectPos - m_bg_origin;
 	const FloatRect rectSize( rectTopLeft.x, rectTopLeft.y, m_bg_size.x, m_bg_size.y );
+	FeAlign horizontal_align = m_align & ( FeAlign::Left | FeAlign::Right );
+	FeAlign vertical_align = m_align & ( FeAlign::Top | FeAlign::Bottom );
 
 	for ( int i=0; i < (int)m_texts.size(); i++ )
 	{
@@ -488,30 +489,34 @@ void FeTextPrimitive::set_positions() const
 		float outline = ceilf( m_outline );
 
 		// set position x
-		if ( m_align & Left )
-			textPos.x = rectTopLeft.x - outline;
-		else if ( m_align & Right )
-			textPos.x = rectTopLeft.x + floorf( rectSize.size.x ) - textSize.size.x + outline;
-		else if ( m_align & Centre )
-			textPos.x = rectTopLeft.x + floorf(( rectSize.size.x - textSize.size.x ) / 2.0 );
+		switch ( horizontal_align )
+		{
+			case FeAlign::Left:
+				textPos.x = rectTopLeft.x - outline + margin;
+				break;
+			case FeAlign::Right:
+				textPos.x = rectTopLeft.x + floorf( rectSize.size.x ) - textSize.size.x + outline - margin;
+				break;
+			default:
+				textPos.x = rectTopLeft.x + floorf(( rectSize.size.x - textSize.size.x ) / 2.0 );
+				break;
+		}
 
-		if ( m_align & ( Top | Bottom | Middle ))
-			textPos.x -= textSize.position.x;
+		textPos.x -= textSize.position.x;
 
 		// set position y
-		if ( m_align & Top )
-			textPos.y = rectTopLeft.y + ceilf( spacing * i - charSize + glyphSize );
-		else if ( m_align & Bottom )
-			textPos.y = rectTopLeft.y + floorf( rectSize.size.y  - charSize - spacing * ( m_texts.size() - i - 1 ));
-		else if ( m_align & Middle )
-			textPos.y = rectTopLeft.y + floorf( spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
-		else
-			textPos.y = rectTopLeft.y + ceilf( spacing * i + ( rectSize.size.y - ( spacing * m_texts.size() )) / 2.0 );
-
-		if ( m_align & Top ) textPos.y += margin;
-		if ( m_align & Bottom ) textPos.y -= margin;
-		if ( m_align & Left ) textPos.x += margin;
-		if ( m_align & Right ) textPos.x -= margin;
+		switch ( vertical_align )
+		{
+			case FeAlign::Top:
+				textPos.y = rectTopLeft.y + ceilf( spacing * i - charSize + glyphSize ) + margin;
+				break;
+			case FeAlign::Bottom:
+				textPos.y = rectTopLeft.y + floorf( rectSize.size.y  - charSize - spacing * ( m_texts.size() - i - 1 )) - margin;
+				break;
+			default:
+				textPos.y = rectTopLeft.y + floorf( spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
+				break;
+		}
 
 		const Vec2f transformed = rotate_point_around( textPos, rectPos, m_bg_rotation );
 		m_texts[i].setPosition( transformed.x, transformed.y );
@@ -801,28 +806,13 @@ void FeTextPrimitive::setOrigin( const Vec2f &o )
 	m_needs_pos_set = true;
 }
 
-void FeTextPrimitive::setAlignment( Alignment a )
+void FeTextPrimitive::setAlignment( FeAlign a )
 {
-	switch ( a )
-	{
-		case Left:
-			a = MiddleLeft;
-			break;
-		case Centre:
-			a = MiddleCentre;
-			break;
-		case Right:
-			a = MiddleRight;
-			break;
-		default:
-			break;
-	}
-
 	m_align = a;
 	m_needs_pos_set = true;
 }
 
-FeTextPrimitive::Alignment FeTextPrimitive::getAlignment() const
+FeAlign FeTextPrimitive::getAlignment() const
 {
 	return m_align;
 }

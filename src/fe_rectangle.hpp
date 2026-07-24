@@ -24,6 +24,7 @@
 #define FE_RECTANGLE_HPP
 
 #include "fe_types.hpp"
+#include "fe_align.hpp"
 #include "fe_presentable.hpp"
 #include "fe_blend.hpp"
 #include "fe_renderer.hpp"
@@ -34,20 +35,6 @@ class FeSettings;
 class FeRectangle : public FeBasePresentable
 {
 public:
-	public:
-	enum Alignment
-	{
-		Left,
-		Centre,
-		Right,
-		Top,
-		Bottom,
-		TopLeft,
-		TopRight,
-		BottomLeft,
-		BottomRight
-	};
-
 	FeRectangle( FePresentableParent &p,
 		float x, float y, float w, float h );
 	FeRectangle( FePresentableParent &p );
@@ -142,9 +129,9 @@ private:
 	Vec2f m_render_size;
 	Vec2f m_render_origin;
 	Vec2f m_corner_radius_actual;
-	FeRectangle::Alignment m_transform_origin_type;
-	FeRectangle::Alignment m_anchor_type;
-	FeRectangle::Alignment m_rotation_origin_type;
+	FeAlign m_transform_origin_type;
+	FeAlign m_anchor_type;
+	FeAlign m_rotation_origin_type;
 	float m_rotation;
 	float m_outline_thickness;
 

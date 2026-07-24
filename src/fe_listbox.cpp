@@ -41,13 +41,13 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_transform_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
-	m_transform_origin_type( TopLeft ),
-	m_anchor_type( TopLeft ),
-	m_rotation_origin_type( TopLeft ),
+	m_transform_origin_type( FeAlign::TopLeft ),
+	m_anchor_type( FeAlign::TopLeft ),
+	m_rotation_origin_type( FeAlign::TopLeft ),
 	m_selOutlineThickness( 0 ),
 	m_selStyle( FeJustifyText::Regular ),
 	m_rows( 11 ),
-	m_list_align( FeTextPrimitive::Top ),
+	m_list_align( FeAlign::Top ),
 	m_userCharSize( 0 ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
@@ -76,7 +76,7 @@ FeListBox::FeListBox(
 		unsigned int charactersize,
 		int rows )
 	: FeBasePresentable( p ),
-	m_base_text( font, colour, bgcolour, charactersize, FeTextPrimitive::Centre ),
+	m_base_text( font, colour, bgcolour, charactersize, FeAlign::Centre ),
 	m_selColour( selcolour ),
 	m_selBg( selbgcolour ),
 	m_selOutlineColour( Color::Black ),
@@ -85,13 +85,13 @@ FeListBox::FeListBox(
 	m_transform_origin( 0.f, 0.f ),
 	m_anchor( 0.f, 0.f ),
 	m_rotation_origin( 0.f, 0.f ),
-	m_transform_origin_type( TopLeft ),
-	m_anchor_type( TopLeft ),
-	m_rotation_origin_type( TopLeft ),
+	m_transform_origin_type( FeAlign::TopLeft ),
+	m_anchor_type( FeAlign::TopLeft ),
+	m_rotation_origin_type( FeAlign::TopLeft ),
 	m_selOutlineThickness( 0 ),
 	m_selStyle( FeJustifyText::Regular ),
 	m_rows( rows ),
-	m_list_align( FeTextPrimitive::Top ),
+	m_list_align( FeAlign::Top ),
 	m_userCharSize( charactersize ),
 	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
@@ -162,17 +162,17 @@ Color FeListBox::getColor() const
 
 int FeListBox::get_transform_origin_type() const
 {
-	return (FeListBox::Alignment)m_transform_origin_type;
+	return m_transform_origin_type;
 }
 
 int FeListBox::get_anchor_type() const
 {
-	return (FeListBox::Alignment)m_anchor_type;
+	return m_anchor_type;
 }
 
 int FeListBox::get_rotation_origin_type() const
 {
-	return (FeListBox::Alignment)m_rotation_origin_type;
+	return m_rotation_origin_type;
 }
 
 float FeListBox::get_transform_origin_x() const
@@ -222,7 +222,7 @@ void FeListBox::set_transform_origin( float x, float y )
 
 void FeListBox::set_transform_origin_type( int t )
 {
-	m_transform_origin_type = (FeListBox::Alignment)t;
+	m_transform_origin_type = static_cast<FeAlign>( t );
 	Vec2f a = align_type_to_vector( t );
 	set_transform_origin( a.x, a.y );
 }
@@ -239,7 +239,7 @@ void FeListBox::set_anchor( float x, float y )
 
 void FeListBox::set_anchor_type( int t )
 {
-	m_anchor_type = (FeListBox::Alignment)t;
+	m_anchor_type = static_cast<FeAlign>( t );
 	Vec2f a = align_type_to_vector( t );
 	set_anchor( a.x, a.y );
 }
@@ -256,7 +256,7 @@ void FeListBox::set_rotation_origin( float x, float y )
 
 void FeListBox::set_rotation_origin_type( int t )
 {
-	m_rotation_origin_type = (FeListBox::Alignment)t;
+	m_rotation_origin_type = static_cast<FeAlign>( t );
 	Vec2f o = align_type_to_vector( t );
 	set_rotation_origin( o.x, o.y );
 }
@@ -783,14 +783,16 @@ void FeListBox::refresh_list()
 			{
 				switch ( m_list_align )
 				{
-					case FeTextPrimitive::Top:
+					case FeAlign::Top:
 						goal_sel_row = sel;
 						break;
-					case FeTextPrimitive::Middle:
+					case FeAlign::Centre:
 						goal_sel_row = sel + empty_rows / 2;
 						break;
-					case FeTextPrimitive::Bottom:
+					case FeAlign::Bottom:
 						goal_sel_row = sel + empty_rows;
+						break;
+					default:
 						break;
 				}
 			}
@@ -1000,7 +1002,7 @@ int FeListBox::get_justify()
 
 int FeListBox::get_align()
 {
-	return (int)m_base_text.getAlignment();
+	return m_base_text.getAlignment();
 }
 
 int FeListBox::get_case()
@@ -1134,13 +1136,15 @@ void FeListBox::set_rows(int r)
 
 void FeListBox::set_list_align(int a)
 {
-	if ( a == m_list_align )
+	FeAlign align = static_cast<FeAlign>( a );
+
+	if ( align == m_list_align )
 		return;
 
-	m_list_align = a;
+	m_list_align = align;
 
 	// Trigger m_selected_row re-calc, which aligns the list
-	if ( a )
+	if ( align != FeAlign::None )
 		m_selected_row = -1;
 
 	if ( m_scripted )
@@ -1176,13 +1180,14 @@ void FeListBox::set_justify(int j)
 
 void FeListBox::set_align(int a)
 {
-	if ( a == m_base_text.getAlignment() )
+	FeAlign align = static_cast<FeAlign>( a );
+	if ( align == m_base_text.getAlignment() )
 		return;
 
-	m_base_text.setAlignment( (FeTextPrimitive::Alignment)a);
+	m_base_text.setAlignment( align );
 
 	for ( int i=0; i < getRowCount(); i++ )
-		m_texts[i].setAlignment( (FeTextPrimitive::Alignment)a );
+		m_texts[i].setAlignment( align );
 
 	if ( m_scripted )
 		FePresent::script_flag_redraw();
