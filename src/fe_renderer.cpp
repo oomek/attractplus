@@ -181,6 +181,11 @@ FeRenderGeometry::FeRenderGeometry()
 	texture_mipmap( false ),
 	texture_width( 0.0f ),
 	texture_height( 0.0f ),
+	clip_enabled( false ),
+	clip_x( 0 ),
+	clip_y( 0 ),
+	clip_width( 0 ),
+	clip_height( 0 ),
 	blend_mode( 0 ),
 	zbuffer( false ),
 	translucent_depth_prepass( false ),
@@ -215,6 +220,11 @@ void FeRenderGeometry::clear()
 	texture_mipmap = false;
 	texture_width = 0.0f;
 	texture_height = 0.0f;
+	clip_enabled = false;
+	clip_x = 0;
+	clip_y = 0;
+	clip_width = 0;
+	clip_height = 0;
 	blend_mode = 0;
 	zbuffer = false;
 	translucent_depth_prepass = false;

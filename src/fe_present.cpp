@@ -212,6 +212,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_playMovies( true ),
 	m_user_page_size( -1 ),
 	m_preserve_aspect( false ),
+	m_layout_crop( true ),
 	m_custom_overlay( false ),
 	m_mouse_pointer_visible( false ),
 	m_listBox( NULL ),
@@ -474,6 +475,7 @@ void FePresent::clear_layout()
 	m_user_page_size = -1;
 	m_preserve_aspect = false;
 	reset_scene3d_globals();
+	m_layout_crop = true;
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
@@ -1012,11 +1014,68 @@ void FePresent::sort_zorder()
 void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
 {
 	geometry.clear();
+	const int target_width = m_mon.empty() ? 0 : m_mon[0].size.x;
+	const int target_height = m_mon.empty() ? 0 : m_mon[0].size.y;
+
+	if ( m_layout_crop && (( target_width <= 0 ) || ( target_height <= 0 )))
+		return;
 
 	for ( std::size_t monitor_index = 0; monitor_index < m_mon.size(); ++monitor_index )
 	{
 		const FeMonitor &monitor = m_mon[ monitor_index ];
 		std::vector<FeRenderGeometry> monitor_geometry;
+
+		int clip_x = 0;
+		int clip_y = 0;
+		int clip_width = target_width;
+		int clip_height = target_height;
+
+		if ( m_layout_crop )
+		{
+			Vec2f monitor_pos = monitor.transform.transformPoint( { 0.0f, 0.0f } );
+			float monitor_left = monitor_pos.x;
+			float monitor_top = monitor_pos.y;
+			float monitor_right = monitor_pos.x + monitor.size.x;
+			float monitor_bottom = monitor_pos.y + monitor.size.y;
+
+			float clip_left = monitor_left;
+			float clip_top = monitor_top;
+			float clip_right = monitor_right;
+			float clip_bottom = monitor_bottom;
+
+			if ( monitor_index == 0 )
+			{
+				Vec2f p0 = m_layout_transform.transformPoint( { 0.0f, 0.0f } );
+				Vec2f p1 = m_layout_transform.transformPoint( { static_cast<float>( m_layoutSize.x ), 0.0f } );
+				Vec2f p2 = m_layout_transform.transformPoint( { 0.0f, static_cast<float>( m_layoutSize.y ) } );
+				Vec2f p3 = m_layout_transform.transformPoint( { static_cast<float>( m_layoutSize.x ), static_cast<float>( m_layoutSize.y ) } );
+
+				clip_left = std::min({ p0.x, p1.x, p2.x, p3.x });
+				clip_top = std::min({ p0.y, p1.y, p2.y, p3.y });
+				clip_right = std::max({ p0.x, p1.x, p2.x, p3.x });
+				clip_bottom = std::max({ p0.y, p1.y, p2.y, p3.y });
+			}
+
+			float left = std::max({ clip_left, monitor_left, 0.0f });
+			float top = std::max({ clip_top, monitor_top, 0.0f });
+			float right = std::min({ clip_right, monitor_right, static_cast<float>( target_width ) });
+			float bottom = std::min({ clip_bottom, monitor_bottom, static_cast<float>( target_height ) });
+			float width = right - left;
+			float height = bottom - top;
+
+			if (( width <= 0.0f ) || ( height <= 0.0f ))
+				continue;
+
+			clip_x = std::max( 0, static_cast<int>( std::floor( left ) ) );
+			clip_y = std::max( 0, static_cast<int>( std::floor( top ) ) );
+			const int clip_right_px = std::min( target_width, static_cast<int>( std::ceil( right ) ) );
+			const int clip_bottom_px = std::min( target_height, static_cast<int>( std::ceil( bottom ) ) );
+			clip_width = clip_right_px - clip_x;
+			clip_height = clip_bottom_px - clip_y;
+
+			if (( clip_width <= 0 ) || ( clip_height <= 0 ))
+				continue;
+		}
 
 		for ( const FeBasePresentable *presentable : monitor.elements )
 		{
@@ -1062,6 +1121,14 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 
 		const FeTransform &transform = ( monitor_index == 0 ) ? m_layout_transform : monitor.transform;
 		apply_geometry_transform( monitor_geometry, transform );
+		for ( FeRenderGeometry &entry : monitor_geometry )
+		{
+			entry.clip_enabled = m_layout_crop;
+			entry.clip_x = clip_x;
+			entry.clip_y = clip_y;
+			entry.clip_width = clip_width;
+			entry.clip_height = clip_height;
+		}
 		collapse_pbr_geometry_instances( monitor_geometry );
 		geometry.insert( geometry.end(), monitor_geometry.begin(), monitor_geometry.end() );
 	}
@@ -2816,6 +2883,20 @@ void FePresent::set_preserve_aspect_ratio( bool p )
 bool FePresent::get_preserve_aspect_ratio()
 {
 	return m_preserve_aspect;
+}
+
+void FePresent::set_layout_crop( bool c )
+{
+	if ( c != m_layout_crop )
+	{
+		m_layout_crop = c;
+		flag_redraw();
+	}
+}
+
+bool FePresent::get_layout_crop()
+{
+	return m_layout_crop;
 }
 
 bool FePresent::get_overlay_custom_controls( FeText *&t, FeListBox *&lb )

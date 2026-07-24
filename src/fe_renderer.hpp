@@ -175,6 +175,11 @@ struct FeRenderGeometry
 	bool texture_mipmap;
 	float texture_width;
 	float texture_height;
+	bool clip_enabled;
+	int clip_x;
+	int clip_y;
+	int clip_width;
+	int clip_height;
 	int blend_mode;
 	bool zbuffer;
 	bool translucent_depth_prepass;

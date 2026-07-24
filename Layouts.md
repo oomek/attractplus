@@ -1377,6 +1377,7 @@ This class is a container for global layout settings. The instance of this class
    -  `RotateScreen.Left`
 -  `page_size` - Get/set the number of entries to jump each time the `"Next Page"` or `"Previous Page"` button is pressed.
 -  `preserve_aspect_ratio` - Get/set whether the overall layout aspect ratio should be preserved by the frontend. Default value is `false`.
+-  `crop` 🔶 - Get/set whether the layout is clipped to its monitor and layout bounds. Default value is `true`.
 -  `time` - Get the number of milliseconds that the layout has been showing.
 -  `mouse_pointer` 🔶 - When set to `true` mouse pointer will be visible.
 -  `nv` 🔶 - A table that can be used for persistent data storage, much like [`fe.nv`](#fenv) - but only available to the current Layout.

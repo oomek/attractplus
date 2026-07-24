@@ -1487,7 +1487,12 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 		|| lhs.external_vertex_id != rhs.external_vertex_id
 		|| lhs.zbuffer != rhs.zbuffer
 		|| lhs.translucent_depth != rhs.translucent_depth
-		|| lhs.translucent_depth_prepass != rhs.translucent_depth_prepass )
+		|| lhs.translucent_depth_prepass != rhs.translucent_depth_prepass
+		|| lhs.geometry->clip_enabled != rhs.geometry->clip_enabled
+		|| lhs.geometry->clip_x != rhs.geometry->clip_x
+		|| lhs.geometry->clip_y != rhs.geometry->clip_y
+		|| lhs.geometry->clip_width != rhs.geometry->clip_width
+		|| lhs.geometry->clip_height != rhs.geometry->clip_height )
 	{
 		return false;
 	}
@@ -1604,6 +1609,11 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.translucent_depth_prepass ? 1 : 0 ) );
 
 	const FeRenderGeometry &geometry = *image.geometry;
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_enabled ? 1 : 0 ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_x ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_y ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_width ) );
+	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_height ) );
 	const FeRenderPbrMaterial &material = geometry.pbr_material;
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
 	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
@@ -5493,6 +5503,19 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	uniforms.plane_distance = compute_plane_distance( camera, viewport_height );
 	SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
 
+	auto set_scissor = [&]( const FeRenderGeometry *geometry )
+	{
+		SDL_Rect scissor = { 0, 0, viewport_width, viewport_height };
+		if ( geometry && geometry->clip_enabled )
+		{
+			scissor.x = geometry->clip_x;
+			scissor.y = geometry->clip_y;
+			scissor.w = geometry->clip_width;
+			scissor.h = geometry->clip_height;
+		}
+		SDL_SetGPUScissor( render_pass, &scissor );
+	};
+
 	if ( m_alpha_prepass_pipeline )
 	{
 		SDL_BindGPUGraphicsPipeline( render_pass, m_alpha_prepass_pipeline );
@@ -5508,6 +5531,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 			if ( !bind_vertex_buffer( inline_vertex_buffer ) )
 				continue;
+			set_scissor( image.geometry );
 			SDL_DrawGPUPrimitives(
 				render_pass,
 				static_cast<Uint32>( image.vertex_count ),
@@ -5846,6 +5870,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			0,
 			sampler_bindings.data(),
 			sampler_count );
+		set_scissor( prototype.geometry );
 		SDL_DrawGPUPrimitives(
 			render_pass,
 			static_cast<Uint32>( prototype.vertex_count ),
@@ -6121,6 +6146,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
+		set_scissor( image.geometry );
 		SDL_DrawGPUPrimitives(
 			render_pass,
 			static_cast<Uint32>( image.vertex_count ),
