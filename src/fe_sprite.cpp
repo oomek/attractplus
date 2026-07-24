@@ -286,6 +286,19 @@ float FeSprite::getBorderScale() const
 	return m_border_scale;
 }
 
+float FeSprite::getPaddingScale( const Vec2f &size ) const
+{
+	if ( !m_border.left && !m_border.top && !m_border.right && !m_border.bottom )
+		return 1.f;
+
+	float padding_scale = m_border_scale;
+	float x = m_border.left + m_border.right - m_padding.left - m_padding.right;
+	float y = m_border.top + m_border.bottom - m_padding.top - m_padding.bottom;
+	if ( x > 0.f ) padding_scale = std::min( padding_scale, size.x / x );
+	if ( y > 0.f ) padding_scale = std::min( padding_scale, size.y / y );
+	return padding_scale;
+}
+
 void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const
 {
 	out.clear();
@@ -397,7 +410,10 @@ void FeSprite::updateGeometry()
 		tex.bottom -= scaled_crop.bottom;
 	}
 
-	float padding_scale = has_border ? m_border_scale : 1.f;
+	float padding_scale = getPaddingScale( Vec2f(
+		tex_size.x * scale_abs.x,
+		tex_size.y * scale_abs.y
+	));
 	const FloatEdges scaled_padding(
 		static_cast<float>( m_padding.left ) * padding_scale / scale_abs.x,
 		static_cast<float>( m_padding.top ) * padding_scale / scale_abs.y,
@@ -422,19 +438,11 @@ void FeSprite::updateGeometry()
 			static_cast<float>( m_border.right ) / scale_abs.x,
 			static_cast<float>( m_border.bottom ) / scale_abs.y );
 
-		float border_scale = m_border_scale;
-		for ( int i = 0; i < 2; ++i )
-		{
-			border_scale *= std::min(
-				total_size.x / std::max( ( scaled_border.left + scaled_border.right ) * border_scale, total_size.x ),
-				total_size.y / std::max( ( scaled_border.top + scaled_border.bottom ) * border_scale, total_size.y ) );
-		}
-
 		const FloatEdges border(
-			scaled_border.left * border_scale,
-			scaled_border.top * border_scale,
-			scaled_border.right * border_scale,
-			scaled_border.bottom * border_scale );
+			scaled_border.left * padding_scale,
+			scaled_border.top * padding_scale,
+			scaled_border.right * padding_scale,
+			scaled_border.bottom * padding_scale );
 		const float tx[4] = {
 			tex.left,
 			tex.left + ( m_border.left / tex_size.x ) * ( tex.right - tex.left ),

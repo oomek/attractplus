@@ -135,6 +135,7 @@ public:
 
 	void setBorderScale( float scale );
 	float getBorderScale() const;
+	float getPaddingScale( const Vec2f &size ) const;
 
 	void append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const;
 
