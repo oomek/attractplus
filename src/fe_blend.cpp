@@ -93,6 +93,27 @@ FeBlend::State FeBlend::get_state( int blend_mode )
 			state.src_color_factor = One;
 			break;
 
+		case FeBlend::IgnoreAlpha:
+			state.src_color_factor = DstAlpha;
+			state.dst_color_factor = Zero;
+			state.src_alpha_factor = Zero;
+			state.dst_alpha_factor = One;
+			break;
+
+		case FeBlend::InvertAlpha:
+			state.src_color_factor = OneMinusDstAlpha;
+			state.dst_color_factor = OneMinusSrcAlpha;
+			state.src_alpha_factor = OneMinusDstAlpha;
+			state.dst_alpha_factor = OneMinusSrcAlpha;
+			break;
+
+		case FeBlend::InvertRGB:
+			state.src_color_factor = OneMinusDstColor;
+			state.dst_color_factor = OneMinusSrcAlpha;
+			state.src_alpha_factor = One;
+			state.dst_alpha_factor = OneMinusSrcAlpha;
+			break;
+
 		case FeBlend::None:
 			state.enable_blend = false;
 			state.src_color_factor = One;
@@ -122,6 +143,9 @@ const char *FeBlend::get_default_shader_source( int blend_mode )
 			return DEFAULT_SHADER_GLSL_ALPHA;
 		case FeBlend::Screen:
 		case FeBlend::Multiply:
+		case FeBlend::IgnoreAlpha:
+		case FeBlend::InvertAlpha:
+		case FeBlend::InvertRGB:
 			return DEFAULT_SHADER_GLSL_MULTIPLIED;
 		case FeBlend::Overlay:
 			return DEFAULT_SHADER_GLSL_OVERLAY;

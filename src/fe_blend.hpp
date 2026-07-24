@@ -35,6 +35,9 @@ public:
 		Multiply,
 		Overlay,
 		Premultiplied,
+		IgnoreAlpha,
+		InvertAlpha,
+		InvertRGB,
 		None
 	};
 
@@ -46,7 +49,10 @@ public:
 		OneMinusSrcAlpha,
 		SrcColor,
 		OneMinusSrcColor,
-		DstColor
+		DstColor,
+		OneMinusDstColor,
+		DstAlpha,
+		OneMinusDstAlpha
 	};
 
 	enum Equation

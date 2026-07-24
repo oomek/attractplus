@@ -91,6 +91,9 @@ namespace
 			case FeBlend::Multiply: return "__multiply_fragment__";
 			case FeBlend::Overlay: return "__overlay_fragment__";
 			case FeBlend::Premultiplied: return "__premultiplied_fragment__";
+			case FeBlend::IgnoreAlpha: return "__ignore_alpha_fragment__";
+			case FeBlend::InvertAlpha: return "__invert_alpha_fragment__";
+			case FeBlend::InvertRGB: return "__invert_rgb_fragment__";
 			case FeBlend::None: return "__none_fragment__";
 			default: return "__fragment__";
 		}
@@ -107,6 +110,9 @@ namespace
 			case FeBlend::SrcColor: return SDL_GPU_BLENDFACTOR_SRC_COLOR;
 			case FeBlend::OneMinusSrcColor: return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR;
 			case FeBlend::DstColor: return SDL_GPU_BLENDFACTOR_DST_COLOR;
+			case FeBlend::OneMinusDstColor: return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR;
+			case FeBlend::DstAlpha: return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+			case FeBlend::OneMinusDstAlpha: return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
 			default: return SDL_GPU_BLENDFACTOR_ONE;
 		}
 	}
@@ -1441,7 +1447,10 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 			( image.blend_mode == FeBlend::Screen ||
 				image.blend_mode == FeBlend::Multiply ||
 				image.blend_mode == FeBlend::Overlay ||
-				image.blend_mode == FeBlend::Premultiplied ) )
+				image.blend_mode == FeBlend::Premultiplied ||
+				image.blend_mode == FeBlend::IgnoreAlpha ||
+				image.blend_mode == FeBlend::InvertAlpha ||
+				image.blend_mode == FeBlend::InvertRGB ) )
 			prepared.builtin_shader = get_fast_builtin_shader_entry( image.blend_mode );
 
 		if ( image.geometry_kind == FeRenderGeometryObjectPbr && image.has_external_vertices() )
@@ -4134,7 +4143,10 @@ FeSdl3GpuContext::BuiltinShaderEntry *FeSdl3GpuContext::get_fast_builtin_shader_
 	if ( blend_mode != FeBlend::Screen &&
 		blend_mode != FeBlend::Multiply &&
 		blend_mode != FeBlend::Overlay &&
-		blend_mode != FeBlend::Premultiplied )
+		blend_mode != FeBlend::Premultiplied &&
+		blend_mode != FeBlend::IgnoreAlpha &&
+		blend_mode != FeBlend::InvertAlpha &&
+		blend_mode != FeBlend::InvertRGB )
 		return nullptr;
 
 	BuiltinShaderEntry &entry = m_builtin_shaders[ blend_mode ];
