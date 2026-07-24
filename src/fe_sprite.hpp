@@ -101,7 +101,7 @@ public:
 	void setColor( Color color );
 	Color getColor() const;
 
-	IntRect getLocalBounds() const;
+	FloatRect getLocalBounds() const;
 
 	void setCrop( FloatEdges crop );
 	FloatEdges getCrop() const;

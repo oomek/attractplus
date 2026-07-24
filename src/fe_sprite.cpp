@@ -151,9 +151,9 @@ Color FeSprite::getColor() const
 	return m_color;
 }
 
-IntRect FeSprite::getLocalBounds() const
+FloatRect FeSprite::getLocalBounds() const
 {
-	return IntRect( 0, 0, static_cast<int>( std::abs( m_textureRect.size.x ) ), static_cast<int>( std::abs( m_textureRect.size.y ) ) );
+	return FloatRect( 0, 0, std::abs( m_textureRect.size.x ), std::abs( m_textureRect.size.y ) );
 }
 
 void FeSprite::setCrop( FloatEdges crop )
