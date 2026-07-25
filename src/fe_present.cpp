@@ -1649,9 +1649,8 @@ void FePresent::load_layout( bool initial_load )
 	else
 		var = FromToFrontend;
 
-	clear_layout();
-
 	init_monitors();
+	clear_layout();
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Layout_Showing );
 
