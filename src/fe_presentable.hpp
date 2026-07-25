@@ -95,8 +95,6 @@ private:
 	bool m_script_geometry_set;
 
 protected:
-	sf::Vector2f convert_position( const sf::Vector2f &p ) const;
-	sf::Vector2f convert_size( const sf::Vector2f &s ) const;
 	float grid_width_to_pixels( float s ) const;
 	float pixels_to_grid_width( float s ) const;
 	float grid_height_to_pixels( float s ) const;

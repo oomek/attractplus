@@ -172,7 +172,7 @@ sf::Vector2f FeBasePresentable::size_from_grid_units( const sf::Vector2f &s, boo
 
 float FeBasePresentable::grid_width_to_pixels( float s ) const
 {
-	return convert_size( sf::Vector2f( s, 0 )).x;
+	return size_from_grid_units( sf::Vector2f( s, 0 ), false ).x;
 }
 
 float FeBasePresentable::pixels_to_grid_width( float s ) const
@@ -193,7 +193,7 @@ float FeBasePresentable::pixels_to_grid_width( float s ) const
 
 float FeBasePresentable::grid_height_to_pixels( float s ) const
 {
-	return convert_size( sf::Vector2f( 0, s )).y;
+	return size_from_grid_units( sf::Vector2f( 0, s ), false ).y;
 }
 
 float FeBasePresentable::pixels_to_grid_height( float s ) const
