@@ -1565,11 +1565,11 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
--  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid` coordinates. This can be one of the following values:
+-  `grid` - Get/set the coordinate grid of the image. If unset, images created by layouts use `fe.layout.grid` coordinates. Images created by plugins default to `Grid.Pixel`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `grid_uniform` - Get/set whether the image's Percent and Normalised grids use a square grid, or are stretched to layout size. Images created by layouts default to `fe.layout.grid_uniform`; images created by plugins default to `true`.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1761,11 +1761,11 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
--  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+-  `grid` - Get/set the coordinate grid of the text. If unset, text created by layouts uses `fe.layout.grid`. Text created by plugins defaults to `Grid.Pixel`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `grid_uniform` - Get/set whether the text's Percent and Normalised grids use a square grid, or are stretched to layout size. Text created by layouts defaults to `fe.layout.grid_uniform`; text created by plugins defaults to `true`.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1894,11 +1894,11 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
--  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+-  `grid` - Get/set the coordinate grid of the listbox. If unset, listboxes created by layouts use `fe.layout.grid`. Listboxes created by plugins default to `Grid.Pixel`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `grid_uniform` - Get/set whether the listbox's Percent and Normalised grids use a square grid, or are stretched to layout size. Listboxes created by layouts default to `fe.layout.grid_uniform`; listboxes created by plugins default to `true`.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2049,11 +2049,11 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set the y position of the rectangle (in layout coordinates).
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
--  `grid` - Get/set this object's coordinate grid. If unset, it uses `fe.layout.grid`. This can be one of the following values:
+-  `grid` - Get/set the coordinate grid of the rectangle. If unset, rectangles created by layouts use `fe.layout.grid`. Rectangles created by plugins default to `Grid.Pixel`. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` - Get/set whether this object's Percent and Normalised grids use a square grid, or are stretched to layout size. Defaults to `fe.layout.grid_uniform` when created.
+-  `grid_uniform` - Get/set whether the rectangle's Percent and Normalised grids use a square grid, or are stretched to layout size. Rectangles created by layouts default to `fe.layout.grid_uniform`; rectangles created by plugins default to `true`.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.

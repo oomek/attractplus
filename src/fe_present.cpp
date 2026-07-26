@@ -2057,12 +2057,12 @@ bool FePresent::get_layout_crop()
 	return m_layout_crop;
 }
 
-sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float w, float h ) const
+sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float w, float h, int grid, bool grid_uniform ) const
 {
-	FeCoordinateSpace space = p.get_coordinate_space( m_grid_uniform );
+	FeCoordinateSpace space = p.get_coordinate_space( grid_uniform );
 	sf::Vector2f display_size;
 
-	switch ( m_grid )
+	switch ( grid )
 	{
 		case GridNormalised:
 			display_size = sf::Vector2f( space.size.x * w, space.size.y * h );

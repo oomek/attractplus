@@ -36,8 +36,10 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	m_script_geometry_set( false )
 {
 	FePresent *fep = FePresent::script_get_fep();
-	if ( fep )
+	if ( fep && fep->get_script_id() < 0 )
 		m_grid_uniform = fep->get_layout_grid_uniform();
+	else if ( fep )
+		m_grid = GridPixel;
 }
 
 FeBasePresentable::~FeBasePresentable()
@@ -517,10 +519,18 @@ FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 
 	if ( fep )
 	{
-		sf::Vector2i texture_size = fep->get_surface_texture_size( *this, w, h );
-		FeCoordinateSpace space = get_coordinate_space( fep->m_grid_uniform );
+		int grid = GridPixel;
+		bool grid_uniform = true;
+		if ( fep->get_script_id() < 0 )
+		{
+			grid = fep->get_layout_grid();
+			grid_uniform = fep->get_layout_grid_uniform();
+		}
 
-		switch ( fep->m_grid )
+		sf::Vector2i texture_size = fep->get_surface_texture_size( *this, w, h, grid, grid_uniform );
+		FeCoordinateSpace space = get_coordinate_space( grid_uniform );
+
+		switch ( grid )
 		{
 			case GridNormalised:
 				w = space.size.x != 0.0f ? texture_size.x / space.size.x : 0.0f;
