@@ -1854,7 +1854,7 @@ bool FeVM::on_tick()
 		{
 			Function &func = (*itr).get_fn();
 			if ( !func.IsNull() )
-				func.Execute( m_layout_time.getElapsedTime().asMilliseconds() );
+				func.Execute( m_layout_time_old.asMilliseconds() );
 		}
 		catch( const Exception &e )
 		{
@@ -1886,7 +1886,7 @@ void FeVM::on_transition(
 
 	FeDebug() << "[Transition] type=" << get_transition_name( t ) << ", var=" << var << std::endl;
 
-	FeStableClock clk;
+	sf::Time transition_start = m_layout_time_old;
 	int ttime = 0;
 	bool reload_layout = false;
 
@@ -1907,6 +1907,7 @@ void FeVM::on_transition(
 		if (( ttime > 0 ) && ( m_window.isOpen() ))
 		{
 			sf::Time current_time = m_layout_time.getElapsedTime();
+			ttime = ( current_time - transition_start ).asMilliseconds();
 			m_frame_time = ( current_time - m_layout_time_old ).asSeconds() * 1000.0f;
 			m_layout_time_old = current_time;
 
@@ -1951,9 +1952,9 @@ void FeVM::on_transition(
 				++itr;
 		}
 
-		// redraw now if we are doing another pass...
+		// redraw while blocked, and once more when a blocked transition releases
 		//
-		if (( !worklist.empty() ) && ( m_window.isOpen() ))
+		if (( !worklist.empty() || ( ttime > 0 )) && ( m_window.isOpen() ))
 		{
 			if ( m_sort_zorder_triggered )
 			{
@@ -1962,14 +1963,13 @@ void FeVM::on_transition(
 			}
 
 			video_tick();
-			clk.tick();
 
 			redraw_surfaces();
 			m_window.clear();
 			m_window.draw( *this );
 			m_window.display();
-			ttime = clk.getElapsedTime().asMilliseconds();
 			m_layout_time.tick();
+			ttime = ( m_layout_time.getElapsedTime() - transition_start ).asMilliseconds();
 
 			//
 			// Empty the event buffer during a blocked transition
