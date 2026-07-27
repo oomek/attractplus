@@ -2,7 +2,7 @@
  * BasicPlus Layout
  *
  * @summary A minimalistic homage to the original Basic layout.
- * @version 1.7.6 2025-12-22
+ * @version 1.8.0 2026-07-27
  * @author Chadnaut
  * @url https://github.com/Chadnaut
  *
@@ -46,9 +46,10 @@ local col_options = "Dark,Light,AM-Dark,AM-Light"
 local pinch_options = "-100,-80,-60,-40,-20,0,20,40,60,80,100"
 local bright_options = "0,10,20,30,40,50,60,70,80,90,100"
 local info_options = "Category,Manufacturer,Score,Year,Year+Category,Year+Manufacturer,Year+Score"
+local native_perspective = false
 
 class UserConfig
-</ help="BasicPlus v1.7.6 by Chadnaut\nA minimalistic homage to the original Basic layout" />
+</ help="BasicPlus v1.8.0 by Chadnaut\nA minimalistic homage to the original Basic layout" />
 {
     </ label="Preset", help="Set the layout theme preset - overrides some settings while in use\nSet to None to create your own theme", options="None,Basic,Inversion,Glassic,Cyber,Toon", order=0 /> theme_preset = "None"
     </ label="—————— List ——————", help="List Settings", is_info=true, order=1 /> list_section = "————————————————"
@@ -153,11 +154,12 @@ class UserConfig
 
     </ label="—————— Debug ——————", help="Debug Settings", is_info=true, order=92 /> debug_section = "————————————————"
     </ label="Debug Background", help="Hide all foreground layers", options="Yes,No", order=93 /> debug_bg = "No"
-    </ label="Debug Popups", help="Force the scrollbar and letter to appear", options="Yes,No", order=94 /> debug_popup = "No"
-    </ label="Debug Elements", help="Enable the debug element outlines", options="Yes,No", order=95 /> debug_element = "No"
-    </ label="Debug Safe-Margin", help="Enable the debug safe area margin", options="Yes,No", order=96 /> debug_safe = "No"
-    </ label="Debug Time", help="Set the debug time dilation. 1.0 is default", options="0.01,0.1,0.25,0.5,1.0,1.5,2.0", order=97 /> debug_time = "1.0"
-    </ label="Debug Resolution", help="Set the debug internal resolution", options="320x240,240x320,640x480,480x640,4:3,3:4,Full", order=98 /> debug_res = "Full"
+    </ label="Debug Perspective", help="Enable native pinch and skew", options="Yes,No", order=94 /> debug_perspective = "No"
+    </ label="Debug Popups", help="Force the scrollbar and letter to appear", options="Yes,No", order=95 /> debug_popup = "No"
+    </ label="Debug Elements", help="Enable the debug element outlines", options="Yes,No", order=96 /> debug_element = "No"
+    </ label="Debug Safe-Margin", help="Enable the debug safe area margin", options="Yes,No", order=97 /> debug_safe = "No"
+    </ label="Debug Time", help="Set the debug time dilation. 1.0 is default", options="0.01,0.1,0.25,0.5,1.0,1.5,2.0", order=98 /> debug_time = "1.0"
+    </ label="Debug Resolution", help="Set the debug internal resolution", options="320x240,240x320,640x480,480x640,4:3,3:4,Full", order=99 /> debug_res = "Full"
 }
 
 if (FeVersionNum < 320) fe.log("Warning: BasicPlus requires Attract-Mode Plus v3.2.0 or higher")
@@ -481,6 +483,7 @@ class Settings extends UserConfig {
         sav_change = to_float(sav_change, 0)
         debug_time = to_float(debug_time, 1.0)
         frame_time = (1000.0 / ScreenRefreshRate) * debug_time
+        native_perspective = debug_perspective
 
         /**
          * @trick Time Dilation - Speed-up or slow-down time
@@ -1170,6 +1173,72 @@ class Scrollbar {
 }
 
 // endregion
+// region Distortion -------------------------------------------------------------------
+
+/**
+ * An cut-down inline version of the Perspective Module
+ * - This is for demonstation purposes, if you need perspective in your layout use the module instead.
+ * - https://github.com/Chadnaut/Attract-Mode-Modules/tree/master/modules/perspective
+ * @param {feImage} obj Target to add perspective to
+ * @param {float} px Pinch X
+ * @param {float} py Pinch Y
+ * @param {float} sx Skew X
+ * @param {float} sy Skew Y
+ */
+function add_distortion(obj, px = 0, py = 0, sx = 0, sy = 0) {
+    if (!native_perspective && obj.shader.type == Shader.Empty && (px || py || sx || sy)) {
+        local legacy = OS == "OSX"
+        obj.shader = fe.compile_shader(
+            Shader.VertexAndFragment,
+            (legacy ? "#version 120\n#extension GL_EXT_gpu_shader4 : require\n" : "#version 130\n") +
+            @"uniform float width = 0.0; uniform float height = 0.0; uniform float rotation = 0.0;
+            uniform float offset_tl_x = 0.0; uniform float offset_tl_y = 0.0; uniform float offset_bl_x = 0.0; uniform float offset_bl_y = 0.0;
+            uniform float offset_tr_x = 0.0; uniform float offset_tr_y = 0.0; uniform float offset_br_x = 0.0; uniform float offset_br_y = 0.0;
+            int mod_int(int x, int y) { return int(mod(float(x), float(y))); }
+            float[4] barycentric(vec2 tl, vec2 bl, vec2 tr, vec2 br) {
+                vec2 a = bl - tr; vec2 b = tl - br; float cp = a.x * b.y - a.y * b.x;
+                if (cp != 0.0) {
+                    vec2 c = tr - br;
+                    float s = (a.x * c.y - a.y * c.x) / cp;
+                    if (s > 0.0 && s < 1.0) {
+                        float t = (b.x * c.y - b.y * c.x) / cp;
+                        if (t > 0.0 && t < 1.0) { return float[4](s, t, 1.0 - t, 1.0 - s); }
+                    }
+                }
+                return float[4](1.0, 1.0, 1.0, 1.0);
+            }
+            vec2 size = vec2(width, height);
+            float rad = radians(rotation);
+            mat2 rot = mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
+            vec2 offset[4] = vec2[4](vec2(offset_tl_x, offset_tl_y), vec2(offset_bl_x, offset_bl_y), vec2(offset_tr_x, offset_tr_y), vec2(offset_br_x, offset_br_y));
+            void main() {
+                float q[4] = barycentric(vec2(0.0, 0.0) + offset[0] / size, vec2(0.0, 1.0) + offset[1] / size, vec2(1.0, 0.0) + offset[2] / size, vec2(1.0, 1.0) + offset[3] / size);
+                gl_Position = gl_ModelViewProjectionMatrix * (gl_Vertex + vec4(offset[mod_int(gl_VertexID, 4)] * rot, 0.0, 0.0));
+                gl_TexCoord[0] = vec4((gl_TextureMatrix[0] * gl_MultiTexCoord0).xy, 0.0, 1.0) / q[mod_int(gl_VertexID, 4)];
+                gl_FrontColor = gl_Color;
+            }",
+            (legacy ? "#version 120\n" : "#version 130\n") +
+            @"uniform sampler2D texture;
+            void main() { gl_FragColor = gl_Color * texture2D(texture, gl_TexCoord[0].xy / gl_TexCoord[0].w); }"
+        )
+    }
+    if (native_perspective) {
+        obj.pinch_x = px
+        obj.pinch_y = py
+        obj.skew_x = sx
+        obj.skew_y = sy
+    } else {
+        obj.shader.set_param("offset_bl_x", sx + px)
+        obj.shader.set_param("offset_br_x", sx - px)
+        obj.shader.set_param("offset_tr_y", sy + py)
+        obj.shader.set_param("offset_br_y", sy - py)
+        obj.shader.set_param("width", obj.width)
+        obj.shader.set_param("height", obj.height)
+        obj.shader.set_param("rotation", obj.rotation)
+    }
+}
+
+// endregion
 // region Columns ----------------------------------------------------------------------
 
 class Columns {
@@ -1191,6 +1260,7 @@ class Columns {
     /** @type {Card} */
     card = null
 
+    list_sky = 0.0
     x = 0.0
     y = 0.0
     width = 0.0
@@ -1253,30 +1323,32 @@ class Columns {
         local l_clm = surf.add_surface(left_x, height * 0.5, left_w, height)
         l_clm.anchor = Anchor.Centre
 
-        l_clm.pinch_x = ceil2(pin * cfg.style_l_pinch_x)
-        l_clm.pinch_y = ceil2(pin * cfg.style_l_pinch_y)
-        l_clm.width += -2.0 * max(0, -l_clm.pinch_x)
-        l_clm.height += -2.0 * max(0, -l_clm.pinch_y)
+        local lpx = ceil2(pin * cfg.style_l_pinch_x)
+        local lpy = ceil2(pin * cfg.style_l_pinch_y)
+        l_clm.width += -2.0 * max(0, -lpx)
+        l_clm.height += -2.0 * max(0, -lpy)
 
-        l_clm.skew_x = ceil2(skx * cfg.style_l_skew_x)
-        l_clm.skew_y = ceil2(sky * cfg.style_l_skew_y)
-        l_clm.x += -0.5 * l_clm.skew_x
-        l_clm.y += -0.5 * l_clm.skew_y
+        local lsx = ceil2(skx * cfg.style_l_skew_x)
+        local lsy = ceil2(sky * cfg.style_l_skew_y)
+        l_clm.x += -0.5 * lsx
+        l_clm.y += -0.5 * lsy
+        add_distortion(l_clm, lpx, lpy, lsx, lsy)
 
         // Right column, holds card/list
         local r_clm = surf.add_surface(right_x, height * 0.5, right_w, height)
         r_clm.anchor = Anchor.Centre
 
         if (cfg.card_enable) {
-            r_clm.pinch_x = ceil2(pin * cfg.style_r_pinch_x)
-            r_clm.pinch_y = ceil2(pin * cfg.style_r_pinch_y)
-            r_clm.width += -2.0 * max(0, -r_clm.pinch_x)
-            r_clm.height += -2.0 * max(0, -r_clm.pinch_y)
+            local rpx = ceil2(pin * cfg.style_r_pinch_x)
+            local rpy = ceil2(pin * cfg.style_r_pinch_y)
+            r_clm.width += -2.0 * max(0, -rpx)
+            r_clm.height += -2.0 * max(0, -rpy)
 
-            r_clm.skew_x = ceil2(skx * cfg.style_r_skew_x)
-            r_clm.skew_y = ceil2(sky * cfg.style_r_skew_y)
-            r_clm.x += -0.5 * r_clm.skew_x
-            r_clm.y += -0.5 * r_clm.skew_y
+            local rsx = ceil2(skx * cfg.style_r_skew_x)
+            local rsy = ceil2(sky * cfg.style_r_skew_y)
+            r_clm.x += -0.5 * rsx
+            r_clm.y += -0.5 * rsy
+            add_distortion(r_clm, rpx, rpy, rsx, rsy)
         }
 
         if (cfg.debug_element) {
@@ -1308,6 +1380,7 @@ class Columns {
 
         list_clm = cfg.card_left ? r_clm : l_clm
         card_clm = cfg.card_left ? l_clm : r_clm
+        list_sky = ceil2(sky * (cfg.card_left ? cfg.style_r_skew_y : cfg.style_l_skew_y))
 
         local card_w = card_clm.width - cfg.ol_size * 2.0
         local card_h1 = cfg.safe_h - cfg.head_h * 2.0
@@ -1342,7 +1415,7 @@ class Columns {
             surf.x = x + -move_x * min(width, height) * 0.025
         }
 
-        local y = 0.5 * (height - list_clm.skew_y)
+        local y = 0.5 * (height - list_sky)
         if (rand_dur && ttime <= rand_time + rand_dur) {
             local t = ttime - rand_time
             local str = ease_out(t, 1.0, -1.0, rand_dur) * rand_dir * cfg.char_size
@@ -1871,7 +1944,7 @@ class Card {
             surf.y = height * (0.5 + 0.01 * gy)
             surf.width = width * (1.0 - 0.02 * (2.0 * gx))
             surf.height = height * (1.0 - 0.02 * gp)
-            surf.pinch_y = height * -0.02 * gp
+            add_distortion(surf, 0, height * -0.02 * gp, 0, 0)
             img.gloss.subimg_y = -dir * (2.0 * gx - 1.0) * 0.9 + 1.0
         }
     }
@@ -2250,8 +2323,8 @@ local flh = fe.layout.height
  */
 local scale = min(flw / res[0], flh / res[1])
 if (floor(scale)) scale = floor(scale)
-local surf = fe.add_surface(res[0], res[1])
-surf.set_pos(floor(flw * 0.5), floor(flh * 0.5), res[0] * scale, res[1] * scale)
+local surf = fe.add_surface(ceil2(res[0]), ceil2(res[1]))
+surf.set_pos(floor(flw * 0.5), floor(flh * 0.5), ceil2(res[0]) * scale, ceil2(res[1]) * scale)
 surf.anchor = Anchor.Centre
 surf.smooth = false
 Layout(surf, config)
