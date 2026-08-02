@@ -174,6 +174,7 @@ public:
 
 	static SQInteger script_move( HSQUIRRELVM vm );
 	static bool tick();
+	static void stop( FeBasePresentable *drawable, const SQChar *property_name );
 	static void remove( FeBasePresentable *drawable, const SQChar *property_name=NULL );
 	static void clear();
 

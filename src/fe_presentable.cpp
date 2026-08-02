@@ -271,24 +271,24 @@ float FeBasePresentable::get_z() const
 
 void FeBasePresentable::set_x( float x )
 {
-	FeAnimation::remove( this, _SC("x") );
 	m_script_pos.x = x;
 	m_script_geometry_set = true;
 	m_snap_x = get_pixel_snap() && m_parent;
 	Vec2f pos = getPosition();
 	pos.x = pos_from_grid_units( m_script_pos ).x;
 	setPosition( pos );
+	FeAnimation::stop( this, _SC("x") );
 }
 
 void FeBasePresentable::set_y( float y )
 {
-	FeAnimation::remove( this, _SC("y") );
 	m_script_pos.y = y;
 	m_script_geometry_set = true;
 	m_snap_y = get_pixel_snap() && m_parent;
 	Vec2f pos = getPosition();
 	pos.y = pos_from_grid_units( m_script_pos ).y;
 	setPosition( pos );
+	FeAnimation::stop( this, _SC("y") );
 }
 
 void FeBasePresentable::set_z( float z )
@@ -314,43 +314,39 @@ float FeBasePresentable::get_height() const
 
 void FeBasePresentable::set_width( float w )
 {
-	FeAnimation::remove( this, _SC("width") );
 	m_script_size.x = w;
 	m_script_geometry_set = true;
 	m_snap_width = get_pixel_snap() && m_parent;
 	Vec2f size = getSize();
 	size.x = size_from_grid_units( m_script_size ).x;
 	setSize( size );
+	FeAnimation::stop( this, _SC("width") );
 }
 
 void FeBasePresentable::set_height( float h )
 {
-	FeAnimation::remove( this, _SC("height") );
 	m_script_size.y = h;
 	m_script_geometry_set = true;
 	m_snap_height = get_pixel_snap() && m_parent;
 	Vec2f size = getSize();
 	size.y = size_from_grid_units( m_script_size ).y;
 	setSize( size );
+	FeAnimation::stop( this, _SC("height") );
 }
 
 void FeBasePresentable::set_pos(float x, float y)
 {
-	FeAnimation::remove( this, _SC("x") );
-	FeAnimation::remove( this, _SC("y") );
 	m_script_pos = Vec2f( x, y );
 	m_script_geometry_set = true;
 	m_snap_x = get_pixel_snap() && m_parent;
 	m_snap_y = m_snap_x;
 	setPosition( pos_from_grid_units( m_script_pos ));
+	FeAnimation::stop( this, _SC("x") );
+	FeAnimation::stop( this, _SC("y") );
 }
 
 void FeBasePresentable::set_pos(float x, float y, float w, float h)
 {
-	FeAnimation::remove( this, _SC("x") );
-	FeAnimation::remove( this, _SC("y") );
-	FeAnimation::remove( this, _SC("width") );
-	FeAnimation::remove( this, _SC("height") );
 	m_script_pos = Vec2f( x, y );
 	m_script_size = Vec2f( w, h );
 	m_script_geometry_set = true;
@@ -360,6 +356,10 @@ void FeBasePresentable::set_pos(float x, float y, float w, float h)
 	m_snap_height = m_snap_x;
 	setPosition( pos_from_grid_units( m_script_pos ));
 	setSize( size_from_grid_units( m_script_size ));
+	FeAnimation::stop( this, _SC("x") );
+	FeAnimation::stop( this, _SC("y") );
+	FeAnimation::stop( this, _SC("width") );
+	FeAnimation::stop( this, _SC("height") );
 }
 
 bool FeBasePresentable::set_animated_property( const std::string &name, float value, bool snap )
