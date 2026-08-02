@@ -518,6 +518,22 @@ namespace
 		return create_animation_state( drawable, property );
 	}
 
+	void stop_animation( FeAnimationState &animation )
+	{
+		float prop_val = animation.property->get( animation.drawable );
+		float anim_val = animation.drawable->snap_grid_destination_to_pixels( animation.property->name, prop_val );
+
+		animation.running = false;
+		animation.anim_start_val = anim_val;
+		animation.anim_base_start_val = anim_val;
+		animation.anim_to_val = anim_val;
+		animation.prop_to_val = prop_val;
+		animation.prop_last_val = prop_val;
+		animation.time_ms = 0.0f;
+		animation.current_val = anim_val;
+		animation.buffer_dirty = true;
+	}
+
 	int start_animation( FeAnimationState &animation, float prop_to_val )
 	{
 		if (( animation.prop_to_val == prop_to_val )
@@ -905,6 +921,16 @@ bool FeAnimationObject::get_running() const
 {
 	FeAnimationState *animation = find_animation( m_id );
 	return animation ? animation->running : false;
+}
+
+void FeAnimation::stop( FeBasePresentable *drawable, const SQChar *property_name )
+{
+	for ( FeAnimationState &animation : animations() )
+	{
+		if (( animation.drawable == drawable )
+				&& ( animation.property->name == property_name ))
+			stop_animation( animation );
+	}
 }
 
 void FeAnimation::register_property(
