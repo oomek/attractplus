@@ -1898,6 +1898,7 @@ void FeOverlay::wait_for_input_release( const std::vector<FeOverlayDrawItem> &dr
 	const FeTransform &t = m_fePresent.get_ui_transform();
 
 	FeClock timer;
+	bool redraw = true;
 	while (( timer.getElapsedTime() < fe_seconds( 6 ) )
 			&& ( m_feSettings.is_input_held()
 				|| m_feSettings.get_current_state( FeInputMap::Back )
@@ -1908,9 +1909,12 @@ void FeOverlay::wait_for_input_release( const std::vector<FeOverlayDrawItem> &dr
 			m_feSettings.map_input( *ev );
 
 		if ( m_fePresent.tick() )
-		{
-			m_soundSystem.tick();
+			redraw = true;
 
+		m_soundSystem.tick();
+
+		if ( redraw || !m_feSettings.get_info_bool( FeSettings::PowerSaving ) )
+		{
 			m_fePresent.redraw_surfaces();
 			m_wnd.clear();
 			draw_overlay_scene_background( m_wnd, m_fePresent );
@@ -1920,6 +1924,7 @@ void FeOverlay::wait_for_input_release( const std::vector<FeOverlayDrawItem> &dr
 			draw_native_logo_if_needed();
 
 			m_wnd.display();
+			redraw = false;
 		}
 		else
 			fe_sleep( fe_milliseconds( 30 ) );
