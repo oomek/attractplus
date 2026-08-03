@@ -2048,6 +2048,8 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Selection.Paged` - The selection moves freely until it reaches the `sel_margin`, at which point the list scrolls _one page_ and the selection resets to the opposite margin.
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
 -  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
+-  `sel_y` 🔶 - Get the y position of the selected row within the listbox.
+-  `row_height` 🔶 - Get the height of a single row in the listbox.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
 -  `margin` - Get/set the margin spacing to sides of the text in this object's `grid` coordinates. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
