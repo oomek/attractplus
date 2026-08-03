@@ -229,6 +229,8 @@ public:
 	void set_format_string( const char *s );
 	int get_selected_row() const;
 	void set_selected_row( int r );
+	float get_sel_y() const;
+	float get_row_height() const;
 	int get_type() const;
 	void refresh_script_geometry() override;
 private:

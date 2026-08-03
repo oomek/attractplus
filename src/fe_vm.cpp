@@ -1315,6 +1315,8 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("sel_mode"), &FeListBox::get_selection_mode, &FeListBox::set_selection_mode )
 		.Prop(_SC("sel_margin"), &FeListBox::get_selection_margin, &FeListBox::set_selection_margin )
 		.Prop(_SC("sel_row"), &FeListBox::get_selected_row, &FeListBox::set_selected_row )
+		.Prop(_SC("sel_y"), &FeListBox::get_sel_y )
+		.Prop(_SC("row_height"), &FeListBox::get_row_height )
 		.Prop(_SC("font"), &FeListBox::get_font, &FeListBox::set_font )
 		// "nomargin" deprecated, use the margin property instead
 		.Prop(_SC("nomargin"), &FeListBox::get_no_margin, &FeListBox::set_no_margin )
