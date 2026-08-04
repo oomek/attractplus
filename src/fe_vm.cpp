@@ -104,6 +104,32 @@ namespace
 		return false;
 	}
 
+	Sqrat::Function get_magic_function( const std::string &magic )
+	{
+		Sqrat::Object environment = Sqrat::RootTable();
+		size_t start = 0;
+		size_t dot = magic.find( '.' );
+
+		while ( dot != std::string::npos )
+		{
+			if ( dot == start )
+				return Sqrat::Function();
+
+			std::string name = magic.substr( start, dot - start );
+			environment = environment.GetSlot( name.c_str() );
+			if ( environment.IsNull() )
+				return Sqrat::Function();
+
+			start = dot + 1;
+			dot = magic.find( '.', start );
+		}
+
+		if ( start == magic.size() )
+			return Sqrat::Function();
+
+		return Sqrat::Function( environment, magic.c_str() + start );
+	}
+
 	bool run_script( const std::string &path,
 		const std::string &filename,
 		bool silent=false )
@@ -2186,7 +2212,7 @@ bool FePresent::script_process_magic_strings( std::string &str,
 
 		try
 		{
-			Sqrat::Function func( Sqrat::RootTable(), magic.c_str() );
+			Sqrat::Function func = get_magic_function( magic );
 			if ( !func.IsNull() )
 			{
 				std::string result;
