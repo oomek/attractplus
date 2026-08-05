@@ -302,6 +302,9 @@ public:
 	void set_layout_grid_uniform( bool );
 	bool get_layout_pixel_snap() const;
 	void set_layout_pixel_snap( bool );
+	virtual int get_plugin_grid() const { return GridPixel; }
+	virtual bool get_plugin_grid_uniform() const { return true; }
+	virtual bool get_plugin_pixel_snap() const { return false; }
 	float get_layout_grid_offset_x() const;
 	float get_layout_grid_offset_y() const;
 	sf::Vector2f get_layout_grid_offset( bool uniform ) const;

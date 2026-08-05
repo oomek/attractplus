@@ -51,7 +51,11 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 		m_pixel_snap = fep->get_layout_pixel_snap();
 	}
 	else if ( fep )
-		m_grid = GridPixel;
+	{
+		m_grid = fep->get_plugin_grid();
+		m_grid_uniform = fep->get_plugin_grid_uniform();
+		m_pixel_snap = fep->get_plugin_pixel_snap();
+	}
 }
 
 FeBasePresentable::~FeBasePresentable()
@@ -732,8 +736,8 @@ FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 
 	if ( fep )
 	{
-		int grid = GridPixel;
-		bool grid_uniform = true;
+		int grid = fep->get_plugin_grid();
+		bool grid_uniform = fep->get_plugin_grid_uniform();
 		if ( fep->get_script_id() < 0 )
 		{
 			grid = fep->get_layout_grid();
