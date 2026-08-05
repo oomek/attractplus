@@ -1356,11 +1356,21 @@ This shared table is available to layouts and plugins. It also exposes the follo
 For example:
 
 ```squirrel
-fe.plugin.grid = Grid.Percent
-fe.plugin.grid_uniform = false
+class MyPlugin
+{
+   rect = null
+   constructor()
+   {
+      fe.plugin.grid = Grid.Percent
+      fe.plugin.grid_uniform = false
+      rect = fe.add_rectangle( 10, 10, 80, 80 )
+   }
+}
+
+fe.plugin["MyPlugin"] <- MyPlugin()
 ```
 
-Plugins register their script instance in this table using the plugin name as the key, for example `fe.plugin["AspectRatio"] <- AspectRatio()`. Layouts and other plugins can then access the instance and its public members through this entry.
+Plugins register their script instance in this table using the plugin name as the key. Layouts and other plugins can then access the instance and its public members through this entry.
 
 ### `fe.list`
 
