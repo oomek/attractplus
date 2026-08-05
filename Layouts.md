@@ -56,6 +56,7 @@
 -  [Objects and Variables](#objects-and-variables)
    -  [`fe.ambient_sound`](#feambient_sound)
    -  [`fe.layout`](#felayout)
+   -  [`fe.plugin`](#feplugin)
    -  [`fe.list`](#felist)
    -  [`fe.image_cache`](#feimage_cache)
    -  [`fe.overlay`](#feoverlay)
@@ -1341,6 +1342,25 @@ An instance of the [`fe.Music`](#femusic-) class and can be used to control the 
 ### `fe.layout`
 
 An instance of the [`fe.LayoutGlobals`](#felayoutglobals) class and is where global layout settings are stored.
+
+### `fe.plugin`
+
+This shared table is available to layouts and plugins. It also exposes the following plugin-specific properties. Each enabled plugin has its own settings.
+
+**Properties**
+
+-  `grid` 🔶 - Get/set the plugin's default coordinate grid. Defaults to `Grid.Pixel`.
+-  `grid_uniform` 🔶 - Get/set whether the plugin's default Percent and Normalised grids use a square grid or are stretched to layout size. Defaults to `true`.
+-  `pixel_snap` 🔶 - Get/set whether drawable geometry created by the plugin snaps to display pixels. Defaults to `false`.
+
+For example:
+
+```squirrel
+fe.plugin.grid = Grid.Percent
+fe.plugin.grid_uniform = false
+```
+
+Plugins register their script instance in this table using the plugin name as the key, for example `fe.plugin["AspectRatio"] <- AspectRatio()`. Layouts and other plugins can then access the instance and its public members through this entry.
 
 ### `fe.list`
 

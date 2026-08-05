@@ -363,6 +363,43 @@ const char *FeVM::transitionTypeStrings[] =
 		NULL
 };
 
+const char *FePluginGlobals::property_names[] =
+{
+	"grid",
+	"grid_uniform",
+	"pixel_snap",
+	NULL
+};
+
+int FePluginGlobals::get_property( const char *name )
+{
+	for ( int i=0; property_names[i]; i++ )
+		if ( strcmp( name, property_names[i] ) == 0 )
+			return i;
+
+	return -1;
+}
+
+void FePluginGlobals::push_property( HSQUIRRELVM vm, int property ) const
+{
+	if ( property == GridProperty )
+		sq_pushinteger( vm, m_values[property] );
+	else
+		sq_pushbool( vm, m_values[property] );
+}
+
+void FePluginGlobals::set_property( HSQUIRRELVM vm, int property )
+{
+	if ( property == GridProperty )
+		sq_getinteger( vm, 3, &m_values[property] );
+	else
+	{
+		SQBool value = false;
+		sq_getbool( vm, 3, &value );
+		m_values[property] = value;
+	}
+}
+
 struct TransitionTypeMapping
 {
 	const char *name;
@@ -542,6 +579,7 @@ void FeVM::clear_handlers()
 void FeVM::clear_layout()
 {
 	clear_handlers();
+	m_plugin_globals.clear();
 	m_overlay->init();
 }
 
@@ -1694,7 +1732,16 @@ bool FeVM::on_new_layout()
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
-	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
+	Table plugin( vm );
+	Table plugin_delegate( vm );
+	plugin_delegate
+		.SquirrelFunc( _SC("_get"), &FeVM::cb_plugin_get )
+		.SquirrelFunc( _SC("_set"), &FeVM::cb_plugin_set );
+	sq_pushobject( vm, plugin.GetObject() );
+	sq_pushobject( vm, plugin_delegate.GetObject() );
+	sq_setdelegate( vm, -2 );
+	sq_pop( vm, 1 );
+	fe.Bind( _SC("plugin"), plugin );
 
 	// Each presentation object gets an instance in the
 	// "obj" array available in Squirrel
@@ -1717,6 +1764,7 @@ bool FeVM::on_new_layout()
 	if ( ps != FeSettings::Intro_Showing )
 	{
 		const std::vector< FePlugInfo > &plugins = m_feSettings->get_plugins();
+		m_plugin_globals.assign( plugins.size(), FePluginGlobals() );
 
 		for ( int i=0; i<(int)plugins.size(); i++ )
 		{
@@ -1817,6 +1865,30 @@ void FeVM::set_for_callback( const FeCallback &c )
 
 	m_script_cfg = c.m_cfg;
 	m_script_id = c.m_sid;
+}
+
+int FeVM::get_plugin_grid() const
+{
+	if (( m_script_id >= 0 ) && ( m_script_id < (int)m_plugin_globals.size() ))
+		return m_plugin_globals[m_script_id].get_grid();
+
+	return GridPixel;
+}
+
+bool FeVM::get_plugin_grid_uniform() const
+{
+	if (( m_script_id >= 0 ) && ( m_script_id < (int)m_plugin_globals.size() ))
+		return m_plugin_globals[m_script_id].get_grid_uniform();
+
+	return true;
+}
+
+bool FeVM::get_plugin_pixel_snap() const
+{
+	if (( m_script_id >= 0 ) && ( m_script_id < (int)m_plugin_globals.size() ))
+		return m_plugin_globals[m_script_id].get_pixel_snap();
+
+	return false;
 }
 
 bool FeVM::process_console_input()
@@ -3038,6 +3110,64 @@ void FeVM::cb_remove_signal_handler( const char *n )
 {
 	Sqrat::RootTable rt;
 	cb_remove_signal_handler( rt, n );
+}
+
+SQInteger FeVM::cb_plugin_get( HSQUIRRELVM vm )
+{
+	const SQChar *key;
+	if ( SQ_FAILED( sq_getstring( vm, 2, &key ) ) )
+	{
+		sq_pushnull( vm );
+		return 1;
+	}
+
+	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	if ( !fev || ( fev->m_script_id < 0 )
+			|| ( fev->m_script_id >= (int)fev->m_plugin_globals.size() ))
+	{
+		sq_pushnull( vm );
+		return 1;
+	}
+
+	int property = FePluginGlobals::get_property( key );
+	if ( property < 0 )
+		sq_pushnull( vm );
+	else
+		fev->m_plugin_globals[fev->m_script_id].push_property( vm, property );
+
+	return 1;
+}
+
+SQInteger FeVM::cb_plugin_set( HSQUIRRELVM vm )
+{
+	const SQChar *key;
+	if ( SQ_SUCCEEDED( sq_getstring( vm, 2, &key ) ) )
+	{
+		int property = FePluginGlobals::get_property( key );
+		if ( property >= 0 )
+		{
+			FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+			if ( !fev || ( fev->m_script_id < 0 )
+					|| ( fev->m_script_id >= (int)fev->m_plugin_globals.size() ))
+				return sq_throwerror( vm, "fe.plugin properties can only be set by a plugin" );
+
+			fev->m_plugin_globals[fev->m_script_id].set_property( vm, property );
+			return 0;
+		}
+	}
+
+	sq_pushroottable( vm );
+	sq_pushstring( vm, "fe", -1 );
+	if ( SQ_FAILED( sq_rawget( vm, -2 ) ) )
+		return SQ_ERROR;
+	sq_pushstring( vm, "plugin", -1 );
+	if ( SQ_FAILED( sq_rawget( vm, -2 ) ) )
+		return SQ_ERROR;
+	sq_push( vm, 2 );
+	sq_push( vm, 3 );
+	SQRESULT result = sq_rawset( vm, -3 );
+	sq_pop( vm, 3 );
+	return result;
 }
 
 bool FeVM::cb_get_input_state( const char *input )

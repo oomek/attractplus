@@ -73,6 +73,34 @@ private:
 	Sqrat::Function m_cached_fn;
 };
 
+class FePluginGlobals
+{
+public:
+	enum Property
+	{
+		GridProperty,
+		GridUniformProperty,
+		PixelSnapProperty
+	};
+
+	FePluginGlobals()
+		: m_values{ GridPixel, true, false }
+	{
+	}
+
+	static int get_property( const char * );
+	void push_property( HSQUIRRELVM, int ) const;
+	void set_property( HSQUIRRELVM, int );
+
+	int get_grid() const { return m_values[GridProperty]; }
+	bool get_grid_uniform() const { return m_values[GridUniformProperty]; }
+	bool get_pixel_snap() const { return m_values[PixelSnapProperty]; }
+
+private:
+	static const char *property_names[];
+	SQInteger m_values[PixelSnapProperty + 1];
+};
+
 class FeVM : public FePresent
 {
 private:
@@ -96,6 +124,7 @@ private:
 	bool m_process_console_input;
 	const FeScriptConfigurable *m_script_cfg;
 	int m_script_id;
+	std::vector< FePluginGlobals > m_plugin_globals;
 	std::string m_last_layout;
 
 	std::queue< FeInputMap::Command > m_posted_commands;
@@ -154,6 +183,9 @@ public:
 	void init_with_default_layout();
 	int get_script_id() { return m_script_id; };
 	void set_script_id( int id ) { m_script_id=id; };
+	int get_plugin_grid() const override;
+	bool get_plugin_grid_uniform() const override;
+	bool get_plugin_pixel_snap() const override;
 
 	bool script_handle_event( FeInputMap::Command c );
 
@@ -230,6 +262,8 @@ public:
 	static void cb_add_signal_handler( const char * );
 	static void cb_remove_signal_handler( Sqrat::Object, const char *);
 	static void cb_remove_signal_handler( const char * );
+	static SQInteger cb_plugin_get( HSQUIRRELVM );
+	static SQInteger cb_plugin_set( HSQUIRRELVM );
 	static bool cb_get_input_state( const char *input );
 	static float cb_get_input_pos( const char *input );
 	static bool do_nut(const char *);
