@@ -100,7 +100,9 @@ Overview;Übersicht
 Plugins;Plugins
 Power Saving;Energiesparmodus
 Remove Input;Steuerung löschen
-Reverse Order;Reihenfolge umkehren
+Sort Order;Sortierreihenfolge
+Ascending;Aufsteigend
+Descending;Absteigend
 Rule;Regel
 Scrape Artwork;Scrape Bilddateien
 Scrape Fanart;Fanart extrahieren
@@ -476,7 +478,7 @@ _help_filter_delete;Lösche diesen Filter
 _help_filter_exception;Konfiguriere eine Filterausnahme. Stimmt ein Spiel mit dieser Ausnahme überein, wird es im Filter aufgelistet. Regeln und Ausnahmen werden in der selben Reihenfolge angewandt in der sie aufgelistet sind
 _help_filter_list_limit;Setze dies zu einem Wert ungleich Null um die Größe der sortierten Liste zu limitieren. Verwende einen positiven Wert für die ersten X Einträge (z.B. "10" für die ersten 10 Einträge), einen negativen Wert für die letzten X Einträge (z.B. "-25" für die letzten 25 Einträge), oder "0" für alle
 _help_filter_name;Bezeichnung für diesen Filter
-_help_filter_reverse_order;Kehrt die Sortierreihenfolge der Sammlung/ROM-Liste um. Standardmäßig wird die Liste alphabetisch (A bis Z) für Informationen, alphabetisch (Größte zuerst) für Statistiken oder gemäß der Quellliste (bei „Keine Sortierung“) sortiert.
+_help_filter_sort_order;Die Sortierreihenfolge der Sammlung/ROM-Liste. Aufsteigend ist „A bis Z“ für Informationen, „Kleinste bis Größte“ für Statistiken und die Quellenreihenfolge für „Keine Sortierung“. Absteigend ist die umgekehrte Reihenfolge.
 _help_filter_rule;Konfiguriere Filterregel
 _help_filter_sort_by;Das Spiel-Informationsattribut nach dem du die Sammlung/Romliste sortieren möchtest. Stelle auf "Keine Sortierung" um die Sortierung der Quell-Sammlung/Romliste zu verwenden
 _help_game_custom_args;Nutze dies, um die Standard Kommandozeilenattribute für dieses Spiel außer Kraft zu setzen. Setze das Argument [nothing] wenn hierbei keine Parameter angewandt werden sollen. Folgendes kann analog verwendet werden: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]

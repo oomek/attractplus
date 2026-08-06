@@ -100,7 +100,9 @@ Overview;簡介
 Plugins;插件
 Power Saving;省電模式
 Remove Input;移除輸入按鍵
-Reverse Order;反向排序
+Sort Order;排序方式
+Ascending;上升
+Descending;下降
 Rule;規則
 Scrape Artwork;搜刮插圖
 Scrape Fanart;搜刮玩家自製插圖
@@ -476,7 +478,7 @@ _help_filter_delete;刪除這個遊戲過濾
 _help_filter_exception;設定這個遊戲過濾的例外條件 (若遊戲符合這個例外條件,它將會列在這個遊戲過濾裡)
 _help_filter_list_limit;設為 0 為無限制,若你想限制排序清單的數量請設為 0 之外的數值 (例: "10" 將會取得前 10 個項目,"-25" 將會取得最後 25 個項目)
 _help_filter_name;這個遊戲過濾的名稱
-_help_filter_reverse_order;反轉已排序的收藏集/ROM清單的順序。預設順序為：資訊依「A到Z」排序,統計資料依「由大到小」排序,或依來源清單順序排序 (不排序)。
+_help_filter_sort_order;收藏/ROM清單的排序方式。升序排列,資訊依字母順序「A」到字母「Z」排列,統計資料依檔案大小「從小到大」排列,不排序則依檔案來源順序排列。降序排列與上述順序相反。
 _help_filter_rule;設定這個遊戲過濾的規則 (遊戲必須符合所有過濾規則或例外條件才會列在這個遊戲過濾)
 _help_filter_sort_by;設定用來排序收藏集/遊戲清單的遊戲資訊屬性 (設為「不排序」則保持收藏集/遊戲清單原始的排序順序)
 _help_game_custom_args;設定此項目將會替這個遊戲覆寫預設的命令參數,設為 [nothing] 則會覆寫為無參數 (可用的變數: [name]、[romext]、[rompath]、[emulator]、[romfilename]、[system]、[systemn])

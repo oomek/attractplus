@@ -100,7 +100,9 @@ Overview;설명
 Plugins;플러그인
 Power Saving;절전
 Remove Input;입력 삭제
-Reverse Order;역순
+Sort Order;정렬 순서
+Ascending;상승
+Descending;하강
 Rule;규칙
 Scrape Artwork;팬 아트워크 다운로드
 Scrape Fanart;외부 팬아트 다운로드
@@ -476,7 +478,7 @@ _help_filter_delete;본 필터를 삭제합니다.
 _help_filter_exception;이 필터의 예외 사항을 설정합니다. 게임이 이 규칙을 만족하면 필터에 추가됩니다. 규칙과 필터는 추가된 순서대로 적용됩니다
 _help_filter_list_limit;목록의 크기 제한을 설정할 수 있습니다. 양수는 상위 X 개, 음수는 하위 X 개를 지정하는 데 사용할 수 있습니다. 0 은 무제한입니다.
 _help_filter_name;필터의 이름
-_help_filter_reverse_order;정렬된 컬렉션/ROM 목록의 순서를 반대로 바꿉니다. 기본 순서는 정보의 경우 "A-Z", 통계의 경우 "내림차순", "정렬 안 함"의 경우 소스 목록 순서입니다.
+_help_filter_sort_order;컬렉션/롬리스트의 정렬 순서입니다. 오름차순은 정보의 경우 "A에서 Z" 순서, 통계의 경우 "작은 것에서 큰 것" 순서이며, "정렬 안 함"의 경우 출처 순서입니다. 내림차순은 이러한 순서의 반대입니다.
 _help_filter_rule;필터의 규칙을 정의합니다.
 _help_filter_sort_by;목록을 정렬할 기준을 설정합니다. 원래 목록 순서대로 표시하려면 '정렬 안 함' 을 선택하십시오.
 _help_game_custom_args;이 게임을 실행할 에뮬레이터의 기본 매개변수를 덮어씁니다. 빈 값으로 덮어쓰려면 [nothing]을 입력하여 주십시오. 사용 가능한 매크로는 다음과 같습니다. [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]
