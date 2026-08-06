@@ -1181,7 +1181,11 @@ FeCoordinateSpace FeSurfaceTextureContainer::get_coordinate_space( bool uniform 
 		return FeCoordinateSpace( sf::Vector2f( 0, 0 ), parent_size );
 
 	float side = std::min( parent_size.x, parent_size.y );
-	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( side, side ));
+	sf::Vector2f space_size( side, side );
+	sf::Vector2f origin(
+		( parent_size.x - space_size.x ) / 2.0f,
+		( parent_size.y - space_size.y ) / 2.0f );
+	return FeCoordinateSpace( origin, space_size );
 }
 
 FeImage::FeImage(

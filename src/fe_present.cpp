@@ -192,11 +192,13 @@ FeCoordinateSpace FeMonitor::get_coordinate_space( bool uniform ) const
 	return FeCoordinateSpace( sf::Vector2f( 0, 0 ), sf::Vector2f( size ));
 }
 
-sf::Vector2f FeMonitor::get_grid_offset( bool uniform ) const
+sf::Vector2f FeMonitor::get_grid_offset( int script_id, bool uniform ) const
 {
 	FePresent *fep = FePresent::script_get_fep();
 	if (( num == 0 ) && fep )
-		return fep->get_layout_grid_offset( uniform );
+		return script_id < 0
+			? fep->get_layout_grid_offset( uniform )
+			: fep->get_plugin_grid_offset( script_id, uniform );
 
 	return sf::Vector2f( 0, 0 );
 }
@@ -964,150 +966,6 @@ float FePresent::get_layout_scale_x() const
 float FePresent::get_layout_scale_y() const
 {
 	return m_layoutScale.y;
-}
-
-int FePresent::get_layout_grid() const
-{
-	return m_grid;
-}
-
-void FePresent::set_layout_grid( int g )
-{
-	if ( g != m_grid )
-	{
-		m_grid = g;
-		refresh_script_geometry();
-		flag_redraw();
-	}
-}
-
-bool FePresent::get_layout_grid_uniform() const
-{
-	return m_grid_uniform;
-}
-
-void FePresent::set_layout_grid_uniform( bool u )
-{
-	m_grid_uniform = u;
-}
-
-bool FePresent::get_layout_pixel_snap() const
-{
-	return m_pixel_snap;
-}
-
-void FePresent::set_layout_pixel_snap( bool s )
-{
-	m_pixel_snap = s;
-}
-
-float FePresent::get_layout_grid_offset_x() const
-{
-	return m_grid_offset.x;
-}
-
-float FePresent::get_layout_grid_offset_y() const
-{
-	return m_grid_offset.y;
-}
-
-sf::Vector2f FePresent::get_layout_grid_offset( bool uniform ) const
-{
-	switch ( m_grid )
-	{
-		case GridNormalised:
-		{
-			sf::Vector2f size( m_layoutSize );
-			if ( uniform )
-			{
-				float side = std::min( size.x, size.y );
-				size = sf::Vector2f( side, side );
-			}
-
-			return sf::Vector2f(
-				size.x * m_grid_offset.x,
-				size.y * m_grid_offset.y );
-		}
-
-		case GridPercent:
-		{
-			sf::Vector2f size( m_layoutSize );
-			if ( uniform )
-			{
-				float side = std::min( size.x, size.y );
-				size = sf::Vector2f( side, side );
-			}
-
-			return sf::Vector2f(
-				size.x * m_grid_offset.x / 100.0f,
-				size.y * m_grid_offset.y / 100.0f );
-		}
-
-		case GridPixel:
-		default:
-			return m_grid_offset;
-	}
-}
-
-sf::Vector2f FePresent::window_to_layout_grid_pos( const sf::Vector2i &pos ) const
-{
-	sf::Vector2f layout_pos = m_layout_transform.getInverse().transformPoint( sf::Vector2f( pos ));
-
-	switch ( m_grid )
-	{
-		case GridNormalised:
-		case GridPercent:
-		{
-			sf::Vector2f parent_size( m_layoutSize );
-			sf::Vector2f space_origin( 0, 0 );
-			sf::Vector2f space_size = parent_size;
-
-			if ( m_grid_uniform )
-			{
-				float side = std::min( parent_size.x, parent_size.y );
-				space_size = sf::Vector2f( side, side );
-				space_origin = sf::Vector2f(
-					( parent_size.x - space_size.x ) / 2.0f,
-					( parent_size.y - space_size.y ) / 2.0f );
-			}
-
-			layout_pos -= space_origin + get_layout_grid_offset( m_grid_uniform );
-
-			if ( m_grid == GridNormalised )
-			{
-				return sf::Vector2f(
-					space_size.x != 0.0f ? layout_pos.x / space_size.x : 0.0f,
-					space_size.y != 0.0f ? layout_pos.y / space_size.y : 0.0f );
-			}
-
-			return sf::Vector2f(
-				space_size.x != 0.0f ? layout_pos.x * 100.0f / space_size.x : 0.0f,
-				space_size.y != 0.0f ? layout_pos.y * 100.0f / space_size.y : 0.0f );
-		}
-		case GridPixel:
-		default:
-			return layout_pos - get_layout_grid_offset( false );
-	}
-}
-
-void FePresent::set_layout_grid_offset_x( float x )
-{
-	set_layout_grid_offset( x, m_grid_offset.y );
-}
-
-void FePresent::set_layout_grid_offset_y( float y )
-{
-	set_layout_grid_offset( m_grid_offset.x, y );
-}
-
-void FePresent::set_layout_grid_offset( float x, float y )
-{
-	if (( x != m_grid_offset.x ) || ( y != m_grid_offset.y ))
-	{
-		m_grid_offset = sf::Vector2f( x, y );
-		refresh_script_geometry();
-		flag_redraw();
-	}
 }
 
 void FePresent::set_layout_width( float w )

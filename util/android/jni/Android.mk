@@ -31,6 +31,7 @@ LOCAL_SRC_FILES := \
         src/scraper_net.cpp \
         src/fe_config.cpp \
         src/fe_animation.cpp \
+        src/fe_grid.cpp \
         src/fe_presentable.cpp \
         src/fe_present.cpp \
         src/sprite.cpp \

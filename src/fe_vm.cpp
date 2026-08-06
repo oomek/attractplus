@@ -363,43 +363,6 @@ const char *FeVM::transitionTypeStrings[] =
 		NULL
 };
 
-const char *FePluginGlobals::property_names[] =
-{
-	"grid",
-	"grid_uniform",
-	"pixel_snap",
-	NULL
-};
-
-int FePluginGlobals::get_property( const char *name )
-{
-	for ( int i=0; property_names[i]; i++ )
-		if ( strcmp( name, property_names[i] ) == 0 )
-			return i;
-
-	return -1;
-}
-
-void FePluginGlobals::push_property( HSQUIRRELVM vm, int property ) const
-{
-	if ( property == GridProperty )
-		sq_pushinteger( vm, m_values[property] );
-	else
-		sq_pushbool( vm, m_values[property] );
-}
-
-void FePluginGlobals::set_property( HSQUIRRELVM vm, int property )
-{
-	if ( property == GridProperty )
-		sq_getinteger( vm, 3, &m_values[property] );
-	else
-	{
-		SQBool value = false;
-		sq_getbool( vm, 3, &value );
-		m_values[property] = value;
-	}
-}
-
 struct TransitionTypeMapping
 {
 	const char *name;
@@ -440,7 +403,8 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console
 	m_sort_zorder_triggered( false ),
 	m_process_console_input( console_input ),
 	m_script_cfg( NULL ),
-	m_script_id( -1 )
+	m_script_id( -1 ),
+	m_grid_context( *this )
 {
 	srand( time( NULL ) );
 	vm_init();
@@ -579,7 +543,7 @@ void FeVM::clear_handlers()
 void FeVM::clear_layout()
 {
 	clear_handlers();
-	m_plugin_globals.clear();
+	m_grid_context.clear_plugins();
 	m_overlay->init();
 }
 
@@ -1448,11 +1412,6 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("width"), &FePresent::get_layout_width, &FePresent::set_layout_width )
 		.Prop( _SC("height"), &FePresent::get_layout_height, &FePresent::set_layout_height )
 		.Prop( _SC("aspect_ratio"), &FePresent::get_layout_aspect_ratio, &FePresent::set_layout_aspect_ratio )
-		.Prop( _SC("grid"), &FePresent::get_layout_grid, &FePresent::set_layout_grid )
-		.Prop( _SC("grid_uniform"), &FePresent::get_layout_grid_uniform, &FePresent::set_layout_grid_uniform )
-		.Prop( _SC("pixel_snap"), &FePresent::get_layout_pixel_snap, &FePresent::set_layout_pixel_snap )
-		.Prop( _SC("grid_offset_x"), &FePresent::get_layout_grid_offset_x, &FePresent::set_layout_grid_offset_x )
-		.Prop( _SC("grid_offset_y"), &FePresent::get_layout_grid_offset_y, &FePresent::set_layout_grid_offset_y )
 		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
 		// orient property deprecated as of 1.3.2, use "base_rotation" instead
 		.Prop( _SC("orient"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )
@@ -1465,8 +1424,9 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("frame_time"), &FePresent::get_layout_frame_time )
 		.Prop(_SC("mouse_pointer"), &FePresent::get_mouse_pointer, &FePresent::set_mouse_pointer )
 		.Func(_SC("redraw"), &FePresent::redraw )
-		.Func(_SC("set_grid_offset"), &FePresent::set_layout_grid_offset )
 	);
+
+	m_grid_context.bind( fe );
 
 	// Create a slot for fe.layout.nv data
 	Sqrat::Table layoutGlobals( fe.GetSlot( _SC("LayoutGlobals") ) );
@@ -1733,14 +1693,6 @@ bool FeVM::on_new_layout()
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
 	Table plugin( vm );
-	Table plugin_delegate( vm );
-	plugin_delegate
-		.SquirrelFunc( _SC("_get"), &FeVM::cb_plugin_get )
-		.SquirrelFunc( _SC("_set"), &FeVM::cb_plugin_set );
-	sq_pushobject( vm, plugin.GetObject() );
-	sq_pushobject( vm, plugin_delegate.GetObject() );
-	sq_setdelegate( vm, -2 );
-	sq_pop( vm, 1 );
 	fe.Bind( _SC("plugin"), plugin );
 
 	// Each presentation object gets an instance in the
@@ -1764,7 +1716,7 @@ bool FeVM::on_new_layout()
 	if ( ps != FeSettings::Intro_Showing )
 	{
 		const std::vector< FePlugInfo > &plugins = m_feSettings->get_plugins();
-		m_plugin_globals.assign( plugins.size(), FePluginGlobals() );
+		m_grid_context.reset_plugins( plugins.size() );
 
 		for ( int i=0; i<(int)plugins.size(); i++ )
 		{
@@ -1869,26 +1821,22 @@ void FeVM::set_for_callback( const FeCallback &c )
 
 int FeVM::get_plugin_grid() const
 {
-	if (( m_script_id >= 0 ) && ( m_script_id < (int)m_plugin_globals.size() ))
-		return m_plugin_globals[m_script_id].get_grid();
-
-	return GridPixel;
+	return m_grid_context.get_plugin_mode( m_script_id );
 }
 
 bool FeVM::get_plugin_grid_uniform() const
 {
-	if (( m_script_id >= 0 ) && ( m_script_id < (int)m_plugin_globals.size() ))
-		return m_plugin_globals[m_script_id].get_grid_uniform();
-
-	return true;
+	return m_grid_context.get_plugin_uniform( m_script_id );
 }
 
 bool FeVM::get_plugin_pixel_snap() const
 {
-	if (( m_script_id >= 0 ) && ( m_script_id < (int)m_plugin_globals.size() ))
-		return m_plugin_globals[m_script_id].get_pixel_snap();
+	return m_grid_context.get_plugin_pixel_snap( m_script_id );
+}
 
-	return false;
+sf::Vector2f FeVM::get_plugin_grid_offset( int script_id, bool uniform ) const
+{
+	return m_grid_context.get_plugin_offset( script_id, uniform );
 }
 
 bool FeVM::process_console_input()
@@ -3112,64 +3060,6 @@ void FeVM::cb_remove_signal_handler( const char *n )
 	cb_remove_signal_handler( rt, n );
 }
 
-SQInteger FeVM::cb_plugin_get( HSQUIRRELVM vm )
-{
-	const SQChar *key;
-	if ( SQ_FAILED( sq_getstring( vm, 2, &key ) ) )
-	{
-		sq_pushnull( vm );
-		return 1;
-	}
-
-	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
-	if ( !fev || ( fev->m_script_id < 0 )
-			|| ( fev->m_script_id >= (int)fev->m_plugin_globals.size() ))
-	{
-		sq_pushnull( vm );
-		return 1;
-	}
-
-	int property = FePluginGlobals::get_property( key );
-	if ( property < 0 )
-		sq_pushnull( vm );
-	else
-		fev->m_plugin_globals[fev->m_script_id].push_property( vm, property );
-
-	return 1;
-}
-
-SQInteger FeVM::cb_plugin_set( HSQUIRRELVM vm )
-{
-	const SQChar *key;
-	if ( SQ_SUCCEEDED( sq_getstring( vm, 2, &key ) ) )
-	{
-		int property = FePluginGlobals::get_property( key );
-		if ( property >= 0 )
-		{
-			FeVM *fev = (FeVM *)sq_getforeignptr( vm );
-			if ( !fev || ( fev->m_script_id < 0 )
-					|| ( fev->m_script_id >= (int)fev->m_plugin_globals.size() ))
-				return sq_throwerror( vm, "fe.plugin properties can only be set by a plugin" );
-
-			fev->m_plugin_globals[fev->m_script_id].set_property( vm, property );
-			return 0;
-		}
-	}
-
-	sq_pushroottable( vm );
-	sq_pushstring( vm, "fe", -1 );
-	if ( SQ_FAILED( sq_rawget( vm, -2 ) ) )
-		return SQ_ERROR;
-	sq_pushstring( vm, "plugin", -1 );
-	if ( SQ_FAILED( sq_rawget( vm, -2 ) ) )
-		return SQ_ERROR;
-	sq_push( vm, 2 );
-	sq_push( vm, 3 );
-	SQRESULT result = sq_rawset( vm, -3 );
-	sq_pop( vm, 3 );
-	return result;
-}
-
 bool FeVM::cb_get_input_state( const char *input )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
@@ -3246,7 +3136,7 @@ float FeVM::cb_get_input_pos( const char *input )
 	bool mouse_y = ( strcmp( input, "Mouse Up" ) == 0 ) || ( strcmp( input, "Mouse Down" ) == 0 );
 	if ( mouse_x || mouse_y )
 	{
-		sf::Vector2f pos = fev->window_to_layout_grid_pos(
+		sf::Vector2f pos = fev->m_grid_context.window_to_pos(
 			sf::Mouse::getPosition( fev->m_window.get_win() ));
 		return mouse_x ? pos.x : pos.y;
 	}

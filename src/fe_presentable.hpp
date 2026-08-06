@@ -23,7 +23,8 @@
 #ifndef FE_PRESENTABLE_HPP
 #define FE_PRESENTABLE_HPP
 
-#include <SFML/System/Vector2.hpp>
+#include "fe_grid.hpp"
+
 #include <string>
 #include <vector>
 
@@ -47,31 +48,6 @@ enum FePresentableType
 	FePresentableTypeRectangle = 1 << 5
 };
 
-enum FeGrid
-{
-	GridPixel = 1,
-	GridPercent,
-	GridNormalised
-};
-
-struct FeCoordinateSpace
-{
-	sf::Vector2f origin;
-	sf::Vector2f size;
-
-	FeCoordinateSpace()
-		: origin( 0, 0 ),
-		size( 0, 0 )
-	{
-	}
-
-	FeCoordinateSpace( const sf::Vector2f &o, const sf::Vector2f &s )
-		: origin( o ),
-		size( s )
-	{
-	}
-};
-
 class FeBasePresentable
 {
 protected:
@@ -92,6 +68,7 @@ private:
 	int m_grid;
 	bool m_grid_uniform;
 	bool m_pixel_snap;
+	int m_script_id;
 	bool m_script_geometry_set;
 
 protected:
@@ -193,7 +170,7 @@ public:
 	int get_nesting_level();
 	void set_nesting_level( int );
 	virtual FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
-	virtual sf::Vector2f get_grid_offset( bool uniform=true ) const;
+	virtual sf::Vector2f get_grid_offset( int script_id, bool uniform=true ) const;
 	virtual sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
 	virtual sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 	void refresh_script_geometry();

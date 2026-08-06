@@ -149,6 +149,7 @@ _DEP =\
 	fe_settings.hpp \
 	fe_config.hpp \
 	fe_animation.hpp \
+	fe_grid.hpp \
 	fe_presentable.hpp \
 	fe_present.hpp \
 	sprite.hpp \
@@ -197,6 +198,7 @@ _OBJ =\
 	scraper_screenscraper.o \
 	fe_config.o \
 	fe_animation.o \
+	fe_grid.o \
 	fe_presentable.o \
 	fe_present.o \
 	sprite.o \

@@ -56,6 +56,7 @@
 -  [Objects and Variables](#objects-and-variables)
    -  [`fe.ambient_sound`](#feambient_sound)
    -  [`fe.layout`](#felayout)
+   -  [`fe.grid`](#fegrid) 🔶
    -  [`fe.plugin`](#feplugin)
    -  [`fe.list`](#felist)
    -  [`fe.image_cache`](#feimage_cache)
@@ -947,7 +948,7 @@ Return the current position for the specified joystick axis, mouse axis, or mous
 
 **Return Value**
 
--  Current position of the specified axis. Joystick axes return `[0...100]`. Mouse positions return coordinates in the active `fe.layout.grid`. Mouse wheel inputs return the wheel delta.
+-  Current position of the specified axis. Joystick axes return `[0...100]`. Mouse positions return coordinates in the active [`fe.grid`](#fegrid). Mouse wheel inputs return the wheel delta.
 
 ---
 
@@ -1343,17 +1344,34 @@ An instance of the [`fe.Music`](#femusic-) class and can be used to control the 
 
 An instance of the [`fe.LayoutGlobals`](#felayoutglobals) class and is where global layout settings are stored.
 
-### `fe.plugin`
+### `fe.grid` 🔶
 
-This shared table is available to layouts and plugins. It also exposes the following plugin-specific properties. Each enabled plugin has its own settings.
+The coordinate grid settings for the currently executing layout or plugin. The layout and every enabled plugin have independent settings.
 
 **Properties**
 
--  `grid` 🔶 - Get/set the plugin's default coordinate grid. Defaults to `Grid.Pixel`.
--  `grid_uniform` 🔶 - Get/set whether the plugin's default Percent and Normalised grids use a square grid or are stretched to layout size. Defaults to `true`.
--  `pixel_snap` 🔶 - Get/set whether drawable geometry created by the plugin snaps to display pixels. Defaults to `false`.
+-  `mode` - Get/set the default coordinate grid. This can be one of the following values:
+   -  `Grid.Pixel` (default) - `0` to the layout width/height, or a surface's texture width/height.
+   -  `Grid.Percent` - `0` to `100`.
+   -  `Grid.Normalised` - `0.0` to `1.0`.
+-  `uniform` - Get/set whether Percent and Normalised grids use a centred square grid or are stretched to the parent size. Defaults to `true`.
+-  `pixel_snap` - Get/set whether drawable geometry snaps to display pixels. Defaults to `false`.
+-  `offset_x` - Get/set the grid's horizontal offset in the current grid coordinates. Defaults to `0`.
+-  `offset_y` - Get/set the grid's vertical offset in the current grid coordinates. Defaults to `0`.
+-  `left` - Get the x coordinate of the visible area's left edge.
+-  `right` - Get the x coordinate of the visible area's right edge.
+-  `top` - Get the y coordinate of the visible area's top edge.
+-  `bottom` - Get the y coordinate of the visible area's bottom edge.
+-  `width` - Get the distance between `left` and `right`.
+-  `height` - Get the distance between `top` and `bottom`.
+-  `margin_left` - Get the width between `left` and grid coordinate `0`.
+-  `margin_right` - Get the width between the grid's maximum x coordinate and `right`.
+-  `margin_top` - Get the height between `top` and grid coordinate `0`.
+-  `margin_bottom` - Get the height between the grid's maximum y coordinate and `bottom`.
 
-For example:
+### `fe.plugin`
+
+This shared table is available to layouts and plugins. Plugins register their script instance using the plugin name as the key so layouts and other plugins can access its public members. For example:
 
 ```squirrel
 class MyPlugin
@@ -1361,16 +1379,12 @@ class MyPlugin
    rect = null
    constructor()
    {
-      fe.plugin.grid = Grid.Percent
-      fe.plugin.grid_uniform = false
       rect = fe.add_rectangle( 10, 10, 80, 80 )
    }
 }
 
 fe.plugin["MyPlugin"] <- MyPlugin()
 ```
-
-Plugins register their script instance in this table using the plugin name as the key. Layouts and other plugins can then access the instance and its public members through this entry.
 
 ### `fe.list`
 
@@ -1429,14 +1443,6 @@ This class is a container for global layout settings. The instance of this class
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
 -  `aspect_ratio` 🔶 - Get/set the layout aspect ratio. Default value is `0.0`. Setting `width` or `height` resets it to `0.0`.
--  `grid` 🔶 - Get/set the default coordinate grid, This can be one of the following values:
-   -  `Grid.Pixel` (default) - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
-   -  `Grid.Percent` - `0` to `100`.
-   -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` 🔶 - Get/set whether Percent and Normalised grids use a square grid, or are stretched to layout size. Default value is `true`.
--  `pixel_snap` 🔶 - Get/set whether drawable geometry snaps to display pixels. Default value is `false`.
--  `grid_offset_x` - Get/set the layout x offset in `grid` coordinates.
--  `grid_offset_y` - Get/set the layout y offset in `grid` coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1457,7 +1463,6 @@ This class is a container for global layout settings. The instance of this class
 
 **Member Functions**
 
--  `set_grid_offset( x, y )` - Set the layout offset in `grid` coordinates.
 -  `redraw()` 🔶 - Adds the ability to process `tick()` and redraw the screen during computationally intensive loops in transition and signal callbacks. DO NOT call this function inside `tick()` callback. It will result in an infinite loop and the frontend will crash.
 
 **Notes**
@@ -1626,12 +1631,12 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
--  `grid` 🔶 - Get/set the coordinate grid of the image. If unset, images created by layouts use `fe.layout.grid` coordinates. Images created by plugins default to `Grid.Pixel`. This can be one of the following values:
+-  `grid` 🔶 - Get/set the coordinate grid of the image. Defaults to the active `fe.grid.mode` when the image is created. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` 🔶 - Get/set whether the image's Percent and Normalised grids use a square grid, or are stretched to layout size. Images created by layouts default to `fe.layout.grid_uniform`; images created by plugins default to `true`.
--  `pixel_snap` 🔶 - Get/set whether the image's geometry snaps to display pixels. Images created by layouts default to `fe.layout.pixel_snap`; images created by plugins default to `false`.
+-  `grid_uniform` 🔶 - Get/set whether the image's Percent and Normalised grids use a centred square grid or are stretched to the parent size. Defaults to the active `fe.grid.uniform` when the image is created.
+-  `pixel_snap` 🔶 - Get/set whether the image's geometry snaps to display pixels. Defaults to the active `fe.grid.pixel_snap` when the image is created.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1823,12 +1828,12 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
--  `grid` 🔶 - Get/set the coordinate grid of the text. If unset, text created by layouts uses `fe.layout.grid`. Text created by plugins defaults to `Grid.Pixel`. This can be one of the following values:
+-  `grid` 🔶 - Get/set the coordinate grid of the text. Defaults to the active `fe.grid.mode` when the text is created. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` 🔶 - Get/set whether the text's Percent and Normalised grids use a square grid, or are stretched to layout size. Text created by layouts defaults to `fe.layout.grid_uniform`; text created by plugins defaults to `true`.
--  `pixel_snap` 🔶 - Get/set whether the text's geometry snaps to display pixels. Text created by layouts defaults to `fe.layout.pixel_snap`; text created by plugins defaults to `false`.
+-  `grid_uniform` 🔶 - Get/set whether the text's Percent and Normalised grids use a centred square grid or are stretched to the parent size. Defaults to the active `fe.grid.uniform` when the text is created.
+-  `pixel_snap` 🔶 - Get/set whether the text's geometry snaps to display pixels. Defaults to the active `fe.grid.pixel_snap` when the text is created.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the text object type. Text returns `Type.Text`.
 -  `magic` 🔶 - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1957,12 +1962,12 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
--  `grid` 🔶 - Get/set the coordinate grid of the listbox. If unset, listboxes created by layouts use `fe.layout.grid`. Listboxes created by plugins default to `Grid.Pixel`. This can be one of the following values:
+-  `grid` 🔶 - Get/set the coordinate grid of the listbox. Defaults to the active `fe.grid.mode` when the listbox is created. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` 🔶 - Get/set whether the listbox's Percent and Normalised grids use a square grid, or are stretched to layout size. Listboxes created by layouts default to `fe.layout.grid_uniform`; listboxes created by plugins default to `true`.
--  `pixel_snap` 🔶 - Get/set whether the listbox's geometry snaps to display pixels. Listboxes created by layouts default to `fe.layout.pixel_snap`; listboxes created by plugins default to `false`.
+-  `grid_uniform` 🔶 - Get/set whether the listbox's Percent and Normalised grids use a centred square grid or are stretched to the parent size. Defaults to the active `fe.grid.uniform` when the listbox is created.
+-  `pixel_snap` 🔶 - Get/set whether the listbox's geometry snaps to display pixels. Defaults to the active `fe.grid.pixel_snap` when the listbox is created.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2115,12 +2120,12 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set the y position of the rectangle (in layout coordinates).
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
--  `grid` 🔶 - Get/set the coordinate grid of the rectangle. If unset, rectangles created by layouts use `fe.layout.grid`. Rectangles created by plugins default to `Grid.Pixel`. This can be one of the following values:
+-  `grid` 🔶 - Get/set the coordinate grid of the rectangle. Defaults to the active `fe.grid.mode` when the rectangle is created. This can be one of the following values:
    -  `Grid.Pixel` - `0` to `fe.layout.width/height`, or `surface.texture_width/height`.
    -  `Grid.Percent` - `0` to `100`.
    -  `Grid.Normalised` - `0.0` to `1.0`.
--  `grid_uniform` 🔶 - Get/set whether the rectangle's Percent and Normalised grids use a square grid, or are stretched to layout size. Rectangles created by layouts default to `fe.layout.grid_uniform`; rectangles created by plugins default to `true`.
--  `pixel_snap` 🔶 - Get/set whether the rectangle's geometry snaps to display pixels. Rectangles created by layouts default to `fe.layout.pixel_snap`; rectangles created by plugins default to `false`.
+-  `grid_uniform` 🔶 - Get/set whether the rectangle's Percent and Normalised grids use a centred square grid or are stretched to the parent size. Defaults to the active `fe.grid.uniform` when the rectangle is created.
+-  `pixel_snap` 🔶 - Get/set whether the rectangle's geometry snaps to display pixels. Defaults to the active `fe.grid.pixel_snap` when the rectangle is created.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` 🔶 - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` 🔶 - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
