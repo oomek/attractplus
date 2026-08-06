@@ -374,6 +374,7 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_custom_languages( false ),
 	m_displays_menu_exit( true ),
 	m_hide_brackets( true ),
+	m_randomise_artwork( true ),
 	m_group_clones( true ),
 	m_startup_mode( ShowLastSelection ),
 	m_prefix_mode( SortAndShowPrefix ),
@@ -576,6 +577,7 @@ const char *FeSettings::configSettingStrings[] =
 	"screen_saver_timeout",
 	"displays_menu_exit",
 	"hide_brackets",
+	"randomise_artwork",
 	"group_clones",
 	"startup_mode",
 	"prefix_mode",
@@ -3512,6 +3514,7 @@ const std::string FeSettings::get_info( int index ) const
 	case CustomLanguages:
 	case DisplaysMenuExit:
 	case HideBrackets:
+	case RandomiseArtwork:
 	case GroupClones:
 	case ConfirmFavourites:
 	case ConfirmExit:
@@ -3567,6 +3570,8 @@ bool FeSettings::get_info_bool( int index ) const
 		return m_displays_menu_exit;
 	case HideBrackets:
 		return m_hide_brackets;
+	case RandomiseArtwork:
+		return m_randomise_artwork;
 	case GroupClones:
 		return m_group_clones;
 	case ConfirmFavourites:
@@ -3650,6 +3655,10 @@ bool FeSettings::set_info( int index, const std::string &value )
 
 	case HideBrackets:
 		m_hide_brackets = config_str_to_bool( value );
+		break;
+
+	case RandomiseArtwork:
+		m_randomise_artwork = config_str_to_bool( value );
 		break;
 
 	case GroupClones:
@@ -4502,6 +4511,7 @@ bool gather_artwork_filenames(
 	std::vector<std::string> &vids,
 	std::vector<std::string> &images,
 	bool image_only,
+	bool randomise_artwork,
 	FePathCache *path_cache )
 {
 	for ( std::vector< std::string >::const_iterator itr = art_paths.begin();
@@ -4579,8 +4589,11 @@ bool gather_artwork_filenames(
 			}
 #endif
 
-			std::shuffle( vid_contents.begin(), vid_contents.end(), rnd );
-			std::shuffle( img_contents.begin(), img_contents.end(), rnd );
+			if ( randomise_artwork )
+			{
+				std::shuffle( vid_contents.begin(), vid_contents.end(), rnd );
+				std::shuffle( img_contents.begin(), img_contents.end(), rnd );
+			}
 
 			images.insert( images.end(), img_contents.begin(), img_contents.end() );
 			vids.insert( vids.end(), vid_contents.begin(), vid_contents.end() );
@@ -4692,7 +4705,7 @@ bool FeSettings::internal_get_best_artwork_file(
 		const std::string &cloneof = rom.get_info( FeRomInfo::Cloneof );
 
 		std::vector<std::string> romname_image_list;
-		if ( gather_artwork_filenames( art_paths, romname, vid_list, romname_image_list, image_only, &m_path_cache ) )
+		if ( gather_artwork_filenames( art_paths, romname, vid_list, romname_image_list, image_only, m_randomise_artwork, &m_path_cache ) )
 		{
 			// test for "romname" specific videos first
 			if ( !image_only && !vid_list.empty() )
@@ -4702,7 +4715,7 @@ bool FeSettings::internal_get_best_artwork_file(
 		bool check_altname = ( !altname.empty() && ( romname.compare( altname ) != 0 ));
 
 		std::vector<std::string> altname_image_list;
-		if ( check_altname && gather_artwork_filenames( art_paths, altname, vid_list, altname_image_list, image_only, &m_path_cache ) )
+		if ( check_altname && gather_artwork_filenames( art_paths, altname, vid_list, altname_image_list, image_only, m_randomise_artwork, &m_path_cache ) )
 		{
 			// test for "altname" specific videos second
 			if ( !image_only && !vid_list.empty() )
@@ -4712,7 +4725,7 @@ bool FeSettings::internal_get_best_artwork_file(
 		bool check_cloneof = ( !cloneof.empty() && (altname.compare( cloneof ) != 0 ));
 
 		std::vector<std::string> cloneof_image_list;
-		if ( check_cloneof && gather_artwork_filenames( art_paths, cloneof, vid_list, cloneof_image_list, image_only, &m_path_cache ) )
+		if ( check_cloneof && gather_artwork_filenames( art_paths, cloneof, vid_list, cloneof_image_list, image_only, m_randomise_artwork, &m_path_cache ) )
 		{
 			// then "cloneof" specific videos
 			if ( !image_only && !vid_list.empty() )
@@ -4742,7 +4755,7 @@ bool FeSettings::internal_get_best_artwork_file(
 
 		// then "emulator"
 		if ( !ignore_emu && !emu_name.empty()
-			&& gather_artwork_filenames( art_paths, emu_name, vid_list, image_list, image_only, &m_path_cache ) )
+			&& gather_artwork_filenames( art_paths, emu_name, vid_list, image_list, image_only, m_randomise_artwork, &m_path_cache ) )
 			return true;
 	}
 
@@ -4776,14 +4789,14 @@ void FeSettings::get_best_artwork_file(
 
 	// check for "[emulator-[artlabel]" artworks first
 	if ( gather_artwork_filenames( layout_paths,
-		emu_name + "-" + art_name, vid_list, image_list, image_only, &m_path_cache ) )
+		emu_name + "-" + art_name, vid_list, image_list, image_only, m_randomise_artwork, &m_path_cache ) )
 	{
 		if ( !image_only && !vid_list.empty() )
 			return;
 	}
 
 	// then "[artlabel]"
-	gather_artwork_filenames( layout_paths, art_name, vid_list, image_list, image_only, &m_path_cache );
+	gather_artwork_filenames( layout_paths, art_name, vid_list, image_list, image_only, m_randomise_artwork, &m_path_cache );
 
 }
 
@@ -4841,7 +4854,7 @@ bool FeSettings::get_best_dynamic_image_file(
 	std::vector< std::string > paths;
 	paths.push_back( path );
 
-	return gather_artwork_filenames( paths, base, vid_list, image_list, false, NULL ); // TODO: image_only variable, or false?
+	return gather_artwork_filenames( paths, base, vid_list, image_list, false, m_randomise_artwork, NULL ); // TODO: image_only variable, or false?
 }
 
 bool FeSettings::update_romlist_after_edit(
