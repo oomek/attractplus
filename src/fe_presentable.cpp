@@ -42,9 +42,13 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	m_grid( 0 ),
 	m_grid_uniform( true ),
 	m_pixel_snap( false ),
+	m_script_id( -1 ),
 	m_script_geometry_set( false )
 {
 	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_script_id = fep->get_script_id();
+
 	if ( fep && fep->get_script_id() < 0 )
 	{
 		m_grid_uniform = fep->get_layout_grid_uniform();
@@ -81,7 +85,7 @@ FeCoordinateSpace FePresentableParent::get_coordinate_space( bool ) const
 	return FeCoordinateSpace();
 }
 
-sf::Vector2f FePresentableParent::get_grid_offset( bool ) const
+sf::Vector2f FePresentableParent::get_grid_offset( int, bool ) const
 {
 	return sf::Vector2f( 0, 0 );
 }
@@ -118,7 +122,7 @@ void FeBasePresentable::set_scale_factor( float, float )
 sf::Vector2f FeBasePresentable::pos_from_grid_units( const sf::Vector2f &p, bool snap ) const
 {
 	FeCoordinateSpace space = m_parent ? m_parent->get_coordinate_space( get_grid_uniform() ) : FeCoordinateSpace();
-	sf::Vector2f offset = m_parent ? m_parent->get_grid_offset( get_grid_uniform() ) : sf::Vector2f( 0, 0 );
+	sf::Vector2f offset = m_parent ? m_parent->get_grid_offset( m_script_id, get_grid_uniform() ) : sf::Vector2f( 0, 0 );
 	sf::Vector2f pos;
 
 	switch ( get_grid() )
@@ -418,7 +422,7 @@ float FeBasePresentable::snap_grid_destination_to_pixels( const std::string &nam
 		else
 			snapped = pos_from_grid_units( pos );
 
-		sf::Vector2f offset = m_parent->get_grid_offset( get_grid_uniform() );
+		sf::Vector2f offset = m_parent->get_grid_offset( m_script_id, get_grid_uniform() );
 		value = x_axis ? snapped.x - offset.x : snapped.y - offset.y;
 	}
 	else

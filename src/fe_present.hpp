@@ -102,7 +102,7 @@ public:
 	int get_height();
 	int get_num();
 	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
-	sf::Vector2f get_grid_offset( bool uniform=true ) const;
+	sf::Vector2f get_grid_offset( int script_id, bool uniform=true ) const;
 	sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
 	sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 
@@ -129,6 +129,7 @@ class FePresent
 	: public sf::Drawable
 {
 	friend class FePresentableParent;
+	friend class FeGridContext;
 	friend class FeVM;
 
 protected:
@@ -305,6 +306,7 @@ public:
 	virtual int get_plugin_grid() const { return GridPixel; }
 	virtual bool get_plugin_grid_uniform() const { return true; }
 	virtual bool get_plugin_pixel_snap() const { return false; }
+	virtual sf::Vector2f get_plugin_grid_offset( int, bool ) const { return sf::Vector2f( 0, 0 ); }
 	float get_layout_grid_offset_x() const;
 	float get_layout_grid_offset_y() const;
 	sf::Vector2f get_layout_grid_offset( bool uniform ) const;
@@ -318,7 +320,6 @@ public:
 
 	const sf::Vector2i &get_layout_size() const { return m_layoutSize; }
 	const sf::Vector2i get_screen_size();
-	sf::Vector2f window_to_layout_grid_pos( const sf::Vector2i &pos ) const;
 	FeShader *get_empty_shader();
 
 	// Returns true if a script has set custom overlay controls.
