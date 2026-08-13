@@ -39,23 +39,11 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	m_zorder( 0 ),
 	m_script_pos( 0, 0 ),
 	m_script_size( 0, 0 ),
-	m_grid( 0 ),
-	m_grid_uniform( true ),
-	m_pixel_snap( false ),
+	m_grid( p.get_child_grid() ),
+	m_grid_uniform( p.get_child_grid_uniform() ),
+	m_pixel_snap( p.get_child_pixel_snap() ),
 	m_script_geometry_set( false )
 {
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep && fep->get_script_id() < 0 )
-	{
-		m_grid_uniform = fep->get_layout_grid_uniform();
-		m_pixel_snap = fep->get_layout_pixel_snap();
-	}
-	else if ( fep )
-	{
-		m_grid = fep->get_plugin_grid();
-		m_grid_uniform = fep->get_plugin_grid_uniform();
-		m_pixel_snap = fep->get_plugin_pixel_snap();
-	}
 }
 
 FeBasePresentable::~FeBasePresentable()
@@ -84,6 +72,55 @@ FeCoordinateSpace FePresentableParent::get_coordinate_space( bool ) const
 sf::Vector2f FePresentableParent::get_grid_offset( bool ) const
 {
 	return sf::Vector2f( 0, 0 );
+}
+
+int FePresentableParent::get_child_grid() const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep && ( fep->get_script_id() >= 0 ))
+		return fep->get_plugin_grid();
+
+	return 0;
+}
+
+bool FePresentableParent::get_child_grid_uniform() const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		if ( fep->get_script_id() < 0 )
+			return fep->get_layout_grid_uniform();
+
+		return fep->get_plugin_grid_uniform();
+	}
+
+	return true;
+}
+
+bool FePresentableParent::get_child_pixel_snap() const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+	{
+		if ( fep->get_script_id() < 0 )
+			return fep->get_layout_pixel_snap();
+
+		return fep->get_plugin_pixel_snap();
+	}
+
+	return false;
+}
+
+void FePresentableParent::set_child_grid( int )
+{
+}
+
+void FePresentableParent::set_child_grid_uniform( bool )
+{
+}
+
+void FePresentableParent::set_child_pixel_snap( bool )
+{
 }
 
 sf::Vector2f FePresentableParent::snap_position_to_pixel( const sf::Vector2f &p ) const
@@ -736,16 +773,11 @@ FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 
 	if ( fep )
 	{
-		int grid = fep->get_plugin_grid();
-		bool grid_uniform = fep->get_plugin_grid_uniform();
-		if ( fep->get_script_id() < 0 )
-		{
-			grid = fep->get_layout_grid();
-			grid_uniform = fep->get_layout_grid_uniform();
-		}
+		int grid = get_child_grid();
+		if ( !grid ) grid = fep->get_layout_grid();
 
-		sf::Vector2i texture_size = fep->get_surface_texture_size( *this, w, h, grid, grid_uniform );
-		FeCoordinateSpace space = get_coordinate_space( grid_uniform );
+		sf::Vector2i texture_size = fep->get_surface_texture_size( *this, w, h, grid );
+		FeCoordinateSpace space = get_coordinate_space( false );
 
 		switch ( grid )
 		{

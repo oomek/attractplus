@@ -811,6 +811,9 @@ FeImage *FePresent::add_surface(
 	// Set the default sprite size to the same as the texture itself
 	//
 	FeImage *new_image = new FeImage( p, new_surface, x, y, w, h );
+	new_surface->set_child_grid( new_image->get_grid() );
+	new_surface->set_child_grid_uniform( new_image->get_grid_uniform() );
+	new_surface->set_child_pixel_snap( new_image->get_pixel_snap() );
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_image->set_blend_mode( FeBlend::Premultiplied );
 	new_image->set_script_geometry( x, y, w, h );
@@ -2101,9 +2104,9 @@ bool FePresent::get_layout_crop()
 	return m_layout_crop;
 }
 
-sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float w, float h, int grid, bool grid_uniform ) const
+sf::Vector2i FePresent::get_surface_texture_size( FePresentableParent &p, float w, float h, int grid ) const
 {
-	FeCoordinateSpace space = p.get_coordinate_space( grid_uniform );
+	FeCoordinateSpace space = p.get_coordinate_space( false );
 	sf::Vector2f display_size;
 
 	switch ( grid )

@@ -285,10 +285,19 @@ public:
 
 	FePresentableParent *get_presentable_parent();
 	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
+	int get_child_grid() const override;
+	bool get_child_grid_uniform() const override;
+	bool get_child_pixel_snap() const override;
+	void set_child_grid( int ) override;
+	void set_child_grid_uniform( bool ) override;
+	void set_child_pixel_snap( bool ) override;
 	int get_type() const;
 
 private:
 	sf::RenderTexture m_texture;
+	int m_child_grid;
+	bool m_child_grid_uniform;
+	bool m_child_pixel_snap;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
@@ -379,6 +388,12 @@ public:
 	float get_width() const;
 	void set_height( float h );
 	float get_height() const;
+	int get_content_grid() const;
+	void set_content_grid( int );
+	bool get_content_grid_uniform() const;
+	void set_content_grid_uniform( bool );
+	bool get_content_pixel_snap() const;
+	void set_content_pixel_snap( bool );
 
 	void set_pan( float );
 	float get_pan() const;

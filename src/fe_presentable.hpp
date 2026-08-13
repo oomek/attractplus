@@ -194,6 +194,12 @@ public:
 	void set_nesting_level( int );
 	virtual FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
 	virtual sf::Vector2f get_grid_offset( bool uniform=true ) const;
+	virtual int get_child_grid() const;
+	virtual bool get_child_grid_uniform() const;
+	virtual bool get_child_pixel_snap() const;
+	virtual void set_child_grid( int );
+	virtual void set_child_grid_uniform( bool );
+	virtual void set_child_pixel_snap( bool );
 	virtual sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
 	virtual sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 	void refresh_script_geometry();

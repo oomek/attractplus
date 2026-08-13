@@ -379,7 +379,7 @@ fe.add_surface( x, y, w, h, texture_width, texture_height ) 🔶
 Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`Image`](#feadd_image), [`Artwork`](#feadd_artwork), [`Text`](#feadd_text), [`Listbox`](#feadd_listbox) and [`Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
 A surface's texture size is fixed upon creation. Later changes to `width` or `height` will not change the texture's dimensions.
-When `texture_width` and `texture_height` are omitted, the texture size is derived from `w` and `h` using the current `grid`.
+When `texture_width` and `texture_height` are omitted, the texture size is derived from `w` and `h` using the parent coordinate space.
 
 The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
@@ -1632,6 +1632,9 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `Grid.Normalised` - `0.0` to `1.0`.
 -  `grid_uniform` 🔶 - Get/set whether the image's Percent and Normalised grids use a square grid, or are stretched to layout size. Images created by layouts default to `fe.layout.grid_uniform`; images created by plugins default to `true`.
 -  `pixel_snap` 🔶 - Get/set whether the image's geometry snaps to display pixels. Images created by layouts default to `fe.layout.pixel_snap`; images created by plugins default to `false`.
+-  `content_grid` 🔶 - Get/set the coordinate grid used by objects added to a surface. Defaults to the surface's inherited `grid` when it is created. This property applies only to surfaces.
+-  `content_grid_uniform` 🔶 - Get/set whether objects added to a surface use a square Percent or Normalised grid. Defaults to the surface's inherited `grid_uniform` when it is created. This property applies only to surfaces.
+-  `content_pixel_snap` 🔶 - Get/set whether objects added to a surface snap their geometry to texture pixels. Defaults to the surface's inherited `pixel_snap` when it is created. This property applies only to surfaces.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
