@@ -285,12 +285,17 @@ public:
 
 	FePresentableParent *get_presentable_parent();
 	FeCoordinateSpace get_coordinate_space( bool uniform=true ) const;
+	sf::Vector2f get_grid_offset( bool uniform=true ) const override;
 	int get_child_grid() const override;
 	bool get_child_grid_uniform() const override;
 	bool get_child_pixel_snap() const override;
+	float get_child_grid_offset_x() const override;
+	float get_child_grid_offset_y() const override;
 	void set_child_grid( int ) override;
 	void set_child_grid_uniform( bool ) override;
 	void set_child_pixel_snap( bool ) override;
+	void set_child_grid_offset_x( float ) override;
+	void set_child_grid_offset_y( float ) override;
 	int get_type() const;
 
 private:
@@ -298,6 +303,7 @@ private:
 	int m_child_grid;
 	bool m_child_grid_uniform;
 	bool m_child_pixel_snap;
+	sf::Vector2f m_child_grid_offset;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
@@ -394,6 +400,10 @@ public:
 	void set_content_grid_uniform( bool );
 	bool get_content_pixel_snap() const;
 	void set_content_pixel_snap( bool );
+	float get_content_grid_offset_x() const;
+	void set_content_grid_offset_x( float );
+	float get_content_grid_offset_y() const;
+	void set_content_grid_offset_y( float );
 
 	void set_pan( float );
 	float get_pan() const;

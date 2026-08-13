@@ -111,6 +111,24 @@ bool FePresentableParent::get_child_pixel_snap() const
 	return false;
 }
 
+float FePresentableParent::get_child_grid_offset_x() const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep && ( fep->get_script_id() < 0 ))
+		return fep->get_layout_grid_offset_x();
+
+	return 0.0f;
+}
+
+float FePresentableParent::get_child_grid_offset_y() const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep && ( fep->get_script_id() < 0 ))
+		return fep->get_layout_grid_offset_y();
+
+	return 0.0f;
+}
+
 void FePresentableParent::set_child_grid( int )
 {
 }
@@ -120,6 +138,14 @@ void FePresentableParent::set_child_grid_uniform( bool )
 }
 
 void FePresentableParent::set_child_pixel_snap( bool )
+{
+}
+
+void FePresentableParent::set_child_grid_offset_x( float )
+{
+}
+
+void FePresentableParent::set_child_grid_offset_y( float )
 {
 }
 

@@ -814,6 +814,8 @@ FeImage *FePresent::add_surface(
 	new_surface->set_child_grid( new_image->get_grid() );
 	new_surface->set_child_grid_uniform( new_image->get_grid_uniform() );
 	new_surface->set_child_pixel_snap( new_image->get_pixel_snap() );
+	new_surface->set_child_grid_offset_x( p.get_child_grid_offset_x() );
+	new_surface->set_child_grid_offset_y( p.get_child_grid_offset_y() );
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_image->set_blend_mode( FeBlend::Premultiplied );
 	new_image->set_script_geometry( x, y, w, h );

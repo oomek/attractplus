@@ -1041,6 +1041,7 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	: m_child_grid( GridPixel ),
 	  m_child_grid_uniform( true ),
 	  m_child_pixel_snap( false ),
+	  m_child_grid_offset( 0, 0 ),
 	  m_clear( true ),
 	m_redraw( true ),
 	m_mipmap( false )
@@ -1192,6 +1193,28 @@ FeCoordinateSpace FeSurfaceTextureContainer::get_coordinate_space( bool uniform 
 	return FeCoordinateSpace( origin, space_size );
 }
 
+sf::Vector2f FeSurfaceTextureContainer::get_grid_offset( bool uniform ) const
+{
+	FeCoordinateSpace space = get_coordinate_space( uniform );
+
+	switch ( m_child_grid )
+	{
+		case GridNormalised:
+			return sf::Vector2f(
+				space.size.x * m_child_grid_offset.x,
+				space.size.y * m_child_grid_offset.y );
+
+		case GridPercent:
+			return sf::Vector2f(
+				space.size.x * m_child_grid_offset.x / 100.0f,
+				space.size.y * m_child_grid_offset.y / 100.0f );
+
+		case GridPixel:
+		default:
+			return m_child_grid_offset;
+	}
+}
+
 int FeSurfaceTextureContainer::get_child_grid() const
 {
 	return m_child_grid;
@@ -1205,6 +1228,16 @@ bool FeSurfaceTextureContainer::get_child_grid_uniform() const
 bool FeSurfaceTextureContainer::get_child_pixel_snap() const
 {
 	return m_child_pixel_snap;
+}
+
+float FeSurfaceTextureContainer::get_child_grid_offset_x() const
+{
+	return m_child_grid_offset.x;
+}
+
+float FeSurfaceTextureContainer::get_child_grid_offset_y() const
+{
+	return m_child_grid_offset.y;
 }
 
 void FeSurfaceTextureContainer::set_child_grid( int grid )
@@ -1230,6 +1263,24 @@ void FeSurfaceTextureContainer::set_child_pixel_snap( bool snap )
 	if ( snap != m_child_pixel_snap )
 	{
 		m_child_pixel_snap = snap;
+		refresh_script_geometry();
+	}
+}
+
+void FeSurfaceTextureContainer::set_child_grid_offset_x( float x )
+{
+	if ( x != m_child_grid_offset.x )
+	{
+		m_child_grid_offset.x = x;
+		refresh_script_geometry();
+	}
+}
+
+void FeSurfaceTextureContainer::set_child_grid_offset_y( float y )
+{
+	if ( y != m_child_grid_offset.y )
+	{
+		m_child_grid_offset.y = y;
 		refresh_script_geometry();
 	}
 }
@@ -1317,6 +1368,38 @@ void FeImage::set_content_pixel_snap( bool snap )
 	FePresentableParent *parent = m_tex->get_presentable_parent();
 	if ( parent )
 		parent->set_child_pixel_snap( snap );
+}
+
+float FeImage::get_content_grid_offset_x() const
+{
+	FePresentableParent *parent = m_tex->get_presentable_parent();
+	if ( parent )
+		return parent->get_child_grid_offset_x();
+
+	return 0.0f;
+}
+
+void FeImage::set_content_grid_offset_x( float x )
+{
+	FePresentableParent *parent = m_tex->get_presentable_parent();
+	if ( parent )
+		parent->set_child_grid_offset_x( x );
+}
+
+float FeImage::get_content_grid_offset_y() const
+{
+	FePresentableParent *parent = m_tex->get_presentable_parent();
+	if ( parent )
+		return parent->get_child_grid_offset_y();
+
+	return 0.0f;
+}
+
+void FeImage::set_content_grid_offset_y( float y )
+{
+	FePresentableParent *parent = m_tex->get_presentable_parent();
+	if ( parent )
+		parent->set_child_grid_offset_y( y );
 }
 
 FeImage::FeImage( FeImage *o ):

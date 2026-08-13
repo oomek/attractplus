@@ -197,9 +197,13 @@ public:
 	virtual int get_child_grid() const;
 	virtual bool get_child_grid_uniform() const;
 	virtual bool get_child_pixel_snap() const;
+	virtual float get_child_grid_offset_x() const;
+	virtual float get_child_grid_offset_y() const;
 	virtual void set_child_grid( int );
 	virtual void set_child_grid_uniform( bool );
 	virtual void set_child_pixel_snap( bool );
+	virtual void set_child_grid_offset_x( float );
+	virtual void set_child_grid_offset_y( float );
 	virtual sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
 	virtual sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 	void refresh_script_geometry();

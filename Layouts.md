@@ -1635,6 +1635,8 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `content_grid` 🔶 - Get/set the coordinate grid used by objects added to a surface. Defaults to the surface's inherited `grid` when it is created. This property applies only to surfaces.
 -  `content_grid_uniform` 🔶 - Get/set whether objects added to a surface use a square Percent or Normalised grid. Defaults to the surface's inherited `grid_uniform` when it is created. This property applies only to surfaces.
 -  `content_pixel_snap` 🔶 - Get/set whether objects added to a surface snap their geometry to texture pixels. Defaults to the surface's inherited `pixel_snap` when it is created. This property applies only to surfaces.
+-  `content_grid_offset_x` 🔶 - Get/set the x offset for objects added to a surface, in `content_grid` coordinates. Defaults to the parent grid offset when the surface is created. This property applies only to surfaces.
+-  `content_grid_offset_y` 🔶 - Get/set the y offset for objects added to a surface, in `content_grid` coordinates. Defaults to the parent grid offset when the surface is created. This property applies only to surfaces.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
