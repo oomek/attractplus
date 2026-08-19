@@ -60,6 +60,7 @@
 #include <ctime>
 #include <stdarg.h>
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <limits>
 #include <sstream>
@@ -71,6 +72,183 @@
 
 namespace
 {
+	enum CoordinateUnit
+	{
+		GridUnitScale,
+		UniformGridX,
+		UniformGridY,
+		ViewportXScale,
+		ViewportYScale
+	};
+
+	template <CoordinateUnit unit>
+	SQInteger coordinate_unit( HSQUIRRELVM vm )
+	{
+		return FeVM::cb_coordinate_unit( vm, unit );
+	}
+
+	struct CoordinateUnitBinding
+	{
+		const char *name;
+		SQFUNCTION callback;
+	};
+
+	const CoordinateUnitBinding coordinate_units[] = {
+		{ "gu", coordinate_unit<GridUnitScale> },
+		{ "gx", coordinate_unit<UniformGridX> },
+		{ "gy", coordinate_unit<UniformGridY> },
+		{ "vx", coordinate_unit<ViewportXScale> },
+		{ "vy", coordinate_unit<ViewportYScale> }
+	};
+
+	void register_coordinate_units( HSQUIRRELVM vm )
+	{
+		for ( const CoordinateUnitBinding &unit : coordinate_units )
+			fe_register_global_func( vm, unit.callback, unit.name, _SC(".n") );
+	}
+
+	bool is_identifier_char( char c )
+	{
+		return std::isalnum( static_cast<unsigned char>( c )) || ( c == '_' );
+	}
+
+	size_t number_end( const std::string &source, size_t pos )
+	{
+		size_t size = source.size();
+		if (( source[pos] == '0' ) && ( pos + 2 < size )
+				&& (( source[pos + 1] == 'x' ) || ( source[pos + 1] == 'X' )))
+		{
+			pos += 2;
+			while (( pos < size ) && std::isxdigit( static_cast<unsigned char>( source[pos] )))
+				pos++;
+			return pos;
+		}
+
+		while (( pos < size ) && std::isdigit( static_cast<unsigned char>( source[pos] )))
+			pos++;
+
+		if (( pos < size ) && ( source[pos] == '.' ))
+		{
+			pos++;
+			while (( pos < size ) && std::isdigit( static_cast<unsigned char>( source[pos] )))
+				pos++;
+		}
+
+		if (( pos < size ) && (( source[pos] == 'e' ) || ( source[pos] == 'E' )))
+		{
+			size_t exponent = pos++;
+			if (( pos < size ) && (( source[pos] == '+' ) || ( source[pos] == '-' )))
+				pos++;
+			size_t digits = pos;
+			while (( pos < size ) && std::isdigit( static_cast<unsigned char>( source[pos] )))
+				pos++;
+			if ( pos == digits )
+				return exponent;
+		}
+
+		return pos;
+	}
+
+	const CoordinateUnitBinding *unit_at( const std::string &source, size_t pos )
+	{
+		for ( const CoordinateUnitBinding &unit : coordinate_units )
+			if (( source.compare( pos, 2, unit.name ) == 0 )
+					&& (( pos + 2 == source.size() ) || !is_identifier_char( source[pos + 2] )))
+				return &unit;
+
+		return NULL;
+	}
+
+	std::string sq_preprocess_units( const std::string &source )
+	{
+		std::string result;
+		result.reserve( source.size() );
+
+		for ( size_t pos = 0; pos < source.size(); )
+		{
+			char c = source[pos];
+
+			if (( c == '/' ) && ( pos + 1 < source.size() ) && ( source[pos + 1] == '/' ))
+			{
+				size_t end = source.find( '\n', pos + 2 );
+				if ( end == std::string::npos ) end = source.size();
+				result.append( source, pos, end - pos );
+				pos = end;
+				continue;
+			}
+
+			if (( c == '/' ) && ( pos + 1 < source.size() ) && ( source[pos + 1] == '*' ))
+			{
+				size_t end = source.find( "*/", pos + 2 );
+				end = ( end == std::string::npos ) ? source.size() : end + 2;
+				result.append( source, pos, end - pos );
+				pos = end;
+				continue;
+			}
+
+			bool verbatim = ( c == '@' ) && ( pos + 1 < source.size() ) && ( source[pos + 1] == '"' );
+			if (( c == '"' ) || ( c == '\'' ) || verbatim )
+			{
+				char quote = verbatim ? '"' : c;
+				size_t end = pos + ( verbatim ? 2 : 1 );
+				while ( end < source.size() )
+				{
+					if ( !verbatim && ( source[end] == '\\' ))
+					{
+						end += std::min<size_t>( 2, source.size() - end );
+						continue;
+					}
+					if ( source[end++] == quote )
+					{
+						if ( verbatim && ( end < source.size() ) && ( source[end] == quote ))
+						{
+							end++;
+							continue;
+						}
+						break;
+					}
+				}
+				result.append( source, pos, end - pos );
+				pos = end;
+				continue;
+			}
+
+			if ( std::isdigit( static_cast<unsigned char>( c )) && (( pos == 0 )
+					|| (( source[pos - 1] != '.' ) && !is_identifier_char( source[pos - 1] ))))
+			{
+				size_t end = number_end( source, pos );
+				const CoordinateUnitBinding *unit = unit_at( source, end );
+				if ( unit )
+				{
+					result += unit->name;
+					result += '(';
+					result.append( source, pos, end - pos );
+					result += ')';
+					pos = end + 2;
+					continue;
+				}
+
+				result.append( source, pos, end - pos );
+				pos = end;
+				continue;
+			}
+
+			result += c;
+			pos++;
+		}
+		return result;
+	}
+
+	bool is_squirrel_bytecode( const std::string &source )
+	{
+		if ( source.size() < sizeof( unsigned short ))
+			return false;
+
+		unsigned short tag;
+		memcpy( &tag, source.data(), sizeof( tag ));
+		return tag == SQ_BYTECODE_STREAM_TAG;
+	}
+
 	//
 	// Squirrel callback functions
 	//
@@ -137,16 +315,33 @@ namespace
 		std::string path_to_run=path;
 		try
 		{
-			Sqrat::Script sc;
 			path_to_run += filename;
 
 			if ( !path_exists( path_to_run ) )
 				return false;
 
-			sc.CompileFile( path_to_run );
+			std::string source;
+			if ( read_file_content( path_to_run, source ) && !is_squirrel_bytecode( source ))
+			{
+				source = sq_preprocess_units( source );
+				HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+				if ( SQ_FAILED( sq_compilebuffer( vm, source.c_str(), static_cast<SQInteger>( source.size() ), path_to_run.c_str(), SQTrue )))
+					throw Sqrat::Exception( Sqrat::LastErrorString( vm ));
 
-			FeDebug() << "Running script: " << path_to_run << std::endl;
-			sc.Run();
+				FeDebug() << "Running script: " << path_to_run << std::endl;
+				sq_pushroottable( vm );
+				SQRESULT result = sq_call( vm, 1, SQFalse, SQTrue );
+				sq_pop( vm, 1 );
+				if ( SQ_FAILED( result ))
+					throw Sqrat::Exception( Sqrat::LastErrorString( vm ));
+			}
+			else
+			{
+				Sqrat::Script sc;
+				sc.CompileFile( path_to_run );
+				FeDebug() << "Running script: " << path_to_run << std::endl;
+				sc.Run();
+			}
 			FeDebug() << "Done script: " << path_to_run << std::endl;
 		}
 		catch( const Sqrat::Exception &e )
@@ -805,6 +1000,40 @@ namespace {
 	}
 }
 
+SQInteger FeVM::cb_coordinate_unit( HSQUIRRELVM vm, int unit )
+{
+	SQFloat value;
+	sq_getfloat( vm, 2, &value );
+
+	FeVM *fe_vm = static_cast<FeVM *>( sq_getforeignptr( vm ));
+	SQFloat layout_width = static_cast<SQFloat>( fe_vm->get_layout_width() );
+	SQFloat layout_height = static_cast<SQFloat>( fe_vm->get_layout_height() );
+	SQFloat uniform_size = std::min( layout_width, layout_height );
+	SQFloat uniform_value = value * uniform_size / static_cast<SQFloat>( 100.0 );
+	SQFloat result = uniform_value;
+
+	switch ( static_cast<CoordinateUnit>( unit ))
+	{
+	case GridUnitScale:
+		break;
+	case UniformGridX:
+		result = ( layout_width - uniform_size ) / static_cast<SQFloat>( 2.0 ) + uniform_value;
+		break;
+	case UniformGridY:
+		result = ( layout_height - uniform_size ) / static_cast<SQFloat>( 2.0 ) + uniform_value;
+		break;
+	case ViewportXScale:
+		result = value * layout_width / static_cast<SQFloat>( 100.0 );
+		break;
+	case ViewportYScale:
+		result = value * layout_height / static_cast<SQFloat>( 100.0 );
+		break;
+	}
+
+	sq_pushfloat( vm, result );
+	return 1;
+}
+
 void FeVM::vm_init()
 {
 	vm_close();
@@ -813,6 +1042,7 @@ void FeVM::vm_init()
 	sq_pushroottable( vm );
 	sq_setforeignptr( vm, this );
 	register_libs( vm );
+	register_coordinate_units( vm );
 	sqstd_seterrorhandlers( vm );
 	Sqrat::DefaultVM::Set( vm );
 }
@@ -2373,6 +2603,7 @@ public:
 			sqstd_seterrorhandlers( m_vm );
 #endif
 		}
+		register_coordinate_units( m_vm );
 
 		Sqrat::DefaultVM::Set( m_vm );
 

@@ -153,6 +153,40 @@ Attract-Mode Plus Layouts are written in [Squirrel](http://www.squirrel-lang.org
 
 ---
 
+### Coordinate Units 🔶
+
+The uniform grid is based on a `100 × 100` square scaled to the shorter layout dimension. Grid position `50,50` is the layout centre, so coordinates extend below `0` and above `100` along the longer layout dimension.
+
+**Units**
+
+-  `gu` - Uniform grid unit. `100gu` spans the shorter layout dimension.
+-  `gx` - Horizontal position on the uniform grid.
+-  `gy` - Vertical position on the uniform grid.
+-  `vx` - Non-uniform horizontal position based on `fe.layout.width`.
+-  `vy` - Non-uniform vertical position based on `fe.layout.height`.
+
+Use units after numbers:
+
+```squirrel
+local rectangle = fe.add_rectangle( 10gx, 10gy, 80vx, 20gu )
+rectangle.x = 100gx - 10gu
+```
+
+Units can also be called as functions:
+
+```squirrel
+local padding = 2.5
+rectangle.x = gx( padding ) + 20
+rectangle.width = vx( 100 ) - gu( padding * 2 )
+```
+
+**Notes**
+
+-  Do not add whitespace between a number and its unit.
+-  Integer, decimal, scientific and hexadecimal numbers are supported.
+
+---
+
 ### Magic Tokens
 
 [`fe.Image`](#feimage) names, as well as the messages displayed by [`fe.Text`](#fetext) and [`fe.Listbox`](#felistbox) objects, can contain one or more _Magic Tokens_. _Magic Tokens_ are enclosed in square brackets, and the frontend automatically updates them as the user navigates the layout. For example, a Text message set to `"[Title]"` will be automatically updated with the appropriate game's Title.

@@ -408,7 +408,7 @@ bool directory_exists( const std::string &file )
 
 bool read_file_content( const std::string &file, std::string &content )
 {
-	std::ifstream f( file, std::ios::binary );
+	nowide::ifstream f( file, std::ios::binary );
 	if ( !f.is_open() )
 		return false;
 

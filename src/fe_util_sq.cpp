@@ -156,11 +156,14 @@ int fe_get_num_params(
 void fe_register_global_func(
 	HSQUIRRELVM vm,
 	SQFUNCTION f,
-	const char *name )
+	const char *name,
+	const SQChar *typemask )
 {
         sq_pushroottable( vm );
         sq_pushstring( vm, scsqchar( name ), -1 );
         sq_newclosure( vm, f, 0 );
+        if ( typemask )
+                sq_setparamscheck( vm, SQ_MATCHTYPEMASKSTRING, typemask );
         sq_newslot( vm, -3, SQFalse );
         sq_pop( vm, 1 ); // pops the root table
 }

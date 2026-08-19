@@ -74,7 +74,8 @@ int fe_get_num_params(
 void fe_register_global_func(
 	HSQUIRRELVM vm,
 	SQFUNCTION f,
-	const char *name );
+	const char *name,
+	const SQChar *typemask = NULL );
 
 std::string _sq_obj_to_json( HSQOBJECT obj, int indent ); // used for json recursion - use "sq_obj_to_json" instead
 std::string sq_obj_to_json( HSQOBJECT obj );

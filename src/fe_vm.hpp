@@ -232,6 +232,7 @@ public:
 	//
 	// Script callback functions
 	//
+	static SQInteger cb_coordinate_unit( HSQUIRRELVM, int );
 	static FeImage *cb_add_image(const char *,float, float, float, float);
 	static FeImage *cb_add_image(const char *, float, float);
 	static FeImage *cb_add_image(const char *);
