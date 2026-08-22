@@ -413,6 +413,7 @@ void FeRectangle::refresh_script_geometry()
 {
 	FeBasePresentable::refresh_script_geometry();
 	m_rect.setOutlineThickness( grid_height_to_pixels( m_outline ));
+	scale();
 }
 
 float FeRectangle::get_corner_radius() const

@@ -341,6 +341,7 @@ public:
 	bool fix_masked_image();
 	FePresentableParent *get_presentable_parent();
 	const sf::Drawable &drawable() const { return (const sf::Drawable &)*this; };
+	void refresh_script_geometry() override;
 
 	template <typename T>
 	void setSize( T w, T h ) { setSize( sf::Vector2f( w, h ) ); };
@@ -545,8 +546,8 @@ public:
 	FeImage *add_surface( float, float, float, float, int, int );
 	FeImage *add_surface( float, float );
 	FeImage *add_clone( FeImage * );
-	FeText *add_text( const char *, int, int, int, int );
-	FeListBox *add_listbox( int, int, int, int );
+	FeText *add_text( const char *, float, float, float, float );
+	FeListBox *add_listbox( float, float, float, float );
 	FeRectangle *add_rectangle( float, float, float, float );
 	int get_type() const;
 	bool get_magic() const;

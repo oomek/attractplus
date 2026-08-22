@@ -215,8 +215,8 @@ public:
 	FeImage *add_artwork(const char *, float, float);
 	FeImage *add_artwork(const char *);
 	FeImage *add_clone(FeImage *);
-	FeText *add_text(const char *,int, int, int, int);
-	FeListBox *add_listbox(int, int, int, int);
+	FeText *add_text(const char *,float, float, float, float);
+	FeListBox *add_listbox(float, float, float, float);
 	FeRectangle *add_rectangle(float, float, float, float);
 	FeImage *add_surface(float, float, float, float);
 	FeImage *add_surface(float, float, float, float, int, int);

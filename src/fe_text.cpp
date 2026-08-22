@@ -30,7 +30,7 @@
 #include <iostream>
 
 FeText::FeText( FePresentableParent &p, const std::string &str,
-	int x, int y, int w, int h )
+	float x, float y, float w, float h )
 	: FeBasePresentable( p ),
 	m_string( str ),
 	m_string_wrapped( str ),

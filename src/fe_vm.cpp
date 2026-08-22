@@ -1863,8 +1863,8 @@ bool FeVM::on_new_layout()
 
 	fe.Func<FeImage* (*)(FeImage *)>(_SC("add_clone"), &FeVM::cb_add_clone);
 
-	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
-	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
+	fe.Overload<FeText* (*)(const char *, float, float, float, float)>(_SC("add_text"), &FeVM::cb_add_text);
+	fe.Func<FeListBox* (*)(float, float, float, float)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
 	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
 	fe.Overload<FeImage* (*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float, float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
@@ -3139,7 +3139,7 @@ FeImage* FeVM::cb_add_clone( FeImage *o )
 	return ret;
 }
 
-FeText* FeVM::cb_add_text(const char *n, int x, int y, int w, int h )
+FeText* FeVM::cb_add_text(const char *n, float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -3155,7 +3155,7 @@ FeText* FeVM::cb_add_text(const char *n, int x, int y, int w, int h )
 	return ret;
 }
 
-FeListBox* FeVM::cb_add_listbox(int x, int y, int w, int h )
+FeListBox* FeVM::cb_add_listbox(float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );

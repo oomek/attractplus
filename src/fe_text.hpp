@@ -37,7 +37,7 @@ class FeText : public FeBasePresentable, public sf::Drawable
 {
 public:
 	FeText( FePresentableParent &p,
-		const std::string &str, int x, int y, int w, int h );
+		const std::string &str, float x, float y, float w, float h );
 
 	void setFont( const sf::Font & );
 	sf::Vector2f getPosition() const;

@@ -1434,6 +1434,12 @@ FeImage::FeImage( FeImage *o ):
 
 FeImage::~FeImage() {}
 
+void FeImage::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	scale();
+}
+
 const sf::Texture *FeImage::get_texture()
 {
 	if ( m_tex )
@@ -2539,7 +2545,7 @@ FeImage *FeImage::add_clone(FeImage *i )
 	return NULL;
 }
 
-FeText *FeImage::add_text(const char *t, int x, int y, int w, int h)
+FeText *FeImage::add_text(const char *t, float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
@@ -2548,7 +2554,7 @@ FeText *FeImage::add_text(const char *t, int x, int y, int w, int h)
 	return NULL;
 }
 
-FeListBox *FeImage::add_listbox(int x, int y, int w, int h)
+FeListBox *FeImage::add_listbox(float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
