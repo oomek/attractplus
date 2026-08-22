@@ -49,7 +49,7 @@ public:
 		Bounded=3
 	};
 	// Constructor for use in scripts.  sets m_scripted to true
-	FeListBox( FePresentableParent &p, int x, int y, int w, int h );
+	FeListBox( FePresentableParent &p, float x, float y, float w, float h );
 
 	// Constructor for use in overlay.  sets m_scripted to false
 	FeListBox( FePresentableParent &p,

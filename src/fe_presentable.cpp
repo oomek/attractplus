@@ -651,7 +651,7 @@ FeModel3D *FePresentableParent::add_clone( FeModel3D *m )
 	return NULL;
 }
 
-FeText *FePresentableParent::add_text(const char *t, int x, int y, int w, int h)
+FeText *FePresentableParent::add_text(const char *t, float x, float y, float w, float h)
 {
 	FePresent *fep = FePresent::script_get_fep();
 
@@ -661,7 +661,7 @@ FeText *FePresentableParent::add_text(const char *t, int x, int y, int w, int h)
 	return NULL;
 }
 
-FeListBox *FePresentableParent::add_listbox(int x, int y, int w, int h)
+FeListBox *FePresentableParent::add_listbox(float x, float y, float w, float h)
 {
 	FePresent *fep = FePresent::script_get_fep();
 

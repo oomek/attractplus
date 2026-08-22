@@ -32,7 +32,7 @@
 
 const std::string DEFAULT_FORMAT_STRING = "[Title]";
 
-FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
+FeListBox::FeListBox( FePresentableParent &p, float x, float y, float w, float h )
 	: FeBasePresentable( p ),
 	m_selColour( Color::Yellow ),
 	m_selBg( Color::Blue ),
