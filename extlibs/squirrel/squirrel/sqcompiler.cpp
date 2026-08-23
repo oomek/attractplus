@@ -810,8 +810,7 @@ public:
 			_fs->AddInstruction(_OP_LOADNULLS, _fs->PushTarget(),1);
 			Lex();
 			break;
-		case TK_INTEGER: EmitLoadConstInt(_lex._nvalue,-1); Lex();	break;
-		case TK_FLOAT: EmitLoadConstFloat(_lex._fvalue,-1); Lex(); break;
+		case TK_INTEGER: case TK_FLOAT: EmitNumber(); break;
 		case TK_TRUE: case TK_FALSE:
 			_fs->AddInstruction(_OP_LOADBOOL, _fs->PushTarget(),_token == TK_TRUE?1:0);
 			Lex();
@@ -839,19 +838,18 @@ public:
 		case TK_FUNCTION: FunctionExp(_token);break;
 		case _SC('@'): FunctionExp(_token,true);break;
 		case TK_CLASS: Lex(); ClassExp();break;
-		case _SC('-'): 
-			Lex(); 
+		case _SC('-'):
+			Lex();
 			switch(_token) {
-			case TK_INTEGER: EmitLoadConstInt(-_lex._nvalue,-1); Lex(); break;
-			case TK_FLOAT: EmitLoadConstFloat(-_lex._fvalue,-1); Lex(); break;
+			case TK_INTEGER: case TK_FLOAT: EmitNumber(true); break;
 			default: UnaryOP(_OP_NEG);
 			}
 			break;
 		case _SC('!'): Lex(); UnaryOP(_OP_NOT); break;
-		case _SC('~'): 
-			Lex(); 
-			if(_token == TK_INTEGER)  { EmitLoadConstInt(~_lex._nvalue,-1); Lex(); break; }
-			UnaryOP(_OP_BWNOT); 
+		case _SC('~'):
+			Lex();
+			if(_token == TK_INTEGER && !_lex._coordinateunit)  { EmitLoadConstInt(~_lex._nvalue,-1); Lex(); break; }
+			UnaryOP(_OP_BWNOT);
 			break;
 		case TK_TYPEOF : Lex() ;UnaryOP(_OP_TYPEOF); break;
 		case TK_RESUME : Lex(); UnaryOP(_OP_RESUME); break;
@@ -864,6 +862,38 @@ public:
 		default: Error(_SC("expression expected"));
 		}
 		return -1;
+	}
+	void EmitNumber(bool negative = false)
+	{
+		const SQChar *unit = _lex._coordinateunit;
+		bool integer = _token == TK_INTEGER;
+
+		if(unit) {
+			_fs->AddInstruction(_OP_LOADROOT, _fs->PushTarget());
+			_fs->AddInstruction(_OP_LOAD, _fs->PushTarget(), _fs->GetConstant(_fs->CreateString(unit)));
+			SQInteger key = _fs->PopTarget();
+			SQInteger table = _fs->PopTarget();
+			SQInteger closure = _fs->PushTarget();
+			SQInteger stackbase = _fs->PushTarget();
+			_fs->AddInstruction(_OP_PREPCALL, closure, key, table, stackbase);
+
+			if(integer) EmitLoadConstInt(_lex._nvalue,-1);
+			else EmitLoadConstFloat(_lex._fvalue,-1);
+
+			_fs->PopTarget();
+			stackbase = _fs->PopTarget();
+			closure = _fs->PopTarget();
+			_fs->AddInstruction(_OP_CALL, _fs->PushTarget(), closure, stackbase, 2);
+
+			if(negative) {
+				SQInteger src = _fs->PopTarget();
+				_fs->AddInstruction(_OP_NEG, _fs->PushTarget(), src);
+			}
+		}
+		else if(integer) EmitLoadConstInt(negative ? -_lex._nvalue : _lex._nvalue,-1);
+		else EmitLoadConstFloat(negative ? -_lex._fvalue : _lex._fvalue,-1);
+
+		Lex();
 	}
 	void EmitLoadConstInt(SQInteger value,SQInteger target)
 	{
@@ -1264,10 +1294,12 @@ public:
 		val._type = OT_NULL; val._unVal.nInteger = 0; //shut up GCC 4.x
 		switch(_token) {
 			case TK_INTEGER:
+				if(_lex._coordinateunit) Error(_SC("scalar expected : integer,float or string"));
 				val._type = OT_INTEGER;
 				val._unVal.nInteger = _lex._nvalue;
 				break;
 			case TK_FLOAT:
+				if(_lex._coordinateunit) Error(_SC("scalar expected : integer,float or string"));
 				val._type = OT_FLOAT;
 				val._unVal.fFloat = _lex._fvalue;
 				break;
@@ -1281,6 +1313,7 @@ public:
 				break;
 			case '-':
 				Lex();
+				if(_lex._coordinateunit) Error(_SC("scalar expected : integer,float"));
 				switch(_token)
 				{
 				case TK_INTEGER:

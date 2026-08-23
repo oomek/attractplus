@@ -20,6 +20,7 @@ private:
 	SQInteger GetIDType(SQChar *s);
 	SQInteger ReadString(SQInteger ndelim,bool verbatim);
 	SQInteger ReadNumber();
+	const SQChar *ReadCoordinateUnit();
 	void LexBlockComment();
 	void LexLineComment();
 	SQInteger ReadID();
@@ -35,6 +36,7 @@ public:
 	const SQChar *_svalue;
 	SQInteger _nvalue;
 	SQFloat _fvalue;
+	const SQChar *_coordinateunit;
 	SQLEXREADFUNC _readf;
 	SQUserPointer _up;
 	LexChar _currdata;

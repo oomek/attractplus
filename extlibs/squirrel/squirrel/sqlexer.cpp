@@ -18,6 +18,15 @@
 #define TERMINATE_BUFFER() {_longstr.push_back(_SC('\0'));}
 #define ADD_KEYWORD(key,id) _keywords->NewSlot( SQString::Create(ss, _SC(#key)) ,SQInteger(id))
 
+static const SQChar *const coordinate_units[] = {
+	_SC("gu"),
+	_SC("gx"),
+	_SC("gy"),
+	_SC("vx"),
+	_SC("vy"),
+	_SC("px")
+};
+
 SQLexer::SQLexer(){}
 SQLexer::~SQLexer()
 {
@@ -71,6 +80,7 @@ void SQLexer::Init(SQSharedState *ss, SQLEXREADFUNC rg, SQUserPointer up,Compile
 	_lasttokenline = _currentline = 1;
 	_currentcolumn = 0;
 	_prevtoken = -1;
+	_coordinateunit = NULL;
 	_reached_eof = SQFalse;
 	Next();
 }
@@ -123,6 +133,7 @@ void SQLexer::LexLineComment()
 
 SQInteger SQLexer::Lex()
 {
+	_coordinateunit = NULL;
 	_lasttokenline = _currentline;
 	while(CUR_CHAR != SQUIRREL_EOB) {
 		switch(CUR_CHAR){
@@ -454,22 +465,47 @@ SQInteger SQLexer::ReadNumber()
 		}
 	}
 	TERMINATE_BUFFER();
+	SQInteger token = 0;
 	switch(type) {
 	case TSCIENTIFIC:
 	case TFLOAT:
 		_fvalue = (SQFloat)scstrtod(&_longstr[0],&sTemp);
-		return TK_FLOAT;
+		token = TK_FLOAT;
+		break;
 	case TINT:
 		LexInteger(&_longstr[0],(SQUnsignedInteger *)&_nvalue);
-		return TK_INTEGER;
+		token = TK_INTEGER;
+		break;
 	case THEX:
 		LexHexadecimal(&_longstr[0],(SQUnsignedInteger *)&_nvalue);
-		return TK_INTEGER;
+		token = TK_INTEGER;
+		break;
 	case TOCTAL:
 		LexOctal(&_longstr[0],(SQUnsignedInteger *)&_nvalue);
-		return TK_INTEGER;
+		token = TK_INTEGER;
+		break;
 	}
-	return 0;
+	_coordinateunit = ReadCoordinateUnit();
+	return token;
+}
+
+const SQChar *SQLexer::ReadCoordinateUnit()
+{
+	if(!scisalpha(CUR_CHAR) && CUR_CHAR != _SC('_')) return NULL;
+
+	INIT_TEMP_STRING();
+	do {
+		APPEND_CHAR(CUR_CHAR);
+		NEXT();
+	} while(scisalnum(CUR_CHAR) || CUR_CHAR == _SC('_'));
+	TERMINATE_BUFFER();
+
+	for(SQUnsignedInteger i = 0; i < sizeof(coordinate_units) / sizeof(coordinate_units[0]); i++) {
+		if(scstrcmp(&_longstr[0],coordinate_units[i]) == 0) return coordinate_units[i];
+	}
+
+	Error(_SC("invalid numeric suffix"));
+	return NULL;
 }
 
 SQInteger SQLexer::ReadID()
