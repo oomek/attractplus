@@ -164,19 +164,20 @@ The uniform grid is based on a `100 × 100` square scaled to the shorter layout 
 -  `gy` - Vertical position on the uniform grid.
 -  `vx` - Non-uniform horizontal position based on `fe.layout.width`.
 -  `vy` - Non-uniform vertical position based on `fe.layout.height`.
+-  `px` - Same value in pixels as without a unit suffix.
 
 Use units after numbers:
 
 ```squirrel
 local rectangle = fe.add_rectangle( 10gx, 10gy, 80vx, 20gu )
-rectangle.x = 100gx - 10gu
+rectangle.x = 100gx - 10px
 ```
 
 Units can also be called as functions:
 
 ```squirrel
 local padding = 2.5
-rectangle.x = gx( padding ) + 20
+rectangle.x = gx( padding ) + 20px
 rectangle.width = vx( 100 ) - gu( padding * 2 )
 ```
 
