@@ -71,6 +71,7 @@ void SQLexer::Init(SQSharedState *ss, SQLEXREADFUNC rg, SQUserPointer up,Compile
 	_lasttokenline = _currentline = 1;
 	_currentcolumn = 0;
 	_prevtoken = -1;
+	_unit = SQFalse; // AM+
 	_reached_eof = SQFalse;
 	Next();
 }
@@ -485,5 +486,6 @@ SQInteger SQLexer::ReadID()
 	if(res == TK_IDENTIFIER || res == TK_CONSTRUCTOR) {
 		_svalue = &_longstr[0];
 	}
+	_unit = (_curtoken == TK_FLOAT || _curtoken == TK_INTEGER ); // AM+
 	return res;
 }

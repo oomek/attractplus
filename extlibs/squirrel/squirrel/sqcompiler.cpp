@@ -612,6 +612,15 @@ public:
 		SQInteger pos = Factor();
 		for(;;) {
 			switch(_token) {
+			case TK_IDENTIFIER: // AM+ start
+				if(_lex._unit) {
+					pos = Factor();
+					SQInteger unit = _fs->PopTarget();
+					SQInteger num = _fs->PopTarget();
+					_fs->AddInstruction(_OP_CALL, _fs->PushTarget(), unit, num - 1, 2);
+					break;
+				}
+				return; // AM+ end
 			case _SC('.'):
 				pos = -1;
 				Lex(); 
