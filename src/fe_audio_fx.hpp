@@ -23,6 +23,8 @@
 #ifndef FE_AUDIO_FX_HPP
 #define FE_AUDIO_FX_HPP
 
+#include <array>
+#include <cstdint>
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -101,6 +103,41 @@ private:
 	mutable float m_coefficient;
 	mutable std::vector<float> m_prev_input;  // Previous input samples per channel
 	mutable std::vector<float> m_prev_output; // Previous output samples per channel
+};
+
+
+class FeAudioSampleFilter : public FeAudioEffect
+{
+public:
+	FeAudioSampleFilter();
+	void configure();
+
+	bool process( const float *input_frames, float *output_frames,
+	              unsigned int frame_count, unsigned int channel_count ) override;
+
+	void update() override;
+	void reset() override;
+	void update_sample( std::uint64_t playback_frame );
+
+	float get_sample() const;
+	float get_sample_left() const;
+	float get_sample_right() const;
+
+private:
+	void reset_data();
+
+	mutable std::mutex m_mutex;
+	float m_coefficient;
+	std::array<float, 2> m_left_pass{};
+	std::array<float, 2> m_right_pass{};
+	std::vector<float> m_sample_buffer_left;
+	std::vector<float> m_sample_buffer_right;
+	std::size_t m_sample_write_frame;
+	std::size_t m_sample_offset_frame;
+	bool m_sample_offset_valid;
+	std::atomic<float> m_sample;
+	std::atomic<float> m_sample_left;
+	std::atomic<float> m_sample_right;
 };
 
 
