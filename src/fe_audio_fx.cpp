@@ -30,6 +30,7 @@ static constexpr float FFT_AMPLITUDE_LINEARITY = 1.0f; // 0.0 = linear, 1.0 = lo
 static constexpr float VU_AMPLITUDE_LINEARITY = 0.25f; // 0.0 = linear, 1.0 = logarithmic
 static constexpr float VU_FALL_SPEED = 2.4f;
 static constexpr float FFT_FALL_SPEED = 1.2f;
+static constexpr float SAMPLE_FILTER_CUTOFF = 1000.0f;
 static constexpr float DB_SCALE = 70.0f;
 static constexpr float MAX_GAIN = 128.0f;
 static constexpr float NORMALISE_MAX_GAIN = 128.0f;
@@ -157,6 +158,133 @@ void FeAudioEffectsManager::reset_all()
 void FeAudioEffectsManager::set_ready_for_processing()
 {
 	m_ready_for_processing = true;
+}
+
+FeAudioSampleFilter::FeAudioSampleFilter()
+	: m_coefficient( 0.0f ),
+	m_sample_write_frame( 0 ),
+	m_sample_offset_frame( 0 ),
+	m_sample_offset_valid( false ),
+	m_sample( 0.0f ),
+	m_sample_left( 0.0f ),
+	m_sample_right( 0.0f )
+{
+}
+
+void FeAudioSampleFilter::configure()
+{
+	const unsigned int sample_rate = std::max( 1u, static_cast<unsigned int>( m_device_sample_rate ) );
+	std::lock_guard<std::mutex> lock( m_mutex );
+	m_coefficient = 1.0f - std::exp( -2.0f * static_cast<float>( M_PI )
+		* SAMPLE_FILTER_CUTOFF / static_cast<float>( sample_rate ));
+	m_sample_buffer_left.assign( sample_rate, 0.0f );
+	m_sample_buffer_right.assign( sample_rate, 0.0f );
+	reset_data();
+}
+
+bool FeAudioSampleFilter::process( const float *input_frames, float *,
+	unsigned int frame_count, unsigned int channel_count )
+{
+	if ( !input_frames || channel_count == 0 )
+		return false;
+
+	std::lock_guard<std::mutex> lock( m_mutex );
+	if ( m_sample_buffer_left.empty() )
+		return false;
+
+	for ( unsigned int i = 0; i < frame_count; ++i )
+	{
+		const float input_left = input_frames[i * channel_count];
+		const float input_right = channel_count > 1
+			? input_frames[i * channel_count + 1]
+			: input_left;
+
+		m_left_pass[0] += m_coefficient * ( input_left - m_left_pass[0] );
+		m_left_pass[1] += m_coefficient * ( m_left_pass[0] - m_left_pass[1] );
+
+		m_right_pass[0] += m_coefficient * ( input_right - m_right_pass[0] );
+		m_right_pass[1] += m_coefficient * ( m_right_pass[0] - m_right_pass[1] );
+
+		const std::size_t index = m_sample_write_frame % m_sample_buffer_left.size();
+		m_sample_buffer_left[index] = std::clamp( m_left_pass[1], -1.0f, 1.0f );
+		m_sample_buffer_right[index] = std::clamp( m_right_pass[1], -1.0f, 1.0f );
+		++m_sample_write_frame;
+	}
+
+	return false;
+}
+
+void FeAudioSampleFilter::update()
+{
+}
+
+void FeAudioSampleFilter::reset()
+{
+	std::lock_guard<std::mutex> lock( m_mutex );
+	reset_data();
+}
+
+void FeAudioSampleFilter::reset_data()
+{
+	m_left_pass.fill( 0.0f );
+	m_right_pass.fill( 0.0f );
+	std::fill( m_sample_buffer_left.begin(), m_sample_buffer_left.end(), 0.0f );
+	std::fill( m_sample_buffer_right.begin(), m_sample_buffer_right.end(), 0.0f );
+	m_sample_write_frame = 0;
+	m_sample_offset_frame = 0;
+	m_sample_offset_valid = false;
+	m_sample.store( 0.0f, std::memory_order_relaxed );
+	m_sample_left.store( 0.0f, std::memory_order_relaxed );
+	m_sample_right.store( 0.0f, std::memory_order_relaxed );
+}
+
+void FeAudioSampleFilter::update_sample( std::uint64_t playback_frame )
+{
+	std::lock_guard<std::mutex> lock( m_mutex );
+	const std::size_t current_frame = static_cast<std::size_t>( playback_frame );
+
+	if ( !m_sample_offset_valid && m_sample_write_frame > 0 )
+	{
+		m_sample_offset_frame = current_frame;
+		m_sample_offset_valid = true;
+	}
+	else if ( m_sample_offset_valid && current_frame < m_sample_offset_frame )
+		m_sample_offset_frame = current_frame;
+
+	if ( !m_sample_offset_valid )
+		return;
+
+	const std::size_t sample_frame = current_frame - m_sample_offset_frame;
+	if (( sample_frame >= m_sample_write_frame )
+		|| (( m_sample_write_frame - sample_frame ) > m_sample_buffer_left.size() ))
+	{
+		m_sample.store( 0.0f, std::memory_order_relaxed );
+		m_sample_left.store( 0.0f, std::memory_order_relaxed );
+		m_sample_right.store( 0.0f, std::memory_order_relaxed );
+		return;
+	}
+
+	const std::size_t index = sample_frame % m_sample_buffer_left.size();
+	const float sample_left = m_sample_buffer_left[index];
+	const float sample_right = m_sample_buffer_right[index];
+	m_sample.store( ( sample_left + sample_right ) * 0.5f, std::memory_order_relaxed );
+	m_sample_left.store( sample_left, std::memory_order_relaxed );
+	m_sample_right.store( sample_right, std::memory_order_relaxed );
+}
+
+float FeAudioSampleFilter::get_sample() const
+{
+	return m_sample.load( std::memory_order_relaxed );
+}
+
+float FeAudioSampleFilter::get_sample_left() const
+{
+	return m_sample_left.load( std::memory_order_relaxed );
+}
+
+float FeAudioSampleFilter::get_sample_right() const
+{
+	return m_sample_right.load( std::memory_order_relaxed );
 }
 
 std::vector<float> FeAudioVisualiser::m_window_lut;

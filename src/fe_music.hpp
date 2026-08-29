@@ -62,6 +62,7 @@ private:
 	bool m_spatialization_enabled;
 	FeSoundInfo::SoundType m_sound_type;
 	FeAudioEffectsManager m_audio_effects;
+	FeAudioSampleFilter *m_sample_filter;
 	FePlaybackStatus m_status;
 	std::uint64_t m_current_frame;
 	std::uint64_t m_total_frames_written;
@@ -121,6 +122,9 @@ public:
 	float get_vu_mono();
 	float get_vu_left();
 	float get_vu_right();
+	float get_sample() const;
+	float get_sample_left() const;
+	float get_sample_right() const;
 	const SqratArrayWrapper& get_fft_array_mono() const;
 	const SqratArrayWrapper& get_fft_array_left() const;
 	const SqratArrayWrapper& get_fft_array_right() const;

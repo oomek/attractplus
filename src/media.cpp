@@ -940,12 +940,14 @@ FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
 	m_video( NULL ),
 	m_audio_stream(),
 	m_audio_effects( effects_manager ),
+	m_sample_filter( effects_manager.get_effect<FeAudioSampleFilter>() ),
 	m_aspect_ratio( 1.0f ),
 	m_volume( 100.0f ),
 	m_pan( 0.0f ),
 	m_audio_playing( false ),
 	m_audio_pending_samples(),
-	m_audio_pending_offset( 0 )
+	m_audio_pending_offset( 0 ),
+	m_audio_total_frames_written( 0 )
 {
 	m_imp = new FeMediaImp( t );
 
@@ -1017,6 +1019,7 @@ bool FeMedia::queue_pending_audio( std::vector<float> &processed_samples )
 			return false;
 
 		m_audio_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
+		m_audio_total_frames_written += frame_count;
 	}
 
 	if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
@@ -1055,6 +1058,9 @@ void FeMedia::signal_stop()
 {
 	m_audio_playing = false;
 	m_audio_stream.clear();
+	m_audio_total_frames_written = 0;
+	if ( m_sample_filter )
+		m_sample_filter->reset();
 
 	if ( m_video )
 		m_video->signal_stop();
@@ -1070,6 +1076,7 @@ void FeMedia::stop()
 		m_audio->stop();
 		m_audio->at_end = false;
 		clear_pending_audio();
+		m_audio_total_frames_written = 0;
 		m_audio_effects.reset_all();
 
 		{
@@ -1302,6 +1309,9 @@ bool FeMedia::open( const std::string &archive,
 				m_audio->codec = dec;
 				m_audio->at_end = false;
 				clear_pending_audio();
+				m_audio_total_frames_written = 0;
+				if ( m_sample_filter )
+					m_sample_filter->configure();
 			}
 		}
 	}
@@ -1586,7 +1596,17 @@ bool FeMedia::tick()
 		return false;
 
 	if ( m_audio )
+	{
 		pump_audio();
+		if ( m_sample_filter )
+		{
+			const int queued_frames = m_audio_stream.queued_frames();
+			const std::uint64_t played_frames = ( m_audio_total_frames_written >= static_cast<std::uint64_t>( queued_frames ) )
+				? ( m_audio_total_frames_written - static_cast<std::uint64_t>( queued_frames ) )
+				: 0;
+			m_sample_filter->update_sample( played_frames );
+		}
+	}
 
 	if ( m_video )
 	{
@@ -1864,6 +1884,21 @@ float FeMedia::get_vu_right()
 {
 	auto* visualiser = get_audio_visualiser();
 	return visualiser ? visualiser->get_vu_right() : 0.0f;
+}
+
+float FeMedia::get_sample() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample() : 0.0f;
+}
+
+float FeMedia::get_sample_left() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample_left() : 0.0f;
+}
+
+float FeMedia::get_sample_right() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample_right() : 0.0f;
 }
 
 float FeMedia::get_vu_mono()

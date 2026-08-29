@@ -1663,6 +1663,9 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `vu` 🔶 - _[video only]_ Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` 🔶 - _[video only]_ Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` 🔶 - _[video only]_ Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
+-  `sample` 🔶 - _[video only]_ Get the current mono audio sample value. A low-pass filter is added to attenuate hight frequencies for better visualisation. Range is `[-1.0...1.0]`.
+-  `sample_left` 🔶 _[video only]_ - Get the left channel of `sample`. Range is `[-1.0...1.0]`.
+-  `sample_right` 🔶 _[video only]_ - Get the right channel of `sample`. Range is `[-1.0...1.0]`.
 -  `fft` 🔶 - _[video only]_ Get the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) data for mono audio as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_left` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the left audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_right` 🔶 - _[video only]_ Get the Fast Fourier Transform data for the right audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
@@ -2167,6 +2170,9 @@ The class representing an audio track. Instances of this class are returned by t
 -  `vu` - Get the current VU meter value in mono. Range is `[0.0...1.0]`.
 -  `vu_left` - Get the current VU meter value for the left audio channel. Range is `[0.0...1.0]`.
 -  `vu_right` - Get the current VU meter value for the right audio channel. Range is `[0.0...1.0]`.
+-  `sample` - Get the current mono audio sample value. A low-pass filter is added to attenuate hight frequencies for better visualisation. Range is `[-1.0...1.0]`.
+-  `sample_left` - Get the left channel of `sample`. Range is `[-1.0...1.0]`.
+-  `sample_right` - Get the right channel of `sample`. Range is `[-1.0...1.0]`.
 -  `fft` - Get the Fast Fourier Transform data for mono audio as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_left` - Get the Fast Fourier Transform data for the left audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.
 -  `fft_right` - Get the Fast Fourier Transform data for the right audio channel as an array of float values. Range is `[0.0...1.0]`. Size of the array is defined by `fft_bands`.

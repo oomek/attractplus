@@ -318,6 +318,7 @@ FeTextureContainer::FeTextureContainer(
 {
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioSampleFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
 
 	FePresent *fep = FePresent::script_get_fep();
@@ -1146,6 +1147,21 @@ float FeTextureContainer::get_vu_right() const
 {
 	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_right() : 0.0f;
+}
+
+float FeTextureContainer::get_sample() const
+{
+	return m_movie ? m_movie->get_sample() : 0.0f;
+}
+
+float FeTextureContainer::get_sample_left() const
+{
+	return m_movie ? m_movie->get_sample_left() : 0.0f;
+}
+
+float FeTextureContainer::get_sample_right() const
+{
+	return m_movie ? m_movie->get_sample_right() : 0.0f;
 }
 
 const std::vector<float> *FeTextureContainer::get_fft_mono_ptr() const
@@ -2428,6 +2444,24 @@ float FeImage::get_vu_right() const
 {
 	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
 	return tc ? tc->get_vu_right() : 0.0f;
+}
+
+float FeImage::get_sample() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
+	return tc ? tc->get_sample() : 0.0f;
+}
+
+float FeImage::get_sample_left() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
+	return tc ? tc->get_sample_left() : 0.0f;
+}
+
+float FeImage::get_sample_right() const
+{
+	FeTextureContainer *tc = dynamic_cast<FeTextureContainer*>(m_tex);
+	return tc ? tc->get_sample_right() : 0.0f;
 }
 
 const SqratArrayWrapper& FeImage::get_fft_array_mono() const
