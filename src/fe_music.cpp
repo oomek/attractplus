@@ -70,6 +70,7 @@ FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	m_spatialization_enabled( false ),
 	m_sound_type( st ),
 	m_audio_effects(),
+	m_sample_filter( nullptr ),
 	m_status( FePlaybackStatusStopped ),
 	m_current_frame( 0 ),
 	m_total_frames_written( 0 ),
@@ -85,7 +86,11 @@ FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 {
 	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects.add_effect( std::make_unique<FeAudioSampleFilter>() );
 	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
+	m_sample_filter = m_audio_effects.get_effect<FeAudioSampleFilter>();
+	if ( m_sample_filter )
+		m_sample_filter->configure();
 
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -354,6 +359,8 @@ bool FeMusic::resolve_decoder()
 bool FeMusic::seek_decoder()
 {
 	clear_pending_audio();
+	if ( m_sample_filter )
+		m_sample_filter->reset();
 	if ( m_background )
 	{
 		FeResourceCache::get().retire( std::shared_ptr<FeAudioFileDecoder>( std::move( m_decoder ) ) );
@@ -658,6 +665,9 @@ void FeMusic::tick()
 	else
 		pump_audio();
 
+	if ( m_sample_filter )
+		m_sample_filter->update_sample( m_current_frame );
+
 	m_audio_effects.update_all();
 }
 
@@ -679,6 +689,21 @@ float FeMusic::get_vu_left()
 float FeMusic::get_vu_right()
 {
 	return get_audio_visualiser()->get_vu_right();
+}
+
+float FeMusic::get_sample() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample() : 0.0f;
+}
+
+float FeMusic::get_sample_left() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample_left() : 0.0f;
+}
+
+float FeMusic::get_sample_right() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample_right() : 0.0f;
 }
 
 const SqratArrayWrapper& FeMusic::get_fft_array_mono() const

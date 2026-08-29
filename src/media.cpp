@@ -941,6 +941,7 @@ FeMedia::FeMedia( Type t, std::shared_ptr<FeAudioEffectsManager> effects_manager
 	m_audio( NULL ),
 	m_video( NULL ),
 	m_audio_effects( std::move( effects_manager ) ),
+	m_sample_filter( nullptr ),
 	m_aspect_ratio( 1.0f ),
 	m_volume( 100.0f ),
 	m_pan( 0.0f ),
@@ -1135,6 +1136,7 @@ void FeMedia::reset_decoder()
 void FeMedia::close()
 {
 	stop();
+	m_sample_filter = nullptr;
 	// Close files before freeing decoder buffers, which can be expensive.
 	m_imp->close();
 	delete m_audio;
@@ -1323,6 +1325,9 @@ bool FeMedia::open( const std::string &archive,
 				m_audio->codec = dec;
 				m_audio->at_end = false;
 				clear_pending_audio();
+				m_sample_filter = m_audio_effects->get_effect<FeAudioSampleFilter>();
+				if ( m_sample_filter )
+					m_sample_filter->configure();
 			}
 		}
 	}
@@ -1828,6 +1833,13 @@ void FeMedia::media_thread()
 
 bool FeMedia::tick()
 {
+	if ( m_sample_filter )
+	{
+		// Use the published playback clock; the producer owns SDL's audio queue.
+		const std::uint64_t played = static_cast<std::uint64_t>( get_video_time().asMicroseconds() )
+			* FeSdlAudioBackend::get().sample_rate() / 1000000;
+		m_sample_filter->update_sample( played );
+	}
 	return m_video && m_video->tick();
 }
 
@@ -2086,6 +2098,21 @@ float FeMedia::get_vu_right()
 {
 	auto* visualiser = get_audio_visualiser();
 	return visualiser ? visualiser->get_vu_right() : 0.0f;
+}
+
+float FeMedia::get_sample() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample() : 0.0f;
+}
+
+float FeMedia::get_sample_left() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample_left() : 0.0f;
+}
+
+float FeMedia::get_sample_right() const
+{
+	return m_sample_filter ? m_sample_filter->get_sample_right() : 0.0f;
 }
 
 float FeMedia::get_vu_mono()
