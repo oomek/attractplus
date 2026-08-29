@@ -24,6 +24,7 @@
 #define MEDIA_HPP
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <functional>
@@ -90,6 +91,9 @@ public:
 	float get_vu_mono();
 	float get_vu_left();
 	float get_vu_right();
+	float get_sample() const;
+	float get_sample_left() const;
+	float get_sample_right() const;
 
 	const std::vector<float> *get_fft_mono_ptr();
 	const std::vector<float> *get_fft_left_ptr();
@@ -114,12 +118,14 @@ private:
 	FeVideoImp *m_video;
 	FeSdlAudioStream m_audio_stream;
 	FeAudioEffectsManager &m_audio_effects;
+	FeAudioSampleFilter *m_sample_filter;
 	float m_aspect_ratio;
 	float m_volume;
 	float m_pan;
 	bool m_audio_playing;
 	std::vector<float> m_audio_pending_samples;
 	std::size_t m_audio_pending_offset;
+	std::uint64_t m_audio_total_frames_written;
 
 	FeMedia( const FeMedia & );
 	FeMedia &operator=( const FeMedia & );
