@@ -98,6 +98,9 @@ public:
 	float get_vu_mono();
 	float get_vu_left();
 	float get_vu_right();
+	float get_sample() const;
+	float get_sample_left() const;
+	float get_sample_right() const;
 
 	const std::vector<float> *get_fft_mono_ptr();
 	const std::vector<float> *get_fft_left_ptr();
@@ -126,6 +129,7 @@ private:
 	FeVideoImp *m_video;
 	FeSdlAudioStream m_audio_stream;
 	std::shared_ptr<FeAudioEffectsManager> m_audio_effects;
+	FeAudioSampleFilter *m_sample_filter;
 	float m_aspect_ratio;
 	std::atomic<float> m_volume;
 	std::atomic<float> m_pan;
