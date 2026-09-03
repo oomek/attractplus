@@ -373,15 +373,15 @@ void FeOverlay::style_init()
 	style_init( col.getColor() );
 }
 
-void FeOverlay::style_init( sf::Color theme_color )
+void FeOverlay::style_init( Color theme_color )
 {
 	m_theme_color = theme_color;
-	m_bg_color = sf::Color( 0, 0, 0, 230 );
-	m_text_color = sf::Color( 255, 255, 255, 255 );
-	m_letterbox_color = theme_color * sf::Color( 64, 64, 64, 255 );
-	m_border_color = theme_color * sf::Color( 192, 192, 192, 255 );
-	m_focus_color = theme_color * sf::Color( 160, 160, 160, 255 );
-	m_blur_color = theme_color * sf::Color( 88, 88, 88, 255 );
+	m_bg_color = Color( 0, 0, 0, 230 );
+	m_text_color = Color( 255, 255, 255, 255 );
+	m_letterbox_color = theme_color * Color( 64, 64, 64, 255 );
+	m_border_color = theme_color * Color( 192, 192, 192, 255 );
+	m_focus_color = theme_color * Color( 160, 160, 160, 255 );
+	m_blur_color = theme_color * Color( 88, 88, 88, 255 );
 }
 
 // Simple overlay with message and footer
@@ -1411,7 +1411,7 @@ void FeOverlay::theme_border( sf::RectangleShape &rect )
 void FeOverlay::theme_list( FeListBox &list )
 {
 	list.setColor( m_text_color );
-	list.setBgColor( sf::Color::Transparent );
+	list.setBgColor( Color::Transparent );
 	list.setSelColor( m_text_color );
 	list.setSelBgColor( m_focus_color );
 }
@@ -1847,6 +1847,7 @@ void FeOverlay::wait_for_input_release( const std::vector<sf::Drawable *> &draw_
 	const sf::Transform &t = m_fePresent.get_ui_transform();
 
 	sf::Clock timer;
+	bool redraw = true;
 	while (( timer.getElapsedTime() < sf::seconds( 6 ) )
 			&& ( m_feSettings.is_input_held()
 				|| m_feSettings.get_current_state( FeInputMap::Back )
@@ -1857,9 +1858,12 @@ void FeOverlay::wait_for_input_release( const std::vector<sf::Drawable *> &draw_
 			m_feSettings.map_input( *ev );
 
 		if ( m_fePresent.tick() )
-		{
-			m_soundSystem.tick();
+			redraw = true;
 
+		m_soundSystem.tick();
+
+		if ( redraw || !m_feSettings.get_info_bool( FeSettings::PowerSaving ) )
+		{
 			m_fePresent.redraw_surfaces();
 			m_wnd.clear();
 			m_wnd.draw( m_fePresent, t );
@@ -1869,6 +1873,7 @@ void FeOverlay::wait_for_input_release( const std::vector<sf::Drawable *> &draw_
 				m_wnd.draw( *(*itr), t );
 
 			m_wnd.display();
+			redraw = false;
 		}
 		else
 			sf::sleep( sf::milliseconds( 30 ) );
@@ -2385,7 +2390,7 @@ bool FeOverlay::edit_loop( std::vector<sf::Drawable *> d,
 		int ms = cursor_timer.getElapsedTime().asMilliseconds();
 		int cursor_fade = std::clamp( sin( ms / 500.0 * M_PI ) * 2.0 + 1.0, 0.0, 1.0 ) * 255;
 
-		cursor.setFillColor( m_text_color * sf::Color( 255, 255, 255, cursor_fade ));
+		cursor.setFillColor( m_text_color * Color( 255, 255, 255, cursor_fade ));
 
 		m_wnd.draw( cursor, t );
 		m_wnd.display();

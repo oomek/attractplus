@@ -24,6 +24,7 @@
 #define FE_PRESENTABLE_HPP
 
 #include <SFML/System/Vector2.hpp>
+#include "fe_color.hpp"
 #include <vector>
 
 class FeSettings;
@@ -33,7 +34,6 @@ class FePresentableParent;
 namespace sf
 {
 	class Drawable;
-	class Color;
 };
 
 enum FePresentableType
@@ -69,8 +69,8 @@ public:
 	virtual void setSize( const sf::Vector2f & )=0;
 	virtual float getRotation() const=0;
 	virtual void setRotation( float )=0;
-	virtual sf::Color getColor() const=0;
-	virtual void setColor( sf::Color )=0;
+	virtual Color getColor() const=0;
+	virtual void setColor( Color )=0;
 	virtual int getIndexOffset() const;
 	virtual void setIndexOffset( int io );
 	virtual int getFilterOffset() const;

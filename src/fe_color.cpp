@@ -17,13 +17,30 @@ namespace {
 	{
 		return c == ' ' || c == ',';
 	}
+
+	bool parse_component( const std::string &value, std::uint8_t &component )
+	{
+		if ( value.empty() )
+			return false;
+
+		unsigned int result = 0;
+		for ( char c : value )
+		{
+			result = ( result * 10 ) + static_cast<unsigned int>( c - '0' );
+			if ( result > 255 )
+				return false;
+		}
+
+		component = static_cast<std::uint8_t>( result );
+		return true;
+	}
 }
 
 FeColor::FeColor()
 {
 }
 
-FeColor::FeColor( sf::Color &c )
+FeColor::FeColor( Color &c )
 {
 	setColor( c );
 }
@@ -38,14 +55,14 @@ FeColor::FeColor( const uint8_t r, const uint8_t g, const uint8_t b, const int16
 	fromRgb( r, g, b, a );
 }
 
-// Return sf::Color
-sf::Color FeColor::getColor()
+// Return Color
+Color FeColor::getColor()
 {
 	return m_color;
 }
 
-// Set sf::Color
-bool FeColor::setColor( sf::Color &c )
+// Set Color
+bool FeColor::setColor( Color &c )
 {
 	m_color = c;
 	m_has_alpha = true;
@@ -88,7 +105,12 @@ bool FeColor::fromHex( const std::string &s )
 		return false;
 
 	m_has_alpha = ( n == 5 || n == 9 );
-	m_color = sf::Color( std::stoul( hex.str(), nullptr, 16 ) );
+	const std::uint32_t rgba = static_cast<std::uint32_t>( std::stoul( hex.str(), nullptr, 16 ) );
+	m_color = Color(
+		static_cast<std::uint8_t>( ( rgba >> 24 ) & 0xff ),
+		static_cast<std::uint8_t>( ( rgba >> 16 ) & 0xff ),
+		static_cast<std::uint8_t>( ( rgba >> 8 ) & 0xff ),
+		static_cast<std::uint8_t>( rgba & 0xff ) );
 	return true;
 }
 
@@ -113,17 +135,24 @@ bool FeColor::fromRgb( const std::string &s )
 	if ( i != n )
 		return false;
 
-	if ( b.empty() )
+	std::uint8_t red;
+	std::uint8_t green;
+	std::uint8_t blue;
+	std::uint8_t alpha;
+	if ( !parse_component( r, red )
+			|| !parse_component( g, green )
+			|| !parse_component( b, blue )
+			|| ( !a.empty() && !parse_component( a, alpha ) ) )
 		return false;
 
-	return fromRgb( stoi( r ), stoi( g ), stoi( b ), !a.empty() ? stoi( a ) : -1 );
+	return fromRgb( red, green, blue, a.empty() ? -1 : alpha );
 }
 
 // Set color from r,g,b,a
 bool FeColor::fromRgb( const uint8_t r, const uint8_t g, const uint8_t b, const int16_t a )
 {
 	m_has_alpha = a >= 0;
-	m_color = sf::Color( r, g, b, m_has_alpha ? a : 255 );
+	m_color = Color( r, g, b, m_has_alpha ? a : 255 );
 	return true;
 }
 
@@ -160,9 +189,9 @@ std::string FeColor::toHexString()
 	std::stringstream str;
 	str << std::setfill('0')
 		<< "#"
-		<< std::hex << std::setw(2) << m_color.r
-		<< std::hex << std::setw(2) << m_color.g
-		<< std::hex << std::setw(2) << m_color.b;
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.r )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.g )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.b );
 	return str.str();
 }
 
@@ -172,9 +201,9 @@ std::string FeColor::toHexaString()
 	std::stringstream str;
 	str << std::setfill('0')
 		<< "#"
-		<< std::hex << std::setw(2) << m_color.r
-		<< std::hex << std::setw(2) << m_color.g
-		<< std::hex << std::setw(2) << m_color.b
-		<< std::hex << std::setw(2) << m_color.a;
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.r )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.g )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.b )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.a );
 	return str.str();
 }

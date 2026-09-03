@@ -148,25 +148,25 @@ int FeBasePresentable::get_a() const
 
 void FeBasePresentable::set_r(int r)
 {
-	sf::Color c = getColor();
+	Color c = getColor();
 	set_rgb( r, c.g, c.b, c.a );
 }
 
 void FeBasePresentable::set_g(int g)
 {
-	sf::Color c = getColor();
+	Color c = getColor();
 	set_rgb( c.r, g, c.b, c.a );
 }
 
 void FeBasePresentable::set_b(int b)
 {
-	sf::Color c = getColor();
+	Color c = getColor();
 	set_rgb( c.r, c.g, b, c.a );
 }
 
 void FeBasePresentable::set_a(int a)
 {
-	sf::Color c = getColor();
+	Color c = getColor();
 	set_rgb( c.r, c.g, c.b, a );
 }
 
@@ -177,7 +177,7 @@ void FeBasePresentable::set_rgb(int r, int g, int b)
 
 void FeBasePresentable::set_rgb(int r, int g, int b, int a)
 {
-	setColor(sf::Color( r, g, b, a ));
+	setColor(Color( r, g, b, a ));
 }
 
 bool FeBasePresentable::get_visible() const

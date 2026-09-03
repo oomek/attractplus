@@ -247,7 +247,7 @@ void FeText::set_rgb(int r, int g, int b, int a)
 		set_outline_alpha( -1 );
 }
 
-void FeText::setColor( sf::Color c )
+void FeText::setColor( Color c )
 {
 	if ( c == m_draw_text.getColor() )
 		return;
@@ -256,7 +256,7 @@ void FeText::setColor( sf::Color c )
 	FePresent::script_flag_redraw();
 }
 
-sf::Color FeText::getColor() const
+Color FeText::getColor() const
 {
 	return m_draw_text.getColor();
 }
@@ -593,40 +593,40 @@ const char *FeText::get_font()
 
 void FeText::set_bg_red(int r)
 {
-	sf::Color c = m_draw_text.getBgColor();
+	Color c = m_draw_text.getBgColor();
 	set_bg_rgb( r, c.g, c.b, c.a );
 }
 
 void FeText::set_bg_green(int g)
 {
-	sf::Color c = m_draw_text.getBgColor();
+	Color c = m_draw_text.getBgColor();
 	set_bg_rgb( c.r, g, c.b, c.a );
 }
 
 void FeText::set_bg_blue(int b)
 {
-	sf::Color c = m_draw_text.getBgColor();
+	Color c = m_draw_text.getBgColor();
 	set_bg_rgb( c.r, c.g, b, c.a );
 }
 
 void FeText::set_bg_alpha(int a)
 {
-	sf::Color c = m_draw_text.getBgColor();
+	Color c = m_draw_text.getBgColor();
 	set_bg_rgb( c.r, c.g, c.b, a );
 }
 
 void FeText::set_bg_rgb( int r, int g, int b )
 {
-	sf::Color old = m_draw_text.getBgColor();
-	sf::Color col = sf::Color( r, g, b, old.a );
+	Color old = m_draw_text.getBgColor();
+	Color col = Color( r, g, b, old.a );
 	if ( col != old )
 		set_bg_rgb( r, g, b, col.a == 0 ? 255 : col.a ); // legacy - force alpha if none
 }
 
 void FeText::set_bg_rgb( int r, int g, int b, int a )
 {
-	sf::Color old = m_draw_text.getBgColor();
-	sf::Color col = sf::Color( r, g, b, a );
+	Color old = m_draw_text.getBgColor();
+	Color col = Color( r, g, b, a );
 	if ( col != old )
 	{
 		m_draw_text.setBgColor( col );
@@ -638,32 +638,32 @@ void FeText::set_bg_rgb( int r, int g, int b, int a )
 
 void FeText::set_bg_outline_red(int r)
 {
-	sf::Color c = m_draw_text.getBgOutlineColor();
+	Color c = m_draw_text.getBgOutlineColor();
 	set_bg_outline_rgb( r, c.g, c.b, c.a );
 }
 
 void FeText::set_bg_outline_green(int g)
 {
-	sf::Color c = m_draw_text.getBgOutlineColor();
+	Color c = m_draw_text.getBgOutlineColor();
 	set_bg_outline_rgb( c.r, g, c.b, c.a );
 }
 
 void FeText::set_bg_outline_blue(int b)
 {
-	sf::Color c = m_draw_text.getBgOutlineColor();
+	Color c = m_draw_text.getBgOutlineColor();
 	set_bg_outline_rgb( c.r, c.g, b, c.a );
 }
 
 void FeText::set_bg_outline_alpha(int a)
 {
-	sf::Color c = m_draw_text.getBgOutlineColor();
+	Color c = m_draw_text.getBgOutlineColor();
 	set_bg_outline_rgb( c.r, c.g, c.b, a );
 }
 
 void FeText::set_bg_outline_rgb( int r, int g, int b )
 {
-	sf::Color old = m_draw_text.getBgOutlineColor();
-	sf::Color col = sf::Color( r, g, b, old.a );
+	Color old = m_draw_text.getBgOutlineColor();
+	Color col = Color( r, g, b, old.a );
 	if ( col != old )
 		set_bg_outline_rgb( r, g, b, m_link_bg_outline_alpha ? -1 : ( col.a == 0 ? 255 : col.a ) ); // legacy - force alpha if none
 }
@@ -672,8 +672,8 @@ void FeText::set_bg_outline_rgb( int r, int g, int b, int a )
 {
 	m_link_bg_outline_alpha = a == -1;
 	if ( m_link_bg_outline_alpha ) a = get_bg_alpha();
-	sf::Color old = m_draw_text.getBgOutlineColor();
-	sf::Color col = sf::Color( r, g, b, a );
+	Color old = m_draw_text.getBgOutlineColor();
+	Color col = Color( r, g, b, a );
 	if ( col != old )
 	{
 		m_draw_text.setBgOutlineColor( col );
@@ -683,32 +683,32 @@ void FeText::set_bg_outline_rgb( int r, int g, int b, int a )
 
 void FeText::set_outline_red(int r)
 {
-	sf::Color c = m_draw_text.getOutlineColor();
+	Color c = m_draw_text.getOutlineColor();
 	set_outline_rgb( r, c.g, c.b, c.a );
 }
 
 void FeText::set_outline_green(int g)
 {
-	sf::Color c = m_draw_text.getOutlineColor();
+	Color c = m_draw_text.getOutlineColor();
 	set_outline_rgb( c.r, g, c.b, c.a );
 }
 
 void FeText::set_outline_blue(int b)
 {
-	sf::Color c = m_draw_text.getOutlineColor();
+	Color c = m_draw_text.getOutlineColor();
 	set_outline_rgb( c.r, c.g, b, c.a );
 }
 
 void FeText::set_outline_alpha(int a)
 {
-	sf::Color c = m_draw_text.getOutlineColor();
+	Color c = m_draw_text.getOutlineColor();
 	set_outline_rgb( c.r, c.g, c.b, a );
 }
 
 void FeText::set_outline_rgb( int r, int g, int b )
 {
-	sf::Color old = m_draw_text.getOutlineColor();
-	sf::Color col = sf::Color( r, g, b, old.a );
+	Color old = m_draw_text.getOutlineColor();
+	Color col = Color( r, g, b, old.a );
 	if ( col != old )
 		set_outline_rgb( r, g, b, m_link_outline_alpha ? -1 : ( col.a == 0 ? 255 : col.a ) ); // legacy - force alpha if none
 }
@@ -717,8 +717,8 @@ void FeText::set_outline_rgb( int r, int g, int b, int a )
 {
 	m_link_outline_alpha = a == -1;
 	if ( m_link_outline_alpha ) a = get_a();
-	sf::Color old = m_draw_text.getOutlineColor();
-	sf::Color col = sf::Color( r, g, b, a );
+	Color old = m_draw_text.getOutlineColor();
+	Color col = Color( r, g, b, a );
 	if ( col != old )
 	{
 		m_draw_text.setOutlineColor( col );

@@ -56,7 +56,7 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_corner_auto( false ),
 	m_blend_mode( FeBlend::Alpha )
 {
-	setColor( sf::Color::White );
+	setColor( Color::White );
 	m_rect.setTextureRect( sf::IntRect( sf::Vector2i( 0, 0 ), sf::Vector2i( 1, 1 )));
 	scale();
 }
@@ -106,17 +106,17 @@ void FeRectangle::setRotation( float r )
 	}
 }
 
-sf::Color FeRectangle::getColor() const
+Color FeRectangle::getColor() const
 {
 	return m_rect.getFillColor();
 }
 
-sf::Color FeRectangle::getOutlineColor()
+Color FeRectangle::getOutlineColor()
 {
 	return m_rect.getOutlineColor();
 }
 
-void FeRectangle::setColor( sf::Color c )
+void FeRectangle::setColor( Color c )
 {
 	if ( c == m_rect.getFillColor() )
 		return;
@@ -125,7 +125,7 @@ void FeRectangle::setColor( sf::Color c )
 	FePresent::script_flag_redraw();
 }
 
-void FeRectangle::setOutlineColor( sf::Color c )
+void FeRectangle::setOutlineColor( Color c )
 {
 	if ( c == m_rect.getOutlineColor() )
 		return;
@@ -170,25 +170,25 @@ int FeRectangle::get_outline_alpha() const
 
 void FeRectangle::set_outline_red( int r )
 {
-	sf::Color c = getOutlineColor();
+	Color c = getOutlineColor();
 	set_outline_rgb( r, c.g, c.b, c.a );
 }
 
 void FeRectangle::set_outline_green( int g )
 {
-	sf::Color c = getOutlineColor();
+	Color c = getOutlineColor();
 	set_outline_rgb( c.r, g, c.b, c.a );
 }
 
 void FeRectangle::set_outline_blue( int b )
 {
-	sf::Color c = getOutlineColor();
+	Color c = getOutlineColor();
 	set_outline_rgb( c.r, c.g, b, c.a );
 }
 
 void FeRectangle::set_outline_alpha( int a )
 {
-	sf::Color c = getOutlineColor();
+	Color c = getOutlineColor();
 	set_outline_rgb( c.r, c.g, c.b, a );
 }
 
@@ -199,7 +199,7 @@ void FeRectangle::set_outline_rgb( int r, int g, int b )
 
 void FeRectangle::set_outline_rgb( int r, int g, int b, int a )
 {
-	setOutlineColor(sf::Color( r, g, b, a ));
+	setOutlineColor(Color( r, g, b, a ));
 }
 
 float FeRectangle::get_origin_x() const

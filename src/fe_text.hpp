@@ -48,8 +48,8 @@ public:
 	void setSize( int w, int h ) {return setSize(sf::Vector2f(w,h));};
 	float getRotation() const;
 	void setRotation( float );
-	sf::Color getColor() const;
-	void setColor( sf::Color );
+	Color getColor() const;
+	void setColor( Color );
 	int get_transform_origin_type() const;
 	int get_anchor_type() const;
 	int get_rotation_origin_type() const;

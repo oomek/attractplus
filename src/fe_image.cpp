@@ -1571,14 +1571,14 @@ void FeImage::setRotation( float r )
 	}
 }
 
-sf::Color FeImage::getColor() const
+Color FeImage::getColor() const
 {
 	return m_sprite.getColor();
 }
 
-void FeImage::setColor( sf::Color c )
+void FeImage::setColor( Color c )
 {
-	if ( c != m_sprite.getColor() )
+	if ( c != Color( m_sprite.getColor() ) )
 	{
 		m_sprite.setColor( c );
 		FePresent::script_flag_redraw();

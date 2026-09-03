@@ -339,8 +339,8 @@ public:
 	void setRotation( float );
 	float getRotation() const;
 
-	void setColor( sf::Color );
-	sf::Color getColor() const;
+	void setColor( Color );
+	Color getColor() const;
 
 	void setIndexOffset( int );
 	void rawset_index_offset( int io );
