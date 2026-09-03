@@ -17,6 +17,23 @@ namespace {
 	{
 		return c == ' ' || c == ',';
 	}
+
+	bool parse_component( const std::string &value, std::uint8_t &component )
+	{
+		if ( value.empty() )
+			return false;
+
+		unsigned int result = 0;
+		for ( char c : value )
+		{
+			result = ( result * 10 ) + static_cast<unsigned int>( c - '0' );
+			if ( result > 255 )
+				return false;
+		}
+
+		component = static_cast<std::uint8_t>( result );
+		return true;
+	}
 }
 
 FeColor::FeColor()
@@ -118,10 +135,17 @@ bool FeColor::fromRgb( const std::string &s )
 	if ( i != n )
 		return false;
 
-	if ( b.empty() )
+	std::uint8_t red;
+	std::uint8_t green;
+	std::uint8_t blue;
+	std::uint8_t alpha;
+	if ( !parse_component( r, red )
+			|| !parse_component( g, green )
+			|| !parse_component( b, blue )
+			|| ( !a.empty() && !parse_component( a, alpha ) ) )
 		return false;
 
-	return fromRgb( stoi( r ), stoi( g ), stoi( b ), !a.empty() ? stoi( a ) : -1 );
+	return fromRgb( red, green, blue, a.empty() ? -1 : alpha );
 }
 
 // Set color from r,g,b,a
@@ -165,9 +189,9 @@ std::string FeColor::toHexString()
 	std::stringstream str;
 	str << std::setfill('0')
 		<< "#"
-		<< std::hex << std::setw(2) << m_color.r
-		<< std::hex << std::setw(2) << m_color.g
-		<< std::hex << std::setw(2) << m_color.b;
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.r )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.g )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.b );
 	return str.str();
 }
 
@@ -177,9 +201,9 @@ std::string FeColor::toHexaString()
 	std::stringstream str;
 	str << std::setfill('0')
 		<< "#"
-		<< std::hex << std::setw(2) << m_color.r
-		<< std::hex << std::setw(2) << m_color.g
-		<< std::hex << std::setw(2) << m_color.b
-		<< std::hex << std::setw(2) << m_color.a;
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.r )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.g )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.b )
+		<< std::hex << std::setw(2) << static_cast<unsigned int>( m_color.a );
 	return str.str();
 }
