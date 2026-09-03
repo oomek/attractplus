@@ -61,6 +61,7 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_corner_ratio_x( false ),
 	m_corner_ratio_y( false ),
 	m_corner_auto( false ),
+	m_outline( 0 ),
 	m_blend_mode( FeBlend::Alpha )
 {
 	scale();
@@ -148,16 +149,17 @@ void FeRectangle::setOutlineColor( Color c )
 
 float FeRectangle::get_outline()
 {
-	return m_outline_thickness;
+	return m_outline;
 }
 
 void FeRectangle::set_outline( float o )
 {
-	if ( o != m_outline_thickness )
-	{
-		m_outline_thickness = o;
-		FePresent::script_flag_redraw();
-	}
+	if ( o == m_outline )
+		return;
+
+	m_outline = o;
+	m_outline_thickness = m_outline;
+	FePresent::script_flag_redraw();
 }
 
 int FeRectangle::get_outline_red() const
@@ -417,6 +419,12 @@ int FeRectangle::get_blend_mode() const
 void FeRectangle::set_blend_mode( int b )
 {
 	m_blend_mode = (FeBlend::Mode)b;
+}
+
+void FeRectangle::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	m_outline_thickness = m_outline;
 }
 
 float FeRectangle::get_corner_radius() const
@@ -818,11 +826,16 @@ void FeRectangle::scale()
 	pos += Vec2f(
 		( m_rotation_origin.x - m_anchor.x ) * size.x,
 		( m_rotation_origin.y -  m_anchor.y ) * size.y );
+	Vec2f origin(
+		m_origin.x + m_rotation_origin.x * size.x,
+		m_origin.y + m_rotation_origin.y * size.y );
+	m_snap_offset = Vec2f(
+		-m_anchor.x * size.x - m_origin.x,
+		-m_anchor.y * size.y - m_origin.y );
+	pos = snap_draw_position( pos );
 
 	m_render_position = pos;
 	m_render_size = size;
-	m_render_origin = Vec2f(
-		m_origin.x + m_rotation_origin.x * size.x,
-		m_origin.y + m_rotation_origin.y * size.y );
+	m_render_origin = origin;
 
 }

@@ -139,8 +139,8 @@ public:
 
 	void set_no_margin( bool );
 	bool get_no_margin();
-	void set_margin( int );
-	int get_margin();
+	void set_margin( float );
+	float get_margin();
 
 	int get_bg_red();
 	int get_bg_green();
@@ -154,8 +154,8 @@ public:
 	int get_sel_outline_green();
 	int get_sel_outline_blue();
 	int get_sel_outline_alpha();
-	int get_charsize();
-	int get_glyph_size();
+	float get_charsize();
+	float get_glyph_size();
 	float get_spacing();
 	int get_rows();
 	int get_list_align();
@@ -182,7 +182,7 @@ public:
 	void set_sel_outline_alpha(int a);
 	void set_bg_rgb( int, int, int );
 	void set_bg_rgb( int, int, int, int );
-	void set_charsize(int s);
+	void set_charsize(float s);
 	void set_spacing(float s);
 	void set_rows(int r);
 	void set_list_align(int a);
@@ -230,11 +230,15 @@ public:
 	int get_selected_row() const;
 	void set_selected_row( int r );
 	void build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
+	void refresh_script_geometry() override;
 private:
 	void update_list_settings( FeSettings *s );
 	void refresh_selection();
 	void refresh_list();
 	void update_row_geometry();
+	void update_text_metrics();
+	void update_margin();
+	void update_outline();
 
 	FeTextPrimitive m_base_text;
 	std::vector<std::string> m_custom_list;
@@ -252,11 +256,13 @@ private:
 	FeAlign m_transform_origin_type;
 	FeAlign m_anchor_type;
 	FeAlign m_rotation_origin_type;
-	float m_selOutlineThickness;
 	int m_selStyle;
 	int m_rows;
 	FeAlign m_list_align;
-	int m_userCharSize;
+	float m_userCharSize;
+	float m_userMargin;
+	float m_outline;
+	float m_sel_outline;
 	int m_filter_offset;
 	float m_rotation;
 	float m_scale_factor;

@@ -109,6 +109,8 @@ public:
 	int get_width();
 	int get_height();
 	int get_num();
+	Vec2f snap_position_to_pixel( const Vec2f &p ) const;
+	Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 
 	FeTransform transform;
 	Vec2i size;
@@ -180,6 +182,7 @@ protected:
 	bool m_layout_crop;
 	bool m_custom_overlay;
 	bool m_mouse_pointer_visible;
+	bool m_pixel_snap;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	Vec2i m_layoutSize;
@@ -212,7 +215,7 @@ protected:
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
-	FeImage *add_surface(float x, float y, int w, int h, FePresentableParent &p);
+	FeImage *add_surface(float x, float y, float w, float h, int texture_width, int texture_height, FePresentableParent &p);
 	FeSound *add_sound(const char *n);
 	FeMusic *add_music(const char *n);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
@@ -257,6 +260,7 @@ protected:
 	void reset_scene3d_globals();
 	void clear_3d_cubemap_texture();
 	void set_layout_crop( bool );
+	void refresh_script_geometry();
 
 public:
 	static constexpr float SCENE3D_DEFAULT_AMBIENT_LIGHT = 0.0f;
@@ -316,6 +320,8 @@ public:
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;
+	bool get_layout_pixel_snap() const;
+	void set_layout_pixel_snap( bool );
 
 	// Get a font from the font pool, loading it if necessary
 	const FeFontContainer *get_pooled_font( const std::vector < std::string > &l );

@@ -98,6 +98,7 @@
    -  [Math](#math-) 🔶
    -  [Vector](#vector-) 🔶
    -  [Easing](#easing-) 🔶
+   -  [Animation](#animation-) 🔶
 
 ---
 
@@ -1364,6 +1365,7 @@ This class is a container for global layout settings. The instance of this class
 
 -  `width` - Get/set the layout width. Default value is `ScreenWidth`.
 -  `height` - Get/set the layout height. Default value is `ScreenHeight`.
+-  `pixel_snap` 🔶 - Get/set whether geometry for drawables created by this layout is snapped to display pixels. Default is `false`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1552,6 +1554,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `y` - Get/set the y position of the image (in layout coordinates).
 -  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
 -  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
+-  `pixel_snap` 🔶 - Get/set whether the image geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1740,6 +1743,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of text (in layout coordinates).
 -  `height` - Get/set height of text (in layout coordinates).
+-  `pixel_snap` 🔶 - Get/set whether the text geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` - Get the text object type. Text returns `Type.Text`.
 -  `magic` - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1868,6 +1872,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set y position of top left corner (in layout coordinates).
 -  `width` - Get/set width of listbox (in layout coordinates).
 -  `height` - Get/set height of listbox (in layout coordinates).
+-  `pixel_snap` 🔶 - Get/set whether the listbox geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2018,6 +2023,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `y` - Get/set the y position of the rectangle (in layout coordinates).
 -  `width` - Get/set the width of the rectangle (in layout coordinates).
 -  `height` - Get/set the height of the rectangle (in layout coordinates).
+-  `pixel_snap` 🔶 - Get/set whether the rectangle geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
@@ -2568,3 +2574,36 @@ for (local t=0; t<=d; t++)
 ```
 
 The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic` algorithm to decelerate the change as `t` approaches `d`.
+
+---
+
+### Animation 🔶
+
+Images, artwork, surfaces, clones, text, listboxes, and rectangles provide `move()` for animating one numeric property in direct layout-pixel coordinates.
+
+**Member Functions**
+
+-  `move( property )` - Return the animation object for `property`.
+-  `move( property, to, duration, ease )` - Animate `property` to `to` over `duration` milliseconds and return its animation object.
+
+For example:
+
+```squirrel
+local logo = fe.add_image( "logo.png", 20, 20, 300, 100 )
+logo.move( "x", 200, 750, Ease.OutCubic )
+```
+
+The returned animation object has these properties:
+
+-  `to` - Final value. Assigning a value starts or restarts the animation.
+-  `duration` - Duration in milliseconds. Default is `1000`.
+-  `time` - Playhead in milliseconds. Negative values delay the start.
+-  `ease` - An `Ease` constant. Default is `Ease.Inertia`.
+-  `mass`, `period`, `amplitude`, `strength`, `x1`, `y1`, `x2`, `y2`, `steps`, and `jump` - Optional parameters for the corresponding easing modes.
+-  `play_count` - Number of iterations. It can be fractional or `Infinite`; default is `1`.
+-  `direction` - `Direction.Normal`, `Direction.Reverse`, `Direction.Alternate`, or `Direction.AlternateReverse`.
+-  `running` - `true` while the animation is active.
+
+Common properties include `x`, `y`, `width`, `height`, `rotation`, `red`, `green`, `blue`, and `alpha`. Drawable-specific geometry, colour, and effect properties are also supported. Directly assigning an animated geometry property stops that property's animation and keeps the assigned value.
+
+Set `pixel_snap` on a layout or individual drawable when animated geometry must be rounded to display pixels.

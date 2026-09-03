@@ -21,6 +21,7 @@
  */
 
 #include "fe_present.hpp"
+#include "fe_animation.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
 #include "fe_model_3d.hpp"
@@ -192,6 +193,35 @@ int FeMonitor::get_num()
 	return num;
 }
 
+Vec2f FeMonitor::snap_position_to_pixel( const Vec2f &p ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+	{
+		const FeTransform &layout_transform = fep->get_transform();
+		Vec2f pixel = layout_transform.transformPoint( p );
+		pixel.x = std::round( pixel.x );
+		pixel.y = std::round( pixel.y );
+		return layout_transform.getInverse().transformPoint( pixel );
+	}
+
+	return FePresentableParent::snap_position_to_pixel( p );
+}
+
+Vec2f FeMonitor::snap_size_to_pixel( const Vec2f &s ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	if (( num == 0 ) && fep )
+	{
+		Vec2f scale( fep->get_layout_scale_x(), fep->get_layout_scale_y() );
+		return Vec2f(
+			scale.x != 0.0f ? std::round( s.x * scale.x ) / scale.x : s.x,
+			scale.y != 0.0f ? std::round( s.y * scale.y ) / scale.y : s.y );
+	}
+
+	return FePresentableParent::snap_size_to_pixel( s );
+}
+
 FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	: m_feSettings( fesettings ),
 	m_window( wnd ),
@@ -215,6 +245,7 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_layout_crop( true ),
 	m_custom_overlay( false ),
 	m_mouse_pointer_visible( false ),
+	m_pixel_snap( false ),
 	m_listBox( NULL ),
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
@@ -460,6 +491,7 @@ void FePresent::clear_resources()
 void FePresent::clear_layout()
 {
 	m_window.get_gpu_context().clear_layout_resources();
+	FeAnimation::clear();
 
 	//
 	// keep toggle rotation, base rotation and mute state through clear
@@ -479,6 +511,7 @@ void FePresent::clear_layout()
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
+	m_pixel_snap = false;
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	il.set_background_loading( false );
@@ -537,7 +570,6 @@ void FePresent::clear_layout()
 	m_baseRotation = m_feSettings->get_screen_rotation();
 
 	FeSettings::RotationState actualRotation = get_actual_rotation();
-
 	if (( actualRotation == FeSettings::RotateLeft ) || ( actualRotation == FeSettings::RotateRight ))
 	{
 		m_layoutSize.x = m_mon[0].size.y;
@@ -996,6 +1028,7 @@ namespace
 			}
 		}
 	}
+
 };
 
 void FePresent::sort_zorder()
@@ -1542,6 +1575,7 @@ FeImage *FePresent::add_image( bool is_artwork,
 
 	FeImage *new_image = new FeImage( p, new_tex, x, y, w, h );
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_image->set_script_geometry( x, y, w, h );
 
 	// if this is a static image/video then load it now
 	//
@@ -1576,6 +1610,7 @@ FeImage *FePresent::add_clone( FeImage *o,
 			FePresentableParent &p )
 {
 	FeImage *new_image = new FeImage( o, p );
+	new_image->refresh_script_geometry();
 	flag_redraw();
 	p.elements.push_back( new_image );
 	flag_sort_zorder();
@@ -1603,6 +1638,7 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 	new_text->setFont( *get_layout_font() );
 	new_text->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_text->on_new_selection( m_feSettings );
+	new_text->set_script_geometry( x, y, w, h );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;
@@ -1620,6 +1656,7 @@ FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
 
 	new_lb->setFont( *get_layout_font() );
 	new_lb->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_lb->set_script_geometry( x, y, w, h );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;
@@ -1636,6 +1673,7 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 {
 	FeRectangle *new_rc = new FeRectangle( p, x, y, w, h );
 	new_rc->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
+	new_rc->set_script_geometry( x, y, w, h );
 
 	if ( get_script_id() < 0 )
 		m_layout_has_content = true;
@@ -1646,9 +1684,18 @@ FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 	return new_rc;
 }
 
-FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentableParent &p )
+FeImage *FePresent::add_surface(
+		float x,
+		float y,
+		float w,
+		float h,
+		int texture_width,
+		int texture_height,
+		FePresentableParent &p )
 {
-	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer( w, h );
+	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer(
+		std::max( 0, texture_width ),
+		std::max( 0, texture_height ));
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 	new_surface->set_nesting_level( p.get_nesting_level() + 1 );
 
@@ -1658,6 +1705,7 @@ FeImage *FePresent::add_surface( float x, float y, int w, int h, FePresentablePa
 	FeImage *new_image = new FeImage( p, new_surface, x, y, w, h );
 	new_image->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_image->set_blend_mode( FeBlend::Premultiplied );
+	new_image->set_script_geometry( x, y, w, h );
 
 	new_image->texture_changed();
 
@@ -1806,12 +1854,28 @@ float FePresent::get_layout_scale_y() const
 	return m_layoutScale.y;
 }
 
+bool FePresent::get_layout_pixel_snap() const
+{
+	return m_pixel_snap;
+}
+
+void FePresent::set_layout_pixel_snap( bool s )
+{
+	if ( s != m_pixel_snap )
+	{
+		m_pixel_snap = s;
+		refresh_script_geometry();
+		flag_redraw();
+	}
+}
+
 void FePresent::set_layout_width( float w )
 {
 	if ( w != m_layoutSize.x )
 	{
 		m_layoutSize.x = w;
 		set_transforms();
+		refresh_script_geometry();
 		flag_redraw();
 	}
 }
@@ -1822,6 +1886,7 @@ void FePresent::set_layout_height( float h )
 	{
 		m_layoutSize.y = h;
 		set_transforms();
+		refresh_script_geometry();
 		flag_redraw();
 	}
 }
@@ -1993,6 +2058,19 @@ const FeBaseTextureContainer *FePresent::get_3d_cubemap_texture() const
 	return m_3d_cubemap_texture;
 }
 
+void FePresent::refresh_script_geometry()
+{
+	for ( std::vector<FeMonitor>::iterator itr=m_mon.begin(); itr!=m_mon.end(); ++itr )
+		itr->refresh_script_geometry();
+
+	for ( std::vector<FeBaseTextureContainer *>::iterator itr=m_texturePool.begin(); itr!=m_texturePool.end(); ++itr )
+	{
+		FePresentableParent *parent = (*itr)->get_presentable_parent();
+		if ( parent )
+			parent->refresh_script_geometry();
+	}
+}
+
 const FeFontContainer *FePresent::get_pooled_font( const std::string &n )
 {
 	std::vector<std::string> my_list;
@@ -2067,6 +2145,7 @@ void FePresent::set_toggle_rotation( int r )
 	{
 		m_toggleRotation = (FeSettings::RotationState)r;
 		set_transforms();
+
 		flag_redraw();
 	}
 }
@@ -2438,8 +2517,8 @@ void FePresent::load_layout( bool initial_load )
 	else
 		var = FromToFrontend;
 
+	init_monitors();
 	clear_layout();
-
 	set_transforms();
 	m_feSettings->set_present_state( FeSettings::Layout_Showing );
 

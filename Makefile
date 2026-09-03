@@ -140,6 +140,7 @@ _DEP =\
 	scraper_xml.hpp \
 	fe_settings.hpp \
 	fe_config.hpp \
+	fe_animation.hpp \
 	fe_presentable.hpp \
 	fe_transform.hpp \
 	fe_renderer.hpp \
@@ -193,6 +194,7 @@ _OBJ =\
 	scraper_gamesdb.o \
 	scraper_screenscraper.o \
 	fe_config.o \
+	fe_animation.o \
 	fe_presentable.o \
 	fe_renderer.o \
 	fe_present.o \

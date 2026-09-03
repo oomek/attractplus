@@ -1172,7 +1172,9 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	m_mipmap( false ),
 	m_repeat( false ),
 	m_smooth( false ),
-	m_texture_size( static_cast<unsigned int>( width ), static_cast<unsigned int>( height ) )
+	m_texture_size(
+		( width > 0 && height > 0 ) ? static_cast<unsigned int>( width ) : 0,
+		( width > 0 && height > 0 ) ? static_cast<unsigned int>( height ) : 0 )
 {
 }
 
@@ -1375,7 +1377,7 @@ FeImage::FeImage(
 }
 
 FeImage::FeImage( FeImage *o, FePresentableParent &p ):
-	FeBasePresentable( p ),
+	FeBasePresentable( *o ),
 	m_tex( o->m_tex ),
 	m_sprite( o->m_sprite ),
 	m_pos( o->m_pos ),
@@ -1400,6 +1402,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
 {
+	set_parent( p );
 	set_visible( o->get_visible() );
 	set_z( o->get_z() );
 	script_set_shader( o->get_shader() );
@@ -1650,6 +1653,10 @@ void FeImage::scale()
 			( tex_size.y * scale.y ) + (( scaled_padding.y - crop.top - crop.bottom ) * flip.y )
 		)
 	);
+	m_snap_offset = m_fit_rect.position;
+	Vec2f snapped_pos = snap_draw_position( pos );
+	m_fit_rect.position += snapped_pos - pos;
+	pos = snapped_pos;
 
 	// Apply the transformations
 	m_sprite.setCrop( crop );
@@ -2583,16 +2590,25 @@ FeRectangle *FeImage::add_rectangle(float x, float y, float w, float h)
 	return NULL;
 }
 
-FeImage *FeImage::add_surface(int w, int h)
+FeImage *FeImage::add_surface(float w, float h)
 {
 	return add_surface( 0, 0, w, h );
 }
 
-FeImage *FeImage::add_surface(float x, float y, int w, int h)
+FeImage *FeImage::add_surface(float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
 		return p->add_surface( x, y, w, h );
+
+	return NULL;
+}
+
+FeImage *FeImage::add_surface(float x, float y, float w, float h, int texture_width, int texture_height)
+{
+	FePresentableParent *p = m_tex->get_presentable_parent();
+	if ( p )
+		return p->add_surface( x, y, w, h, texture_width, texture_height );
 
 	return NULL;
 }
