@@ -752,7 +752,7 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 
 	const float outline = m_outline_thickness;
 	const Color outline_color = m_outline_color;
-	if ( outline > 0.0f && outline_color.a > 0 )
+	if ( outline != 0.0f && outline_color.a > 0 )
 	{
 		const unsigned int corner_points = static_cast<unsigned int>( m_corner_point_actual );
 		const Vec2f outer_size( rect_size.x + outline * 2.0f, rect_size.y + outline * 2.0f );
