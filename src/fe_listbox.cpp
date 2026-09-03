@@ -57,6 +57,7 @@ FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
 	m_scripted( true ),
 	m_mode( Static ),
 	m_selected_row( -1 ),
+	m_parent_selected_row( -1 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
 	m_custom_sel( -1 ),
@@ -103,6 +104,7 @@ FeListBox::FeListBox(
 	m_scripted( false ),
 	m_mode( Static ),
 	m_selected_row( -1 ),
+	m_parent_selected_row( -1 ),
 	m_list_start_offset( 0 ),
 	m_selection_margin( 0 ),
 	m_custom_sel( -1 )
@@ -840,6 +842,18 @@ void FeListBox::refresh_list()
 void FeListBox::on_new_list( FeSettings *s )
 {
 	update_list_settings( s );
+
+	if ( s->get_clone_index() >= 0 )
+	{
+		if ( m_parent_selected_row < 0 && m_selected_row >= 0 )
+			m_parent_selected_row = m_selected_row;
+	}
+	else if ( m_parent_selected_row >= 0 )
+	{
+		m_selected_row = m_parent_selected_row;
+		m_parent_selected_row = -1;
+	}
+
 	refresh_list();
 }
 

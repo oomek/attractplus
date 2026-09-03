@@ -269,6 +269,7 @@ private:
 	bool m_scripted; // True when the list is used in a layout, false when used in the builtin-menu
 	int m_mode;
 	int m_selected_row;
+	int m_parent_selected_row;
 	int m_list_start_offset;
 	int m_selection_margin;
 
