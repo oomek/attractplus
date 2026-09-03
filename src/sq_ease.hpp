@@ -67,6 +67,8 @@ public:
 	static float out_sine( float t, float b, float c, float d );
 	static float out_expo( float t, float b, float c, float d );
 	static float out_expo2( float t, float b, float c, float d );
+	static float inertia( float t, float b, float c, float d, float mass, float refresh_rate, float buffer[3] );
+	static void reset_inertia( float buffer[3], float value );
 	static float out_circ( float t, float b, float c, float d );
 	static float out_elastic( float t, float b, float c, float d );
 	static float out_elastic( float t, float b, float c, float d, float a, float p );

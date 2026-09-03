@@ -54,6 +54,7 @@ FeRectangle::FeRectangle( FePresentableParent &p,
 	m_corner_ratio_x( false ),
 	m_corner_ratio_y( false ),
 	m_corner_auto( false ),
+	m_outline( 0 ),
 	m_blend_mode( FeBlend::Alpha )
 {
 	setColor( Color::White );
@@ -118,7 +119,7 @@ Color FeRectangle::getOutlineColor()
 
 void FeRectangle::setColor( Color c )
 {
-	if ( c == m_rect.getFillColor() )
+	if ( c == Color( m_rect.getFillColor() ) )
 		return;
 
 	m_rect.setFillColor( c );
@@ -127,7 +128,7 @@ void FeRectangle::setColor( Color c )
 
 void FeRectangle::setOutlineColor( Color c )
 {
-	if ( c == m_rect.getOutlineColor() )
+	if ( c == Color( m_rect.getOutlineColor() ) )
 		return;
 
 	m_rect.setOutlineColor( c );
@@ -136,16 +137,17 @@ void FeRectangle::setOutlineColor( Color c )
 
 float FeRectangle::get_outline()
 {
-	return m_rect.getOutlineThickness();
+	return m_outline;
 }
 
 void FeRectangle::set_outline( float o )
 {
-	if ( o != m_rect.getOutlineThickness() )
-	{
-		m_rect.setOutlineThickness( o );
-		FePresent::script_flag_redraw();
-	}
+	if ( o == m_outline )
+		return;
+
+	m_outline = o;
+	m_rect.setOutlineThickness( m_outline );
+	FePresent::script_flag_redraw();
 }
 
 int FeRectangle::get_outline_red() const
@@ -199,7 +201,7 @@ void FeRectangle::set_outline_rgb( int r, int g, int b )
 
 void FeRectangle::set_outline_rgb( int r, int g, int b, int a )
 {
-	setOutlineColor(Color( r, g, b, a ));
+	setOutlineColor( Color( r, g, b, a ) );
 }
 
 float FeRectangle::get_origin_x() const
@@ -405,6 +407,12 @@ int FeRectangle::get_blend_mode() const
 void FeRectangle::set_blend_mode( int b )
 {
 	m_blend_mode = (FeBlend::Mode)b;
+}
+
+void FeRectangle::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	m_rect.setOutlineThickness( m_outline );
 }
 
 float FeRectangle::get_corner_radius() const
@@ -645,10 +653,13 @@ void FeRectangle::scale()
 	}
 
 	pos += sf::Vector2f(( m_rotation_origin.x - m_anchor.x ) * size.x, ( m_rotation_origin.y -  m_anchor.y ) * size.y );
+	sf::Vector2f origin( m_origin.x + m_rotation_origin.x * size.x, m_origin.y + m_rotation_origin.y * size.y );
+	m_snap_offset = sf::Vector2f( -m_anchor.x * size.x - m_origin.x, -m_anchor.y * size.y - m_origin.y );
+	pos = snap_draw_position( pos );
 
 	m_rect.setPosition( pos );
 	m_rect.setRotation( sf::degrees( m_rotation ));
 	m_rect.setSize( size );
-	m_rect.setOrigin({( m_origin.x + m_rotation_origin.x * size.x ), ( m_origin.y + m_rotation_origin.y * size.y )});
+	m_rect.setOrigin( origin );
 
 }

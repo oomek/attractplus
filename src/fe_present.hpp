@@ -101,6 +101,8 @@ public:
 	int get_width();
 	int get_height();
 	int get_num();
+	sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
+	sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
 
 	sf::Transform transform;
 	sf::Vector2i size;
@@ -167,6 +169,7 @@ protected:
 	bool m_layout_crop;
 	bool m_custom_overlay;
 	bool m_mouse_pointer_visible;
+	bool m_pixel_snap;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	sf::Vector2i m_layoutSize;
@@ -197,7 +200,7 @@ protected:
 	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
 	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
-	FeImage *add_surface(float x, float y, int w, int h, FePresentableParent &p);
+	FeImage *add_surface(float x, float y, float w, float h, int texture_width, int texture_height, FePresentableParent &p);
 	FeSound *add_sound(const char *n);
 	FeMusic *add_music(const char *n);
 	FeShader *add_shader(FeShader::Type type, const char *shader1, const char *shader2);
@@ -232,6 +235,7 @@ protected:
 	void set_layout_font_name( const char * );
 	void set_preserve_aspect_ratio( bool );
 	void set_layout_crop( bool );
+	void refresh_script_geometry();
 
 public:
 	FePresent( FeSettings *fesettings, FeWindow &wnd );
@@ -281,6 +285,8 @@ public:
 
 	float get_layout_scale_x() const;
 	float get_layout_scale_y() const;
+	bool get_layout_pixel_snap() const;
+	void set_layout_pixel_snap( bool );
 
 	// Get a font from the font pool, loading it if necessary
 	const FeFontContainer *get_pooled_font( const std::vector < std::string > &l );

@@ -25,6 +25,7 @@
 
 #include <SFML/System/Vector2.hpp>
 #include "fe_color.hpp"
+#include <string>
 #include <vector>
 
 class FeSettings;
@@ -48,11 +49,27 @@ enum FePresentableType
 
 class FeBasePresentable
 {
+protected:
+	FePresentableParent *m_parent;
+	bool m_snap_x;
+	bool m_snap_y;
+	bool m_snap_width;
+	bool m_snap_height;
+	sf::Vector2f m_snap_offset;
+	sf::Vector2f snap_draw_position( const sf::Vector2f &pos ) const;
+
 private:
-	FePresentableParent &m_parent;
 	FeShader *m_shader;
 	bool m_visible;
 	int m_zorder;
+	sf::Vector2f m_script_pos;
+	sf::Vector2f m_script_size;
+	bool m_pixel_snap;
+	bool m_script_geometry_set;
+
+protected:
+	sf::Vector2f snap_position( const sf::Vector2f &p, bool snap=true ) const;
+	sf::Vector2f snap_size( const sf::Vector2f &s, bool snap=true ) const;
 
 public:
 	FeBasePresentable( FePresentableParent &p );
@@ -91,6 +108,13 @@ public:
 
 	void set_pos(float x, float y);
 	void set_pos(float x, float y, float w, float h);
+	bool set_animated_property( const std::string &name, float value, bool snap=false );
+	float snap_destination_to_pixels( const std::string &name, float destination ) const;
+	bool get_pixel_snap() const;
+	void set_pixel_snap( bool s );
+	void set_parent( FePresentableParent &p );
+	void set_script_geometry( float x, float y, float w, float h );
+	virtual void refresh_script_geometry();
 
 	int get_r() const;
 	int get_g() const;
@@ -132,6 +156,9 @@ public:
 	int m_nesting_level;
 	int get_nesting_level();
 	void set_nesting_level( int );
+	virtual sf::Vector2f snap_position_to_pixel( const sf::Vector2f &p ) const;
+	virtual sf::Vector2f snap_size_to_pixel( const sf::Vector2f &s ) const;
+	void refresh_script_geometry();
 
 	FeImage *add_image(const char *,float, float, float, float);
 	FeImage *add_image(const char *, float, float);
@@ -143,8 +170,9 @@ public:
 	FeText *add_text(const char *,int, int, int, int);
 	FeListBox *add_listbox(int, int, int, int);
 	FeRectangle *add_rectangle(float, float, float, float);
-	FeImage *add_surface(float, float, int, int);
-	FeImage *add_surface(int, int);
+	FeImage *add_surface(float, float, float, float);
+	FeImage *add_surface(float, float, float, float, int, int);
+	FeImage *add_surface(float, float);
 };
 
 #endif
