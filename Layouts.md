@@ -221,7 +221,7 @@ The following _Magic Tokens_ are supported:
 
 #### Custom Magic Token Functions
 
-_Magic Tokens_ can also run user-defined functions in the form `[!token_function]`. When used, Attract-Mode Plus will run the corresponding `token_function()` defined in the Squirrel "root table". The function may contain up to two parameters, and must return a string value to replace the _Magic Token_.
+_Magic Tokens_ can also run user-defined functions in the form `[!token_function]` or `[!namespace.token_function]`. When used, Attract-Mode Plus resolves the corresponding function from the Squirrel root table or namespace. The function may contain up to two parameters, and must return a string value to replace the _Magic Token_.
 
 -  `index_offset` - The offset (from the current selection) of the game.
 -  `filter_offset` - The offset (from the current filter) of the filter.
