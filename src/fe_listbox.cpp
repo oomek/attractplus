@@ -1011,6 +1011,16 @@ int FeListBox::get_rows()
 	return m_rows;
 }
 
+float FeListBox::get_sel_y() const
+{
+	return get_selected_row() * get_row_height();
+}
+
+float FeListBox::get_row_height() const
+{
+	return std::floor( get_height() / m_rows );
+}
+
 int FeListBox::get_list_align()
 {
 	return m_list_align;
