@@ -503,9 +503,14 @@ namespace
 			return FeEvent::FocusLost{};
 
 		case SDL_EVENT_WINDOW_RESIZED:
-		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
 			return FeEvent::Resized{ { static_cast<unsigned int>( event.window.data1 ),
 				static_cast<unsigned int>( event.window.data2 ) } };
+
+		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			// Layout dimensions follow SDL's logical window size.  SDL emits this
+			// alongside WINDOW_RESIZED when a new window is shown, so treating it
+			// as another resize reloads the layout twice at startup.
+			return {};
 
 		case SDL_EVENT_TEXT_INPUT:
 		{
