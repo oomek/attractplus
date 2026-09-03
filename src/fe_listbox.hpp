@@ -229,6 +229,8 @@ public:
 	void set_format_string( const char *s );
 	int get_selected_row() const;
 	void set_selected_row( int r );
+	float get_sel_y() const;
+	float get_row_height() const;
 	void build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
 	void refresh_script_geometry() override;
 private:
