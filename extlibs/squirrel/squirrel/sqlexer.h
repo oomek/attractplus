@@ -33,6 +33,7 @@ public:
 	SQInteger _lasttokenline;
 	SQInteger _currentcolumn;
 	const SQChar *_svalue;
+	SQBool _unit; // AM+
 	SQInteger _nvalue;
 	SQFloat _fvalue;
 	SQLEXREADFUNC _readf;
