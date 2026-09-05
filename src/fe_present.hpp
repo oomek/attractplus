@@ -212,8 +212,8 @@ protected:
 	FeModel3D *add_model_3d(const std::string &n, FePresentableParent &p);
 	FeImage *add_clone(FeImage *, FePresentableParent &p);
 	FeModel3D *add_clone(FeModel3D *, FePresentableParent &p);
-	FeText *add_text(const std::string &n, int x, int y, int w, int h, FePresentableParent &p);
-	FeListBox *add_listbox(int x, int y, int w, int h, FePresentableParent &p);
+	FeText *add_text(const std::string &n, float x, float y, float w, float h, FePresentableParent &p);
+	FeListBox *add_listbox(float x, float y, float w, float h, FePresentableParent &p);
 	FeRectangle *add_rectangle(float x, float y, float w, float h, FePresentableParent &p);
 	FeImage *add_surface(float x, float y, float w, float h, int texture_width, int texture_height, FePresentableParent &p);
 	FeSound *add_sound(const char *n);

@@ -347,6 +347,7 @@ public:
 	void transition_swap( FeImage * );
 	bool fix_masked_image();
 	FePresentableParent *get_presentable_parent();
+	void refresh_script_geometry() override;
 	template <typename T>
 	void setSize( T w, T h ) { setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
 	void setSize( const Vec2f &s );

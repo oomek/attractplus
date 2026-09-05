@@ -1417,6 +1417,12 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 
 FeImage::~FeImage() {}
 
+void FeImage::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	scale();
+}
+
 const FeBaseTextureContainer *FeImage::get_texture_container() const
 {
 	return m_tex;

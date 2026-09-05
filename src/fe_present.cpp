@@ -1630,7 +1630,7 @@ FeModel3D *FePresent::add_clone( FeModel3D *o, FePresentableParent &p )
 	return new_model_3d;
 }
 
-FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
+FeText *FePresent::add_text( const std::string &n, float x, float y, float w, float h,
 			FePresentableParent &p )
 {
 	FeText *new_text = new FeText( p, n, x, y, w, h );
@@ -1649,7 +1649,7 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 	return new_text;
 }
 
-FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
+FeListBox *FePresent::add_listbox( float x, float y, float w, float h,
 		FePresentableParent &p )
 {
 	FeListBox *new_lb = new FeListBox( p, x, y, w, h );
