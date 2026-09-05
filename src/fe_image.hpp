@@ -213,6 +213,9 @@ public:
 	float get_vu_mono() const;
 	float get_vu_left() const;
 	float get_vu_right() const;
+	float get_sample() const;
+	float get_sample_left() const;
+	float get_sample_right() const;
 	const std::vector<float> *get_fft_mono_ptr() const;
 	const std::vector<float> *get_fft_left_ptr() const;
 	const std::vector<float> *get_fft_right_ptr() const;
@@ -408,6 +411,9 @@ public:
 	float get_vu_mono() const;
 	float get_vu_left() const;
 	float get_vu_right() const;
+	float get_sample() const;
+	float get_sample_left() const;
+	float get_sample_right() const;
 	const SqratArrayWrapper& get_fft_array_mono() const;
 	const SqratArrayWrapper& get_fft_array_left() const;
 	const SqratArrayWrapper& get_fft_array_right() const;
