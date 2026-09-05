@@ -53,7 +53,7 @@
 
 .DEFAULT_GOAL := all
 
-override FE_VERSION := v3.2.4
+override FE_VERSION := v4.0.0-alpha
 
 CC ?= gcc
 CXX ?= g++
