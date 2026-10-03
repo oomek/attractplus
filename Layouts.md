@@ -1866,6 +1866,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    }
    ```
 - Pinch is achieved by subdividing the texture polygon into a triangle-strip, and scaling it towards one end. This results in a distorted image, and "ripple" artifacts on large pinches. For nicer results try the `perspective` module - see its Readme for more information.
+- When `pinch_x`, `pinch_y`, `skew_x`, or `skew_y` value is non 0, the image uses legacy rendering compatible with these effects in earlier versions. In this mode, `rotation` (also exposed as `rotation_z`) still applies, while `rotation_x`, `rotation_y`, and `rotation_order` have no effect. Their values are retained and apply again when all four pinch/skew values return to 0. A non 0 pinch value selects legacy rendering even when borders suppress its visible effect.
 
 ---
 
