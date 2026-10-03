@@ -1,3 +1,25 @@
+/*
+ *
+ *  Attract-Mode Plus frontend
+ *  Copyright (C) 2026 Radek Dutkiewicz
+ *
+ *  This file is part of Attract-Mode Plus
+ *
+ *  Attract-Mode Plus is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Attract-Mode Plus is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Attract-Mode Plus.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #include "fe_sdl3_gpu.hpp"
 #include "fe_glslang.hpp"
 #include "fe_image.hpp"
@@ -2412,7 +2434,7 @@ namespace
 		float viewport_width;
 		float viewport_height;
 		float plane_distance;
-		float reserved;
+		Uint32 vertex_offset;
 		float values[FE_MAX_CUSTOM_SHADER_UNIFORMS * 4];
 		float supplied[FE_MAX_CUSTOM_SHADER_UNIFORMS];
 	};
@@ -5245,6 +5267,8 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 		uniforms.push_back( binding );
 	}
 
+	const bool uses_vertex_id = stripped_source.find( "gl_VertexID" ) != std::string::npos;
+	replace_all( stripped_source, "gl_VertexID", "fe_vertex_id()" );
 	replace_all( stripped_source, "gl_ModelViewProjectionMatrix", "custom_ubo.projection" );
 	replace_all( stripped_source, "gl_Vertex", "fe_vertex" );
 	replace_all( stripped_source, "gl_MultiTexCoord0", "vec4(in_texcoord, 0.0, 1.0)" );
@@ -5280,13 +5304,21 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	shader << "\tfloat viewport_width;\n";
 	shader << "\tfloat viewport_height;\n";
 	shader << "\tfloat plane_distance;\n";
-	shader << "\tfloat reserved;\n";
+	shader << "\tuint vertex_offset;\n";
 	shader << "\tvec4 values[" << FE_MAX_CUSTOM_SHADER_UNIFORMS << "];\n";
 	shader << "\tvec4 supplied[" << FE_MAX_CUSTOM_SHADER_UNIFORMS / 4 << "];\n";
 	shader << "} custom_ubo;\n\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
 		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
-	shader << "#define fe_vertex vec4(vec3(in_position.x - ( custom_ubo.viewport_width * 0.5 ), (( custom_ubo.viewport_height * 0.5 ) - in_position.y), -( custom_ubo.plane_distance - in_position.z )), 1.0)\n";
+	shader << "#define fe_vertex vec4(in_position, 1.0)\n";
+	if ( uses_vertex_id )
+	{
+		// Reconstruct the original strip index after expansion to triangles.
+		shader << "int fe_vertex_id()\n{\n";
+		shader << "\tint index = gl_VertexIndex - int(custom_ubo.vertex_offset);\n";
+		shader << "\tint triangle = index / 3;\n\tint corner = index % 3;\n";
+		shader << "\treturn triangle + ((triangle % 2 != 0 && corner < 2) ? 1 - corner : corner);\n}\n";
+	}
 	shader << "\n" << stripped_source;
 
 	source_code = shader.str();
@@ -6172,12 +6204,22 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				{
 					std::vector<float> vertex_uniform_data;
 					FeSdl3GpuCustomVertexUniforms custom_uniforms = {};
-					for ( int i = 0; i < 16; ++i )
-						custom_uniforms.projection[ i ] = uniforms.projection[ i ];
+					// Legacy shaders modify pixel coordinates before projection.
+					// Convert to camera coordinates after applying those offsets.
+					for ( int i = 0; i < 4; ++i )
+					{
+						custom_uniforms.projection[i] = uniforms.projection[i];
+						custom_uniforms.projection[4 + i] = -uniforms.projection[4 + i];
+						custom_uniforms.projection[8 + i] = uniforms.projection[8 + i];
+						custom_uniforms.projection[12 + i] = uniforms.projection[12 + i]
+							- uniforms.projection[i] * uniforms.viewport_width * 0.5f
+							+ uniforms.projection[4 + i] * uniforms.viewport_height * 0.5f
+							- uniforms.projection[8 + i] * uniforms.plane_distance;
+					}
 					custom_uniforms.viewport_width = uniforms.viewport_width;
 					custom_uniforms.viewport_height = uniforms.viewport_height;
 					custom_uniforms.plane_distance = uniforms.plane_distance;
-					custom_uniforms.reserved = uniforms.reserved;
+					custom_uniforms.vertex_offset = image.first_vertex;
 					build_custom_uniform_data( *image.geometry, image.custom_shader->vertex_uniforms, vertex_uniform_data );
 					std::memcpy( custom_uniforms.values, vertex_uniform_data.data(), sizeof( custom_uniforms.values ) );
 					std::memcpy( custom_uniforms.supplied, vertex_uniform_data.data() + FE_MAX_CUSTOM_SHADER_UNIFORMS * 4, sizeof( custom_uniforms.supplied ) );

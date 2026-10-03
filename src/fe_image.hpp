@@ -27,6 +27,7 @@
 #include <memory>
 #include <sqrat.h>
 #include "fe_sprite.hpp"
+#include "fe_sprite_legacy.hpp"
 #include "fe_renderer.hpp"
 #include "fe_align.hpp"
 #include "fe_presentable.hpp"
@@ -560,6 +561,7 @@ public:
 protected:
 	FeBaseTextureContainer *m_tex;
 	FeSprite m_sprite;
+	FeSpriteLegacy m_sprite_legacy;
 	Vec2f m_pos;
 	Vec2f m_size;
 	Vec2u m_auto_size;

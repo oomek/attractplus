@@ -150,6 +150,7 @@ _DEP =\
 	fe_sdl3_gpu.hpp \
 	fe_glslang.hpp \
 	fe_sprite.hpp \
+	fe_sprite_legacy.hpp \
 	fe_image.hpp \
 	fe_sound.hpp \
 	fe_music.hpp \
@@ -203,6 +204,7 @@ _OBJ =\
 	fe_sdl3_gpu.o \
 	fe_glslang.o \
 	fe_sprite.o \
+	fe_sprite_legacy.o \
 	fe_image.o \
 	fe_sound.o \
 	fe_music.o \
