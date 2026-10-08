@@ -62,6 +62,7 @@ namespace
 		float anim_base_start_val;
 		float anim_to_val;
 		float prop_to_val;
+		float prop_start_val;
 		float prop_last_val;
 		float duration_ms;
 		float time_ms;
@@ -91,6 +92,7 @@ namespace
 		float b;
 		float c;
 		float d;
+		bool reverse;
 	};
 
 	const FeEaseFunc ease_functions[] =
@@ -420,6 +422,7 @@ namespace
 		animation.anim_base_start_val = anim_val;
 		animation.anim_to_val = anim_val;
 		animation.prop_to_val = prop_val;
+		animation.prop_start_val = prop_val;
 		animation.prop_last_val = prop_val;
 		animation.duration_ms = 1000.0f;
 		animation.time_ms = 0.0f;
@@ -504,7 +507,7 @@ namespace
 				start_val = animation.anim_to_val;
 		}
 
-		return { time_ms, start_val, to_val - start_val, animation.duration_ms };
+		return { time_ms, start_val, to_val - start_val, animation.duration_ms, reverse };
 	}
 
 	FeAnimationState &get_animation_state(
@@ -528,6 +531,7 @@ namespace
 		animation.anim_base_start_val = anim_val;
 		animation.anim_to_val = anim_val;
 		animation.prop_to_val = prop_val;
+		animation.prop_start_val = prop_val;
 		animation.prop_last_val = prop_val;
 		animation.time_ms = 0.0f;
 		animation.current_val = anim_val;
@@ -575,6 +579,7 @@ namespace
 		animation.anim_base_start_val = anim_base_start_val;
 		animation.anim_to_val = anim_to_val;
 		animation.prop_to_val = prop_to_val;
+		animation.prop_start_val = prop_start_val;
 		animation.prop_last_val = prop_start_val;
 		animation.time_ms = 0.0f;
 		animation.current_val = anim_start_val;
@@ -1162,7 +1167,11 @@ bool FeAnimation::tick()
 			: apply_ease( animation, params.t, params.b, params.c, params.d );
 
 		animation.current_val = current_val;
-		set_animation_value( animation, current_val );
+		bool endpoint = complete_on_duration && !animation.use_callback;
+		float authored = endpoint
+			? ( params.reverse ? animation.prop_start_val : animation.prop_to_val )
+			: current_val;
+		set_animation_value( animation, authored, !animation.running );
 		animation.prop_last_val = animation.property->get( animation.drawable );
 		redraw = true;
 		++i;
@@ -1172,6 +1181,12 @@ bool FeAnimation::tick()
 		FePresent::script_flag_redraw();
 
 	return redraw;
+}
+
+bool FeAnimation::is_running( FeBasePresentable *drawable, const SQChar *property_name )
+{
+	FeAnimationState *animation = find_animation( drawable, property_name );
+	return animation && animation->running;
 }
 
 void FeAnimation::remove( FeBasePresentable *drawable, const SQChar *property_name )

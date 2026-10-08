@@ -273,6 +273,7 @@ public:
 
 	FeSurfaceTextureContainer( int width, int height );
 	~FeSurfaceTextureContainer();
+	Vec2f get_grid_extent() const override;
 
 	Vec2u get_texture_size() const override;
 
@@ -347,6 +348,7 @@ public:
 	void transition_swap( FeImage * );
 	bool fix_masked_image();
 	FePresentableParent *get_presentable_parent();
+	FeGridView get_grid_view();
 	template <typename T>
 	void setSize( T w, T h ) { setSize( Vec2f( static_cast<float>( w ), static_cast<float>( h ) ) ); };
 	void setSize( const Vec2f &s );
@@ -535,6 +537,7 @@ public:
 
 	bool get_visible() const;
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
+	void refresh_script_geometry() override;
 
 	//
 	// Callback functions for use with surface objects
@@ -550,8 +553,8 @@ public:
 	FeImage *add_surface( float, float, float, float, int, int );
 	FeImage *add_surface( float, float );
 	FeImage *add_clone( FeImage * );
-	FeText *add_text( const char *, int, int, int, int );
-	FeListBox *add_listbox( int, int, int, int );
+	FeText *add_text( const char *, float, float, float, float );
+	FeListBox *add_listbox( float, float, float, float );
 	FeRectangle *add_rectangle( float, float, float, float );
 
 protected:

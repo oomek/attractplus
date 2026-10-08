@@ -24,12 +24,43 @@
 #define FE_PRESENTABLE_HPP
 
 #include "fe_types.hpp"
+#include "fe_grid.hpp"
 #include <string>
 #include <vector>
 
 class FeSettings;
 class FeShader;
 class FePresentableParent;
+
+namespace Sqrat
+{
+	class Object;
+}
+
+class FeGridView
+{
+private:
+	FePresentableParent *m_parent;
+	FeGrid *m_settings;
+	void refresh();
+	void set_flag( bool &flag, Sqrat::Object value );
+
+public:
+	FeGridView( FePresentableParent *parent, FeGrid *settings );
+	void set_range( const Vec2f &offset, const Vec2f &size );
+	float get_left() const;
+	float get_top() const;
+	float get_right() const;
+	float get_bottom() const;
+	float get_width() const;
+	float get_height() const;
+	static bool get_uniform( FeGridView *grid );
+	static void set_uniform( FeGridView *grid, Sqrat::Object value );
+	static bool get_centered( FeGridView *grid );
+	static void set_centered( FeGridView *grid, Sqrat::Object value );
+	static bool get_pixel_snap( FeGridView *grid );
+	static void set_pixel_snap( FeGridView *grid, Sqrat::Object value );
+};
 
 enum FePresentableType
 {
@@ -62,6 +93,7 @@ protected:
 	bool m_snap_height;
 	Vec2f m_snap_offset;
 	Vec2f snap_draw_position( const Vec2f &pos ) const;
+	void snap_draw_geometry( Vec2f &pos, Vec2f &size, bool endpoint=false ) const;
 
 private:
 	FeShader *m_shader;
@@ -74,10 +106,14 @@ private:
 	int m_zorder;
 	Vec2f m_script_pos;
 	Vec2f m_script_size;
-	bool m_pixel_snap;
+	int m_script_id;
 	bool m_script_geometry_set;
+	void set_snap( bool &property, bool value );
 
 protected:
+	FeGridTransform grid_transform() const;
+	float pixels_to_grid_height( float value ) const;
+	float pixels_to_grid_width( float value ) const;
 	Vec2f snap_position( const Vec2f &p, bool snap=true ) const;
 	Vec2f snap_size( const Vec2f &s, bool snap=true ) const;
 
@@ -101,6 +137,10 @@ public:
 	virtual void setRotation( float )=0;
 	virtual Color getColor() const=0;
 	virtual void setColor( Color )=0;
+	virtual float get_anchor_x() const;
+	virtual float get_anchor_y() const;
+	virtual float get_origin_x() const;
+	virtual float get_origin_y() const;
 	virtual int getIndexOffset() const;
 	virtual void setIndexOffset( int io );
 	virtual int getFilterOffset() const;
@@ -127,7 +167,6 @@ public:
 	float snap_destination_to_pixels( const std::string &name, float destination ) const;
 
 	bool get_pixel_snap() const;
-	void set_pixel_snap( bool s );
 	void set_parent( FePresentableParent &p );
 	void set_script_geometry( float x, float y, float w, float h );
 	virtual void refresh_script_geometry();
@@ -180,6 +219,10 @@ public:
 	virtual ~FePresentableParent();
 
 	std::vector< FeBasePresentable * > elements;
+	FeGrid grid;
+	FeGridView get_grid_view();
+	virtual Vec2f get_grid_extent() const;
+	virtual const FeGrid &get_grid( int script_id ) const;
 
 	int m_nesting_level;
 	int get_nesting_level();
@@ -197,8 +240,8 @@ public:
 	FeModel3D *add_model_3d(const char *);
 	FeImage *add_clone(FeImage *);
 	FeModel3D *add_clone(FeModel3D *);
-	FeText *add_text(const char *,int, int, int, int);
-	FeListBox *add_listbox(int, int, int, int);
+	FeText *add_text(const char *,float, float, float, float);
+	FeListBox *add_listbox(float, float, float, float);
 	FeRectangle *add_rectangle(float, float, float, float);
 	FeImage *add_surface(float, float, float, float);
 	FeImage *add_surface(float, float, float, float, int, int);

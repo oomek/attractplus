@@ -30,7 +30,7 @@
 #include <iostream>
 
 FeText::FeText( FePresentableParent &p, const std::string &str,
-	int x, int y, int w, int h )
+	float x, float y, float w, float h )
 	: FeBasePresentable( p ),
 	m_string( str ),
 	m_string_wrapped( str ),
@@ -307,11 +307,14 @@ void FeText::on_new_list( FeSettings *s )
 
 void FeText::update_font_size()
 {
+	Vec2f pos = m_position;
+	Vec2f size = m_size;
+	snap_draw_geometry( pos, size );
 	float char_size = 8.0f;
 	if ( m_user_charsize > 0 )
 		char_size = m_user_charsize;
-	else if ( m_size.y > 12 )
-		char_size = m_size.y - 4;
+	else if ( size.y > 12 )
+		char_size = size.y - 4;
 
 	unsigned int scaled_char_size = static_cast<unsigned int>(
 		std::round( std::max( 1.0f, char_size * m_scale_factor )));
@@ -340,18 +343,19 @@ void FeText::update_outline()
 
 void FeText::update_transform()
 {
-	Vec2f pos = m_position + Vec2f(
-		( m_rotation_origin.x - m_anchor.x ) * m_size.x,
-		( m_rotation_origin.y - m_anchor.y ) * m_size.y
+	Vec2f pos = m_position;
+	Vec2f size = m_size;
+	snap_draw_geometry( pos, size );
+	pos += Vec2f(
+		( m_rotation_origin.x - m_anchor.x ) * size.x,
+		( m_rotation_origin.y - m_anchor.y ) * size.y
 	);
 	Vec2f origin = Vec2f(
-		m_rotation_origin.x * m_size.x,
-		m_rotation_origin.y * m_size.y
+		m_rotation_origin.x * size.x,
+		m_rotation_origin.y * size.y
 	);
-	m_snap_offset = Vec2f( -m_anchor.x * m_size.x, -m_anchor.y * m_size.y );
-	pos = snap_draw_position( pos );
 
-	m_draw_text.setSize( m_size );
+	m_draw_text.setSize( size );
 	m_draw_text.setOrigin( origin );
 	m_draw_text.setPosition( pos );
 	m_draw_text.setRotation( m_rotation );
@@ -389,6 +393,7 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 void FeText::refresh_script_geometry()
 {
 	FeBasePresentable::refresh_script_geometry();
+	update_transform();
 	update_font_size();
 	update_margin();
 	update_outline();
