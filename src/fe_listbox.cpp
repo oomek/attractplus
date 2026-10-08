@@ -516,7 +516,7 @@ void FeListBox::update_text_metrics()
 
 	int actual_spacing = (int)size.y / m_rows;
 	float char_size = ( m_userCharSize > 0 )
-		? m_userCharSize
+		? grid_height_to_pixels( m_userCharSize )
 		: ( actual_spacing > 12 ) ? actual_spacing - 4.0f
 		: 8.0f;
 
@@ -540,7 +540,7 @@ void FeListBox::update_styles()
 	Color bgColor = m_base_text.getBgColor();
 	Color outlineColour = m_base_text.getOutlineColor();
 	float outlineThickness = m_base_text.getOutlineThickness();
-	float selOutlineThickness = m_sel_outline;
+	float selOutlineThickness = grid_height_to_pixels( m_sel_outline );
 	int style = m_base_text.getStyle();
 
 	for ( int i=0; i< m_rows; i++ )
@@ -1014,7 +1014,7 @@ float FeListBox::get_charsize()
 
 float FeListBox::get_glyph_size()
 {
-	return m_base_text.getGlyphSize();
+	return pixels_to_grid_height( m_base_text.getGlyphSize() );
 }
 
 float FeListBox::get_spacing()
@@ -1034,7 +1034,7 @@ float FeListBox::get_sel_y() const
 
 float FeListBox::get_row_height() const
 {
-	return std::floor( m_base_text.getSize().y / m_rows );
+	return pixels_to_grid_height( std::floor( m_base_text.getSize().y / m_rows ));
 }
 
 int FeListBox::get_list_align()
@@ -1122,7 +1122,7 @@ void FeListBox::update_margin()
 	int margin = -1;
 	if ( m_userMargin >= 0.0f )
 	{
-		margin = static_cast<int>( std::round( std::max( 0.0f, m_userMargin )));
+		margin = static_cast<int>( std::round( std::max( 0.0f, grid_height_to_pixels( m_userMargin ))));
 	}
 
 	m_base_text.setMargin( margin );
@@ -1133,8 +1133,8 @@ void FeListBox::update_margin()
 
 void FeListBox::update_outline()
 {
-	float outline = m_outline;
-	float sel_outline = m_sel_outline;
+	float outline = grid_height_to_pixels( m_outline );
+	float sel_outline = grid_height_to_pixels( m_sel_outline );
 
 	m_base_text.setOutlineThickness( outline );
 

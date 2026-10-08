@@ -222,6 +222,11 @@ FeGridTransform FeBasePresentable::grid_transform() const
 	return m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_extent() );
 }
 
+float FeBasePresentable::grid_height_to_pixels( float value ) const
+{
+	return value * grid_transform().scale.y;
+}
+
 float FeBasePresentable::pixels_to_grid_height( float value ) const
 {
 	return value / grid_transform().scale.y;

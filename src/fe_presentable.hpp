@@ -112,6 +112,7 @@ private:
 
 protected:
 	FeGridTransform grid_transform() const;
+	float grid_height_to_pixels( float value ) const;
 	float pixels_to_grid_height( float value ) const;
 	float pixels_to_grid_width( float value ) const;
 	Vec2f snap_position( const Vec2f &p, bool snap=true ) const;

@@ -1500,7 +1500,7 @@ local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
     fe.grid.width - 20, fe.grid.height)
 ```
 
-Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
+Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Text and listbox character sizes, margins and outlines, and rectangle outlines, use vertical grid units. Automatic character sizing and margins retain their existing meaning; negative rectangle outlines draw inward. Text measurements and listbox row heights are returned in grid coordinates. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
 
 Use `fe.set_grid()`, `surface.set_grid()`, `monitor.set_grid()` or `fe.plugin.set_grid()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
 
@@ -1962,12 +1962,12 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `bg_outline_green` - Get/set green colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_blue` - Get/set blue colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_alpha` - Get/set alpha level for the text background outline. Range is `[0...255]`. Default value is `0` (transparent).
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
--  `glyph_size` - Get the height in pixels of the capital letter. Useful if you want to set the textbox height to match the letter height.
+-  `char_size` - Get/set the forced character size in vertical grid units. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
+-  `glyph_size` - Get the height of the capital letter in vertical grid units. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
--  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
--  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background. Default value is `0.0`
+-  `outline` 🔶 - Get/set the thickness of the outline applied to the text, in vertical grid units. Default value is `0.0`.
+-  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background, in vertical grid units. Default value is `0.0`.
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
@@ -1995,20 +1995,20 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
    -  `Case.Lowercase`
    -  `Case.Capitalize`
 -  `word_wrap` - Get/set whether word wrapping is enabled in this text (boolean). Default is `false`.
--  `msg_width` - Get the width of the text message, in layout coordinates.
--  `msg_height` 🔶 - Get the height of the text message, in layout coordinates.
+-  `msg_width` - Get the width of the text message, in grid coordinates.
+-  `msg_height` 🔶 - Get the height of the text message, in grid coordinates.
 -  `lines` 🔶 - Get the maximum line count that can be fitted inside the text box.
 -  `lines_total` 🔶 - Get the total line count of the formatted text message.
--  `line_height` 🔶 - Get the distance between two lines of text in layout coordinates.
+-  `line_height` 🔶 - Get the distance between two lines of text in vertical grid units.
 -  `first_line_hint` 🔶 - Get/set the line in the formatted text that is shown as first line in the text object
 -  `font` - Get/set the filename of the font used for this text. If not set default font is used.
--  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the `char_size`.
+-  `margin` - Get/set the margin spacing to sides of the text, in vertical grid units. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `shader` - Get/set the GLSL shader for this text. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the Text's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 
 **Member Functions**
 
--  `get_cursor_pos( index )` - Return the cursor `x` position relative to to the object for the given index. Does not work when `word_wrap` is `true`. Range is `[0...msg.len()]`
+-  `get_cursor_pos( index )` - Return the cursor `x` position relative to the object in grid coordinates for the given index. Does not work when `word_wrap` is `true`. Range is `[0...msg.len()]`
 -  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text. Range is `[0...255]`.
 -  `set_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text background. Range is `[0...255]`.
 -  `set_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the text outline. Range is `[0...255]`.
@@ -2105,11 +2105,11 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `ListAlign.Bottom` - Aligns options to the bottom.
    -  `ListAlign.Selection` - Aligns options to keep `sel_row` in-place during list change (with respect to `sel_margin` and `list_size`).
 -  `list_size` - Get the size of the list shown by the listbox. When the listbox is assigned as an overlay custom control this property will return the number of options available in the overlay dialog. This property is updated during `Transition.ShowOverlay`
--  `char_size` - Get/set the forced character size. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
--  `glyph_size` - Get the height in pixels of the capital letter.
+-  `char_size` - Get/set the forced character size in vertical grid units. If this is `<= 0` then Attract-Mode Plus will auto-size based on the value of `height`/`rows`. Default value is `-1`.
+-  `glyph_size` - Get the height of the capital letter in vertical grid units.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
--  `outline` 🔶 - Get/set the thickness of the outline applied to the text. Default value is `0.0`.
--  `sel_outline` 🔶 - Get/set the thickness of the outline applied to the selection text. Default value is `0.0`.
+-  `outline` 🔶 - Get/set the thickness of the outline applied to the text, in vertical grid units. Default value is `0.0`.
+-  `sel_outline` 🔶 - Get/set the thickness of the outline applied to the selection text, in vertical grid units. Default value is `0.0`.
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
@@ -2149,10 +2149,10 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
    -  `Selection.Paged` - The selection moves freely until it reaches the `sel_margin`, at which point the list scrolls _one page_ and the selection resets to the opposite margin.
 -  `sel_margin` 🔶 - Get/set the selection margin for `Selection.Moving` and `Selection.Paged` modes. The list will scroll when the selection is this many rows away from the edges.
 -  `sel_row` 🔶 - Get/set the index of the row that is currently selected, with respect to `sel_margin` and `list_size`. Has no effect in `Selection.Paged` mode. Defaults to the middle row.
--  `sel_y` 🔶 - Get the y position of the selected row within the listbox.
--  `row_height` 🔶 - Get the height of a single row in the listbox.
+-  `sel_y` 🔶 - Get the y position of the selected row within the listbox, in grid coordinates.
+-  `row_height` 🔶 - Get the height of a single row in the listbox, in vertical grid units.
 -  `font` - Get/set the filename of the font used for this listbox. If not set default font is used.
--  `margin` - Get/set the margin spacing in pixels to sides of the text. Default value is `-1` which calculates the margin based on the .char_size.
+-  `margin` - Get/set the margin spacing to sides of the text, in vertical grid units. Default value is `-1` which calculates the margin based on the `char_size`.
 -  `format_string` - Get/set the format for the text to display in each list entry. [_Magic Tokens_](#magic-tokens) can be used here. If empty, game titles will be displayed (i.e. the same behaviour as if set to `"[Title]"`). Default is an empty value.
 -  `shader` - Get/set the GLSL shader for this listbox. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `zorder` - Get/set the listbox's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
@@ -2191,7 +2191,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `green` - Get/set green colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `blue` - Get/set blue colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `alpha` - Get/set alpha level for the rectangle. Range is `[0...255]`. Default value is `255`.
--  `outline` - Get/set the thickness of the outline applied to the rectangle. Default value is `0.0`
+-  `outline` - Get/set the thickness of the outline applied to the rectangle, in vertical grid units. Negative values draw the outline inward. Default value is `0.0`.
 -  `outline_red` - Get/set red colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `outline_green` - Get/set green colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `outline_blue` - Get/set blue colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
