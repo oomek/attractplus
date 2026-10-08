@@ -203,8 +203,8 @@ public:
 	static FeImage *cb_add_artwork(const char *);
 	static FeModel3D *cb_add_model_3d(const char *);
 	static Sqrat::Object cb_add_clone_presentable( FeBasePresentable * );
-	static FeText *cb_add_text(const char *,int, int, int, int);
-	static FeListBox *cb_add_listbox(int, int, int, int);
+	static FeText *cb_add_text(const char *,float, float, float, float);
+	static FeListBox *cb_add_listbox(float, float, float, float);
 	static FeRectangle *cb_add_rectangle(float, float, float, float);
 	static FeImage *cb_add_surface(float, float, float, float);
 	static FeImage *cb_add_surface(float, float, float, float, int, int);

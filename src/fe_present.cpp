@@ -171,6 +171,7 @@ FeMonitor::FeMonitor( const FeMonitor &o )
 FeMonitor &FeMonitor::operator=( const FeMonitor &o )
 {
 	elements = o.elements;
+	grid = o.grid;
 	transform = o.transform;
 	size = o.size;
 	num = o.num;
@@ -191,6 +192,11 @@ int FeMonitor::get_height()
 int FeMonitor::get_num()
 {
 	return num;
+}
+
+Vec2f FeMonitor::get_grid_extent() const
+{
+	return num == 0 ? FePresentableParent::get_grid_extent() : Vec2f( size );
 }
 
 Vec2f FeMonitor::snap_position_to_pixel( const Vec2f &p ) const
@@ -245,7 +251,6 @@ FePresent::FePresent( FeSettings *fesettings, FeWindow &wnd )
 	m_layout_crop( true ),
 	m_custom_overlay( false ),
 	m_mouse_pointer_visible( false ),
-	m_pixel_snap( false ),
 	m_listBox( NULL ),
 	m_emptyShader( NULL ),
 	m_overlay_caption( NULL ),
@@ -511,7 +516,8 @@ void FePresent::clear_layout()
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
-	m_pixel_snap = false;
+	for ( FeMonitor &monitor : m_mon )
+		monitor.grid = FeGrid();
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	il.set_background_loading( false );
@@ -1630,7 +1636,7 @@ FeModel3D *FePresent::add_clone( FeModel3D *o, FePresentableParent &p )
 	return new_model_3d;
 }
 
-FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
+FeText *FePresent::add_text( const std::string &n, float x, float y, float w, float h,
 			FePresentableParent &p )
 {
 	FeText *new_text = new FeText( p, n, x, y, w, h );
@@ -1649,7 +1655,7 @@ FeText *FePresent::add_text( const std::string &n, int x, int y, int w, int h,
 	return new_text;
 }
 
-FeListBox *FePresent::add_listbox( int x, int y, int w, int h,
+FeListBox *FePresent::add_listbox( float x, float y, float w, float h,
 		FePresentableParent &p )
 {
 	FeListBox *new_lb = new FeListBox( p, x, y, w, h );
@@ -1836,10 +1842,22 @@ FeShader *FePresent::compile_shader( FeShader::Type type, const char *shader1, c
 
 float FePresent::get_layout_width() const
 {
-	return (float)m_layoutSize.x;
+	return m_mon[0].grid.transform( Vec2f( m_layoutSize ) )
+		.inverse_size( Vec2f( m_layoutSize ) ).x;
 }
 
 float FePresent::get_layout_height() const
+{
+	return m_mon[0].grid.transform( Vec2f( m_layoutSize ) )
+		.inverse_size( Vec2f( m_layoutSize ) ).y;
+}
+
+float FePresent::get_layout_pixel_width() const
+{
+	return (float)m_layoutSize.x;
+}
+
+float FePresent::get_layout_pixel_height() const
 {
 	return (float)m_layoutSize.y;
 }
@@ -1852,21 +1870,6 @@ float FePresent::get_layout_scale_x() const
 float FePresent::get_layout_scale_y() const
 {
 	return m_layoutScale.y;
-}
-
-bool FePresent::get_layout_pixel_snap() const
-{
-	return m_pixel_snap;
-}
-
-void FePresent::set_layout_pixel_snap( bool s )
-{
-	if ( s != m_pixel_snap )
-	{
-		m_pixel_snap = s;
-		refresh_script_geometry();
-		flag_redraw();
-	}
 }
 
 void FePresent::set_layout_width( float w )

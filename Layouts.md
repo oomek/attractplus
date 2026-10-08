@@ -27,6 +27,7 @@
    -  [`fe.add_text()`](#feadd_text)
    -  [`fe.add_listbox()`](#feadd_listbox)
    -  [`fe.add_rectangle()`](#feadd_rectangle-) 🔶
+   -  [`fe.set_grid()`](#feset_grid)
    -  [`fe.add_shader()`](#feadd_shader)
    -  [`fe.compile_shader()`](#fecompile_shader-) 🔶
    -  [`fe.add_sound()`](#feadd_sound)
@@ -56,6 +57,9 @@
 -  [Objects and Variables](#objects-and-variables)
    -  [`fe.ambient_sound`](#feambient_sound)
    -  [`fe.layout`](#felayout)
+   -  [`fe.grid`](#fegrid)
+   -  [`fe.plugin`](#feplugin)
+   -  [Grid coordinates](#grid-coordinates)
    -  [`fe.list`](#felist)
    -  [`fe.image_cache`](#feimage_cache)
    -  [`fe.overlay`](#feoverlay)
@@ -69,6 +73,7 @@
    -  [`fe.nv`](#fenv)
 -  [Classes](#classes)
    -  [`fe.LayoutGlobals`](#felayoutglobals)
+   -  [`fe.Grid`](#fegrid-1)
    -  [`fe.CurrentList`](#fecurrentlist)
    -  [`fe.ImageCache`](#feimagecache)
    -  [`fe.Overlay`](#feoverlay-1)
@@ -110,16 +115,17 @@ Layouts define what gets displayed to the user. They consist of a `layout.nut` f
 
 Layouts can have one or more `layout*.nut` files, which may be cycled between using the "Next/Previous Layout" commands.
 
+Use [`fe.set_grid()`](#grid-coordinates) to choose the layout's coordinate range. The layout keeps its native pixel dimensions.
+
 ```squirrel
-local flw = fe.layout.width
-local flh = fe.layout.height
+fe.set_grid(100)
 
 // Background movie artwork
-local img = fe.add_artwork( "snap", 0, 0, flw, flh )
+local img = fe.add_artwork( "snap", 0, 0, 100, 100 )
 img.alpha = 70
 
 // Game listbox
-local lb = fe.add_listbox( 0, 0, flw, flh )
+local lb = fe.add_listbox( 0, 0, 100, 100 )
 ```
 
 > _The default Layout - it doesn't get much simpler than this!_
@@ -316,6 +322,8 @@ function callback( config )
 
 ## Functions
 
+Drawable positions and sizes use [grid coordinates](#grid-coordinates). Drawables use the grid of the layout, monitor or surface where they were added. With the default grid, these values are pixels.
+
 ### `fe.add_image()`
 
 ```squirrel
@@ -331,10 +339,10 @@ The default `blend_mode` for images is `BlendMode.Alpha`
 **Parameters**
 
 -  `name` - The name of an image/video file to show. If a relative path is provided (i.e. `"bg.png"`) it is assumed to be relative to the current layout directory (or the plugin directory, if called from a plugin script). If a relative path is provided and the layout/plugin is contained in an archive, Attract-Mode Plus will open the corresponding file stored inside of the archive. Supported image formats are: `PNG`, `JPEG`, `GIF`, `BMP` and `TGA`. Videos can be in any format supported by FFmpeg. One or more [_Magic Tokens_](#magic-tokens) can be used in the name, in which case Attract-Mode Plus will automatically update the image/video file appropriately in response to user navigation. For example `"man/[Manufacturer]"` will load the file corresponding to the manufacturer's name from the man subdirectory of the layout/plugin (example: `"man/Konami.png"`). When Magic Tokens are used, the file extension specified in `name` is ignored (if present) and Attract-Mode Plus will load any supported media file that matches the Magic Token.
--  `x` - The x position of the image (in layout coordinates).
--  `y` - The y position of the image (in layout coordinates).
--  `w` - The width of the image (in layout coordinates). Default value is `0`, which enables `auto_width`.
--  `h` - The height of the image (in layout coordinates). Default value is `0`, which enables `auto_height`.
+-  `x` - The x position of the image (in grid coordinates).
+-  `y` - The y position of the image (in grid coordinates).
+-  `w` - The width of the image (in grid coordinates). Default value is `0`, which enables `auto_width`.
+-  `h` - The height of the image (in grid coordinates). Default value is `0`, which enables `auto_height`.
 
 **Return Value**
 
@@ -357,10 +365,10 @@ The default `blend_mode` for artwork is `BlendMode.Alpha`
 **Parameters**
 
 -  `label` - The label of the artwork to display. This should correspond to an artwork configured in Attract-Mode Plus (artworks are configured per emulator in the config menu) or scraped using the scraper. Standard artwork labels are: `"snap"`, `"marquee"`, `"flyer"`, `"wheel"`, and `"fanart"`.
--  `x` - The x position of the artwork (in layout coordinates).
--  `y` - The y position of the artwork (in layout coordinates).
--  `w` - The width of the artwork (in layout coordinates). Default value is `0`, which enables `auto_width`.
--  `h` - The height of the artwork (in layout coordinates). Default value is `0`, which enables `auto_height`.
+-  `x` - The x position of the artwork (in grid coordinates).
+-  `y` - The y position of the artwork (in grid coordinates).
+-  `w` - The width of the artwork (in grid coordinates). Default value is `0`, which enables `auto_width`.
+-  `h` - The height of the artwork (in grid coordinates). Default value is `0`, which enables `auto_height`.
 
 **Return Value**
 
@@ -373,20 +381,24 @@ The default `blend_mode` for artwork is `BlendMode.Alpha`
 ```squirrel
 fe.add_surface( w, h )
 fe.add_surface( x, y, w, h ) 🔶
+fe.add_surface( x, y, w, h, texture_width, texture_height ) 🔶
 ```
 
 Add a surface to the end of the draw list. A surface is an off-screen texture upon which you can draw other [`Image`](#feadd_image), [`Artwork`](#feadd_artwork), [`Text`](#feadd_text), [`Listbox`](#feadd_listbox) and [`Surface`](#feadd_surface) objects. The resulting texture is treated as a static image by Attract-Mode Plus which can in turn have image effects applied to it (`scale`, `position`, `pinch`, `skew`, `shaders`, etc) when it is drawn.
 
-A surface's texture size is fixed upon creation. Later changes to `width` or `height` will not change the texture's dimensions.
+Without explicit texture dimensions, the texture is allocated from the displayed size in pixels at creation, rounded to whole pixels. The six-argument form lets you choose the texture resolution separately. A surface's texture size is fixed upon creation; later changes to `width` or `height` change its displayed size only.
 
 The default `blend_mode` for surfaces is `BlendMode.Premultiplied`
 
 **Parameters**
 
--  `x` - The x coordinate of the top left corner of the surface (in layout coordinates).
--  `y` - The y coordinate of the top left corner of the surface (in layout coordinates).
--  `w` - The width of the surface texture (in pixels).
--  `h` - The height of the surface texture (in pixels).
+-  `x` - The x coordinate of the top left corner of the surface (in grid coordinates).
+-  `y` - The y coordinate of the top left corner of the surface (in grid coordinates).
+-  `w` - The displayed width of the surface (in grid coordinates).
+-  `h` - The displayed height of the surface (in grid coordinates).
+-  `texture_width`, `texture_height` - Optional texture dimensions in pixels, used only by the six-argument form.
+
+The surface's position and displayed size use the grid in which it is added. Its children use the surface's own grid, which is based on the texture dimensions. See [Grid coordinates](#grid-coordinates).
 
 **Return Value**
 
@@ -423,10 +435,10 @@ Add a text label to the end of the draw list.
 **Parameters**
 
 -  `msg` - The text to display. [_Magic Tokens_](#magic-tokens) can be used here, in which case Attract-Mode Plus will dynamically update the msg in response to navigation.
--  `x` - The x coordinate of the top left corner of the text (in layout coordinates).
--  `y` - The y coordinate of the top left corner of the text (in layout coordinates).
--  `w` - The width of the text (in layout coordinates).
--  `h` - The height of the text (in layout coordinates).
+-  `x` - The x coordinate of the top left corner of the text (in grid coordinates).
+-  `y` - The y coordinate of the top left corner of the text (in grid coordinates).
+-  `w` - The width of the text (in grid coordinates).
+-  `h` - The height of the text (in grid coordinates).
 
 **Return Value**
 
@@ -444,10 +456,10 @@ Add a listbox to the end of the draw list.
 
 **Parameters**
 
--  `x` - The x coordinate of the top left corner of the listbox (in layout coordinates).
--  `y` - The y coordinate of the top left corner of the listbox (in layout coordinates).
--  `w` - The width of the listbox (in layout coordinates).
--  `h` - The height of the listbox (in layout coordinates).
+-  `x` - The x coordinate of the top left corner of the listbox (in grid coordinates).
+-  `y` - The y coordinate of the top left corner of the listbox (in grid coordinates).
+-  `w` - The width of the listbox (in grid coordinates).
+-  `h` - The height of the listbox (in grid coordinates).
 
 **Return Value**
 
@@ -466,14 +478,33 @@ Add a rectangle to the end of the draw list.
 
 **Parameters**
 
--  `x` - The x coordinate of the top left corner of the rectangle (in layout coordinates).
--  `y` - The y coordinate of the top left corner of the rectangle (in layout coordinates).
--  `w` - The width of the rectangle (in layout coordinates).
--  `h` - The height of the rectangle (in layout coordinates).
+-  `x` - The x coordinate of the top left corner of the rectangle (in grid coordinates).
+-  `y` - The y coordinate of the top left corner of the rectangle (in grid coordinates).
+-  `w` - The width of the rectangle (in grid coordinates).
+-  `h` - The height of the rectangle (in grid coordinates).
 
 **Return Value**
 
 -  An instance of the class [`fe.Rectangle`](#ferectangle-) which can be used to interact with the added rectangle.
+
+---
+
+### `fe.set_grid()`
+
+Define the layout's coordinate range while keeping its native pixel dimensions. See [Grid coordinates](#grid-coordinates) for scaling, centering and readback.
+
+-  `fe.set_grid(size)` - Start at `(0, 0)` with the given size on both axes. Use `0` for pixels (the default).
+-  `fe.set_grid(width, height)` - Start at `(0, 0)` with independent axis sizes.
+-  `fe.set_grid(x, y, width, height)` - Set the grid's starting point, width and height.
+
+```squirrel
+fe.set_grid(100)
+fe.grid.uniform = true
+fe.grid.centered = true
+fe.grid.pixel_snap = true
+```
+
+Surfaces and monitors provide the same overloads through `surface.set_grid()` and `monitor.set_grid()`. Their settings are on their `.grid` objects. `set_grid()` preserves those settings.
 
 ---
 
@@ -905,7 +936,7 @@ Check if a specific keyboard key, mouse button, joystick button or joystick dire
 fe.get_input_pos( input_id )
 ```
 
-Return the current position for the specified joystick axis.
+Return the current joystick axis position, mouse position or mouse wheel delta.
 
 **Parameters**
 
@@ -913,7 +944,9 @@ Return the current position for the specified joystick axis.
 
 **Return Value**
 
--  Current position of the specified axis, in range `[0...100]`.
+-  Joystick axes return a position in `[0...100]`.
+-  `"Mouse Left"` and `"Mouse Right"` return the mouse's x position; `"Mouse Up"` and `"Mouse Down"` return its y position. Mouse positions use the layout grid.
+-  Mouse wheel inputs return the scroll delta.
 
 ---
 
@@ -1309,6 +1342,14 @@ An instance of the [`fe.Music`](#femusic-) class and can be used to control the 
 
 An instance of the [`fe.LayoutGlobals`](#felayoutglobals) class and is where global layout settings are stored.
 
+### `fe.grid`
+
+The layout's [`fe.Grid`](#fegrid-1) instance, also available as `fe.layout.grid`. Its bounds, dimensions and settings stay current when the layout or grid changes. Inside a plugin, `fe.grid` still refers to the layout grid.
+
+### `fe.plugin`
+
+An empty table that can be used by plugins to store their functions and data.
+
 ### `fe.list`
 
 An instance of the [`fe.CurrentList`](#fecurrentlist) class and is where current display settings are stored.
@@ -1363,9 +1404,10 @@ This class is a container for global layout settings. The instance of this class
 
 **Properties**
 
--  `width` - Get/set the layout width. Default value is `ScreenWidth`.
--  `height` - Get/set the layout height. Default value is `ScreenHeight`.
--  `pixel_snap` 🔶 - Get/set whether geometry for drawables created by this layout is snapped to display pixels. Default is `false`.
+-  `width` - Get the visible layout width in grid coordinates (`fe.grid.width`). See the compatibility note below for assignments.
+-  `height` - Get the visible layout height in grid coordinates (`fe.grid.height`). See the compatibility note below for assignments.
+-  `pixel_width`, `pixel_height` - Read-only layout dimensions in pixels, independent of the grid settings. The defaults are `ScreenWidth` and `ScreenHeight`.
+-  `grid` - Read-only access to the layout's [`fe.Grid`](#fegrid-1), also available as `fe.grid`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1390,9 +1432,107 @@ This class is a container for global layout settings. The instance of this class
 
 **Notes**
 
+-  For new layouts, define coordinates with `fe.set_grid()` and keep the native pixel dimensions. Assignments to `width` and `height` remain supported for compatibility with older layouts. They set pixel dimensions even when a grid is active; reading these properties returns the current grid dimensions.
 -  The actual rotation of the layout can be determined using the following equation: `( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4`
 
 ---
+
+### Grid coordinates
+
+Use `fe.set_grid()` to define layout coordinates without overriding the layout's pixel dimensions. Drawable positions and sizes then use those coordinates.
+
+By default, coordinates are in pixels starting at `(0, 0)`, with uniform scaling, centering and snapping disabled. `set_grid()` changes the coordinate range and starting point while preserving `uniform`, `centered` and `pixel_snap`. The one- and two-argument forms start at `(0, 0)`; the four-argument form sets the starting point as well as the width and height. Use `set_grid(0)` to return to pixels starting at `(0, 0)`.
+
+With `uniform = false` (the default), the specified range covers the whole layout. Horizontal and vertical units can have different pixel sizes:
+
+```squirrel
+fe.set_grid(1)             // x: 0..1, y: 0..1
+fe.set_grid(200, 100)      // x: 0..200, y: 0..100
+fe.set_grid(-1, -2, 2, 4) // x: -1..1, y: -2..2
+```
+
+Set `uniform = true` for equally sized horizontal and vertical units. With `set_grid(size)`, the shorter layout dimension spans `0..size`; the longer dimension extends beyond that range.
+
+```squirrel
+fe.set_grid(100)
+fe.grid.uniform = true
+fe.grid.pixel_snap = true
+local rec = fe.add_rectangle(10, 10, 10, 10)
+rec.x += 5
+fe.log(rec.x) // 15
+```
+
+In a native `1280 x 960` window, one unit in this example is `9.6` pixels and the rectangle is `96 x 96` pixels. Grid coordinates are ordinary Squirrel numbers. Reading an explicitly set position or size returns its grid value, including fractions. Pixel snapping affects the rendered result; small updates such as `rec.x -= 0.001` accumulate in grid units.
+
+For a rectangular uniform grid, AM+ uses a single pixel scale that fits the specified rectangle inside the layout. `centered = true` centers that rectangle. It has no effect when uniform scaling is disabled or coordinates are in pixels.
+
+```squirrel
+fe.set_grid(-1, -1, 2, 2)
+fe.grid.uniform = true
+fe.grid.centered = true
+```
+
+The shorter dimension now spans `-1..1`; the longer dimension extends equally on both sides. In a native `1280 x 960` window, the visible bounds are approximately `-1.333..1.333` horizontally and `-1..1` vertically. In portrait, the vertical range is the longer one.
+
+Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. The read-only `fe.layout.pixel_width` and `fe.layout.pixel_height` provide pixel measurements. `set_grid()` leaves these pixel dimensions unchanged.
+
+Use `fe.grid` for the layout's grid and `surface.grid` for a surface's internal grid. Both provide the full visible bounds and dimensions:
+
+```squirrel
+local background = fe.add_rectangle(fe.grid.left, fe.grid.top, fe.grid.width, fe.grid.height)
+
+local surface = fe.add_surface(10, 10, 80, 50)
+surface.set_grid(100)
+local surface_background = surface.add_rectangle(surface.grid.left, surface.grid.top, surface.grid.width, surface.grid.height)
+```
+
+`surface.width` and `surface.height` describe its displayed size in the enclosing grid. `surface.grid.width` and `surface.grid.height` describe its internal drawing area, including any space beyond a centered uniform grid. Grid dimensions are read-only; change the coordinate range with `set_grid()`.
+
+For example, two panes can cover the full layout in landscape or portrait:
+
+```squirrel
+fe.set_grid(100)
+fe.grid.uniform = true
+fe.grid.centered = true
+
+local pane1 = fe.add_rectangle(fe.grid.left, fe.grid.top, 20, fe.grid.height)
+local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
+    fe.grid.width - 20, fe.grid.height)
+```
+
+Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
+
+Use `fe.set_grid()`, `surface.set_grid()`, `monitor.set_grid()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
+
+```squirrel
+fe.set_grid(100)
+fe.grid.uniform = false
+local surface = fe.add_surface(10, 10, 80, 80)
+surface.set_grid(100)
+surface.add_rectangle(10, 10, 20, 20)
+```
+
+The surface occupies 80% of the layout on each axis, and its rectangle occupies 20% of the texture on each axis. Its texture is allocated from its displayed pixel size, using the snapped edges when the enclosing grid has `pixel_snap` enabled. Resizing the surface later leaves the texture dimensions and its children's grid unchanged. Use the six-argument `add_surface()` form when a specific texture resolution is needed.
+
+`fe.monitors[0]` shares the layout grid. Additional monitors have independent grids.
+
+Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
+
+All `set_grid()` arguments must be finite numbers. Width and height must be positive, except for `set_grid(0)`. The three boolean properties require `true` or `false`.
+
+### `fe.Grid`
+
+Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[n].grid`. A stored grid reference stays current when its settings or pixel dimensions change. This class cannot be instantiated in a script.
+
+**Properties**
+
+-  `left`, `top`, `right`, `bottom` - Read-only visible bounds in grid coordinates.
+-  `width`, `height` - Read-only visible dimensions in grid coordinates: `right - left` and `bottom - top`.
+-  `uniform` - Get/set equal horizontal and vertical grid-unit sizes. Default is `false`.
+-  `centered` - Get/set centering of the specified uniform grid range. Inactive in pixels or with nonuniform scaling. Default is `false`.
+-  `pixel_snap` - Get/set snapping of rendered geometry while retaining fractional coordinates on readback. Default is `false`.
+
+Define the coordinate range with [`fe.set_grid()`](#feset_grid), `surface.set_grid()`, `monitor.set_grid()`.
 
 ### `fe.CurrentList`
 
@@ -1519,13 +1659,16 @@ This class is a container for information about the available filters. Instances
 
 ### `fe.Monitor`
 
+Each monitor supports the [grid functions and properties](#grid-coordinates). `fe.monitors[0]` shares `fe.layout` settings; additional monitors have independent grids based on their own dimensions.
+
 This class represents a monitor in Attract-Mode Plus, and provides the interface to the extra monitors in a multi-monitor setup. Instances of this class are contained in the [`fe.monitors`](#femonitors) array. This class cannot otherwise be instantiated in a script.
 
 **Properties**
 
 -  `num` - Get the monitor number.
--  `width` - Get the monitor width in pixels.
--  `height` - Get the monitor height in pixels.
+-  `width` - Get the monitor width in pixels, regardless of its grid settings. Use `grid.width` for its width in grid coordinates.
+-  `height` - Get the monitor height in pixels, regardless of its grid settings. Use `grid.height` for its height in grid coordinates.
+-  `grid` - Read-only access to the monitor's [`fe.Grid`](#fegrid-1).
 
 **Member Functions**
 
@@ -1536,6 +1679,9 @@ This class represents a monitor in Attract-Mode Plus, and provides the interface
 -  `add_listbox()` - Add a listbox to the end of this monitor's draw list, see [`fe.add_listbox()`](#feadd_listbox).
 -  `add_surface()` - Add a surface to the end of this monitor's draw list, see [`fe.add_surface()`](#feadd_surface).
 -  `add_rectangle()` - Add a rectangle to the end of this monitor's draw list, see [`fe.add_rectangle()`](#feadd_rectangle-).
+-  `set_grid(size)` - Set a grid starting at `(0, 0)` with the given size on both axes. Use `0` for pixels.
+-  `set_grid(width, height)` - Set a grid starting at `(0, 0)` with independent axis sizes.
+-  `set_grid(x, y, width, height)` - Set the grid's starting point, width and height.
 
 **Notes**
 
@@ -1550,11 +1696,11 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 
 **Properties**
 
--  `x` - Get/set the x position of the image (in layout coordinates).
--  `y` - Get/set the y position of the image (in layout coordinates).
--  `width` - Get/set the width of the image (in layout coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
--  `height` - Get/set the height of the image (in layout coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
--  `pixel_snap` 🔶 - Get/set whether the image geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
+-  `x` - Get/set the x position of the image (in grid coordinates).
+-  `y` - Get/set the y position of the image (in grid coordinates).
+-  `width` - Get/set the width of the image (in grid coordinates). Setting this property will set `auto_width` to `false`. See [Notes](#artwork-notes).
+-  `height` - Get/set the height of the image (in grid coordinates). Setting this property will set `auto_height` to `false`. See [Notes](#artwork-notes).
+-  `grid` - Surface only: read-only access to its internal [`fe.Grid`](#fegrid-1). Its dimensions use the surface's texture, independently of the surface's displayed size.
 -  `auto_width` 🔶 - Get/set if using automatic width, which updates `width` to match the current texture. Default is `true`.
 -  `auto_height` 🔶 - Get/set if using automatic height, which updates `height` to match the current texture. Default is `true`.
 -  `visible` - Get/set whether image is visible (boolean). Default value is `true`.
@@ -1683,8 +1829,8 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 **Member Functions**
 
 -  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the image. Range is `[0...255]`.
--  `set_pos( x, y )` - Set the image position (in layout coordinates).
--  `set_pos( x, y, width, height )` - Set the image position and size (in layout coordinates).
+-  `set_pos( x, y )` - Set the image position (in grid coordinates).
+-  `set_pos( x, y, width, height )` - Set the image position and size (in grid coordinates).
 -  `set_fit_anchor( x, y )` 🔶 - Set the texture anchor, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
@@ -1700,9 +1846,13 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `add_listbox()` - _[surface only]_ Add a listbox to the end of this surface's draw list, see [`fe.add_listbox()`](#feadd_listbox).
 -  `add_surface()` - _[surface only]_ Add a surface to the end of this surface's draw list, see [`fe.add_surface()`](#feadd_surface).
 -  `add_rectangle()` - _[surface only]_ Add a rectangle to the end of this surface's draw list, see [`fe.add_rectangle()`](#feadd_rectangle-).
+-  `set_grid(size)` - _[surface only]_ Set its children's grid starting at `(0, 0)` with the given size on both axes. Use `0` for pixels.
+-  `set_grid(width, height)` - _[surface only]_ Set its children's grid starting at `(0, 0)` with independent axis sizes.
+-  `set_grid(x, y, width, height)` - _[surface only]_ Set its children's grid starting point, width and height.
 
 <a name="artwork-notes">**Notes**</a>
 
+-  On a surface, `x`, `y`, `width` and `height` describe its displayed geometry in the grid where it was added. `surface.grid` provides the texture bounds in the grid used by its children.
 -  Using a negative `width` or `height` will flip the image about its anchor point. To flip an image in-place `subimg` properties can be used:
    ```squirrel
    // flip img vertically
@@ -1739,11 +1889,10 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 
 -  `msg` - Get/set the text label's message. [_Magic Tokens_](#magic-tokens) can be used here.
 -  `msg_wrapped` - Get the text label's message after word wrapping.
--  `x` - Get/set x position of top left corner (in layout coordinates).
--  `y` - Get/set y position of top left corner (in layout coordinates).
--  `width` - Get/set width of text (in layout coordinates).
--  `height` - Get/set height of text (in layout coordinates).
--  `pixel_snap` 🔶 - Get/set whether the text geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
+-  `x` - Get/set x position of top left corner (in grid coordinates).
+-  `y` - Get/set y position of top left corner (in grid coordinates).
+-  `width` - Get/set width of text (in grid coordinates).
+-  `height` - Get/set height of text (in grid coordinates).
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
 -  `type` - Get the text object type. Text returns `Type.Text`.
 -  `magic` - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
@@ -1854,8 +2003,8 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `set_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the text background. Range is `[0...255]`.
 -  `set_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the text outline. Range is `[0...255]`.
 -  `set_bg_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the outline of the text background. Range is `[0...255]`.
--  `set_pos( x, y )` - Set the text position (in layout coordinates).
--  `set_pos( x, y, width, height )` - Set the text position and size (in layout coordinates).
+-  `set_pos( x, y )` - Set the text position (in grid coordinates).
+-  `set_pos( x, y, width, height )` - Set the text position and size (in grid coordinates).
 -  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
@@ -1868,11 +2017,10 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 
 **Properties**
 
--  `x` - Get/set x position of top left corner (in layout coordinates).
--  `y` - Get/set y position of top left corner (in layout coordinates).
--  `width` - Get/set width of listbox (in layout coordinates).
--  `height` - Get/set height of listbox (in layout coordinates).
--  `pixel_snap` 🔶 - Get/set whether the listbox geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
+-  `x` - Get/set x position of top left corner (in grid coordinates).
+-  `y` - Get/set y position of top left corner (in grid coordinates).
+-  `width` - Get/set width of listbox (in grid coordinates).
+-  `height` - Get/set height of listbox (in grid coordinates).
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
 -  `type` - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
@@ -2007,8 +2155,8 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `set_sel_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection text. Range is `[0...255]`.
 -  `set_sel_bg_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the selection background. Range is `[0...255]`.
 -  `set_sel_outline_rgb( r, g, b, a? )` 🔶 - Set the red, green, blue, and optionally alpha colour values for the selection text outline. Range is `[0...255]`.
--  `set_pos( x, y )` - Set the listbox position (in layout coordinates).
--  `set_pos( x, y, width, height )` - Set the listbox position and size (in layout coordinates).
+-  `set_pos( x, y )` - Set the listbox position (in grid coordinates).
+-  `set_pos( x, y, width, height )` - Set the listbox position and size (in grid coordinates).
 -  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
@@ -2021,11 +2169,10 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 
 **Properties**
 
--  `x` - Get/set the x position of the rectangle (in layout coordinates).
--  `y` - Get/set the y position of the rectangle (in layout coordinates).
--  `width` - Get/set the width of the rectangle (in layout coordinates).
--  `height` - Get/set the height of the rectangle (in layout coordinates).
--  `pixel_snap` 🔶 - Get/set whether the rectangle geometry is snapped to display pixels. Objects created by layouts inherit `fe.layout.pixel_snap`; the default is `false`.
+-  `x` - Get/set the x position of the rectangle (in grid coordinates).
+-  `y` - Get/set the y position of the rectangle (in grid coordinates).
+-  `width` - Get/set the width of the rectangle (in grid coordinates).
+-  `height` - Get/set the height of the rectangle (in grid coordinates).
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
 -  `type` - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
@@ -2078,9 +2225,9 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `anchor_y` - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_y` - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `corner_radius` - Get/set the corner radius (in layout coordinates). This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
--  `corner_radius_x` - Get/set the corner x radius (in layout coordinates). Default value is `0.0`.
--  `corner_radius_y` - Get/set the corner y radius (in layout coordinates). Default value is `0.0`.
+-  `corner_radius` - Get/set the corner radius (in pixels). This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
+-  `corner_radius_x` - Get/set the corner x radius (in pixels). Default value is `0.0`.
+-  `corner_radius_y` - Get/set the corner y radius (in pixels). Default value is `0.0`.
 -  `corner_ratio` - Get/set the corner radius as a fraction of the smallest side. This property will adjust the radius to preserve corner roundness when set. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_x` - Get/set the corner x radius as a fraction of the width. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_y` - Get/set the corner y radius as a fraction of the height. Range is `[0.0...0.5]`. Default value is `0.0`.
@@ -2102,13 +2249,13 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 **Member Functions**
 
 -  `set_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the rectangle. Range is `[0...255]`.
--  `set_pos( x, y )` - Set the rectangle position (in layout coordinates).
--  `set_pos( x, y, width, height )` - Set the rectangle position and size (in layout coordinates).
+-  `set_pos( x, y )` - Set the rectangle position (in grid coordinates).
+-  `set_pos( x, y, width, height )` - Set the rectangle position and size (in grid coordinates).
 -  `set_outline_rgb( r, g, b, a? )` - Set the red, green, blue, and optionally alpha colour values for the rectangle outline. Range is `[0...255]`.
 -  `set_transform_origin( x, y )` - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
--  `set_corner_radius( x, y )` - Set the corner x and y radius (in layout coordinates).
+-  `set_corner_radius( x, y )` - Set the corner x and y radius (in pixels).
 -  `set_corner_ratio( x, y )` - Set the corner x and y radius as a fraction of the width and height. Range is `[0.0...0.5]`.
 
 ---
@@ -2583,7 +2730,7 @@ The results show the beginning value `b = 0` changing by `c = 1`, using a `cubic
 
 ### Animation 🔶
 
-Images, artwork, surfaces, clones, text, listboxes, and rectangles provide `move()` for animating one numeric property in direct layout-pixel coordinates.
+Images, artwork, surfaces, clones, text, listboxes, and rectangles provide `move()` for animating a numeric property. Positions and sizes use the same [grid coordinates](#grid-coordinates) as their constructors and setters. Other properties use their normal units, such as degrees for rotation.
 
 **Member Functions**
 
@@ -2595,15 +2742,16 @@ Images, artwork, surfaces, clones, text, listboxes, and rectangles provide `move
 For example:
 
 ```squirrel
-local logo = fe.add_image( "logo.png", 20, 20, 300, 100 )
-logo.move( "x", 200, 750, Ease.OutCubic )
+fe.set_grid(100)
+local rec = fe.add_rectangle(10, 10, 10, 10)
+rec.move("x", 70, 750, Ease.OutCubic)
 ```
 
 An easing callback receives `( t, b, c, d )`: iteration time in milliseconds, original start value, change from start to destination, and duration. It returns the animated value. Reverse playback runs `t` backward from `d` to `0`, keeping `b` and `c` unchanged, so an ease-out curve becomes ease-in on the return trip. Built-in `Ease.Inertia` instead swaps the endpoints and keeps time moving forward.
 
 The returned animation object has these properties:
 
--  `to` - Final value. Assigning a value starts or restarts the animation.
+-  `to` - Final value, in the animated property's units. Assigning a value starts or restarts the animation.
 -  `duration` - Duration in milliseconds. Default is `1000`.
 -  `time` - Playhead in milliseconds. Negative values delay the start.
 -  `ease` - An `Ease` constant. Default is `Ease.Inertia`.
@@ -2614,4 +2762,4 @@ The returned animation object has these properties:
 
 Common properties include `x`, `y`, `width`, `height`, `rotation`, `red`, `green`, `blue`, and `alpha`. Drawable-specific geometry, colour, and effect properties are also supported. Directly assigning an animated geometry property stops that property's animation and keeps the assigned value.
 
-Set `pixel_snap` on a layout or individual drawable when animated geometry must be rounded to display pixels.
+Enable `pixel_snap` in the grid used by the animated drawable to snap its final position and size to pixel boundaries. Intermediate animation frames remain smooth. Changing grid settings refreshes the displayed geometry without restarting or cancelling the animation.

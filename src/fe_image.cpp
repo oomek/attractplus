@@ -1166,6 +1166,11 @@ const std::vector<float> *FeTextureContainer::get_fft_right_ptr() const
 	return visualiser ? visualiser->get_fft_right_ptr() : nullptr;
 }
 
+Vec2f FeSurfaceTextureContainer::get_grid_extent() const
+{
+	return Vec2f( get_texture_size() );
+}
+
 FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	: m_clear( true ),
 	m_redraw( true ),
@@ -1444,9 +1449,7 @@ void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 
 void FeImage::on_transform_update()
 {
-	m_sprite.setRotationX( get_rotation_x() );
-	m_sprite.setRotationY( get_rotation_y() );
-	m_sprite.setRotationOrder( get_rotation_order() );
+	scale();
 }
 
 int FeImage::getIndexOffset() const
@@ -1527,8 +1530,11 @@ void FeImage::scale()
 	if (( tex_size.x == 0 ) || ( tex_size.y == 0 ))
 		return;
 
+	Vec2f render_pos = m_pos;
+	Vec2f render_size = m_size;
+	snap_draw_geometry( render_pos, render_size );
 	// Prepare some ratios and sizes
-	Vec2f size( std::abs( m_size.x ), std::abs( m_size.y ) );
+	Vec2f size( std::abs( render_size.x ), std::abs( render_size.y ) );
 	float img_ratio = size.x / size.y;
 	float tex_ratio = tex_size.x / tex_size.y;
 	float par_ratio = resolveAspectRatio();
@@ -1587,13 +1593,13 @@ void FeImage::scale()
 	);
 
 	// If auto-sizing set the calculated values back into m_size
-	if ( m_auto_size.x ) m_size.x = size.x;
-	if ( m_auto_size.y ) m_size.y = size.y;
+	if ( m_auto_size.x ) render_size.x = m_size.x = size.x;
+	if ( m_auto_size.y ) render_size.y = m_size.y = size.y;
 
 	// Anchor the texture, most common for Fit.Contain where the texture is smaller than the image
 	Vec2f offset(
-		( m_size.x - size.x ) * m_fit_anchor.x,
-		( m_size.y - size.y ) * m_fit_anchor.y
+		( render_size.x - size.x ) * m_fit_anchor.x,
+		( render_size.y - size.y ) * m_fit_anchor.y
 	);
 
 	// The crop property instructs the sprite to reduce size to hide the texture overlap
@@ -1602,8 +1608,8 @@ void FeImage::scale()
 		: FloatEdges(
 			std::max( 0.f, (-offset.x) * flip.x ),
 			std::max( 0.f, (-offset.y) * flip.y ),
-			std::max( 0.f, (( offset.x + size.x - m_size.x )) * flip.x ),
-			std::max( 0.f, (( offset.y + size.y - m_size.y )) * flip.y )
+			std::max( 0.f, (( offset.x + size.x - render_size.x )) * flip.x ),
+			std::max( 0.f, (( offset.y + size.y - render_size.y )) * flip.y )
 		);
 
 	// Translate the texture to match the desired position
@@ -1616,16 +1622,16 @@ void FeImage::scale()
 			( offset.x * sin_rotation ) + ( offset.y * cos_rotation ) )
 		: Vec2f( 0.0f, 0.0f );
 
-	Vec2f pos = m_pos;
+	Vec2f pos = render_pos;
 	pos += pos_rotation;
 	pos += Vec2f(
-		( m_rotation_origin.x - m_anchor.x ) * m_size.x,
-		( m_rotation_origin.y - m_anchor.y ) * m_size.y
+		( m_rotation_origin.x - m_anchor.x ) * render_size.x,
+		( m_rotation_origin.y - m_anchor.y ) * render_size.y
 	);
 
 	Vec3f origin(
-		( m_origin.x + m_rotation_origin.x * m_size.x ) / scale.x,
-		( m_origin.y + m_rotation_origin.y * m_size.y ) / scale.y,
+		( m_origin.x + m_rotation_origin.x * render_size.x ) / scale.x,
+		( m_origin.y + m_rotation_origin.y * render_size.y ) / scale.y,
 		m_origin.z + m_rotation_origin.z
 	);
 
@@ -1736,6 +1742,12 @@ void FeImage::set_pos( float x, float y, float w, float h )
 	m_auto_size.x = false;
 	m_auto_size.y = false;
 	FeBasePresentable::set_pos( x, y, w, h );
+}
+
+void FeImage::refresh_script_geometry()
+{
+	FeBasePresentable::refresh_script_geometry();
+	scale();
 }
 
 void FeImage::setSize( const Vec2f &s )
@@ -2563,7 +2575,7 @@ FeImage *FeImage::add_clone(FeImage *i )
 	return NULL;
 }
 
-FeText *FeImage::add_text(const char *t, int x, int y, int w, int h)
+FeText *FeImage::add_text(const char *t, float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
@@ -2572,7 +2584,7 @@ FeText *FeImage::add_text(const char *t, int x, int y, int w, int h)
 	return NULL;
 }
 
-FeListBox *FeImage::add_listbox(int x, int y, int w, int h)
+FeListBox *FeImage::add_listbox(float x, float y, float w, float h)
 {
 	FePresentableParent *p = m_tex->get_presentable_parent();
 	if ( p )
@@ -2611,6 +2623,17 @@ FeImage *FeImage::add_surface(float x, float y, float w, float h, int texture_wi
 		return p->add_surface( x, y, w, h, texture_width, texture_height );
 
 	return NULL;
+}
+
+FeGridView FeImage::get_grid_view()
+{
+	FePresentableParent *parent = get_presentable_parent();
+	if ( !parent )
+	{
+		Sqrat::Error::Instance().Throw( Sqrat::DefaultVM::Get(), "grid requires a surface" );
+		return FeGridView( NULL, NULL );
+	}
+	return parent->get_grid_view();
 }
 
 FePresentableParent *FeImage::get_presentable_parent()

@@ -73,6 +73,58 @@
 
 namespace
 {
+	FePresentableParent *grid_parent( FePresent *owner ) { return &owner->get_layout_parent(); }
+	FePresentableParent *grid_parent( FePresentableParent *owner ) { return owner; }
+	FePresentableParent *grid_parent( FeImage *owner ) { return owner->get_presentable_parent(); }
+
+	template<class T> FeGrid *script_grid( HSQUIRRELVM vm )
+	{
+		T *owner = Sqrat::ClassType<T>::GetInstance( vm, 1 );
+		if ( !owner )
+		{
+			Sqrat::Error::Instance().Clear( vm );
+			return NULL;
+		}
+		FePresentableParent *parent = grid_parent( owner );
+		if ( !parent ) return NULL;
+		return &parent->grid;
+	}
+
+	template<> FeGrid *script_grid<FePresent>( HSQUIRRELVM vm )
+	{
+		return &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent().grid;
+	}
+
+	template<class T> SQInteger script_set_grid( HSQUIRRELVM vm )
+	{
+		FeGrid *grid = script_grid<T>( vm );
+		if ( !grid ) return sq_throwerror( vm, "grid requires a layout, monitor, surface or active plugin" );
+		SQInteger count = sq_gettop( vm ) - 1;
+		if ( count != 1 && count != 2 && count != 4 )
+			return sq_throwerror( vm, "set_grid expects size, width/height or x/y/width/height" );
+		SQFloat values[4];
+		for ( SQInteger i = 0; i < count; ++i )
+		{
+			if ( SQ_FAILED( sq_getfloat( vm, i + 2, &values[i] )) || !std::isfinite( values[i] ))
+				return sq_throwerror( vm, "set_grid requires finite numbers" );
+		}
+		Vec2f offset = count == 4 ? Vec2f( values[0], values[1] ) : Vec2f( 0, 0 );
+		Vec2f size = count == 1 ? Vec2f( values[0], values[0] )
+			: count == 2 ? Vec2f( values[0], values[1] ) : Vec2f( values[2], values[3] );
+		if ( size.x < 0 || size.y < 0 || ( count != 1 && ( size.x == 0 || size.y == 0 )))
+			return sq_throwerror( vm, "set_grid dimensions must be positive; use set_grid(0) for pixels" );
+		FePresentableParent *parent = sq_gettype( vm, 1 ) == OT_TABLE
+			? &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent()
+			: grid_parent( Sqrat::ClassType<T>::GetInstance( vm, 1 ));
+		FeGridView( parent, grid ).set_range( offset, size );
+		return 0;
+	}
+
+	SQInteger script_grid_constructor( HSQUIRRELVM vm )
+	{
+		return sq_throwerror( vm, "grids cannot be constructed by scripts" );
+	}
+
 	//
 	// Squirrel callback functions
 	//
@@ -1124,7 +1176,6 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("zorder"), &FeBasePresentable::get_zorder, &FeBasePresentable::set_zorder )
 		.Prop(_SC("magic"), &FeBasePresentable::get_magic )
 		.Prop(_SC("type"), &FeBasePresentable::get_type )
-		.Prop(_SC("pixel_snap"), &FeBasePresentable::get_pixel_snap, &FeBasePresentable::set_pixel_snap )
 		.Overload<void (FeBasePresentable::*)(int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(int, int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(float, float)>(_SC("set_pos"), &FeBasePresentable::set_pos)
@@ -1134,6 +1185,8 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Image"),
 		DerivedClass<FeImage, FeBasePresentable, NoConstructor>()
+		.SquirrelFunc( _SC("set_grid"), script_set_grid<FeImage> )
+		.Prop( _SC("grid"), &FeImage::get_grid_view )
 		ANIM_PROP( _SC("width"), &FeImage::get_width, &FeImage::set_width )
 		ANIM_PROP( _SC("height"), &FeImage::get_height, &FeImage::set_height )
 		.Prop(_SC("auto_width"), &FeImage::get_auto_width, &FeImage::set_auto_width )
@@ -1474,9 +1527,11 @@ bool FeVM::on_new_layout()
 #undef ANIM_PROP
 
 	fe.Bind( _SC("LayoutGlobals"), Class <FePresent, NoConstructor>()
+		.Prop( _SC("grid"), &FePresent::get_layout_grid )
 		.Prop( _SC("width"), &FePresent::get_layout_width, &FePresent::set_layout_width )
 		.Prop( _SC("height"), &FePresent::get_layout_height, &FePresent::set_layout_height )
-		.Prop( _SC("pixel_snap"), &FePresent::get_layout_pixel_snap, &FePresent::set_layout_pixel_snap )
+		.Prop( _SC("pixel_width"), &FePresent::get_layout_pixel_width )
+		.Prop( _SC("pixel_height"), &FePresent::get_layout_pixel_height )
 		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
 		// orient property deprecated as of 1.3.2, use "base_rotation" instead
 		.Prop( _SC("orient"), &FePresent::get_base_rotation, &FePresent::set_base_rotation )
@@ -1611,6 +1666,7 @@ bool FeVM::on_new_layout()
 	);
 
 	fe.Bind( _SC("PresentableParent"), Class <FePresentableParent, NoConstructor>()
+		.Prop( _SC("grid"), &FePresentableParent::get_grid_view )
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float, float, float)>(_SC("add_image"), &FePresentableParent::add_image)
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_image"), &FePresentableParent::add_image)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_image"), &FePresentableParent::add_image)
@@ -1630,9 +1686,23 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Monitor"),
 		DerivedClass<FeMonitor, FePresentableParent, NoConstructor>()
+		.SquirrelFunc( _SC("set_grid"), script_set_grid<FeMonitor> )
 		.Prop( _SC("num"), &FeMonitor::get_num )
 		.Prop( _SC("width"), &FeMonitor::get_width )
 		.Prop( _SC("height"), &FeMonitor::get_height )
+	);
+
+	fe.Bind( _SC("Grid"), Class<FeGridView, CopyOnly<FeGridView> >()
+		.SquirrelFunc( _SC("constructor"), script_grid_constructor )
+		.GlobalProp( _SC("uniform"), &FeGridView::get_uniform, &FeGridView::set_uniform )
+		.GlobalProp( _SC("centered"), &FeGridView::get_centered, &FeGridView::set_centered )
+		.GlobalProp( _SC("pixel_snap"), &FeGridView::get_pixel_snap, &FeGridView::set_pixel_snap )
+		.Prop( _SC("left"), &FeGridView::get_left )
+		.Prop( _SC("top"), &FeGridView::get_top )
+		.Prop( _SC("right"), &FeGridView::get_right )
+		.Prop( _SC("bottom"), &FeGridView::get_bottom )
+		.Prop( _SC("width"), &FeGridView::get_width )
+		.Prop( _SC("height"), &FeGridView::get_height )
 	);
 
 	fe.Bind( _SC("ImageCache"), Class <FeImageLoader, NoConstructor>()
@@ -1665,9 +1735,10 @@ bool FeVM::on_new_layout()
 
 	fe.Func( _SC("add_clone"), &FeVM::cb_add_clone_presentable );
 
-	fe.Overload<FeText* (*)(const char *, int, int, int, int)>(_SC("add_text"), &FeVM::cb_add_text);
-	fe.Func<FeListBox* (*)(int, int, int, int)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
+	fe.Overload<FeText* (*)(const char *, float, float, float, float)>(_SC("add_text"), &FeVM::cb_add_text);
+	fe.Func<FeListBox* (*)(float, float, float, float)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
 	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
+	fe.SquirrelFunc( _SC("set_grid"), script_set_grid<FePresent> );
 	fe.Overload<FeImage* (*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float, float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
@@ -1763,6 +1834,7 @@ bool FeVM::on_new_layout()
 		monitors.Append( &m_mon[i] );
 
 	fe.SetInstance( _SC("layout"), (FePresent *)this );
+	fe.SetValue( _SC("grid"), get_layout_grid() );
 	fe.SetInstance( _SC("scene3d"), (FePresent *)this );
 	fe.SetInstance( _SC("list"), (FePresent *)this );
 	fe.SetInstance( _SC("overlay"), this );
@@ -2935,7 +3007,7 @@ Sqrat::Object FeVM::cb_add_clone_presentable( FeBasePresentable *o )
 	return ret_obj;
 }
 
-FeText* FeVM::cb_add_text(const char *n, int x, int y, int w, int h )
+FeText* FeVM::cb_add_text(const char *n, float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -2951,7 +3023,7 @@ FeText* FeVM::cb_add_text(const char *n, int x, int y, int w, int h )
 	return ret;
 }
 
-FeListBox* FeVM::cb_add_listbox(int x, int y, int w, int h )
+FeListBox* FeVM::cb_add_listbox(float x, float y, float w, float h )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
@@ -3222,6 +3294,8 @@ float FeVM::cb_get_input_pos( const char *input )
 	{
 		Vec2f pos = fev->get_transform().getInverse().transformPoint(
 			Vec2f( fev->m_window.get_mouse_position() ));
+		FePresentableParent &parent = fev->get_layout_parent();
+		pos = parent.get_grid( fev->get_script_id() ).transform( parent.get_grid_extent() ).inverse_position( pos );
 		return mouse_x ? pos.x : pos.y;
 	}
 

@@ -32,7 +32,7 @@
 
 const std::string DEFAULT_FORMAT_STRING = "[Title]";
 
-FeListBox::FeListBox( FePresentableParent &p, int x, int y, int w, int h )
+FeListBox::FeListBox( FePresentableParent &p, float x, float y, float w, float h )
 	: FeBasePresentable( p ),
 	m_selColour( Color::Yellow ),
 	m_selBg( Color::Blue ),
@@ -451,6 +451,12 @@ void FeListBox::setSelOutlineColor( Color c )
 		FePresent::script_flag_redraw();
 }
 
+void FeListBox::on_transform_update()
+{
+	update_text_metrics();
+	update_row_geometry();
+}
+
 void FeListBox::update_row_geometry()
 {
 	int row_count = getRowCount();
@@ -458,15 +464,13 @@ void FeListBox::update_row_geometry()
 		return;
 
 	Vec2f size = getSize();
-	Vec2f top_left = m_position - Vec2f( m_anchor.x * size.x, m_anchor.y * size.y );
-	Vec2f pivot = m_position + Vec2f(
+	Vec2f pos = m_position;
+	snap_draw_geometry( pos, size );
+	Vec2f top_left = pos - Vec2f( m_anchor.x * size.x, m_anchor.y * size.y );
+	Vec2f pivot = pos + Vec2f(
 		( m_rotation_origin.x - m_anchor.x ) * size.x,
 		( m_rotation_origin.y - m_anchor.y ) * size.y
 	);
-	m_snap_offset = Vec2f( -m_anchor.x * size.x, -m_anchor.y * size.y );
-	Vec2f snapped_top_left = snap_draw_position( top_left );
-	pivot += snapped_top_left - top_left;
-	top_left = snapped_top_left;
 	int actual_spacing = (int)size.y / row_count;
 
 	m_base_text.setPosition( top_left );
@@ -507,6 +511,8 @@ void FeListBox::init_dimensions()
 void FeListBox::update_text_metrics()
 {
 	Vec2f size = getSize();
+	Vec2f pos = m_position;
+	snap_draw_geometry( pos, size );
 
 	int actual_spacing = (int)size.y / m_rows;
 	float char_size = ( m_userCharSize > 0 )
@@ -1028,7 +1034,7 @@ float FeListBox::get_sel_y() const
 
 float FeListBox::get_row_height() const
 {
-	return std::floor( get_height() / m_rows );
+	return std::floor( m_base_text.getSize().y / m_rows );
 }
 
 int FeListBox::get_list_align()

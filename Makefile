@@ -141,6 +141,7 @@ _DEP =\
 	fe_settings.hpp \
 	fe_config.hpp \
 	fe_animation.hpp \
+	fe_grid.hpp \
 	fe_presentable.hpp \
 	fe_transform.hpp \
 	fe_renderer.hpp \

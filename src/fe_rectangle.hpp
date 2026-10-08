@@ -149,6 +149,7 @@ private:
 	FeBlend::Mode m_blend_mode;
 
 	void scale();
+	void on_transform_update() override;
 	void update_corner_radius();
 	void update_corner_ratio();
 	void update_corner_points();
