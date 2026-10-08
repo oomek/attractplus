@@ -199,6 +199,12 @@ Vec2f FeMonitor::get_grid_extent() const
 	return num == 0 ? FePresentableParent::get_grid_extent() : Vec2f( size );
 }
 
+const FeGrid &FeMonitor::get_grid( int script_id ) const
+{
+	FePresent *fep = FePresent::script_get_fep();
+	return script_id >= 0 && fep ? fep->get_plugin_grid( script_id ) : grid;
+}
+
 Vec2f FeMonitor::snap_position_to_pixel( const Vec2f &p ) const
 {
 	FePresent *fep = FePresent::script_get_fep();
@@ -516,6 +522,7 @@ void FePresent::clear_layout()
 	m_custom_overlay = false;
 	m_overlay_caption = NULL;
 	m_overlay_lb = NULL;
+	m_plugin_grids.clear();
 	for ( FeMonitor &monitor : m_mon )
 		monitor.grid = FeGrid();
 

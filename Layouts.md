@@ -322,7 +322,7 @@ function callback( config )
 
 ## Functions
 
-Drawable positions and sizes use [grid coordinates](#grid-coordinates). Drawables use the grid of the layout, monitor or surface where they were added. With the default grid, these values are pixels.
+Drawable positions and sizes use [grid coordinates](#grid-coordinates). Layout drawables use the layout grid; plugin drawables use their plugin's grid; drawables added to a surface use that surface's grid. With the default grid, these values are pixels.
 
 ### `fe.add_image()`
 
@@ -504,7 +504,7 @@ fe.grid.centered = true
 fe.grid.pixel_snap = true
 ```
 
-Surfaces and monitors provide the same overloads through `surface.set_grid()` and `monitor.set_grid()`. Their settings are on their `.grid` objects. `set_grid()` preserves those settings.
+Surfaces, monitors and plugins provide the same overloads through `surface.set_grid()`, `monitor.set_grid()` and `fe.plugin.set_grid()`. Their settings are on their `.grid` objects. `set_grid()` preserves those settings.
 
 ---
 
@@ -945,7 +945,7 @@ Return the current joystick axis position, mouse position or mouse wheel delta.
 **Return Value**
 
 -  Joystick axes return a position in `[0...100]`.
--  `"Mouse Left"` and `"Mouse Right"` return the mouse's x position; `"Mouse Up"` and `"Mouse Down"` return its y position. Mouse positions use the layout grid.
+-  `"Mouse Left"` and `"Mouse Right"` return the mouse's x position; `"Mouse Up"` and `"Mouse Down"` return its y position. Mouse positions use the layout grid, or the plugin grid when called from a plugin.
 -  Mouse wheel inputs return the scroll delta.
 
 ---
@@ -1348,7 +1348,7 @@ The layout's [`fe.Grid`](#fegrid-1) instance, also available as `fe.layout.grid`
 
 ### `fe.plugin`
 
-An empty table that can be used by plugins to store their functions and data.
+A shared table for plugin data. Its [grid settings](#grid-coordinates) are independent for each plugin and also apply inside that plugin's callbacks. Custom table entries remain shared. Use `fe.plugin.set_grid()` to define plugin coordinates and `fe.plugin.grid` to access its [`fe.Grid`](#fegrid-1) settings, bounds and dimensions. A stored grid reference continues to refer to that plugin's grid. These are available from plugins and their callbacks.
 
 ### `fe.list`
 
@@ -1502,7 +1502,7 @@ local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
 
 Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
 
-Use `fe.set_grid()`, `surface.set_grid()`, `monitor.set_grid()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
+Use `fe.set_grid()`, `surface.set_grid()`, `monitor.set_grid()` or `fe.plugin.set_grid()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
 
 ```squirrel
 fe.set_grid(100)
@@ -1514,7 +1514,17 @@ surface.add_rectangle(10, 10, 20, 20)
 
 The surface occupies 80% of the layout on each axis, and its rectangle occupies 20% of the texture on each axis. Its texture is allocated from its displayed pixel size, using the snapped edges when the enclosing grid has `pixel_snap` enabled. Resizing the surface later leaves the texture dimensions and its children's grid unchanged. Use the six-argument `add_surface()` form when a specific texture resolution is needed.
 
-`fe.monitors[0]` shares the layout grid. Additional monitors have independent grids.
+`fe.monitors[0]` shares the layout grid. Additional monitors have independent grids. In a plugin, configure `fe.plugin`:
+
+```squirrel
+// Inside a plugin:
+fe.plugin.set_grid(100)
+fe.plugin.grid.uniform = true
+fe.plugin.grid.centered = true
+local badge = fe.add_rectangle(0, 0, 10, 10)
+```
+
+Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` and `fe.layout` still refer to the layout inside a plugin; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. Children added to a surface use the surface's grid.
 
 Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
 
@@ -1522,7 +1532,7 @@ All `set_grid()` arguments must be finite numbers. Width and height must be posi
 
 ### `fe.Grid`
 
-Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[n].grid`. A stored grid reference stays current when its settings or pixel dimensions change. This class cannot be instantiated in a script.
+Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[n].grid` or `fe.plugin.grid`. A stored grid reference stays current when its settings or pixel dimensions change. This class cannot be instantiated in a script.
 
 **Properties**
 
@@ -1532,7 +1542,7 @@ Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[
 -  `centered` - Get/set centering of the specified uniform grid range. Inactive in pixels or with nonuniform scaling. Default is `false`.
 -  `pixel_snap` - Get/set snapping of rendered geometry while retaining fractional coordinates on readback. Default is `false`.
 
-Define the coordinate range with [`fe.set_grid()`](#feset_grid), `surface.set_grid()`, `monitor.set_grid()`.
+Define the coordinate range with [`fe.set_grid()`](#feset_grid), `surface.set_grid()`, `monitor.set_grid()` or `fe.plugin.set_grid()`.
 
 ### `fe.CurrentList`
 

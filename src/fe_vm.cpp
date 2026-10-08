@@ -95,6 +95,14 @@ namespace
 		return &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent().grid;
 	}
 
+	// fe.plugin remains a shared table; its grid belongs to the executing plugin.
+	template<> FeGrid *script_grid<FeVM>( HSQUIRRELVM vm )
+	{
+		FeVM *fev = static_cast<FeVM *>( sq_getforeignptr( vm ));
+		if ( fev->get_script_id() < 0 ) return NULL;
+		return &fev->get_plugin_grid( fev->get_script_id() );
+	}
+
 	template<class T> SQInteger script_set_grid( HSQUIRRELVM vm )
 	{
 		FeGrid *grid = script_grid<T>( vm );
@@ -118,6 +126,17 @@ namespace
 			: grid_parent( Sqrat::ClassType<T>::GetInstance( vm, 1 ));
 		FeGridView( parent, grid ).set_range( offset, size );
 		return 0;
+	}
+
+	SQInteger script_plugin_grid( HSQUIRRELVM vm )
+	{
+		const SQChar *key;
+		if ( SQ_FAILED( sq_getstring( vm, 2, &key )) || strcmp( key, "grid" ) != 0 )
+			return sq_throwerror( vm, "unknown plugin property" );
+		FeGrid *grid = script_grid<FeVM>( vm );
+		if ( !grid ) return sq_throwerror( vm, "grid requires an active plugin" );
+		Sqrat::PushVar( vm, FeGridView( &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent(), grid ));
+		return 1;
 	}
 
 	SQInteger script_grid_constructor( HSQUIRRELVM vm )
@@ -1842,7 +1861,14 @@ bool FeVM::on_new_layout()
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
-	fe.SetValue( _SC("plugin"), Table() ); // an empty table for plugins to use/abuse
+	Table plugin, plugin_delegate;
+	plugin.SquirrelFunc( "set_grid", script_set_grid<FeVM> );
+	plugin_delegate.SquirrelFunc( "_get", script_plugin_grid );
+	sq_pushobject( vm, plugin.GetObject() );
+	sq_pushobject( vm, plugin_delegate.GetObject() );
+	sq_setdelegate( vm, -2 );
+	sq_pop( vm, 1 );
+	fe.SetValue( _SC("plugin"), plugin );
 
 	// Each presentation object gets an instance in the
 	// "obj" array available in Squirrel
