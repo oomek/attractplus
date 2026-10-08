@@ -57,6 +57,7 @@ namespace
 		Sqrat::Object obj;
 		std::string slot;
 		bool use_callback;
+		int callback_script_id;
 		bool running;
 		float anim_start_val;
 		float anim_base_start_val;
@@ -279,6 +280,7 @@ namespace
 		animation.ease = get_ease_function( ease_id );
 		animation.ease_id = ease_id;
 		animation.use_callback = false;
+		animation.callback_script_id = -1;
 		animation.slot.clear();
 	}
 
@@ -1090,6 +1092,7 @@ SQInteger FeAnimation::script_move( HSQUIRRELVM vm )
 		animation.obj = obj;
 		animation.slot = slot;
 		animation.use_callback = true;
+		animation.callback_script_id = FePresent::script_get_fep()->get_script_id();
 	}
 
 	if ( has_to
@@ -1162,9 +1165,25 @@ bool FeAnimation::tick()
 			complete_on_duration );
 
 		// TODO: cache the function like FeCallback does, or store in place of ease
-		float current_val = animation.use_callback
-			? Sqrat::Function( animation.obj, animation.slot.c_str() ).Evaluate<float>( params.t, params.b, params.c, params.d )
-			: apply_ease( animation, params.t, params.b, params.c, params.d );
+		float current_val;
+		if ( animation.use_callback )
+		{
+			int script_id = fep->get_script_id();
+			fep->set_script_id( animation.callback_script_id );
+			try
+			{
+				current_val = Sqrat::Function( animation.obj, animation.slot.c_str() )
+					.Evaluate<float>( params.t, params.b, params.c, params.d );
+			}
+			catch ( ... )
+			{
+				fep->set_script_id( script_id );
+				throw;
+			}
+			fep->set_script_id( script_id );
+		}
+		else
+			current_val = apply_ease( animation, params.t, params.b, params.c, params.d );
 
 		animation.current_val = current_val;
 		bool endpoint = complete_on_duration && !animation.use_callback;

@@ -34,6 +34,7 @@
 #include "fe_time.hpp"
 #include "fe_types.hpp"
 #include "fe_window.hpp"
+#include <map>
 
 class FeImage;
 class FeModel3D;
@@ -110,6 +111,7 @@ public:
 	int get_height();
 	int get_num();
 	Vec2f get_grid_extent() const override;
+	const FeGrid &get_grid( int script_id ) const override;
 	Vec2f snap_position_to_pixel( const Vec2f &p ) const;
 	Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 
@@ -183,6 +185,7 @@ protected:
 	bool m_layout_crop;
 	bool m_custom_overlay;
 	bool m_mouse_pointer_visible;
+	std::map<int, FeGrid> m_plugin_grids;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	Vec2i m_layoutSize;
@@ -324,6 +327,7 @@ public:
 	float get_layout_scale_y() const;
 	FePresentableParent &get_layout_parent() { return m_mon[0]; }
 	FeGridView get_layout_grid() { return get_layout_parent().get_grid_view(); }
+	FeGrid &get_plugin_grid( int script_id ) { return m_plugin_grids[script_id]; }
 
 	// Get a font from the font pool, loading it if necessary
 	const FeFontContainer *get_pooled_font( const std::vector < std::string > &l );
