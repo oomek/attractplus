@@ -158,7 +158,7 @@ void FeRectangle::set_outline( float o )
 		return;
 
 	m_outline = o;
-	m_outline_thickness = m_outline;
+	m_outline_thickness = grid_height_to_pixels( m_outline );
 	FePresent::script_flag_redraw();
 }
 
@@ -424,7 +424,7 @@ void FeRectangle::set_blend_mode( int b )
 void FeRectangle::refresh_script_geometry()
 {
 	FeBasePresentable::refresh_script_geometry();
-	m_outline_thickness = m_outline;
+	m_outline_thickness = grid_height_to_pixels( m_outline );
 	scale();
 }
 

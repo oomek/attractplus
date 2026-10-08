@@ -312,7 +312,7 @@ void FeText::update_font_size()
 	snap_draw_geometry( pos, size );
 	float char_size = 8.0f;
 	if ( m_user_charsize > 0 )
-		char_size = m_user_charsize;
+		char_size = grid_height_to_pixels( m_user_charsize );
 	else if ( size.y > 12 )
 		char_size = size.y - 4;
 
@@ -332,13 +332,13 @@ void FeText::update_margin()
 	}
 
 	m_draw_text.setMargin( static_cast<int>(
-		std::round( std::max( 0.0f, m_user_margin ))));
+		std::round( std::max( 0.0f, grid_height_to_pixels( m_user_margin )))));
 }
 
 void FeText::update_outline()
 {
-	m_draw_text.setOutlineThickness( m_outline );
-	m_draw_text.setBgOutlineThickness( m_bg_outline );
+	m_draw_text.setOutlineThickness( grid_height_to_pixels( m_outline ));
+	m_draw_text.setBgOutlineThickness( grid_height_to_pixels( m_bg_outline ));
 }
 
 void FeText::update_transform()
@@ -547,17 +547,18 @@ float FeText::get_cursor_pos( int i )
 		return 0;
 	int pos = std::clamp( i, 0, (int)m_string.size() );
 	std::basic_string<std::uint32_t> str = utf8_to_utf32( m_string );
-	return m_draw_text.setString( str, pos ).x - ( m_draw_text.getPosition().x - m_draw_text.getOrigin().x );
+	return pixels_to_grid_width( m_draw_text.setString( str, pos ).x
+		- ( m_draw_text.getPosition().x - m_draw_text.getOrigin().x ));
 }
 
 float FeText::get_actual_width()
 {
-	return m_draw_text.getActualWidth();
+	return pixels_to_grid_width( m_draw_text.getActualWidth() );
 }
 
 float FeText::get_actual_height()
 {
-	return m_draw_text.getActualHeight();
+	return pixels_to_grid_height( m_draw_text.getActualHeight() );
 }
 
 int FeText::get_bg_red()
@@ -625,12 +626,12 @@ float FeText::get_charsize()
 	if ( m_user_charsize > 0 )
 		return m_user_charsize;
 
-	return m_draw_text.getCharacterSize();
+	return pixels_to_grid_height( m_draw_text.getCharacterSize() );
 }
 
 float FeText::get_glyph_size()
 {
-	return m_draw_text.getGlyphSize();
+	return pixels_to_grid_height( m_draw_text.getGlyphSize() );
 }
 
 float FeText::get_spacing()
@@ -645,8 +646,8 @@ float FeText::get_line_spacing()
 
 float FeText::get_line_height()
 {
-	return m_draw_text.getLineSpacingFactored(
-		m_draw_text.getFont(), m_draw_text.getCharacterSize() );
+	return pixels_to_grid_height( m_draw_text.getLineSpacingFactored(
+		m_draw_text.getFont(), m_draw_text.getCharacterSize() ));
 }
 
 int FeText::get_style()
