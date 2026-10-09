@@ -1859,16 +1859,6 @@ float FePresent::get_layout_height() const
 		.inverse_size( Vec2f( m_layoutSize ) ).y;
 }
 
-float FePresent::get_layout_pixel_width() const
-{
-	return (float)m_layoutSize.x;
-}
-
-float FePresent::get_layout_pixel_height() const
-{
-	return (float)m_layoutSize.y;
-}
-
 float FePresent::get_layout_scale_x() const
 {
 	return m_layoutScale.x;
