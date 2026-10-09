@@ -1406,7 +1406,6 @@ This class is a container for global layout settings. The instance of this class
 
 -  `width` - Get the visible layout width in grid coordinates (`fe.grid.width`). See the compatibility note below for assignments.
 -  `height` - Get the visible layout height in grid coordinates (`fe.grid.height`). See the compatibility note below for assignments.
--  `pixel_width`, `pixel_height` - Read-only layout dimensions in pixels, independent of the grid settings. The defaults are `ScreenWidth` and `ScreenHeight`.
 -  `grid` - Read-only access to the layout's [`fe.Grid`](#fegrid-1), also available as `fe.grid`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
@@ -1474,7 +1473,7 @@ fe.grid.centered = true
 
 The shorter dimension now spans `-1..1`; the longer dimension extends equally on both sides. In a native `1280 x 960` window, the visible bounds are approximately `-1.333..1.333` horizontally and `-1..1` vertically. In portrait, the vertical range is the longer one.
 
-Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. The read-only `fe.layout.pixel_width` and `fe.layout.pixel_height` provide pixel measurements. `set_grid()` leaves these pixel dimensions unchanged.
+Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. `set_grid()` leaves the layout's pixel dimensions unchanged.
 
 Use `fe.grid` for the layout's grid and `surface.grid` for a surface's internal grid. Both provide the full visible bounds and dimensions:
 

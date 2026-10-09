@@ -225,8 +225,6 @@ protected:
 	FeShader *compile_shader(FeShader::Type type, const char *shader1, const char *shader2);
 	float get_layout_width() const;
 	float get_layout_height() const;
-	float get_layout_pixel_width() const;
-	float get_layout_pixel_height() const;
 	int get_base_rotation() const;
 	int get_toggle_rotation() const;
 	const char *get_display_name() const;
