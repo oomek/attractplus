@@ -316,6 +316,9 @@ ifneq ($(FE_WINDOWS_COMPILE),1)
 else
  LIBS += -lopengl32 -lgdi32
  LIBS += -lopengl32 -lwinmm
+ ifeq ($(STATIC),1)
+  CFLAGS += -static
+ endif
 endif
 
 
