@@ -73,58 +73,25 @@
 
 namespace
 {
-	FePresentableParent *grid_parent( FePresent *owner ) { return &owner->get_layout_parent(); }
-	FePresentableParent *grid_parent( FePresentableParent *owner ) { return owner; }
-	FePresentableParent *grid_parent( FeImage *owner ) { return owner->get_presentable_parent(); }
-
-	template<class T> FeGrid *script_grid( HSQUIRRELVM vm )
+	SQInteger script_grid_set_size( HSQUIRRELVM vm )
 	{
-		T *owner = Sqrat::ClassType<T>::GetInstance( vm, 1 );
-		if ( !owner )
-		{
-			Sqrat::Error::Instance().Clear( vm );
-			return NULL;
-		}
-		FePresentableParent *parent = grid_parent( owner );
-		if ( !parent ) return NULL;
-		return &parent->grid;
-	}
-
-	template<> FeGrid *script_grid<FePresent>( HSQUIRRELVM vm )
-	{
-		return &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent().grid;
-	}
-
-	// fe.plugin remains a shared table; its grid belongs to the executing plugin.
-	template<> FeGrid *script_grid<FeVM>( HSQUIRRELVM vm )
-	{
-		FeVM *fev = static_cast<FeVM *>( sq_getforeignptr( vm ));
-		if ( fev->get_script_id() < 0 ) return NULL;
-		return &fev->get_plugin_grid( fev->get_script_id() );
-	}
-
-	template<class T> SQInteger script_set_grid( HSQUIRRELVM vm )
-	{
-		FeGrid *grid = script_grid<T>( vm );
-		if ( !grid ) return sq_throwerror( vm, "grid requires a layout, monitor, surface or active plugin" );
+		FeGridView *grid = Sqrat::ClassType<FeGridView>::GetInstance( vm, 1 );
+		if ( !grid ) return sq_throwerror( vm, "set_size requires a grid" );
 		SQInteger count = sq_gettop( vm ) - 1;
 		if ( count != 1 && count != 2 && count != 4 )
-			return sq_throwerror( vm, "set_grid expects size, width/height or x/y/width/height" );
+			return sq_throwerror( vm, "set_size expects size, width/height or x/y/width/height" );
 		SQFloat values[4];
 		for ( SQInteger i = 0; i < count; ++i )
 		{
 			if ( SQ_FAILED( sq_getfloat( vm, i + 2, &values[i] )) || !std::isfinite( values[i] ))
-				return sq_throwerror( vm, "set_grid requires finite numbers" );
+				return sq_throwerror( vm, "set_size requires finite numbers" );
 		}
 		Vec2f offset = count == 4 ? Vec2f( values[0], values[1] ) : Vec2f( 0, 0 );
 		Vec2f size = count == 1 ? Vec2f( values[0], values[0] )
 			: count == 2 ? Vec2f( values[0], values[1] ) : Vec2f( values[2], values[3] );
 		if ( size.x < 0 || size.y < 0 || ( count != 1 && ( size.x == 0 || size.y == 0 )))
-			return sq_throwerror( vm, "set_grid dimensions must be positive; use set_grid(0) for pixels" );
-		FePresentableParent *parent = sq_gettype( vm, 1 ) == OT_TABLE
-			? &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent()
-			: grid_parent( Sqrat::ClassType<T>::GetInstance( vm, 1 ));
-		FeGridView( parent, grid ).set_range( offset, size );
+			return sq_throwerror( vm, "set_size dimensions must be positive; use set_size(0) for pixels" );
+		grid->set_range( offset, size );
 		return 0;
 	}
 
@@ -133,9 +100,9 @@ namespace
 		const SQChar *key;
 		if ( SQ_FAILED( sq_getstring( vm, 2, &key )) || strcmp( key, "grid" ) != 0 )
 			return sq_throwerror( vm, "unknown plugin property" );
-		FeGrid *grid = script_grid<FeVM>( vm );
-		if ( !grid ) return sq_throwerror( vm, "grid requires an active plugin" );
-		Sqrat::PushVar( vm, FeGridView( &static_cast<FeVM *>( sq_getforeignptr( vm ))->get_layout_parent(), grid ));
+		FeVM *fev = static_cast<FeVM *>( sq_getforeignptr( vm ));
+		if ( fev->get_script_id() < 0 ) return sq_throwerror( vm, "grid requires an active plugin" );
+		Sqrat::PushVar( vm, FeGridView( &fev->get_layout_parent(), &fev->get_plugin_grid( fev->get_script_id() ) ));
 		return 1;
 	}
 
@@ -1204,7 +1171,6 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Image"),
 		DerivedClass<FeImage, FeBasePresentable, NoConstructor>()
-		.SquirrelFunc( _SC("set_grid"), script_set_grid<FeImage> )
 		.Prop( _SC("grid"), &FeImage::get_grid_view )
 		ANIM_PROP( _SC("width"), &FeImage::get_width, &FeImage::set_width )
 		ANIM_PROP( _SC("height"), &FeImage::get_height, &FeImage::set_height )
@@ -1703,7 +1669,6 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Monitor"),
 		DerivedClass<FeMonitor, FePresentableParent, NoConstructor>()
-		.SquirrelFunc( _SC("set_grid"), script_set_grid<FeMonitor> )
 		.Prop( _SC("num"), &FeMonitor::get_num )
 		.Prop( _SC("width"), &FeMonitor::get_width )
 		.Prop( _SC("height"), &FeMonitor::get_height )
@@ -1711,6 +1676,7 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("Grid"), Class<FeGridView, CopyOnly<FeGridView> >()
 		.SquirrelFunc( _SC("constructor"), script_grid_constructor )
+		.SquirrelFunc( _SC("set_size"), script_grid_set_size )
 		.GlobalProp( _SC("uniform"), &FeGridView::get_uniform, &FeGridView::set_uniform )
 		.GlobalProp( _SC("centered"), &FeGridView::get_centered, &FeGridView::set_centered )
 		.GlobalProp( _SC("pixel_snap"), &FeGridView::get_pixel_snap, &FeGridView::set_pixel_snap )
@@ -1755,7 +1721,6 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeText* (*)(const char *, float, float, float, float)>(_SC("add_text"), &FeVM::cb_add_text);
 	fe.Func<FeListBox* (*)(float, float, float, float)>(_SC("add_listbox"), &FeVM::cb_add_listbox);
 	fe.Func<FeRectangle* (*)(float, float, float, float)>(_SC("add_rectangle"), &FeVM::cb_add_rectangle);
-	fe.SquirrelFunc( _SC("set_grid"), script_set_grid<FePresent> );
 	fe.Overload<FeImage* (*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float, float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
@@ -1860,7 +1825,6 @@ bool FeVM::on_new_layout()
 	FeImageLoader &il = FeImageLoader::get_ref();
 	fe.SetInstance( _SC("image_cache"), &il );
 	Table plugin, plugin_delegate;
-	plugin.SquirrelFunc( "set_grid", script_set_grid<FeVM> );
 	plugin_delegate.SquirrelFunc( "_get", script_plugin_grid );
 	sq_pushobject( vm, plugin.GetObject() );
 	sq_pushobject( vm, plugin_delegate.GetObject() );
