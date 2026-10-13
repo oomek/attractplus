@@ -1849,14 +1849,12 @@ FeShader *FePresent::compile_shader( FeShader::Type type, const char *shader1, c
 
 float FePresent::get_layout_width() const
 {
-	return m_mon[0].grid.transform( Vec2f( m_layoutSize ) )
-		.inverse_size( Vec2f( m_layoutSize ) ).x;
+	return (float)m_layoutSize.x;
 }
 
 float FePresent::get_layout_height() const
 {
-	return m_mon[0].grid.transform( Vec2f( m_layoutSize ) )
-		.inverse_size( Vec2f( m_layoutSize ) ).y;
+	return (float)m_layoutSize.y;
 }
 
 float FePresent::get_layout_scale_x() const
