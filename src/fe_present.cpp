@@ -1203,7 +1203,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 	};
 	auto hash_float = [&]( std::uint64_t seed, float value ) -> std::uint64_t
 	{
-		return hash_combine( seed, static_cast<std::uint64_t>( std::lround( value * 1024.0f ) ) );
+		return hash_float_pbr_batch( seed, value );
 	};
 	auto hash_texture_binding = [&]( const FeRenderTextureBinding &binding, std::uint64_t seed ) -> std::uint64_t
 	{
@@ -1242,20 +1242,20 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		}
 		else for ( const FeRenderVertex &vertex : geometry.vertices )
 		{
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.u1 * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.v1 * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.nx * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.ny * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.nz * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.tx * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.ty * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.tz * 1024.0f ) ) );
-			seed = hash_combine( seed, static_cast<std::uint64_t>( std::lround( vertex.tw * 1024.0f ) ) );
+			seed = hash_float_pbr_batch( seed, vertex.x );
+			seed = hash_float_pbr_batch( seed, vertex.y );
+			seed = hash_float_pbr_batch( seed, vertex.z );
+			seed = hash_float_pbr_batch( seed, vertex.u );
+			seed = hash_float_pbr_batch( seed, vertex.v );
+			seed = hash_float_pbr_batch( seed, vertex.u1 );
+			seed = hash_float_pbr_batch( seed, vertex.v1 );
+			seed = hash_float_pbr_batch( seed, vertex.nx );
+			seed = hash_float_pbr_batch( seed, vertex.ny );
+			seed = hash_float_pbr_batch( seed, vertex.nz );
+			seed = hash_float_pbr_batch( seed, vertex.tx );
+			seed = hash_float_pbr_batch( seed, vertex.ty );
+			seed = hash_float_pbr_batch( seed, vertex.tz );
+			seed = hash_float_pbr_batch( seed, vertex.tw );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.r ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.g ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.b ) );
