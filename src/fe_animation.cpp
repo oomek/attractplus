@@ -482,7 +482,7 @@ namespace
 		bool reverse = ( animation.direction == Reverse )
 			|| ( animation.direction == Alternate && odd_iteration )
 			|| ( animation.direction == AlternateReverse && !odd_iteration );
-		bool inertia = animation.ease_id == EaseInertia;
+		bool inertia = !animation.use_callback && ( animation.ease_id == EaseInertia );
 
 		if ( reverse && !inertia )
 			time_ms = animation.duration_ms - time_ms;
