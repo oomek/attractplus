@@ -23,6 +23,8 @@
 #ifndef FE_UTIL_HPP
 #define FE_UTIL_HPP
 
+#include <cstdint>
+#include <cstring>
 #include <vector>
 #include <string>
 #include <set>
@@ -44,6 +46,18 @@ namespace FeUtil
 {
     std::string narrow( const std::wstring& s );
     std::wstring widen( const std::string& s );
+}
+
+inline std::uint64_t hash_combine( std::uint64_t seed, std::uint64_t value )
+{
+	return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
+}
+
+inline std::uint64_t hash_float_bits( std::uint64_t seed, float value )
+{
+	std::uint32_t bits = 0;
+	std::memcpy( &bits, &value, sizeof( bits ) );
+	return hash_combine( seed, static_cast<std::uint64_t>( bits ) );
 }
 
 // Escape text for use as literal regex pattern

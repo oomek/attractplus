@@ -199,29 +199,17 @@ namespace
 		return true;
 	}
 
-	std::uint64_t hash_combine_model_u64( std::uint64_t seed, std::uint64_t value )
-	{
-		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
-	}
-
-	std::uint64_t hash_model_float( std::uint64_t seed, float value )
-	{
-		std::uint32_t bits = 0;
-		std::memcpy( &bits, &value, sizeof( bits ) );
-		return hash_combine_model_u64( seed, static_cast<std::uint64_t>( bits ) );
-	}
-
 	std::uint64_t hash_model_texture_ref( const ModelTextureRef &value, std::uint64_t seed )
 	{
-		seed = hash_combine_model_u64( seed, reinterpret_cast<std::uint64_t>( value.container ) );
-		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.repeated ? 1 : 0 ) );
-		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.smooth ? 1 : 0 ) );
-		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.mipmap ? 1 : 0 ) );
-		seed = hash_combine_model_u64( seed, static_cast<std::uint64_t>( value.texcoord_set ) );
-		seed = hash_model_float( seed, value.offset_u );
-		seed = hash_model_float( seed, value.offset_v );
-		seed = hash_model_float( seed, value.scale_u );
-		seed = hash_model_float( seed, value.scale_v );
+		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( value.container ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( value.repeated ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( value.smooth ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( value.mipmap ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( value.texcoord_set ) );
+		seed = hash_float_bits( seed, value.offset_u );
+		seed = hash_float_bits( seed, value.offset_v );
+		seed = hash_float_bits( seed, value.scale_u );
+		seed = hash_float_bits( seed, value.scale_v );
 		return seed;
 	}
 
@@ -234,18 +222,18 @@ namespace
 		hash = hash_model_texture_ref( material.occlusion_texture, hash );
 		hash = hash_model_texture_ref( material.emissive_texture, hash );
 		for ( int i = 0; i < 4; ++i )
-			hash = hash_model_float( hash, material.base_color_factor[i] );
+			hash = hash_float_bits( hash, material.base_color_factor[i] );
 		for ( int i = 0; i < 3; ++i )
-			hash = hash_model_float( hash, material.emissive_factor[i] );
-		hash = hash_model_float( hash, material.metallic_factor );
-		hash = hash_model_float( hash, material.roughness_factor );
-		hash = hash_model_float( hash, material.ior );
-		hash = hash_model_float( hash, material.normal_scale );
-		hash = hash_model_float( hash, material.occlusion_strength );
-		hash = hash_model_float( hash, material.alpha_cutoff );
-		hash = hash_combine_model_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
-		hash = hash_combine_model_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
-		hash = hash_combine_model_u64( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+			hash = hash_float_bits( hash, material.emissive_factor[i] );
+		hash = hash_float_bits( hash, material.metallic_factor );
+		hash = hash_float_bits( hash, material.roughness_factor );
+		hash = hash_float_bits( hash, material.ior );
+		hash = hash_float_bits( hash, material.normal_scale );
+		hash = hash_float_bits( hash, material.occlusion_strength );
+		hash = hash_float_bits( hash, material.alpha_cutoff );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
 		return hash;
 	}
 

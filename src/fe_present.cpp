@@ -807,74 +807,62 @@ namespace
 		return true;
 	}
 
-	std::uint64_t hash_combine_pbr_batch( std::uint64_t seed, std::uint64_t value )
-	{
-		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
-	}
-
-	std::uint64_t hash_float_pbr_batch( std::uint64_t seed, float value )
-	{
-		std::uint32_t bits = 0;
-		std::memcpy( &bits, &value, sizeof( bits ) );
-		return hash_combine_pbr_batch( seed, static_cast<std::uint64_t>( bits ) );
-	}
-
 	void hash_pbr_texture_binding( const FeRenderTextureBinding &binding, std::uint64_t &hash )
 	{
-		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.texture_source_type ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
-		hash = hash_float_pbr_batch( hash, binding.width );
-		hash = hash_float_pbr_batch( hash, binding.height );
-		hash = hash_combine_pbr_batch( hash, binding.content_version );
-		hash = hash_float_pbr_batch( hash, binding.offset_u );
-		hash = hash_float_pbr_batch( hash, binding.offset_v );
-		hash = hash_float_pbr_batch( hash, binding.scale_u );
-		hash = hash_float_pbr_batch( hash, binding.scale_v );
-		hash = hash_float_pbr_batch( hash, binding.fit_scale_u );
-		hash = hash_float_pbr_batch( hash, binding.fit_scale_v );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
+		hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.texture_source_type ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
+		hash = hash_float_bits( hash, binding.width );
+		hash = hash_float_bits( hash, binding.height );
+		hash = hash_combine( hash, binding.content_version );
+		hash = hash_float_bits( hash, binding.offset_u );
+		hash = hash_float_bits( hash, binding.offset_v );
+		hash = hash_float_bits( hash, binding.scale_u );
+		hash = hash_float_bits( hash, binding.scale_v );
+		hash = hash_float_bits( hash, binding.fit_scale_u );
+		hash = hash_float_bits( hash, binding.fit_scale_v );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
 	}
 
 	std::uint64_t compute_pbr_batch_hash( const FeRenderGeometry &entry )
 	{
 		std::uint64_t hash = 1469598103934665603ULL;
-		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( entry.external_vertex_id ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.pbr_collapse_group ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.get_vertex_count() ) );
-		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( entry.texture_id ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_source_type ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_repeated ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_smooth ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_mipmap ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.translucent_depth_prepass ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, entry.texture_content_version );
-		hash = hash_float_pbr_batch( hash, entry.ambient_light );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( entry.light_count ) );
+		hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( entry.external_vertex_id ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.pbr_collapse_group ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.get_vertex_count() ) );
+		hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( entry.texture_id ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_source_type ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_repeated ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_smooth ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_mipmap ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.translucent_depth_prepass ? 1 : 0 ) );
+		hash = hash_combine( hash, entry.texture_content_version );
+		hash = hash_float_bits( hash, entry.ambient_light );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.light_count ) );
 
 		const FeRenderPbrMaterial &material = entry.pbr_material;
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
-		hash = hash_combine_pbr_batch( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
-		hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
-		hash = hash_float_pbr_batch( hash, material.metallic_factor );
-		hash = hash_float_pbr_batch( hash, material.roughness_factor );
-		hash = hash_float_pbr_batch( hash, material.ior );
-		hash = hash_float_pbr_batch( hash, material.normal_scale );
-		hash = hash_float_pbr_batch( hash, material.occlusion_strength );
-		hash = hash_float_pbr_batch( hash, material.alpha_cutoff );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
+		hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
+		hash = hash_float_bits( hash, material.metallic_factor );
+		hash = hash_float_bits( hash, material.roughness_factor );
+		hash = hash_float_bits( hash, material.ior );
+		hash = hash_float_bits( hash, material.normal_scale );
+		hash = hash_float_bits( hash, material.occlusion_strength );
+		hash = hash_float_bits( hash, material.alpha_cutoff );
 		for ( int i = 0; i < 4; ++i )
-			hash = hash_float_pbr_batch( hash, material.base_color_factor[i] );
+			hash = hash_float_bits( hash, material.base_color_factor[i] );
 		for ( int i = 0; i < 3; ++i )
 		{
-			hash = hash_float_pbr_batch( hash, material.emissive_factor[i] );
-			hash = hash_float_pbr_batch( hash, entry.ambient_color[i] );
+			hash = hash_float_bits( hash, material.emissive_factor[i] );
+			hash = hash_float_bits( hash, entry.ambient_color[i] );
 		}
 
 		hash_pbr_texture_binding( material.base_color_texture, hash );
@@ -887,16 +875,16 @@ namespace
 		for ( int light_index = 0; light_index < entry.light_count; ++light_index )
 		{
 			const FeRenderPbrLight &light = entry.lights[light_index];
-			hash = hash_combine_pbr_batch( hash, static_cast<std::uint64_t>( light.type ) );
-			hash = hash_float_pbr_batch( hash, light.intensity );
-			hash = hash_float_pbr_batch( hash, light.range );
-			hash = hash_float_pbr_batch( hash, light.inner_cone_cos );
-			hash = hash_float_pbr_batch( hash, light.outer_cone_cos );
-			hash = hash_float_pbr_batch( hash, light.radius );
+			hash = hash_combine( hash, static_cast<std::uint64_t>( light.type ) );
+			hash = hash_float_bits( hash, light.intensity );
+			hash = hash_float_bits( hash, light.range );
+			hash = hash_float_bits( hash, light.inner_cone_cos );
+			hash = hash_float_bits( hash, light.outer_cone_cos );
+			hash = hash_float_bits( hash, light.radius );
 			for ( int i = 0; i < 3; ++i )
 			{
-				hash = hash_float_pbr_batch( hash, light.color[i] );
-				hash = hash_float_pbr_batch( hash, light.direction[i] );
+				hash = hash_float_bits( hash, light.color[i] );
+				hash = hash_float_bits( hash, light.direction[i] );
 			}
 		}
 
@@ -1197,14 +1185,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		std::size_t original_index;
 	};
 
-	auto hash_combine = []( std::uint64_t seed, std::uint64_t value ) -> std::uint64_t
-	{
-		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
-	};
-	auto hash_float = [&]( std::uint64_t seed, float value ) -> std::uint64_t
-	{
-		return hash_float_pbr_batch( seed, value );
-	};
 	auto hash_texture_binding = [&]( const FeRenderTextureBinding &binding, std::uint64_t seed ) -> std::uint64_t
 	{
 		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
@@ -1214,12 +1194,12 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.texcoord_set ) );
-		seed = hash_float( seed, binding.width );
-		seed = hash_float( seed, binding.height );
-		seed = hash_float( seed, binding.offset_u );
-		seed = hash_float( seed, binding.offset_v );
-		seed = hash_float( seed, binding.scale_u );
-		seed = hash_float( seed, binding.scale_v );
+		seed = hash_float_bits( seed, binding.width );
+		seed = hash_float_bits( seed, binding.height );
+		seed = hash_float_bits( seed, binding.offset_u );
+		seed = hash_float_bits( seed, binding.offset_v );
+		seed = hash_float_bits( seed, binding.scale_u );
+		seed = hash_float_bits( seed, binding.scale_v );
 		return seed;
 	};
 	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed ) -> std::uint64_t
@@ -1242,20 +1222,20 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		}
 		else for ( const FeRenderVertex &vertex : geometry.vertices )
 		{
-			seed = hash_float_pbr_batch( seed, vertex.x );
-			seed = hash_float_pbr_batch( seed, vertex.y );
-			seed = hash_float_pbr_batch( seed, vertex.z );
-			seed = hash_float_pbr_batch( seed, vertex.u );
-			seed = hash_float_pbr_batch( seed, vertex.v );
-			seed = hash_float_pbr_batch( seed, vertex.u1 );
-			seed = hash_float_pbr_batch( seed, vertex.v1 );
-			seed = hash_float_pbr_batch( seed, vertex.nx );
-			seed = hash_float_pbr_batch( seed, vertex.ny );
-			seed = hash_float_pbr_batch( seed, vertex.nz );
-			seed = hash_float_pbr_batch( seed, vertex.tx );
-			seed = hash_float_pbr_batch( seed, vertex.ty );
-			seed = hash_float_pbr_batch( seed, vertex.tz );
-			seed = hash_float_pbr_batch( seed, vertex.tw );
+			seed = hash_float_bits( seed, vertex.x );
+			seed = hash_float_bits( seed, vertex.y );
+			seed = hash_float_bits( seed, vertex.z );
+			seed = hash_float_bits( seed, vertex.u );
+			seed = hash_float_bits( seed, vertex.v );
+			seed = hash_float_bits( seed, vertex.u1 );
+			seed = hash_float_bits( seed, vertex.v1 );
+			seed = hash_float_bits( seed, vertex.nx );
+			seed = hash_float_bits( seed, vertex.ny );
+			seed = hash_float_bits( seed, vertex.nz );
+			seed = hash_float_bits( seed, vertex.tx );
+			seed = hash_float_bits( seed, vertex.ty );
+			seed = hash_float_bits( seed, vertex.tz );
+			seed = hash_float_bits( seed, vertex.tw );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.r ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.g ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( vertex.b ) );
@@ -1265,9 +1245,9 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		if ( geometry.geometry_kind == FeRenderGeometryObjectPbr )
 		{
 			for ( int i = 0; i < 16; ++i )
-				seed = hash_float( seed, geometry.model_matrix[i] );
+				seed = hash_float_bits( seed, geometry.model_matrix[i] );
 			for ( int i = 0; i < 9; ++i )
-				seed = hash_float( seed, geometry.normal_matrix[i] );
+				seed = hash_float_bits( seed, geometry.normal_matrix[i] );
 			seed = hash_texture_binding( geometry.pbr_material.base_color_texture, seed );
 			seed = hash_texture_binding( geometry.pbr_material.metallic_roughness_texture, seed );
 			seed = hash_texture_binding( geometry.pbr_material.normal_texture, seed );
@@ -1275,19 +1255,19 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			seed = hash_texture_binding( geometry.pbr_material.emissive_texture, seed );
 			seed = hash_texture_binding( geometry.pbr_material.cubemap_texture, seed );
 			for ( int i = 0; i < 4; ++i )
-				seed = hash_float( seed, geometry.pbr_material.base_color_factor[i] );
+				seed = hash_float_bits( seed, geometry.pbr_material.base_color_factor[i] );
 			for ( int i = 0; i < 3; ++i )
 			{
-				seed = hash_float( seed, geometry.pbr_material.emissive_factor[i] );
-				seed = hash_float( seed, geometry.ambient_color[i] );
+				seed = hash_float_bits( seed, geometry.pbr_material.emissive_factor[i] );
+				seed = hash_float_bits( seed, geometry.ambient_color[i] );
 			}
-			seed = hash_float( seed, geometry.ambient_light );
-			seed = hash_float( seed, geometry.pbr_material.metallic_factor );
-			seed = hash_float( seed, geometry.pbr_material.roughness_factor );
-			seed = hash_float( seed, geometry.pbr_material.ior );
-			seed = hash_float( seed, geometry.pbr_material.normal_scale );
-			seed = hash_float( seed, geometry.pbr_material.occlusion_strength );
-			seed = hash_float( seed, geometry.pbr_material.alpha_cutoff );
+			seed = hash_float_bits( seed, geometry.ambient_light );
+			seed = hash_float_bits( seed, geometry.pbr_material.metallic_factor );
+			seed = hash_float_bits( seed, geometry.pbr_material.roughness_factor );
+			seed = hash_float_bits( seed, geometry.pbr_material.ior );
+			seed = hash_float_bits( seed, geometry.pbr_material.normal_scale );
+			seed = hash_float_bits( seed, geometry.pbr_material.occlusion_strength );
+			seed = hash_float_bits( seed, geometry.pbr_material.alpha_cutoff );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.alpha_mode ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.unlit ? 1 : 0 ) );
 			seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_material.double_sided ? 1 : 0 ) );
@@ -1299,15 +1279,15 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				seed = hash_combine( seed, static_cast<std::uint64_t>( light.type ) );
 				for ( int i = 0; i < 3; ++i )
 				{
-					seed = hash_float( seed, light.color[i] );
-					seed = hash_float( seed, light.position[i] );
-					seed = hash_float( seed, light.direction[i] );
+					seed = hash_float_bits( seed, light.color[i] );
+					seed = hash_float_bits( seed, light.position[i] );
+					seed = hash_float_bits( seed, light.direction[i] );
 				}
-				seed = hash_float( seed, light.intensity );
-				seed = hash_float( seed, light.range );
-				seed = hash_float( seed, light.inner_cone_cos );
-				seed = hash_float( seed, light.outer_cone_cos );
-				seed = hash_float( seed, light.radius );
+				seed = hash_float_bits( seed, light.intensity );
+				seed = hash_float_bits( seed, light.range );
+				seed = hash_float_bits( seed, light.inner_cone_cos );
+				seed = hash_float_bits( seed, light.outer_cone_cos );
+				seed = hash_float_bits( seed, light.radius );
 			}
 		}
 
