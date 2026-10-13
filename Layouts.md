@@ -2587,6 +2587,8 @@ Images, artwork, surfaces, clones, text, listboxes, and rectangles provide `move
 
 -  `move( property )` - Return the animation object for `property`.
 -  `move( property, to, duration, ease )` - Animate `property` to `to` over `duration` milliseconds and return its animation object.
+-  `move( property, to, duration, function_name )` - Animate using a named easing callback in the root table.
+-  `move( property, to, duration, environment, function_name )` - Animate using a named easing callback in `environment`.
 
 For example:
 
@@ -2594,6 +2596,8 @@ For example:
 local logo = fe.add_image( "logo.png", 20, 20, 300, 100 )
 logo.move( "x", 200, 750, Ease.OutCubic )
 ```
+
+An easing callback receives `( t, b, c, d )`: iteration time in milliseconds, original start value, change from start to destination, and duration. It returns the animated value. Reverse playback runs `t` backward from `d` to `0`, keeping `b` and `c` unchanged, so an ease-out curve becomes ease-in on the return trip. Built-in `Ease.Inertia` instead swaps the endpoints and keeps time moving forward.
 
 The returned animation object has these properties:
 
