@@ -1404,8 +1404,8 @@ This class is a container for global layout settings. The instance of this class
 
 **Properties**
 
--  `width` - Get the visible layout width in grid coordinates (`fe.grid.width`). See the compatibility note below for assignments.
--  `height` - Get the visible layout height in grid coordinates (`fe.grid.height`). See the compatibility note below for assignments.
+-  `width` - Get/set the layout width in pixels. Use `fe.grid.width` for its width in grid coordinates.
+-  `height` - Get/set the layout height in pixels. Use `fe.grid.height` for its height in grid coordinates.
 -  `grid` - Read-only access to the layout's [`fe.Grid`](#fegrid-1), also available as `fe.grid`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
@@ -1431,7 +1431,7 @@ This class is a container for global layout settings. The instance of this class
 
 **Notes**
 
--  For new layouts, define coordinates with `fe.set_grid()` and keep the native pixel dimensions. Assignments to `width` and `height` remain supported for compatibility with older layouts. They set pixel dimensions even when a grid is active; reading these properties returns the current grid dimensions.
+-  For new layouts, define coordinates with `fe.set_grid()` and keep the native pixel dimensions. `width` and `height` always read and write pixels, including inside plugins. Their assignments remain supported for compatibility with older layouts. Use `fe.grid.width` and `fe.grid.height` to read grid dimensions.
 -  The actual rotation of the layout can be determined using the following equation: `( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4`
 
 ---
@@ -1523,7 +1523,7 @@ fe.plugin.grid.centered = true
 local badge = fe.add_rectangle(0, 0, 10, 10)
 ```
 
-Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` and `fe.layout` still refer to the layout inside a plugin; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. Children added to a surface use the surface's grid.
+Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` and `fe.layout.grid` always refer to the layout grid; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. `fe.layout.width` and `fe.layout.height` always return the layout's pixel dimensions. Children added to a surface use the surface's grid.
 
 Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
 
