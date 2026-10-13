@@ -1324,7 +1324,7 @@ An instance of the [`fe.LayoutGlobals`](#felayoutglobals) class and is where glo
 
 ### `fe.grid`
 
-The layout's [`fe.Grid`](#fegrid-1) instance, also available as `fe.layout.grid`. Its bounds, dimensions and settings stay current when the layout or grid changes. Inside a plugin, `fe.grid` still refers to the layout grid.
+The layout's [`fe.Grid`](#fegrid-1) instance. Its bounds, dimensions and settings stay current when the layout or grid changes. Inside a plugin, `fe.grid` still refers to the layout grid.
 
 ### `fe.plugin`
 
@@ -1386,7 +1386,6 @@ This class is a container for global layout settings. The instance of this class
 
 -  `width` - Get/set the layout width in pixels. Use `fe.grid.width` for its width in grid coordinates.
 -  `height` - Get/set the layout height in pixels. Use `fe.grid.height` for its height in grid coordinates.
--  `grid` - Read-only access to the layout's [`fe.Grid`](#fegrid-1), also available as `fe.grid`.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
 -  `base_rotation` - Get the base orientation of Attract-Mode Plus which is in Settings. This property cannot be set from the script. This can be one of the following values:
    -  `RotateScreen.None` (default)
@@ -1503,7 +1502,7 @@ fe.plugin.grid.centered = true
 local badge = fe.add_rectangle(0, 0, 10, 10)
 ```
 
-Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` and `fe.layout.grid` always refer to the layout grid; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. `fe.layout.width` and `fe.layout.height` always return the layout's pixel dimensions. Children added to a surface use the surface's grid.
+Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` always refers to the layout grid; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. `fe.layout.width` and `fe.layout.height` always return the layout's pixel dimensions. Children added to a surface use the surface's grid.
 
 Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
 
@@ -1511,7 +1510,7 @@ All `set_size()` arguments must be finite numbers. Width and height must be posi
 
 ### `fe.Grid`
 
-Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[n].grid` or `fe.plugin.grid`. A stored grid reference stays current when its settings or pixel dimensions change. This class cannot be instantiated in a script.
+Access a grid through `fe.grid`, `surface.grid`, `fe.monitors[n].grid` or `fe.plugin.grid`. A stored grid reference stays current when its settings or pixel dimensions change. This class cannot be instantiated in a script.
 
 **Properties**
 
@@ -1519,7 +1518,7 @@ Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[
 -  `width`, `height` - Read-only visible dimensions in grid coordinates: `right - left` and `bottom - top`.
 -  `uniform` - Get/set equal horizontal and vertical grid-unit sizes. Default is `false`.
 -  `centered` - Get/set centering of the specified uniform grid range. Inactive in pixels or with nonuniform scaling. Default is `false`.
--  `pixel_snap` - Get/set snapping of rendered geometry while retaining fractional coordinates on readback. Default is `false`.
+-  `pixel_snap` - Get/set snapping of rendered geometry. Position and size properties retain fractional grid coordinates. Default is `false`.
 
 **Member Functions**
 
@@ -1527,7 +1526,7 @@ Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[
 -  `set_size(width, height)` - Start at `(0, 0)` with independent axis sizes.
 -  `set_size(x, y, width, height)` - Set the grid's starting point, width and height.
 
-Call `fe.grid.set_size()`, `surface.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()`. All forms preserve `uniform`, `centered` and `pixel_snap`. See [Grid coordinates](#grid-coordinates) for scaling, centering and readback.
+Call `fe.grid.set_size()`, `surface.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()`. See [Grid coordinates](#grid-coordinates) for scaling, centering and reading property values.
 
 ### `fe.CurrentList`
 
