@@ -373,26 +373,33 @@ namespace
 		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
 	}
 
+	std::uint64_t hash_float_bits( std::uint64_t seed, float value )
+	{
+		std::uint32_t bits = 0;
+		std::memcpy( &bits, &value, sizeof( bits ) );
+		return hash_combine_u64( seed, static_cast<std::uint64_t>( bits ) );
+	}
+
 	std::uint64_t compute_vertex_stream_hash( const std::vector<FeRenderVertex> &vertices )
 	{
 		std::uint64_t hash = 1469598103934665603ULL;
 		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertices.size() ) );
 		for ( const FeRenderVertex &vertex : vertices )
 		{
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.x * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.y * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.z * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.u * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.v * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.u1 * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.v1 * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.nx * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.ny * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.nz * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.tx * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.ty * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.tz * 1024.0f ) ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( std::lround( vertex.tw * 1024.0f ) ) );
+			hash = hash_float_bits( hash, vertex.x );
+			hash = hash_float_bits( hash, vertex.y );
+			hash = hash_float_bits( hash, vertex.z );
+			hash = hash_float_bits( hash, vertex.u );
+			hash = hash_float_bits( hash, vertex.v );
+			hash = hash_float_bits( hash, vertex.u1 );
+			hash = hash_float_bits( hash, vertex.v1 );
+			hash = hash_float_bits( hash, vertex.nx );
+			hash = hash_float_bits( hash, vertex.ny );
+			hash = hash_float_bits( hash, vertex.nz );
+			hash = hash_float_bits( hash, vertex.tx );
+			hash = hash_float_bits( hash, vertex.ty );
+			hash = hash_float_bits( hash, vertex.tz );
+			hash = hash_float_bits( hash, vertex.tw );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.r ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.g ) );
 			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.b ) );
@@ -401,12 +408,6 @@ namespace
 		return hash;
 	}
 
-	std::uint64_t hash_float_bits( std::uint64_t seed, float value )
-	{
-		std::uint32_t bits = 0;
-		std::memcpy( &bits, &value, sizeof( bits ) );
-		return hash_combine_u64( seed, static_cast<std::uint64_t>( bits ) );
-	}
 
 	float compute_plane_distance( const FePerspectiveCamera &camera, int viewport_height )
 	{
