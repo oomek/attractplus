@@ -27,7 +27,6 @@
    -  [`fe.add_text()`](#feadd_text)
    -  [`fe.add_listbox()`](#feadd_listbox)
    -  [`fe.add_rectangle()`](#feadd_rectangle-) 🔶
-   -  [`fe.set_grid()`](#feset_grid)
    -  [`fe.add_shader()`](#feadd_shader)
    -  [`fe.compile_shader()`](#fecompile_shader-) 🔶
    -  [`fe.add_sound()`](#feadd_sound)
@@ -115,10 +114,10 @@ Layouts define what gets displayed to the user. They consist of a `layout.nut` f
 
 Layouts can have one or more `layout*.nut` files, which may be cycled between using the "Next/Previous Layout" commands.
 
-Use [`fe.set_grid()`](#grid-coordinates) to choose the layout's coordinate range. The layout keeps its native pixel dimensions.
+Use [`fe.grid.set_size()`](#grid-coordinates) to choose the layout's coordinate range. The layout keeps its native pixel dimensions.
 
 ```squirrel
-fe.set_grid(100)
+fe.grid.set_size(100)
 
 // Background movie artwork
 local img = fe.add_artwork( "snap", 0, 0, 100, 100 )
@@ -486,25 +485,6 @@ Add a rectangle to the end of the draw list.
 **Return Value**
 
 -  An instance of the class [`fe.Rectangle`](#ferectangle-) which can be used to interact with the added rectangle.
-
----
-
-### `fe.set_grid()`
-
-Define the layout's coordinate range while keeping its native pixel dimensions. See [Grid coordinates](#grid-coordinates) for scaling, centering and readback.
-
--  `fe.set_grid(size)` - Start at `(0, 0)` with the given size on both axes. Use `0` for pixels (the default).
--  `fe.set_grid(width, height)` - Start at `(0, 0)` with independent axis sizes.
--  `fe.set_grid(x, y, width, height)` - Set the grid's starting point, width and height.
-
-```squirrel
-fe.set_grid(100)
-fe.grid.uniform = true
-fe.grid.centered = true
-fe.grid.pixel_snap = true
-```
-
-Surfaces, monitors and plugins provide the same overloads through `surface.set_grid()`, `monitor.set_grid()` and `fe.plugin.set_grid()`. Their settings are on their `.grid` objects. `set_grid()` preserves those settings.
 
 ---
 
@@ -1348,7 +1328,7 @@ The layout's [`fe.Grid`](#fegrid-1) instance, also available as `fe.layout.grid`
 
 ### `fe.plugin`
 
-A shared table for plugin data. Its [grid settings](#grid-coordinates) are independent for each plugin and also apply inside that plugin's callbacks. Custom table entries remain shared. Use `fe.plugin.set_grid()` to define plugin coordinates and `fe.plugin.grid` to access its [`fe.Grid`](#fegrid-1) settings, bounds and dimensions. A stored grid reference continues to refer to that plugin's grid. These are available from plugins and their callbacks.
+A shared table for plugin data. Its [grid settings](#grid-coordinates) are independent for each plugin and also apply inside that plugin's callbacks. Custom table entries remain shared. Use `fe.plugin.grid.set_size()` to define plugin coordinates and `fe.plugin.grid` to access its [`fe.Grid`](#fegrid-1) settings, bounds and dimensions. A stored grid reference continues to refer to that plugin's grid. These are available from plugins and their callbacks.
 
 ### `fe.list`
 
@@ -1431,29 +1411,29 @@ This class is a container for global layout settings. The instance of this class
 
 **Notes**
 
--  For new layouts, define coordinates with `fe.set_grid()` and keep the native pixel dimensions. `width` and `height` always read and write pixels, including inside plugins. Their assignments remain supported for compatibility with older layouts. Use `fe.grid.width` and `fe.grid.height` to read grid dimensions.
+-  For new layouts, define coordinates with `fe.grid.set_size()` and keep the native pixel dimensions. `width` and `height` always read and write pixels, including inside plugins. Their assignments remain supported for compatibility with older layouts. Use `fe.grid.width` and `fe.grid.height` to read grid dimensions.
 -  The actual rotation of the layout can be determined using the following equation: `( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4`
 
 ---
 
 ### Grid coordinates
 
-Use `fe.set_grid()` to define layout coordinates without overriding the layout's pixel dimensions. Drawable positions and sizes then use those coordinates.
+Use `fe.grid.set_size()` to define layout coordinates without overriding the layout's pixel dimensions. Drawable positions and sizes then use those coordinates.
 
-By default, coordinates are in pixels starting at `(0, 0)`, with uniform scaling, centering and snapping disabled. `set_grid()` changes the coordinate range and starting point while preserving `uniform`, `centered` and `pixel_snap`. The one- and two-argument forms start at `(0, 0)`; the four-argument form sets the starting point as well as the width and height. Use `set_grid(0)` to return to pixels starting at `(0, 0)`.
+By default, coordinates are in pixels starting at `(0, 0)`, with uniform scaling, centering and snapping disabled. `set_size()` changes the coordinate range and starting point while preserving `uniform`, `centered` and `pixel_snap`. The one- and two-argument forms start at `(0, 0)`; the four-argument form sets the starting point as well as the width and height. Use `set_size(0)` to return to pixels starting at `(0, 0)`.
 
 With `uniform = false` (the default), the specified range covers the whole layout. Horizontal and vertical units can have different pixel sizes:
 
 ```squirrel
-fe.set_grid(1)             // x: 0..1, y: 0..1
-fe.set_grid(200, 100)      // x: 0..200, y: 0..100
-fe.set_grid(-1, -2, 2, 4) // x: -1..1, y: -2..2
+fe.grid.set_size(1)             // x: 0..1, y: 0..1
+fe.grid.set_size(200, 100)      // x: 0..200, y: 0..100
+fe.grid.set_size(-1, -2, 2, 4) // x: -1..1, y: -2..2
 ```
 
-Set `uniform = true` for equally sized horizontal and vertical units. With `set_grid(size)`, the shorter layout dimension spans `0..size`; the longer dimension extends beyond that range.
+Set `uniform = true` for equally sized horizontal and vertical units. With `set_size(size)`, the shorter layout dimension spans `0..size`; the longer dimension extends beyond that range.
 
 ```squirrel
-fe.set_grid(100)
+fe.grid.set_size(100)
 fe.grid.uniform = true
 fe.grid.pixel_snap = true
 local rec = fe.add_rectangle(10, 10, 10, 10)
@@ -1466,14 +1446,14 @@ In a native `1280 x 960` window, one unit in this example is `9.6` pixels and th
 For a rectangular uniform grid, AM+ uses a single pixel scale that fits the specified rectangle inside the layout. `centered = true` centers that rectangle. It has no effect when uniform scaling is disabled or coordinates are in pixels.
 
 ```squirrel
-fe.set_grid(-1, -1, 2, 2)
+fe.grid.set_size(-1, -1, 2, 2)
 fe.grid.uniform = true
 fe.grid.centered = true
 ```
 
 The shorter dimension now spans `-1..1`; the longer dimension extends equally on both sides. In a native `1280 x 960` window, the visible bounds are approximately `-1.333..1.333` horizontally and `-1..1` vertically. In portrait, the vertical range is the longer one.
 
-Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. `set_grid()` leaves the layout's pixel dimensions unchanged.
+Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. `set_size()` leaves the layout's pixel dimensions unchanged.
 
 Use `fe.grid` for the layout's grid and `surface.grid` for a surface's internal grid. Both provide the full visible bounds and dimensions:
 
@@ -1481,16 +1461,16 @@ Use `fe.grid` for the layout's grid and `surface.grid` for a surface's internal 
 local background = fe.add_rectangle(fe.grid.left, fe.grid.top, fe.grid.width, fe.grid.height)
 
 local surface = fe.add_surface(10, 10, 80, 50)
-surface.set_grid(100)
+surface.grid.set_size(100)
 local surface_background = surface.add_rectangle(surface.grid.left, surface.grid.top, surface.grid.width, surface.grid.height)
 ```
 
-`surface.width` and `surface.height` describe its displayed size in the enclosing grid. `surface.grid.width` and `surface.grid.height` describe its internal drawing area, including any space beyond a centered uniform grid. Grid dimensions are read-only; change the coordinate range with `set_grid()`.
+`surface.width` and `surface.height` describe its displayed size in the enclosing grid. `surface.grid.width` and `surface.grid.height` describe its internal drawing area, including any space beyond a centered uniform grid. Grid dimensions are read-only; change the coordinate range with `set_size()`.
 
 For example, two panes can cover the full layout in landscape or portrait:
 
 ```squirrel
-fe.set_grid(100)
+fe.grid.set_size(100)
 fe.grid.uniform = true
 fe.grid.centered = true
 
@@ -1501,13 +1481,13 @@ local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
 
 Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Text and listbox character sizes, margins and outlines, and rectangle outlines, use vertical grid units. Automatic character sizing and margins retain their existing meaning; negative rectangle outlines draw inward. Text measurements and listbox row heights are returned in grid coordinates. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
 
-Use `fe.set_grid()`, `surface.set_grid()`, `monitor.set_grid()` or `fe.plugin.set_grid()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
+Use `fe.grid.set_size()`, `surface.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
 
 ```squirrel
-fe.set_grid(100)
+fe.grid.set_size(100)
 fe.grid.uniform = false
 local surface = fe.add_surface(10, 10, 80, 80)
-surface.set_grid(100)
+surface.grid.set_size(100)
 surface.add_rectangle(10, 10, 20, 20)
 ```
 
@@ -1517,7 +1497,7 @@ The surface occupies 80% of the layout on each axis, and its rectangle occupies 
 
 ```squirrel
 // Inside a plugin:
-fe.plugin.set_grid(100)
+fe.plugin.grid.set_size(100)
 fe.plugin.grid.uniform = true
 fe.plugin.grid.centered = true
 local badge = fe.add_rectangle(0, 0, 10, 10)
@@ -1527,7 +1507,7 @@ Plugin drawables added to a monitor use that plugin's grid and the monitor's dim
 
 Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
 
-All `set_grid()` arguments must be finite numbers. Width and height must be positive, except for `set_grid(0)`. The three boolean properties require `true` or `false`.
+All `set_size()` arguments must be finite numbers. Width and height must be positive, except for `set_size(0)`. The three boolean properties require `true` or `false`.
 
 ### `fe.Grid`
 
@@ -1541,7 +1521,13 @@ Access a grid through `fe.grid`, `fe.layout.grid`, `surface.grid`, `fe.monitors[
 -  `centered` - Get/set centering of the specified uniform grid range. Inactive in pixels or with nonuniform scaling. Default is `false`.
 -  `pixel_snap` - Get/set snapping of rendered geometry while retaining fractional coordinates on readback. Default is `false`.
 
-Define the coordinate range with [`fe.set_grid()`](#feset_grid), `surface.set_grid()`, `monitor.set_grid()` or `fe.plugin.set_grid()`.
+**Member Functions**
+
+-  `set_size(size)` - Start at `(0, 0)` with the given size on both axes. Use `0` for pixels (the default).
+-  `set_size(width, height)` - Start at `(0, 0)` with independent axis sizes.
+-  `set_size(x, y, width, height)` - Set the grid's starting point, width and height.
+
+Call `fe.grid.set_size()`, `surface.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()`. All forms preserve `uniform`, `centered` and `pixel_snap`. See [Grid coordinates](#grid-coordinates) for scaling, centering and readback.
 
 ### `fe.CurrentList`
 
@@ -1688,9 +1674,6 @@ This class represents a monitor in Attract-Mode Plus, and provides the interface
 -  `add_listbox()` - Add a listbox to the end of this monitor's draw list, see [`fe.add_listbox()`](#feadd_listbox).
 -  `add_surface()` - Add a surface to the end of this monitor's draw list, see [`fe.add_surface()`](#feadd_surface).
 -  `add_rectangle()` - Add a rectangle to the end of this monitor's draw list, see [`fe.add_rectangle()`](#feadd_rectangle-).
--  `set_grid(size)` - Set a grid starting at `(0, 0)` with the given size on both axes. Use `0` for pixels.
--  `set_grid(width, height)` - Set a grid starting at `(0, 0)` with independent axis sizes.
--  `set_grid(x, y, width, height)` - Set the grid's starting point, width and height.
 
 **Notes**
 
@@ -1855,9 +1838,6 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `add_listbox()` - _[surface only]_ Add a listbox to the end of this surface's draw list, see [`fe.add_listbox()`](#feadd_listbox).
 -  `add_surface()` - _[surface only]_ Add a surface to the end of this surface's draw list, see [`fe.add_surface()`](#feadd_surface).
 -  `add_rectangle()` - _[surface only]_ Add a rectangle to the end of this surface's draw list, see [`fe.add_rectangle()`](#feadd_rectangle-).
--  `set_grid(size)` - _[surface only]_ Set its children's grid starting at `(0, 0)` with the given size on both axes. Use `0` for pixels.
--  `set_grid(width, height)` - _[surface only]_ Set its children's grid starting at `(0, 0)` with independent axis sizes.
--  `set_grid(x, y, width, height)` - _[surface only]_ Set its children's grid starting point, width and height.
 
 <a name="artwork-notes">**Notes**</a>
 
@@ -2751,7 +2731,7 @@ Images, artwork, surfaces, clones, text, listboxes, and rectangles provide `move
 For example:
 
 ```squirrel
-fe.set_grid(100)
+fe.grid.set_size(100)
 local rec = fe.add_rectangle(10, 10, 10, 10)
 rec.move("x", 70, 750, Ease.OutCubic)
 ```
