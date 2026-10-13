@@ -1512,7 +1512,6 @@ bool FeVM::on_new_layout()
 #undef ANIM_PROP
 
 	fe.Bind( _SC("LayoutGlobals"), Class <FePresent, NoConstructor>()
-		.Prop( _SC("grid"), &FePresent::get_layout_grid )
 		.Prop( _SC("width"), &FePresent::get_layout_width, &FePresent::set_layout_width )
 		.Prop( _SC("height"), &FePresent::get_layout_height, &FePresent::set_layout_height )
 		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
