@@ -368,22 +368,10 @@ namespace
 		return face_size > 0 && face_size == ( height / 3 );
 	}
 
-	std::uint64_t hash_combine_u64( std::uint64_t seed, std::uint64_t value )
-	{
-		return seed ^ ( value + 0x9e3779b97f4a7c15ULL + ( seed << 6 ) + ( seed >> 2 ) );
-	}
-
-	std::uint64_t hash_float_bits( std::uint64_t seed, float value )
-	{
-		std::uint32_t bits = 0;
-		std::memcpy( &bits, &value, sizeof( bits ) );
-		return hash_combine_u64( seed, static_cast<std::uint64_t>( bits ) );
-	}
-
 	std::uint64_t compute_vertex_stream_hash( const std::vector<FeRenderVertex> &vertices )
 	{
 		std::uint64_t hash = 1469598103934665603ULL;
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertices.size() ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( vertices.size() ) );
 		for ( const FeRenderVertex &vertex : vertices )
 		{
 			hash = hash_float_bits( hash, vertex.x );
@@ -400,10 +388,10 @@ namespace
 			hash = hash_float_bits( hash, vertex.ty );
 			hash = hash_float_bits( hash, vertex.tz );
 			hash = hash_float_bits( hash, vertex.tw );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.r ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.g ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.b ) );
-			hash = hash_combine_u64( hash, static_cast<std::uint64_t>( vertex.a ) );
+			hash = hash_combine( hash, static_cast<std::uint64_t>( vertex.r ) );
+			hash = hash_combine( hash, static_cast<std::uint64_t>( vertex.g ) );
+			hash = hash_combine( hash, static_cast<std::uint64_t>( vertex.b ) );
+			hash = hash_combine( hash, static_cast<std::uint64_t>( vertex.a ) );
 		}
 		return hash;
 	}
@@ -1648,25 +1636,25 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 		return 0;
 
 	std::uint64_t hash = 1469598103934665603ULL;
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.vertex_count ) );
-	hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.external_vertex_id ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.translucent_depth ? 1 : 0 ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( image.translucent_depth_prepass ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( image.vertex_count ) );
+	hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( image.external_vertex_id ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( image.zbuffer ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( image.translucent_depth ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( image.translucent_depth_prepass ? 1 : 0 ) );
 
 	const FeRenderGeometry &geometry = *image.geometry;
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_enabled ? 1 : 0 ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_x ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_y ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_width ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.clip_height ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( geometry.clip_enabled ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( geometry.clip_x ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( geometry.clip_y ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( geometry.clip_width ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( geometry.clip_height ) );
 	const FeRenderPbrMaterial &material = geometry.pbr_material;
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
-	hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( material.alpha_mode ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( material.unlit ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( material.double_sided ? 1 : 0 ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( material.use_base_color_alpha ? 1 : 0 ) );
+	hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( material.artwork_shader ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( material.artwork_shader_emissive ? 1 : 0 ) );
 	hash = hash_float_bits( hash, material.metallic_factor );
 	hash = hash_float_bits( hash, material.roughness_factor );
 	hash = hash_float_bits( hash, material.ior );
@@ -1674,7 +1662,7 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash = hash_float_bits( hash, material.occlusion_strength );
 	hash = hash_float_bits( hash, material.alpha_cutoff );
 	hash = hash_float_bits( hash, geometry.ambient_light );
-	hash = hash_combine_u64( hash, static_cast<std::uint64_t>( geometry.light_count ) );
+	hash = hash_combine( hash, static_cast<std::uint64_t>( geometry.light_count ) );
 
 	for ( int i = 0; i < 4; ++i )
 		hash = hash_float_bits( hash, material.base_color_factor[i] );
@@ -1686,21 +1674,21 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 
 	auto hash_binding = [&]( const FeRenderTextureBinding &binding )
 	{
-		hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.texture_source_type ) );
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( binding.texture_id ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.texture_source_type ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
 		hash = hash_float_bits( hash, binding.width );
 		hash = hash_float_bits( hash, binding.height );
-		hash = hash_combine_u64( hash, binding.content_version );
+		hash = hash_combine( hash, binding.content_version );
 		hash = hash_float_bits( hash, binding.offset_u );
 		hash = hash_float_bits( hash, binding.offset_v );
 		hash = hash_float_bits( hash, binding.scale_u );
 		hash = hash_float_bits( hash, binding.scale_v );
 		hash = hash_float_bits( hash, binding.fit_scale_u );
 		hash = hash_float_bits( hash, binding.fit_scale_v );
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.texcoord_set ) );
 	};
 
 	hash_binding( material.base_color_texture );
@@ -1711,12 +1699,12 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 	hash_binding( material.cubemap_texture );
 
 	for ( int i = 0; i < FE_RENDER_PBR_TEXTURE_COUNT; ++i )
-		hash = hash_combine_u64( hash, reinterpret_cast<std::uint64_t>( image.pbr_textures[i] ) );
+		hash = hash_combine( hash, reinterpret_cast<std::uint64_t>( image.pbr_textures[i] ) );
 
 	for ( int light_index = 0; light_index < geometry.light_count; ++light_index )
 	{
 		const FeRenderPbrLight &light = geometry.lights[light_index];
-		hash = hash_combine_u64( hash, static_cast<std::uint64_t>( light.type ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( light.type ) );
 		hash = hash_float_bits( hash, light.intensity );
 		hash = hash_float_bits( hash, light.range );
 		hash = hash_float_bits( hash, light.inner_cone_cos );
