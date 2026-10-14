@@ -686,6 +686,9 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 	if ( point_count < 3 )
 		return false;
 
+	geometry.vertices.reserve( ( point_count - 2 ) * 3
+		+ ( ( m_outline_thickness != 0.0f && m_outline_color.a > 0 ) ? point_count * 6 : 0 ) );
+
 	const FeTransform transform = FeTransform()
 		.translate( m_render_position )
 		.rotate( m_rotation )
@@ -737,18 +740,20 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 
 	const Vec2f first_local = get_shape_point( 0 );
 	const Vec2f first = transform.transformPoint( first_local );
+	const Vec2f uv0 = normalized_uv( first_local );
+	const Vec2f second_local = get_shape_point( 1 );
+	Vec2f second = transform.transformPoint( second_local );
+	Vec2f uv1 = normalized_uv( second_local );
 
 	for ( std::size_t i = 1; i + 1 < point_count; ++i )
 	{
-		const Vec2f second_local = get_shape_point( i );
 		const Vec2f third_local = get_shape_point( i + 1 );
-		const Vec2f second = transform.transformPoint( second_local );
 		const Vec2f third = transform.transformPoint( third_local );
-		const Vec2f uv0 = normalized_uv( first_local );
-		const Vec2f uv1 = normalized_uv( second_local );
 		const Vec2f uv2 = normalized_uv( third_local );
 
 		append_triangle( first, second, third, uv0, uv1, uv2, fill_color );
+		second = third;
+		uv1 = uv2;
 	}
 
 	const float outline = m_outline_thickness;
