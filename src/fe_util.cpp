@@ -1042,8 +1042,10 @@ std::string rtrim( const std::string str )
 
 std::string trim( const std::string str )
 {
-	int begin = str.find_first_not_of( FE_WHITESPACE );
-	int end = str.find_last_not_of( FE_WHITESPACE ) + 1;
+	const std::size_t begin = str.find_first_not_of( FE_WHITESPACE );
+	if ( begin == std::string::npos )
+		return std::string();
+	const std::size_t end = str.find_last_not_of( FE_WHITESPACE ) + 1;
 	return str.substr( begin, end - begin );
 }
 

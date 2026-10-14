@@ -50,6 +50,7 @@ namespace
 	{
 		std::string type;
 		std::string name;
+		std::string default_value;
 		bool sampler;
 	};
 
@@ -72,6 +73,12 @@ namespace
 		}
 	}
 
+	std::string get_shader_identifier( const std::string &source, std::string name )
+	{
+		while ( source.find( name ) != std::string::npos )
+			name += "_";
+		return name;
+	}
 
 	struct ShaderBlob
 	{
@@ -193,44 +200,76 @@ namespace
 		std::string &stripped_source )
 	{
 		static const std::regex uniform_regex(
-			"^\\s*uniform\\s+(float|vec2|vec3|vec4|sampler2D)\\s+([^;]+)\\s*;\\s*$" );
+			"\\buniform\\s+(float|vec2|vec3|vec4|sampler2D)\\s+([^;]+);" );
+		static const std::regex name_regex(
+			"^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(?:=\\s*([\\s\\S]+))?\\s*$" );
+		static const std::regex comment_regex( "//[^\\n]*|/\\*[\\s\\S]*?\\*/" );
+		static const std::regex directive_regex(
+			"^\\s*#\\s*(version\\b|extension\\s+GL_EXT_gpu_shader4\\b)" );
 
-		std::stringstream input( source );
+		// Ignore declarations in comments, retaining line breaks for diagnostics.
+		std::string uncommented = source;
+		for ( std::sregex_iterator i( source.begin(), source.end(), comment_regex ), end; i != end; ++i )
+		{
+			for ( std::size_t j = i->position(); j < static_cast<std::size_t>( i->position() + i->length() ); ++j )
+				if ( uncommented[j] != '\n' )
+					uncommented[j] = ' ';
+		}
+
+		std::stringstream input( uncommented );
 		std::string line;
-		stripped_source.clear();
+		std::string declarations;
 		uniforms.clear();
 
 		while ( std::getline( input, line ) )
 		{
-			if ( line.find( "#version" ) != std::string::npos )
-				continue;
-
-			std::smatch match;
-			if ( std::regex_match( line, match, uniform_regex ) )
-			{
-				const std::string type = match[ 1 ].str();
-				std::string names = match[ 2 ].str();
-				std::stringstream names_stream( names );
-				std::string name;
-
-				while ( std::getline( names_stream, name, ',' ) )
-				{
-					name = trim( name );
-					if ( name.empty() )
-						continue;
-
-					ParsedCustomUniform uniform = {};
-					uniform.type = type;
-					uniform.name = name;
-					uniform.sampler = ( uniform.type == "sampler2D" );
-					uniforms.push_back( uniform );
-				}
-				continue;
-			}
-
-			stripped_source += line;
-			stripped_source += "\n";
+			if ( std::regex_search( line, directive_regex ) )
+				declarations += "\n";
+			else
+				declarations += line + "\n";
 		}
+
+		stripped_source.clear();
+		std::size_t start = 0;
+		for ( std::sregex_iterator i( declarations.begin(), declarations.end(), uniform_regex ), end; i != end; ++i )
+		{
+			stripped_source.append( declarations, start, i->position() - start );
+			const std::string type = ( *i )[1].str();
+			const std::string names = ( *i )[2].str();
+			std::size_t name_start = 0;
+			int depth = 0;
+			for ( std::size_t j = 0; j <= names.size(); ++j )
+			{
+				if ( j < names.size() )
+				{
+					const char c = names[j];
+					if ( c == '(' || c == '[' ) ++depth;
+					if ( c == ')' || c == ']' ) --depth;
+					if ( c != ',' || depth != 0 )
+						continue;
+				}
+				const std::string name = names.substr( name_start, j - name_start );
+				std::smatch match;
+				if ( !std::regex_match( name, match, name_regex ) || depth != 0 )
+				{
+					FeLog() << "SDL: custom_shader: unsupported uniform declaration: " << name << std::endl;
+					return false;
+				}
+				ParsedCustomUniform uniform = {};
+				uniform.type = type;
+				uniform.name = match[1].str();
+				uniform.default_value = trim( match[2].str() );
+				replace_all( uniform.default_value, "\n", " " );
+				replace_all( uniform.default_value, "\r", " " );
+				uniform.sampler = ( type == "sampler2D" );
+				uniforms.push_back( uniform );
+				name_start = j + 1;
+			}
+			const std::string declaration = i->str();
+			stripped_source.append( std::count( declaration.begin(), declaration.end(), '\n' ), '\n' );
+			start = i->position() + i->length();
+		}
+		stripped_source.append( declarations, start, std::string::npos );
 
 		return true;
 	}
@@ -267,10 +306,13 @@ namespace
 		return true;
 	}
 
-	std::string build_custom_uniform_macro( const std::string &name, int slot, int components )
+	std::string build_custom_uniform_macro( const std::string &name, int slot, int components, const std::string &default_value )
 	{
 		std::ostringstream stream;
-		stream << "#define " << name << " custom_ubo.values[" << slot << "].";
+		stream << "#define " << name << " ";
+		if ( !default_value.empty() )
+			stream << "(custom_ubo.supplied[" << slot / 4 << "]." << "xyzw"[slot % 4] << " != 0.0 ? ";
+		stream << "custom_ubo.values[" << slot << "].";
 
 		switch ( components )
 		{
@@ -282,6 +324,9 @@ namespace
 				stream << "xyzw";
 				break;
 		}
+
+		if ( !default_value.empty() )
+			stream << " : " << (( components == 1 ) ? "float" : "vec" + std::to_string( components )) << "(" << default_value << "))";
 
 		return stream.str();
 	}
@@ -2367,6 +2412,7 @@ namespace
 		float plane_distance;
 		float reserved;
 		float values[FE_MAX_CUSTOM_SHADER_UNIFORMS * 4];
+		float supplied[FE_MAX_CUSTOM_SHADER_UNIFORMS];
 	};
 
 	struct FeSdl3GpuPbrVertexUniforms
@@ -4746,6 +4792,7 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
 			( uniform.type == "float" ) ? 1 :
@@ -4754,7 +4801,8 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 		uniforms.push_back( binding );
 	}
 
-	replace_all( stripped_source, "texture2D(", "fe_texture2D(" );
+	const std::string texture_function = get_shader_identifier( raw_source, "fe_texture2D" );
+	stripped_source = std::regex_replace( stripped_source, std::regex( "\\btexture2D\\s*\\(" ), texture_function + "(" );
 	for ( int i = 0; i < 8; ++i )
 	{
 		const std::string from = "gl_TexCoord[" + std::to_string( i ) + "]";
@@ -4786,9 +4834,10 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 			shader << "layout(set = 2, binding = " << sampler.slot << ") uniform sampler2D external_texture" << sampler.slot << ";\n";
 	}
 	shader << "layout(set = 3, binding = 0, std140) uniform CustomFragmentUniforms\n";
-	shader << "{\n\tvec4 values[" << FE_MAX_CUSTOM_SHADER_UNIFORMS << "];\n} custom_ubo;\n\n";
-	shader << "vec4 fe_texture2D( sampler2D sampler_value, vec2 uv )\n{\n\treturn texture( sampler_value, uv );\n}\n\n";
-	shader << "vec4 fe_texture2D( sampler2D sampler_value, vec2 uv, float bias )\n{\n\treturn texture( sampler_value, uv, bias );\n}\n\n";
+	shader << "{\n\tvec4 values[" << FE_MAX_CUSTOM_SHADER_UNIFORMS << "];\n";
+	shader << "\tvec4 supplied[" << FE_MAX_CUSTOM_SHADER_UNIFORMS / 4 << "];\n} custom_ubo;\n\n";
+	shader << "vec4 " << texture_function << "( sampler2D sampler_value, vec2 uv )\n{\n\treturn texture( sampler_value, uv );\n}\n\n";
+	shader << "vec4 " << texture_function << "( sampler2D sampler_value, vec2 uv, float bias )\n{\n\treturn texture( sampler_value, uv, bias );\n}\n\n";
 
 	for ( const CustomSamplerBinding &sampler : samplers )
 	{
@@ -4799,7 +4848,7 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	}
 
 	for ( const CustomUniformBinding &uniform : uniforms )
-		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components ) << "\n";
+		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
 
 	shader << "\n" << stripped_source;
 	source_code = shader.str();
@@ -4896,6 +4945,7 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
 			( uniform.type == "float" ) ? 1 :
@@ -4904,7 +4954,8 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		uniforms.push_back( binding );
 	}
 
-	replace_all( stripped_source, "texture2D(", "fe_texture2D(" );
+	const std::string texture_function = get_shader_identifier( raw_source, "fe_texture2D" );
+	stripped_source = std::regex_replace( stripped_source, std::regex( "\\btexture2D\\s*\\(" ), texture_function + "(" );
 	for ( int i = 0; i < 8; ++i )
 	{
 		const std::string from = "gl_TexCoord[" + std::to_string( i ) + "]";
@@ -4937,7 +4988,7 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 	for ( const CustomSamplerBinding &sampler : samplers )
 		macro_code << "#define " << sampler.name << " artwork_shader_texture" << sampler.slot << "\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
-		macro_code << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components ) << "\n";
+		macro_code << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
 
 	std::ostringstream undef_code;
 	for ( const CustomSamplerBinding &sampler : samplers )
@@ -4951,6 +5002,7 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		<< "layout(set = 3, binding = 1, std140) uniform CustomFragmentUniforms\n"
 		<< "{\n"
 		<< "\tvec4 values[" << FE_MAX_CUSTOM_SHADER_UNIFORMS << "];\n"
+		<< "\tvec4 supplied[" << FE_MAX_CUSTOM_SHADER_UNIFORMS / 4 << "];\n"
 		<< "} custom_ubo;\n"
 		<< "vec2 artwork_uv;\n"
 		<< "vec2 material_uv0;\n"
@@ -4967,11 +5019,11 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		<< "vec4 fe_frag_color;\n"
 		<< "float fit_alpha;\n"
 		<< "vec4 fe_artwork_out_color;\n"
-		<< "vec4 fe_texture2D( sampler2D sampler_value, vec2 uv )\n"
+		<< "vec4 " << texture_function << "( sampler2D sampler_value, vec2 uv )\n"
 		<< "{\n"
 		<< "\treturn texture( sampler_value, uv );\n"
 		<< "}\n"
-		<< "vec4 fe_texture2D( sampler2D sampler_value, vec2 uv, float bias )\n"
+		<< "vec4 " << texture_function << "( sampler2D sampler_value, vec2 uv, float bias )\n"
 		<< "{\n"
 		<< "\treturn texture( sampler_value, uv, bias );\n"
 		<< "}\n"
@@ -4996,7 +5048,7 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 		<< "\tfe_frag_texcoord7 = vec4( 0.0 );\n"
 		<< "\tfe_frag_color = vec4( 1.0 );\n"
 		<< "\tfit_alpha = current_fit_alpha;\n"
-		<< "\tfe_artwork_out_color = fe_texture2D( base_color_texture, artwork_uv );\n"
+		<< "\tfe_artwork_out_color = " << texture_function << "( base_color_texture, artwork_uv );\n"
 		<< "\tfe_artwork_main();\n"
 		<< "\treturn fe_artwork_out_color * current_fit_alpha;\n"
 		<< "}\n";
@@ -5129,6 +5181,7 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
 			( uniform.type == "float" ) ? 1 :
@@ -5174,9 +5227,10 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	shader << "\tfloat plane_distance;\n";
 	shader << "\tfloat reserved;\n";
 	shader << "\tvec4 values[" << FE_MAX_CUSTOM_SHADER_UNIFORMS << "];\n";
+	shader << "\tvec4 supplied[" << FE_MAX_CUSTOM_SHADER_UNIFORMS / 4 << "];\n";
 	shader << "} custom_ubo;\n\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
-		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components ) << "\n";
+		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
 	shader << "#define fe_vertex vec4(vec3(in_position.x - ( custom_ubo.viewport_width * 0.5 ), (( custom_ubo.viewport_height * 0.5 ) - in_position.y), -( custom_ubo.plane_distance - in_position.z )), 1.0)\n";
 	shader << "\n" << stripped_source;
 
@@ -5190,7 +5244,7 @@ void FeSdl3GpuContext::build_custom_uniform_data(
 	std::vector<float> &data,
 	const FeShader *shader ) const
 {
-	data.assign( FE_MAX_CUSTOM_SHADER_UNIFORMS * 4, 0.0f );
+	data.assign( FE_MAX_CUSTOM_SHADER_UNIFORMS * 5, 0.0f );
 
 	float image_width = 0.0f;
 	float image_height = 0.0f;
@@ -5205,19 +5259,25 @@ void FeSdl3GpuContext::build_custom_uniform_data(
 
 		if ( values && !values->empty() )
 		{
+			data[FE_MAX_CUSTOM_SHADER_UNIFORMS * 4 + uniform.slot] = 1.0f;
 			const int count = std::min( uniform.components, static_cast<int>( values->size() ) );
 			for ( int i = 0; i < count; ++i )
 				slot[ i ] = ( *values )[ i ];
 			continue;
 		}
 
+		if ( !uniform.default_value.empty() )
+			continue;
+
 		if ( uniform.name == "image_size" )
 		{
+			data[FE_MAX_CUSTOM_SHADER_UNIFORMS * 4 + uniform.slot] = 1.0f;
 			slot[ 0 ] = image_width;
 			slot[ 1 ] = image_height;
 		}
 		else if ( uniform.name == "texture_size" )
 		{
+			data[FE_MAX_CUSTOM_SHADER_UNIFORMS * 4 + uniform.slot] = 1.0f;
 			slot[ 0 ] = image.texture_width;
 			slot[ 1 ] = image.texture_height;
 		}
@@ -5983,8 +6043,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 					custom_uniforms.plane_distance = uniforms.plane_distance;
 					custom_uniforms.reserved = uniforms.reserved;
 					build_custom_uniform_data( *image.geometry, image.custom_shader->vertex_uniforms, vertex_uniform_data );
-					const std::size_t value_count = std::min<std::size_t>( FE_MAX_CUSTOM_SHADER_UNIFORMS * 4, vertex_uniform_data.size() );
-					std::memcpy( custom_uniforms.values, vertex_uniform_data.data(), value_count * sizeof( float ) );
+					std::memcpy( custom_uniforms.values, vertex_uniform_data.data(), sizeof( custom_uniforms.values ) );
+					std::memcpy( custom_uniforms.supplied, vertex_uniform_data.data() + FE_MAX_CUSTOM_SHADER_UNIFORMS * 4, sizeof( custom_uniforms.supplied ) );
 					SDL_PushGPUVertexUniformData(
 						command_buffer,
 						0,

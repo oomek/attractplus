@@ -2182,6 +2182,8 @@ The class representing an audio track. Instances of this class are returned by t
 
 The class representing a GLSL shader. Instances of this class are returned by the [`fe.add_shader()`](#feadd_shader) and [`fe.compile_shader()`](#fecompile_shader-) functions. This class cannot be otherwise instantiated in a script.
 
+Float and vector uniforms may have GLSL initializers, such as `uniform vec2 size = vec2(1.0);`. The initializer is used until `set_param()` supplies a value; an explicit zero overrides it. Multiple uniforms may share a declaration, including vector initializers containing commas.
+
 **Properties**
 
 -  `type` - Get the shader type. Can be one of the following values:
