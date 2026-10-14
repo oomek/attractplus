@@ -1904,6 +1904,7 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 	m_pbr_collapse_group = reinterpret_cast<std::uintptr_t>( this );
 	set_zbuffer( true );
 	load_model( filename );
+	set_script_geometry( m_pos.x, m_pos.y, m_size.x, m_size.y );
 }
 
 FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
@@ -1941,6 +1942,8 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	if ( !o )
 		return;
 
+	set_pixel_snap( o->get_pixel_snap() );
+	set_script_geometry( o->get_x(), o->get_y(), o->get_width(), o->get_height() );
 	set_visible( o->get_visible() );
 	set_z( o->get_z() );
 	script_set_shader( o->get_shader() );
