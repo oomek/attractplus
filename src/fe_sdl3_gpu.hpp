@@ -251,6 +251,7 @@ private:
 	void release_pbr_instance_buffer();
 	bool upload_gpu_vertex_buffer_data( const void *data, Uint32 size, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
 	bool upload_gpu_vertex_buffer_data( SDL_GPUCommandBuffer *command_buffer, const void *data, Uint32 size, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
+	bool flush_vertex_uploads();
 	bool upload_vertex_buffer();
 	bool upload_vertex_buffer( const FeRenderVertex *vertices, std::size_t vertex_count, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
 	bool upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size );
@@ -370,6 +371,12 @@ private:
 	SDL_GPUDevice *m_device;
 	SDL_GPUBuffer *m_vertex_buffer;
 	SDL_GPUBuffer *m_pbr_instance_buffer;
+	SDL_GPUCommandBuffer *m_vertex_upload_command_buffer;
+	SDL_GPUTransferBuffer *m_vertex_upload_transfer_buffer;
+	Uint32 m_vertex_upload_transfer_buffer_size;
+	std::vector<unsigned char> m_vertex_upload_data;
+	std::vector<SDL_GPUBufferRegion> m_vertex_upload_regions;
+	std::vector<SDL_GPUBuffer *> m_vertex_upload_retired_buffers;
 	Uint32 m_vertex_buffer_size;
 	Uint32 m_pbr_instance_buffer_size;
 	std::uint64_t m_vertex_buffer_signature;

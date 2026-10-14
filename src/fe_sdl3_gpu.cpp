@@ -15,6 +15,7 @@
 #include <ctime>
 #include <cstring>
 #include <fstream>
+#include <limits>
 #include <regex>
 #include <sstream>
 #include <utility>
@@ -1056,6 +1057,9 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_device = nullptr;
 	m_vertex_buffer = nullptr;
 	m_pbr_instance_buffer = nullptr;
+	m_vertex_upload_command_buffer = nullptr;
+	m_vertex_upload_transfer_buffer = nullptr;
+	m_vertex_upload_transfer_buffer_size = 0;
 	m_vertex_buffer_size = 0;
 	m_pbr_instance_buffer_size = 0;
 	m_vertex_buffer_signature = 0;
@@ -1333,7 +1337,10 @@ void FeSdl3GpuContext::release_geometry_buffer( GeometryBufferEntry &entry )
 {
 	if ( entry.vertex_buffer )
 	{
-		SDL_ReleaseGPUBuffer( m_device, entry.vertex_buffer );
+		if ( m_vertex_upload_command_buffer )
+			m_vertex_upload_retired_buffers.push_back( entry.vertex_buffer );
+		else
+			SDL_ReleaseGPUBuffer( m_device, entry.vertex_buffer );
 		entry.vertex_buffer = nullptr;
 		entry.vertex_buffer_size = 0;
 		entry.vertex_count = 0;
@@ -1382,7 +1389,11 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 	prepared_images.clear();
 	vertex_stream.clear();
 	prepared_images.reserve( geometry.size() );
-	vertex_stream.reserve( geometry.size() * 6 );
+	std::size_t total_vertices = 0;
+	for ( const FeRenderGeometry &image : geometry )
+		if ( image.geometry_kind != FeRenderGeometryObjectPbr || !image.has_external_vertices() )
+			total_vertices += image.get_vertex_count();
+	vertex_stream.reserve( total_vertices );
 
 	for ( const FeRenderGeometry &image : geometry )
 	{
@@ -1497,16 +1508,18 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 		const FeRenderVertex *vertex_data = image.get_vertex_data();
 		const std::size_t vertex_count = image.get_vertex_count();
-		for ( std::size_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index )
+		if ( prepared.custom_shader && image.textured && image.texture_width > 0.0f && image.texture_height > 0.0f )
 		{
-			FeRenderVertex vertex = vertex_data[vertex_index];
-			if ( prepared.custom_shader && image.textured && image.texture_width > 0.0f && image.texture_height > 0.0f )
+			for ( std::size_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index )
 			{
+				FeRenderVertex vertex = vertex_data[vertex_index];
 				vertex.u /= image.texture_width;
 				vertex.v /= image.texture_height;
+				vertex_stream.push_back( vertex );
 			}
-			vertex_stream.push_back( vertex );
 		}
+		else if ( vertex_count > 0 )
+			vertex_stream.insert( vertex_stream.end(), vertex_data, vertex_data + vertex_count );
 
 		prepared_images.push_back( prepared );
 	}
@@ -2599,6 +2612,27 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	std::vector<SDL_GPUBuffer *> temporary_pbr_buffers;
 	auto release_temporary_pbr_buffers = [&]()
 	{
+		if ( m_vertex_upload_command_buffer )
+		{
+			SDL_CancelGPUCommandBuffer( m_vertex_upload_command_buffer );
+			m_vertex_upload_command_buffer = nullptr;
+		}
+		if ( !m_vertex_upload_regions.empty() )
+		{
+			m_vertex_buffer_signature = 0;
+			for ( auto &surface : m_surfaces )
+			{
+				surface.second.vertex_signature = 0;
+				surface.second.rendered_once = false;
+			}
+			clear_geometry_buffers();
+		}
+		m_vertex_upload_data.clear();
+		m_vertex_upload_regions.clear();
+		for ( SDL_GPUBuffer *buffer : m_vertex_upload_retired_buffers )
+			SDL_ReleaseGPUBuffer( m_device, buffer );
+		m_vertex_upload_retired_buffers.clear();
+
 		for ( SDL_GPUBuffer *buffer : temporary_pbr_buffers )
 			SDL_ReleaseGPUBuffer( m_device, buffer );
 
@@ -2660,6 +2694,14 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	m_frame_stats.pipeline_ready =
 		( m_blend_pipelines[0][FeBlend::Alpha] != nullptr )
 		&& ( m_pbr_pipelines[0][0][0] != nullptr );
+
+	m_vertex_upload_command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !m_vertex_upload_command_buffer )
+	{
+		release_temporary_pbr_buffers();
+		m_failed_present_frames++;
+		return false;
+	}
 
 	if ( m_frame_stats.pipeline_ready && !render_surface_frames( command_buffer, &temporary_pbr_buffers ) )
 	{
@@ -2778,6 +2820,14 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	SDL_EndGPURenderPass( render_pass );
 
+	if ( !flush_vertex_uploads() )
+	{
+		FeLog() << "SDL: vertex upload failed: " << SDL_GetError() << std::endl;
+		release_temporary_pbr_buffers();
+		m_failed_present_frames++;
+		return false;
+	}
+
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
 		release_temporary_pbr_buffers();
@@ -2857,6 +2907,22 @@ bool FeSdl3GpuContext::ensure_video_subsystem()
 
 void FeSdl3GpuContext::shutdown()
 {
+	if ( m_vertex_upload_command_buffer )
+	{
+		SDL_CancelGPUCommandBuffer( m_vertex_upload_command_buffer );
+		m_vertex_upload_command_buffer = nullptr;
+	}
+	if ( m_vertex_upload_transfer_buffer )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, m_vertex_upload_transfer_buffer );
+		m_vertex_upload_transfer_buffer = nullptr;
+	}
+	m_vertex_upload_transfer_buffer_size = 0;
+	m_vertex_upload_data.clear();
+	m_vertex_upload_regions.clear();
+	for ( SDL_GPUBuffer *buffer : m_vertex_upload_retired_buffers )
+		SDL_ReleaseGPUBuffer( m_device, buffer );
+	m_vertex_upload_retired_buffers.clear();
 	release_window();
 	release_surfaces();
 	clear_textures();
@@ -5375,7 +5441,10 @@ bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
 	{
 		if ( buffer )
 		{
-			SDL_ReleaseGPUBuffer( m_device, buffer );
+			if ( m_vertex_upload_command_buffer )
+				m_vertex_upload_retired_buffers.push_back( buffer );
+			else
+				SDL_ReleaseGPUBuffer( m_device, buffer );
 			buffer = nullptr;
 		}
 		buffer_size = 0;
@@ -5385,7 +5454,12 @@ bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
 	if ( !buffer || buffer_size < size )
 	{
 		if ( buffer )
-			SDL_ReleaseGPUBuffer( m_device, buffer );
+		{
+			if ( m_vertex_upload_command_buffer )
+				m_vertex_upload_retired_buffers.push_back( buffer );
+			else
+				SDL_ReleaseGPUBuffer( m_device, buffer );
+		}
 
 		SDL_GPUBufferCreateInfo buffer_info = {};
 		buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
@@ -5397,6 +5471,16 @@ bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
 			return false;
 
 		buffer_size = size;
+	}
+
+	if ( m_vertex_upload_command_buffer )
+	{
+		if ( m_vertex_upload_data.size() + size > std::numeric_limits<Uint32>::max() )
+			return false;
+		const unsigned char *bytes = static_cast<const unsigned char *>( data );
+		m_vertex_upload_data.insert( m_vertex_upload_data.end(), bytes, bytes + size );
+		m_vertex_upload_regions.push_back( { buffer, 0, size } );
+		return true;
 	}
 
 	SDL_GPUTransferBufferCreateInfo transfer_info = {};
@@ -5446,6 +5530,9 @@ bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
 	SDL_GPUBuffer *&buffer,
 	Uint32 &buffer_size )
 {
+	if ( m_vertex_upload_command_buffer )
+		return upload_gpu_vertex_buffer_data( m_vertex_upload_command_buffer, data, size, buffer, buffer_size );
+
 	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
 	if ( !command_buffer )
 		return false;
@@ -5459,6 +5546,55 @@ bool FeSdl3GpuContext::upload_gpu_vertex_buffer_data(
 	}
 
 	return SDL_SubmitGPUCommandBuffer( command_buffer );
+}
+
+bool FeSdl3GpuContext::flush_vertex_uploads()
+{
+	if ( m_vertex_upload_regions.empty() )
+	{
+		SDL_CancelGPUCommandBuffer( m_vertex_upload_command_buffer );
+		m_vertex_upload_command_buffer = nullptr;
+		return true;
+	}
+
+	const Uint32 size = static_cast<Uint32>( m_vertex_upload_data.size() );
+	if ( !m_vertex_upload_transfer_buffer || m_vertex_upload_transfer_buffer_size < size )
+	{
+		if ( m_vertex_upload_transfer_buffer )
+			SDL_ReleaseGPUTransferBuffer( m_device, m_vertex_upload_transfer_buffer );
+		SDL_GPUTransferBufferCreateInfo info = {};
+		info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+		info.size = size;
+		m_vertex_upload_transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &info );
+		if ( !m_vertex_upload_transfer_buffer )
+			return false;
+		m_vertex_upload_transfer_buffer_size = size;
+	}
+
+	void *mapped = SDL_MapGPUTransferBuffer( m_device, m_vertex_upload_transfer_buffer, true );
+	if ( !mapped )
+		return false;
+	std::memcpy( mapped, m_vertex_upload_data.data(), size );
+	SDL_UnmapGPUTransferBuffer( m_device, m_vertex_upload_transfer_buffer );
+
+	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( m_vertex_upload_command_buffer );
+	if ( !copy_pass )
+		return false;
+	SDL_GPUTransferBufferLocation source = {};
+	source.transfer_buffer = m_vertex_upload_transfer_buffer;
+	for ( const SDL_GPUBufferRegion &destination : m_vertex_upload_regions )
+	{
+		SDL_UploadToGPUBuffer( copy_pass, &source, &destination, false );
+		source.offset += destination.size;
+	}
+	SDL_EndGPUCopyPass( copy_pass );
+	const bool submitted = SDL_SubmitGPUCommandBuffer( m_vertex_upload_command_buffer );
+	m_vertex_upload_command_buffer = nullptr;
+	if ( !submitted )
+		return false;
+	m_vertex_upload_regions.clear();
+	m_vertex_upload_data.clear();
+	return true;
 }
 
 bool FeSdl3GpuContext::upload_vertex_buffer(
@@ -5552,6 +5688,9 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	uniforms.plane_distance = compute_plane_distance( camera, viewport_height );
 	SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
 
+	bool legacy_vertex_uniforms = true;
+	SDL_GPUGraphicsPipeline *bound_pipeline = nullptr;
+	SDL_Rect bound_scissor = { -1, -1, -1, -1 };
 	auto set_scissor = [&]( const FeRenderGeometry *geometry )
 	{
 		SDL_Rect scissor = { 0, 0, viewport_width, viewport_height };
@@ -5562,12 +5701,18 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			scissor.w = geometry->clip_width;
 			scissor.h = geometry->clip_height;
 		}
-		SDL_SetGPUScissor( render_pass, &scissor );
+		if ( scissor.x != bound_scissor.x || scissor.y != bound_scissor.y ||
+			scissor.w != bound_scissor.w || scissor.h != bound_scissor.h )
+		{
+			SDL_SetGPUScissor( render_pass, &scissor );
+			bound_scissor = scissor;
+		}
 	};
 
 	if ( m_alpha_prepass_pipeline )
 	{
 		SDL_BindGPUGraphicsPipeline( render_pass, m_alpha_prepass_pipeline );
+		bound_pipeline = m_alpha_prepass_pipeline;
 
 		for ( const PreparedImage &image : prepared_images )
 		{
@@ -5897,6 +6042,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		currently_bound_vertex_buffer = draw_vertex_buffer;
 
 		SDL_PushGPUVertexUniformData( command_buffer, 0, &pbr_vertex_uniforms, sizeof( pbr_vertex_uniforms ) );
+		legacy_vertex_uniforms = false;
 		SDL_PushGPUFragmentUniformData(
 			command_buffer,
 			0,
@@ -5914,6 +6060,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			? 1u
 			: static_cast<Uint32>( sampler_bindings.size() );
 		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+		bound_pipeline = pipeline;
 		SDL_BindGPUFragmentSamplers(
 			render_pass,
 			0,
@@ -6039,9 +6186,13 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 						0,
 						&custom_uniforms,
 						static_cast<Uint32>( sizeof( custom_uniforms ) ) );
+					legacy_vertex_uniforms = false;
 				}
 				else
+				{
 					SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
+					legacy_vertex_uniforms = true;
+				}
 
 				if ( !image.custom_shader->fragment_uniforms.empty() )
 				{
@@ -6057,7 +6208,11 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		}
 		else if ( image.builtin_shader )
 		{
-			SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
+			if ( !legacy_vertex_uniforms )
+			{
+				SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
+				legacy_vertex_uniforms = true;
+			}
 			pipeline = image.builtin_shader->blend_pipelines[ depth_pipeline ][ blend_mode ];
 			if ( !pipeline )
 				pipeline = image.builtin_shader->blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
@@ -6065,12 +6220,20 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 		if ( !pipeline )
 		{
-			SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
+			if ( !legacy_vertex_uniforms )
+			{
+				SDL_PushGPUVertexUniformData( command_buffer, 0, &uniforms, sizeof( uniforms ) );
+				legacy_vertex_uniforms = true;
+			}
 			pipeline = m_blend_pipelines[ depth_pipeline ][ blend_mode ];
 			if ( !pipeline )
 				pipeline = m_blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 		}
-		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+		if ( bound_pipeline != pipeline )
+		{
+			SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+			bound_pipeline = pipeline;
+		}
 		if ( !bind_vertex_buffer( inline_vertex_buffer ) )
 			continue;
 
@@ -6206,7 +6369,12 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	}
 
 	if ( inline_vertex_buffer && !use_cached_vertex_buffer )
-		SDL_ReleaseGPUBuffer( m_device, inline_vertex_buffer );
+	{
+		if ( m_vertex_upload_command_buffer )
+			m_vertex_upload_retired_buffers.push_back( inline_vertex_buffer );
+		else
+			SDL_ReleaseGPUBuffer( m_device, inline_vertex_buffer );
+	}
 
 	return true;
 }

@@ -47,6 +47,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <utility>
+#include <iterator>
 
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
@@ -1058,6 +1059,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	{
 		const FeMonitor &monitor = m_mon[ monitor_index ];
 		std::vector<FeRenderGeometry> monitor_geometry;
+		monitor_geometry.reserve( monitor.elements.size() );
 
 		int clip_x = 0;
 		int clip_y = 0;
@@ -1121,7 +1123,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			{
 				FeRenderGeometry image_geometry;
 				if ( image->build_render_geometry( image_geometry ) )
-					monitor_geometry.push_back( image_geometry );
+					monitor_geometry.push_back( std::move( image_geometry ) );
 				continue;
 			}
 
@@ -1130,7 +1132,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			{
 				FeRenderGeometry rectangle_geometry;
 				if ( rectangle->build_render_geometry( rectangle_geometry ) )
-					monitor_geometry.push_back( rectangle_geometry );
+					monitor_geometry.push_back( std::move( rectangle_geometry ) );
 				continue;
 			}
 
@@ -1164,7 +1166,9 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			entry.clip_height = clip_height;
 		}
 		collapse_pbr_geometry_instances( monitor_geometry );
-		geometry.insert( geometry.end(), monitor_geometry.begin(), monitor_geometry.end() );
+		geometry.insert( geometry.end(),
+			std::make_move_iterator( monitor_geometry.begin() ),
+			std::make_move_iterator( monitor_geometry.end() ) );
 	}
 }
 
@@ -1383,6 +1387,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		frame.camera.update_projection( static_cast<float>( frame.width ), static_cast<float>( frame.height ) );
 		frame.geometry_signature = 1469598103934665603ULL;
 		frame.content_signature = 1469598103934665603ULL;
+		frame.geometry.reserve( surface->elements.size() );
 		std::vector<const void *> dependencies;
 
 		for ( const FeBasePresentable *presentable : surface->elements )
@@ -1399,8 +1404,8 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 					append_surface_dependencies( image_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
-					frame.content_signature = hash_geometry( image_geometry, frame.content_signature );
-					frame.geometry.push_back( image_geometry );
+					frame.content_signature = frame.geometry_signature;
+					frame.geometry.push_back( std::move( image_geometry ) );
 				}
 				continue;
 			}
@@ -1414,8 +1419,8 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 					append_surface_dependencies( rectangle_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || rectangle_geometry.texture_dynamic || rectangle_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature );
-					frame.content_signature = hash_geometry( rectangle_geometry, frame.content_signature );
-					frame.geometry.push_back( rectangle_geometry );
+					frame.content_signature = frame.geometry_signature;
+					frame.geometry.push_back( std::move( rectangle_geometry ) );
 				}
 				continue;
 			}
@@ -1431,7 +1436,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 					append_surface_dependencies( object_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || object_geometry.texture_dynamic;
 					frame.geometry_signature = hash_geometry( object_geometry, frame.geometry_signature );
-					frame.content_signature = hash_geometry( object_geometry, frame.content_signature );
+					frame.content_signature = frame.geometry_signature;
 				}
 				continue;
 			}
@@ -1447,7 +1452,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 					append_surface_dependencies( text_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || text_geometry.texture_dynamic || text_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( text_geometry, frame.geometry_signature );
-					frame.content_signature = hash_geometry( text_geometry, frame.content_signature );
+					frame.content_signature = frame.geometry_signature;
 				}
 				continue;
 			}
@@ -1463,7 +1468,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 					append_surface_dependencies( list_geometry, surface, dependencies );
 					frame.dynamic_content = frame.dynamic_content || list_geometry.texture_dynamic || list_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( list_geometry, frame.geometry_signature );
-					frame.content_signature = hash_geometry( list_geometry, frame.content_signature );
+					frame.content_signature = frame.geometry_signature;
 				}
 			}
 		}
@@ -1474,7 +1479,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		std::sort( dependencies.begin(), dependencies.end() );
 		dependencies.erase( std::unique( dependencies.begin(), dependencies.end() ), dependencies.end() );
 		frame.dependencies = dependencies;
-		pending_frames.push_back( { surface, frame, dependencies, surface_index } );
+		pending_frames.push_back( { surface, std::move( frame ), std::move( dependencies ), surface_index } );
 	}
 
 	std::unordered_map<const FeSurfaceTextureContainer *, std::size_t> pending_indices;
@@ -1551,7 +1556,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		}
 
 		surface_states[ pending.surface ] = { pending.frame.content_signature, pending.frame.dynamic_content };
-		surfaces.push_back( pending.frame );
+		surfaces.push_back( std::move( pending.frame ) );
 	}
 }
 
