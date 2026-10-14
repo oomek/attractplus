@@ -1942,7 +1942,6 @@ FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
 	if ( !o )
 		return;
 
-	set_pixel_snap( o->get_pixel_snap() );
 	set_script_geometry( o->get_x(), o->get_y(), o->get_width(), o->get_height() );
 	set_visible( o->get_visible() );
 	set_z( o->get_z() );
