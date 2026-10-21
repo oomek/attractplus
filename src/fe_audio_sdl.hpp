@@ -26,6 +26,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -55,6 +56,8 @@ public:
 	static FeSdlAudioBackend &get();
 
 	bool ensure_audio();
+	bool retain_device();
+	void release_device();
 	int sample_rate() const { return m_mix_spec.freq; }
 	int channel_count() const { return m_mix_spec.channels; }
 	const SDL_AudioSpec &mix_spec() const { return m_mix_spec; }
@@ -63,9 +66,12 @@ public:
 
 private:
 	FeSdlAudioBackend();
+	~FeSdlAudioBackend();
 
 	SDL_AudioSpec m_mix_spec;
 	std::atomic<std::uint64_t> m_generation;
+	std::mutex m_device_mutex;
+	SDL_AudioDeviceID m_device = 0;
 };
 
 class FeSdlAudioStream
