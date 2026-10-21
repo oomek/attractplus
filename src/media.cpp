@@ -288,7 +288,10 @@ private:
 	std::deque<int> m_free_frames;
 	int m_displayed_frame;
 	std::mutex m_image_mutex;
+	FeTime refresh_interval;
 	FeTime half_frame_offset;
+	FeTime presentation_time;
+	FeTime previous_time;
 	AVRational time_base;
 	int64_t start_time;
 	FeTime frame_duration;
@@ -553,7 +556,15 @@ FeVideoImp::FeVideoImp( FeMedia *parent )
 {
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
-		half_frame_offset = fe_milliseconds( 500 / std::max( 1, fep->get_refresh_rate() ) );
+	{
+		double refresh_rate = std::max( 1.0, fep->get_refresh_rate() );
+		if ( SDL_Window *window = fep->get_gpu_context().get_window() )
+			if ( const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode( SDL_GetDisplayForWindow( window ) ) )
+				if ( mode->refresh_rate > 0.0f )
+					refresh_rate = mode->refresh_rate;
+		refresh_interval = fe_seconds( 1.0 / refresh_rate );
+		half_frame_offset = fe_seconds( 0.5 / refresh_rate );
+	}
 }
 
 FeVideoImp::~FeVideoImp()
@@ -700,7 +711,18 @@ void FeVideoImp::clear_rgba_frame()
 
 bool FeVideoImp::tick()
 {
-	const FeTime now = m_parent->get_video_time() + half_frame_offset;
+	const FeTime time = m_parent->get_video_time() + half_frame_offset;
+	const FeTime next = presentation_time + refresh_interval;
+	// Vsync paces presentation, but CPU wakeups can straddle a frame deadline.
+	// Keep a regular refresh cadence while it remains within one refresh of
+	// the media clock, including when queued GPU frames cause CPU ticks to
+	// arrive in bursts. Stalls, restarts and a stopped clock reanchor.
+	FeTime now = time;
+	if ( previous_time > half_frame_offset && time > previous_time && refresh_interval > FeTime() &&
+		std::abs( ( next - time ).asMicroseconds() ) < refresh_interval.asMicroseconds() )
+		now = next;
+	previous_time = time;
+	presentation_time = now;
 	bool changed = false;
 	{
 		std::unique_lock<std::mutex> lock( m_image_mutex, std::try_to_lock );
@@ -724,10 +746,10 @@ bool FeVideoImp::tick()
 
 bool FeVideoImp::has_frame_room()
 {
-	const FeTime now = m_parent->get_video_time() + half_frame_offset;
+	const FeTime now = m_parent->get_video_time() - half_frame_offset;
 	std::lock_guard<std::mutex> lock( m_image_mutex );
-	// Keep the newest due frame even when the frontend is busy. Future frames
-	// stay queued; the currently displayed buffer belongs to the frontend.
+	// Keep a refresh of history for the frontend's presentation phase, even
+	// when its CPU wakeup comes after the next media deadline.
 	while ( m_ready_frames.size() > 1 && m_frames[m_ready_frames[1]].time <= now )
 	{
 		m_free_frames.push_back( m_ready_frames.front() );
@@ -755,7 +777,7 @@ FeTime FeVideoImp::next_frame_delay()
 bool FeVideoImp::queue_frame()
 {
 	int64_t pts = frame->best_effort_timestamp;
-	const FeTime frame_time = ( pts == AV_NOPTS_VALUE )
+	FeTime frame_time = ( pts == AV_NOPTS_VALUE )
 		? next_frame_time
 		: fe_seconds( ( pts - start_time ) * av_q2d( time_base ) );
 #if HAVE_DURATION
@@ -764,10 +786,16 @@ bool FeVideoImp::queue_frame()
 	const int64_t duration = frame->pkt_duration;
 #endif
 	const FeTime span = duration > 0 ? fe_seconds( duration * av_q2d( time_base ) ) : frame_duration;
-	next_frame_time = frame_time + span;
+	// Some containers round constant-rate timestamps to whole milliseconds.
+	// Keep their nominal cadence without flattening variable frame durations
+	// or larger timestamp discontinuities.
+	const bool regular_span = std::abs( ( span - frame_duration ).asMicroseconds() ) <= 1000;
+	if ( regular_span && std::abs( ( frame_time - next_frame_time ).asMicroseconds() ) <= 1000 )
+		frame_time = next_frame_time;
+	next_frame_time = frame_time + ( regular_span ? frame_duration : span );
 
 	// Catch up without spending conversion/upload work on expired frames.
-	if ( next_frame_time < m_parent->get_video_time() && frame_serial.load( std::memory_order_acquire ) != 0 )
+	if ( next_frame_time < m_parent->get_video_time() - half_frame_offset && frame_serial.load( std::memory_order_acquire ) != 0 )
 		return true;
 
 #if FE_HWACCEL
@@ -1445,6 +1473,7 @@ void FeMedia::media_thread()
 		float applied_volume = getVolume();
 		std::ignore = m_audio_stream.set_gain( applied_volume / 100.0f );
 		unsigned int video_frames = 0;
+		std::int64_t audio_clock_time = 0;
 		while ( !m_imp->m_stop )
 		{
 			bool progress = false;
@@ -1465,18 +1494,24 @@ void FeMedia::media_thread()
 				progress = pump_audio();
 			}
 
-			// SDL consumes PCM independently of the frontend. Interpolate its
-			// consumption clock between producer wakeups, capped by supplied PCM.
-			// After PCM drains, retain its last offset and let wall time carry
-			// any remaining video tail instead of pinning it at audio EOF.
+			// SDL consumes PCM in blocks. Follow its long-term clock without
+			// turning every block boundary into a video timing discontinuity.
 			if ( m_imp->m_audio_frames > 0 && m_imp->m_audio_clock_end >= 0 )
 			{
 				const std::uint64_t remaining = static_cast<std::uint64_t>( m_audio_stream.queued_frames() );
 				const std::uint64_t played = m_imp->m_audio_frames - std::min( remaining, m_imp->m_audio_frames );
-				const int rate = FeSdlAudioBackend::get().sample_rate();
-				m_imp->m_audio_clock_offset = static_cast<std::int64_t>( played * 1000000 / rate ) -
-					m_imp->m_timer.getElapsedTime().asMicroseconds();
 				const bool ended = m_audio->at_end && m_audio_pending_samples.empty() && remaining == 0;
+				const int rate = FeSdlAudioBackend::get().sample_rate();
+				const std::int64_t elapsed = m_imp->m_timer.getElapsedTime().asMicroseconds();
+				const std::int64_t offset = static_cast<std::int64_t>( played * 1000000 / rate ) - elapsed;
+				const std::int64_t previous = m_imp->m_audio_clock_offset.load( std::memory_order_relaxed );
+				const std::int64_t interval = std::min<std::int64_t>( elapsed - audio_clock_time, 1000000 );
+				// Average block-sized measurement noise over one second. Only
+				// startup or an actual underrun needs an immediate new anchor.
+				m_imp->m_audio_clock_offset = ( m_imp->m_audio_clock_end == 0 || ( remaining == 0 && !ended ) )
+					? offset : previous + ( offset - previous ) * interval / 1000000;
+				audio_clock_time = elapsed;
+				// Keep advancing any video tail after the last PCM has drained.
 				m_imp->m_audio_clock_end.store( ended ? -1 :
 					static_cast<std::int64_t>( m_imp->m_audio_frames * 1000000 / rate ), std::memory_order_release );
 			}
