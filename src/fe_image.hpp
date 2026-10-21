@@ -151,12 +151,15 @@ private:
 
 class FeTextureContainer : public FeBaseTextureContainer
 {
+	friend class FePresent;
 public:
 	FeTextureContainer( bool is_artwork, const std::string &name="" );
 
 	~FeTextureContainer();
 
 	Vec2u get_texture_size() const override;
+	const void *get_texture_source_id() const override;
+	int get_texture_source_type() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 	bool get_visible() const;
@@ -238,6 +241,7 @@ private:
 		bool is_image=false );
 
 	void internal_update_selection( FeSettings *feSettings );
+	bool load_next_artwork();
 	void clear();
 	void init_audio_effects();
 
@@ -255,6 +259,9 @@ private:
 	Type m_type;
 	int m_art_update_trigger;
 	FeMedia *m_movie;
+	FeMedia *m_pending_movie;
+	std::vector<std::string> m_video_files;
+	std::vector<std::string> m_image_files;
 	int m_movie_status; // 0=no play, 1=ready to play, >=PLAY_COUNT=playing
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;
@@ -262,7 +269,8 @@ private:
 	float m_volume;
 	float m_pan;
 	int m_fft_bands;
-	FeImageLoaderEntry *m_entry;
+	std::shared_ptr<FeImageLoaderEntry> m_entry;
+	std::shared_ptr<FeImageLoaderEntry> m_previous_entry;
 	std::shared_ptr<FeAudioEffectsManager> m_audio_effects;
 	mutable std::vector<float> m_fft_mono;
 	mutable std::vector<float> m_fft_left;

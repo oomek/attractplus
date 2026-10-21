@@ -303,6 +303,7 @@ FeTextureContainer::FeTextureContainer(
 	m_current_filter_index( -1 ),
 	m_art_update_trigger( ToNewSelection ),
 	m_movie( NULL ),
+	m_pending_movie( NULL ),
 	m_movie_status( -1 ),
 	m_video_flags( VF_Normal ),
 	m_mipmap( false ),
@@ -313,7 +314,7 @@ FeTextureContainer::FeTextureContainer(
 	m_volume( 100.0 ),
 	m_pan( 0.0 ),
 	m_fft_bands( 32 ),
-	m_entry( NULL ),
+	m_entry(),
 	m_content_version( next_texture_content_version() )
 {
 	init_audio_effects();
@@ -334,34 +335,23 @@ FeTextureContainer::FeTextureContainer(
 
 void FeTextureContainer::init_audio_effects()
 {
-	m_audio_effects = std::make_shared<FeAudioEffectsManager>();
-	m_audio_effects->add_effect( std::make_unique<FeAudioDCFilter>() );
-	m_audio_effects->add_effect( std::make_unique<FeAudioNormaliser>() );
-	m_audio_effects->add_effect( std::make_unique<FeAudioVisualiser>() );
+	FeImageLoader::get_ref().reap( std::move( m_audio_effects ) );
 	FePresent *fep = FePresent::script_get_fep();
-	if ( fep )
-		m_audio_effects->get_normaliser()->set_media_volume( fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0f );
-	m_audio_effects->set_ready_for_processing();
+	m_audio_effects = FeAudioEffectsManager::create_media(
+		fep ? fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0f : 1.0f,
+		fep ? fep->get_fes()->get_loudness() : true );
 }
 
 FeTextureContainer::~FeTextureContainer()
 {
-	if ( m_movie )
-	{
-		delete m_movie;
-		m_movie=NULL;
-	}
-
-	if ( m_entry )
-	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		il.release_entry( &m_entry );
-	}
+	clear();
+	FeImageLoader::get_ref().release_entry( &m_previous_entry );
+	FeImageLoader::get_ref().reap( std::move( m_audio_effects ) );
 }
 
 bool FeTextureContainer::get_visible() const
 {
-	if ( m_entry )
+	if ( m_entry && !m_entry->is_loaded() )
 		return false;
 
 	return true;
@@ -398,6 +388,7 @@ bool FeTextureContainer::fix_masked_image()
 		}
 	}
 
+	FeImageLoader::get_ref().release_entry( &m_entry );
 	m_pixel_cache = std::move( pixels );
 	m_pixel_cache_valid = true;
 	m_texture_size = { width, height };
@@ -422,11 +413,17 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	clear();
 
+	if ( !is_image && m_type != IsStatic )
+	{
+		m_pending_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
+		m_pending_movie->open_async( "", loaded_name, true );
+		m_movie_status = ( m_video_flags & VF_NoAutoStart ) ? 0 : 1;
+		m_file_name = loaded_name;
+		return true;
+	}
+	init_audio_effects();
 	if ( !file_exists( loaded_name ) )
 		return false;
-
-	// Retired media keeps its effects alive until the background reaper joins it.
-	init_audio_effects();
 	m_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
 	res = m_movie->open( "", loaded_name );
 
@@ -487,7 +484,6 @@ bool FeTextureContainer::try_to_load(
 		return load_with_ffmpeg( filename, false );
 
 	FeImageLoader &il = FeImageLoader::get_ref();
-	unsigned char *data = NULL;
 
 	loaded_name = filename;
 	if ( loaded_name.compare( m_file_name ) == 0 )
@@ -495,23 +491,18 @@ bool FeTextureContainer::try_to_load(
 
 	clear();
 
-	if ( !file_exists( loaded_name ) )
-		return false;
 
-	if ( il.load_image_from_file( loaded_name, &m_entry ) )
-		data = m_entry->get_data();
-
+	il.load_image_from_file( loaded_name, &m_entry, m_type != IsStatic );
 	m_file_name = loaded_name;
-
-	if ( data )
+	if ( m_entry && m_entry->is_loaded() )
 	{
+		if ( !m_entry->get_data() )
+		{
+			il.release_entry( &m_entry );
+			return false;
+		}
 		m_texture_size = { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
-		const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
-		m_pixel_cache.assign( data, data + size );
-		m_pixel_cache_valid = true;
-		il.release_entry( &m_entry ); // don't need entry any more
 	}
-
 	m_content_version = next_texture_content_version();
 
 	return true;
@@ -539,6 +530,22 @@ Vec2u FeTextureContainer::get_texture_size() const
 		return m_texture_size;
 
 	return Vec2u();
+}
+
+const void *FeTextureContainer::get_texture_source_id() const
+{
+	if ( m_movie )
+		return m_movie;
+	if ( m_entry && m_entry->is_loaded() && m_entry->get_data() )
+		return m_entry->get_texture();
+	return this;
+}
+
+int FeTextureContainer::get_texture_source_type() const
+{
+	if ( m_movie )
+		return FeRenderTextureSourceMedia;
+	return get_texture_source_id() == this ? FeRenderTextureSourceContainer : FeRenderTextureSourceRawRgba;
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -613,78 +620,94 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			image_list );
 	}
 
-	// Load any found videos/images now
-	//
-	bool loaded=false;
-	std::vector<std::string>::iterator itr;
-
 	if ( m_video_flags & VF_DisableVideo )
 		vid_list.clear();
-
-	for ( itr=vid_list.begin(); itr != vid_list.end(); ++itr )
-	{
-		std::string filename = *itr;
-
-		if ( try_to_load( filename ) )
-		{
-			loaded = true;
-			break;
-		}
-	}
-
-	if ( !loaded )
-	{
-		if ( image_list.empty() )
-			clear();
-		else
-		{
-			for ( itr=image_list.begin();
-				itr != image_list.end(); ++itr )
-			{
-				std::string filename = *itr;
-
-				if ( try_to_load( filename, true ) )
-				{
-					loaded = true;
-					break;
-				}
-			}
-		}
-	}
-	//
-	// Texture was replaced, so notify the attached images
-	//
+	m_video_files = std::move( vid_list );
+	m_image_files = std::move( image_list );
+	load_next_artwork();
 	notify_texture_change();
+}
+
+bool FeTextureContainer::load_next_artwork()
+{
+	while ( !m_video_files.empty() )
+	{
+		const std::string filename = m_video_files.front();
+		m_video_files.erase( m_video_files.begin() );
+		if ( try_to_load( filename ) )
+			return true;
+	}
+	while ( !m_image_files.empty() )
+	{
+		const std::string filename = m_image_files.front();
+		m_image_files.erase( m_image_files.begin() );
+		if ( try_to_load( filename, true ) )
+			return true;
+	}
+	clear();
+	return false;
 }
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
+	FeImageLoader::get_ref().release_entry( &m_previous_entry );
+	bool loaded = false;
+	if ( m_pending_movie )
+	{
+		const int result = m_pending_movie->get_open_result();
+		if ( result == 0 )
+			return false;
+		if ( result < 0 )
+		{
+			clear();
+			load_next_artwork();
+			notify_texture_change();
+			return true;
+		}
+		m_movie = m_pending_movie;
+		m_pending_movie = NULL;
+		FeImageLoader::get_ref().reap( std::move( m_audio_effects ) );
+		m_audio_effects = m_movie->get_audio_effects();
+		m_video_files.clear();
+		m_image_files.clear();
+		m_movie->set_fft_bands( m_fft_bands );
+		// Opening already ran in the background; no scrolling delay is needed.
+		m_movie_status = m_movie_status > 0 ? PLAY_COUNT : 0;
+		unsigned int width = 0, height = 0;
+		if ( m_movie->get_video_frame_dimensions( width, height ) )
+			m_texture_size = { width, height };
+		m_content_version = next_texture_content_version();
+		notify_texture_change();
+		loaded = true;
+	}
 	//
 	// We have an m_entry if the image is being loaded in the background
 	//
-	if ( m_entry )
+	if ( m_entry && m_texture_size.x == 0 && m_entry->is_loaded() )
 	{
-		FeImageLoader &il = FeImageLoader::get_ref();
-		if ( il.check_loaded( m_entry ) )
+		if ( !m_entry->get_data() )
+		{
+			clear();
+			load_next_artwork();
+		}
+		else
 		{
 			m_texture_size = { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
-			const std::size_t size = static_cast<std::size_t>( m_entry->get_width() ) * static_cast<std::size_t>( m_entry->get_height() ) * 4;
-			m_pixel_cache.assign( m_entry->get_data(), m_entry->get_data() + size );
-			m_pixel_cache_valid = true;
 			m_content_version = next_texture_content_version();
-
-			il.release_entry( &m_entry );
-			return true;
+			m_video_files.clear();
+			m_image_files.clear();
 		}
+		notify_texture_change();
+		return true;
 	}
 
 	if ( !m_movie )
-		return false;
+		return loaded;
 
 	m_audio_effects->update_all();
 
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
-		return false;
+		return loaded;
 
 	// VF_NoAudio flag overrides volume setting
 	float vol = m_video_flags & VF_NoAudio
@@ -723,16 +746,22 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 	if ( m_movie->tick() )
 	{
+		m_content_version = next_texture_content_version();
 		m_pixel_cache.clear();
 		m_pixel_cache_valid = false;
 		return true;
 	}
 
-	return false;
+	return loaded;
 }
 
 void FeTextureContainer::set_play_state( bool play )
 {
+	if ( m_pending_movie )
+	{
+		m_movie_status = play ? 1 : 0;
+		return;
+	}
 	if (m_movie)
 	{
 		if ( play == get_play_state() )
@@ -814,6 +843,18 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 {
 	const bool was_disabled = ( m_video_flags & VF_DisableVideo ) != 0;
 	m_video_flags = f;
+	if ( m_type == IsArtwork && was_disabled != ( ( f & VF_DisableVideo ) != 0 ) && FePresent::script_get_fep() )
+	{
+		FePresent::script_do_update( this, true );
+		return;
+	}
+	if ( m_pending_movie )
+	{
+		if ( f & ( VF_DisableVideo | VF_NoAutoStart ) )
+			m_movie_status = 0;
+		else if ( was_disabled )
+			m_movie_status = 1;
+	}
 
 	if ( m_movie )
 	{
@@ -852,6 +893,8 @@ int FeTextureContainer::get_video_time() const
 
 void FeTextureContainer::load_file( const char *n )
 {
+	m_video_files.clear();
+	m_image_files.clear();
 	std::string filename = clean_path( n );
 
 	if ( filename.empty() )
@@ -917,6 +960,8 @@ FeTextureContainer *FeTextureContainer::get_derived_texture_container()
 
 void FeTextureContainer::clear()
 {
+	FeImageLoader::get_ref().release_entry( &m_previous_entry );
+	m_previous_entry = std::move( m_entry );
 	m_movie_status = -1;
 	m_file_name.clear();
 	m_pixel_cache.clear();
@@ -925,6 +970,11 @@ void FeTextureContainer::clear()
 	m_content_version = next_texture_content_version();
 
 	// If a movie is running, close it...
+	if ( m_pending_movie )
+	{
+		FeImageLoader::get_ref().reap_video( m_pending_movie );
+		m_pending_movie = NULL;
+	}
 	if ( m_movie )
 	{
 		FeImageLoader &il = FeImageLoader::get_ref();
@@ -1121,8 +1171,8 @@ bool FeTextureContainer::is_volatile_texture() const
 
 unsigned long long FeTextureContainer::get_texture_content_version() const
 {
-	if ( m_movie )
-		return m_movie->get_video_frame_serial();
+	if ( m_entry && m_entry->is_loaded() )
+		return m_entry->get_version();
 	return m_content_version;
 }
 
@@ -1137,24 +1187,32 @@ void FeTextureContainer::release_audio( bool state )
 
 float FeTextureContainer::get_vu_mono() const
 {
+	if ( !m_movie ) return 0.0f;
 	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_mono() : 0.0f;
 }
 
 float FeTextureContainer::get_vu_left() const
 {
+	if ( !m_movie ) return 0.0f;
 	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_left() : 0.0f;
 }
 
 float FeTextureContainer::get_vu_right() const
 {
+	if ( !m_movie ) return 0.0f;
 	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_right() : 0.0f;
 }
 
 const std::vector<float> *FeTextureContainer::get_fft_mono_ptr() const
 {
+	if ( !m_movie )
+	{
+		m_fft_mono.assign( m_fft_bands, 0.0f );
+		return &m_fft_mono;
+	}
 	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	if ( !visualiser )
 		return nullptr;
@@ -1166,6 +1224,11 @@ const std::vector<float> *FeTextureContainer::get_fft_mono_ptr() const
 
 const std::vector<float> *FeTextureContainer::get_fft_left_ptr() const
 {
+	if ( !m_movie )
+	{
+		m_fft_left.assign( m_fft_bands, 0.0f );
+		return &m_fft_left;
+	}
 	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	if ( !visualiser )
 		return nullptr;
@@ -1175,6 +1238,11 @@ const std::vector<float> *FeTextureContainer::get_fft_left_ptr() const
 
 const std::vector<float> *FeTextureContainer::get_fft_right_ptr() const
 {
+	if ( !m_movie )
+	{
+		m_fft_right.assign( m_fft_bands, 0.0f );
+		return &m_fft_right;
+	}
 	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	if ( !visualiser )
 		return nullptr;

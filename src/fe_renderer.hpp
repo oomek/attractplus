@@ -52,7 +52,8 @@ enum FeRenderTextureSourceType
 	FeRenderTextureSourceNone = 0,
 	FeRenderTextureSourceContainer,
 	FeRenderTextureSourceFontPage,
-	FeRenderTextureSourceRawRgba
+	FeRenderTextureSourceRawRgba,
+	FeRenderTextureSourceMedia
 };
 
 constexpr int FE_RENDER_PBR_TEXTURE_COUNT = 6;

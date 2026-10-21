@@ -54,10 +54,15 @@ public:
 
 	bool open( const std::string &archive,
 			const std::string &name );
+	void open_async( const std::string &archive, const std::string &name, bool new_effects=false );
+	// Background open result: 0=pending, 1=opened, -1=failed.
+	int get_open_result() const;
+	std::shared_ptr<FeAudioEffectsManager> get_audio_effects() const { return m_audio_effects; }
 
 	void play();
 	void stop();
-	void signal_stop();
+	// close_input retires the media; it must not be played again.
+	void signal_stop( bool close_input=false );
 	void close();
 
 	// tick() needs to be called regularly on video media to update the display
@@ -110,6 +115,8 @@ private:
 	bool pump_audio();
 	void reset_decoder();
 	void media_thread();
+	void open_thread( std::string archive, std::string name );
+	void await_play_thread();
 
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
