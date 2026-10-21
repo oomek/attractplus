@@ -50,7 +50,29 @@ FePathCache::~FePathCache()
 void FePathCache::clear()
 {
 	m_cache.clear();
+	m_subdirectories.clear();
+	m_directories.clear();
 	FeDebug() << "Cleared artwork path cache." << std::endl;
+}
+
+bool FePathCache::directory_exists( const std::string &path )
+{
+	auto found = m_directories.find( path );
+	if ( found != m_directories.end() )
+		return found->second;
+	std::string name = path_filename( path );
+	if ( !name.empty() )
+	{
+		auto parent = m_subdirectories.find( path.substr( 0, path.size() - name.size() ) );
+		if ( parent != m_subdirectories.end() )
+		{
+#ifdef SDL_PLATFORM_WINDOWS
+			name = lowercase( name );
+#endif
+			return std::binary_search( parent->second.begin(), parent->second.end(), name );
+		}
+	}
+	return m_directories.emplace( path, ::directory_exists( path ) ).first->second;
 }
 
 // from fe_util
@@ -92,6 +114,7 @@ std::vector < std::string > &FePathCache::get_cache( const std::string &path )
 		return (*itr).second;
 
 	std::vector < std::string > temp;
+	std::vector < std::string > directories;
 	temp.reserve(100);  // Reserve some space to avoid small reallocations
 
 #ifdef SDL_PLATFORM_WINDOWS
@@ -110,7 +133,10 @@ std::vector < std::string > &FePathCache::get_cache( const std::string &path )
 		{
 			std::string filename = FeUtil::narrow( t.name );
 			if (( filename != "." ) && ( filename != ".." ))
+			{
+				if ( t.attrib & _A_SUBDIR ) directories.push_back( lowercase( filename ) );
 				temp.emplace_back( std::move( filename ));
+			}
 		} while ( _wfindnext( srch, &t ) == 0 );
 		_findclose( srch );
 	}
@@ -128,13 +154,20 @@ std::vector < std::string > &FePathCache::get_cache( const std::string &path )
 		{
 			std::string filename = ent->d_name;
 			if (( filename != "." ) && ( filename != ".." ))
+			{
+				if ( ent->d_type == DT_DIR ||
+					( ( ent->d_type == DT_UNKNOWN || ent->d_type == DT_LNK ) && ::directory_exists( path + filename ) ) )
+					directories.push_back( filename );
 				temp.emplace_back( std::move( filename ));
+			}
 		}
 		closedir( dir );
 	}
 #endif
 
 	std::sort( temp.begin(), temp.end(), my_comp );
+	std::sort( directories.begin(), directories.end() );
+	m_subdirectories.emplace( path, std::move( directories ) );
 
 	FeDebug() << "Caching contents of artwork path: " << path << " (" << temp.size() << " entries)." << std::endl;
 

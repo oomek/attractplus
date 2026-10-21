@@ -229,6 +229,7 @@ private:
 					// display shortcuts are used)
 	FeRomList m_rl;
 	FePathCache m_path_cache;
+	mutable std::map<std::string, std::string> m_layout_dirs;
 
 	FeInputMap m_inputmap;
 	FeSoundInfo m_sound_info;
