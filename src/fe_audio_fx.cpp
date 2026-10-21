@@ -65,6 +65,18 @@ FeAudioEffectsManager::~FeAudioEffectsManager()
 {
 }
 
+std::shared_ptr<FeAudioEffectsManager> FeAudioEffectsManager::create_media( float volume, bool normalise )
+{
+	auto effects = std::make_shared<FeAudioEffectsManager>();
+	effects->add_effect( std::make_unique<FeAudioDCFilter>() );
+	effects->add_effect( std::make_unique<FeAudioNormaliser>() );
+	effects->add_effect( std::make_unique<FeAudioVisualiser>() );
+	effects->get_normaliser()->set_media_volume( volume );
+	effects->get_normaliser()->set_enabled( normalise );
+	effects->set_ready_for_processing();
+	return effects;
+}
+
 void FeAudioEffectsManager::add_effect( std::unique_ptr<FeAudioEffect> effect )
 {
 	if ( effect )
@@ -179,26 +191,11 @@ FeAudioVisualiser::FeAudioVisualiser()
 	m_vu_request_time(),
 	m_fft_request_time(),
 	m_fft_bands( 32 ),
-	m_rolling_buffer_mono( ROLLING_BUFFER_SIZE, 0.0f ),
-	m_rolling_buffer_left( ROLLING_BUFFER_SIZE, 0.0f ),
-	m_rolling_buffer_right( ROLLING_BUFFER_SIZE, 0.0f ),
 	m_buffer_write_pos( 0 ),
 	m_buffer_samples_count( 0 ),
 	m_phase_accumulator( 0.0 ),
 	m_fft_workset( nullptr )
 {
-	// Initialise Blackman window
-	if ( m_window_lut.empty() )
-		initialise_window_lut();
-
-	// Initialise MEOW_FFT
-	size_t workset_size = meow_fft_generate_workset_real( FFT_BUFFER_SIZE, nullptr );
-	m_fft_workset_storage.resize( workset_size );
-	m_fft_workset = reinterpret_cast<Meow_FFT_Workset_Real*>( m_fft_workset_storage.data() );
-	meow_fft_generate_workset_real( FFT_BUFFER_SIZE, m_fft_workset );
-
-	// Allocate FFT output buffer
-	m_fft_output_buffer.resize( FFT_BUFFER_SIZE / 2 + 1 );
 }
 
 FeAudioVisualiser::~FeAudioVisualiser()
@@ -230,7 +227,24 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 	if ( !m_fft_requested && !m_vu_requested )
 		return false;
 
-	resample_and_buffer_audio( input_frames, frame_count, channel_count );
+	if ( m_fft_requested )
+	{
+		// Most videos never request FFT data. Allocate its buffers and tables
+		// on the audio producer only when analysis is actually needed.
+		if ( !m_fft_workset )
+		{
+			static std::once_flag window_lut_once;
+			std::call_once( window_lut_once, &FeAudioVisualiser::initialise_window_lut );
+			m_rolling_buffer_mono.resize( ROLLING_BUFFER_SIZE, 0.0f );
+			m_rolling_buffer_left.resize( ROLLING_BUFFER_SIZE, 0.0f );
+			m_rolling_buffer_right.resize( ROLLING_BUFFER_SIZE, 0.0f );
+			m_fft_workset_storage.resize( meow_fft_generate_workset_real( FFT_BUFFER_SIZE, nullptr ) );
+			m_fft_workset = reinterpret_cast<Meow_FFT_Workset_Real*>( m_fft_workset_storage.data() );
+			meow_fft_generate_workset_real( FFT_BUFFER_SIZE, m_fft_workset );
+			m_fft_output_buffer.resize( FFT_BUFFER_SIZE / 2 + 1 );
+		}
+		resample_and_buffer_audio( input_frames, frame_count, channel_count );
+	}
 
 	const size_t MIN_FFT_SIZE = 1024;
 	bool should_process_fft = m_fft_requested && ( m_buffer_samples_count >= MIN_FFT_SIZE );
@@ -279,8 +293,7 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 	// Process FFT only if requested and we have enough data
 	if ( should_process_fft && channel_count >= 1 )
 	{
-		static int fft_call_counter = 0;
-		fft_call_counter++;
+		m_fft_call_counter++;
 
 		float sample_rate_factor = m_device_sample_rate / 48000.0f; // Normalise to 48kHz baseline
 		float band_factor = static_cast<float>(m_fft_bands) / 64.0f; // Normalise to 64 bands baseline
@@ -290,7 +303,7 @@ bool FeAudioVisualiser::process( const float* input_frames, float* output_frames
 		if ( computational_load > 2.0f )
 			throttle_factor = static_cast<int>( std::min( 4.0f, 1.0f + ( computational_load - 2.0f ) * 1.5f ));
 
-		if ( throttle_factor > 1 && ( fft_call_counter % throttle_factor ) != 0 )
+		if ( throttle_factor > 1 && ( m_fft_call_counter % throttle_factor ) != 0 )
 			return false;
 
 		// Only process if we have enough samples
@@ -366,12 +379,14 @@ void FeAudioVisualiser::reset()
 
 void FeAudioVisualiser::update()
 {
-	std::lock_guard<std::mutex> lock( m_mutex );
-	update_fall();
+	std::unique_lock<std::mutex> lock( m_mutex, std::try_to_lock );
+	if ( lock.owns_lock() )
+		update_fall();
 }
 
 float FeAudioVisualiser::get_vu_mono() const
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_vu_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -382,6 +397,7 @@ float FeAudioVisualiser::get_vu_mono() const
 
 float FeAudioVisualiser::get_vu_left() const
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_vu_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -392,6 +408,7 @@ float FeAudioVisualiser::get_vu_left() const
 
 float FeAudioVisualiser::get_vu_right() const
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_vu_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -402,6 +419,7 @@ float FeAudioVisualiser::get_vu_right() const
 
 const std::vector<float> *FeAudioVisualiser::get_fft_mono_ptr() const
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_fft_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -412,6 +430,7 @@ const std::vector<float> *FeAudioVisualiser::get_fft_mono_ptr() const
 
 const std::vector<float> *FeAudioVisualiser::get_fft_left_ptr() const
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_fft_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -422,6 +441,7 @@ const std::vector<float> *FeAudioVisualiser::get_fft_left_ptr() const
 
 const std::vector<float> *FeAudioVisualiser::get_fft_right_ptr() const
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	m_fft_requested = true;
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
@@ -916,6 +936,19 @@ void FeAudioVisualiser::initialise_window_lut()
 
 void FeAudioVisualiser::set_fft_bands( int count )
 {
+	std::lock_guard<std::mutex> lock( m_mutex );
 	count = std::max( 2, std::min( count, FFT_BANDS_MAX ));
 	m_fft_bands = count;
+	m_fft_mono_in.resize( count, 0.0f );
+	m_fft_left_in.resize( count, 0.0f );
+	m_fft_right_in.resize( count, 0.0f );
+	m_fft_mono_out.resize( count, 0.0f );
+	m_fft_left_out.resize( count, 0.0f );
+	m_fft_right_out.resize( count, 0.0f );
+}
+
+int FeAudioVisualiser::get_fft_bands() const
+{
+	std::lock_guard<std::mutex> lock( m_mutex );
+	return m_fft_bands;
 }
