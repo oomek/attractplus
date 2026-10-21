@@ -222,7 +222,7 @@ public:
 	bool is_volatile_texture() const;
 	unsigned long long get_texture_content_version() const override;
 
-	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
+	FeAudioEffectsManager& get_audio_effects() { return *m_audio_effects; };
 	FeMedia *get_media() const;
 
 protected:
@@ -239,6 +239,7 @@ private:
 
 	void internal_update_selection( FeSettings *feSettings );
 	void clear();
+	void init_audio_effects();
 
 	mutable std::vector<unsigned char> m_pixel_cache;
 	mutable bool m_pixel_cache_valid;
@@ -262,7 +263,10 @@ private:
 	float m_pan;
 	int m_fft_bands;
 	FeImageLoaderEntry *m_entry;
-	FeAudioEffectsManager m_audio_effects;
+	std::shared_ptr<FeAudioEffectsManager> m_audio_effects;
+	mutable std::vector<float> m_fft_mono;
+	mutable std::vector<float> m_fft_left;
+	mutable std::vector<float> m_fft_right;
 	Vec2u m_texture_size;
 	bool m_repeat;
 	unsigned long long m_content_version;
