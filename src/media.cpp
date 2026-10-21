@@ -28,6 +28,7 @@
 #include "fe_audio_fx.hpp"
 #include "fe_sdl3_gpu.hpp"
 #include "fe_time.hpp"
+#include "image_loader.hpp"
 #include <SDL3/SDL_thread.h>
 
 
@@ -1513,10 +1514,22 @@ void FeMedia::open_thread( std::string archive, std::string name )
 					}
 					m_video->at_end = true;
 				}
-				else if ( !m_audio || m_audio->has_packet_room() )
-					read_packet();
 				else
-					break;
+					read_packet();
+			}
+			if ( opened && m_video && m_video->at_end && !m_video->frames_pending() )
+			{
+				if ( !m_imp->m_stop ) FeLog() << "No video frames in input file: " << name << std::endl;
+				opened = false;
+			}
+			if ( opened && m_video && !m_imp->m_stop )
+			{
+				// Pin the first decoded frame before publication, independently of
+				// its timestamp. Preparation must not need a running playback clock.
+				std::lock_guard<std::mutex> lock( m_video->m_image_mutex );
+				m_video->m_displayed_frame = m_video->m_ready_frames.front();
+				m_video->m_ready_frames.pop_front();
+				m_video->frame_serial.store( 1, std::memory_order_release );
 			}
 			if ( opened && !m_imp->m_stop && m_audio && !ensure_audio_stream() )
 				m_audio->at_end = true;
@@ -1531,6 +1544,7 @@ void FeMedia::open_thread( std::string archive, std::string name )
 		opened = false;
 	}
 	m_imp->m_open_result.store( opened ? 1 : -1, std::memory_order_release );
+	FeImageLoader::get_ref().notify_loaded();
 }
 
 void FeMedia::await_play_thread()

@@ -39,6 +39,7 @@
 #include "media.hpp"
 
 #include "image_loader.hpp"
+#include "fe_present.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -260,7 +261,7 @@ public:
 private:
 	void run_thread()
 	{
-		SDL_SetCurrentThreadPriority( SDL_THREAD_PRIORITY_LOW );
+		SDL_SetCurrentThreadPriority( SDL_THREAD_PRIORITY_NORMAL );
 		for (;;)
 		{
 			std::unique_lock<std::recursive_mutex> lock( g_mutex );
@@ -345,6 +346,9 @@ public:
 	FeImageLRUCache *m_cache;
 	FeImageLoaderThread m_bg_loader;
 	bool m_load_images_in_bg;
+	std::mutex m_load_mutex;
+	std::condition_variable m_load_ready;
+	unsigned long long m_load_version = 0;
 };
 
 FeImageLoaderEntry::FeImageLoaderEntry()
@@ -383,6 +387,7 @@ void FeImageLoaderEntry::load( const std::string &filename )
 	m_height = m_data ? height : 0;
 	m_texture = { m_data, static_cast<unsigned int>( m_width.load() ), static_cast<unsigned int>( m_height.load() ) };
 	m_loaded.store( true, std::memory_order_release );
+	FeImageLoader::get_ref().notify_loaded();
 }
 
 size_t FeImageLoaderEntry::get_bytes()
@@ -411,7 +416,7 @@ bool FeImageLoaderEntry::is_loaded() const
 }
 
 FeImageLoader::FeImageLoader()
-	: m_imp( NULL )
+	: m_imp( new FeImageLoaderImp() )
 {
 }
 
@@ -430,7 +435,7 @@ bool FeImageLoader::load_image_from_file( const std::string &fn, std::shared_ptr
 		if ( m_imp->m_cache && m_imp->m_cache->get( file, e ) )
 			return (*e)->is_loaded();
 	}
-	if ( background || m_imp->m_load_images_in_bg )
+	if ( background || ( !FePresent::script_get_fep() && m_imp->m_load_images_in_bg ) )
 	{
 		m_imp->m_bg_loader.request( file, e );
 		return false;
@@ -451,6 +456,28 @@ void FeImageLoader::reap( std::shared_ptr<void> object )
 	if ( object ) m_imp->m_bg_loader.reap( std::move( object ) );
 }
 
+void FeImageLoader::notify_loaded()
+{
+	{
+		std::lock_guard<std::mutex> lock( m_imp->m_load_mutex );
+		++m_imp->m_load_version;
+	}
+	m_imp->m_load_ready.notify_one();
+}
+
+unsigned long long FeImageLoader::load_version()
+{
+	std::lock_guard<std::mutex> lock( m_imp->m_load_mutex );
+	return m_imp->m_load_version;
+}
+
+void FeImageLoader::wait_for_load( unsigned long long version )
+{
+	std::unique_lock<std::mutex> lock( m_imp->m_load_mutex );
+	m_imp->m_load_ready.wait_for( lock, std::chrono::milliseconds( 1 ),
+		[this, version] { return m_imp->m_load_version != version; } );
+}
+
 bool FeImageLoader::check_loaded( FeImageLoaderEntry *e )
 {
 	return e && e->is_loaded();
@@ -468,9 +495,6 @@ void FeImageLoader::reap_video( FeMedia *vid )
 FeImageLoader &FeImageLoader::get_ref()
 {
 	static FeImageLoader g_image_loader;
-
-	if ( !g_image_loader.m_imp )
-		g_image_loader.m_imp = new FeImageLoaderImp();
 
 	return g_image_loader;
 }
@@ -503,6 +527,11 @@ void FeImageLoader::set_cache_size( size_t s )
 
 void FeImageLoader::set_background_loading( bool flag )
 {
+	if ( auto *present = FePresent::script_get_fep() )
+	{
+		present->set_script_background_loading( flag );
+		return;
+	}
 	FeImageLoader &il = get_ref();
 	il.m_imp->m_load_images_in_bg = flag;
 
@@ -511,6 +540,8 @@ void FeImageLoader::set_background_loading( bool flag )
 
 bool FeImageLoader::get_background_loading()
 {
+	if ( auto *present = FePresent::script_get_fep() )
+		return present->get_script_background_loading( present->get_script_id() );
 	FeImageLoader &il = get_ref();
 	return il.m_imp->m_load_images_in_bg;
 }

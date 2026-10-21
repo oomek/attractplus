@@ -67,7 +67,24 @@ enum FeTransitionType
 	ShowOverlay      = 1<<8,  // var = Custom, Exit, Displays, Filters, Tags
 	HideOverlay      = 1<<9,  // var = 0
 	NewSelOverlay    = 1<<10, // var = index of new selection
-	ChangedTag       = 1<<11  // var = FeRomInfo::Favourite, FeRomInfo::Tags
+	ChangedTag       = 1<<11, // var = FeRomInfo::Favourite, FeRomInfo::Tags
+	ToEndNavigation  = 1<<12,
+	NewList          = 1<<13,
+	NewSelection     = 1<<14
+};
+
+struct FeNavigationRequest
+{
+	enum Kind { Selection, SelectionIndex, Filter, FilterIndex, Display, DisplayIndex, List, Search, End, Command };
+	Kind kind;
+	int value = 0;
+	bool reset = false;
+	bool end_navigation = false;
+	bool clamp = false;
+	bool notify = true;
+	std::string text;
+	bool stack_previous = false;
+	bool reload = false;
 };
 
 //
@@ -187,6 +204,14 @@ protected:
 	bool m_custom_overlay;
 	bool m_mouse_pointer_visible;
 	std::map<int, FeGrid> m_plugin_grids;
+	struct ScriptOptions
+	{
+		int version = 3;
+		int transition_version = -1;
+		bool background_loading = false;
+	};
+	std::map<int, ScriptOptions> m_script_options;
+	int m_preparing_script = -2;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	Vec2i m_layoutSize;
@@ -267,6 +292,21 @@ protected:
 	void set_layout_crop( bool );
 
 public:
+	int get_layout_version();
+	void set_layout_version( int );
+	int get_script_version( int ) const;
+	bool get_script_background_loading( int ) const;
+	void set_script_background_loading( bool );
+	bool uses_new_transitions() const;
+	bool is_preparing( int script ) const { return script == m_preparing_script; }
+	virtual bool queue_navigation( FeNavigationRequest ) { return false; }
+	virtual bool navigation_busy() const { return false; }
+	void refresh_list( int var=0, bool reset_display=false, bool notify=true );
+	void end_navigation();
+	void collect_preloads( std::vector<FeRenderTextureBinding> & ) const;
+	bool prepared_media_ready( int script );
+	void commit_prepared_media( int script );
+	void discard_prepared_media();
 	void refresh_script_geometry();
 	static constexpr float SCENE3D_DEFAULT_AMBIENT_LIGHT = 0.0f;
 	static constexpr float SCENE3D_DEFAULT_LIGHT = 100.0f;
@@ -286,7 +326,7 @@ public:
 	void load_screensaver();
 	void load_layout( bool initial_load=false );
 	void set_layout_loaded( bool loaded ) { m_layout_loaded = loaded; };
-	bool is_layout_loaded() { return m_layout_loaded; };
+	bool is_layout_loaded() const { return m_layout_loaded; };
 	void set_transforms();
 
 	void update_to( FeTransitionType type, bool reset_display=false );
@@ -307,7 +347,7 @@ public:
 	bool reset_screen_saver();
 	bool handle_event( FeInputMap::Command );
 
-	void change_selection( int step, bool end_navigation=true );
+	void change_selection( int step, bool end_navigation=true, bool clamp=false );
 
 	FeSettings *get_fes() const { return m_feSettings; };
 

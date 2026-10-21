@@ -1293,101 +1293,126 @@ bool FeSdl3GpuContext::present_blank_frame()
 	return SDL_SubmitGPUCommandBuffer( command_buffer );
 }
 
-bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra_geometry )
+bool FeSdl3GpuContext::prepare_textures( const std::vector<FeRenderTextureBinding> &bindings,
+	unsigned long long frame_number )
 {
-	std::size_t geometry_count = m_frame.images.size();
-	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
-		geometry_count += surface.geometry.size();
+	return sync_textures( nullptr, &bindings, frame_number );
+}
+
+bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra_geometry,
+	const std::vector<FeRenderTextureBinding> *preloads, unsigned long long frame_number )
+{
+	const auto &bindings = preloads ? *preloads : m_frame.preloads;
+	std::size_t geometry_count = bindings.size();
+	if ( !preloads )
+	{
+		geometry_count += m_frame.images.size();
+		for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
+			geometry_count += surface.geometry.size();
+	}
 	if ( extra_geometry )
 		geometry_count += extra_geometry->size();
 
 	if ( geometry_count == 0 )
 	{
-		clear_textures();
+		if ( !preloads ) clear_textures();
 		return true;
 	}
 
+	if ( !preloads ) frame_number = m_frame.frame_number;
+	if ( m_texture_upload_frame != frame_number )
+	{
+		m_texture_upload_frame = frame_number;
+		m_texture_upload_time = 0;
+	}
 	SDL_GPUCommandBuffer *command_buffer = nullptr;
 	bool success = true;
-	Uint64 new_upload_time = 0;
+	Uint64 &new_upload_time = m_texture_upload_time;
+	std::vector<std::tuple<const void *, bool, bool>> uploads;
+
+	auto sync_binding = [&]( const void *texture_id,
+		int texture_source_type,
+		float texture_width,
+		float texture_height,
+		bool texture_mipmap,
+		bool texture_dynamic,
+		unsigned long long texture_content_version,
+		bool texture_blocking,
+		bool texture_cube_map = false )
+	{
+		if ( !texture_id )
+			return;
+
+		if ( texture_source_type == FeRenderTextureSourceContainer )
+		{
+			const FeBaseTextureContainer *container = static_cast<const FeBaseTextureContainer *>( texture_id );
+			if ( dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
+				return;
+		}
+
+		TextureEntry &entry = m_textures[ { texture_id, texture_mipmap, texture_cube_map } ];
+		if ( entry.upload_pending &&
+			( entry.width != texture_width || entry.height != texture_height ||
+				entry.mipmapped != texture_mipmap || entry.cube_map != texture_cube_map ) )
+			success = flush_video_uploads() && success;
+		const float previous_width = entry.width;
+		const float previous_height = entry.height;
+		const bool previous_mipmapped = entry.mipmapped;
+		const bool previous_cube_map = entry.cube_map;
+		const unsigned long long content_version =
+			( texture_content_version != 0 )
+				? texture_content_version
+					: frame_number;
+		entry.width = texture_width;
+		entry.height = texture_height;
+		entry.mipmapped = texture_mipmap;
+		entry.cube_map = texture_cube_map;
+		entry.last_seen_frame = frame_number;
+		if ( is_available() )
+		{
+			const bool had_texture = ( entry.gpu_texture != nullptr );
+			const bool has_explicit_content_version = ( texture_content_version != 0 );
+			const bool needs_upload =
+				!had_texture ||
+				( previous_width != texture_width ) ||
+				( previous_height != texture_height ) ||
+				( previous_mipmapped != texture_mipmap ) ||
+				( previous_cube_map != texture_cube_map ) ||
+				( has_explicit_content_version &&
+					entry.last_upload_content_version != content_version ) ||
+				( texture_dynamic && entry.last_upload_content_version != content_version );
+
+			if ( needs_upload )
+			{
+				// Only asynchronous artwork may spread GPU setup over frames.
+				// Legacy blocking loads must appear together on this draw.
+				const bool new_artwork = !had_texture &&
+					( texture_source_type == FeRenderTextureSourceMedia || texture_source_type == FeRenderTextureSourceRawRgba );
+				if ( new_artwork && !texture_blocking &&
+					( m_texture_upload_deadline ? SDL_GetTicksNS() >= m_texture_upload_deadline : new_upload_time >= 2000000 ) )
+					return;
+				const Uint64 start = new_artwork ? SDL_GetTicksNS() : 0;
+				if ( !command_buffer )
+					command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+				if ( command_buffer && upload_texture( texture_id, texture_source_type, entry, command_buffer ) )
+				{
+					entry.last_upload_frame = frame_number;
+					entry.last_upload_content_version = content_version;
+					if ( preloads ) uploads.emplace_back( texture_id, texture_mipmap, texture_cube_map );
+				}
+				else
+				{
+					success = false;
+					m_texture_failures[{ texture_id, texture_mipmap, texture_cube_map }] = content_version;
+				}
+				if ( new_artwork )
+					new_upload_time += SDL_GetTicksNS() - start;
+			}
+		}
+	};
 
 	auto sync_geometry = [&]( const FeRenderGeometry &image )
 	{
-		auto sync_binding = [&]( const void *texture_id,
-			int texture_source_type,
-			float texture_width,
-			float texture_height,
-			bool texture_mipmap,
-			bool texture_dynamic,
-			unsigned long long texture_content_version,
-			bool texture_cube_map = false )
-		{
-			if ( !texture_id )
-				return;
-
-			if ( texture_source_type == FeRenderTextureSourceContainer )
-			{
-				const FeBaseTextureContainer *container = static_cast<const FeBaseTextureContainer *>( texture_id );
-				if ( dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
-					return;
-			}
-
-			TextureEntry &entry = m_textures[ { texture_id, texture_mipmap, texture_cube_map } ];
-			if ( entry.upload_pending &&
-				( entry.width != texture_width || entry.height != texture_height ||
-					entry.mipmapped != texture_mipmap || entry.cube_map != texture_cube_map ) )
-				success = flush_video_uploads() && success;
-			const float previous_width = entry.width;
-			const float previous_height = entry.height;
-			const bool previous_mipmapped = entry.mipmapped;
-			const bool previous_cube_map = entry.cube_map;
-			const unsigned long long content_version =
-				( texture_content_version != 0 )
-					? texture_content_version
-					: m_frame.frame_number;
-			entry.width = texture_width;
-			entry.height = texture_height;
-			entry.mipmapped = texture_mipmap;
-			entry.cube_map = texture_cube_map;
-			entry.last_seen_frame = m_frame.frame_number;
-			if ( is_available() )
-			{
-				const bool had_texture = ( entry.gpu_texture != nullptr );
-				const bool has_explicit_content_version = ( texture_content_version != 0 );
-				const bool needs_upload =
-					!had_texture ||
-					( previous_width != texture_width ) ||
-					( previous_height != texture_height ) ||
-					( previous_mipmapped != texture_mipmap ) ||
-					( previous_cube_map != texture_cube_map ) ||
-					( has_explicit_content_version &&
-						entry.last_upload_content_version != content_version ) ||
-					( texture_dynamic && entry.last_upload_content_version != content_version );
-
-				if ( needs_upload )
-				{
-					// New artwork can arrive as a whole page. Spread its GPU setup
-					// over frames while continuing every existing video's uploads.
-					const bool new_artwork = !had_texture &&
-						( texture_source_type == FeRenderTextureSourceMedia || texture_source_type == FeRenderTextureSourceRawRgba );
-					if ( new_artwork && new_upload_time >= 2000000 )
-						return;
-					const Uint64 start = new_artwork ? SDL_GetTicksNS() : 0;
-					if ( !command_buffer )
-						command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
-					if ( command_buffer && upload_texture( texture_id, texture_source_type, entry, command_buffer ) )
-					{
-						entry.last_upload_frame = m_frame.frame_number;
-						entry.last_upload_content_version = content_version;
-					}
-					else
-						success = false;
-					if ( new_artwork )
-						new_upload_time += SDL_GetTicksNS() - start;
-				}
-			}
-		};
-
 		sync_binding(
 			image.texture_id,
 			image.texture_source_type,
@@ -1395,7 +1420,8 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			image.texture_height,
 			image.texture_mipmap,
 			image.texture_dynamic,
-			image.texture_content_version );
+			image.texture_content_version,
+			image.texture_blocking );
 
 		if ( image.geometry_kind == FeRenderGeometryObjectPbr )
 		{
@@ -1422,30 +1448,60 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					binding->mipmap,
 					binding->dynamic,
 					binding->content_version,
+					binding->blocking,
 					binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX );
 			}
 		}
 	};
 
-	for ( const FeRenderGeometry &image : m_frame.images )
-		sync_geometry( image );
-
-	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
-		for ( const FeRenderGeometry &image : surface.geometry )
+	if ( !preloads )
+	{
+		for ( const FeRenderGeometry &image : m_frame.images )
 			sync_geometry( image );
+		for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
+			for ( const FeRenderGeometry &image : surface.geometry )
+				sync_geometry( image );
+	}
 
 	if ( extra_geometry )
 		for ( const FeRenderGeometry &image : *extra_geometry )
 			sync_geometry( image );
+	for ( const auto &binding : bindings )
+		sync_binding( binding.texture_id, binding.texture_source_type, binding.width, binding.height,
+			binding.mipmap, false, binding.content_version, binding.blocking );
 
-	success = flush_video_uploads() && success;
+	const bool flushed = flush_video_uploads();
+	if ( !flushed )
+		for ( const auto &binding : bindings )
+		{
+			const auto key = std::make_tuple( binding.texture_id, binding.mipmap, false );
+			auto found = m_textures.find( key );
+			if ( found != m_textures.end() && !found->second.gpu_texture )
+				m_texture_failures[key] = binding.content_version;
+		}
+	success = flushed && success;
 	if ( command_buffer && !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
 		FeLog() << "SDL: texture upload submission failed: " << SDL_GetError() << std::endl;
-		clear_textures();
+		if ( preloads )
+		{
+			for ( const auto &key : uploads )
+			{
+				auto &entry = m_textures[key];
+				m_texture_failures[key] = entry.last_upload_content_version;
+				release_texture( entry );
+			}
+		}
+		else
+		{
+			clear_textures();
+			for ( const auto &binding : bindings )
+				m_texture_failures[{ binding.texture_id, binding.mipmap, false }] = binding.content_version;
+		}
 		return false;
 	}
 
+	if ( preloads ) return success;
 	for ( auto it = m_textures.begin(); it != m_textures.end(); )
 	{
 		if ( it->second.last_seen_frame != m_frame.frame_number )
@@ -1459,8 +1515,21 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 	return success;
 }
 
+FeSdl3GpuContext::TextureStatus FeSdl3GpuContext::texture_status( const FeRenderTextureBinding &binding ) const
+{
+	const auto key = std::make_tuple( binding.texture_id, binding.mipmap, false );
+	auto failure = m_texture_failures.find( key );
+	if ( failure != m_texture_failures.end() && failure->second == binding.content_version ) return TextureFailed;
+	auto found = m_textures.find( key );
+	if ( found == m_textures.end() ) return TexturePending;
+	const auto &entry = found->second;
+	return entry.gpu_texture && !entry.upload_pending && entry.width == binding.width && entry.height == binding.height &&
+		entry.last_upload_content_version == binding.content_version ? TextureReady : TexturePending;
+}
+
 void FeSdl3GpuContext::clear_textures()
 {
+	m_texture_failures.clear();
 	for ( auto &entry : m_textures )
 	{
 		release_texture( entry.second );
@@ -2064,7 +2133,7 @@ bool FeSdl3GpuContext::has_submitted_frame() const
 
 bool FeSdl3GpuContext::has_frame_content() const
 {
-	if ( !m_frame.images.empty() )
+	if ( !m_frame.images.empty() || !m_frame.preloads.empty() )
 		return true;
 
 	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
@@ -2736,26 +2805,33 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	if ( !is_available() )
 	{
+		release_frame();
 		m_failed_present_frames++;
 		return false;
 	}
 
-	if ( !sync_textures( overlay_geometry ) )
+	const bool textures_synced = sync_textures( overlay_geometry );
+	// Blocking transitions and overlays can draw again without frame pacing.
+	// Their next draw must not inherit this frame's expired deadline.
+	m_texture_upload_deadline = 0;
+	if ( !textures_synced )
 	{
+		release_frame();
 		m_failed_present_frames++;
 		return false;
 	}
 
-	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
-	if ( !command_buffer )
+	if ( acquire_frame( true ) != FrameReady )
 	{
 		m_failed_present_frames++;
 		return false;
 	}
+	SDL_GPUCommandBuffer *command_buffer = m_present_command_buffer;
 
 	std::vector<SDL_GPUBuffer *> temporary_pbr_buffers;
 	auto release_temporary_pbr_buffers = [&]()
 	{
+		release_frame();
 		if ( m_vertex_upload_command_buffer )
 		{
 			SDL_CancelGPUCommandBuffer( m_vertex_upload_command_buffer );
@@ -2783,22 +2859,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		temporary_pbr_buffers.clear();
 	};
 
-	SDL_GPUTexture *swapchain_texture = nullptr;
-	Uint32 swapchain_width = 0;
-	Uint32 swapchain_height = 0;
-	if ( !SDL_WaitAndAcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
-	{
-		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
-		return false;
-	}
-
-	if ( !swapchain_texture )
-	{
-		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
-		return false;
-	}
+	SDL_GPUTexture *swapchain_texture = m_swapchain_texture;
+	const Uint32 swapchain_width = m_swapchain_width;
+	const Uint32 swapchain_height = m_swapchain_height;
 
 	m_frame_stats.acquired_swapchain = true;
 	m_frame_stats.last_viewport_width = static_cast<int>( swapchain_width );
@@ -2972,6 +3035,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		return false;
 	}
 
+	// Submission consumes the acquired frame, including on failure.
+	m_present_command_buffer = nullptr;
+	m_swapchain_texture = nullptr;
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
 		release_temporary_pbr_buffers();
@@ -2982,9 +3048,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	m_frame_stats.executed = true;
 	m_frame_stats.submitted_frames++;
-	if ( m_frame_stats.pipeline_ready && m_frame_stats.draw_ready )
+	if ( m_frame_stats.pipeline_ready && ( m_frame_stats.draw_ready || !m_frame.preloads.empty() ) )
 		m_failed_present_frames = 0;
-	if ( !m_frame_stats.draw_ready )
+	if ( !m_frame_stats.draw_ready && m_frame.preloads.empty() )
 	{
 		if ( has_frame_content() )
 			m_failed_present_frames++;
@@ -2993,6 +3059,35 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( m_failed_present_frames >= 3 )
 		m_present_disabled = true;
 	return true;
+}
+
+FeSdl3GpuContext::FrameStatus FeSdl3GpuContext::acquire_frame( bool wait )
+{
+	if ( m_present_command_buffer ) return FrameReady;
+	if ( !is_available() || ( SDL_GetWindowFlags( m_window ) & ( SDL_WINDOW_MINIMIZED | SDL_WINDOW_HIDDEN ) ) )
+		return FrameUnavailable;
+	auto *command = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command ) return FrameUnavailable;
+	const bool acquired = wait
+		? SDL_WaitAndAcquireGPUSwapchainTexture( command, m_window, &m_swapchain_texture, &m_swapchain_width, &m_swapchain_height )
+		: SDL_AcquireGPUSwapchainTexture( command, m_window, &m_swapchain_texture, &m_swapchain_width, &m_swapchain_height );
+	if ( !acquired || !m_swapchain_texture )
+	{
+		SDL_CancelGPUCommandBuffer( command );
+		if ( !acquired ) FeLog() << "SDL: swapchain acquisition failed: " << SDL_GetError() << std::endl;
+		return acquired ? FramePending : FrameUnavailable;
+	}
+	m_present_command_buffer = command;
+	return FrameReady;
+}
+
+void FeSdl3GpuContext::release_frame()
+{
+	if ( !m_present_command_buffer ) return;
+	// SDL does not allow cancellation after acquiring a swapchain texture.
+	SDL_SubmitGPUCommandBuffer( m_present_command_buffer );
+	m_present_command_buffer = nullptr;
+	m_swapchain_texture = nullptr;
 }
 
 bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
@@ -3170,6 +3265,7 @@ bool FeSdl3GpuContext::claim_window( SDL_Window *window )
 
 void FeSdl3GpuContext::release_window()
 {
+	release_frame();
 	if ( m_device && m_window && m_window_claimed )
 	{
 		SDL_ReleaseWindowFromGPUDevice( m_device, m_window );
@@ -3561,8 +3657,10 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 			if ( it->last_seen_frame + 2 >= m_frame.frame_number ||
 				it->texture_info.width != texture_info.width || it->texture_info.height != texture_info.height ||
 				it->texture_info.type != texture_info.type || it->texture_info.usage != texture_info.usage ||
-				it->texture_info.num_levels != texture_info.num_levels || it->transfer_buffer_size < upload_size )
+				it->texture_info.num_levels != texture_info.num_levels )
 				continue;
+			// Its transfer buffer may have been borrowed by a different size.
+			// The buffer can be replaced independently below.
 			entry.gpu_texture = it->gpu_texture;
 			entry.transfer_buffer = it->transfer_buffer;
 			entry.transfer_buffer_size = it->transfer_buffer_size;
@@ -3586,6 +3684,28 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	{
 		SDL_ReleaseGPUTransferBuffer( m_device, entry.transfer_buffer );
 		entry.transfer_buffer = nullptr;
+	}
+	if ( !entry.transfer_buffer )
+	{
+		// Transfer capacity is independent of texture dimensions. Vulkan gives
+		// each transfer buffer a dedicated allocation, so recycling only exact
+		// texture pairs causes expensive allocation/free bursts on page changes.
+		auto best = m_spare_textures.end();
+		for ( auto it = m_spare_textures.begin(); it != m_spare_textures.end(); ++it )
+		{
+			if ( it->last_seen_frame + 2 >= m_frame.frame_number || !it->transfer_buffer || it->transfer_buffer_size < upload_size )
+				continue;
+			if ( best == m_spare_textures.end() || it->transfer_buffer_size < best->transfer_buffer_size )
+				best = it;
+		}
+		if ( best != m_spare_textures.end() )
+		{
+			entry.transfer_buffer = best->transfer_buffer;
+			entry.transfer_buffer_size = best->transfer_buffer_size;
+			m_spare_texture_bytes -= best->transfer_buffer_size;
+			best->transfer_buffer = nullptr;
+			best->transfer_buffer_size = 0;
+		}
 	}
 	if ( !entry.transfer_buffer )
 	{
