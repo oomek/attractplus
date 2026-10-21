@@ -467,6 +467,11 @@ void FePresent::init_monitors()
 
 	m_layoutSize = m_mon[0].size;
 
+	if ( SDL_Window *window = m_window.get_gpu_context().get_window() )
+		if ( const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode( SDL_GetDisplayForWindow( window ) ) )
+			if ( mode->refresh_rate > 0.0f )
+				m_refresh_rate = mode->refresh_rate;
+
 	if ( m_refresh_rate == 0 )
 	{
 		FeLog() << "Failed to detect the refresh rate. Defaulting to 60 Hz" << std::endl;
@@ -2987,7 +2992,7 @@ float FePresent::get_layout_frame_time()
 	return m_frame_time;
 }
 
-int FePresent::get_refresh_rate()
+double FePresent::get_refresh_rate()
 {
 	return m_refresh_rate;
 }

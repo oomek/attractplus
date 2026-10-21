@@ -178,7 +178,7 @@ protected:
 	std::vector<FeShader *> m_scriptShaders;
 	std::vector<FeFontContainer *> m_fontPool;
 	std::vector<FeMonitor> m_mon;
-	int m_refresh_rate;
+	double m_refresh_rate;
 	bool m_playMovies;
 	int m_user_page_size;
 	bool m_preserve_aspect;
@@ -347,7 +347,7 @@ public:
 	int get_layout_ms();
 	FeTime get_layout_time();
 	float get_layout_frame_time();
-	int get_refresh_rate();
+	double get_refresh_rate();
 	float get_3d_ambient_light() const;
 	void set_3d_ambient_light( float light );
 	float get_3d_light() const;
