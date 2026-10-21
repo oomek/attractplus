@@ -1167,7 +1167,9 @@ int main(int argc, char *argv[])
 			{
 				command_timer.restart();
 				int t = static_cast<int>( move_timer.getElapsedTime().asMilliseconds() );
-				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() ))
+				// Repeats follow the held input, so never queue them behind a transition.
+				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() )
+					&& !feVM.navigation_busy() )
 				{
 					if (( move_triggered == FeInputMap::LAST_COMMAND )
 						|| feVM.script_handle_event( move_triggered ))
