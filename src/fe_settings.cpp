@@ -841,6 +841,7 @@ void FeSettings::init_display()
 	}
 
 	m_path_cache.clear();
+	m_layout_dirs.clear();
 
 	std::string list_path;
 	if ( !internal_resolve_config_file(
@@ -1818,11 +1819,20 @@ bool FeSettings::get_layout_dir(
 {
 	if ( layout_name.empty() )
 		return false;
+	auto found = m_layout_dirs.find( layout_name );
+	if ( found != m_layout_dirs.end() )
+	{
+		layout_dir = found->second;
+		return !layout_dir.empty();
+	}
 
 	std::string temp;
 	if ( internal_resolve_config_file( m_config_path, layout_dir,
 			FE_LAYOUT_SUBDIR, layout_name + "/" ) )
+	{
+		m_layout_dirs[layout_name] = layout_dir;
 		return true;
+	}
 
 	int i=0;
 	while ( FE_ARCHIVE_EXT[i] != NULL )
@@ -1831,11 +1841,15 @@ bool FeSettings::get_layout_dir(
 				layout_dir,
 				FE_LAYOUT_SUBDIR,
 				layout_name + FE_ARCHIVE_EXT[i] ) )
+		{
+			m_layout_dirs[layout_name] = layout_dir;
 			return true;
+		}
 
 		i++;
 	}
 
+	m_layout_dirs[layout_name] = "";
 	return false;
 }
 
@@ -4541,7 +4555,7 @@ bool gather_artwork_filenames(
 		// image from it at this point (if available)
 		//
 		std::string sd_path = (*itr) + target_name;
-		if ( directory_exists( sd_path ) )
+		if ( path_cache ? path_cache->directory_exists( sd_path ) : directory_exists( sd_path ) )
 		{
 			sd_path += "/";
 
@@ -4622,7 +4636,7 @@ bool FeSettings::internal_get_best_artwork_file(
 			emu_name = get_display( temp_d )->get_info( FeDisplayInfo::Romlist );
 
 		std::string add_path = get_config_dir() + FE_MENU_ART_SUBDIR + art_name + "/";
-		if ( directory_exists( add_path ) )
+		if ( m_path_cache.directory_exists( add_path ) )
 			art_paths.push_back( add_path );
 
 		if ( FE_DATA_PATH != NULL )
@@ -4632,7 +4646,7 @@ bool FeSettings::internal_get_best_artwork_file(
 			add_path += art_name;
 			add_path += "/";
 
-			if ( directory_exists( add_path ) )
+			if ( m_path_cache.directory_exists( add_path ) )
 				art_paths.push_back( add_path );
 		}
 	}
@@ -4656,7 +4670,7 @@ bool FeSettings::internal_get_best_artwork_file(
 	}
 
 	std::string scraper_path = get_config_dir() + FE_SCRAPER_SUBDIR + emu_name + "/" + scrape_art + "/";
-	if ( directory_exists( scraper_path ) )
+	if ( m_path_cache.directory_exists( scraper_path ) )
 		art_paths.push_back( scraper_path );
 
 	// For "snap" first check scraper/display_name/video/
@@ -4664,7 +4678,7 @@ bool FeSettings::internal_get_best_artwork_file(
 	if ( art_name.compare( "snap" ) == 0 && !image_only )
 	{
 		std::string scraper_video_path = get_config_dir() + FE_SCRAPER_SUBDIR + emu_name + "/video/";
-		if ( directory_exists( scraper_video_path ) )
+		if ( m_path_cache.directory_exists( scraper_video_path ) )
 			art_paths.push_back( scraper_video_path );
 	}
 
