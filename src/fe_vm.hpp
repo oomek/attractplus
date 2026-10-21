@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <queue>
+#include <deque>
 #include <string>
 
 #include "fe_input.hpp"
@@ -97,6 +98,46 @@ private:
 	std::vector< FeCallback > m_ticks;
 	std::vector< FeCallback > m_trans;
 	std::vector< FeCallback > m_sig_handlers;
+	struct TransitionScript
+	{
+		enum Phase { Before, Prepare, Waiting, Complete, Done };
+		int id;
+		int version;
+		Phase phase = Prepare;
+		FeTime start;
+		bool background = false;
+		int remaining = 0;
+		bool started = false;
+		unsigned long long frame = 0;
+	};
+	struct TransitionCall
+	{
+		FeCallback callback;
+		std::size_t index;
+		FeTransitionType type;
+		int var;
+		bool finished = false;
+		unsigned long long pass = 0;
+	};
+	struct Navigation
+	{
+		FeNavigationRequest request;
+		std::vector<TransitionScript> scripts;
+		std::vector<TransitionCall> calls;
+		bool applied = false;
+		unsigned long long pass = 0;
+	};
+	std::deque<FeNavigationRequest> m_navigation_queue;
+	std::vector<FeNavigationRequest> m_command_navigation;
+	bool m_dispatching_command = false;
+	bool m_initial_navigation = true;
+	std::unique_ptr<Navigation> m_navigation;
+	bool m_advancing_navigation = false;
+	void advance_navigation( bool waiting_only = false );
+	void advance_transition_calls( bool waiting_only = false );
+	bool start_navigation();
+	void start_transition_calls( TransitionScript &, FeTransitionType, int );
+	void cancel_navigation();
 
 	FeVM( const FeVM & );
 	FeVM &operator=( const FeVM & );
@@ -111,6 +152,10 @@ private:
 	static bool internal_do_nut(const std::string &, const std::string &);
 
 public:
+	void wait_for_frame();
+	bool defer_command( FeInputMap::Command );
+	bool queue_navigation( FeNavigationRequest ) override;
+	bool navigation_busy() const override { return m_navigation || !m_navigation_queue.empty(); }
 	FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console_input );
 	~FeVM();
 

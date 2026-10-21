@@ -714,8 +714,7 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 	{
 		// Update without reset if the list has not been changed
 		// - This will allow layout lists to display the changed tags
-		m_fePresent.update_to( ToNewList, list_changed );
-		m_fePresent.on_transition( ToNewList, 0 );
+		m_fePresent.refresh_list( 0, list_changed );
 		m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 	}
 

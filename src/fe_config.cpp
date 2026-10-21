@@ -2427,8 +2427,7 @@ bool FeEditGameMenu::on_option_select( FeConfigContext &ctx, FeBaseConfigMenu *&
 				FePresent *fep = FePresent::script_get_fep();
 				if ( fep )
 				{
-					fep->update_to( ToNewList, list_changed );
-					fep->on_transition( ToNewList, 0 );
+					fep->refresh_list( 0, list_changed );
 					fep->on_transition( ChangedTag, FeRomInfo::Favourite );
 				}
 			}
