@@ -75,11 +75,9 @@ const std::uint32_t FE_CACHE_VERSION = FE_CACHE_VERSION_D;
 
 namespace {
 	nowide::ofstream g_logfile;
-#ifdef SDL_PLATFORM_WINDOWS
-	nowide::ofstream g_nullstream( "NUL" );
-#else
-	nowide::ofstream g_nullstream( "/dev/null" );
-#endif
+	// Worker threads must not share a mutable stream buffer, even for messages
+	// discarded at the current log level. A null buffer also avoids file I/O.
+	thread_local std::ostream g_nullstream( nullptr );
 	enum FeLogLevel g_log_level=FeLog_Info;
 	std::mutex g_log_mutex;
 
