@@ -400,6 +400,9 @@ const char *FeVM::transitionTypeStrings[] =
 		"HideOverlay",
 		"NewSelOverlay",
 		"ChangedTag",
+		"ToEndNavigation",
+		"NewList",
+		"NewSelection",
 		NULL
 };
 
@@ -423,6 +426,9 @@ static const TransitionTypeMapping transitionTypeMappings[] =
 	{ "HideOverlay",      HideOverlay },
 	{ "NewSelOverlay",    NewSelOverlay },
 	{ "ChangedTag",       ChangedTag },
+	{ "ToEndNavigation",  ToEndNavigation },
+	{ "NewList",          NewList },
+	{ "NewSelection",     NewSelection },
 	{ NULL, (FeTransitionType)0 }
 };
 
@@ -547,6 +553,20 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<FeEvent> &ev, boo
 {
 	from_ui = false;
 	ev = std::nullopt;
+	if ( m_dispatching_command )
+	{
+		m_dispatching_command = false;
+		m_navigation.reset();
+		for ( auto it = m_command_navigation.rbegin(); it != m_command_navigation.rend(); ++it )
+			m_navigation_queue.push_front( std::move( *it ) );
+		m_command_navigation.clear();
+	}
+	if ( m_navigation && m_navigation->request.kind == FeNavigationRequest::Command )
+	{
+		m_dispatching_command = true;
+		c = static_cast<FeInputMap::Command>( m_navigation->request.value );
+		return true;
+	}
 
 	if ( !m_posted_commands.empty() )
 	{
@@ -572,6 +592,8 @@ bool FeVM::poll_command( FeInputMap::Command &c, std::optional<FeEvent> &ev, boo
 
 void FeVM::clear_handlers()
 {
+	cancel_navigation();
+	m_initial_navigation = true;
 	FePresent::clear_layout();
 	m_ticks.clear();
 	m_trans.clear();
@@ -835,13 +857,12 @@ void FeVM::update_filters_binding( Sqrat::Table &fe )
 
 void FeVM::update_to_new_list( int var, bool reset_display )
 {
-	if ( reset_display )
+	if ( reset_display && !uses_new_transitions() && !navigation_busy() )
 	{
 		Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
 		update_filters_binding( fe );
 	}
-	FePresent::update_to( ToNewList, reset_display );
-	on_transition( ToNewList, var );
+	refresh_list( var, reset_display );
 }
 
 namespace
@@ -1510,6 +1531,7 @@ bool FeVM::on_new_layout()
 #undef ANIM_PROP
 
 	fe.Bind( _SC("LayoutGlobals"), Class <FePresent, NoConstructor>()
+		.Prop( _SC("version"), &FePresent::get_layout_version, &FePresent::set_layout_version )
 		.Prop( _SC("width"), &FePresent::get_layout_width, &FePresent::set_layout_width )
 		.Prop( _SC("height"), &FePresent::get_layout_height, &FePresent::set_layout_height )
 		.Prop( _SC("font"), &FePresent::get_layout_font_name, &FePresent::set_layout_font_name )
@@ -1869,6 +1891,7 @@ bool FeVM::on_new_layout()
 				fe.SetValue( _SC("script_file"), plug_name );
 				m_script_cfg = &(plugins[i]);
 				m_script_id = i;
+				m_script_options[i];
 
 				run_script( plug_path, plug_name );
 			}
@@ -1889,6 +1912,7 @@ bool FeVM::on_new_layout()
 	fe.SetValue( _SC("script_file"), filename );
 	m_script_cfg = &layout_params;
 	m_script_id = -1;
+	m_script_options[-1];
 
 	if ( filename.empty() )
 	{
@@ -1928,10 +1952,11 @@ bool FeVM::on_new_layout()
 	fe.SetValue( _SC("script_file"), "" );
 	m_script_cfg = NULL;
 
-	if ( !skip_layout && ( ps == FeSettings::Layout_Showing ))
+	if ( !skip_layout )
 	{
 		fep->set_layout_loaded( true );
-		FeLog() << " - Loaded layout: " << rep_path << filename << std::endl;
+		if ( ps == FeSettings::Layout_Showing )
+			FeLog() << " - Loaded layout: " << rep_path << filename << std::endl;
 	}
 
 	// To avoid frame delay of nested surfaces we have to sort them here
@@ -1978,10 +2003,283 @@ bool FeVM::process_console_input()
 	return retval;
 }
 
+bool FeVM::defer_command( FeInputMap::Command command )
+{
+	if ( m_dispatching_command || !navigation_busy() ) return false;
+	switch ( command )
+	{
+	case FeInputMap::NextGame: case FeInputMap::PrevGame:
+	case FeInputMap::NextPage: case FeInputMap::PrevPage:
+	case FeInputMap::NextDisplay: case FeInputMap::PrevDisplay:
+	case FeInputMap::NextFilter: case FeInputMap::PrevFilter:
+	case FeInputMap::Exit: case FeInputMap::ExitToDesktop:
+	case FeInputMap::ToggleMute: case FeInputMap::ScreenShot:
+	case FeInputMap::LAST_COMMAND:
+		return false;
+	default:
+		return queue_navigation( { FeNavigationRequest::Command, static_cast<int>( command ) } );
+	}
+}
+
+bool FeVM::queue_navigation( FeNavigationRequest request )
+{
+	const bool initial = m_initial_navigation && request.kind == FeNavigationRequest::List;
+	if ( initial ) m_initial_navigation = false;
+	if ( !navigation_busy() && !uses_new_transitions() ) return false;
+	const bool end = request.end_navigation;
+	request.end_navigation = false;
+	if ( m_dispatching_command )
+	{
+		m_command_navigation.push_back( std::move( request ) );
+		if ( end ) m_command_navigation.push_back( { FeNavigationRequest::End } );
+		return true;
+	}
+	if ( initial ) m_navigation_queue.push_front( std::move( request ) );
+	else m_navigation_queue.push_back( std::move( request ) );
+	if ( end ) m_navigation_queue.push_back( { FeNavigationRequest::End } );
+	return true;
+}
+
+void FeVM::cancel_navigation()
+{
+	m_navigation.reset();
+	m_navigation_queue.clear();
+	m_command_navigation.clear();
+	m_dispatching_command = false;
+	for ( auto &script : m_script_options ) script.second.transition_version = -1;
+	m_preparing_script = -2;
+	discard_prepared_media();
+}
+
+void FeVM::start_transition_calls( TransitionScript &script, FeTransitionType type, int var )
+{
+	script.start = m_layout_time.getElapsedTime();
+	script.started = false;
+	script.remaining = 0;
+	for ( std::size_t i = 0; i < m_trans.size(); ++i )
+	{
+		if ( m_trans[i].m_sid != script.id ) continue;
+		m_navigation->calls.push_back( { m_trans[i], i, type, var } );
+		++script.remaining;
+	}
+	std::stable_sort( m_navigation->calls.begin(), m_navigation->calls.end(),
+		[]( const TransitionCall &a, const TransitionCall &b ) { return a.index < b.index; } );
+}
+
+bool FeVM::start_navigation()
+{
+	while ( !m_navigation_queue.empty() )
+	{
+		auto request = std::move( m_navigation_queue.front() );
+		m_navigation_queue.pop_front();
+		if ( request.kind == FeNavigationRequest::SelectionIndex )
+		{
+			request.value -= get_selection_index();
+			request.kind = FeNavigationRequest::Selection;
+		}
+		if ( request.kind == FeNavigationRequest::Selection )
+		{
+			const int size = get_current_filter_size();
+			if ( size <= 0 ) continue;
+			if ( request.clamp )
+			{
+				const int index = get_selection_index();
+				request.value = std::clamp( request.value, -index, size - index - 1 );
+			}
+			if ( !request.value ) continue;
+		}
+		m_navigation = std::make_unique<Navigation>();
+		m_navigation->request = std::move( request );
+		if ( m_navigation->request.kind == FeNavigationRequest::Command ) return true;
+		for ( const auto &callback : m_trans ) m_script_options[callback.m_sid];
+		for ( auto &entry : m_script_options )
+		{
+			entry.second.transition_version = entry.second.version;
+			TransitionScript script{ entry.first, entry.second.version };
+			if ( script.version < 4 && m_navigation->request.kind == FeNavigationRequest::Selection )
+				script.phase = TransitionScript::Before;
+			m_navigation->scripts.push_back( script );
+		}
+		for ( auto &script : m_navigation->scripts )
+			if ( script.phase == TransitionScript::Before )
+				start_transition_calls( script, ToNewSelection, m_navigation->request.value );
+		return true;
+	}
+	return false;
+}
+
+void FeVM::advance_transition_calls( bool waiting_only )
+{
+	const FeTime now = m_layout_time.getElapsedTime();
+	const auto frame = m_render_frame_serial;
+	for ( auto &call : m_navigation->calls )
+	{
+		if ( call.finished || call.pass == m_navigation->pass ) continue;
+		call.pass = m_navigation->pass;
+		auto script = std::find_if( m_navigation->scripts.begin(), m_navigation->scripts.end(),
+			[&call]( const TransitionScript &entry ) { return entry.id == call.callback.m_sid; } );
+		if ( script == m_navigation->scripts.end() ) continue;
+		// Start new phases while pacing; replay animations only on a new frame.
+		if ( script->started && ( waiting_only || script->frame == frame ) ) continue;
+		set_for_callback( call.callback );
+		m_preparing_script = script->version >= 4 && script->phase == TransitionScript::Prepare ? script->id : -2;
+		if ( call.type == ToNewList && script->id < 0 && !script->started ) m_feSettings->load_layout_params();
+		bool keep = false;
+		try
+		{
+			Sqrat::Function function = call.callback.get_fn();
+			if ( !function.IsNull() )
+				keep = function.Evaluate<bool>( static_cast<int>( call.type ), call.var,
+					script->started ? static_cast<int>( ( now - script->start ).asMilliseconds() ) : 0 );
+		}
+		catch ( const Sqrat::Exception &error )
+		{
+			FeLog() << "Script Error in transition function: " << call.callback.m_fn << " - " << error.Message() << std::endl;
+		}
+		m_preparing_script = -2;
+		if ( !keep ) { call.finished = true; --script->remaining; }
+	}
+	for ( auto &script : m_navigation->scripts )
+	{
+		if ( !script.started || ( !waiting_only && script.frame != frame ) ) script.frame = frame;
+		script.started = true;
+	}
+	auto &calls = m_navigation->calls;
+	calls.erase( std::remove_if( calls.begin(), calls.end(), []( const TransitionCall &call ) { return call.finished; } ), calls.end() );
+}
+
+void FeVM::advance_navigation( bool waiting_only )
+{
+	if ( m_advancing_navigation ) return;
+	m_advancing_navigation = true;
+	if ( !m_navigation && !start_navigation() ) { m_advancing_navigation = false; return; }
+	if ( m_navigation->request.kind == FeNavigationRequest::Command ) { m_advancing_navigation = false; return; }
+	++m_navigation->pass;
+	for ( int pass = 0; pass < 3 && m_navigation; ++pass )
+	{
+		if ( !m_navigation->applied )
+		{
+			advance_transition_calls( waiting_only );
+			if ( !m_navigation->calls.empty() ) break;
+			auto &request = m_navigation->request;
+			bool reload = false;
+			switch ( request.kind )
+			{
+			case FeNavigationRequest::Selection:
+				m_feSettings->step_current_selection( request.value ); break;
+			case FeNavigationRequest::FilterIndex:
+				request.value -= get_filter_index();
+				[[fallthrough]];
+			case FeNavigationRequest::Filter:
+				reload = m_feSettings->navigate_filter( request.value );
+				request.kind = FeNavigationRequest::List; break;
+			case FeNavigationRequest::Display:
+				reload = m_feSettings->navigate_display( request.value );
+				request.kind = FeNavigationRequest::List;
+				request.value = 0; request.reset = true; break;
+			case FeNavigationRequest::DisplayIndex:
+				reload = m_feSettings->set_display( request.value, request.stack_previous ) || request.reload;
+				request.kind = FeNavigationRequest::List;
+				request.value = 0; request.reset = true; break;
+			case FeNavigationRequest::Search:
+				m_feSettings->set_search_rule( request.text.c_str() );
+				request.kind = FeNavigationRequest::List;
+				request.reset = true; break;
+			default: break;
+			}
+			if ( reload ) { load_layout(); break; }
+			if ( request.reset )
+			{
+				Sqrat::Table fe( Sqrat::RootTable().GetSlot( _SC("fe") ) );
+				update_filters_binding( fe );
+			}
+			const auto preparation = request.kind == FeNavigationRequest::Selection ? ToNewSelection :
+				request.kind == FeNavigationRequest::End ? ToEndNavigation : ToNewList;
+			update_to( preparation == ToEndNavigation ? EndNavigation : preparation, request.reset );
+			m_navigation->applied = true;
+			for ( auto &script : m_navigation->scripts )
+			{
+				script.phase = TransitionScript::Prepare;
+				if ( script.version >= 4 ) start_transition_calls( script, preparation, request.value );
+				else if ( request.notify ) start_transition_calls( script,
+					preparation == ToNewSelection ? FromOldSelection : preparation == ToEndNavigation ? EndNavigation : ToNewList,
+					preparation == ToNewSelection ? -request.value : request.value );
+			}
+		}
+		advance_transition_calls( waiting_only );
+		bool added = false, done = true;
+		for ( auto &script : m_navigation->scripts )
+		{
+			if ( script.remaining ) { done = false; continue; }
+			if ( script.phase == TransitionScript::Prepare )
+			{
+				if ( script.version < 4 ) script.phase = TransitionScript::Done;
+				else
+				{
+					script.background = get_script_background_loading( script.id );
+					script.phase = TransitionScript::Waiting;
+				}
+			}
+			if ( script.phase == TransitionScript::Waiting && ( script.background || prepared_media_ready( script.id ) ) )
+			{
+				commit_prepared_media( script.id );
+				script.phase = TransitionScript::Complete;
+				const auto kind = m_navigation->request.kind;
+				start_transition_calls( script, kind == FeNavigationRequest::Selection ? NewSelection :
+					kind == FeNavigationRequest::End ? EndNavigation : NewList, m_navigation->request.value );
+				added = true;
+			}
+			else if ( script.phase == TransitionScript::Complete ) script.phase = TransitionScript::Done;
+			if ( script.phase != TransitionScript::Done ) done = false;
+		}
+		if ( done )
+		{
+			m_navigation.reset();
+			for ( auto &script : m_script_options ) script.second.transition_version = -1;
+			break;
+		}
+		if ( !added ) break;
+	}
+	m_advancing_navigation = false;
+}
+
+void FeVM::wait_for_frame()
+{
+	auto &loader = FeImageLoader::get_ref();
+	auto &gpu = m_window.get_gpu_context();
+	for ( ;; )
+	{
+		const auto version = loader.load_version();
+		const auto status = gpu.acquire_frame();
+		// A pending presentation slot leaves room for another bounded upload
+		// slice. Stop renewing it as soon as the next frame can be drawn.
+		if ( status == FeSdl3GpuContext::FramePending ) gpu.reset_texture_upload_budget();
+		else if ( status == FeSdl3GpuContext::FrameReady )
+		{
+			const Uint64 allowance = m_refresh_rate > 0
+				? std::min<Uint64>( 8000000, static_cast<Uint64>( 500000000.0 / m_refresh_rate ) ) : 2000000;
+			gpu.set_texture_upload_deadline( SDL_GetTicksNS() + allowance );
+		}
+		else gpu.set_texture_upload_deadline( 0 );
+		advance_navigation( true );
+		if ( m_sort_zorder_triggered )
+		{
+			sort_zorder();
+			m_sort_zorder_triggered = false;
+		}
+		if ( status != FeSdl3GpuContext::FramePending ) return;
+		// Pump native input without removing events from the frontend queue.
+		SDL_PumpEvents();
+		loader.wait_for_load( version );
+	}
+}
+
 bool FeVM::on_tick()
 {
 	using namespace Sqrat;
-	bool redraw = m_redraw_triggered || process_console_input();
+	const bool navigating = navigation_busy();
+	advance_navigation();
+	bool redraw = process_console_input() || navigating || m_redraw_triggered;
 	m_redraw_triggered = false;
 
 	if ( FeAnimation::tick() )
@@ -2043,9 +2341,10 @@ void FeVM::on_transition(
 	int ttime = 0;
 	bool reload_layout = false;
 
-	std::vector<FeCallback *> worklist( m_trans.size() );
-	for ( unsigned int i=0; i < m_trans.size(); i++ )
-		worklist[i] = &(m_trans[i]);
+	std::vector<FeCallback> callbacks( m_trans );
+	std::vector<FeCallback *> worklist( callbacks.size() );
+	for ( unsigned int i=0; i < callbacks.size(); i++ )
+		worklist[i] = &callbacks[i];
 
 	//
 	// A registered transition callback stays in the worklist for as long
@@ -3903,6 +4202,10 @@ void FeVM::cb_set_display( int idx, bool stack_previous, bool reload )
 		idx = fes->displays_count()-1;
 	if ( idx < 0 )
 		idx = 0;
+	FeNavigationRequest request{ FeNavigationRequest::DisplayIndex, idx };
+	request.stack_previous = stack_previous;
+	request.reload = reload;
+	if ( fev->queue_navigation( std::move( request ) ) ) return;
 
 	if ( fes->set_display( idx, stack_previous ) || reload )
 	{

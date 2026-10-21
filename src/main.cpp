@@ -702,6 +702,7 @@ int main(int argc, char *argv[])
 			FeDebug() << "Handling command: " << FeInputMap::commandStrings[c] << std::endl;
 
 			soundsys.sound_event( c );
+			if ( feVM.defer_command( c ) ) continue;
 			if ( feVM.handle_event( c ) )
 				redraw = true;
 			else
@@ -1178,8 +1179,7 @@ int main(int argc, char *argv[])
 						//
 						if ( move_triggered != FeInputMap::LAST_COMMAND )
 						{
-							feVM.update_to( EndNavigation, false );
-							feVM.on_transition( EndNavigation, 0 );
+							feVM.end_navigation();
 						}
 
 						move_state = FeInputMap::LAST_COMMAND;
@@ -1254,22 +1254,9 @@ int main(int argc, char *argv[])
 						default: break;
 						}
 
-						//
-						// Limit the size of our step so that there is no wrapping around at the end of the list
-						//
-						int curr_sel = feSettings.get_rom_index( feSettings.get_current_filter_index(), 0 );
-						if ( ( curr_sel + step ) < 0 )
-							step = -curr_sel;
-						else
-						{
-							int list_size = feSettings.get_filter_size( feSettings.get_current_filter_index() );
-							if ( ( curr_sel + step ) >= list_size )
-								step = list_size - curr_sel - 1;
-						}
-
 						if ( step != 0 )
 						{
-							feVM.change_selection( step, false );
+							feVM.change_selection( step, false, true );
 							redraw=true;
 						}
 					}
@@ -1284,8 +1271,7 @@ int main(int argc, char *argv[])
 				//
 				if ( move_triggered != FeInputMap::LAST_COMMAND )
 				{
-					feVM.update_to( EndNavigation, false );
-					feVM.on_transition( EndNavigation, 0 );
+					feVM.end_navigation();
 				}
 
 				move_state = FeInputMap::LAST_COMMAND;
@@ -1326,6 +1312,7 @@ int main(int argc, char *argv[])
 		else
 			has_focus = window.hasFocus();
 
+		feVM.wait_for_frame();
 		if ( feVM.tick() )
 			redraw=true;
 
