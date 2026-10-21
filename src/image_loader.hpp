@@ -99,6 +99,9 @@ public:
 	// destroy vid (on our background thread which will wait on the video threads to stop)
 	void reap_video( FeMedia *vid );
 	void reap( std::shared_ptr<void> object );
+	void notify_loaded();
+	unsigned long long load_version();
+	void wait_for_load( unsigned long long version );
 
 	//
 	// Script interface functions

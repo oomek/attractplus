@@ -35,6 +35,7 @@
 #include "image_loader.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <utility>
 
@@ -56,6 +57,11 @@ const void *FeBaseTextureContainer::get_texture_source_id() const
 int FeBaseTextureContainer::get_texture_source_type() const
 {
 	return FeRenderTextureSourceContainer;
+}
+
+bool FeBaseTextureContainer::is_texture_blocking() const
+{
+	return false;
 }
 
 bool FeBaseTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &, unsigned int &, unsigned int & ) const
@@ -289,15 +295,18 @@ namespace
 
 	unsigned long long next_texture_content_version()
 	{
-		static unsigned long long version = 1;
-		return version++;
+		static std::atomic<unsigned long long> version( 1 );
+		return version.fetch_add( 1, std::memory_order_relaxed );
 	}
 };
 
 FeTextureContainer::FeTextureContainer(
 	bool is_artwork,
-	const std::string &art_name )
-	: m_index_offset( 0 ),
+	const std::string &art_name,
+	bool preload )
+	: m_script_id( FePresent::script_get_fep() ? FePresent::script_get_fep()->get_script_id() : -1 ),
+	m_preload( preload ),
+	m_index_offset( 0 ),
 	m_filter_offset( 0 ),
 	m_current_rom_index( -1 ),
 	m_current_filter_index( -1 ),
@@ -317,7 +326,7 @@ FeTextureContainer::FeTextureContainer(
 	m_entry(),
 	m_content_version( next_texture_content_version() )
 {
-	init_audio_effects();
+	if ( !m_preload ) init_audio_effects();
 
 	if ( is_artwork )
 	{
@@ -344,9 +353,103 @@ void FeTextureContainer::init_audio_effects()
 
 FeTextureContainer::~FeTextureContainer()
 {
+	discard_prepared();
 	clear();
 	FeImageLoader::get_ref().release_entry( &m_previous_entry );
 	FeImageLoader::get_ref().reap( std::move( m_audio_effects ) );
+}
+
+bool FeTextureContainer::is_v4_script() const
+{
+	auto *present = FePresent::script_get_fep();
+	return m_preload || ( present && present->get_script_version( m_script_id ) >= 4 );
+}
+
+bool FeTextureContainer::is_texture_blocking() const
+{
+	auto *present = FePresent::script_get_fep();
+	return !is_v4_script() && !( present && present->get_script_background_loading( m_script_id ) );
+}
+
+FeTextureContainer &FeTextureContainer::prepare()
+{
+	if ( !m_prepared )
+	{
+		m_prepared = std::make_unique<FeTextureContainer>( false, "", true );
+		m_prepared->m_audio_effects = m_audio_effects;
+		m_prepared->m_script_id = m_script_id;
+	}
+	auto &next = *m_prepared;
+	next.m_type = m_type;
+	next.m_art_name = m_art_name;
+	next.m_index_offset = m_index_offset;
+	next.m_filter_offset = m_filter_offset;
+	next.m_art_update_trigger = m_art_update_trigger;
+	next.m_video_flags = m_video_flags;
+	next.m_volume = m_volume;
+	next.m_pan = m_pan;
+	next.m_fft_bands = m_fft_bands;
+	next.m_mipmap = m_mipmap;
+	next.m_smooth = m_smooth;
+	next.m_repeat = m_repeat;
+	return next;
+}
+
+void FeTextureContainer::discard_prepared()
+{
+	if ( m_reuse ) m_reuse->m_reserved = false;
+	m_reuse = nullptr;
+	if ( !m_prepared ) return;
+	m_prepared->clear();
+	FeImageLoader::get_ref().reap( std::shared_ptr<FeTextureContainer>( m_prepared.release() ) );
+}
+
+void FeTextureContainer::swap_media( FeTextureContainer &other )
+{
+	std::swap( m_current_rom_index, other.m_current_rom_index );
+	std::swap( m_current_filter_index, other.m_current_filter_index );
+	std::swap( m_file_name, other.m_file_name );
+	std::swap( m_movie, other.m_movie );
+	std::swap( m_pending_movie, other.m_pending_movie );
+	std::swap( m_movie_status, other.m_movie_status );
+	std::swap( m_audio_effects, other.m_audio_effects );
+	std::swap( m_video_files, other.m_video_files );
+	std::swap( m_image_files, other.m_image_files );
+	std::swap( m_entry, other.m_entry );
+	std::swap( m_previous_entry, other.m_previous_entry );
+	std::swap( m_texture_size, other.m_texture_size );
+	std::swap( m_content_version, other.m_content_version );
+	std::swap( m_pixel_cache, other.m_pixel_cache );
+	std::swap( m_pixel_cache_valid, other.m_pixel_cache_valid );
+}
+
+bool FeTextureContainer::prepared_ready() const
+{
+	const auto *next = m_reuse ? m_reuse : m_prepared.get();
+	if ( !next ) return true;
+	if ( next->m_pending_movie || ( next->m_entry && ( !next->m_entry->is_loaded() || !next->m_texture_size.x ) ) ) return false;
+	if ( next->m_movie )
+	{
+		unsigned int width = 0, height = 0;
+		if ( next->m_movie->get_video_frame_dimensions( width, height ) && width && height )
+			return next->m_movie->get_video_frame_serial() != 0;
+	}
+	return true;
+}
+
+bool FeTextureContainer::prepared_binding( FeRenderTextureBinding &binding ) const
+{
+	if ( !m_prepared || !prepared_ready() ) return false;
+	const auto *next = m_reuse ? m_reuse : m_prepared.get();
+	const auto size = next->get_texture_size();
+	if ( !size.x || !size.y ) return false;
+	binding.texture_id = next->get_texture_source_id();
+	binding.texture_source_type = next->get_texture_source_type();
+	binding.width = size.x;
+	binding.height = size.y;
+	binding.mipmap = m_mipmap;
+	binding.content_version = next->get_texture_content_version();
+	return true;
 }
 
 bool FeTextureContainer::get_visible() const
@@ -402,7 +505,8 @@ static std::vector<RGBAPixel> s_black_pixels;
 
 bool FeTextureContainer::load_with_ffmpeg(
 	const std::string &filename,
-	bool is_image )
+	bool is_image,
+	bool synchronous )
 {
 	std::string loaded_name;
 	bool res=false;
@@ -413,7 +517,7 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 	clear();
 
-	if ( !is_image && m_type != IsStatic )
+	if ( !is_image && is_v4_script() && !synchronous )
 	{
 		m_pending_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
 		m_pending_movie->open_async( "", loaded_name, true );
@@ -476,12 +580,13 @@ bool FeTextureContainer::load_with_ffmpeg(
 
 bool FeTextureContainer::try_to_load(
 	const std::string &filename,
-	bool is_image )
+	bool is_image,
+	bool synchronous )
 {
 	std::string loaded_name;
 
 	if ( !is_image && FeMedia::is_supported_media_file( filename ) )
-		return load_with_ffmpeg( filename, false );
+		return load_with_ffmpeg( filename, false, synchronous );
 
 	FeImageLoader &il = FeImageLoader::get_ref();
 
@@ -492,7 +597,9 @@ bool FeTextureContainer::try_to_load(
 	clear();
 
 
-	il.load_image_from_file( loaded_name, &m_entry, m_type != IsStatic );
+	auto *present = FePresent::script_get_fep();
+	il.load_image_from_file( loaded_name, &m_entry,
+		!synchronous && ( is_v4_script() || ( present && present->get_script_background_loading( m_script_id ) ) ) );
 	m_file_name = loaded_name;
 	if ( m_entry && m_entry->is_loaded() )
 	{
@@ -557,15 +664,18 @@ void FeTextureContainer::on_new_selection( FeSettings *feSettings )
 void FeTextureContainer::on_new_list( FeSettings *feSettings, bool new_display )
 {
 	if ( new_display )
+	{
 		m_current_filter_index=-1;
+		if ( m_prepared ) m_prepared->m_current_filter_index = -1;
+	}
 
-	if (( m_type != IsStatic ) && ( m_art_update_trigger == EndNavigation ))
+	if (( m_type != IsStatic ) && ( m_art_update_trigger == EndNavigation || m_art_update_trigger == ToEndNavigation ))
 		internal_update_selection( feSettings );
 }
 
 void FeTextureContainer::on_end_navigation( FeSettings *feSettings )
 {
-	if (( m_type != IsStatic ) && ( m_art_update_trigger == EndNavigation ))
+	if (( m_type != IsStatic ) && ( m_art_update_trigger == EndNavigation || m_art_update_trigger == ToEndNavigation ))
 		internal_update_selection( feSettings );
 }
 
@@ -573,6 +683,19 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 {
 	int filter_index = feSettings->get_filter_index_from_offset( m_filter_offset );
 	int rom_index = feSettings->get_rom_index( filter_index, m_index_offset );
+	auto *present = FePresent::script_get_fep();
+	if ( !m_preload && is_v4_script() && ( present->is_preparing( m_script_id ) || !present->is_layout_loaded() ) )
+	{
+		if ( m_current_rom_index == rom_index && m_current_filter_index == filter_index )
+		{
+			discard_prepared();
+			return;
+		}
+		if ( m_reuse && m_reuse->m_current_rom_index == rom_index && m_reuse->m_current_filter_index == filter_index ) return;
+		if ( m_reuse ) { m_reuse->m_reserved = false; m_reuse = nullptr; }
+		prepare().internal_update_selection( feSettings );
+		return;
+	}
 
 	//
 	// Optimization opportunity: We could already be showing the artwork for rom_index if the
@@ -605,6 +728,11 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			vid_list,
 			image_list,
 			(m_video_flags & VF_DisableVideo) );
+		if ( !vid_list.empty() && image_list.empty() )
+		{
+			std::vector<std::string> ignored;
+			feSettings->get_best_artwork_file( *rom, m_art_name, ignored, image_list, true );
+		}
 	}
 	else if ( m_type == IsDynamic )
 	{
@@ -650,8 +778,12 @@ bool FeTextureContainer::load_next_artwork()
 
 bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 {
-	FeImageLoader::get_ref().release_entry( &m_previous_entry );
 	bool loaded = false;
+	if ( m_prepared && !m_reuse )
+	{
+		loaded = m_prepared->tick( feSettings, false );
+	}
+	FeImageLoader::get_ref().release_entry( &m_previous_entry );
 	if ( m_pending_movie )
 	{
 		const int result = m_pending_movie->get_open_result();
@@ -709,40 +841,15 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return loaded;
 
-	// VF_NoAudio flag overrides volume setting
-	float vol = m_video_flags & VF_NoAudio
-		? 0.f
-		: m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
-
-	if ( vol != m_movie->getVolume() )
-		m_movie->setVolume( vol );
-
-	if ( m_pan != m_movie->getPan() )
-		m_movie->setPan( m_pan );
-
-	if ( m_movie_status > 0 )
+	if ( m_movie_status > 0 && m_movie_status < PLAY_COUNT && !is_v4_script() )
 	{
-		if ( m_movie_status < PLAY_COUNT )
-		{
-			//
-			// We skip the first few "ticks" after the movie
-			// is first loaded because the user may just be
-			// scrolling rapidly through the game list (there
-			// are ticks between each selection scrolling by)
-			//
-			m_movie_status++;
-			return false;
-		}
-		else if ( m_movie_status == PLAY_COUNT )
-		{
-			m_movie_status++;
-			m_movie->play();
-		}
-
-		// restart looped video
-		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
-			m_movie->play();
+		// Legacy scrolling delays playback; prepared version-4 media is ready.
+		m_movie_status++;
+		return false;
 	}
+	start_movie( feSettings );
+	if ( m_movie_status > 0 && !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
+		m_movie->play();
 
 	if ( m_movie->tick() )
 	{
@@ -755,8 +862,23 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	return loaded;
 }
 
+void FeTextureContainer::start_movie( FeSettings *feSettings )
+{
+	if ( !m_movie || (m_video_flags & VF_DisableVideo) ) return;
+	const float volume = m_video_flags & VF_NoAudio ? 0.f
+		: m_volume * feSettings->get_play_volume( FeSoundInfo::Movie ) / 100.0;
+	if ( volume != m_movie->getVolume() ) m_movie->setVolume( volume );
+	if ( m_pan != m_movie->getPan() ) m_movie->setPan( m_pan );
+	if ( m_movie_status > 0 && m_movie_status <= PLAY_COUNT )
+	{
+		m_movie_status = PLAY_COUNT + 1;
+		m_movie->play();
+	}
+}
+
 void FeTextureContainer::set_play_state( bool play )
 {
+	if ( m_prepared ) m_prepared->set_play_state( play );
 	if ( m_pending_movie )
 	{
 		m_movie_status = play ? 1 : 0;
@@ -843,6 +965,7 @@ void FeTextureContainer::set_video_flags( FeVideoFlags f )
 {
 	const bool was_disabled = ( m_video_flags & VF_DisableVideo ) != 0;
 	m_video_flags = f;
+	if ( m_prepared ) m_prepared->set_video_flags( f );
 	if ( m_type == IsArtwork && was_disabled != ( ( f & VF_DisableVideo ) != 0 ) && FePresent::script_get_fep() )
 	{
 		FePresent::script_do_update( this, true );
@@ -893,6 +1016,19 @@ int FeTextureContainer::get_video_time() const
 
 void FeTextureContainer::load_file( const char *n )
 {
+	load_file( n, false );
+}
+
+void FeTextureContainer::load_file( const char *n, bool synchronous )
+{
+	auto *present = FePresent::script_get_fep();
+	if ( !synchronous && !m_preload && is_v4_script() && present && ( present->is_preparing( m_script_id ) || !present->is_layout_loaded() ) )
+	{
+		if ( m_reuse ) { m_reuse->m_reserved = false; m_reuse = nullptr; }
+		prepare().load_file( n );
+		return;
+	}
+	if ( !m_preload ) discard_prepared();
 	m_video_files.clear();
 	m_image_files.clear();
 	std::string filename = clean_path( n );
@@ -908,7 +1044,7 @@ void FeTextureContainer::load_file( const char *n )
 		filename = FePresent::script_get_base_path() + filename;
 
 	bool is_image=tail_compare( filename, FE_ART_EXTENSIONS );
-	try_to_load( filename, is_image );
+	try_to_load( filename, is_image, synchronous );
 	notify_texture_change();
 }
 
@@ -948,6 +1084,8 @@ void FeTextureContainer::transition_swap( FeBaseTextureContainer *o )
 		std::swap( m_filter_offset, o_up->m_filter_offset );
 		std::swap( m_type, o_up->m_type );
 		std::swap( m_art_update_trigger, o_up->m_art_update_trigger );
+		m_prepared.swap( o_up->m_prepared );
+		std::swap( m_reuse, o_up->m_reuse );
 	}
 
 	FeBaseTextureContainer::transition_swap( o );
@@ -1117,6 +1255,7 @@ void FeTextureContainer::set_volume( float v )
 	if ( v < 0.0 ) v = 0.0;
 	if ( v > 100.0 ) v = 100.0;
 	m_volume = v;
+	if ( m_prepared ) m_prepared->set_volume( v );
 }
 
 float FeTextureContainer::get_volume() const
@@ -1128,6 +1267,7 @@ void FeTextureContainer::set_pan( float p )
 {
 	if ( p == m_pan ) return;
 	m_pan = std::clamp( p, -1.0f, 1.0f );
+	if ( m_prepared ) m_prepared->set_pan( m_pan );
 }
 
 float FeTextureContainer::get_pan() const
@@ -1138,6 +1278,7 @@ float FeTextureContainer::get_pan() const
 void FeTextureContainer::set_fft_bands( int count )
 {
 	m_fft_bands = count;
+	if ( m_prepared ) m_prepared->set_fft_bands( count );
 
 	if ( m_movie )
 		m_movie->set_fft_bands( count );
@@ -1605,6 +1746,7 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.custom_shader = ( geometry.shader != nullptr );
 	geometry.textured = true;
 	geometry.texture_dynamic = m_tex->is_volatile_texture();
+	geometry.texture_blocking = m_tex->is_texture_blocking();
 	geometry.texture_content_version = m_tex->get_texture_content_version();
 	return true;
 }

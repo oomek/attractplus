@@ -62,6 +62,7 @@ public:
 	virtual Vec2u get_texture_size() const=0;
 	virtual const void *get_texture_source_id() const;
 	virtual int get_texture_source_type() const;
+	virtual bool is_texture_blocking() const;
 	virtual bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const;
 	virtual bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const;
 
@@ -153,13 +154,14 @@ class FeTextureContainer : public FeBaseTextureContainer
 {
 	friend class FePresent;
 public:
-	FeTextureContainer( bool is_artwork, const std::string &name="" );
+	FeTextureContainer( bool is_artwork, const std::string &name="", bool preload=false );
 
 	~FeTextureContainer();
 
 	Vec2u get_texture_size() const override;
 	const void *get_texture_source_id() const override;
 	int get_texture_source_type() const override;
+	bool is_texture_blocking() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 	bool get_visible() const;
@@ -184,6 +186,7 @@ public:
 
 	void load_file( const char *n );
 	const char *get_file_name() const;
+	void load_file( const char *n, bool synchronous );
 	int get_type() const;
 	bool get_magic() const;
 	void set_trigger( int );
@@ -232,13 +235,27 @@ protected:
 	FeTextureContainer *get_derived_texture_container();
 
 private:
+	bool is_v4_script() const;
+	FeTextureContainer &prepare();
+	void discard_prepared();
+	void swap_media( FeTextureContainer & );
+	bool prepared_binding( FeRenderTextureBinding & ) const;
+	bool prepared_ready() const;
+	void start_movie( FeSettings * );
+	int m_script_id;
+	bool m_preload;
+	std::unique_ptr<FeTextureContainer> m_prepared;
+	FeTextureContainer *m_reuse = nullptr;
+	bool m_reserved = false;
 	bool load_with_ffmpeg(
 		const std::string &filename,
-		bool is_image );
+		bool is_image,
+		bool synchronous=false );
 
 	bool try_to_load(
 		const std::string &filename,
-		bool is_image=false );
+		bool is_image=false,
+		bool synchronous=false );
 
 	void internal_update_selection( FeSettings *feSettings );
 	bool load_next_artwork();

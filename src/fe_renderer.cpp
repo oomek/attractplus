@@ -88,6 +88,7 @@ void FeRenderTextureBinding::clear()
 	smooth = true;
 	mipmap = false;
 	dynamic = false;
+	blocking = false;
 	width = 0.0f;
 	height = 0.0f;
 	content_version = 0;
@@ -194,6 +195,7 @@ FeRenderGeometry::FeRenderGeometry()
 	custom_shader( false ),
 	textured( false ),
 	texture_dynamic( false ),
+	texture_blocking( false ),
 	texture_content_version( 0 ),
 	light_count( 0 )
 {
@@ -233,6 +235,7 @@ void FeRenderGeometry::clear()
 	custom_shader = false;
 	textured = false;
 	texture_dynamic = false;
+	texture_blocking = false;
 	texture_content_version = 0;
 	pbr_material.clear();
 	light_count = 0;
@@ -319,6 +322,7 @@ void FeRenderFrame::clear()
 	camera = FePerspectiveCamera();
 	images.clear();
 	surfaces.clear();
+	preloads.clear();
 	viewport_width = 0;
 	viewport_height = 0;
 	antialiasing = 0;
