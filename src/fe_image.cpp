@@ -1514,12 +1514,15 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 		return false;
 
 	if ( m_sprite_legacy.is_active() )
-		m_sprite_legacy.append_render_vertices( m_sprite, geometry.vertices, get_z() - m_anchor.z );
+		m_sprite_legacy.append_render_vertices( m_sprite, m_render_vertices, get_z() - m_anchor.z );
 	else
-		m_sprite.append_render_vertices( geometry.vertices, get_z() - m_anchor.z );
+		m_sprite.append_render_vertices( m_render_vertices, get_z() - m_anchor.z );
 
-	if ( geometry.vertices.empty() )
+	if ( m_render_vertices.empty() )
 		return false;
+	// The frontend consumes the frame before building these vertices again.
+	geometry.external_vertices = m_render_vertices.data();
+	geometry.external_vertex_count = m_render_vertices.size();
 
 	geometry.texture_id = m_tex->get_texture_source_id();
 	geometry.texture_source_type = m_tex->get_texture_source_type();
