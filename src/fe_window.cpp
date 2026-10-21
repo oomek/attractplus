@@ -1770,8 +1770,16 @@ Vec2i FeWindow::get_mouse_position() const
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
+#ifdef SDL_PLATFORM_WINDOWS
+		// Match the immediate, client-relative mouse query used by the SFML frontend.
+		POINT pos;
+		if ( GetCursorPos( &pos ) && ScreenToClient(
+			static_cast<HWND>( m_gpu_context.get_native_window_handle() ), &pos ) )
+			return Vec2i( pos.x, pos.y );
+#endif
 		float x = 0.0f;
 		float y = 0.0f;
+		SDL_PumpEvents();
 		SDL_GetMouseState( &x, &y );
 		return Vec2i( static_cast<int>( x ), static_cast<int>( y ) );
 	}
