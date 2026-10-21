@@ -186,11 +186,21 @@ FeSdlAudioBackend &FeSdlAudioBackend::get()
 	return backend;
 }
 
+FeSdlAudioBackend::~FeSdlAudioBackend()
+{
+	release_device();
+}
+
 bool FeSdlAudioBackend::ensure_audio()
 {
 	if ( SDL_WasInit( SDL_INIT_AUDIO ) & SDL_INIT_AUDIO )
 		return true;
 
+	std::lock_guard<std::mutex> lock( m_device_mutex );
+	if ( SDL_WasInit( SDL_INIT_AUDIO ) & SDL_INIT_AUDIO )
+		return true;
+	// SDL subsystem teardown also closes the retained device.
+	m_device = 0;
 	if ( !SDL_InitSubSystem( SDL_INIT_AUDIO ) )
 	{
 		FeLog() << "ERROR: Failed to initialize SDL audio: " << SDL_GetError() << std::endl;
@@ -198,6 +208,28 @@ bool FeSdlAudioBackend::ensure_audio()
 	}
 
 	return true;
+}
+
+bool FeSdlAudioBackend::retain_device()
+{
+	if ( !ensure_audio() ) return false;
+	std::lock_guard<std::mutex> lock( m_device_mutex );
+	if ( m_device ) return true;
+	// Retain the default device across silent clips and background retirement.
+	m_device = SDL_OpenAudioDevice( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &m_mix_spec );
+	if ( !m_device )
+		FeLog() << "ERROR: Failed to open SDL audio device: " << SDL_GetError() << std::endl;
+	else
+		FeDebug() << "SDL: retained default audio device" << std::endl;
+	return m_device != 0;
+}
+
+void FeSdlAudioBackend::release_device()
+{
+	std::lock_guard<std::mutex> lock( m_device_mutex );
+	if ( m_device && ( SDL_WasInit( SDL_INIT_AUDIO ) & SDL_INIT_AUDIO ) )
+		SDL_CloseAudioDevice( m_device );
+	m_device = 0;
 }
 
 void FeSdlAudioBackend::note_system_resume()
@@ -225,7 +257,7 @@ bool FeSdlAudioStream::ensure_open()
 	destroy();
 
 	FeSdlAudioBackend &backend = FeSdlAudioBackend::get();
-	if ( !backend.ensure_audio() )
+	if ( !backend.retain_device() )
 		return false;
 
 	m_stream = SDL_OpenAudioDeviceStream( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &backend.mix_spec(), nullptr, nullptr );
