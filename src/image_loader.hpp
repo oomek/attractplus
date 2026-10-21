@@ -24,6 +24,8 @@
 #define IMAGE_LOADER_HPP
 
 #include <atomic>
+#include <memory>
+#include "fe_renderer.hpp"
 #include "fe_input_stream.hpp"
 
 class FeImageLoader;
@@ -44,6 +46,8 @@ public:
 	int get_width();
 	int get_height();
 	bool is_loaded() const;
+	const FeRenderRawTextureSource *get_texture() const { return &m_texture; }
+	unsigned long long get_version() const { return m_version; }
 
    unsigned char *get_data();
 
@@ -51,19 +55,20 @@ public:
 
 private:
 
-   FeInputStream *m_stream;
-   std::atomic<int> m_ref_count;
+   void load( const std::string &filename );
+   bool m_prefetch;
+   FeRenderRawTextureSource m_texture = {};
+   unsigned long long m_version;
    std::atomic<int> m_width;
    std::atomic<int> m_height;
    unsigned char *m_data;
    std::atomic<bool> m_loaded;
 
-   FeImageLoaderEntry( FeInputStream *s );
+   FeImageLoaderEntry();
    FeImageLoaderEntry( const FeImageLoaderEntry & );
    const FeImageLoaderEntry &operator=( const FeImageLoaderEntry & );
 
-   void add_ref();
-   bool dec_ref();
+
 };
 
 class FeImageLoader
@@ -76,10 +81,10 @@ public:
 	//
 	// Caller becomes responsible for *e and must release it by calling release_entry() when done with it
 	//
-	bool load_image_from_file( const std::string &fn, FeImageLoaderEntry **e );
+	bool load_image_from_file( const std::string &fn, std::shared_ptr<FeImageLoaderEntry> *e, bool background=false );
 
 	// release *e. Caller must do this for any *e returned by load_image()
-	void release_entry( FeImageLoaderEntry **e );
+	void release_entry( std::shared_ptr<FeImageLoaderEntry> *e );
 
 	// check if the image pointed to by *e has been loaded yet such that get_data() will return its pixel
 	// data
@@ -93,6 +98,7 @@ public:
 
 	// destroy vid (on our background thread which will wait on the video threads to stop)
 	void reap_video( FeMedia *vid );
+	void reap( std::shared_ptr<void> object );
 
 	//
 	// Script interface functions
@@ -107,13 +113,11 @@ public:
 	void set_background_loading( bool flag );
 	bool get_background_loading();
 	bool image_in_cache( const std::string &filename );
-	void add_to_cache(const std::string &key, FeImageLoaderEntry *entry);
+	void add_to_cache( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &entry );
 private:
 	FeImageLoader();
 	FeImageLoader( const FeImageLoader & );
 	const FeImageLoader &operator=( const FeImageLoader & );
-
-	bool internal_load_image( const std::string &fn, FeInputStream *stream, FeImageLoaderEntry **e );
 
 	FeImageLoaderImp *m_imp;
 };

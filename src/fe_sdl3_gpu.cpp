@@ -1309,6 +1309,7 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 
 	SDL_GPUCommandBuffer *command_buffer = nullptr;
 	bool success = true;
+	Uint64 new_upload_time = 0;
 
 	auto sync_geometry = [&]( const FeRenderGeometry &image )
 	{
@@ -1331,7 +1332,7 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					return;
 			}
 
-			TextureEntry &entry = m_textures[ texture_id ];
+			TextureEntry &entry = m_textures[ { texture_id, texture_mipmap, texture_cube_map } ];
 			if ( entry.upload_pending &&
 				( entry.width != texture_width || entry.height != texture_height ||
 					entry.mipmapped != texture_mipmap || entry.cube_map != texture_cube_map ) )
@@ -1365,6 +1366,13 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 
 				if ( needs_upload )
 				{
+					// New artwork can arrive as a whole page. Spread its GPU setup
+					// over frames while continuing every existing video's uploads.
+					const bool new_artwork = !had_texture &&
+						( texture_source_type == FeRenderTextureSourceMedia || texture_source_type == FeRenderTextureSourceRawRgba );
+					if ( new_artwork && new_upload_time >= 2000000 )
+						return;
+					const Uint64 start = new_artwork ? SDL_GetTicksNS() : 0;
 					if ( !command_buffer )
 						command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
 					if ( command_buffer && upload_texture( texture_id, texture_source_type, entry, command_buffer ) )
@@ -1374,6 +1382,8 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					}
 					else
 						success = false;
+					if ( new_artwork )
+						new_upload_time += SDL_GetTicksNS() - start;
 				}
 			}
 		};
@@ -1561,7 +1571,7 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 			if ( !prepared.gpu_texture )
 			{
-				auto it = m_textures.find( image.texture_id );
+				auto it = m_textures.find( { image.texture_id, image.texture_mipmap, false } );
 				prepared.gpu_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
 			}
 		}
@@ -1592,7 +1602,7 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 				}
 				if ( !binding_texture && binding.texture_id )
 				{
-					auto it = m_textures.find( binding.texture_id );
+					auto it = m_textures.find( { binding.texture_id, binding.mipmap, binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX } );
 					binding_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
 				}
 				if ( binding_texture )
@@ -3402,13 +3412,21 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	const unsigned char *raw_pixels = nullptr;
 	unsigned int source_width = 0;
 	unsigned int source_height = 0;
-	const FeTextureContainer *media_container = nullptr;
+	FeMedia *media = nullptr;
 	bool direct_media_upload = false;
 	bool black_media_placeholder = false;
 	const FeBaseTextureContainer *direct_container = nullptr;
 	const FeFont::TexturePageId *direct_font_page = nullptr;
 
-	if ( texture_source_type == FeRenderTextureSourceContainer )
+	if ( texture_source_type == FeRenderTextureSourceMedia )
+	{
+		media = const_cast<FeMedia *>( static_cast<const FeMedia *>( texture_id ) );
+		if ( !media->get_video_frame_dimensions( source_width, source_height ) )
+			return false;
+		direct_media_upload = media->get_video_frame_serial() != 0;
+		black_media_placeholder = !direct_media_upload;
+	}
+	else if ( texture_source_type == FeRenderTextureSourceContainer )
 	{
 		const FeBaseTextureContainer *source_container = static_cast<const FeBaseTextureContainer *>( texture_id );
 		if ( entry.cube_map )
@@ -3420,17 +3438,16 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 		}
 		else
 		{
-			media_container = dynamic_cast<const FeTextureContainer *>( source_container );
-			if ( media_container &&
-				media_container->get_media() &&
-				media_container->get_media()->get_video_frame_serial() != 0 &&
-				media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+			const auto *media_container = dynamic_cast<const FeTextureContainer *>( source_container );
+			media = media_container ? media_container->get_media() : nullptr;
+			if ( media &&
+				media->get_video_frame_serial() != 0 &&
+				media->get_video_frame_dimensions( source_width, source_height ) )
 			{
 				direct_media_upload = true;
 			}
-			else if ( media_container &&
-				media_container->get_media() &&
-				media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+			else if ( media &&
+				media->get_video_frame_dimensions( source_width, source_height ) )
 			{
 				black_media_placeholder = true;
 			}
@@ -3551,16 +3568,15 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 		{
 			// Displayed buffers remain pinned until the next frontend tick.
 			// Only their CPU copies run on workers; all SDL calls stay here.
-			m_video_uploads.push_back( { media_container->get_media(), &entry, mapped,
+			m_video_uploads.push_back( { media, &entry, mapped,
 				upload_size, source_width, source_height, command_buffer } );
 			entry.upload_pending = true;
 			return true;
 		}
 		unsigned int copied_width = 0;
 		unsigned int copied_height = 0;
-		if ( !media_container ||
-			!media_container->get_media() ||
-			!media_container->get_media()->copy_video_frame_rgba_to( mapped, upload_size, copied_width, copied_height ) ||
+		if ( !media ||
+			!media->copy_video_frame_rgba_to( mapped, upload_size, copied_width, copied_height ) ||
 			( copied_width != source_width ) ||
 			( copied_height != source_height ) )
 		{
@@ -6162,14 +6178,14 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 						if ( !sampler_texture )
 						{
-							TextureEntry &cache_entry = m_textures[ container ];
+							TextureEntry &cache_entry = m_textures[ { container->get_texture_source_id(), shader_image->get_mipmap(), false } ];
 							cache_entry.width = static_cast<float>( shader_image->get_texture_width() );
 							cache_entry.height = static_cast<float>( shader_image->get_texture_height() );
 							cache_entry.mipmapped = shader_image->get_mipmap();
 							cache_entry.last_seen_frame = m_frame.frame_number;
 							if ( !cache_entry.gpu_texture )
 							{
-								if ( !upload_texture( container, FeRenderTextureSourceContainer, cache_entry ) )
+								if ( !upload_texture( container->get_texture_source_id(), container->get_texture_source_type(), cache_entry ) )
 									return true;
 							}
 							sampler_texture = cache_entry.gpu_texture;
@@ -6543,14 +6559,14 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 						if ( !sampler_texture )
 						{
-							TextureEntry &cache_entry = m_textures[ container ];
+							TextureEntry &cache_entry = m_textures[ { container->get_texture_source_id(), shader_image->get_mipmap(), false } ];
 							cache_entry.width = static_cast<float>( shader_image->get_texture_width() );
 							cache_entry.height = static_cast<float>( shader_image->get_texture_height() );
 							cache_entry.mipmapped = shader_image->get_mipmap();
 							cache_entry.last_seen_frame = m_frame.frame_number;
 							if ( !cache_entry.gpu_texture )
 							{
-								if ( !upload_texture( container, FeRenderTextureSourceContainer, cache_entry ) )
+								if ( !upload_texture( container->get_texture_source_id(), container->get_texture_source_type(), cache_entry ) )
 									samplers_ready = false;
 							}
 							sampler_texture = cache_entry.gpu_texture;

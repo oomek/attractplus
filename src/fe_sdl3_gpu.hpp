@@ -32,6 +32,8 @@
 #include <unordered_map>
 #include <memory>
 #include <vector>
+#include <map>
+#include <tuple>
 class FeImage;
 class FeMedia;
 
@@ -401,7 +403,7 @@ private:
 
 	FeRenderFrame m_frame;
 	FrameStats m_frame_stats;
-	std::unordered_map<const void *, TextureEntry> m_textures;
+	std::map<std::tuple<const void *, bool, bool>, TextureEntry> m_textures;
 	std::unordered_map<const void *, GeometryBufferEntry> m_geometry_buffers;
 	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
 	std::vector<PreparedImage> m_prepared_images;

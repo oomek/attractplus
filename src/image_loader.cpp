@@ -26,8 +26,11 @@
 #include <string>
 #include <mutex>
 #include <thread>
+#include <vector>
+#include <condition_variable>
 #include <chrono>
 #include <algorithm>
+#include <SDL3/SDL_thread.h>
 
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
@@ -67,7 +70,7 @@ namespace
 	std::recursive_mutex g_mutex;
 
 #ifdef FE_DEBUG
-	int g_entry_count=0;
+	std::atomic<int> g_entry_count( 0 );
 
 	class EntryCountReporter
 	{
@@ -85,7 +88,7 @@ namespace
 class FeImageLRUCache
 {
 public:
-	typedef std::pair< std::string, FeImageLoaderEntry * > kvp_t;
+	typedef std::pair< std::string, std::shared_ptr<FeImageLoaderEntry> > kvp_t;
 	typedef std::list<kvp_t>::iterator list_iterator_t;
 	typedef std::map< std::string, list_iterator_t >::iterator map_iterator_t;
 
@@ -94,30 +97,16 @@ public:
 		m_current_bytes( 0 )
 	{
 	}
-
 	~FeImageLRUCache()
 	{
-		while ( !m_items.empty() )
-		{
-			list_iterator_t last = m_items.end();
-			--last;
-
-			{
-				std::lock_guard<std::recursive_mutex> l( g_mutex );
-				if ( last->second && last->second->dec_ref() )
-					delete last->second;
-			}
-
-			m_items_map.erase( last->first );
-			m_items.pop_back();
-		}
+		for ( auto &item : m_items )
+			FeImageLoader::get_ref().release_entry( &item.second );
 	}
 
-	void put( const std::string &key, FeImageLoaderEntry *value )
+	void put( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &value )
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
 		m_items.push_front( kvp_t( key, value ));
-		value->add_ref();
 
 		m_items_map[key] = m_items.begin();
 
@@ -125,7 +114,7 @@ public:
 		prune();
 	}
 
-	bool get( const std::string &key, FeImageLoaderEntry **val )
+	bool get( const std::string &key, std::shared_ptr<FeImageLoaderEntry> *val )
 	{
 		std::lock_guard<std::recursive_mutex> l( g_mutex );
 		map_iterator_t it = m_items_map.find( key );
@@ -188,18 +177,9 @@ private:
 			else
 				m_current_bytes -= lsize;
 
-			if ( last->second )
-			{
-				// Store the pointer value before potentially deleting it
-				FeImageLoaderEntry* entry = last->second;
-				// Clear the pointer first to avoid double-deletion
-				last->second = nullptr;
-				// Now safe to delete if this was the last reference
-				if ( entry->dec_ref() )
-					delete entry;
-			}
 
 			m_items_map.erase( last->first );
+			FeImageLoader::get_ref().release_entry( &last->second );
 			m_items.pop_back();
 		}
 	}
@@ -215,212 +195,135 @@ private:
 class FeImageLoaderThread
 {
 public:
-	FeImageLoaderThread()
-		: m_thread( &FeImageLoaderThread::run_thread, this ),
-		m_run( true )
+	FeImageLoaderThread() : m_run( true ), m_next_image( m_images.end() )
 	{
-	};
-
-	~FeImageLoaderThread()
-	{
-		m_run=false;
-
-		if ( m_thread.joinable() )
-			m_thread.join();
-
-		while ( !m_in.empty() )
+		const unsigned int count = std::min( 4u, std::max( 1u, std::thread::hardware_concurrency() / 4 ) );
+		for ( unsigned int i = 0; i < count; ++i )
 		{
-			std::lock_guard<std::recursive_mutex> l( g_mutex );
-			if ( m_in.front().second && m_in.front().second->dec_ref() )
-				delete m_in.front().second;
-
-			m_in.pop();
-		}
-		while ( !m_vid.empty() )
-		{
-			delete m_vid.front();
-			m_vid.pop();
+			m_threads.emplace_back( &FeImageLoaderThread::run_thread, this );
+			m_video_threads.emplace_back( &FeImageLoaderThread::reap_videos, this );
 		}
 	}
 
-	void queue_filename( const std::string &filename )
-	{
-		std::lock_guard<std::mutex> l( m_filename_queue_mutex );
+	~FeImageLoaderThread() { stop(); }
 
-		// Check if filename is not already in the queue
-		if ( std::find( m_filename_queue.begin(), m_filename_queue.end(), filename ) == m_filename_queue.end() )
-			m_filename_queue.push_back( filename );
+	void stop()
+	{
+		{
+			std::lock_guard<std::recursive_mutex> lock( g_mutex );
+			m_run = false;
+		}
+		m_ready.notify_all();
+		m_video_ready.notify_all();
+		for ( auto &thread : m_threads )
+			if ( thread.joinable() ) thread.join();
+		for ( auto &thread : m_video_threads )
+			if ( thread.joinable() ) thread.join();
 	}
 
-	std::string get_next_filename()
+	void request( const std::string &name, std::shared_ptr<FeImageLoaderEntry> *entry, bool prefetch=false )
 	{
-		std::lock_guard<std::mutex> l( m_filename_queue_mutex );
-		while ( !m_filename_queue.empty() )
 		{
-			std::string filename = m_filename_queue.front();
-			m_filename_queue.pop_front();
-
-			if ( file_exists( filename ))
-				return filename;
-			else
-				FeDebug() << "File not found: " << filename << std::endl;
-		}
-		return "";
-	}
-
-void run_thread()
-{
-	while ( m_run )
-	{
-		// Check if we have entries in the filename queue
-		std::string filename;
-		{
-			std::lock_guard<std::recursive_mutex> l( g_mutex );
-			filename = get_next_filename();
-		}
-		if ( !filename.empty() )
-		{
-			FeDebug() << "Adding image: " << filename << std::endl;
-
-			// Check if image is already in the cache
-			FeImageLoader &il = FeImageLoader::get_ref();
-			if ( il.image_in_cache( filename ))
+			std::lock_guard<std::recursive_mutex> lock( g_mutex );
+			*entry = m_images[name].lock();
+			if ( !*entry )
 			{
-				FeDebug() << "Image already in cache, skipping: " << filename << std::endl;
-				continue;
+				entry->reset( new FeImageLoaderEntry() );
+				m_images[name] = *entry;
+				m_in.emplace( name, *entry );
 			}
-
-			// Create file stream
-			FeFileInputStream* fs = new FeFileInputStream( filename );
-			if ( !fs->isOpen() )
-			{
-				FeLog() << "Failed to open file: " << filename << std::endl;
-				delete fs;
-				continue;
-			}
-
-			// Create entry and add to the regular queue
-			FeImageLoaderEntry *entry = new FeImageLoaderEntry( fs );
-			add( filename, entry );
-
-			continue;
+			(*entry)->m_prefetch |= prefetch;
 		}
-
-		// Process regular queue entries
-		std::pair< std::string, FeImageLoaderEntry * > e = get_next();
-		if ( e.second )
-		{
-			// Skip processing if already loaded
-			if ( e.second->m_loaded )
-			{
-				FeDebug() << "Already loaded" << std::endl;
-				std::lock_guard<std::recursive_mutex> l( g_mutex );
-				if ( e.second && e.second->dec_ref() )
-					delete e.second;
-				continue;
-			}
-
-			// Skip if stream is null
-			if ( !e.second->m_stream )
-			{
-				FeLog() << "Error: Stream is null for entry: " << e.first << std::endl;
-				std::lock_guard<std::recursive_mutex> l( g_mutex );
-				if ( e.second && e.second->dec_ref() )
-					delete e.second;
-				continue;
-			}
-
-			int ignored;
-			// Load image pixel data
-			stbi_io_callbacks cb;
-			cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
-			cb.skip = &skip;
-			cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
-
-			int temp_width, temp_height;
-			unsigned char *data = stbi_load_from_callbacks( &cb, e.second->m_stream, &temp_width, &temp_height, &ignored, STBI_rgb_alpha );
-
-			{
-				std::lock_guard<std::recursive_mutex> l( g_mutex );
-
-				// Update entry data
-				e.second->m_width = temp_width;
-				e.second->m_height = temp_height;
-				e.second->m_data = data;
-				e.second->m_loaded = true;
-
-				if ( !data )
-					FeLog() << "Error loading image: " << e.first << " - " << stbi_failure_reason() << std::endl;
-				else
-					FeImageLoader::get_ref().add_to_cache(e .first, e.second );
-
-				// Delete and null the stream after loading data
-				delete e.second->m_stream;
-				e.second->m_stream = nullptr;
-
-				if ( e.second && e.second->dec_ref() )
-				{
-					FeDebug() << "Deleting image entry: " << e.second << std::endl;
-					delete e.second;
-				}
-			}
-		}
-		else
-		{
-			FeMedia *vid = get_vid_to_reap();
-			if ( vid )
-				delete vid;
-			else
-				std::this_thread::sleep_for( std::chrono::milliseconds( 1 ));
-		}
-	}
-}
-
-	void add( const std::string &n, FeImageLoaderEntry *e )
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		e->add_ref(); // Add ref while we are loading it
-		m_in.push( std::pair< std::string, FeImageLoaderEntry * >( n, e ));
+		m_ready.notify_one();
 	}
 
 	void reap_video( FeMedia *vid )
 	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		m_vid.push( vid );
+		{
+			std::lock_guard<std::recursive_mutex> lock( g_mutex );
+			m_vid.push( vid );
+		}
+		m_video_ready.notify_one();
+	}
+
+	void reap( std::shared_ptr<void> object )
+	{
+		std::unique_lock<std::recursive_mutex> lock( g_mutex );
+		if ( m_run )
+		{
+			m_retired.push( std::move( object ) );
+			lock.unlock();
+			m_ready.notify_one();
+		}
 	}
 
 private:
-	std::pair < std::string, FeImageLoaderEntry * > get_next()
+	void run_thread()
 	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		if ( !m_in.empty() )
+		SDL_SetCurrentThreadPriority( SDL_THREAD_PRIORITY_LOW );
+		for (;;)
 		{
-			std::pair < std::string, FeImageLoaderEntry * > retval = m_in.front();
+			std::unique_lock<std::recursive_mutex> lock( g_mutex );
+			m_ready.wait( lock, [this]{ return !m_run || !m_in.empty() || !m_retired.empty(); } );
+			if ( !m_retired.empty() )
+			{
+				auto entry = std::move( m_retired.front() );
+				m_retired.pop();
+				lock.unlock();
+				entry.reset();
+				continue;
+			}
+			if ( m_in.empty() ) return;
+			auto job = std::move( m_in.front() );
 			m_in.pop();
-
-			return retval;
+			auto &entry = job.second;
+			const bool wanted = m_run && ( entry->m_prefetch || entry.use_count() > 1 );
+			if ( !wanted )
+			{
+				// A new request must not attach to a job we are discarding.
+				m_images.erase( job.first );
+				m_next_image = m_images.end();
+			}
+			lock.unlock();
+			if ( wanted ) entry->load( job.first );
+			lock.lock();
+			if ( wanted && entry->m_data )
+				FeImageLoader::get_ref().add_to_cache( job.first, entry );
+			// Bound stale weak entries without a full registry scan on navigation.
+			for ( int i = 0; i < 4 && !m_images.empty(); ++i )
+			{
+				if ( m_next_image == m_images.end() ) m_next_image = m_images.begin();
+				auto current = m_next_image++;
+				if ( current->second.expired() ) m_images.erase( current );
+			}
+			lock.unlock();
 		}
-		return std::pair < std::string, FeImageLoaderEntry *>( "", NULL );
 	}
 
-	FeMedia *get_vid_to_reap()
+	void reap_videos()
 	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		if ( !m_vid.empty() )
+		for (;;)
 		{
-			FeMedia *retval = m_vid.front();
+			std::unique_lock<std::recursive_mutex> lock( g_mutex );
+			m_video_ready.wait( lock, [this]{ return !m_run || !m_vid.empty(); } );
+			if ( m_vid.empty() ) return;
+			FeMedia *vid = m_vid.front();
 			m_vid.pop();
-			return retval;
+			lock.unlock();
+			delete vid;
 		}
-		return NULL;
 	}
 
-	std::thread m_thread;
 	bool m_run;
-	std::deque<std::string> m_filename_queue;
-	std::mutex m_filename_queue_mutex;
-	std::queue< std::pair < std::string, FeImageLoaderEntry * > > m_in;
-	std::queue< FeMedia * > m_vid;
+	std::vector<std::thread> m_threads;
+	std::vector<std::thread> m_video_threads;
+	std::condition_variable_any m_ready;
+	std::condition_variable_any m_video_ready;
+	std::map<std::string, std::weak_ptr<FeImageLoaderEntry>> m_images;
+	std::map<std::string, std::weak_ptr<FeImageLoaderEntry>>::iterator m_next_image;
+	std::queue<std::pair<std::string, std::shared_ptr<FeImageLoaderEntry>>> m_in;
+	std::queue<std::shared_ptr<void>> m_retired;
+	std::queue<FeMedia *> m_vid;
 };
 
 class FeImageLoaderImp
@@ -434,6 +337,7 @@ public:
 
 	~FeImageLoaderImp()
 	{
+		m_bg_loader.stop();
 		if ( m_cache )
 			delete m_cache;
 	}
@@ -443,14 +347,12 @@ public:
 	bool m_load_images_in_bg;
 };
 
-FeImageLoaderEntry::FeImageLoaderEntry( FeInputStream *s )
-		: m_stream( s ),
-		m_ref_count( 0 ),
-		m_width( 0 ),
-		m_height( 0 ),
-		m_data( NULL ),
-		m_loaded( false )
+FeImageLoaderEntry::FeImageLoaderEntry()
+	: m_prefetch( false ), m_width( 0 ), m_height( 0 ),
+	m_data( NULL ), m_loaded( false )
 {
+	static std::atomic<unsigned long long> version( 1 );
+	m_version = version.fetch_add( 1, std::memory_order_relaxed );
 #ifdef FE_DEBUG
 	g_entry_count++;
 #endif
@@ -461,12 +363,26 @@ FeImageLoaderEntry::~FeImageLoaderEntry()
 #ifdef FE_DEBUG
 	g_entry_count--;
 #endif
+	stbi_image_free( m_data );
+}
 
-	if ( m_data )
-		stbi_image_free( m_data );
-
-	if ( m_stream )
-		delete m_stream;
+void FeImageLoaderEntry::load( const std::string &filename )
+{
+	FeFileInputStream stream( filename );
+	int width = 0, height = 0, ignored = 0;
+	if ( stream.isOpen() )
+	{
+		stbi_io_callbacks cb = { &read, &skip, &eof };
+		m_data = stbi_load_from_callbacks( &cb, &stream, &width, &height, &ignored, STBI_rgb_alpha );
+		if ( !m_data )
+			FeLog() << "Error loading image: " << filename << " - " << stbi_failure_reason() << std::endl;
+	}
+	else
+		FeLog() << "Failed to open file: " << filename << std::endl;
+	m_width = m_data ? width : 0;
+	m_height = m_data ? height : 0;
+	m_texture = { m_data, static_cast<unsigned int>( m_width.load() ), static_cast<unsigned int>( m_height.load() ) };
+	m_loaded.store( true, std::memory_order_release );
 }
 
 size_t FeImageLoaderEntry::get_bytes()
@@ -491,27 +407,7 @@ int FeImageLoaderEntry::get_height()
 
 bool FeImageLoaderEntry::is_loaded() const
 {
-	return m_loaded.load( std::memory_order_relaxed );
-}
-
-void FeImageLoaderEntry::add_ref()
-{
-	m_ref_count.fetch_add( 1, std::memory_order_relaxed );
-}
-
-bool FeImageLoaderEntry::dec_ref()
-{
-	int prev_value = m_ref_count.load( std::memory_order_relaxed );
-
-	// Guard against decrementing zero
-	if ( prev_value <= 0 )
-	{
-		FeDebug() << "Warning: Attempted to decrease reference count when already zero" << std::endl;
-		return false;
-	}
-
-	prev_value = m_ref_count.fetch_sub( 1, std::memory_order_relaxed );
-	return ( prev_value == 1 );
+	return m_loaded.load( std::memory_order_acquire );
 }
 
 FeImageLoader::FeImageLoader()
@@ -525,131 +421,44 @@ FeImageLoader::~FeImageLoader()
 		delete m_imp;
 }
 
-bool FeImageLoader::load_image_from_file( const std::string &fn, FeImageLoaderEntry **e )
+bool FeImageLoader::load_image_from_file( const std::string &fn, std::shared_ptr<FeImageLoaderEntry> *e, bool background )
 {
 	std::string file = fn;
 	std::replace( file.begin(), file.end(), '\\', '/' );
-
-	FeFileInputStream* fs = new FeFileInputStream( file );
-	if ( !fs->isOpen() )
 	{
-		FeLog() << "Failed to open file: " << file << std::endl;
+		std::lock_guard<std::recursive_mutex> lock( g_mutex );
+		if ( m_imp->m_cache && m_imp->m_cache->get( file, e ) )
+			return (*e)->is_loaded();
+	}
+	if ( background || m_imp->m_load_images_in_bg )
+	{
+		m_imp->m_bg_loader.request( file, e );
 		return false;
 	}
-
-	return internal_load_image( file, fs, e );
+	e->reset( new FeImageLoaderEntry() );
+	(*e)->load( file );
+	add_to_cache( file, *e );
+	return true;
 }
 
-bool FeImageLoader::internal_load_image( const std::string &key, FeInputStream *stream, FeImageLoaderEntry **e )
+void FeImageLoader::release_entry( std::shared_ptr<FeImageLoaderEntry> *e )
 {
-	FeImageLoaderEntry *temp_e( NULL );
-
-	// check if we already have it in the cache
-	if ( m_imp->m_cache && m_imp->m_cache->get( key, &temp_e ))
-	{
-		FeDebug() << "Image cache hit: " << key << std::endl;
-		delete stream;
-
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		temp_e->add_ref();
-		*e = temp_e;
-		return temp_e->m_loaded;
-	}
-	else
-	{
-		FeDebug() << "Image cache miss: " << key << std::endl;
-	}
-
-	temp_e = new FeImageLoaderEntry( stream );
-
-	// load image dimensions now
-	stbi_io_callbacks cb;
-	cb.read = reinterpret_cast<int(*)( void*, char*, int )>( &read );
-	cb.skip = &skip;
-	cb.eof = reinterpret_cast<int(*)( void* )>( &eof );
-
-	int retval=false;
-	int ignored;
-	bool err=false;
-	if ( !m_imp->m_load_images_in_bg )
-	{
-		int temp_width, temp_height;
-		temp_e->m_data = stbi_load_from_callbacks( &cb, temp_e->m_stream, &temp_width, &temp_height, &ignored, STBI_rgb_alpha );
-		temp_e->m_width = temp_width;
-		temp_e->m_height = temp_height;
-
-		temp_e->m_loaded = true;
-
-		// Delete and null the stream after loading data
-		delete temp_e->m_stream;
-		temp_e->m_stream = nullptr;
-
-		if ( !temp_e->m_data )
-		{
-			FeLog() << "Error loading image: " << key << " - " << stbi_failure_reason() << std::endl;
-			err = true;
-			retval = false;
-		}
-		else
-			retval = true;
-	}
-	else
-	{
-		int temp_width, temp_height;
-		stbi_info_from_callbacks( &cb, temp_e->m_stream, &temp_width, &temp_height, &ignored );
-		temp_e->m_width = temp_width;
-		temp_e->m_height = temp_height;
-
-		// reset to beginning of stream
-		stream->seek( 0 );
-
-		// send to background thread to load pixel data
-		m_imp->m_bg_loader.add( key, temp_e );
-	}
-
-	// Add to cache
-	// Skip adding to cache if the image is larger than the cache size
-	if ( !err && m_imp->m_cache )
-	{
-		size_t imageSize = temp_e->get_bytes();
-		size_t cacheSize = m_imp->m_cache->get_max_size();
-
-		if ( imageSize > cacheSize )
-			FeDebug() << "Image " << key << " is larger than the cache size" << std::endl;
-		else
-			m_imp->m_cache->put( key, temp_e );
-	}
-
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		*e = temp_e;
-		(*e)->add_ref();
-	}
-
-	return retval;
+	if ( e ) reap( std::move( *e ) );
 }
 
-void FeImageLoader::release_entry( FeImageLoaderEntry **e )
+void FeImageLoader::reap( std::shared_ptr<void> object )
 {
-	if ( e )
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		if ( *e && (*e)->dec_ref() )
-			delete *e;
-
-		*e = NULL;
-	}
+	if ( object ) m_imp->m_bg_loader.reap( std::move( object ) );
 }
 
 bool FeImageLoader::check_loaded( FeImageLoaderEntry *e )
 {
-	std::lock_guard<std::recursive_mutex> l( g_mutex );
-	return ( e && e->m_loaded );
+	return e && e->is_loaded();
 }
 
 void FeImageLoader::reap_video( FeMedia *vid )
 {
-	vid->signal_stop();
+	vid->signal_stop( true );
 
 	FeImageLoader &il = get_ref();
 	if ( il.m_imp )
@@ -669,6 +478,7 @@ FeImageLoader &FeImageLoader::get_ref()
 void FeImageLoader::set_cache_size( size_t s )
 {
 	FeImageLoader &il = get_ref();
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 
 	if ( s == 0 )
 	{
@@ -716,24 +526,28 @@ void FeImageLoader::cache_image( const char *fn )
 	std::string file = fn;
 	std::replace( file.begin(), file.end(), '\\', '/' );
 
-	m_imp->m_bg_loader.queue_filename( file );
+	if ( image_in_cache( file ) ) return;
+	std::shared_ptr<FeImageLoaderEntry> entry;
+	m_imp->m_bg_loader.request( file, &entry, true );
+	release_entry( &entry );
 }
 
 bool FeImageLoader::image_in_cache( const std::string &filename )
 {
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	if ( !m_imp || !m_imp->m_cache )
 		return false;
 
-	FeImageLoaderEntry *temp_e = nullptr;
-	return m_imp->m_cache->get( filename, &temp_e );
+	return m_imp->m_cache->contains( filename );
 }
 
-void FeImageLoader::add_to_cache( const std::string &key, FeImageLoaderEntry *entry )
+void FeImageLoader::add_to_cache( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &entry )
 {
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	if ( !m_imp || !m_imp->m_cache || !entry )
 		return;
 
-	if ( !entry->m_loaded || !entry->m_data )
+	if ( !entry->is_loaded() || !entry->m_data || entry->get_bytes() > m_imp->m_cache->get_max_size() )
 		return;
 
 	// Check if already in cache
@@ -745,6 +559,7 @@ void FeImageLoader::add_to_cache( const std::string &key, FeImageLoaderEntry *en
 
 int FeImageLoader::cache_max()
 {
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	if ( !m_imp->m_cache )
 		return 0;
 
@@ -753,6 +568,7 @@ int FeImageLoader::cache_max()
 
 int FeImageLoader::cache_size()
 {
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	if ( !m_imp->m_cache )
 		return 0;
 
@@ -761,6 +577,7 @@ int FeImageLoader::cache_size()
 
 int FeImageLoader::cache_count()
 {
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	if ( !m_imp->m_cache )
 		return 0;
 
@@ -769,14 +586,16 @@ int FeImageLoader::cache_count()
 
 const char *FeImageLoader::cache_get_name_at( int pos )
 {
-	if ( !m_imp->m_cache || ( pos < 0 ) || ( pos >= (int)m_imp->m_cache->get_count() ))
-		return "";
-
-	return m_imp->m_cache->get_name_at( pos );
+	static thread_local std::string name;
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
+	name = ( m_imp->m_cache && pos >= 0 && pos < m_imp->m_cache->get_count() )
+		? m_imp->m_cache->get_name_at( pos ) : "";
+	return name.c_str();
 }
 
 int FeImageLoader::cache_get_size_at( int pos )
 {
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	if ( !m_imp->m_cache || ( pos < 0 ) || ( pos >= (int)m_imp->m_cache->get_count() ))
 		return 0;
 
