@@ -3111,6 +3111,15 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 		FeLog() << "SDL: initialize: SDL_CreateGPUDevice failed" << std::endl;
 	else
 	{
+		// Keep only one rendered frame pending in every window mode.
+		if ( !SDL_SetGPUAllowedFramesInFlight( m_device, 1 ) )
+		{
+			FeLog() << "SDL: initialize: SDL_SetGPUAllowedFramesInFlight failed: " << SDL_GetError() << std::endl;
+			SDL_DestroyGPUDevice( m_device );
+			m_device = nullptr;
+			return false;
+		}
+		FeDebug() << "SDL: allowed frames in flight: 1" << std::endl;
 		std::ostringstream stream;
 		stream << "initialize: SDL_CreateGPUDevice succeeded";
 		if ( preferred_driver )

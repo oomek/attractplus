@@ -981,8 +981,8 @@ void FeWindow::display()
 	m_overlay_geometry.clear();
 	m_overlay_images.clear();
 
-	// Starting from Windows Vista non fullscreen window modes
-	// should be synced by DWM, instead of v-sync
+	// The GPU swapchain provides frame pacing. Use DWM only as a fallback
+	// when no GPU frame was presented.
 #ifdef SDL_PLATFORM_WINDOWS
 	if ( !used_sdl_gpu_present && ( m_win_mode != FeSettings::Fullscreen ) )
 		DwmFlush();
@@ -1359,10 +1359,6 @@ void FeWindow::initial_create()
 		else
 			try_create_sdl_window( nullptr );
 	}
-
-	// On Windows Vista and above all non fullscreen window modes
-	// go through DWM. We have to disable vsync
-	// when we rely solely on DwmFlush()
 
 #ifdef SDL_PLATFORM_MACOS
 	if ( m_win_mode == FeSettings::Fillscreen )
