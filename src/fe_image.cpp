@@ -316,19 +316,7 @@ FeTextureContainer::FeTextureContainer(
 	m_entry( NULL ),
 	m_content_version( next_texture_content_version() )
 {
-	m_audio_effects.add_effect( std::make_unique<FeAudioDCFilter>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioNormaliser>() );
-	m_audio_effects.add_effect( std::make_unique<FeAudioVisualiser>() );
-
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep )
-	{
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
-		if ( normaliser )
-			normaliser->set_media_volume( fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0f );
-	}
-
-	m_audio_effects.set_ready_for_processing();
+	init_audio_effects();
 
 	if ( is_artwork )
 	{
@@ -342,6 +330,18 @@ FeTextureContainer::FeTextureContainer(
 	}
 	else
 		m_type = IsStatic;
+}
+
+void FeTextureContainer::init_audio_effects()
+{
+	m_audio_effects = std::make_shared<FeAudioEffectsManager>();
+	m_audio_effects->add_effect( std::make_unique<FeAudioDCFilter>() );
+	m_audio_effects->add_effect( std::make_unique<FeAudioNormaliser>() );
+	m_audio_effects->add_effect( std::make_unique<FeAudioVisualiser>() );
+	FePresent *fep = FePresent::script_get_fep();
+	if ( fep )
+		m_audio_effects->get_normaliser()->set_media_volume( fep->get_fes()->get_play_volume( FeSoundInfo::Movie ) / 100.0f );
+	m_audio_effects->set_ready_for_processing();
 }
 
 FeTextureContainer::~FeTextureContainer()
@@ -425,6 +425,8 @@ bool FeTextureContainer::load_with_ffmpeg(
 	if ( !file_exists( loaded_name ) )
 		return false;
 
+	// Retired media keeps its effects alive until the background reaper joins it.
+	init_audio_effects();
 	m_movie = new FeMedia( FeMedia::AudioVideo, m_audio_effects );
 	res = m_movie->open( "", loaded_name );
 
@@ -679,7 +681,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	if ( !m_movie )
 		return false;
 
-	m_audio_effects.update_all();
+	m_audio_effects->update_all();
 
 	if ( !play_movies || (m_video_flags & VF_DisableVideo) )
 		return false;
@@ -716,12 +718,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 
 		// restart looped video
 		if ( !(m_video_flags & VF_NoLoop) && !m_movie->is_playing() )
-		{
-			m_movie->stop();
 			m_movie->play();
-
-			FeDebug() << "Restarted looped video" << std::endl;
-		}
 	}
 
 	if ( m_movie->tick() )
@@ -815,10 +812,18 @@ int FeTextureContainer::get_filter_offset() const
 
 void FeTextureContainer::set_video_flags( FeVideoFlags f )
 {
+	const bool was_disabled = ( m_video_flags & VF_DisableVideo ) != 0;
 	m_video_flags = f;
 
 	if ( m_movie )
 	{
+		if ( f & VF_DisableVideo )
+		{
+			m_movie->stop();
+			m_movie_status = 0;
+		}
+		else if ( was_disabled && !( f & VF_NoAutoStart ) )
+			m_movie_status = 1;
 		if ( m_movie_status > 0 && m_video_flags & VF_NoAutoStart )
 			m_movie_status = 0;
 	}
@@ -1132,38 +1137,49 @@ void FeTextureContainer::release_audio( bool state )
 
 float FeTextureContainer::get_vu_mono() const
 {
-	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_mono() : 0.0f;
 }
 
 float FeTextureContainer::get_vu_left() const
 {
-	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_left() : 0.0f;
 }
 
 float FeTextureContainer::get_vu_right() const
 {
-	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
+	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
 	return visualiser ? visualiser->get_vu_right() : 0.0f;
 }
 
 const std::vector<float> *FeTextureContainer::get_fft_mono_ptr() const
 {
-	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
-	return visualiser ? visualiser->get_fft_mono_ptr() : nullptr;
+	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
+	if ( !visualiser )
+		return nullptr;
+	// Script array views outlive a media change. Keep their storage on the
+	// texture container rather than on the retired producer's effects.
+	m_fft_mono = *visualiser->get_fft_mono_ptr();
+	return &m_fft_mono;
 }
 
 const std::vector<float> *FeTextureContainer::get_fft_left_ptr() const
 {
-	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
-	return visualiser ? visualiser->get_fft_left_ptr() : nullptr;
+	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
+	if ( !visualiser )
+		return nullptr;
+	m_fft_left = *visualiser->get_fft_left_ptr();
+	return &m_fft_left;
 }
 
 const std::vector<float> *FeTextureContainer::get_fft_right_ptr() const
 {
-	auto* visualiser = m_audio_effects.get_effect<FeAudioVisualiser>();
-	return visualiser ? visualiser->get_fft_right_ptr() : nullptr;
+	auto* visualiser = m_audio_effects->get_effect<FeAudioVisualiser>();
+	if ( !visualiser )
+		return nullptr;
+	m_fft_right = *visualiser->get_fft_right_ptr();
+	return &m_fft_right;
 }
 
 Vec2f FeSurfaceTextureContainer::get_grid_extent() const

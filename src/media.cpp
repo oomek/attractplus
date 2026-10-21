@@ -28,6 +28,7 @@
 #include "fe_audio_fx.hpp"
 #include "fe_sdl3_gpu.hpp"
 #include "fe_time.hpp"
+#include <SDL3/SDL_thread.h>
 
 
 extern "C"
@@ -48,6 +49,10 @@ extern "C"
 }
 
 #include <queue>
+#include <array>
+#include <deque>
+#include <chrono>
+#include <limits>
 #include <iostream>
 #include <thread>
 #include <condition_variable>
@@ -76,8 +81,77 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec );
 
 namespace
 {
-	constexpr int FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES = 960;
+	constexpr int FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES = 4800;
+	constexpr int FE_MEDIA_AUDIO_QUEUE_LOW_FRAMES = 2400;
 	constexpr int FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES = 480;
+
+	// Producers keep independent I/O and deadlines, but simultaneous codec work
+	// is bounded by CPU capacity. Audio refills take priority over video work.
+	class FeMediaDecodeLock
+	{
+		static std::mutex mutex;
+		static std::condition_variable audio_ready;
+		static std::condition_variable video_ready;
+		static unsigned int available;
+		static unsigned int waiting_audio;
+		bool m_acquired;
+
+	public:
+		FeMediaDecodeLock( const FeMediaDecodeLock & ) = delete;
+		FeMediaDecodeLock &operator=( const FeMediaDecodeLock & ) = delete;
+
+		FeMediaDecodeLock( const std::atomic<bool> &stop, bool audio )
+			: m_acquired( false )
+		{
+			std::unique_lock<std::mutex> lock( mutex );
+			if ( audio )
+				++waiting_audio;
+			std::condition_variable &ready = audio ? audio_ready : video_ready;
+			while ( !stop && ( available == 0 || ( !audio && waiting_audio != 0 ) ) )
+				ready.wait( lock );
+			if ( audio )
+				--waiting_audio;
+			if ( !stop )
+			{
+				--available;
+				m_acquired = true;
+			}
+			if ( available > 0 )
+			{
+				if ( waiting_audio > 0 )
+					audio_ready.notify_one();
+				else
+					video_ready.notify_one();
+			}
+		}
+
+		~FeMediaDecodeLock()
+		{
+			if ( m_acquired )
+			{
+				std::lock_guard<std::mutex> lock( mutex );
+				++available;
+				if ( waiting_audio > 0 )
+					audio_ready.notify_one();
+				else
+					video_ready.notify_one();
+			}
+		}
+
+		bool acquired() const { return m_acquired; }
+		static void notify_stop()
+		{
+			std::lock_guard<std::mutex> lock( mutex );
+			audio_ready.notify_all();
+			video_ready.notify_all();
+		}
+	};
+
+	std::mutex FeMediaDecodeLock::mutex;
+	std::condition_variable FeMediaDecodeLock::audio_ready;
+	std::condition_variable FeMediaDecodeLock::video_ready;
+	unsigned int FeMediaDecodeLock::available = std::max( 1u, std::thread::hardware_concurrency() );
+	unsigned int FeMediaDecodeLock::waiting_audio = 0;
 
 	bool fe_is_attached_picture_stream( const AVStream *stream )
 	{
@@ -131,10 +205,9 @@ void print_ffmpeg_version_info()
 		<< std::endl;
 }
 
-#define MAX_AUDIO_FRAME_SIZE 256000
-
 //
-// Container for our general implementation
+// One producer owns the demuxer and both codecs. Only completed video frames
+// and playback controls cross the frontend/producer boundary.
 //
 class FeMediaImp
 {
@@ -145,45 +218,52 @@ public:
 	FeMedia::Type m_type;
 	AVFormatContext *m_format_ctx;
 	AVIOContext *m_io_ctx;
-	std::recursive_mutex m_read_mutex;
 	bool m_read_eof;
+	bool m_rewind;
+	bool m_restart;
+	bool m_multiframe;
+	FeTime m_duration;
+	FeClock m_timer;
+	std::thread m_thread;
+	std::mutex m_mutex;
+	std::condition_variable m_wake;
+	std::atomic<bool> m_stop;
+	std::atomic<bool> m_playing;
+	std::atomic<std::int64_t> m_time;
+	std::atomic<std::int64_t> m_audio_clock_offset;
+	std::atomic<std::int64_t> m_audio_clock_end;
+	std::uint64_t m_audio_frames;
 };
 
-//
-// Base class for our implementation of the audio and video components
-//
 class FeBaseStream
 {
 private:
-	//
-	// Queue containing the next packet to process for this stream
-	//
-	std::queue <AVPacket *> m_packetq;
-	std::mutex m_packetq_mutex;
+	std::queue<AVPacket *> m_packetq;
+	std::size_t m_packet_bytes;
 
 public:
-	virtual ~FeBaseStream();
-
-	bool at_end;					// set when at the end of our input
-	bool far_behind;
+	bool at_end;
+	bool draining;
+	bool needs_packet;
 	AVCodecContext *codec_ctx;
 	FeAVCodec *codec;
 	int stream_id;
+	AVFrame *frame;
 
 	FeBaseStream();
-	virtual void stop();
-	AVPacket *pop_packet();
+	virtual ~FeBaseStream();
+	void stop();
 	void push_packet( AVPacket *pkt );
-	void clear_packet_queue();
+	bool has_packet_room() const;
+	int decode_frame( bool eof );
 };
 
-//
-// Container for our implementation of the audio component
-//
 class FeAudioImp : public FeBaseStream
 {
 public:
 	SwrContext *resample_ctx;
+	std::vector<float> decoded_samples;
+	std::vector<float> processed_samples;
 
 	FeAudioImp();
 	~FeAudioImp();
@@ -196,141 +276,173 @@ class FeVideoImp : public FeBaseStream
 	friend class FeMedia;
 
 private:
-	//
-	// Video decoding and colour conversion runs on a dedicated thread.
-	// The main thread consumes decoded RGBA frame data.
-	//
-	std::thread m_video_thread;
+	struct Frame
+	{
+		std::uint8_t *pixels = NULL;
+		FeTime time;
+	};
+
 	FeMedia *m_parent;
-	std::uint8_t *rgba_buffer[4];
-	int rgba_linesize[4];
+	std::array<Frame, 4> m_frames;
+	std::deque<int> m_ready_frames;
+	std::deque<int> m_free_frames;
+	int m_displayed_frame;
+	std::mutex m_image_mutex;
 	FeTime half_frame_offset;
+	AVRational time_base;
+	int64_t start_time;
+	FeTime frame_duration;
+	FeTime next_frame_time;
+	SwsContext *sws_ctx;
+	int source_width = 0;
+	int source_height = 0;
+	AVPixelFormat source_format = AV_PIX_FMT_NONE;
 #if FE_HWACCEL
 	AVPixelFormat hwaccel_output_format;
 	bool hw_retrieve_data( AVFrame *f );
 #endif
 
 public:
-	std::atomic<bool> run_video_thread;
-	FeTime time_base;
-	FeTime max_sleep;
-	FeClock video_timer;
 	int disptex_width;
 	int disptex_height;
-
-	//
-	// The video thread sets display_frame when the next image frame is decoded.
-	// The main thread then marks that frame as consumed.
-	//
-	std::recursive_mutex image_swap_mutex;
-	std::uint8_t *display_frame;
-	std::condition_variable_any frame_displayed;
 	std::atomic<unsigned long long> frame_serial;
 
 	FeVideoImp( FeMedia *parent );
 	~FeVideoImp();
 
-	void play();
 	void stop();
-
-	void signal_stop(); // signal the bg thread we are stopping, without blocking
-
-	bool get_rgba_frame_dimensions( unsigned int &width, unsigned int &height );
 	void init_rgba_buffer();
+	bool get_rgba_frame_dimensions( unsigned int &width, unsigned int &height );
 	bool copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
 	bool copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
 	void clear_rgba_frame();
-	void video_thread();
+	bool tick();
+	bool queue_frame();
+	bool has_frame_room();
+	bool frames_pending();
+	FeTime next_frame_delay();
 };
 
 FeMediaImp::FeMediaImp( FeMedia::Type t )
 	: m_type( t ),
 	m_format_ctx( NULL ),
 	m_io_ctx( NULL ),
-	m_read_eof( false )
+	m_read_eof( false ),
+	m_rewind( false ),
+	m_restart( false ),
+	m_multiframe( false ),
+	m_stop( true ),
+	m_playing( false ),
+	m_time( 0 ),
+	m_audio_clock_offset( 0 ),
+	m_audio_clock_end( 0 ),
+	m_audio_frames( 0 )
 {
+	m_timer.reset();
 }
 
 void FeMediaImp::close()
 {
-	std::lock_guard<std::recursive_mutex> l( m_read_mutex );
-
 	if ( m_format_ctx )
-	{
 		avformat_close_input( &m_format_ctx );
-		m_format_ctx = NULL;
-	}
 
 	if ( m_io_ctx )
 	{
-		if ( m_io_ctx->opaque )
-			delete static_cast<FeInputStream *>( m_io_ctx->opaque );
-
+		delete static_cast<FeInputStream *>( m_io_ctx->opaque );
 		av_free( m_io_ctx->buffer );
 		av_free( m_io_ctx );
-		m_io_ctx=NULL;
+		m_io_ctx = NULL;
 	}
 
-	m_read_eof=false;
+	m_read_eof = false;
 }
 
 FeBaseStream::FeBaseStream()
-	: at_end( false ),
-	far_behind( false ),
+	: m_packet_bytes( 0 ),
+	at_end( false ),
+	draining( false ),
+	needs_packet( true ),
 	codec_ctx( NULL ),
 	codec( NULL ),
-	stream_id( -1 )
+	stream_id( -1 ),
+	frame( av_frame_alloc() )
 {
 }
 
 FeBaseStream::~FeBaseStream()
 {
-	if ( codec_ctx )
-		avcodec_free_context( &codec_ctx );
-
-	clear_packet_queue();
-
-	codec = NULL;
-	at_end = false;
-	far_behind = false;
-	stream_id = -1;
+	stop();
+	av_frame_free( &frame );
+	avcodec_free_context( &codec_ctx );
 }
 
 void FeBaseStream::stop()
 {
-	clear_packet_queue();
-	at_end=false;
-	far_behind = false;
-}
-
-AVPacket *FeBaseStream::pop_packet()
-{
-	std::lock_guard<std::mutex> l( m_packetq_mutex );
-
-	if ( m_packetq.empty() )
-		return NULL;
-
-	AVPacket *p = m_packetq.front();
-	m_packetq.pop();
-	return p;
-}
-
-void FeBaseStream::clear_packet_queue()
-{
-	std::lock_guard<std::mutex> l( m_packetq_mutex );
-
 	while ( !m_packetq.empty() )
 	{
-		AVPacket *p = m_packetq.front();
+		AVPacket *packet = m_packetq.front();
 		m_packetq.pop();
-		av_packet_free( &p );
+		av_packet_free( &packet );
 	}
+	m_packet_bytes = 0;
+	at_end = false;
+	draining = false;
+	needs_packet = true;
+	if ( frame )
+		av_frame_unref( frame );
 }
 
 void FeBaseStream::push_packet( AVPacket *pkt )
 {
-	std::lock_guard<std::mutex> l( m_packetq_mutex );
+	m_packet_bytes += pkt->size;
 	m_packetq.push( pkt );
+	needs_packet = false;
+}
+
+bool FeBaseStream::has_packet_room() const
+{
+	return m_packetq.size() < 64 && m_packet_bytes < 4 * 1024 * 1024;
+}
+
+int FeBaseStream::decode_frame( bool eof )
+{
+	av_frame_unref( frame );
+	for (;;)
+	{
+		int result = avcodec_receive_frame( codec_ctx, frame );
+		if ( result != AVERROR( EAGAIN ) )
+		{
+			needs_packet = false;
+			if ( result == AVERROR_EOF )
+				at_end = true;
+			return result;
+		}
+
+		if ( m_packetq.empty() && !eof )
+		{
+			needs_packet = true;
+			return result;
+		}
+		if ( draining )
+			return AVERROR_INVALIDDATA;
+
+		AVPacket *packet = m_packetq.empty() ? NULL : m_packetq.front();
+		result = avcodec_send_packet( codec_ctx, packet );
+		// A receive and send cannot both return EAGAIN. Keep unaccepted input.
+		if ( result == AVERROR( EAGAIN ) )
+			return AVERROR_INVALIDDATA;
+		if ( result < 0 )
+			return result;
+
+		if ( packet )
+		{
+			m_packet_bytes -= packet->size;
+			m_packetq.pop();
+			av_packet_free( &packet );
+		}
+		else
+			draining = true;
+	}
 }
 
 FeAudioImp::FeAudioImp()
@@ -352,6 +464,8 @@ bool FeAudioImp::process_frame( AVFrame *frame, std::vector<float> &samples )
 {
 	if ( !resample_ctx )
 	{
+		if ( !frame )
+			return true;
 		resample_ctx = swr_alloc();
 		if ( !resample_ctx )
 		{
@@ -390,9 +504,9 @@ bool FeAudioImp::process_frame( AVFrame *frame, std::vector<float> &samples )
 		}
 	}
 
-	const int in_sample_rate = frame->sample_rate > 0 ? frame->sample_rate : codec_ctx->sample_rate;
+	const int in_sample_rate = frame && frame->sample_rate > 0 ? frame->sample_rate : codec_ctx->sample_rate;
 	const int max_out_samples = av_rescale_rnd(
-		swr_get_delay( resample_ctx, in_sample_rate ) + frame->nb_samples,
+		swr_get_delay( resample_ctx, in_sample_rate ) + ( frame ? frame->nb_samples : 0 ),
 		FeSdlAudioBackend::get().sample_rate(),
 		in_sample_rate,
 		AV_ROUND_UP );
@@ -409,8 +523,8 @@ bool FeAudioImp::process_frame( AVFrame *frame, std::vector<float> &samples )
 		resample_ctx,
 		output_data,
 		max_out_samples,
-		const_cast<const uint8_t **>( frame->extended_data ),
-		frame->nb_samples );
+		frame ? const_cast<const uint8_t **>( frame->extended_data ) : NULL,
+		frame ? frame->nb_samples : 0 );
 
 	if ( out_samples < 0 )
 	{
@@ -424,32 +538,29 @@ bool FeAudioImp::process_frame( AVFrame *frame, std::vector<float> &samples )
 }
 
 
-FeVideoImp::FeVideoImp( FeMedia *p )
-		: FeBaseStream(),
-		m_video_thread(),
-		m_parent( p ),
-		rgba_buffer(),
-		rgba_linesize(),
+FeVideoImp::FeVideoImp( FeMedia *parent )
+	: m_parent( parent ),
+	m_displayed_frame( -1 ),
+	start_time( 0 ),
+	frame_duration( fe_seconds( 1.0 / 30.0 ) ),
+	sws_ctx( NULL ),
 #if FE_HWACCEL
-		hwaccel_output_format( AV_PIX_FMT_NONE ),
+	hwaccel_output_format( AV_PIX_FMT_NONE ),
 #endif
-		run_video_thread( false ),
-		disptex_width( 0 ),
-		disptex_height( 0 ),
-		display_frame( NULL ),
-		frame_serial( 0 )
+	disptex_width( 0 ),
+	disptex_height( 0 ),
+	frame_serial( 0 )
 {
-	video_timer.reset();
 	FePresent *fep = FePresent::script_get_fep();
-	half_frame_offset = fe_milliseconds( 500 / fep->get_refresh_rate() );
+	if ( fep )
+		half_frame_offset = fe_milliseconds( 500 / std::max( 1, fep->get_refresh_rate() ) );
 }
 
 FeVideoImp::~FeVideoImp()
 {
 	stop();
-
-	if ( rgba_buffer[0] )
-		av_freep( &rgba_buffer[0] );
+	for ( Frame &frame : m_frames )
+		av_freep( &frame.pixels );
 }
 
 #if FE_HWACCEL
@@ -483,6 +594,11 @@ bool FeVideoImp::hw_retrieve_data( AVFrame *f )
 		return false;
 
 	AVFrame *sw_frame = av_frame_alloc();
+	if ( !sw_frame )
+	{
+		FeLog() << "Error allocating hardware video transfer frame." << std::endl;
+		return false;
+	}
 	if ( hwaccel_output_format == AV_PIX_FMT_NONE )
 	{
 		hwaccel_output_format = hw_get_output_format( codec_ctx->hw_frames_ctx );
@@ -495,7 +611,11 @@ bool FeVideoImp::hw_retrieve_data( AVFrame *f )
 
 	int err = av_hwframe_transfer_data( sw_frame, f, 0 );
 	if ( err < 0 )
+	{
 		FeLog() << "Error transferring hardware frame data." << std::endl;
+		av_frame_free( &sw_frame );
+		return false;
+	}
 
 	err = av_frame_copy_props( sw_frame, f );
 	if ( err < 0 )
@@ -510,449 +630,217 @@ bool FeVideoImp::hw_retrieve_data( AVFrame *f )
 
 #endif
 
-void FeVideoImp::play()
-{
-	run_video_thread = true;
-	video_timer.restart();
-	m_video_thread = std::thread( &FeVideoImp::video_thread, this );
-}
-
 void FeVideoImp::stop()
 {
-	if ( run_video_thread )
-	{
-		run_video_thread = false;
-		video_timer.stop();
-	}
-
-	if ( m_video_thread.joinable() )
-	{
-		frame_displayed.notify_one();
-		m_video_thread.join();
-	}
-
 	FeBaseStream::stop();
-}
-
-void FeVideoImp::signal_stop()
-{
-	if ( run_video_thread )
+	std::lock_guard<std::mutex> lock( m_image_mutex );
+	m_ready_frames.clear();
+	m_free_frames.clear();
+	for ( int i = 0; i < static_cast<int>( m_frames.size() ); ++i )
+		if ( i != m_displayed_frame )
+			m_free_frames.push_back( i );
+	next_frame_time = FeTime();
+	if ( sws_ctx )
 	{
-		run_video_thread = false;
-		video_timer.stop();
-		frame_displayed.notify_one();
-	}
-}
-
-namespace
-{
-	void set_avdiscard_from_qscore( AVCodecContext *c, int qscore )
-	{
-		AVDiscard d = AVDISCARD_DEFAULT;
-
-		// Note: we aren't ever setting AVDISCARD_ALL
-		if ( qscore <= 2 )
-				d = AVDISCARD_NONKEY;
-		else if ( qscore <= 4 )
-				d = AVDISCARD_BIDIR;
-		else if ( qscore <= 8 )
-			d = AVDISCARD_NONREF;
-
-		c->skip_loop_filter = d;
-		c->skip_idct = d;
-		c->skip_frame = d;
+		sws_freeContext( sws_ctx );
+		sws_ctx = NULL;
 	}
 }
 
 void FeVideoImp::init_rgba_buffer()
 {
-	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-
-	if ( rgba_buffer[0] )
-		av_freep( &rgba_buffer[0] );
-
-	int ret = av_image_alloc( rgba_buffer, rgba_linesize,
-			disptex_width, disptex_height,
-			AV_PIX_FMT_RGBA, 32 );
-
-	if ( ret < 0 )
-		FeLog() << "Error allocating rgba buffer" << std::endl;
-
-	// Override linesize with original video width
-	// to remove stride padding with sws_scale
-	rgba_linesize[0] = disptex_width * 4;
-}
-
-bool FeVideoImp::copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height )
-{
-	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-	if ( !rgba_buffer[0] || disptex_width <= 0 || disptex_height <= 0 )
-		return false;
-
-	width = static_cast<unsigned int>( disptex_width );
-	height = static_cast<unsigned int>( disptex_height );
-	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-	pixels.assign( rgba_buffer[0], rgba_buffer[0] + data_size );
-	return true;
+	stop();
+	frame_serial.store( 0, std::memory_order_release );
 }
 
 bool FeVideoImp::get_rgba_frame_dimensions( unsigned int &width, unsigned int &height )
 {
-	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-	if ( !rgba_buffer[0] || disptex_width <= 0 || disptex_height <= 0 )
+	if ( disptex_width <= 0 || disptex_height <= 0 )
 		return false;
-
 	width = static_cast<unsigned int>( disptex_width );
 	height = static_cast<unsigned int>( disptex_height );
+	return true;
+}
+
+bool FeVideoImp::copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height )
+{
+	// The frontend pins this buffer until its next tick. The producer only
+	// writes free buffers, so a display copy never needs its queue lock.
+	if ( m_displayed_frame < 0 || !get_rgba_frame_dimensions( width, height ) )
+		return false;
+	const std::uint8_t *source = m_frames[m_displayed_frame].pixels;
+	pixels.assign( source, source + static_cast<std::size_t>( width ) * height * 4 );
 	return true;
 }
 
 bool FeVideoImp::copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height )
 {
-	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-	if ( !pixels || !rgba_buffer[0] || disptex_width <= 0 || disptex_height <= 0 )
+	if ( !pixels || m_displayed_frame < 0 || !get_rgba_frame_dimensions( width, height ) )
 		return false;
-
-	width = static_cast<unsigned int>( disptex_width );
-	height = static_cast<unsigned int>( disptex_height );
-	const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-	if ( pixel_count < data_size )
+	const std::size_t size = static_cast<std::size_t>( width ) * height * 4;
+	if ( pixel_count < size )
 		return false;
-
-	std::memcpy( pixels, rgba_buffer[0], data_size );
+	std::memcpy( pixels, m_frames[m_displayed_frame].pixels, size );
 	return true;
 }
 
 void FeVideoImp::clear_rgba_frame()
 {
-	std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
+	std::lock_guard<std::mutex> lock( m_image_mutex );
+	if ( m_displayed_frame >= 0 )
+		m_free_frames.push_back( m_displayed_frame );
+	m_displayed_frame = -1;
+	while ( !m_ready_frames.empty() )
+	{
+		m_free_frames.push_back( m_ready_frames.front() );
+		m_ready_frames.pop_front();
+	}
 	frame_serial.store( 0, std::memory_order_release );
 }
 
-void FeVideoImp::video_thread()
+bool FeVideoImp::tick()
 {
-	const int QMAX = 16;
-	const int QMIN = 0;
-	int qscore( 10 ); // quality scoring
-	int displayed( 0 ), qscore_accum( 0 );
-
-	AVFrame *detached_frame = NULL;
-	bool degrading = false;
-	bool do_flush = false;
-	bool flush_packet_sent = false;
-
-	int64_t prev_pts = 0;
-	int64_t prev_duration = 0;
-	SwsContext *sws_ctx = NULL;
-
-	FeTime wait_time;
-
-	if ( !rgba_buffer[0] )
+	const FeTime now = m_parent->get_video_time() + half_frame_offset;
+	bool changed = false;
 	{
-		FeLog() << "Error initializing video thread" << std::endl;
-		goto the_end;
+		std::unique_lock<std::mutex> lock( m_image_mutex, std::try_to_lock );
+		if ( !lock.owns_lock() )
+			return false;
+		while ( !m_ready_frames.empty() && m_frames[m_ready_frames.front()].time <= now )
+		{
+			if ( m_displayed_frame >= 0 )
+				m_free_frames.push_back( m_displayed_frame );
+			m_displayed_frame = m_ready_frames.front();
+			m_ready_frames.pop_front();
+			changed = true;
+		}
+		if ( changed )
+			frame_serial.fetch_add( 1, std::memory_order_release );
 	}
-
-	while ( run_video_thread )
-	{
-		bool do_process = true;
-
-		//
-		// If we are falling behind for more than 2 seconds
-		// it can only mean that we are in suspend/hibernation state,
-		// so we flag the video to be restarted on the next tick.
-		// This prevents displaying only keyframes for several seconds on wake.
-		//
-		if ( wait_time < fe_seconds( -5.0 ) )
-		{
-			wait_time = FeTime();
-			far_behind = true;
-			run_video_thread = false;
-			video_timer.stop();
-		}
-
-		//
-		// First, display queued frame
-		//
-		if ( detached_frame )
-		{
-
-			FeTime frame_time;
-			{
-				std::lock_guard<std::recursive_mutex> l( m_parent->m_imp->m_read_mutex );
-				if ( m_parent->m_imp->m_format_ctx && stream_id >= 0 )
-				{
-					frame_time = fe_seconds( detached_frame->pts
-						* av_q2d( m_parent->m_imp->m_format_ctx->streams[stream_id]->time_base ));
-				}
-				else
-				{
-					frame_time = FeTime();
-				}
-			}
-			wait_time = frame_time - m_parent->get_video_time() + half_frame_offset;
-
-			if ( wait_time < max_sleep )
-			{
-				if ( wait_time < -time_base )
-
-				{
-					// If we are falling behind, we may need to start discarding
-					// frames to catch up
-					//
-					if ( qscore > QMIN )
-						qscore--;
-
-					set_avdiscard_from_qscore( codec_ctx, qscore );
-					degrading = true;
-				}
-				else if ( wait_time >= FeTime() )
-				{
-					//
-					// We are ahead and can sleep until presentation time
-					//
-					FeClock clock;
-					while ( run_video_thread && clock.getElapsedTime() < wait_time )
-						fe_sleep( fe_milliseconds( 1 ) );
-
-					if ( !run_video_thread )
-						goto the_end;
-
-					degrading = false;
-
-				}
-
-				qscore_accum += qscore;
-
-#if FE_HWACCEL
-				hw_retrieve_data( detached_frame );
-#endif
-
-				if ( !sws_ctx )
-				{
-					enum AVPixelFormat pfmt = codec_ctx->pix_fmt;
-#if FE_HWACCEL
-					if ( hwaccel_output_format != AV_PIX_FMT_NONE )
-						pfmt = hwaccel_output_format;
-#endif
-					int sws_flags( SWS_BILINEAR );
-					if (( codec_ctx->width & 0x7 ) || ( codec_ctx->height & 0x7 ))
-						sws_flags |= SWS_ACCURATE_RND;
-
-					sws_ctx = sws_getCachedContext( NULL,
-						codec_ctx->width, codec_ctx->height, pfmt,
-						disptex_width, disptex_height, AV_PIX_FMT_RGBA,
-						sws_flags, NULL, NULL, NULL );
-
-					if ( !sws_ctx )
-					{
-						FeLog() << "Error allocating SwsContext" << std::endl;
-						goto the_end;
-					}
-				}
-
-				std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-				displayed++;
-
-				sws_scale( sws_ctx, detached_frame->data, detached_frame->linesize,
-							0, codec_ctx->height, rgba_buffer,
-							rgba_linesize );
-
-				display_frame = rgba_buffer[0];
-
-				av_frame_free( &detached_frame );
-				detached_frame = NULL;
-
-				do_process = false;
-			}
-			//
-			// if we didn't do anything above, then we go into the queue
-			// management process below
-			//
-		}
-
-		if ( do_flush && flush_packet_sent && !detached_frame )
-		{
-			// We've sent the flush packet and have no more frames to display
-			// Try to get any remaining buffered frames
-			AVFrame *raw_frame = av_frame_alloc();
-			int r = avcodec_receive_frame( codec_ctx, raw_frame );
-
-			if ( r == 0 )
-			{
-				raw_frame->pts = raw_frame->best_effort_timestamp;
-				if ( raw_frame->pts == AV_NOPTS_VALUE )
-					raw_frame->pts = prev_pts + prev_duration;
-
-#if ( LIBAVUTIL_VERSION_MICRO >= 100 )
-				if ( raw_frame->pts < prev_pts )
-					raw_frame->pts = prev_pts + prev_duration;
-
-				prev_pts = raw_frame->pts;
-#if HAVE_DURATION
-				prev_duration = raw_frame->duration;
-#else
-				prev_duration = raw_frame->pkt_duration;
-#endif
-#endif
-				detached_frame = raw_frame;
-			}
-			else
-			{
-				av_frame_free( &raw_frame );
-				if ( r == AVERROR_EOF )
-				{
-					// Decoder is fully drained so now we can goto the_end
-					// Wait for the main thread to display the last frame
-					std::unique_lock<std::recursive_mutex> lock( image_swap_mutex );
-					frame_displayed.wait( lock, [this]{ return !display_frame || !run_video_thread; });
-
-					goto the_end;
-				}
-			}
-		}
-
-		if ( do_process )
-		{
-			if ( !detached_frame )
-			{
-				//
-				// get next packet
-				//
-				AVPacket *packet = pop_packet();
-				if ( packet == NULL )
-				{
-					if ( !m_parent->end_of_file() )
-						m_parent->read_packet();
-					else
-						do_flush = true; // NULL packet will be fed to avcodec_send_packet()
-				}
-
-				if (( packet != NULL ) || ( do_flush && !flush_packet_sent ))
-				{
-					//
-					// decompress packet and put it in our frame queue
-					//
-					int r = avcodec_send_packet( codec_ctx, packet );
-					if (( r < 0 ) && ( r != AVERROR( EAGAIN )))
-					{
-						char buff[256];
-						av_strerror( r, buff, 256 );
-						FeLog() << "Error decoding video (sending packet): "
-							<< buff << std::endl;
-					}
-
-					if ( do_flush && !packet )
-						flush_packet_sent = true;
-
-					AVFrame *raw_frame = av_frame_alloc();
-					r = avcodec_receive_frame( codec_ctx, raw_frame );
-
-					if ( r != 0 )
-					{
-						if (( r != AVERROR( EAGAIN )) && ( r != AVERROR_EOF ))
-						{
-							char buff[256];
-							av_strerror( r, buff, 256 );
-							FeLog() << "Error decoding video (receiving frame): "
-								<< buff << std::endl;
-						}
-						av_frame_free( &raw_frame );
-					}
-					else
-					{
-						raw_frame->pts = raw_frame->best_effort_timestamp;
-
-						if ( raw_frame->pts == AV_NOPTS_VALUE )
-							raw_frame->pts = packet ? packet->dts : prev_pts + prev_duration;
-
-#if ( LIBAVUTIL_VERSION_MICRO >= 100 )
-						// This only works on FFmpeg, exclude libav (it doesn't have pkt_duration
-						// Correct for out of bounds pts
-						if ( raw_frame->pts < prev_pts )
-							raw_frame->pts = prev_pts + prev_duration;
-
-						// Track pts and duration if we need to correct next frame
-						prev_pts = raw_frame->pts;
-#if HAVE_DURATION
-						prev_duration = raw_frame->duration;
-#else
-						prev_duration = raw_frame->pkt_duration;
-#endif
-#endif
-
-						detached_frame = raw_frame;
-
-					}
-
-					if ( packet )
-						av_packet_free( &packet );
-				}
-			}
-			else if ( !degrading )
-			{
-				if ( qscore < QMAX )
-					qscore++;
-
-				set_avdiscard_from_qscore( codec_ctx, qscore );
-
-				//
-				// full frame queue and nothing to display yet, so sleep
-				//
-				FeClock clock;
-				while ( run_video_thread && clock.getElapsedTime() < max_sleep )
-					fe_sleep( fe_milliseconds( 1 ) );
-			}
-		}
-	}
-
-the_end:
-	//
-	// shutdown the thread
-	//
-	at_end=true;
-	video_timer.stop();
-
-	{
-		std::lock_guard<std::recursive_mutex> l( image_swap_mutex );
-		if ( display_frame )
-			display_frame=NULL;
-	}
-
-	if ( detached_frame )
-		av_frame_free( &detached_frame );
-
-	if ( sws_ctx )
-		sws_freeContext( sws_ctx );
-
-	int average = ( displayed == 0 ) ? qscore_accum : ( qscore_accum / displayed );
-
-	FeDebug() << "End Video Thread - " << m_parent->FORMAT_CTX_URL << std::endl
-				<< " - bit_rate=" << codec_ctx->bit_rate
-				<< ", width=" << codec_ctx->width << ", height=" << codec_ctx->height << std::endl
-				<< " - displayed=" << displayed << std::endl
-				<< " - average qscore=" << average
-				<< std::endl;
+	if ( changed )
+		m_parent->m_imp->m_wake.notify_one();
+	return changed;
 }
 
-FeMedia::FeMedia( Type t, FeAudioEffectsManager &effects_manager )
+bool FeVideoImp::has_frame_room()
+{
+	const FeTime now = m_parent->get_video_time() + half_frame_offset;
+	std::lock_guard<std::mutex> lock( m_image_mutex );
+	// Keep the newest due frame even when the frontend is busy. Future frames
+	// stay queued; the currently displayed buffer belongs to the frontend.
+	while ( m_ready_frames.size() > 1 && m_frames[m_ready_frames[1]].time <= now )
+	{
+		m_free_frames.push_back( m_ready_frames.front() );
+		m_ready_frames.pop_front();
+	}
+	return m_ready_frames.size() < 3 && !m_free_frames.empty();
+}
+
+bool FeVideoImp::frames_pending()
+{
+	std::lock_guard<std::mutex> lock( m_image_mutex );
+	return !m_ready_frames.empty();
+}
+
+FeTime FeVideoImp::next_frame_delay()
+{
+	const FeTime now = m_parent->get_video_time() + half_frame_offset;
+	std::lock_guard<std::mutex> lock( m_image_mutex );
+	for ( int index : m_ready_frames )
+		if ( m_frames[index].time > now )
+			return m_frames[index].time - now;
+	return fe_milliseconds( 20 );
+}
+
+bool FeVideoImp::queue_frame()
+{
+	int64_t pts = frame->best_effort_timestamp;
+	const FeTime frame_time = ( pts == AV_NOPTS_VALUE )
+		? next_frame_time
+		: fe_seconds( ( pts - start_time ) * av_q2d( time_base ) );
+#if HAVE_DURATION
+	const int64_t duration = frame->duration;
+#else
+	const int64_t duration = frame->pkt_duration;
+#endif
+	const FeTime span = duration > 0 ? fe_seconds( duration * av_q2d( time_base ) ) : frame_duration;
+	next_frame_time = frame_time + span;
+
+	// Catch up without spending conversion/upload work on expired frames.
+	if ( next_frame_time < m_parent->get_video_time() && frame_serial.load( std::memory_order_acquire ) != 0 )
+		return true;
+
+#if FE_HWACCEL
+	hw_retrieve_data( frame );
+	if ( av_pix_fmt_desc_get( static_cast<AVPixelFormat>( frame->format ) )->flags & AV_PIX_FMT_FLAG_HWACCEL )
+		return false;
+#endif
+	if ( !sws_ctx || source_width != frame->width || source_height != frame->height || source_format != frame->format )
+	{
+		int sws_flags = SWS_BILINEAR;
+		if ( ( frame->width & 0x7 ) || ( frame->height & 0x7 ) )
+			sws_flags |= SWS_ACCURATE_RND;
+		sws_ctx = sws_getCachedContext( sws_ctx,
+			frame->width, frame->height, static_cast<AVPixelFormat>( frame->format ),
+			disptex_width, disptex_height, AV_PIX_FMT_RGBA, sws_flags, NULL, NULL, NULL );
+		source_width = frame->width;
+		source_height = frame->height;
+		source_format = static_cast<AVPixelFormat>( frame->format );
+	}
+	if ( !sws_ctx )
+	{
+		FeLog() << "Error allocating video colour converter." << std::endl;
+		return false;
+	}
+
+	int index;
+	{
+		std::lock_guard<std::mutex> lock( m_image_mutex );
+		index = m_free_frames.front();
+		m_free_frames.pop_front();
+	}
+	Frame &output = m_frames[index];
+	if ( !output.pixels )
+		output.pixels = static_cast<std::uint8_t *>( av_malloc( static_cast<std::size_t>( disptex_width ) * disptex_height * 4 ) );
+	if ( !output.pixels )
+	{
+		std::lock_guard<std::mutex> lock( m_image_mutex );
+		m_free_frames.push_back( index );
+		FeLog() << "Error allocating video frame." << std::endl;
+		return false;
+	}
+	std::uint8_t *buffers[4] = { output.pixels, NULL, NULL, NULL };
+	int linesize[4] = { disptex_width * 4, 0, 0, 0 };
+	const int rows = sws_scale( sws_ctx, frame->data, frame->linesize,
+		0, frame->height, buffers, linesize );
+	{
+		std::lock_guard<std::mutex> lock( m_image_mutex );
+		if ( rows != disptex_height )
+		{
+			m_free_frames.push_back( index );
+			FeLog() << "Error converting video frame." << std::endl;
+			return false;
+		}
+		output.time = frame_time;
+		m_ready_frames.push_back( index );
+	}
+	return true;
+}
+
+FeMedia::FeMedia( Type t, std::shared_ptr<FeAudioEffectsManager> effects_manager )
 	: m_audio( NULL ),
 	m_video( NULL ),
-	m_audio_stream(),
-	m_audio_effects( effects_manager ),
+	m_audio_effects( std::move( effects_manager ) ),
 	m_aspect_ratio( 1.0f ),
 	m_volume( 100.0f ),
 	m_pan( 0.0f ),
-	m_audio_playing( false ),
-	m_audio_pending_samples(),
 	m_audio_pending_offset( 0 )
 {
 	m_imp = new FeMediaImp( t );
-
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
 	{
-		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+		auto* normaliser = m_audio_effects->get_effect<FeAudioNormaliser>();
 		if ( normaliser )
 			normaliser->set_enabled( fep->get_fes()->get_loudness() );
 	}
@@ -966,13 +854,9 @@ FeMedia::~FeMedia()
 
 bool FeMedia::ensure_audio_stream()
 {
-	if ( !m_audio )
+	if ( !m_audio || !m_audio_stream.ensure_open() )
 		return false;
-
-	if ( !m_audio_stream.ensure_open() )
-		return false;
-
-	std::ignore = m_audio_stream.set_gain( m_volume / 100.0f );
+	std::ignore = m_audio_stream.set_gain( m_volume.load( std::memory_order_relaxed ) / 100.0f );
 	return true;
 }
 
@@ -984,191 +868,185 @@ void FeMedia::clear_pending_audio()
 
 void FeMedia::append_pending_audio( const std::vector<float> &samples )
 {
-	if ( samples.empty() )
-		return;
-
 	if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
 		clear_pending_audio();
-
 	m_audio_pending_samples.insert( m_audio_pending_samples.end(), samples.begin(), samples.end() );
 }
 
 bool FeMedia::queue_pending_audio( std::vector<float> &processed_samples )
 {
-	const std::size_t channel_count = static_cast<std::size_t>( FeSdlAudioBackend::get().channel_count() );
-
-	while (( m_audio_pending_offset < m_audio_pending_samples.size() )
-		&& ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES ))
+	const int channel_count = FeSdlAudioBackend::get().channel_count();
+	while ( m_audio_pending_offset < m_audio_pending_samples.size() && !m_imp->m_stop )
 	{
-		const std::size_t remaining_frames = ( m_audio_pending_samples.size() - m_audio_pending_offset ) / channel_count;
 		const int queue_headroom = FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES - m_audio_stream.queued_frames();
+		if ( queue_headroom <= 0 )
+			break;
+		const std::size_t remaining_frames = ( m_audio_pending_samples.size() - m_audio_pending_offset ) / channel_count;
 		const unsigned int frame_count = static_cast<unsigned int>( std::min<std::size_t>(
-			FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES,
-			std::min<std::size_t>( remaining_frames, static_cast<std::size_t>( std::max( 1, queue_headroom ) ) ) ) );
-
+			remaining_frames, std::min( FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES, queue_headroom ) ) );
 		if ( frame_count == 0 )
 			break;
 
 		processed_samples.resize( static_cast<std::size_t>( frame_count ) * channel_count );
-		m_audio_effects.process_all( m_audio_pending_samples.data() + m_audio_pending_offset, processed_samples.data(), frame_count, FeSdlAudioBackend::get().channel_count() );
-		fe_audio_apply_balance( processed_samples, m_pan, false, Vec3f() );
-
-		if ( !m_audio_stream.queue_frames( processed_samples.data(), static_cast<int>( frame_count ) ) )
+		m_audio_effects->process_all( m_audio_pending_samples.data() + m_audio_pending_offset,
+			processed_samples.data(), frame_count, channel_count );
+		fe_audio_apply_balance( processed_samples, m_pan.load( std::memory_order_relaxed ), false, Vec3f() );
+		if ( !m_audio_stream.queue_frames( processed_samples.data(), frame_count ) )
 			return false;
-
+		m_imp->m_audio_frames += frame_count;
 		m_audio_pending_offset += static_cast<std::size_t>( frame_count ) * channel_count;
 	}
-
 	if ( m_audio_pending_offset >= m_audio_pending_samples.size() )
 		clear_pending_audio();
-
 	return true;
 }
 
 FeTime FeMedia::get_video_time()
 {
-	if ( m_video )
-		return m_video->at_end
-			? get_duration()
-			: m_video->video_timer.getElapsedTime();
-
-	return FeTime();
+	FeTime time = m_imp->m_duration;
+	if ( m_imp->m_playing || m_imp->m_stop )
+	{
+		time = m_imp->m_timer.getElapsedTime();
+		const std::int64_t audio_end = m_imp->m_audio_clock_end.load( std::memory_order_acquire );
+		if ( audio_end == 0 )
+			time = FeTime(); // Wait for the first PCM before advancing audio/video time.
+		else
+		{
+			time += fe_microseconds( m_imp->m_audio_clock_offset.load( std::memory_order_relaxed ) );
+			if ( audio_end > 0 )
+				time = std::min( time, fe_microseconds( audio_end ) );
+		}
+	}
+	// SDL consumes input in device-sized blocks. Updating its clock estimate
+	// must not move script time or presentation deadlines backwards.
+	const std::int64_t current = std::max<std::int64_t>( 0, time.asMicroseconds() );
+	std::int64_t previous = m_imp->m_time.load( std::memory_order_relaxed );
+	while ( previous < current && !m_imp->m_time.compare_exchange_weak( previous, current, std::memory_order_relaxed ) )
+	{
+	}
+	return fe_microseconds( std::max( previous, current ) );
 }
 
 void FeMedia::play()
 {
-	if ( !is_playing() )
+	std::unique_lock<std::mutex> lock( m_imp->m_mutex );
+	if ( m_imp->m_playing || ( !m_video && !m_audio ) )
+		return;
+	if ( m_imp->m_thread.joinable() && m_imp->m_stop )
 	{
-		if ( m_video )
-			m_video->play();
+		lock.unlock();
+		stop();
+		lock.lock();
+	}
 
-		if ( m_audio )
-		{
-			m_audio_playing = true;
-			std::ignore = ensure_audio_stream();
-			std::ignore = pump_audio();
-		}
+	// Open the SDL stream on the caller before launching producers. Subsystem
+	// initialization stays serialized; only the producer uses the open stream.
+	const bool restart = m_imp->m_thread.joinable();
+	if ( !restart && m_audio && !ensure_audio_stream() )
+		m_audio->at_end = true;
+	m_imp->m_time = 0;
+	m_imp->m_audio_clock_offset = 0;
+	m_imp->m_audio_clock_end = m_audio && ( restart || !m_audio->at_end ) ? 0 : -1;
+	m_imp->m_timer.restart();
+	m_imp->m_stop = false;
+	m_imp->m_playing = true;
+	if ( restart )
+	{
+		// At EOF the producer waits under this mutex. It can rewind without
+		// joining a thread or rebuilding an SDL stream on the frontend.
+		m_imp->m_restart = true;
+		m_imp->m_wake.notify_one();
+	}
+	else
+	{
+		m_imp->m_restart = false;
+		m_imp->m_audio_frames = 0;
+		m_imp->m_thread = std::thread( &FeMedia::media_thread, this );
 	}
 }
 
 void FeMedia::signal_stop()
 {
-	m_audio_playing = false;
-	m_audio_stream.clear();
-
-	if ( m_video )
-		m_video->signal_stop();
+	{
+		std::lock_guard<std::mutex> lock( m_imp->m_mutex );
+		m_imp->m_stop = true;
+	}
+	m_imp->m_wake.notify_one();
+	FeMediaDecodeLock::notify_stop();
 }
 
 void FeMedia::stop()
 {
+	signal_stop();
+	if ( m_imp->m_thread.joinable() )
+	{
+		m_imp->m_thread.join();
+		m_imp->m_rewind = true;
+	}
+	m_imp->m_timer.stop();
+	m_imp->m_playing = false;
+	m_audio_stream.clear();
+	m_audio_stream.destroy();
+	reset_decoder();
+}
+
+void FeMedia::reset_decoder()
+{
+	clear_pending_audio();
+	m_imp->m_audio_frames = 0;
+
 	if ( m_audio )
 	{
-		m_audio_playing = false;
-		m_audio_stream.clear();
-		m_audio_stream.destroy();
 		m_audio->stop();
-		m_audio->at_end = false;
-		clear_pending_audio();
-		m_audio_effects.reset_all();
-
-		{
-			std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-			if ( m_imp->m_format_ctx )
-			{
-				av_seek_frame( m_imp->m_format_ctx, m_audio->stream_id, 0, AVSEEK_FLAG_BACKWARD );
-			}
-		}
-
 		avcodec_flush_buffers( m_audio->codec_ctx );
+		swr_free( &m_audio->resample_ctx );
 	}
-
 	if ( m_video )
 	{
 		m_video->stop();
-
-		{
-			std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-			if ( m_imp->m_format_ctx )
-			{
-				av_seek_frame( m_imp->m_format_ctx, m_video->stream_id, 0, AVSEEK_FLAG_BACKWARD );
-			}
-		}
-
 		avcodec_flush_buffers( m_video->codec_ctx );
 	}
-
-	{
-		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-		m_imp->m_read_eof = false;
-	}
+	m_audio_effects->reset_all();
+	m_imp->m_read_eof = false;
 }
 
 void FeMedia::close()
 {
 	stop();
-
-	if ( m_audio )
-	{
-		delete m_audio;
-		m_audio = NULL;
-	}
-
-	if ( m_video )
-	{
-		delete m_video;
-		m_video = NULL;
-	}
-
-	m_audio_stream.destroy();
+	delete m_audio;
+	m_audio = NULL;
+	delete m_video;
+	m_video = NULL;
 	m_imp->close();
 }
 
 bool FeMedia::is_playing()
 {
-	if (( m_video ) && ( m_video->far_behind ) )
-		return false;
-
-	if (( m_video ) && ( !m_video->at_end ) )
-		return ( m_video->run_video_thread );
-
-	return m_audio && m_audio_playing && (( m_audio_stream.queued_frames() > 0 ) || ( !m_audio->at_end && !end_of_file() ));
+	return !m_imp->m_stop && m_imp->m_playing;
 }
 
 float FeMedia::getVolume() const
 {
-	return m_volume;
+	return m_volume.load( std::memory_order_relaxed );
 }
 
 void FeMedia::setVolume( float volume )
 {
-	m_volume = volume;
-
-	if ( m_audio )
-	{
-		AVDiscard d =( volume <= 0.f ) ? AVDISCARD_ALL : AVDISCARD_DEFAULT;
-
-		m_audio->codec_ctx->skip_loop_filter = d;
-		m_audio->codec_ctx->skip_idct = d;
-		m_audio->codec_ctx->skip_frame = d;
-	}
-
-	if ( m_audio_stream.is_open() )
-		std::ignore = m_audio_stream.set_gain( volume / 100.0f );
-
-	auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
+	m_volume.store( volume, std::memory_order_relaxed );
+	m_imp->m_wake.notify_one();
+	auto* normaliser = m_audio_effects->get_effect<FeAudioNormaliser>();
 	if ( normaliser )
 		normaliser->set_media_volume( volume / 100.0f );
 }
 
 float FeMedia::getPan() const
 {
-	return m_pan;
+	return m_pan.load( std::memory_order_relaxed );
 }
 
 void FeMedia::setPan( float pan )
 {
-	m_pan = std::clamp( pan, -1.0f, 1.0f );
+	m_pan.store( std::clamp( pan, -1.0f, 1.0f ), std::memory_order_relaxed );
 }
 
 int fe_media_read( void *opaque, uint8_t *buff, int buff_size )
@@ -1270,7 +1148,7 @@ bool FeMedia::open( const std::string &archive,
 		return false;
 	}
 
-	m_audio_effects.reset_all();
+	m_audio_effects->reset_all();
 
 	if ( m_imp->m_type & Audio )
 	{
@@ -1405,9 +1283,15 @@ bool FeMedia::open( const std::string &archive,
 				m_video->codec_ctx = codec_ctx;
 
 				m_video->codec = dec;
-				m_video->time_base = fe_seconds( av_q2d( m_imp->m_format_ctx->streams[stream_id]->time_base ) );
-
-				m_video->max_sleep = fe_seconds( 0.5 / av_q2d( m_imp->m_format_ctx->streams[stream_id]->r_frame_rate ) );
+				AVStream *stream = m_imp->m_format_ctx->streams[stream_id];
+				m_video->time_base = stream->time_base;
+				m_video->start_time = stream->start_time == AV_NOPTS_VALUE ? 0 : stream->start_time;
+				const double frame_rate = av_q2d( av_guess_frame_rate( m_imp->m_format_ctx, stream, NULL ) );
+				if ( frame_rate > 0 )
+					m_video->frame_duration = fe_seconds( 1.0 / frame_rate );
+				m_imp->m_multiframe = stream->nb_frames > 1 ||
+					stream->codecpar->codec_id == AV_CODEC_ID_APNG ||
+					stream->codecpar->codec_id == AV_CODEC_ID_GIF;
 
 				if ( codec_ctx->sample_aspect_ratio.num != 0 )
 					m_aspect_ratio = av_q2d( codec_ctx->sample_aspect_ratio );
@@ -1422,185 +1306,270 @@ bool FeMedia::open( const std::string &archive,
 		}
 	}
 
-	if (( !m_video ) && ( !m_audio ))
+	if ( !m_video && !m_audio )
 		return false;
 
+	const AVStream *stream = m_imp->m_format_ctx->streams[m_video ? m_video->stream_id : m_audio->stream_id];
+	if ( stream->duration != AV_NOPTS_VALUE && stream->duration > 0 )
+		m_imp->m_duration = fe_seconds( stream->duration * av_q2d( stream->time_base ) );
+	else if ( m_imp->m_format_ctx->duration != AV_NOPTS_VALUE && m_imp->m_format_ctx->duration > 0 )
+		m_imp->m_duration = fe_seconds( static_cast<double>( m_imp->m_format_ctx->duration ) / AV_TIME_BASE );
 	return true;
-}
-
-bool FeMedia::end_of_file()
-{
-	std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-
-	bool retval = ( m_imp->m_read_eof );
-	return retval;
 }
 
 bool FeMedia::read_packet()
 {
-	std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-
-	if ( m_imp->m_read_eof )
+	if ( m_imp->m_read_eof || m_imp->m_stop )
 		return false;
 
-	if ( !m_imp->m_format_ctx )
+	AVPacket *packet = av_packet_alloc();
+	if ( !packet )
 	{
-		m_imp->m_read_eof = true;
-		FeLog() << "Error: Invalid format context: " << FORMAT_CTX_URL << std::endl;
-		return false;
-	}
-
-	AVPacket *pkt = av_packet_alloc();
-	if ( !pkt )
-	{
-		m_imp->m_read_eof = true;
-		FeLog() << "Error: Failed to allocate packet: " << FORMAT_CTX_URL << std::endl;
-		return false;
-	}
-
-	if ( !m_imp->m_format_ctx )
-	{
-		FeLog() << "Error: Format context was closed during read operation" << std::endl;
-		av_packet_free( &pkt );
+		FeLog() << "Error allocating media packet: " << FORMAT_CTX_URL << std::endl;
 		m_imp->m_read_eof = true;
 		return false;
 	}
-
-	int r = av_read_frame( m_imp->m_format_ctx, pkt );
-
-	if ( r < 0 )
+	const int result = av_read_frame( m_imp->m_format_ctx, packet );
+	if ( result < 0 )
 	{
-		m_imp->m_read_eof=true;
-		av_packet_free( &pkt );
+		if ( result != AVERROR_EOF && !m_imp->m_stop )
+		{
+			char error[256];
+			av_strerror( result, error, sizeof( error ) );
+			FeLog() << "Error reading media: " << FORMAT_CTX_URL << ": " << error << std::endl;
+		}
+		m_imp->m_read_eof = true;
+		av_packet_free( &packet );
 		return false;
 	}
 
-	if (( m_audio ) && ( pkt->stream_index == m_audio->stream_id ))
-		m_audio->push_packet( pkt );
-	else if (( m_video ) && (pkt->stream_index == m_video->stream_id ))
-		m_video->push_packet( pkt );
+	if ( m_audio && !m_audio->at_end && packet->stream_index == m_audio->stream_id )
+		m_audio->push_packet( packet );
+	else if ( m_video && !m_video->at_end && packet->stream_index == m_video->stream_id )
+		m_video->push_packet( packet );
 	else
-		av_packet_free( &pkt );
-
+		av_packet_free( &packet );
 	return true;
 }
 
 bool FeMedia::pump_audio()
 {
-	if ( !m_audio || !m_audio_playing )
+	if ( !m_audio )
 		return false;
-
 	if ( m_audio_stream.is_stale() )
+	{
 		m_audio_stream.destroy();
-
+		FeDebug() << "Reopening media audio stream after device change." << std::endl;
+	}
 	if ( !ensure_audio_stream() )
+	{
+		m_audio->at_end = true;
+		clear_pending_audio();
+		m_imp->m_audio_clock_end = -1;
 		return false;
+	}
 
-	std::vector<float> processed_samples;
-
-	while ( m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
+	bool progress = false;
+	while ( !m_imp->m_stop && m_audio_stream.queued_frames() < FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
 	{
 		if ( !m_audio_pending_samples.empty() )
 		{
-			if ( !queue_pending_audio( processed_samples ) )
+			if ( !queue_pending_audio( m_audio->processed_samples ) )
+			{
+				FeLog() << "Error queueing media audio: " << SDL_GetError() << std::endl;
+				m_audio->at_end = true;
+				clear_pending_audio();
+				m_imp->m_audio_clock_end = -1;
 				return false;
-
-			if ( m_audio_stream.queued_frames() >= FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES )
+			}
+			progress = true;
+			if ( !m_audio_pending_samples.empty() )
 				break;
 		}
+		if ( m_audio->at_end )
+			break;
 
-		AVPacket *packet = m_audio->pop_packet();
-		while (( packet == NULL ) && ( !end_of_file() ))
+		const int result = m_audio->decode_frame( m_imp->m_read_eof );
+		if ( result == AVERROR( EAGAIN ) )
+			break;
+		m_audio->decoded_samples.clear();
+		if ( result == 0 || result == AVERROR_EOF )
 		{
-			if ( !read_packet() )
+			if ( !m_audio->process_frame( result == 0 ? m_audio->frame : NULL, m_audio->decoded_samples ) )
+			{
+				m_audio->at_end = true;
 				break;
-			packet = m_audio->pop_packet();
+			}
+			append_pending_audio( m_audio->decoded_samples );
 		}
-
-		if ( packet == NULL )
+		else
 		{
+			char error[256];
+			av_strerror( result, error, sizeof( error ) );
+			FeLog() << "Error decoding audio: " << FORMAT_CTX_URL << ": " << error << std::endl;
 			m_audio->at_end = true;
-			break;
 		}
+		progress = true;
+	}
+	return progress;
+}
 
-		int send_result = avcodec_send_packet( m_audio->codec_ctx, packet );
-		av_packet_free( &packet );
-		if (( send_result < 0 ) && ( send_result != AVERROR( EAGAIN ) ))
+int fe_media_interrupt( void *opaque )
+{
+	return static_cast<FeMediaImp *>( opaque )->m_stop ? 1 : 0;
+}
+
+void FeMedia::media_thread()
+{
+	// Producers can use every idle core, but must yield to presentation and
+	// the audio device when their frame deadlines arrive together.
+	if ( !SDL_SetCurrentThreadPriority( SDL_THREAD_PRIORITY_LOW ) )
+		FeDebug() << "Unable to lower media thread priority: " << SDL_GetError() << std::endl;
+	m_imp->m_format_ctx->interrupt_callback.callback = &fe_media_interrupt;
+	m_imp->m_format_ctx->interrupt_callback.opaque = m_imp;
+	while ( !m_imp->m_stop )
+	{
+		if ( m_imp->m_rewind )
 		{
-			char buff[256];
-			av_strerror( send_result, buff, 256 );
-			FeLog() << "Error decoding audio (sending packet): " << buff << std::endl;
-			break;
-		}
-
-		AVFrame *frame = av_frame_alloc();
-		if ( !frame )
-			break;
-
-		int receive_result = AVERROR( EAGAIN );
-		do
-		{
-			receive_result = avcodec_receive_frame( m_audio->codec_ctx, frame );
-			if ( receive_result == 0 )
+			const int stream_id = m_video ? m_video->stream_id : m_audio->stream_id;
+			if ( av_seek_frame( m_imp->m_format_ctx, stream_id, 0, AVSEEK_FLAG_BACKWARD ) < 0 )
 			{
-				std::vector<float> decoded_samples;
-				if ( !m_audio->process_frame( frame, decoded_samples ) )
-				{
-					av_frame_free( &frame );
-					return false;
-				}
+				if ( !m_imp->m_stop )
+					FeLog() << "Error rewinding media: " << FORMAT_CTX_URL << std::endl;
+				m_imp->m_stop = true;
+				break;
+			}
+			m_imp->m_rewind = false;
+		}
 
-				if ( !decoded_samples.empty() )
+		float applied_volume = getVolume();
+		std::ignore = m_audio_stream.set_gain( applied_volume / 100.0f );
+		unsigned int video_frames = 0;
+		while ( !m_imp->m_stop )
+		{
+			bool progress = false;
+			if ( applied_volume != getVolume() )
+			{
+				applied_volume = getVolume();
+				std::ignore = m_audio_stream.set_gain( applied_volume / 100.0f );
+			}
+
+			const int queued = m_audio_stream.queued_frames();
+			const bool need_audio = m_audio && queued <= FE_MEDIA_AUDIO_QUEUE_LOW_FRAMES &&
+				( !m_audio->at_end || !m_audio_pending_samples.empty() );
+			if ( need_audio && ( !m_audio->needs_packet || !m_audio_pending_samples.empty() || m_imp->m_read_eof ) )
+			{
+				FeMediaDecodeLock decode_lock( m_imp->m_stop, true );
+				if ( !decode_lock.acquired() )
+					break;
+				progress = pump_audio();
+			}
+
+			// SDL consumes PCM independently of the frontend. Interpolate its
+			// consumption clock between producer wakeups, capped by supplied PCM.
+			// After PCM drains, retain its last offset and let wall time carry
+			// any remaining video tail instead of pinning it at audio EOF.
+			if ( m_imp->m_audio_frames > 0 && m_imp->m_audio_clock_end >= 0 )
+			{
+				const std::uint64_t remaining = static_cast<std::uint64_t>( m_audio_stream.queued_frames() );
+				const std::uint64_t played = m_imp->m_audio_frames - std::min( remaining, m_imp->m_audio_frames );
+				const int rate = FeSdlAudioBackend::get().sample_rate();
+				m_imp->m_audio_clock_offset = static_cast<std::int64_t>( played * 1000000 / rate ) -
+					m_imp->m_timer.getElapsedTime().asMicroseconds();
+				const bool ended = m_audio->at_end && m_audio_pending_samples.empty() && remaining == 0;
+				m_imp->m_audio_clock_end.store( ended ? -1 :
+					static_cast<std::int64_t>( m_imp->m_audio_frames * 1000000 / rate ), std::memory_order_release );
+			}
+			else if ( m_audio && m_audio->at_end )
+				m_imp->m_audio_clock_end = -1;
+
+			const bool frame_room = m_video && m_video->has_frame_room();
+			const bool need_video = frame_room && !m_video->at_end;
+			if ( need_video && ( !m_video->needs_packet || m_imp->m_read_eof ) )
+			{
+				FeMediaDecodeLock decode_lock( m_imp->m_stop, false );
+				if ( !decode_lock.acquired() )
+					break;
+				const int result = m_video->decode_frame( m_imp->m_read_eof );
+				if ( result == 0 )
 				{
-					append_pending_audio( decoded_samples );
-					if ( !queue_pending_audio( processed_samples ) )
+					if ( !m_video->queue_frame() )
+						m_video->at_end = true;
+					++video_frames;
+					progress = true;
+				}
+				else if ( result != AVERROR( EAGAIN ) )
+				{
+					if ( result != AVERROR_EOF )
 					{
-						av_frame_free( &frame );
-						return false;
+						char error[256];
+						av_strerror( result, error, sizeof( error ) );
+						FeLog() << "Error decoding video: " << FORMAT_CTX_URL << ": " << error << std::endl;
 					}
+					m_video->at_end = true;
+					progress = true;
 				}
 			}
-			else if ( receive_result != AVERROR( EAGAIN ) )
+
+			const bool need_packet = ( need_audio && m_audio->needs_packet && !m_audio->at_end ) ||
+				( need_video && m_video->needs_packet && !m_video->at_end );
+			if ( need_packet && !m_imp->m_read_eof &&
+				( !m_audio || m_audio->at_end || m_audio->has_packet_room() ) &&
+				( !m_video || m_video->at_end || m_video->has_packet_room() ) )
 			{
-				char buff[256];
-				av_strerror( receive_result, buff, 256 );
-				FeLog() << "Error decoding audio (receiving frame): " << buff << std::endl;
+				std::ignore = read_packet();
+				progress = true;
 			}
 
-			av_frame_unref( frame );
-		}
-		while ( receive_result != AVERROR( EAGAIN ) );
+			const bool audio_done = !m_audio ||
+				( m_audio->at_end && m_audio_pending_samples.empty() && m_audio_stream.queued_frames() == 0 );
+			const bool video_done = !m_video || ( m_video->at_end && !m_video->frames_pending() );
+			if ( audio_done && video_done )
+				break;
+			if ( progress )
+				continue;
 
-		av_frame_free( &frame );
+			FeTime delay = m_video ? m_video->next_frame_delay() : fe_milliseconds( 50 );
+			if ( m_audio )
+			{
+				const int headroom = m_audio_stream.queued_frames() - FE_MEDIA_AUDIO_QUEUE_LOW_FRAMES;
+				const FeTime audio_delay = headroom > 0
+					? fe_seconds( static_cast<double>( headroom ) / FeSdlAudioBackend::get().sample_rate() )
+					: fe_milliseconds( 10 );
+				delay = std::min( delay, audio_delay );
+			}
+			std::unique_lock<std::mutex> lock( m_imp->m_mutex );
+			if ( !m_imp->m_stop )
+				m_imp->m_wake.wait_for( lock, std::chrono::microseconds( std::max<std::int64_t>( 1000, delay.asMicroseconds() ) ) );
+		}
+
+		if ( m_imp->m_stop )
+			break;
+		FeDebug() << "End media playback - " << FORMAT_CTX_URL
+			<< " - decoded video frames=" << video_frames << std::endl;
+		// Publish EOF only after all producer work is finished. play() resets
+		// the clock under this mutex before releasing us to rewind.
+		std::unique_lock<std::mutex> lock( m_imp->m_mutex );
+		m_imp->m_playing = false;
+		while ( !m_imp->m_stop && !m_imp->m_restart )
+			m_imp->m_wake.wait( lock );
+		if ( m_imp->m_stop )
+			break;
+		m_imp->m_restart = false;
+		lock.unlock();
+		reset_decoder();
+		m_imp->m_rewind = true;
 	}
 
-	if ( m_audio->at_end && m_audio_pending_samples.empty() && ( m_audio_stream.queued_frames() == 0 ) )
-		m_audio_playing = false;
-
-	return m_audio_stream.queued_frames() > 0;
+	if ( m_imp->m_stop )
+		m_audio_stream.clear();
+	m_imp->m_playing = false;
+	FeDebug() << "End Media Thread - " << FORMAT_CTX_URL << std::endl;
 }
 
 bool FeMedia::tick()
 {
-	if (( !m_video ) && ( !m_audio ))
-		return false;
-
-	if ( m_audio )
-		pump_audio();
-
-	if ( m_video )
-	{
-		std::lock_guard<std::recursive_mutex> l( m_video->image_swap_mutex );
-		if ( m_video->display_frame )
-		{
-			m_video->display_frame = NULL;
-			m_video->frame_serial.fetch_add( 1, std::memory_order_release );
-			m_video->frame_displayed.notify_one();
-			return true;
-		}
-	}
-
-	return false;
+	return m_video && m_video->tick();
 }
 
 bool FeMedia::get_video_frame_dimensions( unsigned int &width, unsigned int &height )
@@ -1652,26 +1621,7 @@ bool FeMedia::is_supported_media_file( const std::string &filename )
 
 bool FeMedia::is_multiframe() const
 {
-	if ( m_video && m_imp->m_format_ctx )
-	{
-		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-		if ( m_imp->m_format_ctx && m_video->stream_id >= 0 )
-		{
-			AVStream *s = m_imp->m_format_ctx->streams[ m_video->stream_id ];
-
-#if ( LIBAVCODEC_VERSION_INT >= AV_VERSION_INT( 56, 13, 0 ))
-		if (( s->nb_frames > 1 )
-				|| ( s->id == AV_CODEC_ID_APNG )
-				|| ( s->id == AV_CODEC_ID_GIF ))
-			return true;
-#else
-			if ( s->nb_frames > 1 )
-				return true;
-#endif
-		}
-	}
-
-	return false;
+	return m_video && m_imp->m_multiframe;
 }
 
 float FeMedia::get_aspect_ratio() const
@@ -1681,18 +1631,7 @@ float FeMedia::get_aspect_ratio() const
 
 FeTime FeMedia::get_duration() const
 {
-	if ( m_video && m_imp->m_format_ctx )
-	{
-		std::lock_guard<std::recursive_mutex> l( m_imp->m_read_mutex );
-		if ( m_imp->m_format_ctx && m_video->stream_id >= 0 )
-		{
-			return fe_seconds(
-					av_q2d( m_imp->m_format_ctx->streams[m_video->stream_id]->time_base ) *
-							m_imp->m_format_ctx->streams[ m_video->stream_id ]->duration );
-		}
-	}
-
-	return FeTime();
+	return m_imp->m_duration;
 }
 
 #if FE_HWACCEL
@@ -1851,7 +1790,7 @@ void try_hw_accel( AVCodecContext *&codec_ctx, FeAVCodec *&dec )
 
 FeAudioVisualiser* FeMedia::get_audio_visualiser() const
 {
-	return m_audio_effects.get_effect<FeAudioVisualiser>();
+	return m_audio_effects->get_effect<FeAudioVisualiser>();
 }
 
 float FeMedia::get_vu_left()

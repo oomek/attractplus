@@ -24,6 +24,7 @@
 #define MEDIA_HPP
 
 #include <cstddef>
+#include <atomic>
 #include <vector>
 #include <string>
 #include <functional>
@@ -48,7 +49,7 @@ public:
 		AudioVideo=0x03
 	};
 
-	FeMedia( Type t, FeAudioEffectsManager &effects_manager );
+	FeMedia( Type t, std::shared_ptr<FeAudioEffectsManager> effects_manager );
 	~FeMedia();
 
 	bool open( const std::string &archive,
@@ -102,22 +103,22 @@ public:
 
 private:
 	bool read_packet();
-	bool end_of_file();
 	bool ensure_audio_stream();
 	void clear_pending_audio();
 	void append_pending_audio( const std::vector<float> &samples );
 	bool queue_pending_audio( std::vector<float> &processed_samples );
 	bool pump_audio();
+	void reset_decoder();
+	void media_thread();
 
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;
 	FeSdlAudioStream m_audio_stream;
-	FeAudioEffectsManager &m_audio_effects;
+	std::shared_ptr<FeAudioEffectsManager> m_audio_effects;
 	float m_aspect_ratio;
-	float m_volume;
-	float m_pan;
-	bool m_audio_playing;
+	std::atomic<float> m_volume;
+	std::atomic<float> m_pan;
 	std::vector<float> m_audio_pending_samples;
 	std::size_t m_audio_pending_offset;
 
