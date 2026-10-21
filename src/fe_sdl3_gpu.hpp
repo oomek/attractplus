@@ -288,6 +288,7 @@ private:
 		std::vector<PreparedImage> &prepared_images,
 		std::vector<FeRenderVertex> &vertex_stream );
 	void release_texture( TextureEntry &entry );
+	void retire_texture( TextureEntry &entry );
 	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry, SDL_GPUCommandBuffer *command_buffer = nullptr );
 	bool submit_texture_upload( TextureEntry &entry, unsigned int source_width, unsigned int source_height, SDL_GPUCommandBuffer *command_buffer );
 	bool flush_video_uploads();
@@ -404,6 +405,8 @@ private:
 	FeRenderFrame m_frame;
 	FrameStats m_frame_stats;
 	std::map<std::tuple<const void *, bool, bool>, TextureEntry> m_textures;
+	std::vector<TextureEntry> m_spare_textures;
+	std::size_t m_spare_texture_bytes = 0;
 	std::unordered_map<const void *, GeometryBufferEntry> m_geometry_buffers;
 	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
 	std::vector<PreparedImage> m_prepared_images;

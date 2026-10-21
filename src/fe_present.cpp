@@ -2435,8 +2435,64 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	return true;
 }
 
+bool FePresent::reuse_artwork( FeTextureContainer *target, int filter_index, int rom_index )
+{
+	if ( target->m_current_rom_index < 0 )
+		return false;
+	for ( FeBaseTextureContainer *base : m_texturePool )
+	{
+		auto *source = dynamic_cast<FeTextureContainer *>( base );
+		if ( !source || source == target || source->m_type != FeTextureContainer::IsArtwork ||
+			source->m_current_rom_index != rom_index || source->m_current_filter_index != filter_index ||
+			source->m_art_name != target->m_art_name || source->m_video_flags != target->m_video_flags ||
+			source->m_art_update_trigger != target->m_art_update_trigger ||
+			source->m_volume != target->m_volume || source->m_pan != target->m_pan ||
+			source->m_fft_bands != target->m_fft_bands ||
+			( source->m_movie_status == 0 ) != ( target->m_movie_status == 0 ) ||
+			source->m_pixel_cache_valid || target->m_pixel_cache_valid )
+			continue;
+		// Never take artwork from a container already showing its new selection.
+		const int source_filter = m_feSettings->get_filter_index_from_offset( source->m_filter_offset );
+		if ( source_filter == source->m_current_filter_index &&
+			m_feSettings->get_rom_index( source_filter, source->m_index_offset ) == source->m_current_rom_index )
+			continue;
+		std::swap( target->m_current_rom_index, source->m_current_rom_index );
+		std::swap( target->m_current_filter_index, source->m_current_filter_index );
+		std::swap( target->m_file_name, source->m_file_name );
+		std::swap( target->m_movie, source->m_movie );
+		std::swap( target->m_pending_movie, source->m_pending_movie );
+		std::swap( target->m_movie_status, source->m_movie_status );
+		std::swap( target->m_audio_effects, source->m_audio_effects );
+		std::swap( target->m_video_files, source->m_video_files );
+		std::swap( target->m_image_files, source->m_image_files );
+		std::swap( target->m_entry, source->m_entry );
+		std::swap( target->m_previous_entry, source->m_previous_entry );
+		std::swap( target->m_texture_size, source->m_texture_size );
+		std::swap( target->m_content_version, source->m_content_version );
+		source->notify_texture_change();
+		target->notify_texture_change();
+		return true;
+	}
+	return false;
+}
+
 void FePresent::update_to( FeTransitionType type, bool reset_display )
 {
+	// Move every retained artwork before loading replacements. In particular,
+	// backwards navigation must not close an image still needed by a later tile.
+	if ( type == ToNewSelection || type == EndNavigation )
+	{
+		for ( FeBaseTextureContainer *base : m_texturePool )
+		{
+			auto *texture = dynamic_cast<FeTextureContainer *>( base );
+			if ( !texture || texture->m_type != FeTextureContainer::IsArtwork || texture->m_art_update_trigger != type )
+				continue;
+			const int filter = m_feSettings->get_filter_index_from_offset( texture->m_filter_offset );
+			const int rom = m_feSettings->get_rom_index( filter, texture->m_index_offset );
+			if ( texture->m_current_rom_index != rom || texture->m_current_filter_index != filter )
+				reuse_artwork( texture, filter, rom );
+		}
+	}
 	std::vector<FeBaseTextureContainer *>::iterator itc;
 	std::vector<FeBasePresentable *>::iterator itl;
 	std::vector<FeMonitor>::iterator itm;

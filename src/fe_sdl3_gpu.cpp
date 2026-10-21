@@ -1450,7 +1450,7 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 	{
 		if ( it->second.last_seen_frame != m_frame.frame_number )
 		{
-			release_texture( it->second );
+			retire_texture( it->second );
 			it = m_textures.erase( it );
 		}
 		else
@@ -1467,6 +1467,10 @@ void FeSdl3GpuContext::clear_textures()
 	}
 
 	m_textures.clear();
+	for ( auto &entry : m_spare_textures )
+		release_texture( entry );
+	m_spare_textures.clear();
+	m_spare_texture_bytes = 0;
 }
 
 void FeSdl3GpuContext::release_geometry_buffer( GeometryBufferEntry &entry )
@@ -3183,6 +3187,31 @@ void FeSdl3GpuContext::release_window()
 	m_has_submitted_frame = false;
 }
 
+void FeSdl3GpuContext::retire_texture( TextureEntry &entry )
+{
+	// Keep a bounded set of upload resources for incoming artwork. Repeated
+	// driver allocation on navigation competes with decoding for the heap.
+	constexpr std::size_t limit = 64 * 1024 * 1024;
+	const std::size_t bytes = entry.transfer_buffer_size;
+	if ( !entry.gpu_texture || !entry.transfer_buffer || bytes > limit )
+	{
+		release_texture( entry );
+		return;
+	}
+	while ( !m_spare_textures.empty() &&
+		( m_spare_texture_bytes + bytes > limit || m_spare_textures.size() >= 128 ) )
+	{
+		m_spare_texture_bytes -= m_spare_textures.front().transfer_buffer_size;
+		release_texture( m_spare_textures.front() );
+		m_spare_textures.erase( m_spare_textures.begin() );
+	}
+	m_spare_textures.push_back( entry );
+	m_spare_texture_bytes += bytes;
+	entry.gpu_texture = nullptr;
+	entry.transfer_buffer = nullptr;
+	entry.transfer_buffer_size = 0;
+}
+
 void FeSdl3GpuContext::release_texture( TextureEntry &entry )
 {
 	if ( entry.gpu_texture )
@@ -3527,7 +3556,22 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 
 	if ( !entry.gpu_texture )
 	{
-		entry.gpu_texture = SDL_CreateGPUTexture( m_device, &texture_info );
+		for ( auto it = m_spare_textures.begin(); it != m_spare_textures.end(); ++it )
+		{
+			if ( it->last_seen_frame + 2 >= m_frame.frame_number ||
+				it->texture_info.width != texture_info.width || it->texture_info.height != texture_info.height ||
+				it->texture_info.type != texture_info.type || it->texture_info.usage != texture_info.usage ||
+				it->texture_info.num_levels != texture_info.num_levels || it->transfer_buffer_size < upload_size )
+				continue;
+			entry.gpu_texture = it->gpu_texture;
+			entry.transfer_buffer = it->transfer_buffer;
+			entry.transfer_buffer_size = it->transfer_buffer_size;
+			m_spare_texture_bytes -= it->transfer_buffer_size;
+			m_spare_textures.erase( it );
+			break;
+		}
+		if ( !entry.gpu_texture )
+			entry.gpu_texture = SDL_CreateGPUTexture( m_device, &texture_info );
 		entry.texture_info = texture_info;
 	}
 	if ( !entry.gpu_texture )

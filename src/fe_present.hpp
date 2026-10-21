@@ -173,6 +173,7 @@ protected:
 	FeTextureContainer *m_3d_cubemap_texture;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
+	bool reuse_artwork( FeTextureContainer *, int filter_index, int rom_index );
 	std::vector<FeSound *> m_sounds;
 	std::vector<FeMusic *> m_musics;
 	std::vector<FeShader *> m_scriptShaders;
