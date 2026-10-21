@@ -899,7 +899,7 @@ namespace
 
 	void collapse_pbr_geometry_instances( std::vector<FeRenderGeometry> &geometry )
 	{
-		if ( geometry.empty() )
+		if ( std::none_of( geometry.begin(), geometry.end(), is_batchable_pbr_geometry ) )
 			return;
 
 		std::vector<FeRenderGeometry> collapsed;
@@ -1027,6 +1027,12 @@ namespace
 				continue;
 			}
 
+			if ( entry.has_external_vertices() )
+			{
+				entry.vertices.assign( entry.external_vertices, entry.external_vertices + entry.external_vertex_count );
+				entry.external_vertices = nullptr;
+				entry.external_vertex_count = 0;
+			}
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
 				const Vec2f p = transform.transformPoint( { vertex.x, vertex.y } );
@@ -1063,7 +1069,8 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	for ( std::size_t monitor_index = 0; monitor_index < m_mon.size(); ++monitor_index )
 	{
 		const FeMonitor &monitor = m_mon[ monitor_index ];
-		std::vector<FeRenderGeometry> monitor_geometry;
+		std::vector<FeRenderGeometry> &monitor_geometry = m_monitor_geometry;
+		monitor_geometry.clear();
 		monitor_geometry.reserve( monitor.elements.size() );
 
 		int clip_x = 0;
@@ -1211,7 +1218,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_float_bits( seed, binding.scale_v );
 		return seed;
 	};
-	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed ) -> std::uint64_t
+	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed, std::uint64_t vertex_version = 0 ) -> std::uint64_t
 	{
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.geometry_kind ) );
 		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.texture_id ) );
@@ -1225,12 +1232,15 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_collapse_group ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.get_vertex_count() ) );
-		if ( geometry.has_external_vertices() )
+		if ( vertex_version != 0 )
+			seed = hash_combine( seed, vertex_version );
+		else if ( geometry.geometry_kind == FeRenderGeometryObjectPbr && geometry.has_external_vertices() )
 		{
 			seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.external_vertex_id ) );
 		}
-		else for ( const FeRenderVertex &vertex : geometry.vertices )
+		else for ( std::size_t i = 0; i < geometry.get_vertex_count(); ++i )
 		{
+			const FeRenderVertex &vertex = geometry.get_vertex_data()[i];
 			seed = hash_float_bits( seed, vertex.x );
 			seed = hash_float_bits( seed, vertex.y );
 			seed = hash_float_bits( seed, vertex.z );
@@ -1407,7 +1417,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				if ( image->build_render_geometry( image_geometry ) )
 				{
 					append_surface_dependencies( image_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 					frame.geometry.push_back( std::move( image_geometry ) );
@@ -1422,8 +1431,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				if ( rectangle->build_render_geometry( rectangle_geometry ) )
 				{
 					append_surface_dependencies( rectangle_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || rectangle_geometry.texture_dynamic || rectangle_geometry.custom_shader;
-					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature );
+					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature, rectangle->get_vertex_version() );
 					frame.content_signature = frame.geometry_signature;
 					frame.geometry.push_back( std::move( rectangle_geometry ) );
 				}
@@ -1439,7 +1447,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				{
 					const FeRenderGeometry &object_geometry = frame.geometry[i];
 					append_surface_dependencies( object_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || object_geometry.texture_dynamic;
 					frame.geometry_signature = hash_geometry( object_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 				}
@@ -1455,7 +1462,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				{
 					const FeRenderGeometry &text_geometry = frame.geometry[i];
 					append_surface_dependencies( text_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || text_geometry.texture_dynamic || text_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( text_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 				}
@@ -1471,15 +1477,29 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				{
 					const FeRenderGeometry &list_geometry = frame.geometry[i];
 					append_surface_dependencies( list_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || list_geometry.texture_dynamic || list_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( list_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 				}
 			}
 		}
 
-		if ( frame.redraw )
-			frame.dynamic_content = true;
+		// Versioned textures invalidate content without forcing a render on
+		// every frontend tick. Nested surfaces contribute their state below.
+		frame.dynamic_content = !frame.clear && frame.redraw;
+		for ( const FeRenderGeometry &geometry : frame.geometry )
+		{
+			frame.content_signature = hash_combine( frame.content_signature, geometry.texture_content_version );
+			const bool surface_texture = geometry.texture_source_type == FeRenderTextureSourceContainer &&
+				dynamic_cast<const FeSurfaceTextureContainer *>( static_cast<const FeBaseTextureContainer *>( geometry.texture_id ) );
+			frame.dynamic_content = frame.dynamic_content || geometry.custom_shader || geometry.geometry_kind == FeRenderGeometryObjectPbr ||
+				( surface_texture && geometry.texture_id == surface ) ||
+				( geometry.texture_dynamic && geometry.texture_content_version == 0 && !surface_texture );
+		}
+		for ( float value : frame.camera.projection.m )
+			frame.content_signature = hash_float_bits( frame.content_signature, value );
+		frame.content_signature = hash_float_bits( frame.content_signature, frame.camera.fov_y_degrees );
+		frame.content_signature = hash_float_bits( frame.content_signature, frame.camera.near_plane );
+		frame.content_signature = hash_float_bits( frame.content_signature, frame.camera.default_plane_z );
 
 		std::sort( dependencies.begin(), dependencies.end() );
 		dependencies.erase( std::unique( dependencies.begin(), dependencies.end() ), dependencies.end() );
@@ -1554,7 +1574,11 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		{
 			auto it = surface_states.find( static_cast<const FeSurfaceTextureContainer *>( dependency ) );
 			if ( it == surface_states.end() )
+			{
+				// A dependency cycle samples a previous frame's contents.
+				pending.frame.dynamic_content = true;
 				continue;
+			}
 
 			pending.frame.content_signature = hash_combine( pending.frame.content_signature, it->second.signature );
 			pending.frame.dynamic_content = pending.frame.dynamic_content || it->second.dynamic_content;
@@ -2592,7 +2616,7 @@ void FePresent::redraw()
 
 void FePresent::submit_render_frame()
 {
-	FeRenderFrame frame;
+	FeRenderFrame frame = m_window.get_gpu_context().take_frame();
 	frame.camera = m_layout_camera;
 	frame.viewport_width = m_mon[0].size.x;
 	frame.viewport_height = m_mon[0].size.y;

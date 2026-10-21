@@ -1223,6 +1223,11 @@ void FeSdl3GpuContext::submit_frame( FeRenderFrame frame )
 	m_vertex_stream.clear();
 }
 
+FeRenderFrame FeSdl3GpuContext::take_frame()
+{
+	return std::move( m_frame );
+}
+
 const FeRenderFrame &FeSdl3GpuContext::get_frame() const
 {
 	return m_frame;

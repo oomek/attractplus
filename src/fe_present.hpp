@@ -198,6 +198,7 @@ protected:
 	bool m_layout_loaded;
 	bool m_layout_has_content;
 	unsigned long long m_render_frame_serial;
+	mutable std::vector<FeRenderGeometry> m_monitor_geometry;
 
 	FePresent( const FePresent & );
 	FePresent &operator=( const FePresent & );

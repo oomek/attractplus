@@ -566,6 +566,7 @@ protected:
 	FeBaseTextureContainer *m_tex;
 	FeSprite m_sprite;
 	FeSpriteLegacy m_sprite_legacy;
+	mutable std::vector<FeRenderVertex> m_render_vertices;
 	Vec2f m_pos;
 	Vec2f m_size;
 	Vec2u m_auto_size;

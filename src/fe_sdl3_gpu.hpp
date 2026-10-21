@@ -54,6 +54,7 @@ public:
 	~FeSdl3GpuContext();
 
 	void submit_frame( FeRenderFrame frame );
+	FeRenderFrame take_frame();
 	const FeRenderFrame &get_frame() const;
 	std::size_t get_texture_count() const;
 	bool execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry = nullptr );
