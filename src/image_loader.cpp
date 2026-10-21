@@ -25,12 +25,13 @@
 #include <queue>
 #include <string>
 #include <mutex>
+#include <new>
 #include <thread>
 #include <vector>
 #include <condition_variable>
-#include <chrono>
 #include <algorithm>
 #include <SDL3/SDL_thread.h>
+#include <SDL3/SDL_mutex.h>
 
 #include "fe_base.hpp" // logging
 #include "fe_file.hpp"
@@ -332,8 +333,17 @@ class FeImageLoaderImp
 public:
 	FeImageLoaderImp()
 		: m_cache( NULL ),
-		m_load_images_in_bg( false )
+		m_load_images_in_bg( false ),
+		m_load_mutex( SDL_CreateMutex() ),
+		m_load_ready( SDL_CreateCondition() )
 	{
+		if ( !m_load_mutex || !m_load_ready )
+		{
+			FeLog() << "SDL: image loader wakeup initialization failed: " << SDL_GetError() << std::endl;
+			SDL_DestroyCondition( m_load_ready );
+			SDL_DestroyMutex( m_load_mutex );
+			throw std::bad_alloc();
+		}
 	};
 
 	~FeImageLoaderImp()
@@ -341,13 +351,15 @@ public:
 		m_bg_loader.stop();
 		if ( m_cache )
 			delete m_cache;
+		SDL_DestroyCondition( m_load_ready );
+		SDL_DestroyMutex( m_load_mutex );
 	}
 
 	FeImageLRUCache *m_cache;
 	FeImageLoaderThread m_bg_loader;
 	bool m_load_images_in_bg;
-	std::mutex m_load_mutex;
-	std::condition_variable m_load_ready;
+	SDL_Mutex *m_load_mutex;
+	SDL_Condition *m_load_ready;
 	unsigned long long m_load_version = 0;
 };
 
@@ -458,24 +470,27 @@ void FeImageLoader::reap( std::shared_ptr<void> object )
 
 void FeImageLoader::notify_loaded()
 {
-	{
-		std::lock_guard<std::mutex> lock( m_imp->m_load_mutex );
-		++m_imp->m_load_version;
-	}
-	m_imp->m_load_ready.notify_one();
+	SDL_LockMutex( m_imp->m_load_mutex );
+	++m_imp->m_load_version;
+	SDL_UnlockMutex( m_imp->m_load_mutex );
+	SDL_SignalCondition( m_imp->m_load_ready );
 }
 
 unsigned long long FeImageLoader::load_version()
 {
-	std::lock_guard<std::mutex> lock( m_imp->m_load_mutex );
-	return m_imp->m_load_version;
+	SDL_LockMutex( m_imp->m_load_mutex );
+	const auto version = m_imp->m_load_version;
+	SDL_UnlockMutex( m_imp->m_load_mutex );
+	return version;
 }
 
 void FeImageLoader::wait_for_load( unsigned long long version )
 {
-	std::unique_lock<std::mutex> lock( m_imp->m_load_mutex );
-	m_imp->m_load_ready.wait_for( lock, std::chrono::milliseconds( 1 ),
-		[this, version] { return m_imp->m_load_version != version; } );
+	// SDL's relative timeout avoids coarse MinGW timed waits between input samples.
+	SDL_LockMutex( m_imp->m_load_mutex );
+	if ( m_imp->m_load_version == version )
+		SDL_WaitConditionTimeout( m_imp->m_load_ready, m_imp->m_load_mutex, 1 );
+	SDL_UnlockMutex( m_imp->m_load_mutex );
 }
 
 bool FeImageLoader::check_loaded( FeImageLoaderEntry *e )

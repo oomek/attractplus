@@ -438,6 +438,8 @@ int main(int argc, char *argv[])
 			redraw=true;
 		}
 
+		// Sample input after waiting for presentation, so commands affect this frame.
+		feVM.wait_for_frame();
 		FeInputMouse::clear();
 		FeInputMap::Command c;
 		std::optional<FeEvent> ev;
@@ -1314,7 +1316,6 @@ int main(int argc, char *argv[])
 		else
 			has_focus = window.hasFocus();
 
-		feVM.wait_for_frame();
 		if ( feVM.tick() )
 			redraw=true;
 
