@@ -35,6 +35,7 @@
 #include "fe_types.hpp"
 
 class FeAudioFileDecoder;
+class FeSdlAudioStream;
 
 struct FeAudioSampleBuffer
 {
@@ -56,6 +57,8 @@ public:
 	static FeSdlAudioBackend &get();
 
 	bool ensure_audio();
+	// Called on the frontend before layout playback or after returning from a game.
+	void prepare_device();
 	bool retain_device();
 	void release_device();
 	int sample_rate() const { return m_mix_spec.freq; }
@@ -65,6 +68,10 @@ public:
 	void note_system_resume();
 
 private:
+	friend class FeSdlAudioStream;
+	struct Worker;
+	void prepare_stream( std::shared_ptr<FeSdlAudioStream> stream );
+
 	FeSdlAudioBackend();
 	~FeSdlAudioBackend();
 
@@ -72,6 +79,7 @@ private:
 	std::atomic<std::uint64_t> m_generation;
 	std::mutex m_device_mutex;
 	SDL_AudioDeviceID m_device = 0;
+	std::unique_ptr<Worker> m_worker;
 };
 
 class FeSdlAudioStream
@@ -84,6 +92,9 @@ public:
 	FeSdlAudioStream &operator=( const FeSdlAudioStream & ) = delete;
 
 	bool ensure_open();
+	// Nonblocking frontend preparation. ensure_open() is for background producers.
+	bool prepare();
+	bool failed() const { return m_prepare_failed; }
 	void destroy();
 	void clear();
 
@@ -97,8 +108,12 @@ public:
 	bool set_pitch( float pitch );
 
 private:
+	friend class FeSdlAudioBackend;
 	SDL_AudioStream *m_stream;
 	std::uint64_t m_generation;
+	std::shared_ptr<FeSdlAudioStream> m_prepared;
+	std::atomic<bool> m_ready{ false };
+	bool m_prepare_failed = false;
 };
 
 bool fe_decode_audio_file_to_buffer( const std::string &filename, FeAudioSampleBuffer &buffer );
