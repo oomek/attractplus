@@ -135,8 +135,12 @@ FeSound::~FeSound()
 
 bool FeSound::ensure_stream()
 {
-	if ( !m_stream.ensure_open() )
+	if ( !m_stream.prepare() )
+	{
+		if ( m_stream.failed() )
+			m_status = FePlaybackStatusStopped;
 		return false;
+	}
 
 	float vol = m_volume;
 	FePresent *fep = FePresent::script_get_fep();
@@ -300,6 +304,8 @@ void FeSound::load( const std::string &fn )
 	m_source_frame = 0;
 	m_total_frames_written = 0;
 	m_stream.clear();
+	if ( m_stream.failed() ) m_stream.destroy();
+	m_stream.prepare();
 }
 
 void FeSound::set_file_name( const char *n )
@@ -373,12 +379,7 @@ void FeSound::set_playing( bool flag )
 	if (( m_status == FePlaybackStatusPlaying ) || ended || ( m_current_frame >= m_buffer.frame_count() ))
 		m_current_frame = 0;
 
-	if ( !ensure_stream() )
-	{
-		m_status = FePlaybackStatusStopped;
-		return;
-	}
-
+	if ( m_stream.failed() ) m_stream.destroy();
 	m_stream.clear();
 	m_source_frame = m_current_frame;
 	m_total_frames_written = m_current_frame;

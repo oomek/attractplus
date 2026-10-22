@@ -1051,13 +1051,11 @@ void FeMedia::play()
 		lock.lock();
 	}
 
-	// Synchronous loads open audio here. Background loads already prepared
-	// their stream before publishing the codecs to the frontend.
+	// The producer opens audio before queuing PCM. Keep its clock at zero
+	// until then, without waiting for the audio device on the frontend.
 	const bool restart = m_imp->m_producer_task.valid();
 	if ( !m_imp->m_counted.exchange( true ) )
 		++active_media_count;
-	if ( !restart && m_audio && !ensure_audio_stream() )
-		m_audio->at_end = true;
 	m_imp->m_time = 0;
 	m_imp->m_audio_clock_offset = 0;
 	m_imp->m_audio_clock_end = m_audio && ( restart || !m_audio->at_end ) ? 0 : -1;
@@ -1465,8 +1463,6 @@ void FeMedia::open_async( const std::string &archive, const std::string &name, b
 {
 	// Capture frontend/display state in the constructor. The worker owns all
 	// file probing, codec setup and audio stream creation until publication.
-	if ( m_imp->m_type & Audio )
-		FeSdlAudioBackend::get().ensure_audio();
 	if ( !m_imp->m_counted.exchange( true ) )
 		++active_media_count;
 	m_imp->m_stop = false;

@@ -31,6 +31,7 @@
 #include "fe_util.hpp"
 #include "fe_image.hpp"
 #include "fe_sound.hpp"
+#include "fe_audio_sdl.hpp"
 #include "fe_text.hpp"
 #include "fe_window.hpp"
 #include "fe_vm.hpp"
@@ -169,6 +170,7 @@ int main(int argc, char *argv[])
 #endif
 
 	feSettings.load();
+	FeSdlAudioBackend::get().prepare_device();
 
 	//
 	// Set up music/sound playing objects

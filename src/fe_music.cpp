@@ -94,8 +94,12 @@ FeMusic::~FeMusic()
 
 bool FeMusic::ensure_stream()
 {
-	if ( !m_stream.ensure_open() )
+	if ( !m_stream.prepare() )
+	{
+		if ( m_stream.failed() )
+			m_status = FePlaybackStatusStopped;
 		return false;
+	}
 
 	float vol = m_volume;
 	FePresent *fep = FePresent::script_get_fep();
@@ -296,6 +300,8 @@ void FeMusic::load( const std::string &fn )
 	clear_pending_audio();
 	m_stream.clear();
 	m_audio_effects.reset_all();
+	if ( m_stream.failed() ) m_stream.destroy();
+	m_stream.prepare();
 }
 
 void FeMusic::set_file_name( const char *n )
@@ -390,12 +396,7 @@ void FeMusic::set_playing( bool state )
 	if ( m_status == FePlaybackStatusPlaying )
 		return;
 
-	if ( !ensure_stream() )
-	{
-		m_status = FePlaybackStatusStopped;
-		return;
-	}
-
+	if ( m_stream.failed() ) m_stream.destroy();
 	if ( !m_decoder->seek_ms( fe_audio_frames_to_ms( m_current_frame ) ) )
 	{
 		m_status = FePlaybackStatusStopped;

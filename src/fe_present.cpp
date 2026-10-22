@@ -2933,6 +2933,7 @@ void FePresent::pre_run()
 
 void FePresent::post_run()
 {
+	FeSdlAudioBackend::get().prepare_device();
 	std::vector<FeSound *>::iterator its;
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
