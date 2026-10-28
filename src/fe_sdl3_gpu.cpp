@@ -1341,7 +1341,7 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 		bool texture_blocking,
 		bool texture_cube_map = false )
 	{
-		if ( !texture_id )
+		if ( !texture_id || texture_width <= 0 || texture_height <= 0 )
 			return;
 
 		if ( texture_source_type == FeRenderTextureSourceContainer )

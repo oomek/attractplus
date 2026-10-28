@@ -33,6 +33,7 @@
 #include <condition_variable>
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <cstring>
 #include <limits>
 #include <chrono>
@@ -731,6 +732,11 @@ private:
 					continue;
 				}
 			}
+			if ( !( job.pixels || job.source ) )
+			{
+				finish( job, false, false );
+				continue;
+			}
 			bool success = job.epoch == m_epoch && ( job.pixels || job.source ) && buffers[0].buffer && buffers[1].buffer;
 			if ( success )
 			{
@@ -1069,6 +1075,7 @@ FeImageLoaderEntry::~FeImageLoaderEntry()
 void FeImageLoaderEntry::load( const std::string &filename )
 {
 	FeFileInputStream stream( filename );
+	const int error = errno;
 	int width = 0, height = 0, ignored = 0;
 	std::shared_ptr<unsigned char> data;
 	if ( stream.isOpen() )

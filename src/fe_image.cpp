@@ -619,7 +619,7 @@ bool FeTextureContainer::try_to_load(
 	{
 		if ( m_entry->failed() )
 		{
-			il.release_entry( &m_entry );
+			clear();
 			return false;
 		}
 		m_texture_size = { static_cast<unsigned int>( m_entry->get_width() ), static_cast<unsigned int>( m_entry->get_height() ) };
