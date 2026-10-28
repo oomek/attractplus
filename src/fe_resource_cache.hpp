@@ -21,6 +21,17 @@ struct FeAudioResource
 
 std::shared_ptr<FeAudioResource> fe_get_audio_resource( const std::string &filename );
 
+struct ShaderBlob
+{
+	SDL_GPUShaderFormat format;
+	std::vector<Uint8> code;
+	const char *entrypoint;
+};
+
+
+bool compile_shader_blob( const std::string &source_id, const std::string &source,
+	bool vertex, ShaderBlob &blob, std::shared_ptr<void> *request = nullptr, bool *pending = nullptr );
+
 class FeImageLoaderEntry;
 
 class FeImageCache

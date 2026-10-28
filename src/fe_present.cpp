@@ -480,6 +480,8 @@ void FePresent::init_monitors()
 FePresent::~FePresent()
 {
 	clear_resources();
+	// Finish background compilation before glslang's process guard is destroyed.
+	FeResourceCache::get().wait();
 }
 
 //
@@ -564,6 +566,7 @@ void FePresent::clear_layout()
 		delete a;
 	}
 
+	m_preparedShaders.clear();
 	while ( !m_scriptShaders.empty() )
 	{
 		FeShader *sh = m_scriptShaders.back();
@@ -1832,6 +1835,12 @@ FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const
 			break;
 	}
 
+	sh->set_background_loading( get_script_version( get_script_id() ) >= 4 );
+	if ( sh->background_loading() )
+	{
+		m_preparedShaders[sh] = get_script_id();
+		m_window.get_gpu_context().prepare_shader( sh );
+	}
 	return sh;
 }
 
@@ -1857,6 +1866,12 @@ FeShader *FePresent::compile_shader( FeShader::Type type, const char *shader1, c
 			break;
 	}
 
+	sh->set_background_loading( get_script_version( get_script_id() ) >= 4 );
+	if ( sh->background_loading() )
+	{
+		m_preparedShaders[sh] = get_script_id();
+		m_window.get_gpu_context().prepare_shader( sh );
+	}
 	return sh;
 }
 
@@ -2365,6 +2380,12 @@ bool FePresent::prepared_media_ready( int script )
 	// Submit hidden uploads now, sharing the upcoming draw's preparation budget.
 	m_window.get_gpu_context().prepare_textures( bindings, m_render_frame_serial + 1 );
 	bool ready = true;
+	for ( auto it = m_preparedShaders.begin(); it != m_preparedShaders.end(); )
+	{
+		if ( it->second != script ) { ++it; continue; }
+		if ( !m_window.get_gpu_context().prepare_shader( it->first ) ) { ready = false; ++it; }
+		else it = m_preparedShaders.erase( it );
+	}
 	for ( auto *base : m_texturePool )
 	{
 		auto *texture = dynamic_cast<FeTextureContainer *>( base );

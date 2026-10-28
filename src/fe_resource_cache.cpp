@@ -3,6 +3,8 @@
 #include "image_loader.hpp"
 #include "fe_present.hpp"
 #include "fe_util.hpp"
+#include "fe_glslang.hpp"
+#include <fstream>
 
 #include <condition_variable>
 #include <atomic>
@@ -388,4 +390,188 @@ void FeResourceCache::wait()
 {
 	std::unique_lock<std::mutex> lock( m_impl->mutex );
 	m_impl->idle.wait( lock, [this]{ return m_impl->jobs.empty() && !m_impl->running; } );
+}
+
+namespace
+{
+	std::string join_path( const std::string &base, const std::string &suffix )
+	{
+		if ( base.empty() )
+			return suffix;
+
+		const char last = base[ base.size() - 1 ];
+		if ( last == '/' || last == '\\' )
+			return base + suffix;
+
+		return base + "/" + suffix;
+	}
+
+	std::string get_base_path()
+	{
+		return get_program_path();
+	}
+
+	std::string get_shader_cache_base_path()
+	{
+#if !defined( SDL_PLATFORM_WINDOWS )
+		return absolute_path( clean_path( std::string( FE_DEFAULT_CFG_PATH ) + FE_CACHE_SUBDIR ) );
+#else
+		return join_path( get_base_path(), FE_CACHE_SUBDIR );
+#endif
+	}
+
+	struct ShaderCompileCacheEntry
+	{
+		std::string key;
+		std::atomic<bool> started{ false }, ready{ false };
+		std::mutex mutex;
+		std::condition_variable loaded;
+		bool compile_failed;
+		ShaderBlob blob;
+
+		ShaderCompileCacheEntry()
+			: compile_failed( false )
+		{
+		}
+	};
+
+	bool file_exists( const std::string &path )
+	{
+		std::ifstream stream( path.c_str(), std::ios::binary );
+		return stream.good();
+	}
+
+	bool read_binary_file( const std::string &path, std::vector<Uint8> &code )
+	{
+		std::ifstream stream( path.c_str(), std::ios::binary );
+		if ( !stream )
+			return false;
+
+		stream.seekg( 0, std::ios::end );
+		const std::streamoff size = stream.tellg();
+		stream.seekg( 0, std::ios::beg );
+
+		if ( size <= 0 )
+			return false;
+
+		code.resize( static_cast<std::size_t>( size ) );
+		stream.read( reinterpret_cast<char *>( code.data() ), size );
+		return stream.good();
+	}
+
+	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code )
+	{
+		if ( code.empty() )
+			return false;
+
+		std::ofstream stream( path.c_str(), std::ios::binary | std::ios::trunc );
+		if ( !stream )
+			return false;
+
+		stream.write( reinterpret_cast<const char *>( code.data() ), static_cast<std::streamsize>( code.size() ) );
+		return stream.good();
+	}
+
+	bool compile_shader_blob_uncached(
+		const std::string &source_id,
+		const std::string &translated_source,
+		bool vertex_stage,
+		ShaderBlob &blob, const std::string &root )
+	{
+		std::string cache_root = root;
+		confirm_directory( cache_root, "" );
+		confirm_directory( cache_root, "shaders/" );
+		cache_root = join_path( cache_root, "shaders/" );
+		confirm_directory( cache_root, "sdl3/" );
+		cache_root = join_path( cache_root, "sdl3/" );
+
+		std::string shader_name = path_filename( source_id );
+		if ( shader_name.empty() )
+			shader_name = source_id;
+
+		const std::string cache_name =
+			sanitize_filename( shader_name ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
+		const std::string stage_name = vertex_stage ? "vert" : "frag";
+		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
+		bool compiled = false;
+		if ( !file_exists( spirv_path ) || !read_binary_file( spirv_path, blob.code ) || blob.code.empty() )
+		{
+			std::string diagnostics;
+			blob.code.clear();
+			compiled = true;
+
+			if ( !fe_glslang_compile_to_spirv( shader_name, translated_source, vertex_stage, blob.code, diagnostics ) || blob.code.empty() )
+			{
+				FeLog() << "SDL: shader_compile: error " << shader_name << std::endl;
+				if ( !diagnostics.empty() )
+					FeLog() << "SDL: " << diagnostics << std::endl;
+				return false;
+			}
+
+			if ( !diagnostics.empty() )
+				FeDebug() << "SDL: " << diagnostics << std::endl;
+
+			write_binary_file( spirv_path, blob.code );
+		}
+
+		if ( compiled )
+			FeDebug() << "SDL: shader_compile: ok " << shader_name << std::endl;
+
+		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
+		blob.entrypoint = "main";
+
+		return true;
+	}
+
+}
+
+bool compile_shader_blob( const std::string &source_id, const std::string &source,
+	bool vertex, ShaderBlob &blob, std::shared_ptr<void> *request, bool *pending )
+{
+	auto &cache = FeResourceCache::get();
+	const std::string key = std::string( vertex ? "vert|" : "frag|" ) + std::to_string( std::hash<std::string>{}( source ) );
+	auto entry = request ? std::static_pointer_cast<ShaderCompileCacheEntry>( *request ) : nullptr;
+	if ( entry && entry->key != key ) entry.reset();
+	if ( !entry ) entry = cache.find<ShaderCompileCacheEntry>( FeResourceCache::Shader, key );
+	if ( !entry )
+	{
+		auto candidate = std::make_shared<ShaderCompileCacheEntry>();
+		candidate->key = key;
+		entry = std::static_pointer_cast<ShaderCompileCacheEntry>( cache.acquire( FeResourceCache::Shader, key, candidate ) );
+	}
+	if ( request ) *request = entry;
+	if ( !entry->started.exchange( true ) )
+	{
+		const auto root = get_shader_cache_base_path();
+		auto compile = [entry, source_id, source, vertex, root, key]
+		{
+			try { entry->compile_failed = !compile_shader_blob_uncached( source_id, source, vertex, entry->blob, root ); }
+			catch ( const std::exception &error )
+			{
+				entry->compile_failed = true;
+				FeLog() << "Error preparing shader: " << source_id << ": " << error.what() << std::endl;
+			}
+			{
+				std::lock_guard<std::mutex> lock( entry->mutex );
+				entry->ready.store( true, std::memory_order_release );
+			}
+			entry->loaded.notify_all();
+			FeResourceCache::get().update( FeResourceCache::Shader, key, entry.get(), entry->blob.code.capacity() + sizeof( ShaderCompileCacheEntry ) );
+		};
+		if ( request ) cache.submit( std::move( compile ) );
+		else compile();
+	}
+	if ( pending )
+	{
+		*pending = !entry->ready.load( std::memory_order_acquire );
+		if ( *pending ) return false;
+	}
+	else
+	{
+		std::unique_lock<std::mutex> lock( entry->mutex );
+		entry->loaded.wait( lock, [&]{ return entry->ready.load( std::memory_order_acquire ); } );
+	}
+	if ( entry->compile_failed ) return false;
+	blob = entry->blob;
+	return !blob.code.empty();
 }
