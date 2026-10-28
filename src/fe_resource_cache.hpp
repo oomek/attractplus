@@ -7,6 +7,19 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "fe_audio_sdl.hpp"
+
+struct FeAudioResource
+{
+	std::atomic<bool> started{ false }, ready{ false };
+	std::mutex mutex;
+	std::condition_variable loaded;
+	FeAudioSampleBuffer buffer;
+	bool failed = false;
+	void wait();
+};
+
+std::shared_ptr<FeAudioResource> fe_get_audio_resource( const std::string &filename );
 
 class FeImageLoaderEntry;
 

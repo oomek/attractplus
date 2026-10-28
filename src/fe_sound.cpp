@@ -25,6 +25,7 @@
 #include "fe_present.hpp"
 #include "fe_util.hpp"
 #include "fe_file.hpp"
+#include "fe_resource_cache.hpp"
 #include "zip.hpp"
 
 #include <algorithm>
@@ -108,8 +109,7 @@ void FeSoundSystem::release_audio( bool state )
 }
 
 FeSound::FeSound( bool loop )
-	: m_buffer(),
-	m_stream(),
+	: m_stream(),
 	m_file_name( "" ),
 	m_rewind( true ),
 	m_volume( 100.0f ),
@@ -126,11 +126,13 @@ FeSound::FeSound( bool loop )
 	m_applied_position( 0.0f, 0.0f, 0.0f ),
 	m_applied_spatialization_enabled( false )
 {
+	if ( auto *present = FePresent::script_get_fep() ) m_script_id = present->get_script_id();
 }
 
 FeSound::~FeSound()
 {
 	release_audio( true );
+	FeResourceCache::get().retire( std::move( m_resource ) );
 }
 
 bool FeSound::ensure_stream()
@@ -154,7 +156,8 @@ bool FeSound::ensure_stream()
 
 void FeSound::sync_playback_position()
 {
-	const std::uint64_t total_frames = m_buffer.frame_count();
+	if ( !resolve_resource() ) return;
+	const std::uint64_t total_frames = m_resource->buffer.frame_count();
 	if ( total_frames == 0 )
 	{
 		m_current_frame = 0;
@@ -189,13 +192,14 @@ void FeSound::restart_stream()
 
 void FeSound::pump_audio()
 {
-	if ( m_status != FePlaybackStatusPlaying || m_buffer.empty() )
+	if ( m_status != FePlaybackStatusPlaying || !resolve_resource() )
 		return;
 
 	if ( !ensure_stream() )
 		return;
 
-	const std::uint64_t total_frames = m_buffer.frame_count();
+	const auto &buffer = m_resource->buffer;
+	const std::uint64_t total_frames = buffer.frame_count();
 	std::vector<float> chunk;
 
 	while ( m_stream.queued_frames() < FE_SOUND_QUEUE_TARGET_FRAMES )
@@ -216,9 +220,9 @@ void FeSound::pump_audio()
 			break;
 		}
 
-		const std::size_t first_sample = static_cast<std::size_t>( start_frame ) * m_buffer.channel_count;
-		const std::size_t sample_count = static_cast<std::size_t>( chunk_frames ) * m_buffer.channel_count;
-		chunk.assign( m_buffer.samples.begin() + first_sample, m_buffer.samples.begin() + first_sample + sample_count );
+		const std::size_t first_sample = static_cast<std::size_t>( start_frame ) * buffer.channel_count;
+		const std::size_t sample_count = static_cast<std::size_t>( chunk_frames ) * buffer.channel_count;
+		chunk.assign( buffer.samples.begin() + first_sample, buffer.samples.begin() + first_sample + sample_count );
 		fe_audio_apply_balance( chunk, m_pan, m_spatialization_enabled, m_position );
 
 		if ( !m_stream.queue_frames( chunk.data(), static_cast<int>( chunk_frames ) ) )
@@ -251,6 +255,7 @@ void FeSound::release_audio( bool state )
 
 void FeSound::tick()
 {
+	if ( !resolve_resource() ) return;
 	if ( m_stream.is_stale() )
 	{
 		sync_playback_position();
@@ -284,37 +289,46 @@ void FeSound::tick()
 		pump_audio();
 }
 
+bool FeSound::resolve_resource()
+{
+	if ( !m_resource || !m_resource->ready.load( std::memory_order_acquire ) ) return false;
+	if ( m_resource->failed )
+	{
+		m_file_name.clear();
+		m_status = FePlaybackStatusStopped;
+		return false;
+	}
+	return true;
+}
+
 void FeSound::load( const std::string &fn )
 {
-	if ( !fe_decode_audio_file_to_buffer( fn, m_buffer ) )
-	{
-		FeLog() << "Error loading sound file: " << fn << std::endl;
-		m_file_name = "";
-		m_status = FePlaybackStatusStopped;
-		m_current_frame = 0;
-		m_source_frame = 0;
-		m_total_frames_written = 0;
-		m_stream.clear();
-		return;
-	}
-
+	auto previous = std::move( m_resource );
 	m_file_name = fn;
 	m_status = FePlaybackStatusStopped;
-	m_current_frame = 0;
-	m_source_frame = 0;
-	m_total_frames_written = 0;
+	m_current_frame = m_source_frame = m_total_frames_written = 0;
 	m_stream.clear();
+	if ( !fn.empty() ) m_resource = fe_get_audio_resource( fn );
+	FeResourceCache::get().retire( std::move( previous ) );
+	if ( !m_resource ) return;
+	const auto *present = FePresent::script_get_fep();
+	if ( !present || present->get_script_version( m_script_id ) < 4 ) m_resource->wait();
+	if ( m_resource->ready && !resolve_resource() ) return;
 	if ( m_stream.failed() ) m_stream.destroy();
 	m_stream.prepare();
 }
 
 void FeSound::set_file_name( const char *n )
 {
-	FeLog() << "sound.file_name is deprecated. Go to Layouts.md for more info." << std::endl;
+	std::string filename = clean_path( n );
+	if ( !filename.empty() && is_relative_path( filename ) )
+		filename = FePresent::script_get_base_path() + filename;
+	load( filename );
 }
 
 const char *FeSound::get_file_name()
 {
+	resolve_resource();
 	return m_file_name.c_str();
 }
 
@@ -369,14 +383,15 @@ void FeSound::set_playing( bool flag )
 		return;
 	}
 
-	if ( m_file_name.empty() || m_buffer.empty() )
+	const bool ready = resolve_resource();
+	if ( m_file_name.empty() || !m_resource )
 	{
 		m_status = FePlaybackStatusStopped;
 		return;
 	}
 
 	const bool ended = ( get_status() == FePlaybackStatusEnded );
-	if (( m_status == FePlaybackStatusPlaying ) || ended || ( m_current_frame >= m_buffer.frame_count() ))
+	if (( m_status == FePlaybackStatusPlaying ) || ended || ( ready && m_current_frame >= m_resource->buffer.frame_count() ))
 		m_current_frame = 0;
 
 	if ( m_stream.failed() ) m_stream.destroy();
@@ -488,7 +503,7 @@ void FeSound::set_z( float p )
 
 int FeSound::get_duration()
 {
-	return m_buffer.duration_ms();
+	return resolve_resource() ? m_resource->buffer.duration_ms() : 0;
 }
 
 int FeSound::get_time()
