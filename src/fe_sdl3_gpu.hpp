@@ -36,6 +36,8 @@
 #include <tuple>
 class FeImage;
 class FeMedia;
+class FeImageLoaderEntry;
+struct FeImageTexture;
 
 class FeSdl3GpuContext
 {
@@ -106,7 +108,11 @@ private:
 		SDL_GPUTextureCreateInfo texture_info = {};
 		SDL_GPUTransferBuffer *transfer_buffer = nullptr;
 		Uint32 transfer_buffer_size = 0;
+		unsigned long long transfer_serial = 0;
+		unsigned long long media_id = 0;
 		bool upload_pending = false;
+		std::shared_ptr<FeImageLoaderEntry> image_source;
+		std::shared_ptr<FeImageTexture> image_texture;
 	};
 	struct VideoUpload
 	{
@@ -123,6 +129,9 @@ private:
 	struct VideoUploadWorkers;
 	std::unique_ptr<VideoUploadWorkers> m_video_upload_workers;
 	std::vector<VideoUpload> m_video_uploads;
+	SDL_GPUFence *m_texture_upload_fence = nullptr;
+	unsigned long long m_texture_upload_serial = 0;
+	unsigned long long m_completed_texture_upload_serial = 0;
 
 	struct GeometryBufferEntry
 	{
@@ -298,9 +307,12 @@ private:
 		std::vector<FeRenderVertex> &vertex_stream );
 	void release_texture( TextureEntry &entry );
 	void retire_texture( TextureEntry &entry );
-	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry, SDL_GPUCommandBuffer *command_buffer = nullptr );
+	bool use_image_texture( TextureEntry &entry, bool blocking );
+	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry, SDL_GPUCommandBuffer *command_buffer = nullptr, bool blocking=false );
 	bool submit_texture_upload( TextureEntry &entry, unsigned int source_width, unsigned int source_height, SDL_GPUCommandBuffer *command_buffer );
 	bool flush_video_uploads();
+	bool submit_texture_commands( SDL_GPUCommandBuffer *command_buffer );
+	void reset_media_texture( const FeMedia *media, TextureEntry &entry );
 	void release_white_texture();
 	bool ensure_white_texture();
 	void release_white_cube_texture();

@@ -415,7 +415,9 @@ void FeTextureContainer::swap_media( FeTextureContainer &other )
 	std::swap( m_audio_effects, other.m_audio_effects );
 	std::swap( m_video_files, other.m_video_files );
 	std::swap( m_image_files, other.m_image_files );
+	std::swap( m_rom_info, other.m_rom_info );
 	std::swap( m_entry, other.m_entry );
+	std::swap( m_image_texture, other.m_image_texture );
 	std::swap( m_previous_entry, other.m_previous_entry );
 	std::swap( m_texture_size, other.m_texture_size );
 	std::swap( m_content_version, other.m_content_version );
@@ -462,6 +464,18 @@ bool FeTextureContainer::get_visible() const
 
 bool FeTextureContainer::fix_masked_image()
 {
+	if ( m_entry )
+	{
+		auto &loader = FeImageLoader::get_ref();
+		auto image = loader.mask_image( m_entry, m_mipmap );
+		if ( !image ) return false;
+		loader.release_entry( &m_entry );
+		m_entry = std::move( image );
+		m_image_texture = loader.prepare_image( m_entry, m_mipmap, false );
+		m_content_version = next_texture_content_version();
+		notify_texture_change();
+		return true;
+	}
 	unsigned int width = 0;
 	unsigned int height = 0;
 	std::vector<unsigned char> pixels;
@@ -599,11 +613,11 @@ bool FeTextureContainer::try_to_load(
 
 	auto *present = FePresent::script_get_fep();
 	il.load_image_from_file( loaded_name, &m_entry,
-		!synchronous && ( is_v4_script() || ( present && present->get_script_background_loading( m_script_id ) ) ) );
+		!synchronous && ( is_v4_script() || ( present && present->get_script_background_loading( m_script_id ) ) ), m_mipmap, &m_image_texture );
 	m_file_name = loaded_name;
 	if ( m_entry && m_entry->is_loaded() )
 	{
-		if ( !m_entry->get_data() )
+		if ( m_entry->failed() )
 		{
 			il.release_entry( &m_entry );
 			return false;
@@ -643,8 +657,8 @@ const void *FeTextureContainer::get_texture_source_id() const
 {
 	if ( m_movie )
 		return m_movie;
-	if ( m_entry && m_entry->is_loaded() && m_entry->get_data() )
-		return m_entry->get_texture();
+	if ( m_entry )
+		return m_entry.get();
 	return this;
 }
 
@@ -652,7 +666,7 @@ int FeTextureContainer::get_texture_source_type() const
 {
 	if ( m_movie )
 		return FeRenderTextureSourceMedia;
-	return get_texture_source_id() == this ? FeRenderTextureSourceContainer : FeRenderTextureSourceRawRgba;
+	return m_entry ? FeRenderTextureSourceImage : FeRenderTextureSourceContainer;
 }
 
 void FeTextureContainer::on_new_selection( FeSettings *feSettings )
@@ -716,6 +730,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 
 	std::vector<std::string> vid_list;
 	std::vector<std::string> image_list;
+	std::unique_ptr<FeRomInfo> rom_info;
 
 	if ( m_type == IsArtwork )
 	{
@@ -730,8 +745,12 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 			(m_video_flags & VF_DisableVideo) );
 		if ( !vid_list.empty() && image_list.empty() )
 		{
-			std::vector<std::string> ignored;
-			feSettings->get_best_artwork_file( *rom, m_art_name, ignored, image_list, true );
+			if ( is_v4_script() ) rom_info = std::make_unique<FeRomInfo>( *rom );
+			else
+			{
+				std::vector<std::string> ignored;
+				feSettings->get_best_artwork_file( *rom, m_art_name, ignored, image_list, true );
+			}
 		}
 	}
 	else if ( m_type == IsDynamic )
@@ -753,6 +772,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 	m_video_files = std::move( vid_list );
 	m_image_files = std::move( image_list );
 	load_next_artwork();
+	m_rom_info = std::move( rom_info );
 	notify_texture_change();
 }
 
@@ -791,6 +811,11 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 			return false;
 		if ( result < 0 )
 		{
+			if ( m_rom_info )
+			{
+				std::vector<std::string> ignored;
+				feSettings->get_best_artwork_file( *m_rom_info, m_art_name, ignored, m_image_files, true );
+			}
 			clear();
 			load_next_artwork();
 			notify_texture_change();
@@ -802,6 +827,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 		m_audio_effects = m_movie->get_audio_effects();
 		m_video_files.clear();
 		m_image_files.clear();
+		m_rom_info.reset();
 		m_movie->set_fft_bands( m_fft_bands );
 		// Opening already ran in the background; no scrolling delay is needed.
 		m_movie_status = m_movie_status > 0 ? PLAY_COUNT : 0;
@@ -817,7 +843,7 @@ bool FeTextureContainer::tick( FeSettings *feSettings, bool play_movies )
 	//
 	if ( m_entry && m_texture_size.x == 0 && m_entry->is_loaded() )
 	{
-		if ( !m_entry->get_data() )
+		if ( m_entry->failed() )
 		{
 			clear();
 			load_next_artwork();
@@ -1031,6 +1057,7 @@ void FeTextureContainer::load_file( const char *n, bool synchronous )
 	if ( !m_preload ) discard_prepared();
 	m_video_files.clear();
 	m_image_files.clear();
+	m_rom_info.reset();
 	std::string filename = clean_path( n );
 
 	if ( filename.empty() )
@@ -1098,6 +1125,8 @@ FeTextureContainer *FeTextureContainer::get_derived_texture_container()
 
 void FeTextureContainer::clear()
 {
+	m_rom_info.reset();
+	m_image_texture.reset();
 	FeImageLoader::get_ref().release_entry( &m_previous_entry );
 	m_previous_entry = std::move( m_entry );
 	m_movie_status = -1;
@@ -1139,13 +1168,7 @@ bool FeTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pixels, u
 		if ( width == 0 || height == 0 )
 			return false;
 
-		const unsigned char *src = m_entry->get_data();
-		if ( !src )
-			return false;
-
-		const std::size_t data_size = static_cast<std::size_t>( width ) * static_cast<std::size_t>( height ) * 4;
-		pixels.assign( src, src + data_size );
-		return true;
+		return m_entry->copy_pixels( pixels );
 	}
 
 	width = m_texture_size.x;
@@ -1186,11 +1209,9 @@ bool FeTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_co
 		if ( pixel_count < data_size )
 			return false;
 
-		const unsigned char *src = m_entry->get_data();
-		if ( !src )
-			return false;
-
-		std::memcpy( pixels, src, data_size );
+		std::vector<unsigned char> source;
+		if ( !m_entry->copy_pixels( source ) ) return false;
+		std::memcpy( pixels, source.data(), data_size );
 		return true;
 	}
 
@@ -1231,6 +1252,7 @@ bool FeTextureContainer::get_smooth() const
 void FeTextureContainer::set_mipmap( bool m )
 {
 	m_mipmap = m;
+	if ( m_entry ) m_image_texture = FeImageLoader::get_ref().prepare_image( m_entry, m, false );
 }
 
 bool FeTextureContainer::get_mipmap() const

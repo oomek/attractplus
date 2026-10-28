@@ -3802,7 +3802,7 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_image_cache_mbytes = std::max( 0, as_int( value ) );
 
 		FeDebug() << "Setting image cache size to " << m_image_cache_mbytes << " MBytes." << std::endl;
-		FeImageLoader::set_cache_size( m_image_cache_mbytes * 1024 * 1024 );
+		FeImageLoader::set_cache_size( static_cast<size_t>( m_image_cache_mbytes ) * 1024 * 1024 );
 		break;
 
 	case MoveMouseOnLaunch:

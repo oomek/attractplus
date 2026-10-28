@@ -64,6 +64,7 @@ extern "C"
 #include <memory>
 #include <utility>
 #include <future>
+#include <map>
 
 #if ( LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
@@ -85,6 +86,7 @@ int fe_media_interrupt( void *opaque );
 
 namespace
 {
+	std::atomic<unsigned long long> media_ids{ 0 };
 	constexpr int FE_MEDIA_AUDIO_QUEUE_TARGET_FRAMES = 4800;
 	constexpr int FE_MEDIA_AUDIO_QUEUE_LOW_FRAMES = 2400;
 	constexpr int FE_MEDIA_AUDIO_PROCESS_CHUNK_FRAMES = 480;
@@ -360,7 +362,7 @@ class FeVideoImp : public FeBaseStream
 private:
 	struct Frame
 	{
-		std::uint8_t *pixels = NULL;
+		std::shared_ptr<std::uint8_t> pixels;
 		FeTime time;
 	};
 
@@ -651,8 +653,6 @@ FeVideoImp::FeVideoImp( FeMedia *parent )
 FeVideoImp::~FeVideoImp()
 {
 	stop();
-	for ( Frame &frame : m_frames )
-		av_freep( &frame.pixels );
 }
 
 #if FE_HWACCEL
@@ -760,7 +760,7 @@ bool FeVideoImp::copy_rgba_frame( std::vector<unsigned char> &pixels, unsigned i
 	// writes free buffers, so a display copy never needs its queue lock.
 	if ( m_displayed_frame < 0 || !get_rgba_frame_dimensions( width, height ) )
 		return false;
-	const std::uint8_t *source = m_frames[m_displayed_frame].pixels;
+	const std::uint8_t *source = m_frames[m_displayed_frame].pixels.get();
 	pixels.assign( source, source + static_cast<std::size_t>( width ) * height * 4 );
 	return true;
 }
@@ -772,7 +772,7 @@ bool FeVideoImp::copy_rgba_frame_to( void *pixels, std::size_t pixel_count, unsi
 	const std::size_t size = static_cast<std::size_t>( width ) * height * 4;
 	if ( pixel_count < size )
 		return false;
-	std::memcpy( pixels, m_frames[m_displayed_frame].pixels, size );
+	std::memcpy( pixels, m_frames[m_displayed_frame].pixels.get(), size );
 	return true;
 }
 
@@ -909,8 +909,8 @@ bool FeVideoImp::queue_frame()
 		m_free_frames.pop_front();
 	}
 	Frame &output = m_frames[index];
-	if ( !output.pixels )
-		output.pixels = static_cast<std::uint8_t *>( av_malloc( static_cast<std::size_t>( disptex_width ) * disptex_height * 4 ) );
+	if ( !output.pixels || output.pixels.use_count() != 1 )
+		output.pixels.reset( static_cast<std::uint8_t *>( av_malloc( static_cast<std::size_t>( disptex_width ) * disptex_height * 4 ) ), av_free );
 	if ( !output.pixels )
 	{
 		std::lock_guard<std::mutex> lock( m_image_mutex );
@@ -918,7 +918,7 @@ bool FeVideoImp::queue_frame()
 		FeLog() << "Error allocating video frame." << std::endl;
 		return false;
 	}
-	std::uint8_t *buffers[4] = { output.pixels, NULL, NULL, NULL };
+	std::uint8_t *buffers[4] = { output.pixels.get(), NULL, NULL, NULL };
 	int linesize[4] = { disptex_width * 4, 0, 0, 0 };
 	const int rows = sws_scale( sws_ctx, frame->data, frame->linesize,
 		0, frame->height, buffers, linesize );
@@ -937,7 +937,8 @@ bool FeVideoImp::queue_frame()
 }
 
 FeMedia::FeMedia( Type t, std::shared_ptr<FeAudioEffectsManager> effects_manager )
-	: m_audio( NULL ),
+	: m_id( ++media_ids ),
+	m_audio( NULL ),
 	m_video( NULL ),
 	m_audio_effects( std::move( effects_manager ) ),
 	m_aspect_ratio( 1.0f ),
@@ -1845,6 +1846,16 @@ bool FeMedia::copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, u
 	return m_video && m_video->copy_rgba_frame_to( pixels, pixel_count, width, height );
 }
 
+std::shared_ptr<const unsigned char> FeMedia::pin_video_frame( unsigned int &width, unsigned int &height, bool blocking )
+{
+	if ( !m_video ) return {};
+	std::unique_lock<std::mutex> lock( m_video->m_image_mutex, std::defer_lock );
+	if ( blocking ) lock.lock();
+	else lock.try_lock();
+	if ( !lock.owns_lock() || m_video->m_displayed_frame < 0 || !m_video->get_rgba_frame_dimensions( width, height ) ) return {};
+	return m_video->m_frames[m_video->m_displayed_frame].pixels;
+}
+
 void FeMedia::clear_video_frame()
 {
 	if ( m_video )
@@ -1871,6 +1882,17 @@ bool FeMedia::is_supported_media_file( const std::string &filename )
 	{
 		std::string f = filename.substr( pos + 1 );
 		std::transform( f.begin(), f.end(), f.begin(), ::tolower );
+		// Known format names are independent of the filename. Artwork lookup
+		// checks these repeatedly for every tile, often twice per selection.
+		static std::mutex mutex;
+		static std::map<std::string, bool> formats;
+		{
+			std::lock_guard<std::mutex> lock( mutex );
+			auto found = formats.find( f );
+			if ( found == formats.end() )
+				found = formats.emplace( f, av_guess_format( f.c_str(), NULL, NULL ) != NULL ).first;
+			if ( found->second ) return true;
+		}
 		return ( av_guess_format( f.c_str(), filename.c_str(), NULL ) != NULL );
 	}
 

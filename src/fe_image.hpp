@@ -36,6 +36,7 @@
 #include "fe_audio_fx.hpp"
 
 class FeSettings;
+class FeRomInfo;
 class FeMedia;
 class FeImage;
 class FeModel3D;
@@ -44,6 +45,7 @@ class FeListBox;
 class FeRectangle;
 class FeTextureContainer;
 class FeImageLoaderEntry;
+struct FeImageTexture;
 
 enum FeVideoFlags
 {
@@ -279,6 +281,7 @@ private:
 	FeMedia *m_pending_movie;
 	std::vector<std::string> m_video_files;
 	std::vector<std::string> m_image_files;
+	std::unique_ptr<FeRomInfo> m_rom_info;
 	int m_movie_status; // 0=no play, 1=ready to play, >=PLAY_COUNT=playing
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;
@@ -287,6 +290,7 @@ private:
 	float m_pan;
 	int m_fft_bands;
 	std::shared_ptr<FeImageLoaderEntry> m_entry;
+	std::shared_ptr<FeImageTexture> m_image_texture;
 	std::shared_ptr<FeImageLoaderEntry> m_previous_entry;
 	std::shared_ptr<FeAudioEffectsManager> m_audio_effects;
 	mutable std::vector<float> m_fft_mono;
