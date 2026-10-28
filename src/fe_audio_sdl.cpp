@@ -21,6 +21,7 @@
  */
 
 #include "fe_audio_sdl.hpp"
+#include "fe_util.hpp"
 
 #include "fe_base.hpp"
 

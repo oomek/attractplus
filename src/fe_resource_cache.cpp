@@ -1,6 +1,7 @@
 #include "fe_resource_cache.hpp"
 #include "fe_base.hpp"
 #include "image_loader.hpp"
+#include "fe_util.hpp"
 
 #include <condition_variable>
 #include <atomic>
@@ -10,6 +11,47 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+
+void FeAudioResource::wait()
+{
+	std::unique_lock<std::mutex> lock( mutex );
+	loaded.wait( lock, [this]{ return ready.load( std::memory_order_acquire ); } );
+}
+
+std::shared_ptr<FeAudioResource> fe_get_audio_resource( const std::string &filename )
+{
+	auto &cache = FeResourceCache::get();
+	std::string key = filename + "|" + std::to_string( get_file_mtime( filename ) );
+	auto resource = cache.find<FeAudioResource>( FeResourceCache::Audio, key );
+	if ( resource && resource->ready.load( std::memory_order_acquire ) && resource->failed )
+	{
+		resource = std::make_shared<FeAudioResource>();
+		cache.put( FeResourceCache::Audio, key, resource, 0 );
+	}
+	if ( !resource ) resource = std::static_pointer_cast<FeAudioResource>(
+		cache.acquire( FeResourceCache::Audio, key, std::make_shared<FeAudioResource>() ) );
+	if ( !resource->started.exchange( true ) ) cache.submit( [resource, filename, key]
+	{
+		try
+		{
+			resource->failed = !fe_decode_audio_file_to_buffer( filename, resource->buffer );
+		}
+		catch ( const std::exception &error )
+		{
+			resource->failed = true;
+			FeLog() << "Error preparing audio file: " << filename << ": " << error.what() << std::endl;
+		}
+		if ( resource->failed ) FeLog() << "Error loading audio file: " << filename << std::endl;
+		{
+			std::lock_guard<std::mutex> lock( resource->mutex );
+			resource->ready.store( true, std::memory_order_release );
+		}
+		resource->loaded.notify_all();
+		FeResourceCache::get().update( FeResourceCache::Audio, key, resource.get(),
+			resource->buffer.samples.capacity() * sizeof( float ) + sizeof( FeAudioResource ) );
+	} );
+	return resource;
+}
 
 FeImageCache::FeImageCache( std::size_t bytes ) { FeResourceCache::get().resize( bytes ); }
 FeImageCache::~FeImageCache() { FeResourceCache::get().clear( FeResourceCache::Image ); }
