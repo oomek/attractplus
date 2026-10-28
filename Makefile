@@ -561,6 +561,8 @@ else
   FE_FLAGS += -DFE_CACHE_VERSION_D=$(VER_MAJOR)$(VER_MINOR)$(VER_POINT)
 endif
 
+$(OBJ_DIR)/attractplus.res: $(SRC_DIR)/attractplus.exe.manifest
+
 $(OBJ_DIR)/%.res: $(SRC_DIR)/%.rc | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(WINDRES) $(FE_FLAGS) $< -O coff -o $@

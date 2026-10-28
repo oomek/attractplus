@@ -57,6 +57,7 @@ public:
 	void open_async( const std::string &archive, const std::string &name, bool new_effects=false );
 	// Background open result: 0=pending, 1=opened, -1=failed.
 	int get_open_result() const;
+	unsigned long long get_id() const { return m_id; }
 	std::shared_ptr<FeAudioEffectsManager> get_audio_effects() const { return m_audio_effects; }
 
 	void play();
@@ -82,6 +83,7 @@ public:
 	bool get_video_frame_dimensions( unsigned int &width, unsigned int &height );
 	bool copy_video_frame_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height );
 	bool copy_video_frame_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height );
+	std::shared_ptr<const unsigned char> pin_video_frame( unsigned int &width, unsigned int &height, bool blocking=false );
 	void clear_video_frame();
 	unsigned long long get_video_frame_serial() const;
 
@@ -118,6 +120,7 @@ private:
 	void open_thread( std::string archive, std::string name );
 	void await_play_thread();
 
+	const unsigned long long m_id;
 	FeMediaImp *m_imp;
 	FeAudioImp *m_audio;
 	FeVideoImp *m_video;

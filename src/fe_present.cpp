@@ -508,6 +508,7 @@ void FePresent::clear_resources()
 void FePresent::clear_layout()
 {
 	m_layout_loaded = false;
+	FeImageLoader::get_ref().cancel_pending();
 	discard_prepared_media();
 	m_script_options.clear();
 	m_preparing_script = -2;
@@ -2617,7 +2618,9 @@ bool FePresent::reuse_artwork( FeTextureContainer *target, int filter_index, int
 		std::swap( target->m_audio_effects, source->m_audio_effects );
 		std::swap( target->m_video_files, source->m_video_files );
 		std::swap( target->m_image_files, source->m_image_files );
+		std::swap( target->m_rom_info, source->m_rom_info );
 		std::swap( target->m_entry, source->m_entry );
+		std::swap( target->m_image_texture, source->m_image_texture );
 		std::swap( target->m_previous_entry, source->m_previous_entry );
 		std::swap( target->m_texture_size, source->m_texture_size );
 		std::swap( target->m_content_version, source->m_content_version );
