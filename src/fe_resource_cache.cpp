@@ -1,6 +1,7 @@
 #include "fe_resource_cache.hpp"
 #include "fe_base.hpp"
 #include "image_loader.hpp"
+#include "fe_present.hpp"
 #include "fe_util.hpp"
 
 #include <condition_variable>
@@ -11,6 +12,40 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+
+const FeFont &FeFontContainer::get_font() const
+{
+	if ( !m_cache_key.empty() ) FeResourceCache::get().update( FeResourceCache::Font, m_cache_key, this,
+		m_font.memory_bytes() + m_font_binary_data.capacity() + sizeof( FeFontContainer ) );
+	return m_font;
+}
+
+std::shared_ptr<FeFontContainer> FeFontContainer::acquire( const std::string &filename, bool wait )
+{
+	auto &cache = FeResourceCache::get();
+	const std::string key = filename + "|" + std::to_string( get_file_mtime( filename ) );
+	auto font = cache.find<FeFontContainer>( FeResourceCache::Font, key );
+	if ( !font ) font = std::static_pointer_cast<FeFontContainer>( cache.acquire(
+		FeResourceCache::Font, key, std::make_shared<FeFontContainer>() ) );
+	if ( !font->m_started.exchange( true ) ) cache.submit( [font, filename, key]
+	{
+		font->m_cache_key = key;
+		try { font->set_font( filename ); }
+		catch ( const std::exception &error ) { FeLog() << "Error preparing font: " << filename << ": " << error.what() << std::endl; }
+		{
+			std::lock_guard<std::mutex> lock( font->m_load_mutex );
+			font->m_loaded.store( true, std::memory_order_release );
+		}
+		font->m_load_ready.notify_all();
+		FeResourceCache::get().update( FeResourceCache::Font, key, font.get(), sizeof( FeFontContainer ) );
+	} );
+	if ( wait )
+	{
+		std::unique_lock<std::mutex> lock( font->m_load_mutex );
+		font->m_load_ready.wait( lock, [&]{ return font->m_loaded.load( std::memory_order_acquire ); } );
+	}
+	return font;
+}
 
 void FeAudioResource::wait()
 {

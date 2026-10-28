@@ -21,6 +21,7 @@
  */
 
 #include "fe_present.hpp"
+#include "fe_resource_cache.hpp"
 #include "fe_animation.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
@@ -141,11 +142,6 @@ void FeFontContainer::load_default_font()
 {
 	m_font_binary_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
 	std::ignore = m_font.openFromMemory( m_font_binary_data.data(), m_font_binary_data.size() );
-}
-
-const FeFont &FeFontContainer::get_font() const
-{
-	return m_font;
 }
 
 void FeFontContainer::clear_font()
@@ -581,12 +577,7 @@ void FePresent::clear_layout()
 		m_emptyShader = NULL;
 	}
 
-	while ( !m_fontPool.empty() )
-	{
-		FeFontContainer *f = m_fontPool.back();
-		m_fontPool.pop_back();
-		delete f;
-	}
+	m_fontPool.clear();
 
 	m_baseRotation = m_feSettings->get_screen_rotation();
 
@@ -2118,19 +2109,18 @@ const FeFontContainer *FePresent::get_pooled_font(
 
 	// Next check if this font is already loaded in our pool
 	//
-	for ( std::vector<FeFontContainer *>::iterator itr=m_fontPool.begin();
+	for ( auto itr=m_fontPool.begin();
 		itr != m_fontPool.end(); ++itr )
 	{
 		if ( ffile.compare( (*itr)->get_name() ) == 0 )
-			return *itr;
+			return itr->get();
 	}
 
 	// No match, so load this font and add it to the pool
 	//
-	m_fontPool.push_back( new FeFontContainer() );
-	m_fontPool.back()->set_font( ffile );
+	m_fontPool.push_back( FeFontContainer::acquire( ffile ) );
 
-	return m_fontPool.back();
+	return m_fontPool.back().get();
 }
 
 void FePresent::set_layout_font_name( const char *n )
