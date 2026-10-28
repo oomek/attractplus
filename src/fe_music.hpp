@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -52,6 +53,11 @@ private:
 
 	FeSdlAudioStream m_stream;
 	std::unique_ptr<FeAudioFileDecoder> m_decoder;
+	struct Pending;
+	std::shared_ptr<Pending> m_pending_decoder;
+	std::map<std::string, std::string> m_metadata;
+	int m_script_id = -1;
+	bool m_background = false, m_primed = false;
 	std::string m_file_name;
 	bool m_rewind;
 	bool m_loop;
@@ -135,6 +141,8 @@ private:
 	void sync_playback_position();
 	void restart_stream();
 	void pump_audio();
+	bool resolve_decoder();
+	bool seek_decoder();
 
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
