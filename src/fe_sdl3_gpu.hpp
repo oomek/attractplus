@@ -66,6 +66,7 @@ public:
 	FrameStatus acquire_frame( bool wait = false );
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
+	bool prepare_shader( const FeShader * );
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	bool has_frame_content() const;
@@ -236,6 +237,8 @@ private:
 		bool has_custom_vertex;
 		bool fast_current_texture_only;
 		bool compile_failed;
+		bool compiling = false;
+		std::shared_ptr<void> fragment_compile, vertex_compile;
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
@@ -264,6 +267,8 @@ private:
 		std::string source_path;
 		unsigned long long source_stamp;
 		bool compile_failed;
+		bool compiling = false;
+		std::shared_ptr<void> fragment_compile;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *pbr_pipelines[3][2][2];
 		std::vector<CustomUniformBinding> fragment_uniforms;
@@ -353,7 +358,8 @@ private:
 	void release_pbr_custom_shader( PbrCustomShaderEntry &entry );
 	void release_builtin_shaders();
 	void release_builtin_shader( BuiltinShaderEntry &entry );
-	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
+	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image, bool *pending = nullptr );
+	void prepare_pipelines( SDL_GPUTextureFormat );
 	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
 	PbrCustomShaderEntry *get_pbr_custom_shader_entry( const FeRenderGeometry &image );
 	BuiltinShaderEntry *get_fast_builtin_shader_entry( int blend_mode );

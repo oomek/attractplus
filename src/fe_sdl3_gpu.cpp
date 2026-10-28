@@ -21,7 +21,7 @@
  */
 
 #include "fe_sdl3_gpu.hpp"
-#include "fe_glslang.hpp"
+#include "fe_resource_cache.hpp"
 #include "fe_image.hpp"
 #include "fe_font.hpp"
 #include "media.hpp"
@@ -50,10 +50,6 @@
 namespace
 {
 	const int FE_MAX_CUSTOM_SHADER_UNIFORMS = 32;
-	std::string join_path( const std::string &base, const std::string &suffix );
-	std::string get_base_path();
-	bool read_binary_file( const std::string &path, std::vector<Uint8> &code );
-	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code );
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
@@ -108,12 +104,6 @@ namespace
 		return name;
 	}
 
-	struct ShaderBlob
-	{
-		SDL_GPUShaderFormat format;
-		std::vector<Uint8> code;
-		const char *entrypoint;
-	};
 
 	const char *get_builtin_image_fragment_shader_name( int mode )
 	{
@@ -2196,6 +2186,29 @@ bool FeSdl3GpuContext::has_frame_content() const
 	return false;
 }
 
+void FeSdl3GpuContext::prepare_pipelines( SDL_GPUTextureFormat format )
+{
+	const bool sample_count_changed = update_sample_count( format );
+	const bool anisotropy_changed = update_anisotropy();
+	if ( sample_count_changed || anisotropy_changed || m_swapchain_format != format || !m_blend_pipelines[0][FeBlend::Alpha] )
+	{
+		release_surfaces();
+		release_custom_shaders();
+		release_image_pipeline();
+		release_pbr_pipeline();
+		release_color_target();
+		release_depth_target();
+		m_swapchain_format = format;
+		m_pipeline_attempted = false;
+	}
+	if ( !m_pipeline_attempted )
+	{
+		initialize_image_pipeline( format );
+		initialize_pbr_pipeline( format );
+		m_pipeline_attempted = true;
+	}
+}
+
 bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height )
 {
 	if ( !is_available() || !has_submitted_frame() )
@@ -2232,30 +2245,10 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		return false;
 	}
 
-	const bool sample_count_changed = update_sample_count( target_format );
-	const bool anisotropy_changed = update_anisotropy();
-
-	if ( sample_count_changed || anisotropy_changed || ( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
-	{
-		release_surfaces();
-		release_custom_shaders();
-		release_image_pipeline();
-		release_pbr_pipeline();
-		release_color_target();
-		release_depth_target();
-		m_swapchain_format = target_format;
-		m_pipeline_attempted = false;
-	}
+	prepare_pipelines( target_format );
 
 	if ( !ensure_depth_target( width, height ) )
 		return false;
-
-	if ( !m_pipeline_attempted )
-	{
-		initialize_image_pipeline( target_format );
-		initialize_pbr_pipeline( target_format );
-		m_pipeline_attempted = true;
-	}
 
 	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] || !m_pbr_pipelines[ 0 ][ 0 ][ 0 ] )
 		return false;
@@ -2622,43 +2615,6 @@ namespace
 		return blend_mode;
 	}
 
-	std::string join_path( const std::string &base, const std::string &suffix )
-	{
-		if ( base.empty() )
-			return suffix;
-
-		const char last = base[ base.size() - 1 ];
-		if ( last == '/' || last == '\\' )
-			return base + suffix;
-
-		return base + "/" + suffix;
-	}
-
-	std::string get_base_path()
-	{
-		return get_program_path();
-	}
-
-	std::string get_shader_cache_base_path()
-	{
-#if !defined( SDL_PLATFORM_WINDOWS )
-		return absolute_path( clean_path( std::string( FE_DEFAULT_CFG_PATH ) + FE_CACHE_SUBDIR ) );
-#else
-		return join_path( get_base_path(), FE_CACHE_SUBDIR );
-#endif
-	}
-
-	struct ShaderCompileCacheEntry
-	{
-		bool compile_failed;
-		ShaderBlob blob;
-
-		ShaderCompileCacheEntry()
-			: compile_failed( false )
-		{
-		}
-	};
-
 	struct FeSdl3GpuDrawUniforms
 	{
 		float projection[16];
@@ -2735,117 +2691,7 @@ namespace
 #endif
 	}
 
-	bool file_exists( const std::string &path )
-	{
-		std::ifstream stream( path.c_str(), std::ios::binary );
-		return stream.good();
-	}
 
-	bool read_binary_file( const std::string &path, std::vector<Uint8> &code )
-	{
-		std::ifstream stream( path.c_str(), std::ios::binary );
-		if ( !stream )
-			return false;
-
-		stream.seekg( 0, std::ios::end );
-		const std::streamoff size = stream.tellg();
-		stream.seekg( 0, std::ios::beg );
-
-		if ( size <= 0 )
-			return false;
-
-		code.resize( static_cast<std::size_t>( size ) );
-		stream.read( reinterpret_cast<char *>( code.data() ), size );
-		return stream.good();
-	}
-
-	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code )
-	{
-		if ( code.empty() )
-			return false;
-
-		std::ofstream stream( path.c_str(), std::ios::binary | std::ios::trunc );
-		if ( !stream )
-			return false;
-
-		stream.write( reinterpret_cast<const char *>( code.data() ), static_cast<std::streamsize>( code.size() ) );
-		return stream.good();
-	}
-
-	std::unordered_map<std::string, ShaderCompileCacheEntry> &get_shader_compile_cache()
-	{
-		static std::unordered_map<std::string, ShaderCompileCacheEntry> cache;
-		return cache;
-	}
-
-	bool compile_shader_blob(
-		const std::string &source_id,
-		const std::string &translated_source,
-		bool vertex_stage,
-		ShaderBlob &blob )
-	{
-		const std::string cache_key =
-			std::string( vertex_stage ? "vert|" : "frag|" ) +
-			std::to_string( std::hash<std::string>{}( translated_source ) );
-		auto &cache = get_shader_compile_cache();
-		auto cache_it = cache.find( cache_key );
-		if ( cache_it != cache.end() )
-		{
-			if ( cache_it->second.compile_failed )
-				return false;
-
-			blob = cache_it->second.blob;
-			return !blob.code.empty();
-		}
-
-		std::string cache_root = get_shader_cache_base_path();
-		confirm_directory( cache_root, "" );
-		confirm_directory( cache_root, "shaders/" );
-		cache_root = join_path( cache_root, "shaders/" );
-		confirm_directory( cache_root, "sdl3/" );
-		cache_root = join_path( cache_root, "sdl3/" );
-
-		std::string shader_name = path_filename( source_id );
-		if ( shader_name.empty() )
-			shader_name = source_id;
-
-		const std::string cache_name =
-			sanitize_filename( shader_name ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
-		const std::string stage_name = vertex_stage ? "vert" : "frag";
-		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
-		bool compiled = false;
-		if ( !file_exists( spirv_path ) || !read_binary_file( spirv_path, blob.code ) || blob.code.empty() )
-		{
-			std::string diagnostics;
-			blob.code.clear();
-			compiled = true;
-
-			if ( !fe_glslang_compile_to_spirv( shader_name, translated_source, vertex_stage, blob.code, diagnostics ) || blob.code.empty() )
-			{
-				FeLog() << "SDL: shader_compile: error " << shader_name << std::endl;
-				if ( !diagnostics.empty() )
-					FeLog() << "SDL: " << diagnostics << std::endl;
-				cache[ cache_key ].compile_failed = true;
-				return false;
-			}
-
-			if ( !diagnostics.empty() )
-				FeDebug() << "SDL: " << diagnostics << std::endl;
-
-			write_binary_file( spirv_path, blob.code );
-		}
-
-		if ( compiled )
-			FeDebug() << "SDL: shader_compile: ok " << shader_name << std::endl;
-
-		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
-		blob.entrypoint = "main";
-
-		ShaderCompileCacheEntry &entry = cache[ cache_key ];
-		entry.compile_failed = false;
-		entry.blob = blob;
-		return true;
-	}
 }
 
 bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry )
@@ -2920,20 +2766,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	m_frame_stats.last_viewport_width = static_cast<int>( swapchain_width );
 	m_frame_stats.last_viewport_height = static_cast<int>( swapchain_height );
 	const SDL_GPUTextureFormat swapchain_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
-	const bool sample_count_changed = update_sample_count( swapchain_format );
-	const bool anisotropy_changed = update_anisotropy();
-
-	if ( sample_count_changed || anisotropy_changed || ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
-	{
-		release_surfaces();
-		release_custom_shaders();
-		release_image_pipeline();
-		release_pbr_pipeline();
-		release_color_target();
-		release_depth_target();
-		m_swapchain_format = swapchain_format;
-		m_pipeline_attempted = false;
-	}
+	prepare_pipelines( swapchain_format );
 
 	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) )
 		&& ensure_color_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
@@ -2942,13 +2775,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
-	}
-
-	if ( !m_pipeline_attempted )
-	{
-		initialize_image_pipeline( swapchain_format );
-		initialize_pbr_pipeline( swapchain_format );
-		m_pipeline_attempted = true;
 	}
 
 	m_frame_stats.pipeline_ready =
@@ -4624,8 +4450,9 @@ void FeSdl3GpuContext::release_surfaces()
 	m_surfaces.clear();
 }
 
-FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( const FeRenderGeometry &image )
+FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( const FeRenderGeometry &image, bool *pending )
 {
+	if ( pending ) *pending = false;
 	if ( !m_device || !m_vertex_shader || !image.shader || !image.custom_shader )
 		return nullptr;
 
@@ -4695,7 +4522,8 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	entry.source_path = cache_key;
 	if ( !create_custom_shader_entry( image, entry ) )
 	{
-		entry.compile_failed = true;
+		if ( pending ) *pending = entry.compiling;
+		entry.compile_failed = !entry.compiling;
 		entry.source_stamp = fragment_source_stamp;
 		entry.vertex_source_stamp = vertex_source_stamp;
 		m_custom_shader_sources[ source_identity_key ] = cache_key;
@@ -4707,6 +4535,22 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	entry.vertex_source_stamp = vertex_source_stamp;
 	m_custom_shader_sources[ source_identity_key ] = cache_key;
 	return &entry;
+}
+
+bool FeSdl3GpuContext::prepare_shader( const FeShader *shader )
+{
+	if ( !is_available() || !shader || ( shader->get_type() != FeShader::Fragment &&
+		shader->get_type() != FeShader::VertexAndFragment ) ) return true;
+	FeRenderGeometry image;
+	image.shader = shader;
+	image.custom_shader = true;
+	image.textured = true;
+	// Preparation must also finish for an empty layout which has nothing to draw yet.
+	prepare_pipelines( SDL_GetGPUSwapchainTextureFormat( m_device, m_window ) );
+	if ( !m_vertex_shader ) return true;
+	bool pending = false;
+	get_custom_shader_entry( image, &pending );
+	return !pending;
 }
 
 FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image )
@@ -4778,7 +4622,7 @@ FeSdl3GpuContext::PbrCustomShaderEntry *FeSdl3GpuContext::get_pbr_custom_shader_
 	entry.source_path = cache_key;
 	if ( !create_pbr_custom_shader_entry( image, entry ) )
 	{
-		entry.compile_failed = true;
+		entry.compile_failed = !entry.compiling;
 		entry.source_stamp = source_stamp;
 		return nullptr;
 	}
@@ -4914,6 +4758,8 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 
 bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry )
 {
+	entry.compiling = false;
+	const bool background = image.shader->background_loading();
 	std::string fragment_source_code;
 	std::vector<CustomUniformBinding> fragment_uniforms;
 	std::vector<CustomSamplerBinding> fragment_samplers;
@@ -4925,7 +4771,8 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 			? image.shader->get_fragment_source_path()
 			: entry.source_path + "|fragment";
 	ShaderBlob fragment_blob = {};
-	if ( !compile_shader_blob( fragment_source_id, fragment_source_code, false, fragment_blob ) )
+	if ( !compile_shader_blob( fragment_source_id, fragment_source_code, false, fragment_blob,
+		background ? &entry.fragment_compile : nullptr, background ? &entry.compiling : nullptr ) )
 		return false;
 
 	SDL_GPUShader *vertex_shader = m_vertex_shader;
@@ -4944,7 +4791,8 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 				? image.shader->get_vertex_source_path()
 				: entry.source_path + "|vertex";
 		ShaderBlob vertex_blob = {};
-		if ( !compile_shader_blob( vertex_source_id, vertex_source_code, true, vertex_blob ) )
+		if ( !compile_shader_blob( vertex_source_id, vertex_source_code, true, vertex_blob,
+			background ? &entry.vertex_compile : nullptr, background ? &entry.compiling : nullptr ) )
 			return false;
 
 		SDL_GPUShaderCreateInfo vertex_info = {};
@@ -5178,6 +5026,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 
 bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &image, PbrCustomShaderEntry &entry )
 {
+	entry.compiling = false;
 	if ( !image.pbr_material.artwork_shader )
 		return false;
 
@@ -5216,7 +5065,9 @@ bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &i
 	}
 
 	ShaderBlob fragment_blob = {};
-	if ( !compile_shader_blob( source_id, fragment_source_code, false, fragment_blob ) )
+	if ( !compile_shader_blob( source_id, fragment_source_code, false, fragment_blob,
+		image.pbr_material.artwork_shader->background_loading() ? &entry.fragment_compile : nullptr,
+		image.pbr_material.artwork_shader->background_loading() ? &entry.compiling : nullptr ) )
 		return false;
 
 	SDL_GPUShaderCreateInfo fragment_info = {};

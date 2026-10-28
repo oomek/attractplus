@@ -200,6 +200,7 @@ protected:
 	std::vector<FeMusic *> m_musics;
 	std::vector<FeShader *> m_scriptShaders;
 	std::vector<std::shared_ptr<FeFontContainer>> m_fontPool;
+	std::map<FeShader *, int> m_preparedShaders;
 	std::vector<FeMonitor> m_mon;
 	double m_refresh_rate;
 	bool m_playMovies;
