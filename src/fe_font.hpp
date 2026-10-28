@@ -53,6 +53,7 @@ public:
 
 	void setSmooth( bool smooth );
 	bool isSmooth() const;
+	std::size_t memory_bytes() const;
 
 private:
 	struct Row

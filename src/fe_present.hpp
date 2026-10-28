@@ -103,6 +103,7 @@ public:
 	const std::string &get_name() const { return m_name; };
 
 	void clear_font();
+	static std::shared_ptr<FeFontContainer> acquire( const std::string &, bool wait = true );
 
 private:
 	FeFontContainer( const FeFontContainer & );
@@ -112,6 +113,10 @@ private:
 	std::string m_name;
 	mutable bool m_needs_reload;
 	std::vector<unsigned char> m_font_binary_data;
+	std::string m_cache_key;
+	std::atomic<bool> m_started{ false }, m_loaded{ false };
+	std::mutex m_load_mutex;
+	std::condition_variable m_load_ready;
 };
 
 //
@@ -194,7 +199,7 @@ protected:
 	std::vector<FeSound *> m_sounds;
 	std::vector<FeMusic *> m_musics;
 	std::vector<FeShader *> m_scriptShaders;
-	std::vector<FeFontContainer *> m_fontPool;
+	std::vector<std::shared_ptr<FeFontContainer>> m_fontPool;
 	std::vector<FeMonitor> m_mon;
 	double m_refresh_rate;
 	bool m_playMovies;
