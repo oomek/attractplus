@@ -228,7 +228,7 @@ namespace
 		std::string &stripped_source )
 	{
 		static const std::regex uniform_regex(
-			"\\buniform\\s+(float|vec2|vec3|vec4|sampler2D)\\s+([^;]+);" );
+			"\\buniform\\s+(float|int|bool|vec2|vec3|vec4|sampler2D)\\s+([^;]+);" );
 		static const std::regex name_regex(
 			"^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(?:=\\s*([\\s\\S]+))?\\s*$" );
 		static const std::regex comment_regex( "//[^\\n]*|/\\*[\\s\\S]*?\\*/" );
@@ -334,13 +334,12 @@ namespace
 		return true;
 	}
 
-	std::string build_custom_uniform_macro( const std::string &name, int slot, int components, const std::string &default_value )
+	std::string build_custom_uniform_value( const std::string &type, int slot, int components, const std::string &default_value )
 	{
 		std::ostringstream stream;
-		stream << "#define " << name << " ";
 		if ( !default_value.empty() )
 			stream << "(custom_ubo.supplied[" << slot / 4 << "]." << "xyzw"[slot % 4] << " != 0.0 ? ";
-		stream << "custom_ubo.values[" << slot << "].";
+		stream << type << "(custom_ubo.values[" << slot << "].";
 
 		switch ( components )
 		{
@@ -353,8 +352,8 @@ namespace
 				break;
 		}
 
-		if ( !default_value.empty() )
-			stream << " : " << (( components == 1 ) ? "float" : "vec" + std::to_string( components )) << "(" << default_value << "))";
+		stream << ")";
+		if ( !default_value.empty() ) stream << " : " << type << "(" << default_value << "))";
 
 		return stream.str();
 	}
@@ -5390,10 +5389,11 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.type = uniform.type;
 		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
-			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "float" || uniform.type == "int" || uniform.type == "bool" ) ? 1 :
 			( uniform.type == "vec2" ) ? 2 :
 			( uniform.type == "vec3" ) ? 3 : 4;
 		uniforms.push_back( binding );
@@ -5446,7 +5446,8 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	}
 
 	for ( const CustomUniformBinding &uniform : uniforms )
-		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
+		shader << uniform.type << " " << uniform.name << " = " <<
+			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 
 	shader << "\n" << stripped_source;
 	source_code = shader.str();
@@ -5543,10 +5544,11 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.type = uniform.type;
 		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
-			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "float" || uniform.type == "int" || uniform.type == "bool" ) ? 1 :
 			( uniform.type == "vec2" ) ? 2 :
 			( uniform.type == "vec3" ) ? 3 : 4;
 		uniforms.push_back( binding );
@@ -5586,7 +5588,8 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 	for ( const CustomSamplerBinding &sampler : samplers )
 		macro_code << "#define " << sampler.name << " artwork_shader_texture" << sampler.slot << "\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
-		macro_code << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
+		macro_code << uniform.type << " " << uniform.name << " = " <<
+			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 
 	std::ostringstream undef_code;
 	for ( const CustomSamplerBinding &sampler : samplers )
@@ -5779,10 +5782,11 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.type = uniform.type;
 		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
-			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "float" || uniform.type == "int" || uniform.type == "bool" ) ? 1 :
 			( uniform.type == "vec2" ) ? 2 :
 			( uniform.type == "vec3" ) ? 3 : 4;
 		uniforms.push_back( binding );
@@ -5830,7 +5834,8 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	shader << "\tvec4 supplied[" << FE_MAX_CUSTOM_SHADER_UNIFORMS / 4 << "];\n";
 	shader << "} custom_ubo;\n\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
-		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
+		shader << uniform.type << " " << uniform.name << " = " <<
+			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 	shader << "#define fe_vertex vec4(in_position, 1.0)\n";
 	if ( uses_vertex_id )
 	{
