@@ -96,6 +96,7 @@ private:
 
 	std::queue< FeInputMap::Command > m_posted_commands;
 	std::vector< FeCallback > m_ticks;
+	unsigned long long m_resource_version = 0;
 	std::vector< FeCallback > m_trans;
 	std::vector< FeCallback > m_sig_handlers;
 	struct TransitionScript
