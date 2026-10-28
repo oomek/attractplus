@@ -24,6 +24,7 @@
 // #define FE_DEBUG_USERCONFIG
 
 #include "fe_vm.hpp"
+#include "fe_resource_cache.hpp"
 #include "fe_animation.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
@@ -2280,6 +2281,9 @@ bool FeVM::on_tick()
 	const bool navigating = navigation_busy();
 	advance_navigation();
 	bool redraw = process_console_input() || navigating || m_redraw_triggered;
+	const auto resource_version = FeResourceCache::get().version();
+	redraw = redraw || resource_version != m_resource_version;
+	m_resource_version = resource_version;
 	m_redraw_triggered = false;
 
 	if ( FeAnimation::tick() )

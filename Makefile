@@ -156,6 +156,7 @@ _DEP =\
 	fe_music.hpp \
 	fe_audio_fx.hpp \
 	fe_audio_sdl.hpp \
+	fe_resource_cache.hpp \
 	fe_shader.hpp \
 	fe_font.hpp \
 	fe_overlay.hpp \
@@ -210,6 +211,7 @@ _OBJ =\
 	fe_music.o \
 	fe_audio_fx.o \
 	fe_audio_sdl.o \
+	fe_resource_cache.o \
 	fe_shader.o \
 	fe_font.o \
 	fe_overlay.o \
