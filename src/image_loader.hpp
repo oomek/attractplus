@@ -82,6 +82,7 @@ private:
    std::shared_ptr<unsigned char> take_pixels();
    std::shared_ptr<unsigned char> pixels() const;
    std::size_t gpu_bytes() const;
+   std::size_t trim_textures();
    std::string m_filename;
    std::string m_key;
    bool m_masked = false;

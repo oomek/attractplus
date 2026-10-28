@@ -1,5 +1,6 @@
 #include "fe_resource_cache.hpp"
 #include "fe_base.hpp"
+#include "image_loader.hpp"
 
 #include <condition_variable>
 #include <atomic>
@@ -9,6 +10,57 @@
 #include <mutex>
 #include <thread>
 #include <utility>
+
+FeImageCache::FeImageCache( std::size_t bytes ) { FeResourceCache::get().resize( bytes ); }
+FeImageCache::~FeImageCache() { FeResourceCache::get().clear( FeResourceCache::Image ); }
+
+void FeImageCache::put( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &value )
+{
+	std::weak_ptr<FeImageLoaderEntry> weak = value;
+	FeResourceCache::get().put( FeResourceCache::Image, key, value, value->gpu_bytes(), [weak]
+	{
+		auto entry = weak.lock();
+		return entry ? entry->trim_textures() : std::size_t( 0 );
+	} );
+}
+
+bool FeImageCache::get( const std::string &key, std::shared_ptr<FeImageLoaderEntry> *value )
+{
+	auto entry = FeResourceCache::get().find<FeImageLoaderEntry>( FeResourceCache::Image, key );
+	if ( !entry || entry->m_canceled ) return false;
+	*value = std::move( entry );
+	return true;
+}
+
+void FeImageCache::resize( std::size_t bytes ) { FeResourceCache::get().resize( bytes ); }
+std::size_t FeImageCache::get_max_size() { return FeResourceCache::get().limit(); }
+std::size_t FeImageCache::get_count() { return FeResourceCache::get().items( FeResourceCache::Image ).size(); }
+bool FeImageCache::contains( const std::string &key ) { return bool( FeResourceCache::get().find( FeResourceCache::Image, key ) ); }
+void FeImageCache::prune( bool unused ) { FeResourceCache::get().prune( unused ); }
+
+std::size_t FeImageCache::get_size()
+{
+	std::size_t bytes = 0;
+	for ( const auto &item : FeResourceCache::get().items( FeResourceCache::Image ) )
+		bytes += std::static_pointer_cast<FeImageLoaderEntry>( item.value )->gpu_bytes();
+	return bytes;
+}
+
+const char *FeImageCache::get_name_at( int pos )
+{
+	static thread_local std::string name;
+	auto entries = FeResourceCache::get().items( FeResourceCache::Image );
+	name = pos >= 0 && pos < static_cast<int>( entries.size() )
+		? std::static_pointer_cast<FeImageLoaderEntry>( entries[pos].value )->m_filename : "";
+	return name.c_str();
+}
+
+std::size_t FeImageCache::get_size_at( int pos )
+{
+	auto entries = FeResourceCache::get().items( FeResourceCache::Image );
+	return pos >= 0 && pos < static_cast<int>( entries.size() )
+		? std::static_pointer_cast<FeImageLoaderEntry>( entries[pos].value )->gpu_bytes() : 0;
+}
 
 struct FeResourceCache::Impl
 {
