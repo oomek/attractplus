@@ -200,6 +200,7 @@ private:
 	struct CustomUniformBinding
 	{
 		std::string name;
+		std::string type;
 		std::string default_value;
 		int slot;
 		int components;
