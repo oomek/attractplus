@@ -8,6 +8,25 @@
 #include <string>
 #include <vector>
 
+class FeImageLoaderEntry;
+
+class FeImageCache
+{
+public:
+	explicit FeImageCache( std::size_t bytes );
+	~FeImageCache();
+	void put( const std::string &, const std::shared_ptr<FeImageLoaderEntry> & );
+	bool get( const std::string &, std::shared_ptr<FeImageLoaderEntry> * );
+	void resize( std::size_t bytes );
+	std::size_t get_max_size();
+	std::size_t get_size();
+	std::size_t get_count();
+	const char *get_name_at( int );
+	std::size_t get_size_at( int );
+	bool contains( const std::string & );
+	void prune( bool unused = false );
+};
+
 class FeResourceCache
 {
 public:

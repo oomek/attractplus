@@ -49,6 +49,7 @@
 
 #include "image_loader.hpp"
 #include "fe_present.hpp"
+#include "fe_resource_cache.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -154,130 +155,18 @@ struct FeImagePixelsDeleter
 	}
 };
 
-class FeImageCache
+std::size_t FeImageLoaderEntry::trim_textures()
 {
-public:
-	typedef std::pair< std::string, std::shared_ptr<FeImageLoaderEntry> > kvp_t;
-	typedef std::list<kvp_t>::iterator list_iterator_t;
-	typedef std::map< std::string, list_iterator_t >::iterator map_iterator_t;
-
-	FeImageCache( size_t max_bytes )
-		: m_max_bytes( max_bytes ),
-		m_current_bytes( 0 )
+	std::lock_guard<std::recursive_mutex> lock( g_mutex );
+	// Registry and variant map own two references. Draws and containers pin the rest.
+	for ( auto it = m_textures.begin(); it != m_textures.end(); )
 	{
+		if ( it->second.use_count() == 2 && it->second->status != FeImageTexture::Pending )
+			it = m_textures.erase( it );
+		else ++it;
 	}
-	~FeImageCache()
-	{
-		for ( auto &item : m_items )
-			FeImageLoader::get_ref().release_entry( &item.second );
-	}
-
-	void put( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &value )
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		auto found = m_items_map.find( key );
-		if ( found != m_items_map.end() )
-		{
-			if ( found->second->second != value )
-			{
-				FeImageLoader::get_ref().release_entry( &found->second->second );
-				found->second->second = value;
-			}
-			m_items.splice( m_items.begin(), m_items, found->second );
-			prune();
-			return;
-		}
-		m_items.push_front( kvp_t( key, value ));
-
-		m_items_map[key] = m_items.begin();
-
-		prune();
-	}
-
-	bool get( const std::string &key, std::shared_ptr<FeImageLoaderEntry> *val )
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		map_iterator_t it = m_items_map.find( key );
-		if ( it != m_items_map.end() && !it->second->second->m_canceled )
-		{
-			// promote
-			m_items.splice( m_items.begin(), m_items, it->second );
-			*val = it->second->second;
-			return true;
-		}
-
-		return false;
-	}
-
-	void resize( size_t new_size )
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		m_max_bytes = new_size;
-		prune();
-	}
-
-	size_t get_max_size() { return m_max_bytes; };
-	size_t get_size() { recount(); return m_current_bytes; };
-	size_t get_count() { return m_items.size(); };
-
-	const char *get_name_at( int pos )
-	{
-		std::list< kvp_t >::iterator it = m_items.begin();
-		std::advance( it, pos );
-
-		return it->second->m_filename.c_str();
-	}
-
-	size_t get_size_at( int pos )
-	{
-		std::list< kvp_t >::iterator it = m_items.begin();
-		std::advance( it, pos );
-
-		return it->second->gpu_bytes();
-	}
-
-	bool contains( const std::string &key )
-	{
-		std::lock_guard<std::recursive_mutex> l( g_mutex );
-		return m_items_map.find( key ) != m_items_map.end();
-	}
-
-	void prune( bool unused=false )
-	{
-		recount();
-		for ( auto it = m_items.end(); it != m_items.begin() && ( unused || !m_max_bytes || m_current_bytes > m_max_bytes ); )
-		{
-			--it;
-			// The worker registry and this variant map own two references. A
-			// container, preparation, draw or upload pins the actual variant.
-			auto &textures = it->second->m_textures;
-			for ( auto texture = textures.begin(); texture != textures.end() &&
-				( unused || !m_max_bytes || m_current_bytes > m_max_bytes ); )
-			{
-				if ( texture->second.use_count() != 2 || texture->second->status == FeImageTexture::Pending ) { ++texture; continue; }
-				if ( texture->second->status == FeImageTexture::Ready ) m_current_bytes -= texture->second->bytes;
-				texture = textures.erase( texture );
-			}
-			if ( it->second->gpu_bytes() ) continue;
-			m_items_map.erase( it->first );
-			if ( unused ) it->second.reset();
-			else FeImageLoader::get_ref().release_entry( &it->second );
-			it = m_items.erase( it );
-		}
-	}
-
-private:
-	void recount()
-	{
-		m_current_bytes = 0;
-		for ( const auto &item : m_items ) m_current_bytes += item.second->gpu_bytes();
-	}
-
-	std::list< kvp_t > m_items;
-	std::map< std::string, list_iterator_t > m_items_map;
-	size_t m_max_bytes;
-	size_t m_current_bytes;
-};
+	return gpu_bytes();
+}
 
 
 
