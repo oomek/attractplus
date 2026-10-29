@@ -265,6 +265,12 @@ void FeBaseTextureContainer::notify_texture_change()
 		(*itr)->texture_changed();
 }
 
+void FeBaseTextureContainer::reset_subimg()
+{
+	// The incoming media starts uncropped; keep the active geometry until it arrives.
+	for ( auto *image : m_images ) image->m_subimg_set = 0;
+}
+
 void FeBaseTextureContainer::release_audio( bool )
 {
 }
@@ -707,6 +713,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 		}
 		if ( m_reuse && m_reuse->m_current_rom_index == rom_index && m_reuse->m_current_filter_index == filter_index ) return;
 		if ( m_reuse ) { m_reuse->m_reserved = false; m_reuse = nullptr; }
+		if ( m_current_rom_index >= 0 || !m_file_name.empty() ) reset_subimg();
 		prepare().internal_update_selection( feSettings );
 		return;
 	}
@@ -725,6 +732,7 @@ void FeTextureContainer::internal_update_selection( FeSettings *feSettings )
 		return;
 	}
 
+	if ( m_current_rom_index >= 0 || !m_file_name.empty() ) reset_subimg();
 	m_current_rom_index = rom_index;
 	m_current_filter_index = filter_index;
 
@@ -1048,6 +1056,7 @@ void FeTextureContainer::load_file( const char *n )
 void FeTextureContainer::load_file( const char *n, bool synchronous )
 {
 	auto *present = FePresent::script_get_fep();
+	if ( !m_preload ) reset_subimg();
 	if ( !synchronous && !m_preload && is_v4_script() && present && ( present->is_preparing( m_script_id ) || !present->is_layout_loaded() ) )
 	{
 		if ( m_reuse ) { m_reuse->m_reserved = false; m_reuse = nullptr; }
@@ -1602,6 +1611,7 @@ FeImage::FeImage(
 	m_tex( tc ),
 	m_sprite(),
 	m_sprite_legacy(),
+	m_subimg_set( 0 ),
 	m_pos( x, y ),
 	m_size( w, h ),
 	m_auto_size( w == 0, h == 0 ),
@@ -1634,6 +1644,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_tex( o->m_tex ),
 	m_sprite( o->m_sprite ),
 	m_sprite_legacy( o->m_sprite_legacy ),
+	m_subimg_set( o->m_subimg_set ),
 	m_pos( o->m_pos ),
 	m_size( o->m_size ),
 	m_auto_size( o->m_auto_size ),
@@ -1688,10 +1699,19 @@ bool FeImage::get_visible() const
 void FeImage::texture_changed( FeBaseTextureContainer *new_tex )
 {
 	if ( new_tex )
+	{
+		if ( new_tex != m_tex ) m_subimg_set = 0;
 		m_tex = new_tex;
+	}
 
 	const Vec2u size = m_tex->get_texture_size();
-	m_sprite.setTextureRect( FloatRect( 0.f, 0.f, static_cast<float>( size.x ), static_cast<float>( size.y ) ) );
+	// A background load can finish after the script has selected a sprite.
+	FloatRect rect = m_sprite.getTextureRect();
+	if ( !( m_subimg_set & SubimgX ) ) rect.position.x = 0.f;
+	if ( !( m_subimg_set & SubimgY ) ) rect.position.y = 0.f;
+	if ( !( m_subimg_set & SubimgWidth ) ) rect.size.x = static_cast<float>( size.x );
+	if ( !( m_subimg_set & SubimgHeight ) ) rect.size.y = static_cast<float>( size.y );
+	m_sprite.setTextureRect( rect );
 
 	scale();
 }
@@ -2065,8 +2085,9 @@ FloatRect FeImage::getTextureRect() const
 	return m_sprite.getTextureRect();
 }
 
-void FeImage::setTextureRect( const FloatRect &r )
+void FeImage::setTextureRect( const FloatRect &r, unsigned int fields )
 {
+	m_subimg_set |= fields;
 	if ( r != m_sprite.getTextureRect() )
 	{
 		m_sprite.setTextureRect( r );
@@ -2591,28 +2612,28 @@ void FeImage::set_subimg_x( float x )
 {
 	FloatRect r = getTextureRect();
 	r.position.x=x;
-	setTextureRect( r );
+	setTextureRect( r, SubimgX );
 }
 
 void FeImage::set_subimg_y( float y )
 {
 	FloatRect r = getTextureRect();
 	r.position.y=y;
-	setTextureRect( r );
+	setTextureRect( r, SubimgY );
 }
 
 void FeImage::set_subimg_width( float w )
 {
 	FloatRect r = getTextureRect();
 	r.size.x=w;
-	setTextureRect( r );
+	setTextureRect( r, SubimgWidth );
 }
 
 void FeImage::set_subimg_height( float h )
 {
 	FloatRect r = getTextureRect();
 	r.size.y=h;
-	setTextureRect( r );
+	setTextureRect( r, SubimgHeight );
 }
 
 void FeImage::set_force_aspect_ratio( float r )

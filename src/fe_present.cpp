@@ -2615,6 +2615,7 @@ bool FePresent::reuse_artwork( FeTextureContainer *target, int filter_index, int
 		if ( target->is_v4_script() )
 		{
 			target->discard_prepared();
+			target->reset_subimg();
 			target->prepare();
 			target->m_reuse = source;
 			source->m_reserved = true;
@@ -2635,6 +2636,8 @@ bool FePresent::reuse_artwork( FeTextureContainer *target, int filter_index, int
 		std::swap( target->m_previous_entry, source->m_previous_entry );
 		std::swap( target->m_texture_size, source->m_texture_size );
 		std::swap( target->m_content_version, source->m_content_version );
+		source->reset_subimg();
+		target->reset_subimg();
 		source->notify_texture_change();
 		target->notify_texture_change();
 		return true;
