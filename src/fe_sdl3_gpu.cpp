@@ -1238,6 +1238,7 @@ void FeSdl3GpuContext::clear_layout_resources()
 	release_surfaces();
 	clear_textures();
 	clear_geometry_buffers();
+	m_custom_shader_sources.clear();
 }
 
 bool FeSdl3GpuContext::present_blank_frame()
