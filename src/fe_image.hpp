@@ -145,6 +145,7 @@ protected:
 
 	// call this to notify registered images that the texture has changed
 	void notify_texture_change();
+	void reset_subimg();
 
 private:
 	std::vector< FeImage * > m_images;
@@ -353,6 +354,8 @@ public:
 
 class FeImage : public FeBasePresentable
 {
+	friend class FeBaseTextureContainer;
+	enum SubimgField { SubimgX = 1, SubimgY = 2, SubimgWidth = 4, SubimgHeight = 8, SubimgAll = 15 };
 public:
 	enum Fit
 	{
@@ -407,7 +410,7 @@ public:
 	void rawset_filter_offset( int fo );
 	int getFilterOffset() const;
 
-	void setTextureRect( const FloatRect &);
+	void setTextureRect( const FloatRect &, unsigned int fields = SubimgAll );
 	FloatRect getTextureRect() const;
 	Vec2u getTextureSize() const;
 
@@ -595,6 +598,7 @@ protected:
 	FeBaseTextureContainer *m_tex;
 	FeSprite m_sprite;
 	FeSpriteLegacy m_sprite_legacy;
+	unsigned int m_subimg_set;
 	mutable std::vector<FeRenderVertex> m_render_vertices;
 	Vec2f m_pos;
 	Vec2f m_size;
