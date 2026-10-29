@@ -27,6 +27,7 @@
 #include "fe_overlay.hpp"
 #include "fe_cache.hpp"
 #include "fe_vm.hpp"
+#include "fe_resource_cache.hpp"
 #include "image_loader.hpp"
 #include "zip.hpp"
 #include <iostream>
@@ -391,7 +392,8 @@ FeSettings::FeSettings( const std::string &config_path ):
 	m_selection_max_step( 128 ),
 	m_selection_delay( 400 ),
 	m_selection_speed( 40 ),
-	m_image_cache_mbytes( 100 ),
+	m_cache_mbytes( 100 ),
+	m_cache_mbytes_configured( false ),
 #ifdef SDL_PLATFORM_MACOS
 	m_move_mouse_on_launch( false ), // hotcorners
 #else
@@ -448,6 +450,8 @@ void FeSettings::clear()
 
 void FeSettings::load()
 {
+	set_info( CacheMBytes, as_str( m_cache_mbytes ) );
+	m_cache_mbytes_configured = false;
 	clear();
 
 	std::string load_language( FE_DEFAULT_LANGUAGE );
@@ -613,7 +617,7 @@ const char *FeSettings::configSettingStrings[] =
 	"video_decoder",
 	"menu_prompt",
 	"menu_layout",
-	"image_cache_mbytes",
+	"cache_mbytes",
 	NULL
 };
 
@@ -693,6 +697,13 @@ int FeSettings::process_setting( const std::string &setting,
 		m_current_config_object = &m_display_menu_per_display_params;
 	else
 	{
+		if ( setting == "image_cache_mbytes" )
+		{
+			if ( !m_cache_mbytes_configured )
+				set_info( CacheMBytes, value );
+			return 0;
+		}
+
 		int i=0;
 		while ( configSettingStrings[i] != NULL )
 		{
@@ -728,6 +739,8 @@ int FeSettings::process_setting( const std::string &setting,
 						value, valid, NULL, "value" );
 					return 1;
 				}
+				if ( i == CacheMBytes )
+					m_cache_mbytes_configured = true;
 				return 0;
 			}
 			i++;
@@ -3509,8 +3522,8 @@ const std::string FeSettings::get_info( int index ) const
 		return as_str( m_selection_delay );
 	case SelectionSpeed:
 		return as_str( m_selection_speed );
-	case ImageCacheMBytes:
-		return as_str( m_image_cache_mbytes );
+	case CacheMBytes:
+		return as_str( m_cache_mbytes );
 	case StartupMode:
 		return startupTokens[ m_startup_mode ];
 	case PrefixMode:
@@ -3798,11 +3811,12 @@ bool FeSettings::set_info( int index, const std::string &value )
 		m_selection_speed = std::max( 0, as_int( value ) );
 		break;
 
-	case ImageCacheMBytes:
-		m_image_cache_mbytes = std::max( 0, as_int( value ) );
+	case CacheMBytes:
+		m_cache_mbytes = std::max( 0, as_int( value ) );
 
-		FeDebug() << "Setting image cache size to " << m_image_cache_mbytes << " MBytes." << std::endl;
-		FeImageLoader::set_cache_size( static_cast<size_t>( m_image_cache_mbytes ) * 1024 * 1024 );
+		FeDebug() << "Setting cache size to " << m_cache_mbytes << " MBytes." << std::endl;
+		FeResourceCache::get().resize( static_cast<size_t>( m_cache_mbytes ) * 1024 * 1024 );
+		FeImageLoader::set_cache_size( static_cast<size_t>( m_cache_mbytes ) * 1024 * 1024 );
 		break;
 
 	case MoveMouseOnLaunch:

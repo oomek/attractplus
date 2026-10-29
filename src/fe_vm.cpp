@@ -1708,6 +1708,13 @@ bool FeVM::on_new_layout()
 		.Prop( _SC("height"), &FeGridView::get_height )
 	);
 
+	fe.Bind( _SC("Cache"), Class <FeResourceCache, NoConstructor>()
+		.Prop( _SC("size"), &FeResourceCache::size )
+		.Prop( _SC("max_size"), &FeResourceCache::limit )
+		.Prop( _SC("bg_load"), &FeResourceCache::get_background_loading, &FeResourceCache::set_background_loading )
+		.Func( _SC("add_image"), &FeResourceCache::add_image )
+	);
+
 	fe.Bind( _SC("ImageCache"), Class <FeImageLoader, NoConstructor>()
 		.Prop( _SC("max_size"), &FeImageLoader::cache_max )
 		.Prop( _SC("size"), &FeImageLoader::cache_size )
@@ -1843,6 +1850,7 @@ bool FeVM::on_new_layout()
 	fe.SetInstance( _SC("ambient_sound"), &m_ambient_sound );
 
 	FeImageLoader &il = FeImageLoader::get_ref();
+	fe.SetInstance( _SC("cache"), &FeResourceCache::get() );
 	fe.SetInstance( _SC("image_cache"), &il );
 	Table plugin, plugin_delegate;
 	plugin_delegate.SquirrelFunc( "_get", script_plugin_grid );
@@ -4102,6 +4110,8 @@ Sqrat::Table FeVM::cb_get_general_config()
 		retval.SetValue( key.c_str(), value.c_str() );
 		i++;
 	}
+
+	retval.SetValue( _SC("image_cache_mbytes"), fes->get_info( FeSettings::CacheMBytes ) );
 
 	return retval;
 }

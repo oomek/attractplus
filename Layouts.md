@@ -60,7 +60,7 @@
    -  [`fe.plugin`](#feplugin)
    -  [Grid coordinates](#grid-coordinates)
    -  [`fe.list`](#felist)
-   -  [`fe.image_cache`](#feimage_cache)
+   -  [`fe.cache`](#fecache)
    -  [`fe.overlay`](#feoverlay)
    -  [`fe.obj`](#feobj)
    -  [`fe.displays`](#fedisplays)
@@ -74,7 +74,7 @@
    -  [`fe.LayoutGlobals`](#felayoutglobals)
    -  [`fe.Grid`](#fegrid-1)
    -  [`fe.CurrentList`](#fecurrentlist)
-   -  [`fe.ImageCache`](#feimagecache)
+   -  [`fe.Cache`](#fecache-1)
    -  [`fe.Overlay`](#feoverlay-1)
    -  [`fe.Display`](#fedisplay)
    -  [`fe.Filter`](#fefilter)
@@ -501,7 +501,7 @@ fe.add_shader( type )
 
 Compile a GLSL shader from the given file(s) for use in the layout. Also see [`fe.compile_shader()`](#fecompile_shader-).
 
-Shaders compile in the background. When `fe.image_cache.bg_load = false`, shaders added during initialization or in `ToNewList`, `ToNewSelection` or `ToEndNavigation` finish compiling before the corresponding `NewList`, `NewSelection` or `EndNavigation` callbacks run.
+Shaders compile in the background. When `fe.cache.bg_load = false`, shaders added during initialization or in `ToNewList`, `ToNewSelection` or `ToEndNavigation` finish compiling before the corresponding `NewList`, `NewSelection` or `EndNavigation` callbacks run.
 
 **Legacy (version 3):** Shaders compile synchronously on first use and can block drawing.
 
@@ -671,11 +671,11 @@ These callbacks use the new selection or list. Reading `file_name`, `texture_wid
 | `Transition.NewSelection` | `ToNewSelection` | Same index offset |
 | `Transition.EndNavigation` | `ToEndNavigation` | `0` |
 
-With `fe.image_cache.bg_load = false` (default), these callbacks wait for images and videos requested during initialization or the matching preparation callbacks to load. Images and the first video frames are ready to draw; `texture_width` and `texture_height` are available. Failed loads have zero dimensions. Videos stay silent while loading, and `Vid.NoAutoStart` prevents automatic playback.
+With `fe.cache.bg_load = false` (default), these callbacks wait for images and videos requested during initialization or the matching preparation callbacks to load. Images and the first video frames are ready to draw; `texture_width` and `texture_height` are available. Failed loads have zero dimensions. Videos stay silent while loading, and `Vid.NoAutoStart` prevents automatic playback.
 
-With `fe.image_cache.bg_load = true`, these callbacks run without waiting, so new images, videos and their dimensions may not be ready yet. The value of `bg_load` is checked after the matching `ToNewList`, `ToNewSelection` or `ToEndNavigation` callbacks finish. After initialization, assignments to `file_name` outside those callbacks also load in the background, without delaying `NewList`, `NewSelection` or `EndNavigation`.
+With `fe.cache.bg_load = true`, these callbacks run without waiting, so new images, videos and their dimensions may not be ready yet. The value of `bg_load` is checked after the matching `ToNewList`, `ToNewSelection` or `ToEndNavigation` callbacks finish. After initialization, assignments to `file_name` outside those callbacks also load in the background, without delaying `NewList`, `NewSelection` or `EndNavigation`.
 
-Each layout or plugin sets its own `fe.layout.version` and `fe.image_cache.bg_load`; included modules use the same settings. Images and videos added during initialization load before the first `NewList` callback when `bg_load = false`.
+Each layout or plugin sets its own `fe.layout.version` and `fe.cache.bg_load`; included modules use the same settings. Images and videos added during initialization load before the first `NewList` callback when `bg_load = false`.
 
 **Examples**
 
@@ -726,7 +726,7 @@ Use `return true` to repeat the callback; use `return false` or omit the return 
 
 #### Version 3 legacy transitions
 
-Scripts without `fe.layout.version` use version 3 for compatibility. Artwork loading **blocks the UI by default and can cause stuttering**. Filename assignments return with dimensions available. `fe.image_cache.bg_load = true` enables legacy background image loading.
+Scripts without `fe.layout.version` use version 3 for compatibility. Artwork loading **blocks the UI by default and can cause stuttering**. Filename assignments return with dimensions available. `fe.cache.bg_load = true` enables legacy background image loading.
 
 `FromOldSelection` is replaced by `NewSelection` in version 4.
 
@@ -1374,9 +1374,9 @@ A shared table for plugin data. Its [grid settings](#grid-coordinates) are indep
 
 An instance of the [`fe.CurrentList`](#fecurrentlist) class and is where current display settings are stored.
 
-### `fe.image_cache`
+### `fe.cache`
 
-An instance of the [`fe.ImageCache`](#feimagecache) class and provides script access to the internal image cache.
+An instance of the [`fe.Cache`](#fecache-1) class that provides script access to the unified resource cache.
 
 ### `fe.overlay`
 
@@ -1586,30 +1586,27 @@ This class is a container for status information regarding the current display. 
 
 ---
 
-### `fe.ImageCache`
+### `fe.Cache`
 
-This class is a container for the internal image cache. The instance of this class is the [`fe.image_cache`](#feimage_cache) object. This class cannot be otherwise instantiated in a script.
+This class provides access to the unified resource cache through [`fe.cache`](#fecache). It cannot be instantiated in a script.
 
-Images, sounds, fonts and compiled shaders are kept in the unified resource cache for reuse. Images are cached as GPU textures, so a cached image does not need to be read, decoded or uploaded again. Caching does not keep a second copy of the decoded image in RAM. `count`, `size`, `name_at()` and `size_at()` report images only.
+Images, sounds, fonts and compiled shaders are kept in the unified resource cache for reuse. Images are cached as GPU textures, so a cached image does not need to be read, decoded or uploaded again. Caching does not keep a second copy of the decoded image in RAM.
 
 Playback from `fe.Music` and video artwork is not cached.
 
-`image_cache_mbytes` limits the total cache size for these items. The least recently used items are removed first, but items still in use or loaded for the next transition are kept. Their memory usage may exceed the limit. Setting the limit to `0` disables caching of unused items; background loading continues.
+The **Cache Size** setting (`cache_mbytes` in `attract.cfg`) limits the total cache size for these items. The least recently used items are removed first, but items still in use or loaded for the next transition are kept. Their memory usage may exceed the limit. Setting the limit to `0` disables caching of unused items; background loading continues.
 
-Image uploads use two additional 32 MiB buffers that do not count towards `image_cache_mbytes`.
+Image uploads use two additional 32 MiB buffers outside this limit.
 
 **Properties**
 
--  `count` - Get the number of images currently in the cache.
--  `size` - Get the total GPU memory used by cached images (in bytes), including mipmaps.
+-  `size` - Get the total tracked memory used by cached images, sounds, fonts and compiled shaders (in bytes), including image mipmaps.
 -  `max_size` - Get the configured size limit for the unified resource cache (in bytes).
 -  `bg_load` - Get/set the layout/plugin's artwork loading behavior; included modules use the same setting. Default `false`: `NewList`, `NewSelection` and `EndNavigation` wait for artwork requested during initialization or their matching preparation callbacks. Setting to `true` runs them without waiting. Artwork loads in the background in both cases; filename assignments outside initialization and preparation do not delay these callbacks. See [version 4 transitions](#version-4-transitions).
 
 **Member Functions**
 
 -  `add_image( filename )` - Queue `filename` for caching, or mark a cached image as "most recently used". If filename is contained in an archive, the parameter should be formatted: `"<archive_name>|<filename>"`
--  `name_at( pos )` - Return the name of the image at position `pos` in the internal cache. `pos` can be an integer between `0` and `fe.image_cache.count - 1`.
--  `size_at( pos )` - Return the total GPU memory used by the image at position `pos` (in bytes), including mipmaps. `pos` can be an integer between `0` and `fe.image_cache.count - 1`
 
 **Legacy (version 3):** Images load synchronously by default. `bg_load = true` enables background image loading.
 
@@ -1831,7 +1828,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `video_time` - Get the current video playback time (in milliseconds). For videos with audio, this follows audio consumption. Muting the audio track keeps the playback clock running.
 -  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>". Setting this in `ToNewList`, `ToNewSelection` or `ToEndNavigation` loads the next image or video. Reading `file_name`, `texture_width` or `texture_height` in those callbacks still returns the values for the image or video currently displayed.
 -  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader).
--  `trigger` - Get/set the transition that starts loading artwork/dynamic images. Default `Transition.ToNewSelection`; set `Transition.ToEndNavigation` to load when navigation stops. With `fe.image_cache.bg_load = false`, the new artwork is ready before the matching `NewSelection` or `EndNavigation` callbacks.
+-  `trigger` - Get/set the transition that starts loading artwork/dynamic images. Default `Transition.ToNewSelection`; set `Transition.ToEndNavigation` to load when navigation stops. With `fe.cache.bg_load = false`, the new artwork is ready before the matching `NewSelection` or `EndNavigation` callbacks.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.
 -  `zorder` - Get/set the Image's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 -  `blend_mode` - Get/set the blend mode for this image. Can have one of the following values:
@@ -1898,8 +1895,8 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    img.subimg_height = img.texture_height * -1
    img.subimg_y = img.texture_height
    ```
--  Artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) load after layout/plugin initialization. With `fe.image_cache.bg_load = false`, read `texture_width` and `texture_height` in `NewList`, `NewSelection` or `EndNavigation`. See [version 4 transitions](#version-4-transitions).
--  Clones use the `fe.layout.version` and `fe.image_cache.bg_load` settings of the layout or plugin that created the original image. If no artwork can be loaded, the image is empty with zero dimensions.
+-  Artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) load after layout/plugin initialization. With `fe.cache.bg_load = false`, read `texture_width` and `texture_height` in `NewList`, `NewSelection` or `EndNavigation`. See [version 4 transitions](#version-4-transitions).
+-  Clones use the `fe.layout.version` and `fe.cache.bg_load` settings of the layout or plugin that created the original image. If no artwork can be loaded, the image is empty with zero dimensions.
 -  When navigation moves the same artwork between grid positions with matching playback settings, the frontend reuses the loaded image or video and keeps its playback position. `Vid.ImagesOnly` selects still images; clearing that flag allows videos again.
 
    ```squirrel
@@ -1916,7 +1913,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    }
    fe.add_transition_callback( "artwork_transition" )
    ```
--  **Legacy (version 3):** With `fe.image_cache.bg_load = false`, filename assignments block until loading finishes and dimensions are available. Read automatic artwork dimensions in `ToNewList` or `FromOldSelection`. Use `trigger = Transition.EndNavigation` to update artwork when navigation stops; this setting is also accepted in version 4.
+-  **Legacy (version 3):** With `fe.cache.bg_load = false`, filename assignments block until loading finishes and dimensions are available. Read automatic artwork dimensions in `ToNewList` or `FromOldSelection`. Use `trigger = Transition.EndNavigation` to update artwork when navigation stops; this setting is also accepted in version 4.
 - Pinch is achieved by subdividing the texture polygon into a triangle-strip, and scaling it towards one end. This results in a distorted image, and "ripple" artifacts on large pinches. For nicer results try the `perspective` module - see its Readme for more information.
 - When `pinch_x`, `pinch_y`, `skew_x`, or `skew_y` value is non 0, the image uses legacy rendering compatible with these effects in earlier versions. In this mode, `rotation` (also exposed as `rotation_z`) still applies, while `rotation_x`, `rotation_y`, and `rotation_order` have no effect. Their values are retained and apply again when all four pinch/skew values return to 0. A non 0 pinch value selects legacy rendering even when borders suppress its visible effect.
 

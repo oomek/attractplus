@@ -90,55 +90,87 @@ std::shared_ptr<FeAudioResource> fe_get_audio_resource( const std::string &filen
 	return resource;
 }
 
-FeImageCache::FeImageCache( std::size_t bytes ) { FeResourceCache::get().resize( bytes ); }
-FeImageCache::~FeImageCache() { FeResourceCache::get().clear( FeResourceCache::Image ); }
+FeImageCache::FeImageCache( std::size_t bytes ) : m_max_bytes( bytes ) {}
+FeImageCache::~FeImageCache()
+{
+	for ( auto &item : m_items ) FeImageLoader::get_ref().release_entry( &item.second );
+}
 
 void FeImageCache::put( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &value )
 {
-	std::weak_ptr<FeImageLoaderEntry> weak = value;
-	FeResourceCache::get().put( FeResourceCache::Image, key, value, value->gpu_bytes(), [weak]
+	auto found = m_entries.find( key );
+	if ( found != m_entries.end() )
 	{
-		auto entry = weak.lock();
-		return entry ? entry->trim_textures() : std::size_t( 0 );
-	} );
+		if ( found->second->second != value )
+		{
+			FeImageLoader::get_ref().release_entry( &found->second->second );
+			found->second->second = value;
+		}
+		m_items.splice( m_items.begin(), m_items, found->second );
+	}
+	else
+	{
+		m_items.emplace_front( key, value );
+		m_entries[key] = m_items.begin();
+	}
+	prune();
 }
 
 bool FeImageCache::get( const std::string &key, std::shared_ptr<FeImageLoaderEntry> *value )
 {
-	auto entry = FeResourceCache::get().find<FeImageLoaderEntry>( FeResourceCache::Image, key );
-	if ( !entry || entry->m_canceled ) return false;
-	*value = std::move( entry );
+	auto found = m_entries.find( key );
+	if ( found == m_entries.end() || found->second->second->m_canceled ) return false;
+	m_items.splice( m_items.begin(), m_items, found->second );
+	*value = found->second->second;
 	return true;
 }
 
-void FeImageCache::resize( std::size_t bytes ) { FeResourceCache::get().resize( bytes ); }
-std::size_t FeImageCache::get_max_size() { return FeResourceCache::get().limit(); }
-std::size_t FeImageCache::get_count() { return FeResourceCache::get().items( FeResourceCache::Image ).size(); }
-bool FeImageCache::contains( const std::string &key ) { return bool( FeResourceCache::get().find( FeResourceCache::Image, key ) ); }
-void FeImageCache::prune( bool unused ) { FeResourceCache::get().prune( unused ); }
+void FeImageCache::resize( std::size_t bytes ) { m_max_bytes = bytes; prune(); }
+std::size_t FeImageCache::get_max_size() { return m_max_bytes; }
+std::size_t FeImageCache::get_count() { return m_items.size(); }
+bool FeImageCache::contains( const std::string &key ) { return m_entries.find( key ) != m_entries.end(); }
+
+void FeImageCache::prune( bool unused )
+{
+	auto bytes = get_size();
+	for ( auto it = m_items.end(); it != m_items.begin() && ( unused || !m_max_bytes || bytes > m_max_bytes ); )
+	{
+		--it;
+		auto &textures = it->second->m_textures;
+		for ( auto texture = textures.begin(); texture != textures.end() && ( unused || !m_max_bytes || bytes > m_max_bytes ); )
+		{
+			if ( texture->second.use_count() != 2 || texture->second->status == FeImageTexture::Pending ) { ++texture; continue; }
+			if ( texture->second->status == FeImageTexture::Ready ) bytes -= texture->second->bytes;
+			texture = textures.erase( texture );
+		}
+		if ( it->second->gpu_bytes() ) continue;
+		m_entries.erase( it->first );
+		FeImageLoader::get_ref().release_entry( &it->second );
+		it = m_items.erase( it );
+	}
+}
 
 std::size_t FeImageCache::get_size()
 {
 	std::size_t bytes = 0;
-	for ( const auto &item : FeResourceCache::get().items( FeResourceCache::Image ) )
-		bytes += std::static_pointer_cast<FeImageLoaderEntry>( item.value )->gpu_bytes();
+	for ( const auto &item : m_items ) bytes += item.second->gpu_bytes();
 	return bytes;
 }
 
 const char *FeImageCache::get_name_at( int pos )
 {
-	static thread_local std::string name;
-	auto entries = FeResourceCache::get().items( FeResourceCache::Image );
-	name = pos >= 0 && pos < static_cast<int>( entries.size() )
-		? std::static_pointer_cast<FeImageLoaderEntry>( entries[pos].value )->m_filename : "";
-	return name.c_str();
+	if ( pos < 0 || pos >= static_cast<int>( m_items.size() ) ) return "";
+	auto item = m_items.begin();
+	std::advance( item, pos );
+	return item->second->m_filename.c_str();
 }
 
 std::size_t FeImageCache::get_size_at( int pos )
 {
-	auto entries = FeResourceCache::get().items( FeResourceCache::Image );
-	return pos >= 0 && pos < static_cast<int>( entries.size() )
-		? std::static_pointer_cast<FeImageLoaderEntry>( entries[pos].value )->gpu_bytes() : 0;
+	if ( pos < 0 || pos >= static_cast<int>( m_items.size() ) ) return 0;
+	auto item = m_items.begin();
+	std::advance( item, pos );
+	return item->second->gpu_bytes();
 }
 
 struct FeResourceCache::Impl
@@ -301,6 +333,16 @@ std::size_t FeResourceCache::limit() const
 	std::lock_guard<std::mutex> lock( m_impl->mutex );
 	return m_impl->max_bytes;
 }
+
+std::size_t FeResourceCache::size() const
+{
+	std::lock_guard<std::mutex> lock( m_impl->mutex );
+	return m_impl->bytes;
+}
+
+bool FeResourceCache::get_background_loading() { return FeImageLoader::get_ref().get_background_loading(); }
+void FeResourceCache::set_background_loading( bool value ) { FeImageLoader::get_ref().set_background_loading( value ); }
+void FeResourceCache::add_image( const char *filename ) { FeImageLoader::get_ref().prefetch_image( filename, false ); }
 
 std::vector<FeResourceCache::Item> FeResourceCache::items( Type type ) const
 {

@@ -741,11 +741,12 @@ public:
 			if ( thread.joinable() ) thread.join();
 	}
 
-	void request( const std::string &name, std::shared_ptr<FeImageLoaderEntry> *entry, bool prefetch=false, bool mipmap=false )
+	void request( const std::string &name, std::shared_ptr<FeImageLoaderEntry> *entry, bool prefetch=false, bool mipmap=false, bool legacy=true )
 	{
 		{
 			std::lock_guard<std::recursive_mutex> lock( g_mutex );
-			*entry = m_images[name].lock();
+			const auto key = std::make_pair( name, legacy );
+			*entry = m_images[key].lock();
 			if ( !*entry || (*entry)->m_canceled || (*entry)->failed() )
 			{
 				entry->reset( new FeImageLoaderEntry() );
@@ -753,7 +754,8 @@ public:
 				(*entry)->m_key = name;
 				(*entry)->m_mipmap = mipmap;
 				(*entry)->m_prefetch = prefetch;
-				m_images[name] = *entry;
+				(*entry)->m_legacy_cache = legacy;
+				m_images[key] = *entry;
 			}
 			if ( !prefetch && (*entry)->m_prefetch )
 			{
@@ -844,7 +846,7 @@ private:
 			{
 				if ( counted ) m_memory->release();
 				// A new request must not attach to a job we are discarding.
-				auto found = m_images.find( job.first );
+				auto found = m_images.find( { job.first, entry->m_legacy_cache } );
 				if ( found != m_images.end() && found->second.lock() == entry ) m_images.erase( found );
 				m_next_image = m_images.end();
 			}
@@ -898,8 +900,8 @@ private:
 	std::vector<std::thread> m_video_threads;
 	std::condition_variable_any m_ready;
 	std::condition_variable_any m_video_ready;
-	std::map<std::string, std::weak_ptr<FeImageLoaderEntry>> m_images;
-	std::map<std::string, std::weak_ptr<FeImageLoaderEntry>>::iterator m_next_image;
+	std::map<std::pair<std::string, bool>, std::weak_ptr<FeImageLoaderEntry>> m_images;
+	std::map<std::pair<std::string, bool>, std::weak_ptr<FeImageLoaderEntry>>::iterator m_next_image;
 	std::deque<std::pair<std::string, std::shared_ptr<FeImageLoaderEntry>>> m_in;
 	std::queue<std::shared_ptr<void>> m_retired;
 	std::queue<FeMedia *> m_vid;
@@ -1074,13 +1076,13 @@ FeImageLoader::~FeImageLoader()
 }
 
 bool FeImageLoader::load_image_from_file( const std::string &fn, std::shared_ptr<FeImageLoaderEntry> *e, bool background, bool mipmap,
-	std::shared_ptr<FeImageTexture> *texture )
+	std::shared_ptr<FeImageTexture> *texture, bool legacy )
 {
 	std::string file = fn;
 	std::replace( file.begin(), file.end(), '\\', '/' );
 	{
 		std::lock_guard<std::recursive_mutex> lock( g_mutex );
-		if ( !m_imp->m_cache->get( file, e ) ) m_imp->m_bg_loader.request( file, e, false, mipmap );
+		if ( !get_cached_image( file, e, legacy ) ) m_imp->m_bg_loader.request( file, e, false, mipmap, legacy );
 		(*e)->m_prefetch = false;
 		auto prepared = prepare_image( *e, mipmap, false );
 		if ( texture ) *texture = std::move( prepared );
@@ -1106,6 +1108,7 @@ void FeImageLoader::set_gpu_device( SDL_GPUDevice *device )
 	const auto limit = m_imp->m_cache->get_max_size();
 	delete m_imp->m_cache;
 	m_imp->m_cache = new FeImageCache( limit );
+	FeResourceCache::get().clear( FeResourceCache::Image );
 	if ( device ) m_imp->m_gpu = std::make_shared<FeImageUploadThread>( device, ++m_imp->m_gpu_generation );
 	m_imp->m_bg_loader.set_gpu( device != nullptr );
 }
@@ -1159,7 +1162,7 @@ std::shared_ptr<FeImageLoaderEntry> FeImageLoader::mask_image( const std::shared
 	std::shared_ptr<FeImageLoaderEntry> result;
 	{
 		std::lock_guard<std::recursive_mutex> lock( g_mutex );
-		if ( m_imp->m_cache->get( key, &result ) )
+		if ( get_cached_image( key, &result, image->m_legacy_cache ) )
 		{
 			prepare_image( result, mipmap, false );
 			return result;
@@ -1172,6 +1175,7 @@ std::shared_ptr<FeImageLoaderEntry> FeImageLoader::mask_image( const std::shared
 	result->m_filename = image->m_filename;
 	result->m_key = key;
 	result->m_masked = true;
+	result->m_legacy_cache = image->m_legacy_cache;
 	result->m_width = image->get_width();
 	result->m_height = image->get_height();
 	result->m_mipmap = mipmap;
@@ -1232,6 +1236,7 @@ void FeImageLoader::reap_video( FeMedia *vid )
 
 FeImageLoader &FeImageLoader::get_ref()
 {
+	FeResourceCache::get();
 	static FeImageLoader g_image_loader;
 
 	return g_image_loader;
@@ -1249,6 +1254,7 @@ void FeImageLoader::prune_cache( bool unused )
 {
 	std::lock_guard<std::recursive_mutex> lock( g_mutex );
 	m_imp->m_cache->prune( unused );
+	FeResourceCache::get().prune( unused );
 }
 
 void FeImageLoader::set_background_loading( bool flag )
@@ -1276,7 +1282,12 @@ bool FeImageLoader::get_background_loading()
 //
 void FeImageLoader::cache_image( const char *fn )
 {
-	if ( !m_imp || !cache_max() )
+	prefetch_image( fn, true );
+}
+
+void FeImageLoader::prefetch_image( const char *fn, bool legacy )
+{
+	if ( !m_imp || !( legacy ? cache_max() : FeResourceCache::get().limit() ) )
 		return;
 
 	// Queue the filename for background loading
@@ -1286,9 +1297,9 @@ void FeImageLoader::cache_image( const char *fn )
 	std::shared_ptr<FeImageLoaderEntry> entry;
 	{
 		std::lock_guard<std::recursive_mutex> lock( g_mutex );
-		m_imp->m_cache->get( file, &entry );
+		get_cached_image( file, &entry, legacy );
 	}
-	if ( !entry ) m_imp->m_bg_loader.request( file, &entry, true );
+	if ( !entry ) m_imp->m_bg_loader.request( file, &entry, true, false, legacy );
 	prepare_image( entry, false, false );
 	release_entry( &entry );
 }
@@ -1311,7 +1322,24 @@ void FeImageLoader::add_to_cache( const std::string &key, const std::shared_ptr<
 	if ( !entry->is_loaded() || !entry->gpu_bytes() )
 		return;
 
-	m_imp->m_cache->put(key, entry);
+	if ( entry->m_legacy_cache ) m_imp->m_cache->put( key, entry );
+	else
+	{
+		std::weak_ptr<FeImageLoaderEntry> weak = entry;
+		FeResourceCache::get().put( FeResourceCache::Image, key, entry, entry->gpu_bytes(), [weak]
+		{
+			auto image = weak.lock();
+			return image ? image->trim_textures() : std::size_t( 0 );
+		} );
+	}
+}
+
+bool FeImageLoader::get_cached_image( const std::string &key, std::shared_ptr<FeImageLoaderEntry> *entry, bool legacy )
+{
+	if ( legacy ) return m_imp->m_cache->get( key, entry );
+	*entry = FeResourceCache::get().find<FeImageLoaderEntry>( FeResourceCache::Image, key );
+	if ( *entry && (*entry)->m_canceled ) entry->reset();
+	return static_cast<bool>( *entry );
 }
 
 long long FeImageLoader::cache_max()
