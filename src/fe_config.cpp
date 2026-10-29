@@ -1815,7 +1815,7 @@ void FeMiscMenu::get_options( FeConfigContext &ctx )
 	std::string rot_mode = value_at( rot_modes, ctx.fe_settings.get_screen_rotation() );
 	ctx.add_opt( Opt::LIST, _( "Screen Rotation" ), rot_mode, _( "_help_misc_screen_rotation" ) )->append_vlist( rot_modes );
 
-	ctx.add_opt( Opt::EDIT, _( "Image Cache Size" ), ctx.fe_settings.get_info( FeSettings::ImageCacheMBytes ), _( "_help_misc_image_cache_mbytes" ) );
+	ctx.add_opt( Opt::EDIT, _( "Cache Size" ), ctx.fe_settings.get_info( FeSettings::CacheMBytes ), _( "_help_misc_cache_mbytes" ) );
 	std::vector<std::string> decoders;
 	std::string vid_dec = FeMedia::get_current_decoder();
 	FeMedia::get_decoder_list( decoders );
@@ -1858,7 +1858,7 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 	if ( fe_runtime_supports_multimon() )
 		ctx.fe_settings.set_info( FeSettings::MultiMon, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::ScreenRotation, FeSettings::screenRotationTokens[ ctx.opt_list[i++].get_vindex() ] );
-	ctx.fe_settings.set_info( FeSettings::ImageCacheMBytes, ctx.opt_list[i++].get_value() );
+	ctx.fe_settings.set_info( FeSettings::CacheMBytes, ctx.opt_list[i++].get_value() );
 	ctx.fe_settings.set_info( FeSettings::VideoDecoder, ctx.opt_list[i++].get_value() );
 	ctx.fe_settings.set_info( FeSettings::QuickMenu, ctx.opt_list[i++].get_bool() );
 	ctx.fe_settings.set_info( FeSettings::LayoutPreview, ctx.opt_list[i++].get_bool() );

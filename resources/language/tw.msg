@@ -79,7 +79,7 @@ Group Clones;組克隆
 Hide Game Title Brackets;隱藏比賽標題括號
 Format Game Title;格式化遊戲標題
 Hide Console;隱藏控制台
-Image Cache Size;影像快取大小
+Cache Size;快取大小
 Insert Command Shortcut;插入命令捷徑
 Insert Display Shortcut;插入顯示介面捷徑
 Insert Game Entry;插入遊戲項目
@@ -515,7 +515,7 @@ _help_misc_group_clones;將同一遊戲的所有克隆版本分組到一個列�
 _help_misc_hide_brackets;顯示遊戲標題時隱藏括號內容
 _help_misc_prefix_modes;移動“The”和“Vs”。遊戲標題末尾的前綴
 _help_misc_hide_console;啟動時隱藏主控台視窗 (註: 這僅在從 Windows 介面啟動 Attract-Mode Plus 時能正常運作,若從命令提示字元視窗啟動 (例: 批次檔),這個處理程式將始終附加並輸出到這個命令提示字元視窗)
-_help_misc_image_cache_mbytes;設定 Attract-Mode Plus 內部影像快取最大值大小 (以 MB 為單位)
+_help_misc_cache_mbytes;設定圖片、音效、字型和著色器快取的大小上限（以 MB 為單位）
 _help_misc_language;選擇 Attract-Mode Plus 使用者介面所要使用的語言
 _help_misc_layout_preview;立即顯示佈局配置變更
 _help_misc_multiple_monitors;為 Attract-Mode Plus 啟用多螢幕支援 (設定為「否」可能減少執行遊戲時的螢幕閃爍問題)

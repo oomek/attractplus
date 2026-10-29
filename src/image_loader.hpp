@@ -86,6 +86,7 @@ private:
    std::string m_filename;
    std::string m_key;
    bool m_masked = false;
+   bool m_legacy_cache = true;
    bool m_prefetch;
    bool m_mipmap = false;
    bool m_decode_pending = false;
@@ -117,7 +118,7 @@ public:
 	// Caller becomes responsible for *e and must release it by calling release_entry() when done with it
 	//
 	bool load_image_from_file( const std::string &fn, std::shared_ptr<FeImageLoaderEntry> *e, bool background=false, bool mipmap=false,
-		std::shared_ptr<FeImageTexture> *texture=nullptr );
+		std::shared_ptr<FeImageTexture> *texture=nullptr, bool legacy=true );
 	void set_gpu_device( SDL_GPUDevice *device );
 	void cancel_pending();
 	void wait_for_texture( const std::shared_ptr<FeImageTexture> &texture );
@@ -151,6 +152,7 @@ public:
 	// Script interface functions
 	//
 	void cache_image( const char * );
+	void prefetch_image( const char *, bool legacy );
 	long long cache_max();
 	long long cache_size();
 	int cache_count();
@@ -162,6 +164,7 @@ public:
 	bool image_in_cache( const std::string &filename );
 	void add_to_cache( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &entry );
 private:
+	bool get_cached_image( const std::string &, std::shared_ptr<FeImageLoaderEntry> *, bool legacy );
 	FeImageLoader();
 	FeImageLoader( const FeImageLoader & );
 	const FeImageLoader &operator=( const FeImageLoader & );

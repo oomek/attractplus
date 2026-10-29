@@ -180,7 +180,7 @@ public:
 		VideoDecoder,
 		MenuPrompt, // 'Displays Menu' prompt
 		MenuLayout, // 'Displays Menu' layout
-		ImageCacheMBytes,
+		CacheMBytes,
 		LAST_INDEX
 	};
 
@@ -274,7 +274,8 @@ private:
 	int m_selection_max_step; // max selection acceleration step.  0 to disable accel
 	int m_selection_delay; // delay before key-repeat
 	int m_selection_speed; // key-repeat interval
-	int m_image_cache_mbytes; // image cache size (in Megabytes)
+	int m_cache_mbytes; // resource cache size (in Megabytes)
+	bool m_cache_mbytes_configured;
 	bool m_move_mouse_on_launch; // configure whether mouse gets moved to bottom right corner on launch
 	bool m_scrape_snaps;
 	bool m_scrape_marquees;

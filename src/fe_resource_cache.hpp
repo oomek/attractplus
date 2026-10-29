@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <list>
+#include <map>
 #include <string>
 #include <vector>
 #include "fe_audio_sdl.hpp"
@@ -49,6 +51,12 @@ public:
 	std::size_t get_size_at( int );
 	bool contains( const std::string & );
 	void prune( bool unused = false );
+
+private:
+	using Item = std::pair<std::string, std::shared_ptr<FeImageLoaderEntry>>;
+	std::list<Item> m_items;
+	std::map<std::string, std::list<Item>::iterator> m_entries;
+	std::size_t m_max_bytes;
 };
 
 class FeResourceCache
@@ -73,6 +81,10 @@ public:
 		std::function<std::size_t()> trim = {} );
 	void resize( std::size_t bytes );
 	std::size_t limit() const;
+	std::size_t size() const;
+	bool get_background_loading();
+	void set_background_loading( bool );
+	void add_image( const char * );
 	std::vector<Item> items( Type = Any ) const;
 	void prune( bool unused = false );
 	void clear( Type );

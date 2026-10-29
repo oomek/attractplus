@@ -79,7 +79,7 @@ Group Clones;Gruppenklone
 Hide Game Title Brackets;Spieltitel-Klammern ausblenden
 Format Game Title;Spieltitel formatieren
 Hide Console;Konsole ausblenden
-Image Cache Size;Bildcache-Größe
+Cache Size;Cache-Größe
 Insert Command Shortcut;füge eine Kommandoverknüpfung ein
 Insert Display Shortcut;füge eine Bildschirmverknüpfung hinzu
 Insert Game Entry;Setze Spieleintrag
@@ -515,7 +515,7 @@ _help_misc_group_clones;Gruppieren Sie alle Klone eines Spiels unter einem einzi
 _help_misc_hide_brackets;Verberge bei der Anzeige der Spieletitel den Text in Klammern
 _help_misc_prefix_modes;Verschiebt „The“ und „Vs.“ Präfixe am Ende des Spieltitels
 _help_misc_hide_console;Verstecke das Kommandozeilenfenster beim Starten. Bitte beachte, dass dies nur in einer Windows Schaltfläche funktioniert. Wird die Anwendung durch ein Kommandozeilenfenster, wie z.B. einer Batch-Datei, gestartet, wird der Ladevorgang and dieses Fenster gebunden sein
-_help_misc_image_cache_mbytes;Konfiguriert die maximale Größe des internen Bildcaches von Attract-Mode Plus (in Megabyte).
+_help_misc_cache_mbytes;Konfiguriert die maximale Cache-Größe für Bilder, Sounds, Schriftarten und Shader (in Megabyte).
 _help_misc_language;Wähle die Sprache in der Attract-Mode Plus angezeigt wird
 _help_misc_layout_preview;Zeigen Sie Änderungen an der Layoutkonfiguration sofort an
 _help_misc_multiple_monitors;Wähle ob Attract-Mode Plus mehrere Monitore verwendet. Ist "No" gewählt, kann das Flackern beim Start einiger Spiele reduzieren

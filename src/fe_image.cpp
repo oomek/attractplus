@@ -619,7 +619,7 @@ bool FeTextureContainer::try_to_load(
 
 	auto *present = FePresent::script_get_fep();
 	il.load_image_from_file( loaded_name, &m_entry,
-		!synchronous && ( is_v4_script() || ( present && present->get_script_background_loading( m_script_id ) ) ), m_mipmap, &m_image_texture );
+		!synchronous && ( is_v4_script() || ( present && present->get_script_background_loading( m_script_id ) ) ), m_mipmap, &m_image_texture, !is_v4_script() );
 	m_file_name = loaded_name;
 	if ( m_entry && m_entry->is_loaded() )
 	{

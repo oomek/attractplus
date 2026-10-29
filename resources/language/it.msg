@@ -79,7 +79,7 @@ Group Clones;Cloni di gruppo
 Hide Game Title Brackets;Nascondi le parentesi del titolo del gioco
 Format Game Title;Formato titolo gioco
 Hide Console;Nascondi console
-Image Cache Size;Dimensione cache immagini
+Cache Size;Dimensione cache
 Insert Command Shortcut;Inserisci scorciatoia di comando
 Insert Display Shortcut;Inserisci scorciatoia di visualizzazione
 Insert Game Entry;Inserisci voce di gioco
@@ -515,7 +515,7 @@ _help_misc_group_clones;Raggruppa tutti i cloni di un gioco in un'unica voce del
 _help_misc_hide_brackets;Nasconde il testo tra parentesi quando viene mostrato il titolo del gioco
 _help_misc_prefix_modes;Sposta "The" e "Vs." prefissi alla fine del titolo del gioco
 _help_misc_hide_console;Nascondi la console all'avvio. Nota: questo funziona solo se Attract-Mode Plus viene avviato da un'interfaccia utente grafica di Windows. Se avviato da una finestra della console esistente (ad esempio, un file batch), il processo si "collegherà" sempre alla console esistente e vi invierà l'output.
-_help_misc_image_cache_mbytes;Configura la dimensione massima della cache immagini interna di Attract-Mode Plus (in megabyte)
+_help_misc_cache_mbytes;Configura la dimensione massima della cache di immagini, suoni, font e shader (in megabyte)
 _help_misc_language;Seleziona la lingua dell'interfaccia di Attract-Mode Plus
 _help_misc_layout_preview;Mostra immediatamente le modifiche alla configurazione del layout
 _help_misc_multiple_monitors;Abilita l'utilizzo di monitor multipli

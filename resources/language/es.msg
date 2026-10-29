@@ -79,7 +79,7 @@ Group Clones;Agrupar Clones
 Hide Game Title Brackets;Ocultar corchetes del título del juego
 Format Game Title;Formato del título del juego
 Hide Console;Ocultar consola
-Image Cache Size;Tamaño de caché de imágenes
+Cache Size;Tamaño de la caché
 Insert Command Shortcut;Insertar acceso directo a comandos
 Insert Display Shortcut;Insertar acceso directo a la pantalla
 Insert Game Entry;Insertar entrada de juego
@@ -515,7 +515,7 @@ _help_misc_group_clones;Agrupa todos los clones de un juego en una sola entrada 
 _help_misc_hide_brackets;Esconde el texto en paréntesis cuando se muestran los títulos de los juegos
 _help_misc_prefix_modes;Mueve "The" y "Vs." Prefijos al final del título del juego
 _help_misc_hide_console;Ocultar la consola al inicio. Tenga en cuenta que esto solo funciona si inicia Attract-Mode Plus desde una interfaz gráfica de Windows. Si se inicia desde una ventana de consola existente (p. ej., un archivo por lotes), el proceso siempre se conectará a la consola existente y mostrará la salida en ella.
-_help_misc_image_cache_mbytes;Configura el tamaño máximo de la caché de imágenes interna de Attract-Mode Plus (en megabytes)
+_help_misc_cache_mbytes;Configura el tamaño máximo de la caché de imágenes, sonidos, fuentes y shaders (en megabytes)
 _help_misc_language;Selecciona el idioma de la interfaz de usuario de Attract-Mode Plus.
 _help_misc_layout_preview;Mostrar los cambios de configuración de la interfaz inmediatamente
 _help_misc_multiple_monitors;Habilita el uso de múltiples monitores mediante Attract-Mode Plus. Configurar esto en "No" puede reducir el parpadeo de la pantalla al iniciar juegos.
