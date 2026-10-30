@@ -30,8 +30,14 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include <vector>
+#include <map>
+#include <tuple>
 class FeImage;
+class FeMedia;
+class FeImageLoaderEntry;
+struct FeImageTexture;
 
 class FeSdl3GpuContext
 {
@@ -52,14 +58,23 @@ public:
 	~FeSdl3GpuContext();
 
 	void submit_frame( FeRenderFrame frame );
+	FeRenderFrame take_frame();
 	const FeRenderFrame &get_frame() const;
 	std::size_t get_texture_count() const;
 	bool execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry = nullptr );
+	enum FrameStatus { FrameReady, FramePending, FrameUnavailable };
+	FrameStatus acquire_frame( bool wait = false );
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
+	bool prepare_shader( const FeShader * );
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	bool has_frame_content() const;
+	enum TextureStatus { TexturePending, TextureReady, TextureFailed };
+	TextureStatus texture_status( const FeRenderTextureBinding & ) const;
+	bool prepare_textures( const std::vector<FeRenderTextureBinding> &, unsigned long long frame_number );
+	void reset_texture_upload_budget() { m_texture_upload_time = 0; m_texture_upload_deadline = 0; }
+	void set_texture_upload_deadline( Uint64 deadline ) { m_texture_upload_deadline = deadline; }
 	bool capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool save_screenshot( const std::string &filename );
@@ -76,6 +91,7 @@ public:
 	void *get_native_window_handle() const;
 
 private:
+	void release_frame();
 	struct CustomShaderEntry;
 	struct BuiltinShaderEntry;
 	struct PbrCustomShaderEntry;
@@ -90,7 +106,33 @@ private:
 		unsigned long long last_upload_frame;
 		unsigned long long last_upload_content_version;
 		SDL_GPUTexture *gpu_texture;
+		SDL_GPUTextureCreateInfo texture_info = {};
+		SDL_GPUTransferBuffer *transfer_buffer = nullptr;
+		Uint32 transfer_buffer_size = 0;
+		unsigned long long transfer_serial = 0;
+		unsigned long long media_id = 0;
+		bool upload_pending = false;
+		std::shared_ptr<FeImageLoaderEntry> image_source;
+		std::shared_ptr<FeImageTexture> image_texture;
 	};
+	struct VideoUpload
+	{
+		FeMedia *media;
+		TextureEntry *entry;
+		void *pixels;
+		std::size_t size;
+		unsigned int width;
+		unsigned int height;
+		SDL_GPUCommandBuffer *command_buffer;
+		bool copied = false;
+		void copy();
+	};
+	struct VideoUploadWorkers;
+	std::unique_ptr<VideoUploadWorkers> m_video_upload_workers;
+	std::vector<VideoUpload> m_video_uploads;
+	SDL_GPUFence *m_texture_upload_fence = nullptr;
+	unsigned long long m_texture_upload_serial = 0;
+	unsigned long long m_completed_texture_upload_serial = 0;
 
 	struct GeometryBufferEntry
 	{
@@ -159,6 +201,7 @@ private:
 	struct CustomUniformBinding
 	{
 		std::string name;
+		std::string type;
 		std::string default_value;
 		int slot;
 		int components;
@@ -194,6 +237,8 @@ private:
 		bool has_custom_vertex;
 		bool fast_current_texture_only;
 		bool compile_failed;
+		bool compiling = false;
+		std::shared_ptr<void> fragment_compile, vertex_compile;
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
@@ -222,6 +267,8 @@ private:
 		std::string source_path;
 		unsigned long long source_stamp;
 		bool compile_failed;
+		bool compiling = false;
+		std::shared_ptr<void> fragment_compile;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *pbr_pipelines[3][2][2];
 		std::vector<CustomUniformBinding> fragment_uniforms;
@@ -254,7 +301,8 @@ private:
 		}
 	};
 
-	void sync_textures( const std::vector<FeRenderGeometry> *extra_geometry = nullptr );
+	bool sync_textures( const std::vector<FeRenderGeometry> *extra_geometry = nullptr,
+		const std::vector<FeRenderTextureBinding> *preloads = nullptr, unsigned long long frame_number = 0 );
 	void clear_textures();
 	void clear_geometry_buffers();
 	void build_prepared_images();
@@ -264,7 +312,13 @@ private:
 		std::vector<PreparedImage> &prepared_images,
 		std::vector<FeRenderVertex> &vertex_stream );
 	void release_texture( TextureEntry &entry );
-	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry );
+	void retire_texture( TextureEntry &entry );
+	bool use_image_texture( TextureEntry &entry, bool blocking );
+	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry, SDL_GPUCommandBuffer *command_buffer = nullptr, bool blocking=false );
+	bool submit_texture_upload( TextureEntry &entry, unsigned int source_width, unsigned int source_height, SDL_GPUCommandBuffer *command_buffer );
+	bool flush_video_uploads();
+	bool submit_texture_commands( SDL_GPUCommandBuffer *command_buffer );
+	void reset_media_texture( const FeMedia *media, TextureEntry &entry );
 	void release_white_texture();
 	bool ensure_white_texture();
 	void release_white_cube_texture();
@@ -304,7 +358,8 @@ private:
 	void release_pbr_custom_shader( PbrCustomShaderEntry &entry );
 	void release_builtin_shaders();
 	void release_builtin_shader( BuiltinShaderEntry &entry );
-	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
+	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image, bool *pending = nullptr );
+	void prepare_pipelines( SDL_GPUTextureFormat );
 	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
 	PbrCustomShaderEntry *get_pbr_custom_shader_entry( const FeRenderGeometry &image );
 	BuiltinShaderEntry *get_fast_builtin_shader_entry( int blend_mode );
@@ -376,8 +431,14 @@ private:
 	bool initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_format );
 
 	FeRenderFrame m_frame;
+	unsigned long long m_texture_upload_frame = 0;
+	Uint64 m_texture_upload_time = 0;
+	Uint64 m_texture_upload_deadline = 0;
 	FrameStats m_frame_stats;
-	std::unordered_map<const void *, TextureEntry> m_textures;
+	std::map<std::tuple<const void *, bool, bool>, TextureEntry> m_textures;
+	std::map<std::tuple<const void *, bool, bool>, unsigned long long> m_texture_failures;
+	std::vector<TextureEntry> m_spare_textures;
+	std::size_t m_spare_texture_bytes = 0;
 	std::unordered_map<const void *, GeometryBufferEntry> m_geometry_buffers;
 	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
 	std::vector<PreparedImage> m_prepared_images;
@@ -391,6 +452,10 @@ private:
 	bool m_window_claimed;
 	SDL_Window *m_window;
 	SDL_GPUDevice *m_device;
+	SDL_GPUCommandBuffer *m_present_command_buffer = nullptr;
+	SDL_GPUTexture *m_swapchain_texture = nullptr;
+	Uint32 m_swapchain_width = 0;
+	Uint32 m_swapchain_height = 0;
 	SDL_GPUBuffer *m_vertex_buffer;
 	SDL_GPUBuffer *m_pbr_instance_buffer;
 	SDL_GPUCommandBuffer *m_vertex_upload_command_buffer;
@@ -403,6 +468,7 @@ private:
 	Uint32 m_pbr_instance_buffer_size;
 	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
+	SDL_GPUShader *m_custom_vertex_shader;
 	SDL_GPUShader *m_alpha_prepass_shader;
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUShader *m_pbr_vertex_shader;

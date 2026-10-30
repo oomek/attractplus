@@ -79,7 +79,7 @@ Group Clones;그룹 클론
 Hide Game Title Brackets;게임 제목 대괄호 숨기기
 Format Game Title;게임 제목 형식
 Hide Console;콘솔 숨기기
-Image Cache Size;이미지 캐시 크기
+Cache Size;캐시 크기
 Insert Command Shortcut;명령어 바로가기 추가
 Insert Display Shortcut;창 바로가기 추가
 Insert Game Entry;게임 추가
@@ -515,7 +515,7 @@ _help_misc_group_clones;모든 게임 클론을 하나의 목록 항목으로 �
 _help_misc_hide_brackets;게임 제목을 표시할 때에, 괄호로 둘러싸인 부분은 표시하지 않을 지 여부를 설정합니다
 _help_misc_prefix_modes;"The"와 "Vs."를 이동합니다. 게임 제목 끝에 접두사 추가
 _help_misc_hide_console;콘솔 창을 숨깁니다. 이 옵션은 프로그램을 윈도우 GUI상에서 실행할 때에만 적용됩니다. 이미 띄워진 콘솔 창에서 실행하는 경우 (예: 배치 파일에서 실행하는 경우) Attract-Mode Plus 프로세스는 해당 창에 달라붙을 것입니다.
-_help_misc_image_cache_mbytes;Attract-Mode Plus 내부 이미지 캐시의 최대 크기(MB)를 설정합니다.
+_help_misc_cache_mbytes;이미지, 사운드, 글꼴 및 셰이더 캐시의 최대 크기(MB)를 설정합니다.
 _help_misc_language;언어를 설정합니다
 _help_misc_layout_preview;레이아웃 구성 변경 사항을 즉시 표시합니다.
 _help_misc_multiple_monitors;다중 모니터 환경을 사용할 지 여부를 설정합니다

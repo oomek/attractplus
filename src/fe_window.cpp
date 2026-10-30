@@ -981,8 +981,8 @@ void FeWindow::display()
 	m_overlay_geometry.clear();
 	m_overlay_images.clear();
 
-	// Starting from Windows Vista non fullscreen window modes
-	// should be synced by DWM, instead of v-sync
+	// The GPU swapchain provides frame pacing. Use DWM only as a fallback
+	// when no GPU frame was presented.
 #ifdef SDL_PLATFORM_WINDOWS
 	if ( !used_sdl_gpu_present && ( m_win_mode != FeSettings::Fullscreen ) )
 		DwmFlush();
@@ -1360,10 +1360,6 @@ void FeWindow::initial_create()
 			try_create_sdl_window( nullptr );
 	}
 
-	// On Windows Vista and above all non fullscreen window modes
-	// go through DWM. We have to disable vsync
-	// when we rely solely on DwmFlush()
-
 #ifdef SDL_PLATFORM_MACOS
 	if ( m_win_mode == FeSettings::Fillscreen )
 	{
@@ -1619,8 +1615,7 @@ bool FeWindow::run()
 	if ( m_fes.update_stats_current( 1, timer.getElapsedTime().asSeconds() ) )
 	{
 		FePresent *fep = FePresent::script_get_fep();
-		fep->update_to( ToNewList, false );
-		fep->on_transition( ToNewList, 0 );
+		fep->refresh_list();
 	}
 
 #if defined(SDL_PLATFORM_LINUX)
@@ -1771,8 +1766,16 @@ Vec2i FeWindow::get_mouse_position() const
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
+#ifdef SDL_PLATFORM_WINDOWS
+		// Match the immediate, client-relative mouse query used by the SFML frontend.
+		POINT pos;
+		if ( GetCursorPos( &pos ) && ScreenToClient(
+			static_cast<HWND>( m_gpu_context.get_native_window_handle() ), &pos ) )
+			return Vec2i( pos.x, pos.y );
+#endif
 		float x = 0.0f;
 		float y = 0.0f;
+		SDL_PumpEvents();
 		SDL_GetMouseState( &x, &y );
 		return Vec2i( static_cast<int>( x ), static_cast<int>( y ) );
 	}

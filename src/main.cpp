@@ -31,6 +31,7 @@
 #include "fe_util.hpp"
 #include "fe_image.hpp"
 #include "fe_sound.hpp"
+#include "fe_audio_sdl.hpp"
 #include "fe_text.hpp"
 #include "fe_window.hpp"
 #include "fe_vm.hpp"
@@ -169,6 +170,7 @@ int main(int argc, char *argv[])
 #endif
 
 	feSettings.load();
+	FeSdlAudioBackend::get().prepare_device();
 
 	//
 	// Set up music/sound playing objects
@@ -438,6 +440,8 @@ int main(int argc, char *argv[])
 			redraw=true;
 		}
 
+		// Sample input after waiting for presentation, so commands affect this frame.
+		feVM.wait_for_frame();
 		FeInputMouse::clear();
 		FeInputMap::Command c;
 		std::optional<FeEvent> ev;
@@ -702,6 +706,7 @@ int main(int argc, char *argv[])
 			FeDebug() << "Handling command: " << FeInputMap::commandStrings[c] << std::endl;
 
 			soundsys.sound_event( c );
+			if ( feVM.defer_command( c ) ) continue;
 			if ( feVM.handle_event( c ) )
 				redraw = true;
 			else
@@ -1166,7 +1171,9 @@ int main(int argc, char *argv[])
 			{
 				command_timer.restart();
 				int t = static_cast<int>( move_timer.getElapsedTime().asMilliseconds() );
-				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() ))
+				// Repeats follow the held input, so never queue them behind a transition.
+				if (( t > feSettings.selection_delay() ) && ( t - move_last_triggered > feSettings.selection_speed() )
+					&& !feVM.navigation_busy() )
 				{
 					if (( move_triggered == FeInputMap::LAST_COMMAND )
 						|| feVM.script_handle_event( move_triggered ))
@@ -1178,8 +1185,7 @@ int main(int argc, char *argv[])
 						//
 						if ( move_triggered != FeInputMap::LAST_COMMAND )
 						{
-							feVM.update_to( EndNavigation, false );
-							feVM.on_transition( EndNavigation, 0 );
+							feVM.end_navigation();
 						}
 
 						move_state = FeInputMap::LAST_COMMAND;
@@ -1254,22 +1260,9 @@ int main(int argc, char *argv[])
 						default: break;
 						}
 
-						//
-						// Limit the size of our step so that there is no wrapping around at the end of the list
-						//
-						int curr_sel = feSettings.get_rom_index( feSettings.get_current_filter_index(), 0 );
-						if ( ( curr_sel + step ) < 0 )
-							step = -curr_sel;
-						else
-						{
-							int list_size = feSettings.get_filter_size( feSettings.get_current_filter_index() );
-							if ( ( curr_sel + step ) >= list_size )
-								step = list_size - curr_sel - 1;
-						}
-
 						if ( step != 0 )
 						{
-							feVM.change_selection( step, false );
+							feVM.change_selection( step, false, true );
 							redraw=true;
 						}
 					}
@@ -1284,8 +1277,7 @@ int main(int argc, char *argv[])
 				//
 				if ( move_triggered != FeInputMap::LAST_COMMAND )
 				{
-					feVM.update_to( EndNavigation, false );
-					feVM.on_transition( EndNavigation, 0 );
+					feVM.end_navigation();
 				}
 
 				move_state = FeInputMap::LAST_COMMAND;

@@ -36,6 +36,7 @@
 #include "fe_audio_fx.hpp"
 
 class FeSettings;
+class FeRomInfo;
 class FeMedia;
 class FeImage;
 class FeModel3D;
@@ -44,6 +45,7 @@ class FeListBox;
 class FeRectangle;
 class FeTextureContainer;
 class FeImageLoaderEntry;
+struct FeImageTexture;
 
 enum FeVideoFlags
 {
@@ -62,6 +64,7 @@ public:
 	virtual Vec2u get_texture_size() const=0;
 	virtual const void *get_texture_source_id() const;
 	virtual int get_texture_source_type() const;
+	virtual bool is_texture_blocking() const;
 	virtual bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const;
 	virtual bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const;
 
@@ -142,6 +145,7 @@ protected:
 
 	// call this to notify registered images that the texture has changed
 	void notify_texture_change();
+	void reset_subimg();
 
 private:
 	std::vector< FeImage * > m_images;
@@ -151,12 +155,16 @@ private:
 
 class FeTextureContainer : public FeBaseTextureContainer
 {
+	friend class FePresent;
 public:
-	FeTextureContainer( bool is_artwork, const std::string &name="" );
+	FeTextureContainer( bool is_artwork, const std::string &name="", bool preload=false );
 
 	~FeTextureContainer();
 
 	Vec2u get_texture_size() const override;
+	const void *get_texture_source_id() const override;
+	int get_texture_source_type() const override;
+	bool is_texture_blocking() const override;
 	bool copy_pixels_rgba( std::vector<unsigned char> &pixels, unsigned int &width, unsigned int &height ) const override;
 	bool copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const override;
 	bool get_visible() const;
@@ -181,6 +189,7 @@ public:
 
 	void load_file( const char *n );
 	const char *get_file_name() const;
+	void load_file( const char *n, bool synchronous );
 	int get_type() const;
 	bool get_magic() const;
 	void set_trigger( int );
@@ -222,23 +231,39 @@ public:
 	bool is_volatile_texture() const;
 	unsigned long long get_texture_content_version() const override;
 
-	FeAudioEffectsManager& get_audio_effects() { return m_audio_effects; };
+	FeAudioEffectsManager& get_audio_effects() { return *m_audio_effects; };
 	FeMedia *get_media() const;
 
 protected:
 	FeTextureContainer *get_derived_texture_container();
 
 private:
+	bool is_v4_script() const;
+	FeTextureContainer &prepare();
+	void discard_prepared();
+	void swap_media( FeTextureContainer & );
+	bool prepared_binding( FeRenderTextureBinding & ) const;
+	bool prepared_ready() const;
+	void start_movie( FeSettings * );
+	int m_script_id;
+	bool m_preload;
+	std::unique_ptr<FeTextureContainer> m_prepared;
+	FeTextureContainer *m_reuse = nullptr;
+	bool m_reserved = false;
 	bool load_with_ffmpeg(
 		const std::string &filename,
-		bool is_image );
+		bool is_image,
+		bool synchronous=false );
 
 	bool try_to_load(
 		const std::string &filename,
-		bool is_image=false );
+		bool is_image=false,
+		bool synchronous=false );
 
 	void internal_update_selection( FeSettings *feSettings );
+	bool load_next_artwork();
 	void clear();
+	void init_audio_effects();
 
 	mutable std::vector<unsigned char> m_pixel_cache;
 	mutable bool m_pixel_cache_valid;
@@ -254,6 +279,10 @@ private:
 	Type m_type;
 	int m_art_update_trigger;
 	FeMedia *m_movie;
+	FeMedia *m_pending_movie;
+	std::vector<std::string> m_video_files;
+	std::vector<std::string> m_image_files;
+	std::unique_ptr<FeRomInfo> m_rom_info;
 	int m_movie_status; // 0=no play, 1=ready to play, >=PLAY_COUNT=playing
 	FeVideoFlags m_video_flags;
 	bool m_mipmap;
@@ -261,8 +290,13 @@ private:
 	float m_volume;
 	float m_pan;
 	int m_fft_bands;
-	FeImageLoaderEntry *m_entry;
-	FeAudioEffectsManager m_audio_effects;
+	std::shared_ptr<FeImageLoaderEntry> m_entry;
+	std::shared_ptr<FeImageTexture> m_image_texture;
+	std::shared_ptr<FeImageLoaderEntry> m_previous_entry;
+	std::shared_ptr<FeAudioEffectsManager> m_audio_effects;
+	mutable std::vector<float> m_fft_mono;
+	mutable std::vector<float> m_fft_left;
+	mutable std::vector<float> m_fft_right;
 	Vec2u m_texture_size;
 	bool m_repeat;
 	unsigned long long m_content_version;
@@ -320,6 +354,8 @@ public:
 
 class FeImage : public FeBasePresentable
 {
+	friend class FeBaseTextureContainer;
+	enum SubimgField { SubimgX = 1, SubimgY = 2, SubimgWidth = 4, SubimgHeight = 8, SubimgAll = 15 };
 public:
 	enum Fit
 	{
@@ -374,7 +410,7 @@ public:
 	void rawset_filter_offset( int fo );
 	int getFilterOffset() const;
 
-	void setTextureRect( const FloatRect &);
+	void setTextureRect( const FloatRect &, unsigned int fields = SubimgAll );
 	FloatRect getTextureRect() const;
 	Vec2u getTextureSize() const;
 
@@ -562,6 +598,8 @@ protected:
 	FeBaseTextureContainer *m_tex;
 	FeSprite m_sprite;
 	FeSpriteLegacy m_sprite_legacy;
+	unsigned int m_subimg_set;
+	mutable std::vector<FeRenderVertex> m_render_vertices;
 	Vec2f m_pos;
 	Vec2f m_size;
 	Vec2u m_auto_size;

@@ -21,7 +21,7 @@
  */
 
 #include "fe_sdl3_gpu.hpp"
-#include "fe_glslang.hpp"
+#include "fe_resource_cache.hpp"
 #include "fe_image.hpp"
 #include "fe_font.hpp"
 #include "media.hpp"
@@ -30,6 +30,7 @@
 #include "fe_settings.hpp"
 #include "fe_util.hpp"
 #include "fe_base.hpp"
+#include "image_loader.hpp"
 #include <SDL3_image/SDL_image.h>
 
 #include <algorithm>
@@ -41,14 +42,14 @@
 #include <regex>
 #include <sstream>
 #include <utility>
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
 namespace
 {
 	const int FE_MAX_CUSTOM_SHADER_UNIFORMS = 32;
-	std::string join_path( const std::string &base, const std::string &suffix );
-	std::string get_base_path();
-	bool read_binary_file( const std::string &path, std::vector<Uint8> &code );
-	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code );
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
@@ -103,12 +104,6 @@ namespace
 		return name;
 	}
 
-	struct ShaderBlob
-	{
-		SDL_GPUShaderFormat format;
-		std::vector<Uint8> code;
-		const char *entrypoint;
-	};
 
 	const char *get_builtin_image_fragment_shader_name( int mode )
 	{
@@ -223,7 +218,7 @@ namespace
 		std::string &stripped_source )
 	{
 		static const std::regex uniform_regex(
-			"\\buniform\\s+(float|vec2|vec3|vec4|sampler2D)\\s+([^;]+);" );
+			"\\buniform\\s+(float|int|bool|vec2|vec3|vec4|sampler2D)\\s+([^;]+);" );
 		static const std::regex name_regex(
 			"^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(?:=\\s*([\\s\\S]+))?\\s*$" );
 		static const std::regex comment_regex( "//[^\\n]*|/\\*[\\s\\S]*?\\*/" );
@@ -329,13 +324,12 @@ namespace
 		return true;
 	}
 
-	std::string build_custom_uniform_macro( const std::string &name, int slot, int components, const std::string &default_value )
+	std::string build_custom_uniform_value( const std::string &type, int slot, int components, const std::string &default_value )
 	{
 		std::ostringstream stream;
-		stream << "#define " << name << " ";
 		if ( !default_value.empty() )
 			stream << "(custom_ubo.supplied[" << slot / 4 << "]." << "xyzw"[slot % 4] << " != 0.0 ? ";
-		stream << "custom_ubo.values[" << slot << "].";
+		stream << type << "(custom_ubo.values[" << slot << "].";
 
 		switch ( components )
 		{
@@ -348,8 +342,8 @@ namespace
 				break;
 		}
 
-		if ( !default_value.empty() )
-			stream << " : " << (( components == 1 ) ? "float" : "vec" + std::to_string( components )) << "(" << default_value << "))";
+		stream << ")";
+		if ( !default_value.empty() ) stream << " : " << type << "(" << default_value << "))";
 
 		return stream.str();
 	}
@@ -498,6 +492,54 @@ namespace
 			"\tgl_Position = ubo.projection * vec4( view_position, 1.0 );\n"
 			"\tfrag_texcoord = in_texcoord;\n"
 			"\tfrag_color = in_color;\n"
+			"}\n";
+	}
+
+	// Vertex shader for custom and default-blend fragment shaders that come without
+	// their own vertex shader. Its outputs match the inputs these fragment shaders
+	// declare (vec4 texcoord0 at location 0, colour at 1, texcoord1-7 at 2-8), and it
+	// uses the same uniform block as the builtin vertex shader. Metal (and therefore
+	// MoltenVK) rejects pipelines whose vertex outputs don't match the fragment inputs.
+	std::string build_builtin_custom_vertex_shader()
+	{
+		return
+			"#version 450\n"
+			"layout(location = 0) in vec3 in_position;\n"
+			"layout(location = 1) in vec2 in_texcoord;\n"
+			"layout(location = 2) in vec4 in_color;\n"
+			"layout(location = 0) out vec4 out_texcoord0;\n"
+			"layout(location = 1) out vec4 out_color;\n"
+			"layout(location = 2) out vec4 out_texcoord1;\n"
+			"layout(location = 3) out vec4 out_texcoord2;\n"
+			"layout(location = 4) out vec4 out_texcoord3;\n"
+			"layout(location = 5) out vec4 out_texcoord4;\n"
+			"layout(location = 6) out vec4 out_texcoord5;\n"
+			"layout(location = 7) out vec4 out_texcoord6;\n"
+			"layout(location = 8) out vec4 out_texcoord7;\n"
+			"layout(set = 1, binding = 0) uniform DrawUniforms\n"
+			"{\n"
+			"\tmat4 projection;\n"
+			"\tfloat viewport_width;\n"
+			"\tfloat viewport_height;\n"
+			"\tfloat plane_distance;\n"
+			"\tfloat reserved;\n"
+			"} ubo;\n"
+			"void main()\n"
+			"{\n"
+			"\tvec3 view_position = vec3(\n"
+			"\t\tin_position.x - ( ubo.viewport_width * 0.5 ),\n"
+			"\t\t( ubo.viewport_height * 0.5 ) - in_position.y,\n"
+			"\t\t-( ubo.plane_distance - in_position.z ) );\n"
+			"\tgl_Position = ubo.projection * vec4( view_position, 1.0 );\n"
+			"\tout_texcoord0 = vec4( in_texcoord, 0.0, 1.0 );\n"
+			"\tout_color = in_color;\n"
+			"\tout_texcoord1 = vec4( 0.0 );\n"
+			"\tout_texcoord2 = vec4( 0.0 );\n"
+			"\tout_texcoord3 = vec4( 0.0 );\n"
+			"\tout_texcoord4 = vec4( 0.0 );\n"
+			"\tout_texcoord5 = vec4( 0.0 );\n"
+			"\tout_texcoord6 = vec4( 0.0 );\n"
+			"\tout_texcoord7 = vec4( 0.0 );\n"
 			"}\n";
 	}
 
@@ -1061,6 +1103,81 @@ namespace
 
 }
 
+void FeSdl3GpuContext::VideoUpload::copy()
+{
+	unsigned int copied_width = 0;
+	unsigned int copied_height = 0;
+	copied = media->copy_video_frame_rgba_to( pixels, size, copied_width, copied_height ) &&
+		copied_width == width && copied_height == height;
+}
+
+struct FeSdl3GpuContext::VideoUploadWorkers
+{
+	std::mutex mutex;
+	std::condition_variable work;
+	std::condition_variable done;
+	std::vector<std::thread> threads;
+	std::vector<VideoUpload> *uploads = nullptr;
+	std::atomic<std::size_t> next{ 0 };
+	unsigned int generation = 0;
+	unsigned int active = 0;
+	bool stop = false;
+
+	VideoUploadWorkers()
+	{
+		const unsigned int count = std::max( 1u, std::thread::hardware_concurrency() / 2 );
+		for ( unsigned int i = 0; i < count; ++i )
+			threads.emplace_back( &VideoUploadWorkers::run, this );
+		FeDebug() << "Video transfer copy workers: " << count << std::endl;
+	}
+
+	~VideoUploadWorkers()
+	{
+		{
+			std::lock_guard<std::mutex> lock( mutex );
+			stop = true;
+		}
+		work.notify_all();
+		for ( std::thread &thread : threads )
+			thread.join();
+	}
+
+	void run()
+	{
+		unsigned int previous = 0;
+		std::unique_lock<std::mutex> lock( mutex );
+		for ( ;; )
+		{
+			while ( !stop && previous == generation )
+				work.wait( lock );
+			if ( stop )
+				return;
+			previous = generation;
+			std::vector<VideoUpload> &batch = *uploads;
+			lock.unlock();
+			for ( std::size_t i = next.fetch_add( 1, std::memory_order_relaxed ); i < batch.size();
+				i = next.fetch_add( 1, std::memory_order_relaxed ) )
+				batch[i].copy();
+			lock.lock();
+			if ( --active == 0 )
+				done.notify_one();
+		}
+	}
+
+	void copy( std::vector<VideoUpload> &batch )
+	{
+		std::unique_lock<std::mutex> lock( mutex );
+		uploads = &batch;
+		next = 0;
+		active = static_cast<unsigned int>( threads.size() );
+		++generation;
+		work.notify_all();
+		while ( active != 0 )
+			done.wait( lock );
+		uploads = nullptr;
+	}
+};
+
 FeSdl3GpuContext::FeSdl3GpuContext()
 {
 	m_frame_stats.executed = false;
@@ -1086,6 +1203,7 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_pbr_instance_buffer_size = 0;
 	m_vertex_buffer_signature = 0;
 	m_vertex_shader = nullptr;
+	m_custom_vertex_shader = nullptr;
 	m_alpha_prepass_shader = nullptr;
 	m_pbr_vertex_shader = nullptr;
 	m_pbr_fragment_shader = nullptr;
@@ -1144,6 +1262,11 @@ void FeSdl3GpuContext::submit_frame( FeRenderFrame frame )
 	m_vertex_stream.clear();
 }
 
+FeRenderFrame FeSdl3GpuContext::take_frame()
+{
+	return std::move( m_frame );
+}
+
 const FeRenderFrame &FeSdl3GpuContext::get_frame() const
 {
 	return m_frame;
@@ -1164,6 +1287,7 @@ void FeSdl3GpuContext::clear_layout_resources()
 	release_surfaces();
 	clear_textures();
 	clear_geometry_buffers();
+	m_custom_shader_sources.clear();
 }
 
 bool FeSdl3GpuContext::present_blank_frame()
@@ -1209,80 +1333,165 @@ bool FeSdl3GpuContext::present_blank_frame()
 	return SDL_SubmitGPUCommandBuffer( command_buffer );
 }
 
-void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra_geometry )
+bool FeSdl3GpuContext::prepare_textures( const std::vector<FeRenderTextureBinding> &bindings,
+	unsigned long long frame_number )
 {
-	std::size_t geometry_count = m_frame.images.size();
-	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
-		geometry_count += surface.geometry.size();
+	return sync_textures( nullptr, &bindings, frame_number );
+}
+
+bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra_geometry,
+	const std::vector<FeRenderTextureBinding> *preloads, unsigned long long frame_number )
+{
+	const auto &bindings = preloads ? *preloads : m_frame.preloads;
+	std::size_t geometry_count = bindings.size();
+	if ( !preloads )
+	{
+		geometry_count += m_frame.images.size();
+		for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
+			geometry_count += surface.geometry.size();
+	}
 	if ( extra_geometry )
 		geometry_count += extra_geometry->size();
 
 	if ( geometry_count == 0 )
 	{
-		clear_textures();
-		return;
+		if ( !preloads ) clear_textures();
+		return true;
 	}
+
+	if ( !preloads ) frame_number = m_frame.frame_number;
+	if ( m_texture_upload_frame != frame_number )
+	{
+		m_texture_upload_frame = frame_number;
+		m_texture_upload_time = 0;
+	}
+	SDL_GPUCommandBuffer *command_buffer = nullptr;
+	bool success = true;
+	Uint64 &new_upload_time = m_texture_upload_time;
+	std::vector<std::tuple<const void *, bool, bool>> uploads;
+
+	auto sync_binding = [&]( const void *texture_id,
+		int texture_source_type,
+		float texture_width,
+		float texture_height,
+		bool texture_mipmap,
+		bool texture_dynamic,
+		unsigned long long texture_content_version,
+		bool texture_blocking,
+		bool texture_cube_map = false )
+	{
+		if ( !texture_id || texture_width <= 0 || texture_height <= 0 )
+			return;
+
+		if ( texture_source_type == FeRenderTextureSourceContainer )
+		{
+			const FeBaseTextureContainer *container = static_cast<const FeBaseTextureContainer *>( texture_id );
+			if ( dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
+				return;
+		}
+
+		TextureEntry &entry = m_textures[ { texture_id, texture_mipmap, texture_cube_map } ];
+		if ( texture_source_type == FeRenderTextureSourceMedia )
+			reset_media_texture( static_cast<const FeMedia *>( texture_id ), entry );
+		if ( entry.upload_pending &&
+			( entry.width != texture_width || entry.height != texture_height ||
+				entry.mipmapped != texture_mipmap || entry.cube_map != texture_cube_map ) )
+			success = flush_video_uploads() && success;
+		const float previous_width = entry.width;
+		const float previous_height = entry.height;
+		const bool previous_mipmapped = entry.mipmapped;
+		const bool previous_cube_map = entry.cube_map;
+		const unsigned long long content_version =
+			( texture_content_version != 0 )
+				? texture_content_version
+					: frame_number;
+		entry.width = texture_width;
+		entry.height = texture_height;
+		entry.mipmapped = texture_mipmap;
+		entry.cube_map = texture_cube_map;
+		entry.last_seen_frame = frame_number;
+		if ( is_available() )
+		{
+			const bool image_source = texture_source_type == FeRenderTextureSourceImage;
+			const bool first_video = texture_source_type == FeRenderTextureSourceMedia && !entry.gpu_texture;
+			if ( image_source || first_video )
+			{
+				auto &loader = FeImageLoader::get_ref();
+				if ( image_source )
+				{
+					entry.image_source = const_cast<FeImageLoaderEntry *>( static_cast<const FeImageLoaderEntry *>( texture_id ) )->shared_from_this();
+					entry.image_texture = loader.prepare_image( entry.image_source, texture_mipmap, texture_cube_map, texture_blocking );
+				}
+				else if ( !entry.image_texture )
+				{
+					auto *media = const_cast<FeMedia *>( static_cast<const FeMedia *>( texture_id ) );
+					unsigned int width = 0, height = 0;
+					auto pixels = media->pin_video_frame( width, height, texture_blocking );
+					// A busy producer or an unavailable first frame stays pending.
+					// It must not fall back to allocating/copying on the frontend.
+					if ( !pixels && ( !texture_blocking || media->get_video_frame_serial() != 0 ) ) return;
+					if ( pixels ) entry.image_texture = loader.prepare_video( std::move( pixels ), width, height,
+						texture_mipmap, texture_cube_map, content_version );
+				}
+				if ( entry.image_texture )
+				{
+					if ( !use_image_texture( entry, texture_blocking ) )
+					{
+						if ( entry.image_texture->status == FeImageTexture::Failed )
+						{
+							m_texture_failures[{ texture_id, texture_mipmap, texture_cube_map }] = content_version;
+							success = false;
+						}
+						return;
+					}
+					entry.last_upload_frame = frame_number;
+					if ( image_source || entry.last_upload_content_version == content_version ) return;
+				}
+				else if ( image_source ) return;
+			}
+			const bool had_texture = ( entry.gpu_texture != nullptr );
+			const bool has_explicit_content_version = ( texture_content_version != 0 );
+			const bool needs_upload =
+				!had_texture ||
+				( previous_width != texture_width ) ||
+				( previous_height != texture_height ) ||
+				( previous_mipmapped != texture_mipmap ) ||
+				( previous_cube_map != texture_cube_map ) ||
+				( has_explicit_content_version &&
+					entry.last_upload_content_version != content_version ) ||
+				( texture_dynamic && entry.last_upload_content_version != content_version );
+
+			if ( needs_upload )
+			{
+				// Only asynchronous artwork may spread GPU setup over frames.
+				// Legacy blocking loads must appear together on this draw.
+				const bool new_artwork = !had_texture &&
+					( texture_source_type == FeRenderTextureSourceMedia || texture_source_type == FeRenderTextureSourceRawRgba );
+				if ( new_artwork && !texture_blocking &&
+					( m_texture_upload_deadline ? SDL_GetTicksNS() >= m_texture_upload_deadline : new_upload_time >= 2000000 ) )
+					return;
+				const Uint64 start = new_artwork ? SDL_GetTicksNS() : 0;
+				if ( !command_buffer )
+					command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+				if ( command_buffer && upload_texture( texture_id, texture_source_type, entry, command_buffer, texture_blocking ) )
+				{
+					entry.last_upload_frame = frame_number;
+					entry.last_upload_content_version = content_version;
+					if ( preloads ) uploads.emplace_back( texture_id, texture_mipmap, texture_cube_map );
+				}
+				else
+				{
+					success = false;
+					m_texture_failures[{ texture_id, texture_mipmap, texture_cube_map }] = content_version;
+				}
+				if ( new_artwork )
+					new_upload_time += SDL_GetTicksNS() - start;
+			}
+		}
+	};
 
 	auto sync_geometry = [&]( const FeRenderGeometry &image )
 	{
-		auto sync_binding = [&]( const void *texture_id,
-			int texture_source_type,
-			float texture_width,
-			float texture_height,
-			bool texture_mipmap,
-			bool texture_dynamic,
-			unsigned long long texture_content_version,
-			bool texture_cube_map = false )
-		{
-			if ( !texture_id )
-				return;
-
-			if ( texture_source_type == FeRenderTextureSourceContainer )
-			{
-				const FeBaseTextureContainer *container = static_cast<const FeBaseTextureContainer *>( texture_id );
-				if ( dynamic_cast<const FeSurfaceTextureContainer *>( container ) != nullptr )
-					return;
-			}
-
-			TextureEntry &entry = m_textures[ texture_id ];
-			const float previous_width = entry.width;
-			const float previous_height = entry.height;
-			const bool previous_mipmapped = entry.mipmapped;
-			const bool previous_cube_map = entry.cube_map;
-			const unsigned long long content_version =
-				( texture_content_version != 0 )
-					? texture_content_version
-					: m_frame.frame_number;
-			entry.width = texture_width;
-			entry.height = texture_height;
-			entry.mipmapped = texture_mipmap;
-			entry.cube_map = texture_cube_map;
-			entry.last_seen_frame = m_frame.frame_number;
-			if ( is_available() )
-			{
-				const bool had_texture = ( entry.gpu_texture != nullptr );
-				const bool has_explicit_content_version = ( texture_content_version != 0 );
-				const bool needs_upload =
-					!had_texture ||
-					( previous_width != texture_width ) ||
-					( previous_height != texture_height ) ||
-					( previous_mipmapped != texture_mipmap ) ||
-					( previous_cube_map != texture_cube_map ) ||
-					( has_explicit_content_version &&
-						entry.last_upload_content_version != content_version ) ||
-					( texture_dynamic && entry.last_upload_content_version != content_version );
-
-				if ( needs_upload )
-				{
-					if ( upload_texture( texture_id, texture_source_type, entry ) )
-					{
-						entry.last_upload_frame = m_frame.frame_number;
-						entry.last_upload_content_version = content_version;
-					}
-				}
-			}
-		};
-
 		sync_binding(
 			image.texture_id,
 			image.texture_source_type,
@@ -1290,7 +1499,22 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			image.texture_height,
 			image.texture_mipmap,
 			image.texture_dynamic,
-			image.texture_content_version );
+			image.texture_content_version,
+			image.texture_blocking );
+
+		const FeShader *shaders[] = { image.shader,
+			image.geometry_kind == FeRenderGeometryObjectPbr ? image.pbr_material.artwork_shader : nullptr };
+		for ( const auto *shader : shaders )
+			if ( shader ) for ( const auto &param : shader->get_texture_param_images() )
+			{
+				const auto *sample = param.second;
+				if ( !sample || shader->uses_current_texture( param.first.c_str() ) ) continue;
+				const auto *container = sample->get_texture_container();
+				if ( !container ) continue;
+				sync_binding( container->get_texture_source_id(), container->get_texture_source_type(),
+					sample->get_texture_width(), sample->get_texture_height(), sample->get_mipmap(),
+					container->is_volatile_texture(), container->get_texture_content_version(), container->is_texture_blocking() );
+			}
 
 		if ( image.geometry_kind == FeRenderGeometryObjectPbr )
 		{
@@ -1317,42 +1541,98 @@ void FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					binding->mipmap,
 					binding->dynamic,
 					binding->content_version,
+					binding->blocking,
 					binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX );
 			}
 		}
 	};
 
-	for ( const FeRenderGeometry &image : m_frame.images )
-		sync_geometry( image );
-
-	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
-		for ( const FeRenderGeometry &image : surface.geometry )
+	if ( !preloads )
+	{
+		for ( const FeRenderGeometry &image : m_frame.images )
 			sync_geometry( image );
+		for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
+			for ( const FeRenderGeometry &image : surface.geometry )
+				sync_geometry( image );
+	}
 
 	if ( extra_geometry )
 		for ( const FeRenderGeometry &image : *extra_geometry )
 			sync_geometry( image );
+	for ( const auto &binding : bindings )
+		sync_binding( binding.texture_id, binding.texture_source_type, binding.width, binding.height,
+			binding.mipmap, false, binding.content_version, binding.blocking );
 
+	const bool flushed = flush_video_uploads();
+	if ( !flushed )
+		for ( const auto &binding : bindings )
+		{
+			const auto key = std::make_tuple( binding.texture_id, binding.mipmap, false );
+			auto found = m_textures.find( key );
+			if ( found != m_textures.end() && !found->second.gpu_texture )
+				m_texture_failures[key] = binding.content_version;
+		}
+	success = flushed && success;
+	if ( command_buffer && !submit_texture_commands( command_buffer ) )
+	{
+		FeLog() << "SDL: texture upload submission failed: " << SDL_GetError() << std::endl;
+		if ( preloads )
+		{
+			for ( const auto &key : uploads )
+			{
+				auto &entry = m_textures[key];
+				m_texture_failures[key] = entry.last_upload_content_version;
+				release_texture( entry );
+			}
+		}
+		else
+		{
+			clear_textures();
+			for ( const auto &binding : bindings )
+				m_texture_failures[{ binding.texture_id, binding.mipmap, false }] = binding.content_version;
+		}
+		return false;
+	}
+
+	if ( preloads ) return success;
 	for ( auto it = m_textures.begin(); it != m_textures.end(); )
 	{
 		if ( it->second.last_seen_frame != m_frame.frame_number )
 		{
-			release_texture( it->second );
+			retire_texture( it->second );
 			it = m_textures.erase( it );
 		}
 		else
 			++it;
 	}
+	return success;
+}
+
+FeSdl3GpuContext::TextureStatus FeSdl3GpuContext::texture_status( const FeRenderTextureBinding &binding ) const
+{
+	const auto key = std::make_tuple( binding.texture_id, binding.mipmap, false );
+	auto failure = m_texture_failures.find( key );
+	if ( failure != m_texture_failures.end() && failure->second == binding.content_version ) return TextureFailed;
+	auto found = m_textures.find( key );
+	if ( found == m_textures.end() ) return TexturePending;
+	const auto &entry = found->second;
+	return entry.gpu_texture && !entry.upload_pending && entry.width == binding.width && entry.height == binding.height &&
+		entry.last_upload_content_version == binding.content_version ? TextureReady : TexturePending;
 }
 
 void FeSdl3GpuContext::clear_textures()
 {
+	m_texture_failures.clear();
 	for ( auto &entry : m_textures )
 	{
 		release_texture( entry.second );
 	}
 
 	m_textures.clear();
+	for ( auto &entry : m_spare_textures )
+		release_texture( entry );
+	m_spare_textures.clear();
+	m_spare_texture_bytes = 0;
 }
 
 void FeSdl3GpuContext::release_geometry_buffer( GeometryBufferEntry &entry )
@@ -1457,7 +1737,7 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 			if ( !prepared.gpu_texture )
 			{
-				auto it = m_textures.find( image.texture_id );
+				auto it = m_textures.find( { image.texture_id, image.texture_mipmap, false } );
 				prepared.gpu_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
 			}
 		}
@@ -1488,7 +1768,7 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 				}
 				if ( !binding_texture && binding.texture_id )
 				{
-					auto it = m_textures.find( binding.texture_id );
+					auto it = m_textures.find( { binding.texture_id, binding.mipmap, binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX } );
 					binding_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
 				}
 				if ( binding_texture )
@@ -1946,7 +2226,7 @@ bool FeSdl3GpuContext::has_submitted_frame() const
 
 bool FeSdl3GpuContext::has_frame_content() const
 {
-	if ( !m_frame.images.empty() )
+	if ( !m_frame.images.empty() || !m_frame.preloads.empty() )
 		return true;
 
 	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
@@ -1954,6 +2234,29 @@ bool FeSdl3GpuContext::has_frame_content() const
 			return true;
 
 	return false;
+}
+
+void FeSdl3GpuContext::prepare_pipelines( SDL_GPUTextureFormat format )
+{
+	const bool sample_count_changed = update_sample_count( format );
+	const bool anisotropy_changed = update_anisotropy();
+	if ( sample_count_changed || anisotropy_changed || m_swapchain_format != format || !m_blend_pipelines[0][FeBlend::Alpha] )
+	{
+		release_surfaces();
+		release_custom_shaders();
+		release_image_pipeline();
+		release_pbr_pipeline();
+		release_color_target();
+		release_depth_target();
+		m_swapchain_format = format;
+		m_pipeline_attempted = false;
+	}
+	if ( !m_pipeline_attempted )
+	{
+		initialize_image_pipeline( format );
+		initialize_pbr_pipeline( format );
+		m_pipeline_attempted = true;
+	}
 }
 
 bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height )
@@ -1992,30 +2295,10 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 		return false;
 	}
 
-	const bool sample_count_changed = update_sample_count( target_format );
-	const bool anisotropy_changed = update_anisotropy();
-
-	if ( sample_count_changed || anisotropy_changed || ( m_swapchain_format != target_format ) || !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] )
-	{
-		release_surfaces();
-		release_custom_shaders();
-		release_image_pipeline();
-		release_pbr_pipeline();
-		release_color_target();
-		release_depth_target();
-		m_swapchain_format = target_format;
-		m_pipeline_attempted = false;
-	}
+	prepare_pipelines( target_format );
 
 	if ( !ensure_depth_target( width, height ) )
 		return false;
-
-	if ( !m_pipeline_attempted )
-	{
-		initialize_image_pipeline( target_format );
-		initialize_pbr_pipeline( target_format );
-		m_pipeline_attempted = true;
-	}
 
 	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] || !m_pbr_pipelines[ 0 ][ 0 ][ 0 ] )
 		return false;
@@ -2382,43 +2665,6 @@ namespace
 		return blend_mode;
 	}
 
-	std::string join_path( const std::string &base, const std::string &suffix )
-	{
-		if ( base.empty() )
-			return suffix;
-
-		const char last = base[ base.size() - 1 ];
-		if ( last == '/' || last == '\\' )
-			return base + suffix;
-
-		return base + "/" + suffix;
-	}
-
-	std::string get_base_path()
-	{
-		return get_program_path();
-	}
-
-	std::string get_shader_cache_base_path()
-	{
-#if !defined( SDL_PLATFORM_WINDOWS )
-		return absolute_path( clean_path( std::string( FE_DEFAULT_CFG_PATH ) + FE_CACHE_SUBDIR ) );
-#else
-		return join_path( get_base_path(), FE_CACHE_SUBDIR );
-#endif
-	}
-
-	struct ShaderCompileCacheEntry
-	{
-		bool compile_failed;
-		ShaderBlob blob;
-
-		ShaderCompileCacheEntry()
-			: compile_failed( false )
-		{
-		}
-	};
-
 	struct FeSdl3GpuDrawUniforms
 	{
 		float projection[16];
@@ -2488,124 +2734,17 @@ namespace
 		if ( driver_name && driver_name[0] )
 			return driver_name;
 
-#if defined( SDL_PLATFORM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS ) || defined( SDL_PLATFORM_MACOS )
+		// Shaders are compiled to SPIR-V only. On macOS this runs through MoltenVK;
+		// without asking for "vulkan" SDL would pick its Metal backend, which can't
+		// use SPIR-V shaders.
 		return "vulkan";
 #else
 		return nullptr;
 #endif
 	}
 
-	bool file_exists( const std::string &path )
-	{
-		std::ifstream stream( path.c_str(), std::ios::binary );
-		return stream.good();
-	}
 
-	bool read_binary_file( const std::string &path, std::vector<Uint8> &code )
-	{
-		std::ifstream stream( path.c_str(), std::ios::binary );
-		if ( !stream )
-			return false;
-
-		stream.seekg( 0, std::ios::end );
-		const std::streamoff size = stream.tellg();
-		stream.seekg( 0, std::ios::beg );
-
-		if ( size <= 0 )
-			return false;
-
-		code.resize( static_cast<std::size_t>( size ) );
-		stream.read( reinterpret_cast<char *>( code.data() ), size );
-		return stream.good();
-	}
-
-	bool write_binary_file( const std::string &path, const std::vector<Uint8> &code )
-	{
-		if ( code.empty() )
-			return false;
-
-		std::ofstream stream( path.c_str(), std::ios::binary | std::ios::trunc );
-		if ( !stream )
-			return false;
-
-		stream.write( reinterpret_cast<const char *>( code.data() ), static_cast<std::streamsize>( code.size() ) );
-		return stream.good();
-	}
-
-	std::unordered_map<std::string, ShaderCompileCacheEntry> &get_shader_compile_cache()
-	{
-		static std::unordered_map<std::string, ShaderCompileCacheEntry> cache;
-		return cache;
-	}
-
-	bool compile_shader_blob(
-		const std::string &source_id,
-		const std::string &translated_source,
-		bool vertex_stage,
-		ShaderBlob &blob )
-	{
-		const std::string cache_key =
-			std::string( vertex_stage ? "vert|" : "frag|" ) +
-			std::to_string( std::hash<std::string>{}( translated_source ) );
-		auto &cache = get_shader_compile_cache();
-		auto cache_it = cache.find( cache_key );
-		if ( cache_it != cache.end() )
-		{
-			if ( cache_it->second.compile_failed )
-				return false;
-
-			blob = cache_it->second.blob;
-			return !blob.code.empty();
-		}
-
-		std::string cache_root = get_shader_cache_base_path();
-		confirm_directory( cache_root, "" );
-		confirm_directory( cache_root, "shaders/" );
-		cache_root = join_path( cache_root, "shaders/" );
-		confirm_directory( cache_root, "sdl3/" );
-		cache_root = join_path( cache_root, "sdl3/" );
-
-		std::string shader_name = path_filename( source_id );
-		if ( shader_name.empty() )
-			shader_name = source_id;
-
-		const std::string cache_name =
-			sanitize_filename( shader_name ) + "-" + std::to_string( std::hash<std::string>{}( translated_source ) );
-		const std::string stage_name = vertex_stage ? "vert" : "frag";
-		const std::string spirv_path = join_path( cache_root, cache_name + "." + stage_name + ".spv" );
-		bool compiled = false;
-		if ( !file_exists( spirv_path ) || !read_binary_file( spirv_path, blob.code ) || blob.code.empty() )
-		{
-			std::string diagnostics;
-			blob.code.clear();
-			compiled = true;
-
-			if ( !fe_glslang_compile_to_spirv( shader_name, translated_source, vertex_stage, blob.code, diagnostics ) || blob.code.empty() )
-			{
-				FeLog() << "SDL: shader_compile: error " << shader_name << std::endl;
-				if ( !diagnostics.empty() )
-					FeLog() << "SDL: " << diagnostics << std::endl;
-				cache[ cache_key ].compile_failed = true;
-				return false;
-			}
-
-			if ( !diagnostics.empty() )
-				FeDebug() << "SDL: " << diagnostics << std::endl;
-
-			write_binary_file( spirv_path, blob.code );
-		}
-
-		if ( compiled )
-			FeDebug() << "SDL: shader_compile: ok " << shader_name << std::endl;
-
-		blob.format = SDL_GPU_SHADERFORMAT_SPIRV;
-		blob.entrypoint = "main";
-
-		ShaderCompileCacheEntry &entry = cache[ cache_key ];
-		entry.compile_failed = false;
-		entry.blob = blob;
-		return true;
-	}
 }
 
 bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry )
@@ -2618,22 +2757,33 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	if ( !is_available() )
 	{
+		release_frame();
 		m_failed_present_frames++;
 		return false;
 	}
 
-	sync_textures( overlay_geometry );
+	const bool textures_synced = sync_textures( overlay_geometry );
+	// Blocking transitions and overlays can draw again without frame pacing.
+	// Their next draw must not inherit this frame's expired deadline.
+	m_texture_upload_deadline = 0;
+	if ( !textures_synced )
+	{
+		release_frame();
+		m_failed_present_frames++;
+		return false;
+	}
 
-	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
-	if ( !command_buffer )
+	if ( acquire_frame( true ) != FrameReady )
 	{
 		m_failed_present_frames++;
 		return false;
 	}
+	SDL_GPUCommandBuffer *command_buffer = m_present_command_buffer;
 
 	std::vector<SDL_GPUBuffer *> temporary_pbr_buffers;
 	auto release_temporary_pbr_buffers = [&]()
 	{
+		release_frame();
 		if ( m_vertex_upload_command_buffer )
 		{
 			SDL_CancelGPUCommandBuffer( m_vertex_upload_command_buffer );
@@ -2661,41 +2811,15 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		temporary_pbr_buffers.clear();
 	};
 
-	SDL_GPUTexture *swapchain_texture = nullptr;
-	Uint32 swapchain_width = 0;
-	Uint32 swapchain_height = 0;
-	if ( !SDL_WaitAndAcquireGPUSwapchainTexture( command_buffer, m_window, &swapchain_texture, &swapchain_width, &swapchain_height ) )
-	{
-		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
-		return false;
-	}
-
-	if ( !swapchain_texture )
-	{
-		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
-		return false;
-	}
+	SDL_GPUTexture *swapchain_texture = m_swapchain_texture;
+	const Uint32 swapchain_width = m_swapchain_width;
+	const Uint32 swapchain_height = m_swapchain_height;
 
 	m_frame_stats.acquired_swapchain = true;
 	m_frame_stats.last_viewport_width = static_cast<int>( swapchain_width );
 	m_frame_stats.last_viewport_height = static_cast<int>( swapchain_height );
 	const SDL_GPUTextureFormat swapchain_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
-	const bool sample_count_changed = update_sample_count( swapchain_format );
-	const bool anisotropy_changed = update_anisotropy();
-
-	if ( sample_count_changed || anisotropy_changed || ( m_swapchain_format != swapchain_format ) || !m_blend_pipelines[0][FeBlend::Alpha] )
-	{
-		release_surfaces();
-		release_custom_shaders();
-		release_image_pipeline();
-		release_pbr_pipeline();
-		release_color_target();
-		release_depth_target();
-		m_swapchain_format = swapchain_format;
-		m_pipeline_attempted = false;
-	}
+	prepare_pipelines( swapchain_format );
 
 	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) )
 		&& ensure_color_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
@@ -2704,13 +2828,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		release_temporary_pbr_buffers();
 		m_failed_present_frames++;
 		return false;
-	}
-
-	if ( !m_pipeline_attempted )
-	{
-		initialize_image_pipeline( swapchain_format );
-		initialize_pbr_pipeline( swapchain_format );
-		m_pipeline_attempted = true;
 	}
 
 	m_frame_stats.pipeline_ready =
@@ -2850,6 +2967,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		return false;
 	}
 
+	// Submission consumes the acquired frame, including on failure.
+	m_present_command_buffer = nullptr;
+	m_swapchain_texture = nullptr;
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
 		release_temporary_pbr_buffers();
@@ -2860,9 +2980,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 
 	m_frame_stats.executed = true;
 	m_frame_stats.submitted_frames++;
-	if ( m_frame_stats.pipeline_ready && m_frame_stats.draw_ready )
+	if ( m_frame_stats.pipeline_ready && ( m_frame_stats.draw_ready || !m_frame.preloads.empty() ) )
 		m_failed_present_frames = 0;
-	if ( !m_frame_stats.draw_ready )
+	if ( !m_frame_stats.draw_ready && m_frame.preloads.empty() )
 	{
 		if ( has_frame_content() )
 			m_failed_present_frames++;
@@ -2871,6 +2991,35 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( m_failed_present_frames >= 3 )
 		m_present_disabled = true;
 	return true;
+}
+
+FeSdl3GpuContext::FrameStatus FeSdl3GpuContext::acquire_frame( bool wait )
+{
+	if ( m_present_command_buffer ) return FrameReady;
+	if ( !is_available() || ( SDL_GetWindowFlags( m_window ) & ( SDL_WINDOW_MINIMIZED | SDL_WINDOW_HIDDEN ) ) )
+		return FrameUnavailable;
+	auto *command = SDL_AcquireGPUCommandBuffer( m_device );
+	if ( !command ) return FrameUnavailable;
+	const bool acquired = wait
+		? SDL_WaitAndAcquireGPUSwapchainTexture( command, m_window, &m_swapchain_texture, &m_swapchain_width, &m_swapchain_height )
+		: SDL_AcquireGPUSwapchainTexture( command, m_window, &m_swapchain_texture, &m_swapchain_width, &m_swapchain_height );
+	if ( !acquired || !m_swapchain_texture )
+	{
+		SDL_CancelGPUCommandBuffer( command );
+		if ( !acquired ) FeLog() << "SDL: swapchain acquisition failed: " << SDL_GetError() << std::endl;
+		return acquired ? FramePending : FrameUnavailable;
+	}
+	m_present_command_buffer = command;
+	return FrameReady;
+}
+
+void FeSdl3GpuContext::release_frame()
+{
+	if ( !m_present_command_buffer ) return;
+	// SDL does not allow cancellation after acquiring a swapchain texture.
+	SDL_SubmitGPUCommandBuffer( m_present_command_buffer );
+	m_present_command_buffer = nullptr;
+	m_swapchain_texture = nullptr;
 }
 
 bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
@@ -2894,6 +3043,16 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 		FeLog() << "SDL: initialize: SDL_CreateGPUDevice failed" << std::endl;
 	else
 	{
+		// Keep only one rendered frame pending in every window mode.
+		if ( !SDL_SetGPUAllowedFramesInFlight( m_device, 1 ) )
+		{
+			FeLog() << "SDL: initialize: SDL_SetGPUAllowedFramesInFlight failed: " << SDL_GetError() << std::endl;
+			SDL_DestroyGPUDevice( m_device );
+			m_device = nullptr;
+			return false;
+		}
+		FeDebug() << "SDL: allowed frames in flight: 1" << std::endl;
+		FeImageLoader::get_ref().set_gpu_device( m_device );
 		std::ostringstream stream;
 		stream << "initialize: SDL_CreateGPUDevice succeeded";
 		if ( preferred_driver )
@@ -2929,6 +3088,12 @@ bool FeSdl3GpuContext::ensure_video_subsystem()
 
 void FeSdl3GpuContext::shutdown()
 {
+	if ( m_texture_upload_fence )
+	{
+		SDL_ReleaseGPUFence( m_device, m_texture_upload_fence );
+		m_texture_upload_fence = nullptr;
+	}
+	m_texture_upload_serial = m_completed_texture_upload_serial = 0;
 	if ( m_vertex_upload_command_buffer )
 	{
 		SDL_CancelGPUCommandBuffer( m_vertex_upload_command_buffer );
@@ -2961,6 +3126,7 @@ void FeSdl3GpuContext::shutdown()
 
 	if ( m_device )
 	{
+		FeImageLoader::get_ref().set_gpu_device( nullptr );
 		SDL_DestroyGPUDevice( m_device );
 		m_device = nullptr;
 	}
@@ -3048,6 +3214,7 @@ bool FeSdl3GpuContext::claim_window( SDL_Window *window )
 
 void FeSdl3GpuContext::release_window()
 {
+	release_frame();
 	if ( m_device && m_window && m_window_claimed )
 	{
 		SDL_ReleaseWindowFromGPUDevice( m_device, m_window );
@@ -3065,13 +3232,57 @@ void FeSdl3GpuContext::release_window()
 	m_has_submitted_frame = false;
 }
 
+void FeSdl3GpuContext::retire_texture( TextureEntry &entry )
+{
+	if ( entry.image_texture )
+	{
+		release_texture( entry );
+		return;
+	}
+	// Keep a bounded set of upload resources for incoming artwork. Repeated
+	// driver allocation on navigation competes with decoding for the heap.
+	constexpr std::size_t limit = 64 * 1024 * 1024;
+	const std::size_t bytes = entry.transfer_buffer_size;
+	if ( !entry.gpu_texture || !entry.transfer_buffer || bytes > limit )
+	{
+		release_texture( entry );
+		return;
+	}
+	while ( !m_spare_textures.empty() &&
+		( m_spare_texture_bytes + bytes > limit || m_spare_textures.size() >= 128 ) )
+	{
+		m_spare_texture_bytes -= m_spare_textures.front().transfer_buffer_size;
+		release_texture( m_spare_textures.front() );
+		m_spare_textures.erase( m_spare_textures.begin() );
+	}
+	m_spare_textures.push_back( entry );
+	m_spare_texture_bytes += bytes;
+	entry.gpu_texture = nullptr;
+	entry.transfer_buffer = nullptr;
+	entry.transfer_buffer_size = 0;
+}
+
 void FeSdl3GpuContext::release_texture( TextureEntry &entry )
 {
+	if ( entry.image_texture )
+	{
+		entry.gpu_texture = nullptr;
+		entry.transfer_buffer = nullptr;
+		entry.image_texture.reset();
+		FeImageLoader::get_ref().release_entry( &entry.image_source );
+	}
 	if ( entry.gpu_texture )
 	{
 		SDL_ReleaseGPUTexture( m_device, entry.gpu_texture );
 		entry.gpu_texture = nullptr;
 	}
+	if ( entry.transfer_buffer )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, entry.transfer_buffer );
+		entry.transfer_buffer = nullptr;
+	}
+	entry.transfer_buffer_size = 0;
+	entry.texture_info = {};
 }
 
 void FeSdl3GpuContext::release_white_texture()
@@ -3276,21 +3487,66 @@ bool FeSdl3GpuContext::ensure_white_cube_texture()
 	return true;
 }
 
-bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry )
+bool FeSdl3GpuContext::use_image_texture( TextureEntry &entry, bool blocking )
 {
+	auto &loader = FeImageLoader::get_ref();
+	if ( blocking ) loader.wait_for_texture( entry.image_texture );
+	if ( entry.image_texture->status.load( std::memory_order_acquire ) != FeImageTexture::Ready ) return false;
+	entry.gpu_texture = entry.image_texture->texture;
+	entry.texture_info = entry.image_texture->info;
+	entry.transfer_buffer = entry.image_texture->stream_buffer;
+	entry.transfer_buffer_size = entry.image_texture->stream_size;
+	entry.last_upload_content_version = entry.image_texture->content_version;
+	return true;
+}
+
+bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry, SDL_GPUCommandBuffer *command_buffer, bool blocking )
+{
+	if ( texture_source_type == FeRenderTextureSourceMedia && texture_id )
+		reset_media_texture( static_cast<const FeMedia *>( texture_id ), entry );
+	if ( texture_source_type == FeRenderTextureSourceImage )
+	{
+		entry.image_source = const_cast<FeImageLoaderEntry *>( static_cast<const FeImageLoaderEntry *>( texture_id ) )->shared_from_this();
+		entry.image_texture = FeImageLoader::get_ref().prepare_image( entry.image_source, entry.mipmapped, entry.cube_map, blocking );
+		return entry.image_texture && use_image_texture( entry, blocking );
+	}
+	if ( texture_source_type == FeRenderTextureSourceMedia && !entry.gpu_texture )
+	{
+		auto *media = const_cast<FeMedia *>( static_cast<const FeMedia *>( texture_id ) );
+		if ( !entry.image_texture )
+		{
+			unsigned int width = 0, height = 0;
+			auto pixels = media->pin_video_frame( width, height, blocking );
+			if ( pixels ) entry.image_texture = FeImageLoader::get_ref().prepare_video( std::move( pixels ), width, height,
+				entry.mipmapped, entry.cube_map, media->get_video_frame_serial() );
+			else if ( !blocking || media->get_video_frame_serial() != 0 ) return false;
+		}
+		if ( entry.image_texture ) return use_image_texture( entry, blocking );
+	}
 	if ( !m_device || !texture_id )
+		return false;
+	if ( entry.upload_pending && !flush_video_uploads() )
 		return false;
 
 	std::vector<unsigned char> pixel_data;
+	const unsigned char *raw_pixels = nullptr;
 	unsigned int source_width = 0;
 	unsigned int source_height = 0;
-	const FeTextureContainer *media_container = nullptr;
+	FeMedia *media = nullptr;
 	bool direct_media_upload = false;
 	bool black_media_placeholder = false;
 	const FeBaseTextureContainer *direct_container = nullptr;
 	const FeFont::TexturePageId *direct_font_page = nullptr;
 
-	if ( texture_source_type == FeRenderTextureSourceContainer )
+	if ( texture_source_type == FeRenderTextureSourceMedia )
+	{
+		media = const_cast<FeMedia *>( static_cast<const FeMedia *>( texture_id ) );
+		if ( !media->get_video_frame_dimensions( source_width, source_height ) )
+			return false;
+		direct_media_upload = media->get_video_frame_serial() != 0;
+		black_media_placeholder = !direct_media_upload;
+	}
+	else if ( texture_source_type == FeRenderTextureSourceContainer )
 	{
 		const FeBaseTextureContainer *source_container = static_cast<const FeBaseTextureContainer *>( texture_id );
 		if ( entry.cube_map )
@@ -3302,17 +3558,16 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 		}
 		else
 		{
-			media_container = dynamic_cast<const FeTextureContainer *>( source_container );
-			if ( media_container &&
-				media_container->get_media() &&
-				media_container->get_media()->get_video_frame_serial() != 0 &&
-				media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+			const auto *media_container = dynamic_cast<const FeTextureContainer *>( source_container );
+			media = media_container ? media_container->get_media() : nullptr;
+			if ( media &&
+				media->get_video_frame_serial() != 0 &&
+				media->get_video_frame_dimensions( source_width, source_height ) )
 			{
 				direct_media_upload = true;
 			}
-			else if ( media_container &&
-				media_container->get_media() &&
-				media_container->get_media()->get_video_frame_dimensions( source_width, source_height ) )
+			else if ( media &&
+				media->get_video_frame_dimensions( source_width, source_height ) )
 			{
 				black_media_placeholder = true;
 			}
@@ -3341,13 +3596,15 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 			return false;
 		source_width = raw->width;
 		source_height = raw->height;
-		const std::size_t pixel_count =
-			static_cast<std::size_t>( raw->width ) *
-			static_cast<std::size_t>( raw->height ) * 4;
-		pixel_data.assign( raw->pixels, raw->pixels + pixel_count );
+		raw_pixels = raw->pixels;
 	}
 	else
 		return false;
+
+	const std::uint64_t byte_count = static_cast<std::uint64_t>( source_width ) * source_height * 4;
+	if ( byte_count == 0 || byte_count > std::numeric_limits<Uint32>::max() )
+		return false;
+	const Uint32 upload_size = static_cast<Uint32>( byte_count );
 
 	unsigned int upload_width = source_width;
 	unsigned int upload_height = source_height;
@@ -3367,8 +3624,6 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 		upload_layers = 6;
 	}
 
-	release_texture( entry );
-
 	SDL_GPUTextureCreateInfo texture_info = {};
 	texture_info.type = entry.cube_map ? SDL_GPU_TEXTURETYPE_CUBE : SDL_GPU_TEXTURETYPE_2D;
 	texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -3382,43 +3637,120 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	texture_info.props = 0;
 
-	entry.gpu_texture = SDL_CreateGPUTexture( m_device, &texture_info );
+	if ( entry.gpu_texture &&
+		( entry.texture_info.width != texture_info.width ||
+			entry.texture_info.height != texture_info.height ||
+			entry.texture_info.type != texture_info.type ||
+			entry.texture_info.usage != texture_info.usage ||
+			entry.texture_info.num_levels != texture_info.num_levels ) )
+		release_texture( entry );
+
+	if ( !entry.gpu_texture )
+	{
+		for ( auto it = m_spare_textures.begin(); it != m_spare_textures.end(); ++it )
+		{
+			if ( it->last_seen_frame + 2 >= m_frame.frame_number ||
+				it->texture_info.width != texture_info.width || it->texture_info.height != texture_info.height ||
+				it->texture_info.type != texture_info.type || it->texture_info.usage != texture_info.usage ||
+				it->texture_info.num_levels != texture_info.num_levels )
+				continue;
+			// Its transfer buffer may have been borrowed by a different size.
+			// The buffer can be replaced independently below.
+			entry.gpu_texture = it->gpu_texture;
+			entry.transfer_buffer = it->transfer_buffer;
+			entry.transfer_buffer_size = it->transfer_buffer_size;
+			entry.transfer_serial = it->transfer_serial;
+			m_spare_texture_bytes -= it->transfer_buffer_size;
+			m_spare_textures.erase( it );
+			break;
+		}
+		if ( !entry.gpu_texture )
+			entry.gpu_texture = SDL_CreateGPUTexture( m_device, &texture_info );
+		entry.texture_info = texture_info;
+	}
 	if ( !entry.gpu_texture )
 		return false;
 
-	const Uint32 upload_size = source_width * source_height * 4;
 	SDL_GPUTransferBufferCreateInfo transfer_info = {};
 	transfer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
 	transfer_info.size = upload_size;
 	transfer_info.props = 0;
 
-	SDL_GPUTransferBuffer *transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
+	if ( entry.transfer_buffer && entry.transfer_buffer_size < upload_size )
+	{
+		SDL_ReleaseGPUTransferBuffer( m_device, entry.transfer_buffer );
+		entry.transfer_buffer = nullptr;
+	}
+	if ( !entry.transfer_buffer )
+	{
+		// Transfer capacity is independent of texture dimensions. Vulkan gives
+		// each transfer buffer a dedicated allocation, so recycling only exact
+		// texture pairs causes expensive allocation/free bursts on page changes.
+		auto best = m_spare_textures.end();
+		for ( auto it = m_spare_textures.begin(); it != m_spare_textures.end(); ++it )
+		{
+			if ( it->last_seen_frame + 2 >= m_frame.frame_number || !it->transfer_buffer || it->transfer_buffer_size < upload_size )
+				continue;
+			if ( best == m_spare_textures.end() || it->transfer_buffer_size < best->transfer_buffer_size )
+				best = it;
+		}
+		if ( best != m_spare_textures.end() )
+		{
+			entry.transfer_buffer = best->transfer_buffer;
+			entry.transfer_buffer_size = best->transfer_buffer_size;
+			entry.transfer_serial = best->transfer_serial;
+			m_spare_texture_bytes -= best->transfer_buffer_size;
+			best->transfer_buffer = nullptr;
+			best->transfer_buffer_size = 0;
+		}
+	}
+	if ( !entry.transfer_buffer )
+	{
+		entry.transfer_buffer = SDL_CreateGPUTransferBuffer( m_device, &transfer_info );
+		entry.transfer_buffer_size = upload_size;
+	}
+	SDL_GPUTransferBuffer *transfer_buffer = entry.transfer_buffer;
 	if ( !transfer_buffer )
 	{
 		release_texture( entry );
 		return false;
 	}
 
-	void *mapped = SDL_MapGPUTransferBuffer( m_device, transfer_buffer, false );
+	if ( m_texture_upload_fence && SDL_QueryGPUFence( m_device, m_texture_upload_fence ) )
+	{
+		m_completed_texture_upload_serial = m_texture_upload_serial;
+		SDL_ReleaseGPUFence( m_device, m_texture_upload_fence );
+		m_texture_upload_fence = nullptr;
+	}
+	// SDL may retain completed command references until presentation cleanup.
+	// A submitted fence proves that their transfer storage can be reused now.
+	void *mapped = SDL_MapGPUTransferBuffer( m_device, transfer_buffer,
+		entry.transfer_serial > m_completed_texture_upload_serial );
 	if ( !mapped )
 	{
-		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		release_texture( entry );
 		return false;
 	}
 
 	if ( direct_media_upload )
 	{
+		if ( command_buffer )
+		{
+			// Displayed buffers remain pinned until the next frontend tick.
+			// Only their CPU copies run on workers; all SDL calls stay here.
+			m_video_uploads.push_back( { media, &entry, mapped,
+				upload_size, source_width, source_height, command_buffer } );
+			entry.upload_pending = true;
+			return true;
+		}
 		unsigned int copied_width = 0;
 		unsigned int copied_height = 0;
-		if ( !media_container ||
-			!media_container->get_media() ||
-			!media_container->get_media()->copy_video_frame_rgba_to( mapped, upload_size, copied_width, copied_height ) ||
+		if ( !media ||
+			!media->copy_video_frame_rgba_to( mapped, upload_size, copied_width, copied_height ) ||
 			( copied_width != source_width ) ||
 			( copied_height != source_height ) )
 		{
 			SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
-			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 			release_texture( entry );
 			return false;
 		}
@@ -3440,7 +3772,6 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 			( copied_height != source_height ) )
 		{
 			SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
-			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 			release_texture( entry );
 			return false;
 		}
@@ -3454,28 +3785,77 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 			( copied_height != source_height ) )
 		{
 			SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
-			SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 			release_texture( entry );
 			return false;
 		}
 	}
 	else
-		std::memcpy( mapped, pixel_data.data(), upload_size );
+		std::memcpy( mapped, raw_pixels ? raw_pixels : pixel_data.data(), upload_size );
 
 	SDL_UnmapGPUTransferBuffer( m_device, transfer_buffer );
+	return submit_texture_upload( entry, source_width, source_height, command_buffer );
+}
 
-	SDL_GPUCommandBuffer *command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
+bool FeSdl3GpuContext::flush_video_uploads()
+{
+	if ( m_video_uploads.empty() )
+		return true;
+	if ( m_video_uploads.size() > 1 )
+	{
+		if ( !m_video_upload_workers )
+			m_video_upload_workers = std::make_unique<VideoUploadWorkers>();
+		m_video_upload_workers->copy( m_video_uploads );
+	}
+	else
+		m_video_uploads.front().copy();
+
+	bool success = true;
+	for ( VideoUpload &upload : m_video_uploads )
+	{
+		TextureEntry &entry = *upload.entry;
+		SDL_UnmapGPUTransferBuffer( m_device, entry.transfer_buffer );
+		entry.upload_pending = false;
+		if ( !upload.copied )
+		{
+			release_texture( entry );
+			success = false;
+		}
+		else if ( !submit_texture_upload( entry, upload.width, upload.height, upload.command_buffer ) )
+			success = false;
+	}
+	m_video_uploads.clear();
+	return success;
+}
+
+bool FeSdl3GpuContext::submit_texture_upload( TextureEntry &entry, unsigned int source_width,
+	unsigned int source_height, SDL_GPUCommandBuffer *command_buffer )
+{
+	const SDL_GPUTextureCreateInfo &texture_info = entry.texture_info;
+	const unsigned int upload_width = texture_info.width;
+	const unsigned int upload_height = texture_info.height;
+	const unsigned int upload_layers = texture_info.layer_count_or_depth;
+
+	const bool submit_upload = ( command_buffer == nullptr );
+	if ( submit_upload )
+		command_buffer = SDL_AcquireGPUCommandBuffer( m_device );
 	if ( !command_buffer )
 	{
-		SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
 		release_texture( entry );
 		return false;
 	}
 
 	SDL_GPUCopyPass *copy_pass = SDL_BeginGPUCopyPass( command_buffer );
+	if ( !copy_pass )
+	{
+		if ( submit_upload )
+			SDL_CancelGPUCommandBuffer( command_buffer );
+		release_texture( entry );
+		return false;
+	}
+	entry.transfer_serial = m_texture_upload_serial + 1;
 
 	SDL_GPUTextureTransferInfo source = {};
-	source.transfer_buffer = transfer_buffer;
+	source.transfer_buffer = entry.transfer_buffer;
 	source.offset = 0;
 	source.pixels_per_row = source_width;
 	source.rows_per_layer = source_height;
@@ -3491,6 +3871,9 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	destination.h = upload_height;
 	destination.d = 1;
 
+	// Running videos overwrite on the GPU timeline. Cycling their retained
+	// texture can allocate another backing image during every busy frame.
+	const bool cycle = !entry.image_texture || !entry.image_texture->stream_buffer;
 	if ( entry.cube_map )
 	{
 		struct FaceRect
@@ -3516,26 +3899,42 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 				( face.row * upload_height * source_width +
 					face.column * upload_width ) * 4;
 			destination.layer = face_index;
-			SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
+			SDL_UploadToGPUTexture( copy_pass, &source, &destination, cycle && face_index == 0 );
 		}
 	}
 	else
-		SDL_UploadToGPUTexture( copy_pass, &source, &destination, false );
+		SDL_UploadToGPUTexture( copy_pass, &source, &destination, cycle );
 	SDL_EndGPUCopyPass( copy_pass );
 
 	if ( entry.mipmapped && texture_info.num_levels > 1 )
 		SDL_GenerateMipmapsForGPUTexture( command_buffer, entry.gpu_texture );
 
-	const bool submitted = SDL_SubmitGPUCommandBuffer( command_buffer );
-	SDL_ReleaseGPUTransferBuffer( m_device, transfer_buffer );
-
-	if ( !submitted )
+	if ( submit_upload && !submit_texture_commands( command_buffer ) )
 	{
 		release_texture( entry );
 		return false;
 	}
 
 	return true;
+}
+
+bool FeSdl3GpuContext::submit_texture_commands( SDL_GPUCommandBuffer *command_buffer )
+{
+	auto *fence = SDL_SubmitGPUCommandBufferAndAcquireFence( command_buffer );
+	if ( !fence ) return false;
+	if ( m_texture_upload_fence ) SDL_ReleaseGPUFence( m_device, m_texture_upload_fence );
+	m_texture_upload_fence = fence;
+	++m_texture_upload_serial;
+	return true;
+}
+
+void FeSdl3GpuContext::reset_media_texture( const FeMedia *media, TextureEntry &entry )
+{
+	// A decoder address may be reused before its previous render entry retires.
+	const auto id = media->get_id();
+	if ( entry.media_id == id ) return;
+	release_texture( entry );
+	entry.media_id = id;
 }
 
 void FeSdl3GpuContext::release_vertex_buffer()
@@ -3656,6 +4055,12 @@ void FeSdl3GpuContext::release_image_pipeline()
 	{
 		SDL_ReleaseGPUShader( m_device, m_vertex_shader );
 		m_vertex_shader = nullptr;
+	}
+
+	if ( m_custom_vertex_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_custom_vertex_shader );
+		m_custom_vertex_shader = nullptr;
 	}
 
 	if ( m_alpha_prepass_shader )
@@ -4104,8 +4509,9 @@ void FeSdl3GpuContext::release_surfaces()
 	m_surfaces.clear();
 }
 
-FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( const FeRenderGeometry &image )
+FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( const FeRenderGeometry &image, bool *pending )
 {
+	if ( pending ) *pending = false;
 	if ( !m_device || !m_vertex_shader || !image.shader || !image.custom_shader )
 		return nullptr;
 
@@ -4175,7 +4581,8 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	entry.source_path = cache_key;
 	if ( !create_custom_shader_entry( image, entry ) )
 	{
-		entry.compile_failed = true;
+		if ( pending ) *pending = entry.compiling;
+		entry.compile_failed = !entry.compiling;
 		entry.source_stamp = fragment_source_stamp;
 		entry.vertex_source_stamp = vertex_source_stamp;
 		m_custom_shader_sources[ source_identity_key ] = cache_key;
@@ -4187,6 +4594,22 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	entry.vertex_source_stamp = vertex_source_stamp;
 	m_custom_shader_sources[ source_identity_key ] = cache_key;
 	return &entry;
+}
+
+bool FeSdl3GpuContext::prepare_shader( const FeShader *shader )
+{
+	if ( !is_available() || !shader || ( shader->get_type() != FeShader::Fragment &&
+		shader->get_type() != FeShader::VertexAndFragment ) ) return true;
+	FeRenderGeometry image;
+	image.shader = shader;
+	image.custom_shader = true;
+	image.textured = true;
+	// Preparation must also finish for an empty layout which has nothing to draw yet.
+	prepare_pipelines( SDL_GetGPUSwapchainTextureFormat( m_device, m_window ) );
+	if ( !m_vertex_shader ) return true;
+	bool pending = false;
+	get_custom_shader_entry( image, &pending );
+	return !pending;
 }
 
 FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image )
@@ -4258,7 +4681,7 @@ FeSdl3GpuContext::PbrCustomShaderEntry *FeSdl3GpuContext::get_pbr_custom_shader_
 	entry.source_path = cache_key;
 	if ( !create_pbr_custom_shader_entry( image, entry ) )
 	{
-		entry.compile_failed = true;
+		entry.compile_failed = !entry.compiling;
 		entry.source_stamp = source_stamp;
 		return nullptr;
 	}
@@ -4394,6 +4817,8 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 
 bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry )
 {
+	entry.compiling = false;
+	const bool background = image.shader->background_loading();
 	std::string fragment_source_code;
 	std::vector<CustomUniformBinding> fragment_uniforms;
 	std::vector<CustomSamplerBinding> fragment_samplers;
@@ -4405,10 +4830,11 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 			? image.shader->get_fragment_source_path()
 			: entry.source_path + "|fragment";
 	ShaderBlob fragment_blob = {};
-	if ( !compile_shader_blob( fragment_source_id, fragment_source_code, false, fragment_blob ) )
+	if ( !compile_shader_blob( fragment_source_id, fragment_source_code, false, fragment_blob,
+		background ? &entry.fragment_compile : nullptr, background ? &entry.compiling : nullptr ) )
 		return false;
 
-	SDL_GPUShader *vertex_shader = m_vertex_shader;
+	SDL_GPUShader *vertex_shader = m_custom_vertex_shader;
 	std::vector<CustomUniformBinding> vertex_uniforms;
 	const bool has_custom_vertex =
 		( image.shader->get_type() == FeShader::VertexAndFragment ) &&
@@ -4424,7 +4850,8 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 				? image.shader->get_vertex_source_path()
 				: entry.source_path + "|vertex";
 		ShaderBlob vertex_blob = {};
-		if ( !compile_shader_blob( vertex_source_id, vertex_source_code, true, vertex_blob ) )
+		if ( !compile_shader_blob( vertex_source_id, vertex_source_code, true, vertex_blob,
+			background ? &entry.vertex_compile : nullptr, background ? &entry.compiling : nullptr ) )
 			return false;
 
 		SDL_GPUShaderCreateInfo vertex_info = {};
@@ -4615,7 +5042,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	color_target.format = m_swapchain_format;
 
 	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
-	pipeline_info.vertex_shader = m_vertex_shader;
+	pipeline_info.vertex_shader = m_custom_vertex_shader;
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
 	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
@@ -4658,6 +5085,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 
 bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &image, PbrCustomShaderEntry &entry )
 {
+	entry.compiling = false;
 	if ( !image.pbr_material.artwork_shader )
 		return false;
 
@@ -4696,7 +5124,9 @@ bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &i
 	}
 
 	ShaderBlob fragment_blob = {};
-	if ( !compile_shader_blob( source_id, fragment_source_code, false, fragment_blob ) )
+	if ( !compile_shader_blob( source_id, fragment_source_code, false, fragment_blob,
+		image.pbr_material.artwork_shader->background_loading() ? &entry.fragment_compile : nullptr,
+		image.pbr_material.artwork_shader->background_loading() ? &entry.compiling : nullptr ) )
 		return false;
 
 	SDL_GPUShaderCreateInfo fragment_info = {};
@@ -4869,10 +5299,11 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.type = uniform.type;
 		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
-			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "float" || uniform.type == "int" || uniform.type == "bool" ) ? 1 :
 			( uniform.type == "vec2" ) ? 2 :
 			( uniform.type == "vec3" ) ? 3 : 4;
 		uniforms.push_back( binding );
@@ -4925,7 +5356,8 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	}
 
 	for ( const CustomUniformBinding &uniform : uniforms )
-		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
+		shader << uniform.type << " " << uniform.name << " = " <<
+			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 
 	shader << "\n" << stripped_source;
 	source_code = shader.str();
@@ -5022,10 +5454,11 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.type = uniform.type;
 		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
-			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "float" || uniform.type == "int" || uniform.type == "bool" ) ? 1 :
 			( uniform.type == "vec2" ) ? 2 :
 			( uniform.type == "vec3" ) ? 3 : 4;
 		uniforms.push_back( binding );
@@ -5065,7 +5498,8 @@ bool FeSdl3GpuContext::build_pbr_custom_fragment_shader(
 	for ( const CustomSamplerBinding &sampler : samplers )
 		macro_code << "#define " << sampler.name << " artwork_shader_texture" << sampler.slot << "\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
-		macro_code << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
+		macro_code << uniform.type << " " << uniform.name << " = " <<
+			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 
 	std::ostringstream undef_code;
 	for ( const CustomSamplerBinding &sampler : samplers )
@@ -5258,10 +5692,11 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 
 		CustomUniformBinding binding = {};
 		binding.name = uniform.name;
+		binding.type = uniform.type;
 		binding.default_value = uniform.default_value;
 		binding.slot = static_cast<int>( uniforms.size() );
 		binding.components =
-			( uniform.type == "float" ) ? 1 :
+			( uniform.type == "float" || uniform.type == "int" || uniform.type == "bool" ) ? 1 :
 			( uniform.type == "vec2" ) ? 2 :
 			( uniform.type == "vec3" ) ? 3 : 4;
 		uniforms.push_back( binding );
@@ -5309,7 +5744,8 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	shader << "\tvec4 supplied[" << FE_MAX_CUSTOM_SHADER_UNIFORMS / 4 << "];\n";
 	shader << "} custom_ubo;\n\n";
 	for ( const CustomUniformBinding &uniform : uniforms )
-		shader << build_custom_uniform_macro( uniform.name, uniform.slot, uniform.components, uniform.default_value ) << "\n";
+		shader << uniform.type << " " << uniform.name << " = " <<
+			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 	shader << "#define fe_vertex vec4(in_position, 1.0)\n";
 	if ( uses_vertex_id )
 	{
@@ -5972,14 +6408,14 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 						if ( !sampler_texture )
 						{
-							TextureEntry &cache_entry = m_textures[ container ];
+							TextureEntry &cache_entry = m_textures[ { container->get_texture_source_id(), shader_image->get_mipmap(), false } ];
 							cache_entry.width = static_cast<float>( shader_image->get_texture_width() );
 							cache_entry.height = static_cast<float>( shader_image->get_texture_height() );
 							cache_entry.mipmapped = shader_image->get_mipmap();
 							cache_entry.last_seen_frame = m_frame.frame_number;
 							if ( !cache_entry.gpu_texture )
 							{
-								if ( !upload_texture( container, FeRenderTextureSourceContainer, cache_entry ) )
+								if ( !upload_texture( container->get_texture_source_id(), container->get_texture_source_type(), cache_entry, nullptr, container->is_texture_blocking() ) )
 									return true;
 							}
 							sampler_texture = cache_entry.gpu_texture;
@@ -6353,14 +6789,14 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 						if ( !sampler_texture )
 						{
-							TextureEntry &cache_entry = m_textures[ container ];
+							TextureEntry &cache_entry = m_textures[ { container->get_texture_source_id(), shader_image->get_mipmap(), false } ];
 							cache_entry.width = static_cast<float>( shader_image->get_texture_width() );
 							cache_entry.height = static_cast<float>( shader_image->get_texture_height() );
 							cache_entry.mipmapped = shader_image->get_mipmap();
 							cache_entry.last_seen_frame = m_frame.frame_number;
 							if ( !cache_entry.gpu_texture )
 							{
-								if ( !upload_texture( container, FeRenderTextureSourceContainer, cache_entry ) )
+								if ( !upload_texture( container->get_texture_source_id(), container->get_texture_source_type(), cache_entry, nullptr, container->is_texture_blocking() ) )
 									samplers_ready = false;
 							}
 							sampler_texture = cache_entry.gpu_texture;
@@ -6757,6 +7193,26 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	if ( !m_vertex_shader )
 	{
 		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for vertex shader" << std::endl;
+		return false;
+	}
+
+	ShaderBlob custom_vertex_blob = {};
+	if ( !compile_shader_blob( "__custom_vertex__", build_builtin_custom_vertex_shader(), true, custom_vertex_blob ) )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: failed to compile internal custom vertex shader" << std::endl;
+		return false;
+	}
+
+	SDL_GPUShaderCreateInfo custom_vertex_info = vertex_info;
+	custom_vertex_info.code_size = custom_vertex_blob.code.size();
+	custom_vertex_info.code = custom_vertex_blob.code.data();
+	custom_vertex_info.entrypoint = custom_vertex_blob.entrypoint;
+	custom_vertex_info.format = custom_vertex_blob.format;
+
+	m_custom_vertex_shader = SDL_CreateGPUShader( m_device, &custom_vertex_info );
+	if ( !m_custom_vertex_shader )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for custom vertex shader" << std::endl;
 		return false;
 	}
 

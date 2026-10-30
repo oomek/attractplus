@@ -118,6 +118,14 @@ FeFont::~FeFont()
 	cleanup();
 }
 
+std::size_t FeFont::memory_bytes() const
+{
+	std::size_t bytes = m_pixelBuffer.capacity();
+	for ( const auto &page : m_pages )
+		bytes += page.second.pixels.capacity() + page.second.glyphs.size() * sizeof( FeGlyph );
+	return bytes;
+}
+
 void FeFont::clear()
 {
 	cleanup();

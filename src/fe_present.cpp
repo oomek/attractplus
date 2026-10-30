@@ -21,6 +21,7 @@
  */
 
 #include "fe_present.hpp"
+#include "fe_resource_cache.hpp"
 #include "fe_animation.hpp"
 #include "fe_util.hpp"
 #include "fe_image.hpp"
@@ -141,11 +142,6 @@ void FeFontContainer::load_default_font()
 {
 	m_font_binary_data = base64_decode( _binary_resources_fonts_BarlowCJK_ttf );
 	std::ignore = m_font.openFromMemory( m_font_binary_data.data(), m_font_binary_data.size() );
-}
-
-const FeFont &FeFontContainer::get_font() const
-{
-	return m_font;
 }
 
 void FeFontContainer::clear_font()
@@ -467,6 +463,11 @@ void FePresent::init_monitors()
 
 	m_layoutSize = m_mon[0].size;
 
+	if ( SDL_Window *window = m_window.get_gpu_context().get_window() )
+		if ( const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode( SDL_GetDisplayForWindow( window ) ) )
+			if ( mode->refresh_rate > 0.0f )
+				m_refresh_rate = mode->refresh_rate;
+
 	if ( m_refresh_rate == 0 )
 	{
 		FeLog() << "Failed to detect the refresh rate. Defaulting to 60 Hz" << std::endl;
@@ -479,6 +480,8 @@ void FePresent::init_monitors()
 FePresent::~FePresent()
 {
 	clear_resources();
+	// Finish background compilation before glslang's process guard is destroyed.
+	FeResourceCache::get().wait();
 }
 
 //
@@ -502,6 +505,11 @@ void FePresent::clear_resources()
 //
 void FePresent::clear_layout()
 {
+	m_layout_loaded = false;
+	FeImageLoader::get_ref().cancel_pending();
+	discard_prepared_media();
+	m_script_options.clear();
+	m_preparing_script = -2;
 	m_window.get_gpu_context().clear_layout_resources();
 	FeAnimation::clear();
 
@@ -526,9 +534,6 @@ void FePresent::clear_layout()
 	m_plugin_grids.clear();
 	for ( FeMonitor &monitor : m_mon )
 		monitor.grid = FeGrid();
-
-	FeImageLoader &il = FeImageLoader::get_ref();
-	il.set_background_loading( false );
 
 	for ( std::vector<FeMonitor>::iterator itr=m_mon.begin(); itr!=m_mon.end(); ++itr )
 	{
@@ -561,6 +566,7 @@ void FePresent::clear_layout()
 		delete a;
 	}
 
+	m_preparedShaders.clear();
 	while ( !m_scriptShaders.empty() )
 	{
 		FeShader *sh = m_scriptShaders.back();
@@ -574,12 +580,7 @@ void FePresent::clear_layout()
 		m_emptyShader = NULL;
 	}
 
-	while ( !m_fontPool.empty() )
-	{
-		FeFontContainer *f = m_fontPool.back();
-		m_fontPool.pop_back();
-		delete f;
-	}
+	m_fontPool.clear();
 
 	m_baseRotation = m_feSettings->get_screen_rotation();
 
@@ -687,6 +688,7 @@ namespace
 			&& lhs.smooth == rhs.smooth
 			&& lhs.mipmap == rhs.mipmap
 			&& lhs.dynamic == rhs.dynamic
+			&& lhs.blocking == rhs.blocking
 			&& lhs.width == rhs.width
 			&& lhs.height == rhs.height
 			&& lhs.content_version == rhs.content_version
@@ -731,6 +733,7 @@ namespace
 			|| lhs.texture_smooth != rhs.texture_smooth
 			|| lhs.texture_mipmap != rhs.texture_mipmap
 			|| lhs.texture_dynamic != rhs.texture_dynamic
+			|| lhs.texture_blocking != rhs.texture_blocking
 			|| lhs.texture_content_version != rhs.texture_content_version
 			|| lhs.blend_mode != rhs.blend_mode
 			|| lhs.translucent_depth_prepass != rhs.translucent_depth_prepass
@@ -816,6 +819,7 @@ namespace
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.blocking ? 1 : 0 ) );
 		hash = hash_float_bits( hash, binding.width );
 		hash = hash_float_bits( hash, binding.height );
 		hash = hash_combine( hash, binding.content_version );
@@ -840,6 +844,7 @@ namespace
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_smooth ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_mipmap ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_blocking ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.translucent_depth_prepass ? 1 : 0 ) );
 		hash = hash_combine( hash, entry.texture_content_version );
 		hash = hash_float_bits( hash, entry.ambient_light );
@@ -894,7 +899,7 @@ namespace
 
 	void collapse_pbr_geometry_instances( std::vector<FeRenderGeometry> &geometry )
 	{
-		if ( geometry.empty() )
+		if ( std::none_of( geometry.begin(), geometry.end(), is_batchable_pbr_geometry ) )
 			return;
 
 		std::vector<FeRenderGeometry> collapsed;
@@ -1022,6 +1027,12 @@ namespace
 				continue;
 			}
 
+			if ( entry.has_external_vertices() )
+			{
+				entry.vertices.assign( entry.external_vertices, entry.external_vertices + entry.external_vertex_count );
+				entry.external_vertices = nullptr;
+				entry.external_vertex_count = 0;
+			}
 			for ( FeRenderVertex &vertex : entry.vertices )
 			{
 				const Vec2f p = transform.transformPoint( { vertex.x, vertex.y } );
@@ -1058,7 +1069,8 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	for ( std::size_t monitor_index = 0; monitor_index < m_mon.size(); ++monitor_index )
 	{
 		const FeMonitor &monitor = m_mon[ monitor_index ];
-		std::vector<FeRenderGeometry> monitor_geometry;
+		std::vector<FeRenderGeometry> &monitor_geometry = m_monitor_geometry;
+		monitor_geometry.clear();
 		monitor_geometry.reserve( monitor.elements.size() );
 
 		int clip_x = 0;
@@ -1197,6 +1209,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.blocking ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.texcoord_set ) );
 		seed = hash_float_bits( seed, binding.width );
 		seed = hash_float_bits( seed, binding.height );
@@ -1206,7 +1219,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_float_bits( seed, binding.scale_v );
 		return seed;
 	};
-	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed ) -> std::uint64_t
+	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed, std::uint64_t vertex_version = 0 ) -> std::uint64_t
 	{
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.geometry_kind ) );
 		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.texture_id ) );
@@ -1214,18 +1227,22 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_repeated ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_smooth ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_mipmap ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_blocking ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.translucent_depth_prepass ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_collapse_group ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.get_vertex_count() ) );
-		if ( geometry.has_external_vertices() )
+		if ( vertex_version != 0 )
+			seed = hash_combine( seed, vertex_version );
+		else if ( geometry.geometry_kind == FeRenderGeometryObjectPbr && geometry.has_external_vertices() )
 		{
 			seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.external_vertex_id ) );
 		}
-		else for ( const FeRenderVertex &vertex : geometry.vertices )
+		else for ( std::size_t i = 0; i < geometry.get_vertex_count(); ++i )
 		{
+			const FeRenderVertex &vertex = geometry.get_vertex_data()[i];
 			seed = hash_float_bits( seed, vertex.x );
 			seed = hash_float_bits( seed, vertex.y );
 			seed = hash_float_bits( seed, vertex.z );
@@ -1402,7 +1419,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				if ( image->build_render_geometry( image_geometry ) )
 				{
 					append_surface_dependencies( image_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || image_geometry.texture_dynamic || image_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 					frame.geometry.push_back( std::move( image_geometry ) );
@@ -1417,8 +1433,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				if ( rectangle->build_render_geometry( rectangle_geometry ) )
 				{
 					append_surface_dependencies( rectangle_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || rectangle_geometry.texture_dynamic || rectangle_geometry.custom_shader;
-					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature );
+					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature, rectangle->get_vertex_version() );
 					frame.content_signature = frame.geometry_signature;
 					frame.geometry.push_back( std::move( rectangle_geometry ) );
 				}
@@ -1434,7 +1449,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				{
 					const FeRenderGeometry &object_geometry = frame.geometry[i];
 					append_surface_dependencies( object_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || object_geometry.texture_dynamic;
 					frame.geometry_signature = hash_geometry( object_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 				}
@@ -1450,7 +1464,6 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				{
 					const FeRenderGeometry &text_geometry = frame.geometry[i];
 					append_surface_dependencies( text_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || text_geometry.texture_dynamic || text_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( text_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 				}
@@ -1466,15 +1479,29 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				{
 					const FeRenderGeometry &list_geometry = frame.geometry[i];
 					append_surface_dependencies( list_geometry, surface, dependencies );
-					frame.dynamic_content = frame.dynamic_content || list_geometry.texture_dynamic || list_geometry.custom_shader;
 					frame.geometry_signature = hash_geometry( list_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
 				}
 			}
 		}
 
-		if ( frame.redraw )
-			frame.dynamic_content = true;
+		// Versioned textures invalidate content without forcing a render on
+		// every frontend tick. Nested surfaces contribute their state below.
+		frame.dynamic_content = !frame.clear && frame.redraw;
+		for ( const FeRenderGeometry &geometry : frame.geometry )
+		{
+			frame.content_signature = hash_combine( frame.content_signature, geometry.texture_content_version );
+			const bool surface_texture = geometry.texture_source_type == FeRenderTextureSourceContainer &&
+				dynamic_cast<const FeSurfaceTextureContainer *>( static_cast<const FeBaseTextureContainer *>( geometry.texture_id ) );
+			frame.dynamic_content = frame.dynamic_content || geometry.custom_shader || geometry.geometry_kind == FeRenderGeometryObjectPbr ||
+				( surface_texture && geometry.texture_id == surface ) ||
+				( geometry.texture_dynamic && geometry.texture_content_version == 0 && !surface_texture );
+		}
+		for ( float value : frame.camera.projection.m )
+			frame.content_signature = hash_float_bits( frame.content_signature, value );
+		frame.content_signature = hash_float_bits( frame.content_signature, frame.camera.fov_y_degrees );
+		frame.content_signature = hash_float_bits( frame.content_signature, frame.camera.near_plane );
+		frame.content_signature = hash_float_bits( frame.content_signature, frame.camera.default_plane_z );
 
 		std::sort( dependencies.begin(), dependencies.end() );
 		dependencies.erase( std::unique( dependencies.begin(), dependencies.end() ), dependencies.end() );
@@ -1549,7 +1576,11 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		{
 			auto it = surface_states.find( static_cast<const FeSurfaceTextureContainer *>( dependency ) );
 			if ( it == surface_states.end() )
+			{
+				// A dependency cycle samples a previous frame's contents.
+				pending.frame.dynamic_content = true;
 				continue;
+			}
 
 			pending.frame.content_signature = hash_combine( pending.frame.content_signature, it->second.signature );
 			pending.frame.dynamic_content = pending.frame.dynamic_content || it->second.dynamic_content;
@@ -1804,6 +1835,12 @@ FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const
 			break;
 	}
 
+	sh->set_background_loading( get_script_version( get_script_id() ) >= 4 );
+	if ( sh->background_loading() )
+	{
+		m_preparedShaders[sh] = get_script_id();
+		m_window.get_gpu_context().prepare_shader( sh );
+	}
 	return sh;
 }
 
@@ -1829,6 +1866,12 @@ FeShader *FePresent::compile_shader( FeShader::Type type, const char *shader1, c
 			break;
 	}
 
+	sh->set_background_loading( get_script_version( get_script_id() ) >= 4 );
+	if ( sh->background_loading() )
+	{
+		m_preparedShaders[sh] = get_script_id();
+		m_window.get_gpu_context().prepare_shader( sh );
+	}
 	return sh;
 }
 
@@ -2004,7 +2047,8 @@ void FePresent::set_3d_cubemap_filename( const char *filename )
 		container->set_smooth( true );
 		container->set_repeat( false );
 		container->set_mipmap( true );
-		container->load_file( m_3d_cubemap_filename.c_str() );
+		// Cubemap validation needs dimensions before publishing this configuration.
+		container->load_file( m_3d_cubemap_filename.c_str(), true );
 
 		const Vec2u texture_size = container->get_texture_size();
 		if ( texture_size.x == 0 || texture_size.y == 0 )
@@ -2080,19 +2124,18 @@ const FeFontContainer *FePresent::get_pooled_font(
 
 	// Next check if this font is already loaded in our pool
 	//
-	for ( std::vector<FeFontContainer *>::iterator itr=m_fontPool.begin();
+	for ( auto itr=m_fontPool.begin();
 		itr != m_fontPool.end(); ++itr )
 	{
 		if ( ffile.compare( (*itr)->get_name() ) == 0 )
-			return *itr;
+			return itr->get();
 	}
 
 	// No match, so load this font and add it to the pool
 	//
-	m_fontPool.push_back( new FeFontContainer() );
-	m_fontPool.back()->set_font( ffile );
+	m_fontPool.push_back( FeFontContainer::acquire( ffile ) );
 
-	return m_fontPool.back();
+	return m_fontPool.back().get();
 }
 
 void FePresent::set_layout_font_name( const char *n )
@@ -2160,6 +2203,7 @@ int FePresent::get_filter_index() const
 
 void FePresent::set_filter_index( int idx )
 {
+	if ( queue_navigation( { FeNavigationRequest::FilterIndex, idx } ) ) return;
 	int new_offset = idx - get_filter_index();
 	if ( new_offset != 0 )
 	{
@@ -2167,8 +2211,7 @@ void FePresent::set_filter_index( int idx )
 			load_layout();
 		else
 		{
-			update_to( ToNewList, false );
-			on_transition( ToNewList, new_offset );
+			refresh_list( new_offset );
 		}
 	}
 }
@@ -2232,25 +2275,166 @@ int FePresent::get_list_limit() const
 
 void FePresent::set_selection_index( int index )
 {
+	if ( queue_navigation( { FeNavigationRequest::SelectionIndex, index, false, true } ) ) return;
 	int new_offset = index - get_selection_index();
 	if ( new_offset != 0 )
 		change_selection( new_offset );
 }
 
-void FePresent::change_selection( int step, bool end_navigation )
+void FePresent::change_selection( int step, bool end_navigation, bool clamp )
 {
-		on_transition( ToNewSelection, step );
+	if ( queue_navigation( { FeNavigationRequest::Selection, step, false, end_navigation, clamp } ) )
+		return;
+	if ( clamp )
+	{
+		const int size = get_current_filter_size();
+		if ( size <= 0 ) return;
+		const int index = get_selection_index();
+		step = std::clamp( step, -index, size - index - 1 );
+		if ( step == 0 ) return;
+	}
+	on_transition( ToNewSelection, step );
 
-		m_feSettings->step_current_selection( step );
-		update_to( ToNewSelection, false );
+	m_feSettings->step_current_selection( step );
+	update_to( ToNewSelection, false );
 
-		on_transition( FromOldSelection, -step );
+	on_transition( FromOldSelection, -step );
 
-		if ( end_navigation )
+	if ( end_navigation ) this->end_navigation();
+}
+
+int FePresent::get_layout_version()
+{
+	return m_script_options[get_script_id()].version;
+}
+
+void FePresent::set_layout_version( int version )
+{
+	m_script_options[get_script_id()].version = version;
+}
+
+int FePresent::get_script_version( int script ) const
+{
+	auto found = m_script_options.find( script );
+	if ( found == m_script_options.end() ) return 3;
+	return found->second.transition_version >= 0 ? found->second.transition_version : found->second.version;
+}
+
+bool FePresent::get_script_background_loading( int script ) const
+{
+	auto found = m_script_options.find( script );
+	return found != m_script_options.end() && found->second.background_loading;
+}
+
+void FePresent::set_script_background_loading( bool background )
+{
+	m_script_options[get_script_id()].background_loading = background;
+}
+
+bool FePresent::uses_new_transitions() const
+{
+	for ( const auto &script : m_script_options )
+		if ( script.second.version >= 4 ) return true;
+	return false;
+}
+
+void FePresent::refresh_list( int var, bool reset_display, bool notify )
+{
+	FeNavigationRequest request{ FeNavigationRequest::List, var, reset_display };
+	request.notify = notify;
+	if ( queue_navigation( std::move( request ) ) ) return;
+	update_to( ToNewList, reset_display );
+	if ( notify ) on_transition( ToNewList, var );
+}
+
+void FePresent::end_navigation()
+{
+	if ( queue_navigation( { FeNavigationRequest::End } ) ) return;
+	update_to( EndNavigation, false );
+	on_transition( EndNavigation, 0 );
+}
+
+void FePresent::collect_preloads( std::vector<FeRenderTextureBinding> &bindings ) const
+{
+	bindings.clear();
+	for ( auto *base : m_texturePool )
+	{
+		auto *texture = dynamic_cast<FeTextureContainer *>( base );
+		FeRenderTextureBinding binding;
+		if ( texture && texture->prepared_binding( binding ) ) bindings.push_back( binding );
+	}
+}
+
+bool FePresent::prepared_media_ready( int script )
+{
+	std::vector<FeRenderTextureBinding> bindings;
+	for ( auto *base : m_texturePool )
+	{
+		auto *texture = dynamic_cast<FeTextureContainer *>( base );
+		if ( !texture || texture->m_script_id != script || !texture->m_prepared ) continue;
+		// Adopt completed background loads before checking the readiness barrier.
+		if ( !texture->m_reuse ) texture->m_prepared->tick( m_feSettings, false );
+		FeRenderTextureBinding binding;
+		if ( texture->prepared_binding( binding ) ) bindings.push_back( binding );
+	}
+	// Submit hidden uploads now, sharing the upcoming draw's preparation budget.
+	m_window.get_gpu_context().prepare_textures( bindings, m_render_frame_serial + 1 );
+	bool ready = true;
+	for ( auto it = m_preparedShaders.begin(); it != m_preparedShaders.end(); )
+	{
+		if ( it->second != script ) { ++it; continue; }
+		if ( !m_window.get_gpu_context().prepare_shader( it->first ) ) { ready = false; ++it; }
+		else it = m_preparedShaders.erase( it );
+	}
+	for ( auto *base : m_texturePool )
+	{
+		auto *texture = dynamic_cast<FeTextureContainer *>( base );
+		if ( !texture || texture->m_script_id != script || !texture->m_prepared ) continue;
+		if ( !texture->prepared_ready() ) { ready = false; continue; }
+		FeRenderTextureBinding binding;
+		if ( !texture->prepared_binding( binding ) ) continue;
+		auto status = m_window.get_gpu_context().texture_status( binding );
+		if ( status == FeSdl3GpuContext::TexturePending ) ready = false;
+		else if ( status == FeSdl3GpuContext::TextureFailed )
 		{
-			update_to( EndNavigation, false );
-			on_transition( EndNavigation, 0 );
+			const auto *next = texture->m_reuse ? texture->m_reuse : texture->m_prepared.get();
+			FeLog() << "Error preparing media texture: " << next->get_file_name() << std::endl;
+			if ( texture->m_reuse ) texture->m_reuse->m_reserved = false;
+			texture->m_reuse = nullptr;
+			texture->m_prepared->clear();
 		}
+	}
+	return ready;
+}
+
+void FePresent::commit_prepared_media( int script )
+{
+	// Extract reserved resources before replacing any of their source slots.
+	for ( auto *base : m_texturePool )
+	{
+		auto *texture = dynamic_cast<FeTextureContainer *>( base );
+		if ( texture && texture->m_script_id == script && texture->m_reuse )
+		{
+			texture->m_prepared->swap_media( *texture->m_reuse );
+			texture->m_reuse->m_reserved = false;
+			texture->m_reuse = nullptr;
+		}
+	}
+	for ( auto *base : m_texturePool )
+	{
+		auto *texture = dynamic_cast<FeTextureContainer *>( base );
+		if ( !texture || texture->m_script_id != script || !texture->m_prepared ) continue;
+		texture->swap_media( *texture->m_prepared );
+		texture->discard_prepared();
+		texture->notify_texture_change();
+		if ( m_playMovies ) texture->start_movie( m_feSettings );
+	}
+}
+
+void FePresent::discard_prepared_media()
+{
+	for ( auto *base : m_texturePool )
+		if ( auto *texture = dynamic_cast<FeTextureContainer *>( base ) ) texture->discard_prepared();
 }
 
 bool FePresent::reset_screen_saver()
@@ -2321,12 +2505,12 @@ bool FePresent::handle_event( FeInputMap::Command c )
 
 	case FeInputMap::NextDisplay:
 	case FeInputMap::PrevDisplay:
+		if ( queue_navigation( { FeNavigationRequest::Display, c == FeInputMap::NextDisplay ? 1 : -1 } ) ) break;
 		if ( m_feSettings->navigate_display( ( c == FeInputMap::NextDisplay ) ? 1 : -1 ) )
 			load_layout();
 		else
 		{
-			update_to( ToNewList, true );
-			on_transition( ToNewList, 0 );
+			refresh_list( 0, true );
 		}
 
 		break;
@@ -2335,12 +2519,12 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	case FeInputMap::PrevFilter:
 		{
 			int offset = ( c == FeInputMap::NextFilter ) ? 1 : -1;
+			if ( queue_navigation( { FeNavigationRequest::Filter, offset } ) ) break;
 			if ( m_feSettings->navigate_filter( offset ) )
 				load_layout();
 			else
 			{
-				update_to( ToNewList, false );
-				on_transition( ToNewList, offset );
+				refresh_list( offset );
 			}
 		}
 		break;
@@ -2406,8 +2590,79 @@ bool FePresent::handle_event( FeInputMap::Command c )
 	return true;
 }
 
+bool FePresent::reuse_artwork( FeTextureContainer *target, int filter_index, int rom_index )
+{
+	if ( target->m_current_rom_index < 0 )
+		return false;
+	for ( FeBaseTextureContainer *base : m_texturePool )
+	{
+		auto *source = dynamic_cast<FeTextureContainer *>( base );
+		if ( !source || source == target || source->m_type != FeTextureContainer::IsArtwork ||
+			source->m_script_id != target->m_script_id || source->m_reserved ||
+			source->m_current_rom_index != rom_index || source->m_current_filter_index != filter_index ||
+			source->m_art_name != target->m_art_name || source->m_video_flags != target->m_video_flags ||
+			source->m_art_update_trigger != target->m_art_update_trigger ||
+			source->m_volume != target->m_volume || source->m_pan != target->m_pan ||
+			source->m_fft_bands != target->m_fft_bands ||
+			( source->m_movie_status == 0 ) != ( target->m_movie_status == 0 ) ||
+			source->m_pixel_cache_valid || target->m_pixel_cache_valid )
+			continue;
+		// Never take artwork from a container already showing its new selection.
+		const int source_filter = m_feSettings->get_filter_index_from_offset( source->m_filter_offset );
+		if ( source_filter == source->m_current_filter_index &&
+			m_feSettings->get_rom_index( source_filter, source->m_index_offset ) == source->m_current_rom_index )
+			continue;
+		if ( target->is_v4_script() )
+		{
+			target->discard_prepared();
+			target->reset_subimg();
+			target->prepare();
+			target->m_reuse = source;
+			source->m_reserved = true;
+			return true;
+		}
+		std::swap( target->m_current_rom_index, source->m_current_rom_index );
+		std::swap( target->m_current_filter_index, source->m_current_filter_index );
+		std::swap( target->m_file_name, source->m_file_name );
+		std::swap( target->m_movie, source->m_movie );
+		std::swap( target->m_pending_movie, source->m_pending_movie );
+		std::swap( target->m_movie_status, source->m_movie_status );
+		std::swap( target->m_audio_effects, source->m_audio_effects );
+		std::swap( target->m_video_files, source->m_video_files );
+		std::swap( target->m_image_files, source->m_image_files );
+		std::swap( target->m_rom_info, source->m_rom_info );
+		std::swap( target->m_entry, source->m_entry );
+		std::swap( target->m_image_texture, source->m_image_texture );
+		std::swap( target->m_previous_entry, source->m_previous_entry );
+		std::swap( target->m_texture_size, source->m_texture_size );
+		std::swap( target->m_content_version, source->m_content_version );
+		source->reset_subimg();
+		target->reset_subimg();
+		source->notify_texture_change();
+		target->notify_texture_change();
+		return true;
+	}
+	return false;
+}
+
 void FePresent::update_to( FeTransitionType type, bool reset_display )
 {
+	// Move every retained artwork before loading replacements. In particular,
+	// backwards navigation must not close an image still needed by a later tile.
+	if ( type == ToNewSelection || type == EndNavigation )
+	{
+		for ( FeBaseTextureContainer *base : m_texturePool )
+		{
+			auto *texture = dynamic_cast<FeTextureContainer *>( base );
+			if ( !texture || texture->m_type != FeTextureContainer::IsArtwork ||
+				( texture->m_art_update_trigger != type && !( type == EndNavigation && texture->m_art_update_trigger == ToEndNavigation ) ) )
+				continue;
+			const int filter = m_feSettings->get_filter_index_from_offset( texture->m_filter_offset );
+			const int rom = m_feSettings->get_rom_index( filter, texture->m_index_offset );
+			if ( texture->m_current_rom_index != rom || texture->m_current_filter_index != filter )
+				reuse_artwork( texture, filter, rom );
+		}
+	}
 	std::vector<FeBaseTextureContainer *>::iterator itc;
 	std::vector<FeBasePresentable *>::iterator itl;
 	std::vector<FeMonitor>::iterator itm;
@@ -2416,7 +2671,12 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 	{
 		case ToNewList:
 			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			{
+				auto *texture = dynamic_cast<FeTextureContainer *>( *itc );
+				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : -2;
 				(*itc)->on_new_list( m_feSettings, reset_display );
+			}
+			m_preparing_script = -2;
 
 			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
 				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
@@ -2425,7 +2685,12 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 
 		case ToNewSelection:
 			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			{
+				auto *texture = dynamic_cast<FeTextureContainer *>( *itc );
+				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : -2;
 				(*itc)->on_new_selection( m_feSettings );
+			}
+			m_preparing_script = -2;
 
 			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
 				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
@@ -2434,7 +2699,12 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 
 		case EndNavigation:
 			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			{
+				auto *texture = dynamic_cast<FeTextureContainer *>( *itc );
+				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : -2;
 				(*itc)->on_end_navigation( m_feSettings );
+			}
+			m_preparing_script = -2;
 			break;
 
 		default:
@@ -2462,7 +2732,7 @@ bool FePresent::load_intro()
 	if ( !on_new_layout() )
 		return false;
 
-	update_to( ToNewList, true );
+	refresh_list( 0, true, false );
 	m_layout_time.start();
 	return ( !m_mon[0].elements.empty() );
 }
@@ -2484,7 +2754,7 @@ void FePresent::load_screensaver()
 	// if there is no screen saver script then do a blank screen
 	//
 	on_transition( StartLayout, FromToNoValue );
-	update_to( ToNewList, true );
+	refresh_list( 0, true, false );
 	m_layout_time.start();
 }
 
@@ -2525,8 +2795,7 @@ void FePresent::load_layout( bool initial_load )
 	}
 
 	on_transition( StartLayout, var );
-	update_to( ToNewList, true );
-	on_transition( ToNewList, FromToNoValue );
+	refresh_list( 0, true );
 	m_layout_time.start();
 }
 
@@ -2587,7 +2856,7 @@ void FePresent::redraw()
 
 void FePresent::submit_render_frame()
 {
-	FeRenderFrame frame;
+	FeRenderFrame frame = m_window.get_gpu_context().take_frame();
 	frame.camera = m_layout_camera;
 	frame.viewport_width = m_mon[0].size.x;
 	frame.viewport_height = m_mon[0].size.y;
@@ -2596,6 +2865,7 @@ void FePresent::submit_render_frame()
 	frame.frame_number = ++m_render_frame_serial;
 	build_render_geometry( frame.images );
 	build_render_surface_frames( frame.surfaces );
+	collect_preloads( frame.preloads );
 	frame.image_count = static_cast<unsigned long long>( frame.images.size() );
 	m_window.get_gpu_context().submit_frame( std::move( frame ) );
 }
@@ -2675,10 +2945,12 @@ void FePresent::pre_run()
 		(*its)->set_playing( false );
 		(*its)->release_audio( true );
 	}
+	FeSdlAudioBackend::get().release_device();
 }
 
 void FePresent::post_run()
 {
+	FeSdlAudioBackend::get().prepare_device();
 	std::vector<FeSound *>::iterator its;
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
@@ -2702,7 +2974,7 @@ void FePresent::post_run()
 
 	m_feSettings->reset_input();
 	reset_screen_saver();
-	update_to( ToNewList, false );
+	refresh_list( 0, false, false );
 }
 
 void FePresent::toggle_movie()
@@ -2925,9 +3197,11 @@ FeShader *FePresent::get_empty_shader()
 
 void FePresent::set_search_rule( const char *s )
 {
+	FeNavigationRequest request{ FeNavigationRequest::Search };
+	request.text = s;
+	if ( queue_navigation( std::move( request ) ) ) return;
 	m_feSettings->set_search_rule( s );
-	update_to( ToNewList, true );
-	on_transition( ToNewList, 0 );
+	refresh_list( 0, true );
 }
 
 const char *FePresent::get_search_rule()
@@ -2987,7 +3261,7 @@ float FePresent::get_layout_frame_time()
 	return m_frame_time;
 }
 
-int FePresent::get_refresh_rate()
+double FePresent::get_refresh_rate()
 {
 	return m_refresh_rate;
 }

@@ -60,7 +60,7 @@
    -  [`fe.plugin`](#feplugin)
    -  [Grid coordinates](#grid-coordinates)
    -  [`fe.list`](#felist)
-   -  [`fe.image_cache`](#feimage_cache)
+   -  [`fe.cache`](#fecache)
    -  [`fe.overlay`](#feoverlay)
    -  [`fe.obj`](#feobj)
    -  [`fe.displays`](#fedisplays)
@@ -74,7 +74,7 @@
    -  [`fe.LayoutGlobals`](#felayoutglobals)
    -  [`fe.Grid`](#fegrid-1)
    -  [`fe.CurrentList`](#fecurrentlist)
-   -  [`fe.ImageCache`](#feimagecache)
+   -  [`fe.Cache`](#fecache-1)
    -  [`fe.Overlay`](#feoverlay-1)
    -  [`fe.Display`](#fedisplay)
    -  [`fe.Filter`](#fefilter)
@@ -108,6 +108,8 @@
 
 ## Overview
 
+This reference describes version 4 behavior unless marked **Legacy (version 3)**. Enable it by placing `fe.layout.version = 4` first in each layout or plugin script. Included files and modules use the layout or plugin's version.
+
 ### Layout
 
 Layouts define what gets displayed to the user. They consist of a `layout.nut` file and a collection of related resources (images, other scripts, etc.). Layouts are located in the `layouts/` directory, each in its own separate subdirectory or [archive](#language-extensions).
@@ -117,6 +119,7 @@ Layouts can have one or more `layout*.nut` files, which may be cycled between us
 Use [`fe.grid.set_size()`](#grid-coordinates) to choose the layout's coordinate range. The layout keeps its native pixel dimensions.
 
 ```squirrel
+fe.layout.version = 4
 fe.grid.set_size(100)
 
 // Background movie artwork
@@ -498,6 +501,10 @@ fe.add_shader( type )
 
 Compile a GLSL shader from the given file(s) for use in the layout. Also see [`fe.compile_shader()`](#fecompile_shader-).
 
+Shaders compile in the background. When `fe.cache.bg_load = false`, shaders added during initialization or in `ToNewList`, `ToNewSelection` or `ToEndNavigation` finish compiling before the corresponding `NewList`, `NewSelection` or `EndNavigation` callbacks run.
+
+**Legacy (version 3):** Shaders compile synchronously on first use and can block drawing.
+
 **Parameters**
 
 -  `type` - The type of shader to add. Can be one of the following values:
@@ -548,12 +555,7 @@ Compile a GLSL shader from the given file(s) for use in the layout. Also see [`f
 
 **Notes**
 
-Windows caches compiled shaders for future recall, and since every change results in a new file this cache will continue to grow over time. When it reaches a limit (`2GB` by default, ie: *thousands* of files) new shaders will not be cached, causing slowdowns in your Layout.
-
-To clear this cache close the program and delete the contents of the cache folders.
-
-- AMD: `C:\Users\<name>\AppData\Local\AMD\GLCache\`
-- nVidia: `C:\Users\<name>\AppData\Local\NVIDIA\GLCache\`
+Attract-Mode Plus reuses compiled shader files from `cache/shaders/sdl3/` across launches. To clear this cache, close Attract-Mode Plus and delete the files in that directory. They are recreated when needed.
 
 ---
 
@@ -564,6 +566,12 @@ fe.add_sound( name )
 ```
 
 Add a sound file that can then be played by Attract-Mode Plus. For short sounds, stored in RAM. For playing long audio tracks use [`fe.add_music()`](#feadd_music-).
+
+Sounds are decoded into RAM and cached for reuse. Each `fe.Sound` object keeps its own playback position and settings.
+
+`fe.add_sound()` and assignments to `sound.file_name` load in the background. `sound.duration` is `0` until loading finishes. Setting `sound.playing = true` while loading starts playback when ready. Sound loading does not delay `NewList`, `NewSelection` or `EndNavigation`.
+
+**Legacy (version 3):** Loading blocks until it finishes.
 
 **Parameters**
 
@@ -582,6 +590,12 @@ fe.add_music( name )
 ```
 
 Add an audio track that can then be played by Attract-Mode Plus. For long audio tracks, streamed from disk. For playing short sounds use [`fe.add_sound()`](#feadd_sound).
+
+Music always streams from disk and is not cached, regardless of duration. Each `fe.Music` object keeps its own playback position and settings.
+
+Opening a track runs in the background, so `duration` and `get_metadata()` may initially return `0` or an empty string.
+
+**Legacy (version 3):** Opening a track blocks until it finishes.
 
 **Parameters**
 
@@ -626,93 +640,119 @@ The single parameter passed to the tick function is the amount of time (in milli
 
 ### `fe.add_transition_callback()`
 
+🔶 **Attract-Mode Plus 4.0.0 introduces a new transition system with asynchronous artwork loading.**
+
+To enable the new system, make this the first line of your script:
+
+```squirrel
+fe.layout.version = 4
+```
+<br>
+
+#### Version 4 transitions
+
+##### Preparing artwork - do not animate here
+
+| Transition | When | `var` |
+| --- | --- | --- |
+| `Transition.ToNewList` | Initial load or list/filter change | The filter index offset of the filter being transitioned to (i.e. `-1` when moving back one filter, `1` when moving forward) if known, otherwise var is `0` |
+| `Transition.ToNewSelection` | Selection changes | The index offset of the selection being transitioned to (i.e. `-1` when moving back one position in the list, `1` when moving forward one position, `2` when moving forward two positions, etc.) |
+| `Transition.ToEndNavigation` | Navigation stops | `0` |
+
+Artwork loads during `ToNewList`, `ToNewSelection` and `ToEndNavigation`. To load a specific image or video, assign its filename to `image.file_name`, for example `image.file_name = fe.get_art("snap")`.
+
+These callbacks use the new selection or list. Reading `file_name`, `texture_width` or `texture_height` still returns the values for the image or video currently displayed.
+
+##### Animate when artwork is ready
+
+| Transition | Preparation transition | `var` |
+| --- | --- | --- |
+| `Transition.NewList` | `ToNewList` | Same filter offset |
+| `Transition.NewSelection` | `ToNewSelection` | Same index offset |
+| `Transition.EndNavigation` | `ToEndNavigation` | `0` |
+
+With `fe.cache.bg_load = false` (default), these callbacks wait for images and videos requested during initialization or the matching preparation callbacks to load. Images and the first video frames are ready to draw; `texture_width` and `texture_height` are available. Failed loads have zero dimensions. Videos stay silent while loading, and `Vid.NoAutoStart` prevents automatic playback.
+
+With `fe.cache.bg_load = true`, these callbacks run without waiting, so new images, videos and their dimensions may not be ready yet. The value of `bg_load` is checked after the matching `ToNewList`, `ToNewSelection` or `ToEndNavigation` callbacks finish. After initialization, assignments to `file_name` outside those callbacks also load in the background, without delaying `NewList`, `NewSelection` or `EndNavigation`.
+
+Each layout or plugin sets its own `fe.layout.version` and `fe.cache.bg_load`; included modules use the same settings. Images and videos added during initialization load before the first `NewList` callback when `bg_load = false`.
+
+**Examples**
+
+Prepare an explicit snap, then fade it in over 200 ms using [`move()`](#animation-) without blocking navigation:
+
+```squirrel
+fe.layout.version = 4
+local snap = fe.add_image( "", 0, 0, 640, 480 )
+
+function artwork_transition( ttype, var, transition_time )
+{
+    if ( ttype == Transition.ToNewList || ttype == Transition.ToNewSelection )
+        snap.file_name = fe.get_art( "snap" )
+
+    if ( ttype == Transition.NewList || ttype == Transition.NewSelection )
+    {
+        snap.alpha = 0
+        snap.move( "alpha", 255, 200, Ease.Linear )
+    }
+    return false
+}
+fe.add_transition_callback( "artwork_transition" )
+```
+
+For automatic artwork, use `fe.add_artwork("snap")`; the frontend loads it without a `file_name` assignment. To load a specific file only after navigation stops, use these branches inside your callback instead:
+
+```squirrel
+if ( ttype == Transition.ToEndNavigation )
+    snap.file_name = fe.get_art( "snap" )
+if ( ttype == Transition.EndNavigation )
+    fe.log( snap.texture_width + " x " + snap.texture_height )
+```
+
+**Callback registration**
+
 ```squirrel
 fe.add_transition_callback( environment, function_name )
 fe.add_transition_callback( function_name )
 ```
 
-Register a function in your script to get transition callbacks. Transition callbacks are triggered by certain events in the frontend.
+- `environment` - Object containing the callback; defaults to the VM root table.
+- `function_name` - Name of a function accepting `(ttype, var, transition_time)`.
+- `transition_time` - Milliseconds since this transition began, starting at zero. Time spent loading artwork before `NewList`, `NewSelection` or `EndNavigation` does not count towards their animation time.
 
-**Parameters**
+Use `return true` to repeat the callback; use `return false` or omit the return statement to finish it. Prefer [`move()`](#animation-) for animations to avoid blocking navigation by animating inside the callback and returning `true`.
 
--  `environment` - The squirrel object that the function is associated with (default value: the root table of the squirrel vm)
--  `function_name` - A string naming the function to be called.
+<br>
 
-**Return Value**
+#### Version 3 legacy transitions
 
--  None.
+Scripts without `fe.layout.version` use version 3 for compatibility. Artwork loading **blocks the UI by default and can cause stuttering**. Filename assignments return with dimensions available. `fe.cache.bg_load = true` enables legacy background image loading.
 
-**Callback**
+`FromOldSelection` is replaced by `NewSelection` in version 4.
 
--  The function that is registered should be in the following form:
+| Transition | Context | `var` |
+| --- | --- | --- |
+| `Transition.ToNewList` | New list | The filter index offset of the filter being transitioned to (i.e. `-1` when moving back one filter, `1` when moving forward) if known, otherwise var is `0` |
+| `Transition.ToNewSelection` | Old selection | The index offset of the selection being transitioned to (i.e. `-1` when moving back one position in the list, `1` when moving forward one position, `2` when moving forward two positions, etc.) |
+| `Transition.FromOldSelection` | New selection | The index offset of the selection being transitioned from (i.e. `1` after moving back one position in the list, `-1` after moving forward one position, `-2` after moving forward two positions, etc.) |
+| `Transition.EndNavigation` | Navigation has stopped | `FromTo.NoValue` |
 
-   ```squirrel
-   function transition( ttype, var, transition_time )
-   {
-     local redraw_needed = false
+<br>
 
-     // do stuff...
+#### Transitions shared by all versions
 
-     if ( redraw_needed )
-     {
-   	 return true
-     }
+| Transition | When | `var` |
+| --- | --- | --- |
+| `Transition.StartLayout` | Layout starts | `FromTo.Frontend`, `FromTo.ScreenSaver` or `FromTo.NoValue` |
+| `Transition.EndLayout` | Layout ends | `FromTo.Frontend`, `FromTo.ScreenSaver` or `FromTo.NoValue` |
+| `Transition.ToGame` | Before launching a game | `FromTo.NoValue` |
+| `Transition.FromGame` | After returning from a game | `FromTo.NoValue` |
+| `Transition.ShowOverlay` | Overlay opens | `Overlay.Custom`, `Overlay.Exit`, `Overlay.Favourite`, `Overlay.Displays`, `Overlay.Filters` or `Overlay.Tags` |
+| `Transition.HideOverlay` | Overlay closes | `FromTo.NoValue` |
+| `Transition.NewSelOverlay` | Overlay selection changes | New selection index |
+| `Transition.ChangedTag` | Favourite status or tags change | `Info.Favourite` or `Info.Tags` |
 
-     return false
-   }
-   ```
-
-The `ttype` parameter passed to the transition function indicates what is happening. It will have one of the following values:
-
--  `Transition.StartLayout`
--  `Transition.EndLayout`
--  `Transition.ToNewSelection`
--  `Transition.FromOldSelection`
--  `Transition.ToGame`
--  `Transition.FromGame`
--  `Transition.ToNewList`
--  `Transition.EndNavigation`
--  `Transition.ShowOverlay`
--  `Transition.HideOverlay`
--  `Transition.NewSelOverlay`
--  `Transition.ChangedTag`
-
-The value of the `var` parameter passed to the transition function depends upon the value of `ttype`:
-
--  `Transition.ToNewSelection`, `var` will be:
-   -  The index offset of the selection being transitioned to (i.e. `-1` when moving back one position in the list, `1` when moving forward one position, `2` when moving forward two positions, etc.)
--  `Transition.FromOldSelection`, `var` will be:
-   -  The index offset of the selection being transitioned from (i.e. `1` after moving back one position in the list, `-1` after moving forward one position, `-2` after moving forward two positions, etc.)
--  `Transition.StartLayout`, `var` will be:
-   -  `FromTo.Frontend` - If the frontend is just starting,
-   -  `FromTo.ScreenSaver` - If the layout is starting (or the list is being loaded) because the built-in screen saver has stopped, or
-   -  `FromTo.NoValue` - Otherwise.
--  `Transition.EndLayout`, `var` will be:
-   -  `FromTo.Frontend` - If the frontend is shutting down,
-   -  `FromTo.ScreenSaver` - If the layout is stopping because the built-in screen saver is starting, or
-   -  `FromTo.NoValue` - Otherwise.
--  `Transition.ToNewList`, `var` will be:
-   -  The filter index offset of the filter being transitioned to (i.e. `-1` when moving back one filter, `1` when moving forward) if known, otherwise `var` is `0`.
--  `Transition.ShowOverlay`, var will be:
-   -  `Overlay.Custom` - If a script generated overlay is being shown.
-   -  `Overlay.Exit` - If the exit menu is being shown.
-   -  `Overlay.Favourite` - If the add/remove favourite menu is being shown.
-   -  `Overlay.Displays` - If the displays menu is being shown.
-   -  `Overlay.Filters` - If the filters menu is being shown.
-   -  `Overlay.Tags` - If the tags menu is being shown.
--  `Transition.NewSelOverlay`, `var` will be:
-   -  The index of the new selection in the Overlay menu.
--  `Transition.ChangedTag`, `var` will be:
-   -  `Info.Favourite` if the favourite status of the current game was changed.
-   -  `Info.Tags` if a tag for the current game was changed.
--  `Transition.ToGame`, `Transition.FromGame`, `Transition.EndNavigation`, or `Transition.HideOverlay`, `var` will be:
-   -  `FromTo.NoValue`.
-
-The `transition_time` parameter passed to the transition function is the amount of time (in milliseconds) since the transition began.
-
-The transition function must return a boolean value. It should return `true` if a redraw is required, in which case Attract-Mode Plus will redraw the screen and immediately call the transition function again with an updated `transition_time`.
-
-**_The transition function must eventually return `false` to notify Attract-Mode Plus that the transition effect is done, allowing the normal operation of the frontend to proceed._**
+For layout start/end, `FromTo.Frontend` means frontend startup/shutdown, `FromTo.ScreenSaver` means returning from/entering the screensaver, and `FromTo.NoValue` covers other layout changes.
 
 ---
 
@@ -724,7 +764,7 @@ fe.compile_shader( type, shader1 )
 fe.compile_shader( type )
 ```
 
-Compile a GLSL shader from the given shader code for use in the layout. Also see [`fe.add_shader()`](#feadd_shader).
+Compile a GLSL shader from the given shader code for use in the layout. Uses the same [background compilation and loading behavior](#feadd_shader) as `fe.add_shader()`.
 
 **Parameters**
 
@@ -1334,9 +1374,9 @@ A shared table for plugin data. Its [grid settings](#grid-coordinates) are indep
 
 An instance of the [`fe.CurrentList`](#fecurrentlist) class and is where current display settings are stored.
 
-### `fe.image_cache`
+### `fe.cache`
 
-An instance of the [`fe.ImageCache`](#feimagecache) class and provides script access to the internal image cache.
+An instance of the [`fe.Cache`](#fecache-1) class that provides script access to the unified resource cache.
 
 ### `fe.overlay`
 
@@ -1384,6 +1424,7 @@ This class is a container for global layout settings. The instance of this class
 
 **Properties**
 
+-  `version` - Get/set the layout or plugin's transition version. Set to `4` or higher to enable [asynchronous artwork loading and version 4 transitions](#version-4-transitions). Included files/modules use the same setting. Each selection change, list change or end of navigation uses the version set before its first callback. **Legacy (version 3):** Defaults to `3` when not set.
 -  `width` - Get/set the layout width in pixels. Use `fe.grid.width` for its width in grid coordinates.
 -  `height` - Get/set the layout height in pixels. Use `fe.grid.height` for its height in grid coordinates.
 -  `font` - Get/set the filename of the font which will be used for text and listbox objects in this layout.
@@ -1545,22 +1586,29 @@ This class is a container for status information regarding the current display. 
 
 ---
 
-### `fe.ImageCache`
+### `fe.Cache`
 
-This class is a container for the internal image cache. The instance of this class is the [`fe.image_cache`](#feimage_cache) object. This class cannot be otherwise instantiated in a script.
+This class provides access to the unified resource cache through [`fe.cache`](#fecache). It cannot be instantiated in a script.
+
+Images, sounds, fonts and compiled shaders are kept in the unified resource cache for reuse. Images are cached as GPU textures, so a cached image does not need to be read, decoded or uploaded again. Caching does not keep a second copy of the decoded image in RAM.
+
+Playback from `fe.Music` and video artwork is not cached.
+
+The **Cache Size** setting (`cache_mbytes` in `attract.cfg`) limits the total cache size for these items. The least recently used items are removed first, but items still in use or loaded for the next transition are kept. Their memory usage may exceed the limit. Setting the limit to `0` disables caching of unused items; background loading continues.
+
+Image uploads use two additional 32 MiB buffers outside this limit.
 
 **Properties**
 
--  `count` - Get the number of images currently in the cache.
--  `size` - Get the current size of the image cache (in bytes).
--  `max_size` - Get the (user configured) maximum size of the image cache (in bytes).
--  `bg_load` - Get/set whether images are to be loaded on a background thread. Setting to `true` might make Attract-Mode Plus animations smoother, but can cause a slight flicker as images get loaded. Default value is `false`.
+-  `size` - Get the total tracked memory used by cached images, sounds, fonts and compiled shaders (in bytes), including image mipmaps.
+-  `max_size` - Get the configured size limit for the unified resource cache (in bytes).
+-  `bg_load` - Get/set the layout/plugin's artwork loading behavior; included modules use the same setting. Default `false`: `NewList`, `NewSelection` and `EndNavigation` wait for artwork requested during initialization or their matching preparation callbacks. Setting to `true` runs them without waiting. Artwork loads in the background in both cases; filename assignments outside initialization and preparation do not delay these callbacks. See [version 4 transitions](#version-4-transitions).
 
 **Member Functions**
 
--  `add_image( filename )` - Add `filename` image to the internal cache and/or flag it as "most recently used". Least recently used images are cleared from the cache first when space is needed. If filename is contained in an archive, the parameter should be formatted: `"<archive_name>|<filename>"`
--  `name_at( pos )` - Return the name of the image at position `pos` in the internal cache. `pos` can be an integer between `0` and `fe.image_cache.count - 1`.
--  `size_at( pos )` - Return the size (in bytes) of the image at position `pos` in the internal cache. `pos` can be an integer between `0` and `fe.image_cache.count - 1`
+-  `add_image( filename )` - Queue `filename` for caching, or mark a cached image as "most recently used". If filename is contained in an archive, the parameter should be formatted: `"<archive_name>|<filename>"`
+
+**Legacy (version 3):** Images load synchronously by default. `bg_load = true` enables background image loading.
 
 ---
 
@@ -1775,12 +1823,12 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
    -  `Vid.NoAudio` (silence the audio track)
    -  `Vid.NoAutoStart` (don't automatically start video playback)
    -  `Vid.NoLoop` (don't loop video playback)
--  `video_playing` - _[image & artwork only]_ [boolean] Get/set whether video is currently playing in this artwork.
+-  `video_playing` - _[image & artwork only]_ [boolean] Get/set whether video is currently playing in this artwork. Video decoding and its audio track run in the background; audio continues during slow layout callbacks. Displayed frames update when the frontend can render again. Automatic loops rewind on the background producer and reuse its audio stream. Setting this to `false` stops both tracks; setting it to `true` restarts playback from the beginning.
 -  `video_duration` - Get the video duration (in milliseconds).
--  `video_time` - Get the time that the video is current at (in milliseconds).
--  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>".
+-  `video_time` - Get the current video playback time (in milliseconds). For videos with audio, this follows audio consumption. Muting the audio track keeps the playback clock running.
+-  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>". Setting this in `ToNewList`, `ToNewSelection` or `ToEndNavigation` loads the next image or video. Reading `file_name`, `texture_width` or `texture_height` in those callbacks still returns the values for the image or video currently displayed.
 -  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader).
--  `trigger` - Get/set the transition that triggers updates of this artwork/ dynamic image. Can be set to `Transition.ToNewSelection` or `Transition.EndNavigation`. Default value is `Transition.ToNewSelection`.
+-  `trigger` - Get/set the transition that starts loading artwork/dynamic images. Default `Transition.ToNewSelection`; set `Transition.ToEndNavigation` to load when navigation stops. With `fe.cache.bg_load = false`, the new artwork is ready before the matching `NewSelection` or `EndNavigation` callbacks.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.
 -  `zorder` - Get/set the Image's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 -  `blend_mode` - Get/set the blend mode for this image. Can have one of the following values:
@@ -1829,7 +1877,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well.
 -  `set_border( left, top, right, bottom )` 🔶 - Set the border size in pixels for [9-slice scaling](https://en.wikipedia.org/wiki/9-slice_scaling). The borders define constrained regions at the edges of the image, while the centre region scales normally. Note that pinch has no effect when borders are set.
 -  `set_padding( left, top, right, bottom )` 🔶 - Set the padding offsets in pixels that extend the texture beyond its original dimensions.
--  `fix_masked_image()` - Takes the colour of the top left pixel in the image and makes all the pixels in the image with that colour transparent.
+-  `fix_masked_image()` - Makes all pixels matching the colour of the top left pixel transparent. This call waits for image pixels and may reload the image file.
 -  `add_image()` - _[surface only]_ Add an image to the end of this surface's draw list, see [`fe.add_image()`](#feadd_image).
 -  `add_artwork()` - _[surface only]_ Add an artwork to the end of this surface's draw list, see [`fe.add_artwork()`](#feadd_artwork).
 -  `add_clone()` - _[surface only]_ Add a clone to the end of this surface's draw list, see [`fe.add_clone()`](#feadd_clone).
@@ -1841,30 +1889,31 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 <a name="artwork-notes">**Notes**</a>
 
 -  On a surface, `x`, `y`, `width` and `height` describe its displayed geometry in the grid where it was added. `surface.grid` provides the texture bounds in the grid used by its children.
--  Using a negative `width` or `height` will flip the image about its anchor point. To flip an image in-place `subimg` properties can be used:
+-  Using a negative `width` or `height` will flip the image about its anchor point. To flip an image in-place, set its `subimg` properties in a `NewList`, `NewSelection` or `EndNavigation` callback once it is ready:
    ```squirrel
    // flip img vertically
-   local img = fe.add_image( "my_image.png" )
    img.subimg_height = img.texture_height * -1
    img.subimg_y = img.texture_height
    ```
--  Attract-Mode Plus defers the loading of artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) until after all layout and plugin scripts have completed running. This means that the `texture_width`, `texture_height` and `file_name` attributes are not available when a layout or plugin script first adds the image. These attributes become available during transitions such as `Transition.FromOldSelection` and `Transition.ToNewList`:
+-  Artwork and dynamic images (images with [_Magic Tokens_](#magic-tokens)) load after layout/plugin initialization. With `fe.cache.bg_load = false`, read `texture_width` and `texture_height` in `NewList`, `NewSelection` or `EndNavigation`. See [version 4 transitions](#version-4-transitions).
+-  Clones use the `fe.layout.version` and `fe.cache.bg_load` settings of the layout or plugin that created the original image. If no artwork can be loaded, the image is empty with zero dimensions.
+-  When navigation moves the same artwork between grid positions with matching playback settings, the frontend reuses the loaded image or video and keeps its playback position. `Vid.ImagesOnly` selects still images; clearing that flag allows videos again.
 
    ```squirrel
+   fe.layout.version = 4
    local art = fe.add_artwork( "snap" )
-   // dynamic art texture_width and texture_height are not yet available
-
-   fe.add_transition_callback( "artwork_transition" )
-   function artwork_transition( ttype, var, ttime )
+   function artwork_transition( ttype, var, transition_time )
    {
-     if (( ttype == Transition.FromOldSelection ) || ( ttype == Transition.ToNewList ))
+     if ( ttype == Transition.NewList || ttype == Transition.NewSelection )
      {
-   	 // dynamic art texture_width and texture_height are now available
-   	 art.subimg_height = texture_height * -1
-   	 art.subimg_y = texture_height
+       art.subimg_height = art.texture_height * -1
+       art.subimg_y = art.texture_height
      }
+     return false
    }
+   fe.add_transition_callback( "artwork_transition" )
    ```
+-  **Legacy (version 3):** With `fe.cache.bg_load = false`, filename assignments block until loading finishes and dimensions are available. Read automatic artwork dimensions in `ToNewList` or `FromOldSelection`. Use `trigger = Transition.EndNavigation` to update artwork when navigation stops; this setting is also accepted in version 4.
 - Pinch is achieved by subdividing the texture polygon into a triangle-strip, and scaling it towards one end. This results in a distorted image, and "ripple" artifacts on large pinches. For nicer results try the `perspective` module - see its Readme for more information.
 - When `pinch_x`, `pinch_y`, `skew_x`, or `skew_y` value is non 0, the image uses legacy rendering compatible with these effects in earlier versions. In this mode, `rotation` (also exposed as `rotation_z`) still applies, while `rotation_x`, `rotation_y`, and `rotation_order` have no effect. Their values are retained and apply again when all four pinch/skew values return to 0. A non 0 pinch value selects legacy rendering even when borders suppress its visible effect.
 
@@ -2255,10 +2304,10 @@ The class representing a sound object. Instances of this class are returned by t
 
 **Properties**
 
--  `file_name` - Get/set the sound filename.
+-  `file_name` - Get/set the sound filename. Assigning a filename stops playback and resets `time` to `0`, while preserving volume, pan, pitch and loop settings. Relative filenames use the directory of the layout or plugin making the assignment. An empty filename clears the sound; failed loads leave `file_name` empty.
 -  `volume` 🔶 - Get/set the volume of played sound. Range is `[0...100]`.
 -  `pan` 🔶 - Get/set the audio panning, which positions the sound within the stereo field from left to right. Default value is `0.0`, which is centre. Range is `[-1.0...1.0]`.
--  `playing` - Get/set whether the sound is currently playing (boolean).
+-  `playing` - Get/set whether the sound should play (boolean). While loading, `true` requests playback when ready and `false` cancels that request.
 -  `rewind` - Get/set how the `playing` property behaves (boolean). If `true`, `playing` behaves as play/stop and setting `playing` to `false` rewinds to the beginning. If `false`, `playing` behaves as play/pause and setting `playing` to `true` resumes from the current position. Default value is `true`.
 -  `status` - Get the current playback status. Can have one of the following values:
    -  `Status.Stopped`
@@ -2271,7 +2320,7 @@ The class representing a sound object. Instances of this class are returned by t
 -  `x` - Get/set the x position of the sound. Default value is `0`.
 -  `y` - Get/set the y position of the sound. Default value is `0`.
 -  `z` - Get/set the z position of the sound. Default value is `0`.
--  `duration` - Get the sound duration (in milliseconds).
+-  `duration` - Get the sound duration (in milliseconds). Returns `0` while loading.
 -  `time` - Get the time that the sound is current at (in milliseconds).
 
 ---
