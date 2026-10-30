@@ -37,7 +37,7 @@ jobs:
     - name: Install MacOS brew
       run: |
         brew update
-        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo
+        brew install pkgconfig ffmpeg libarchive libvorbis flac jpeg-turbo molten-vk
     #~ - name: MacOS switch to GCC
       #~ run: |
         #~ echo "CC=/usr/local/bin/gcc-10" >> $GITHUB_ENV
