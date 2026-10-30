@@ -495,6 +495,54 @@ namespace
 			"}\n";
 	}
 
+	// Vertex shader for custom and default-blend fragment shaders that come without
+	// their own vertex shader. Its outputs match the inputs these fragment shaders
+	// declare (vec4 texcoord0 at location 0, colour at 1, texcoord1-7 at 2-8), and it
+	// uses the same uniform block as the builtin vertex shader. Metal (and therefore
+	// MoltenVK) rejects pipelines whose vertex outputs don't match the fragment inputs.
+	std::string build_builtin_custom_vertex_shader()
+	{
+		return
+			"#version 450\n"
+			"layout(location = 0) in vec3 in_position;\n"
+			"layout(location = 1) in vec2 in_texcoord;\n"
+			"layout(location = 2) in vec4 in_color;\n"
+			"layout(location = 0) out vec4 out_texcoord0;\n"
+			"layout(location = 1) out vec4 out_color;\n"
+			"layout(location = 2) out vec4 out_texcoord1;\n"
+			"layout(location = 3) out vec4 out_texcoord2;\n"
+			"layout(location = 4) out vec4 out_texcoord3;\n"
+			"layout(location = 5) out vec4 out_texcoord4;\n"
+			"layout(location = 6) out vec4 out_texcoord5;\n"
+			"layout(location = 7) out vec4 out_texcoord6;\n"
+			"layout(location = 8) out vec4 out_texcoord7;\n"
+			"layout(set = 1, binding = 0) uniform DrawUniforms\n"
+			"{\n"
+			"\tmat4 projection;\n"
+			"\tfloat viewport_width;\n"
+			"\tfloat viewport_height;\n"
+			"\tfloat plane_distance;\n"
+			"\tfloat reserved;\n"
+			"} ubo;\n"
+			"void main()\n"
+			"{\n"
+			"\tvec3 view_position = vec3(\n"
+			"\t\tin_position.x - ( ubo.viewport_width * 0.5 ),\n"
+			"\t\t( ubo.viewport_height * 0.5 ) - in_position.y,\n"
+			"\t\t-( ubo.plane_distance - in_position.z ) );\n"
+			"\tgl_Position = ubo.projection * vec4( view_position, 1.0 );\n"
+			"\tout_texcoord0 = vec4( in_texcoord, 0.0, 1.0 );\n"
+			"\tout_color = in_color;\n"
+			"\tout_texcoord1 = vec4( 0.0 );\n"
+			"\tout_texcoord2 = vec4( 0.0 );\n"
+			"\tout_texcoord3 = vec4( 0.0 );\n"
+			"\tout_texcoord4 = vec4( 0.0 );\n"
+			"\tout_texcoord5 = vec4( 0.0 );\n"
+			"\tout_texcoord6 = vec4( 0.0 );\n"
+			"\tout_texcoord7 = vec4( 0.0 );\n"
+			"}\n";
+	}
+
 	std::string build_builtin_passthrough_fragment_shader()
 	{
 		return
@@ -1155,6 +1203,7 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_pbr_instance_buffer_size = 0;
 	m_vertex_buffer_signature = 0;
 	m_vertex_shader = nullptr;
+	m_custom_vertex_shader = nullptr;
 	m_alpha_prepass_shader = nullptr;
 	m_pbr_vertex_shader = nullptr;
 	m_pbr_fragment_shader = nullptr;
@@ -2685,7 +2734,10 @@ namespace
 		if ( driver_name && driver_name[0] )
 			return driver_name;
 
-#if defined( SDL_PLATFORM_WINDOWS )
+#if defined( SDL_PLATFORM_WINDOWS ) || defined( SDL_PLATFORM_MACOS )
+		// Shaders are compiled to SPIR-V only. On macOS this runs through MoltenVK;
+		// without asking for "vulkan" SDL would pick its Metal backend, which can't
+		// use SPIR-V shaders.
 		return "vulkan";
 #else
 		return nullptr;
@@ -4005,6 +4057,12 @@ void FeSdl3GpuContext::release_image_pipeline()
 		m_vertex_shader = nullptr;
 	}
 
+	if ( m_custom_vertex_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_custom_vertex_shader );
+		m_custom_vertex_shader = nullptr;
+	}
+
 	if ( m_alpha_prepass_shader )
 	{
 		SDL_ReleaseGPUShader( m_device, m_alpha_prepass_shader );
@@ -4776,7 +4834,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		background ? &entry.fragment_compile : nullptr, background ? &entry.compiling : nullptr ) )
 		return false;
 
-	SDL_GPUShader *vertex_shader = m_vertex_shader;
+	SDL_GPUShader *vertex_shader = m_custom_vertex_shader;
 	std::vector<CustomUniformBinding> vertex_uniforms;
 	const bool has_custom_vertex =
 		( image.shader->get_type() == FeShader::VertexAndFragment ) &&
@@ -4984,7 +5042,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	color_target.format = m_swapchain_format;
 
 	SDL_GPUGraphicsPipelineCreateInfo pipeline_info = {};
-	pipeline_info.vertex_shader = m_vertex_shader;
+	pipeline_info.vertex_shader = m_custom_vertex_shader;
 	pipeline_info.vertex_input_state.vertex_buffer_descriptions = &vertex_buffer;
 	pipeline_info.vertex_input_state.num_vertex_buffers = 1;
 	pipeline_info.vertex_input_state.vertex_attributes = attributes;
@@ -7135,6 +7193,26 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	if ( !m_vertex_shader )
 	{
 		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for vertex shader" << std::endl;
+		return false;
+	}
+
+	ShaderBlob custom_vertex_blob = {};
+	if ( !compile_shader_blob( "__custom_vertex__", build_builtin_custom_vertex_shader(), true, custom_vertex_blob ) )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: failed to compile internal custom vertex shader" << std::endl;
+		return false;
+	}
+
+	SDL_GPUShaderCreateInfo custom_vertex_info = vertex_info;
+	custom_vertex_info.code_size = custom_vertex_blob.code.size();
+	custom_vertex_info.code = custom_vertex_blob.code.data();
+	custom_vertex_info.entrypoint = custom_vertex_blob.entrypoint;
+	custom_vertex_info.format = custom_vertex_blob.format;
+
+	m_custom_vertex_shader = SDL_CreateGPUShader( m_device, &custom_vertex_info );
+	if ( !m_custom_vertex_shader )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for custom vertex shader" << std::endl;
 		return false;
 	}
 

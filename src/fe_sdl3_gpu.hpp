@@ -468,6 +468,7 @@ private:
 	Uint32 m_pbr_instance_buffer_size;
 	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
+	SDL_GPUShader *m_custom_vertex_shader;
 	SDL_GPUShader *m_alpha_prepass_shader;
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUShader *m_pbr_vertex_shader;
