@@ -69,7 +69,6 @@ public:
 	bool prepare_shader( const FeShader * );
 	bool should_present() const;
 	bool has_submitted_frame() const;
-	bool has_frame_content() const;
 	enum TextureStatus { TexturePending, TextureReady, TextureFailed };
 	TextureStatus texture_status( const FeRenderTextureBinding & ) const;
 	bool prepare_textures( const std::vector<FeRenderTextureBinding> &, unsigned long long frame_number );
@@ -501,8 +500,6 @@ private:
 	SDL_GPUSampleCount m_sample_count;
 	SDL_GPUTextureFormat m_swapchain_format;
 	bool m_pipeline_attempted;
-	bool m_present_disabled;
-	unsigned int m_failed_present_frames;
 	bool m_has_submitted_frame;
 };
 

@@ -1244,8 +1244,6 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_sample_count = SDL_GPU_SAMPLECOUNT_1;
 	m_swapchain_format = SDL_GPU_TEXTUREFORMAT_INVALID;
 	m_pipeline_attempted = false;
-	m_present_disabled = false;
-	m_failed_present_frames = 0;
 	m_has_submitted_frame = false;
 }
 
@@ -2216,24 +2214,13 @@ bool FeSdl3GpuContext::is_available() const
 
 bool FeSdl3GpuContext::should_present() const
 {
-	return is_available() && !m_present_disabled && has_submitted_frame() && has_frame_content();
+	// Empty frames clear overlays and keep presenting while artwork loads.
+	return is_available() && has_submitted_frame();
 }
 
 bool FeSdl3GpuContext::has_submitted_frame() const
 {
 	return m_has_submitted_frame;
-}
-
-bool FeSdl3GpuContext::has_frame_content() const
-{
-	if ( !m_frame.images.empty() || !m_frame.preloads.empty() )
-		return true;
-
-	for ( const FeRenderSurfaceFrame &surface : m_frame.surfaces )
-		if ( !surface.geometry.empty() )
-			return true;
-
-	return false;
 }
 
 void FeSdl3GpuContext::prepare_pipelines( SDL_GPUTextureFormat format )
@@ -2758,7 +2745,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !is_available() )
 	{
 		release_frame();
-		m_failed_present_frames++;
 		return false;
 	}
 
@@ -2769,13 +2755,11 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !textures_synced )
 	{
 		release_frame();
-		m_failed_present_frames++;
 		return false;
 	}
 
 	if ( acquire_frame( true ) != FrameReady )
 	{
-		m_failed_present_frames++;
 		return false;
 	}
 	SDL_GPUCommandBuffer *command_buffer = m_present_command_buffer;
@@ -2826,7 +2810,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !m_frame_stats.depth_ready )
 	{
 		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
 		return false;
 	}
 
@@ -2838,14 +2821,12 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !m_vertex_upload_command_buffer )
 	{
 		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
 		return false;
 	}
 
 	if ( m_frame_stats.pipeline_ready && !render_surface_frames( command_buffer, &temporary_pbr_buffers ) )
 	{
 		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
 		return false;
 	}
 
@@ -2881,7 +2862,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !render_pass )
 	{
 		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
 		return false;
 	}
 
@@ -2901,7 +2881,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 			{
 				SDL_EndGPURenderPass( render_pass );
 				release_temporary_pbr_buffers();
-				m_failed_present_frames++;
 				return false;
 			}
 		}
@@ -2926,7 +2905,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		{
 			SDL_EndGPURenderPass( render_pass );
 			release_temporary_pbr_buffers();
-			m_failed_present_frames++;
 			return false;
 		}
 	}
@@ -2951,7 +2929,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		{
 			SDL_EndGPURenderPass( render_pass );
 			release_temporary_pbr_buffers();
-			m_failed_present_frames++;
 			return false;
 		}
 		m_frame_stats.draw_ready = m_frame_stats.draw_ready || overlay_drew;
@@ -2963,7 +2940,6 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	{
 		FeLog() << "SDL: vertex upload failed: " << SDL_GetError() << std::endl;
 		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
 		return false;
 	}
 
@@ -2973,23 +2949,12 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	if ( !SDL_SubmitGPUCommandBuffer( command_buffer ) )
 	{
 		release_temporary_pbr_buffers();
-		m_failed_present_frames++;
 		return false;
 	}
 	release_temporary_pbr_buffers();
 
 	m_frame_stats.executed = true;
 	m_frame_stats.submitted_frames++;
-	if ( m_frame_stats.pipeline_ready && ( m_frame_stats.draw_ready || !m_frame.preloads.empty() ) )
-		m_failed_present_frames = 0;
-	if ( !m_frame_stats.draw_ready && m_frame.preloads.empty() )
-	{
-		if ( has_frame_content() )
-			m_failed_present_frames++;
-	}
-
-	if ( m_failed_present_frames >= 3 )
-		m_present_disabled = true;
 	return true;
 }
 
@@ -3179,8 +3144,6 @@ bool FeSdl3GpuContext::wrap_native_window( void *native_window_handle, int width
 	}
 
 	FeDebug() << "SDL: wrap_native_window: success" << std::endl;
-	m_present_disabled = false;
-	m_failed_present_frames = 0;
 	return true;
 }
 
@@ -3207,8 +3170,6 @@ bool FeSdl3GpuContext::claim_window( SDL_Window *window )
 	}
 
 	FeDebug() << "SDL: claim_window: success" << std::endl;
-	m_present_disabled = false;
-	m_failed_present_frames = 0;
 	return true;
 }
 
@@ -3227,8 +3188,6 @@ void FeSdl3GpuContext::release_window()
 		m_window = nullptr;
 	}
 
-	m_present_disabled = false;
-	m_failed_present_frames = 0;
 	m_has_submitted_frame = false;
 }
 
