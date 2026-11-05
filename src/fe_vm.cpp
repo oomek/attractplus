@@ -2861,6 +2861,7 @@ public:
 		fe.SetValue( _SC("nv"), Sqrat::Table() );
 		Sqrat::Table layout;
 		fe.SetValue( _SC("layout"), layout ); // mock-layout for nv table
+		layout.SetValue( _SC("version"), 3 );
 		layout.SetValue( _SC("nv"), Sqrat::Table() );
 		fe_vm->load_script_nv();
 		fe_vm->load_layout_nv();
