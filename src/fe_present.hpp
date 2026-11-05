@@ -215,6 +215,8 @@ protected:
 		int version = 3;
 		int transition_version = -1;
 		bool background_loading = false;
+		bool version_locked = false;
+		bool version_warned = false;
 	};
 	std::map<int, ScriptOptions> m_script_options;
 	int m_preparing_script = -2;
@@ -296,6 +298,7 @@ protected:
 	void reset_scene3d_globals();
 	void clear_3d_cubemap_texture();
 	void set_layout_crop( bool );
+	void lock_layout_version() { m_script_options[get_script_id()].version_locked = true; }
 
 public:
 	int get_layout_version();
