@@ -1599,6 +1599,7 @@ FeImage *FePresent::add_image( bool is_artwork,
 		float h,
 		FePresentableParent &p )
 {
+	lock_layout_version();
 	FeTextureContainer *new_tex = new FeTextureContainer( is_artwork, n );
 	new_tex->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 
@@ -1624,6 +1625,7 @@ FeImage *FePresent::add_image( bool is_artwork,
 
 FeModel3D *FePresent::add_model_3d( const std::string &n, FePresentableParent &p )
 {
+	lock_layout_version();
 	FeModel3D *new_model_3d = new FeModel3D( p, n );
 
 	if ( get_script_id() < 0 )
@@ -1638,6 +1640,7 @@ FeModel3D *FePresent::add_model_3d( const std::string &n, FePresentableParent &p
 FeImage *FePresent::add_clone( FeImage *o,
 			FePresentableParent &p )
 {
+	lock_layout_version();
 	FeImage *new_image = new FeImage( o, p );
 	new_image->refresh_script_geometry();
 	flag_redraw();
@@ -1652,6 +1655,7 @@ FeImage *FePresent::add_clone( FeImage *o,
 
 FeModel3D *FePresent::add_clone( FeModel3D *o, FePresentableParent &p )
 {
+	lock_layout_version();
 	FeModel3D *new_model_3d = new FeModel3D( o, p );
 	flag_redraw();
 	p.elements.push_back( new_model_3d );
@@ -1662,6 +1666,7 @@ FeModel3D *FePresent::add_clone( FeModel3D *o, FePresentableParent &p )
 FeText *FePresent::add_text( const std::string &n, float x, float y, float w, float h,
 			FePresentableParent &p )
 {
+	lock_layout_version();
 	FeText *new_text = new FeText( p, n, x, y, w, h );
 
 	new_text->setFont( *get_layout_font() );
@@ -1681,6 +1686,7 @@ FeText *FePresent::add_text( const std::string &n, float x, float y, float w, fl
 FeListBox *FePresent::add_listbox( float x, float y, float w, float h,
 		FePresentableParent &p )
 {
+	lock_layout_version();
 	FeListBox *new_lb = new FeListBox( p, x, y, w, h );
 
 	new_lb->setFont( *get_layout_font() );
@@ -1700,6 +1706,7 @@ FeListBox *FePresent::add_listbox( float x, float y, float w, float h,
 FeRectangle *FePresent::add_rectangle( float x, float y, float w, float h,
 		FePresentableParent &p )
 {
+	lock_layout_version();
 	FeRectangle *new_rc = new FeRectangle( p, x, y, w, h );
 	new_rc->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
 	new_rc->set_script_geometry( x, y, w, h );
@@ -1722,6 +1729,7 @@ FeImage *FePresent::add_surface(
 		int texture_height,
 		FePresentableParent &p )
 {
+	lock_layout_version();
 	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer(
 		std::max( 0, texture_width ),
 		std::max( 0, texture_height ));
@@ -1750,6 +1758,7 @@ FeImage *FePresent::add_surface(
 
 FeSound *FePresent::add_sound( const char *n )
 {
+	lock_layout_version();
 	std::string path;
 	std::string name=n;
 	if ( !name.empty() )
@@ -1775,6 +1784,7 @@ FeSound *FePresent::add_sound( const char *n )
 
 FeMusic *FePresent::add_music( const char *n )
 {
+	lock_layout_version();
 	std::string path;
 	std::string name=n;
 	if ( !name.empty() )
@@ -1813,6 +1823,7 @@ namespace
 
 FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const char *shader2 )
 {
+	lock_layout_version();
 	m_scriptShaders.push_back( new FeShader() );
 	FeShader *sh = m_scriptShaders.back();
 
@@ -1846,6 +1857,7 @@ FeShader *FePresent::add_shader( FeShader::Type type, const char *shader1, const
 
 FeShader *FePresent::compile_shader( FeShader::Type type, const char *shader1, const char *shader2 )
 {
+	lock_layout_version();
 	m_scriptShaders.push_back( new FeShader() );
 	FeShader *sh = m_scriptShaders.back();
 
@@ -2043,6 +2055,7 @@ void FePresent::set_3d_cubemap_filename( const char *filename )
 
 	if ( !m_3d_cubemap_filename.empty() )
 	{
+		lock_layout_version();
 		FeTextureContainer *container = new FeTextureContainer( false );
 		container->set_smooth( true );
 		container->set_repeat( false );
@@ -2310,7 +2323,28 @@ int FePresent::get_layout_version()
 
 void FePresent::set_layout_version( int version )
 {
-	m_script_options[get_script_id()].version = version;
+	auto &options = m_script_options[get_script_id()];
+	if ( options.version_locked )
+	{
+		if ( version != options.version && !options.version_warned )
+		{
+			options.version_warned = true;
+			FeLog() << std::endl << "WARNING: ignoring fe.layout.version = " << version
+				<< "; already set, or declared too late; keeping: " << options.version;
+			HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
+			SQStackInfos caller;
+			for ( SQInteger level = 0; vm && SQ_SUCCEEDED( sq_stackinfos( vm, level, &caller ) ); ++level )
+				if ( caller.source && *caller.source && caller.line > 0 )
+				{
+					FeLog() << std::endl << "Script Warning in (" << caller.source << ":" << caller.line << ")";
+					break;
+				}
+			FeLog() << std::endl << std::endl;
+		}
+		return;
+	}
+	options.version = version;
+	options.version_locked = true;
 }
 
 int FePresent::get_script_version( int script ) const

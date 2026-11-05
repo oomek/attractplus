@@ -610,18 +610,21 @@ void FeVM::clear_layout()
 
 void FeVM::add_ticks_callback( Sqrat::Object func, const char *slot )
 {
+	lock_layout_version();
 	m_ticks.push_back(
 		FeCallback( m_script_id, func, slot, *m_feSettings ) );
 }
 
 void FeVM::add_transition_callback( Sqrat::Object func, const char *slot )
 {
+	lock_layout_version();
 	m_trans.push_back(
 		FeCallback( m_script_id, func, slot, *m_feSettings ) );
 }
 
 void FeVM::add_signal_handler( Sqrat::Object func, const char *slot )
 {
+	lock_layout_version();
 	m_sig_handlers.push_back(
 		FeCallback( m_script_id, func, slot, *m_feSettings ) );
 }
@@ -1903,6 +1906,7 @@ bool FeVM::on_new_layout()
 				m_script_options[i];
 
 				run_script( plug_path, plug_name );
+				lock_layout_version();
 			}
 		}
 	}
@@ -1957,6 +1961,7 @@ bool FeVM::on_new_layout()
 	}
 
 
+	lock_layout_version();
 	fe.SetValue( _SC("script_dir"), "" );
 	fe.SetValue( _SC("script_file"), "" );
 	m_script_cfg = NULL;
@@ -3633,6 +3638,7 @@ bool FeVM::load_module( const char *module )
 {
 	HSQUIRRELVM vm = Sqrat::DefaultVM::Get();
 	FeVM *fev = (FeVM *)sq_getforeignptr( vm );
+	fev->lock_layout_version();
 
 	std::string module_dir;
 	std::string module_file;
