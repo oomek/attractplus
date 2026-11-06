@@ -142,17 +142,9 @@ int main(int argc, char *argv[])
 	//
 	// Run the front-end
 	//
-	bool version_init_video = false;
-	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) == 0 )
-	{
-		SDL_InitSubSystem( SDL_INIT_VIDEO );
-		version_init_video = true;
-	}
-
-	fe_print_version();
-
-	if ( version_init_video )
-		SDL_QuitSubSystem( SDL_INIT_VIDEO );
+	FeWindow window( feSettings );
+	window.get_gpu_context().initialize();
+	fe_print_version( window.get_gpu_context().get_device() );
 
 
 	if ( !fe_shaders_available() )
@@ -179,7 +171,6 @@ int main(int argc, char *argv[])
 
 	soundsys.play_ambient();
 
-	FeWindow window( feSettings );
 	window.set_window_position( win_pos );
 	window.initial_create();
 

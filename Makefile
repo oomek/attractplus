@@ -353,6 +353,7 @@ endef
 #
 # SDL3
 #
+CFLAGS += -I$(EXTLIBS_DIR)/sdl3/src/video/khronos
 HAS_SDL3 := $(call pkg_exists,sdl3)
 HAS_SDL3_IMAGE := $(call pkg_exists,sdl3-image)
 ifneq ($(HAS_SDL3_IMAGE),1)
