@@ -90,6 +90,7 @@ public:
 	void *get_native_window_handle() const;
 
 private:
+	static constexpr int DepthPipelineCount = 4;
 	void release_frame();
 	struct CustomShaderEntry;
 	struct BuiltinShaderEntry;
@@ -240,7 +241,7 @@ private:
 		std::shared_ptr<void> fragment_compile, vertex_compile;
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 		std::vector<CustomUniformBinding> vertex_uniforms;
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
@@ -255,7 +256,7 @@ private:
 			  vertex_shader( nullptr ),
 			  fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 3; ++z )
+			for ( int z = 0; z < DepthPipelineCount; ++z )
 				for ( int i = 0; i <= FeBlend::None; ++i )
 					blend_pipelines[ z ][ i ] = nullptr;
 		}
@@ -269,7 +270,7 @@ private:
 		bool compiling = false;
 		std::shared_ptr<void> fragment_compile;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *pbr_pipelines[3][2][2];
+		SDL_GPUGraphicsPipeline *pbr_pipelines[DepthPipelineCount][2][2];
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
 
@@ -278,7 +279,7 @@ private:
 			  compile_failed( false ),
 			  fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 3; ++z )
+			for ( int z = 0; z < DepthPipelineCount; ++z )
 				for ( int blend = 0; blend < 2; ++blend )
 					for ( int sided = 0; sided < 2; ++sided )
 						pbr_pipelines[ z ][ blend ][ sided ] = nullptr;
@@ -289,12 +290,12 @@ private:
 	{
 		std::string source_id;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 
 		BuiltinShaderEntry()
 			: fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 3; ++z )
+			for ( int z = 0; z < DepthPipelineCount; ++z )
 				for ( int i = 0; i <= FeBlend::None; ++i )
 					blend_pipelines[z][i] = nullptr;
 		}
@@ -347,7 +348,7 @@ private:
 	void release_color_target();
 	bool ensure_color_target( int width, int height );
 	void release_depth_target();
-	bool ensure_depth_target( int width, int height );
+	bool ensure_depth_target( int width, int height, bool required );
 	void release_surfaces();
 	void release_surface_target( SurfaceEntry &entry );
 	bool ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );
@@ -407,6 +408,7 @@ private:
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
 		bool use_preuploaded_pbr_instances,
+		bool has_depth_target,
 		bool encode_pbr_output_srgb,
 		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
@@ -418,6 +420,7 @@ private:
 		int viewport_height,
 		const std::vector<FeRenderGeometry> &geometry,
 		bool use_surface_targets,
+		bool has_depth_target,
 		bool encode_pbr_output_srgb,
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
@@ -483,10 +486,10 @@ private:
 	SDL_GPUSampler *m_nearest_repeat_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_repeat_sampler;
-	SDL_GPUGraphicsPipeline *m_blend_pipelines[3][FeBlend::None + 1];
+	SDL_GPUGraphicsPipeline *m_blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 	SDL_GPUGraphicsPipeline *m_alpha_prepass_pipeline;
 	SDL_GPUGraphicsPipeline *m_pbr_prepass_pipelines[2];
-	SDL_GPUGraphicsPipeline *m_pbr_pipelines[3][2][2];
+	SDL_GPUGraphicsPipeline *m_pbr_pipelines[DepthPipelineCount][2][2];
 	SDL_GPUTexture *m_white_texture;
 	SDL_GPUTexture *m_white_cube_texture;
 	SDL_GPUTexture *m_color_target_texture;
