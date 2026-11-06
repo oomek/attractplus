@@ -38,7 +38,7 @@ namespace
 		const bool gpu_available = gpu_context.initialize();
 		const char *gpu_error = gpu_available ? nullptr : SDL_GetError();
 
-		fe_print_version();
+		fe_print_version( gpu_context.get_device() );
 
 		if ( !gpu_error && gpu_context.get_device() )
 		{
