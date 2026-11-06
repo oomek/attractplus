@@ -179,11 +179,15 @@ namespace
 	{
 		DepthPipelineNone = 0,
 		DepthPipelineWrite = 1,
-		DepthPipelineTestOnly = 2
+		DepthPipelineTestOnly = 2,
+		DepthPipelineNoTarget = 3
 	};
 
-	int get_depth_pipeline_index( bool zbuffer, bool translucent )
+	int get_depth_pipeline_index( bool zbuffer, bool translucent, bool has_depth_target )
 	{
+		if ( !has_depth_target )
+			return DepthPipelineNoTarget;
+
 		if ( !zbuffer )
 			return DepthPipelineNone;
 
@@ -192,12 +196,24 @@ namespace
 
 	void configure_pipeline_depth_state( SDL_GPUGraphicsPipelineCreateInfo &pipeline_info, int depth_mode )
 	{
-		pipeline_info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-		pipeline_info.target_info.has_depth_stencil_target = true;
-		pipeline_info.depth_stencil_state.enable_depth_test = ( depth_mode != DepthPipelineNone );
+		const bool has_depth_target = ( depth_mode != DepthPipelineNoTarget );
+		const bool depth_test = ( depth_mode == DepthPipelineWrite || depth_mode == DepthPipelineTestOnly );
+		pipeline_info.target_info.depth_stencil_format = has_depth_target
+			? SDL_GPU_TEXTUREFORMAT_D32_FLOAT : SDL_GPU_TEXTUREFORMAT_INVALID;
+		pipeline_info.target_info.has_depth_stencil_target = has_depth_target;
+		pipeline_info.depth_stencil_state.enable_depth_test = depth_test;
 		pipeline_info.depth_stencil_state.enable_depth_write = ( depth_mode == DepthPipelineWrite );
 		pipeline_info.depth_stencil_state.compare_op =
-			( depth_mode != DepthPipelineNone ) ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL : SDL_GPU_COMPAREOP_ALWAYS;
+			depth_test ? SDL_GPU_COMPAREOP_LESS_OR_EQUAL : SDL_GPU_COMPAREOP_ALWAYS;
+	}
+
+	bool geometry_needs_depth( const std::vector<FeRenderGeometry> &geometry )
+	{
+		for ( const FeRenderGeometry &image : geometry )
+			if ( image.zbuffer )
+				return true;
+
+		return false;
 	}
 
 	bool geometry_uses_translucent_depth_pipeline( const FeRenderGeometry &image )
@@ -1211,10 +1227,10 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
 		m_fragment_shaders[i] = nullptr;
-		for ( int z = 0; z < 3; ++z )
+		for ( int z = 0; z < DepthPipelineCount; ++z )
 			m_blend_pipelines[z][i] = nullptr;
 	}
-	for ( int z = 0; z < 3; ++z )
+	for ( int z = 0; z < DepthPipelineCount; ++z )
 		for ( int a = 0; a < 2; ++a )
 			for ( int d = 0; d < 2; ++d )
 				m_pbr_pipelines[z][a][d] = nullptr;
@@ -2284,7 +2300,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 
 	prepare_pipelines( target_format );
 
-	if ( !ensure_depth_target( width, height ) )
+	if ( !ensure_depth_target( width, height, geometry_needs_depth( m_frame.images ) ) )
 		return false;
 
 	if ( !m_blend_pipelines[ 0 ][ FeBlend::Alpha ] || !m_pbr_pipelines[ 0 ][ 0 ][ 0 ] )
@@ -2441,6 +2457,7 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
 				true,
+				m_depth_texture != nullptr,
 				!is_srgb_texture_format( target_format ),
 				&temporary_pbr_buffers,
 				drew_anything ) )
@@ -2805,7 +2822,9 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 	const SDL_GPUTextureFormat swapchain_format = SDL_GetGPUSwapchainTextureFormat( m_device, m_window );
 	prepare_pipelines( swapchain_format );
 
-	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) )
+	const bool needs_depth = geometry_needs_depth( m_frame.images )
+		|| ( overlay_geometry && geometry_needs_depth( *overlay_geometry ) );
+	m_frame_stats.depth_ready = ensure_depth_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ), needs_depth )
 		&& ensure_color_target( static_cast<int>( swapchain_width ), static_cast<int>( swapchain_height ) );
 	if ( !m_frame_stats.depth_ready )
 	{
@@ -2899,6 +2918,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				&m_vertex_buffer_size,
 				&m_vertex_buffer_signature,
 				true,
+				m_depth_texture != nullptr,
 				!is_srgb_texture_format( swapchain_format ),
 				&temporary_pbr_buffers,
 				m_frame_stats.draw_ready ) )
@@ -2920,6 +2940,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				m_frame.viewport_height,
 				*overlay_geometry,
 				false,
+				m_depth_texture != nullptr,
 				!is_srgb_texture_format( swapchain_format ),
 				nullptr,
 				nullptr,
@@ -3931,7 +3952,7 @@ void FeSdl3GpuContext::release_image_pipeline()
 
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		for ( int z = 0; z < 3; ++z )
+		for ( int z = 0; z < DepthPipelineCount; ++z )
 		{
 			if ( m_blend_pipelines[z][i] )
 			{
@@ -4042,7 +4063,7 @@ void FeSdl3GpuContext::release_pbr_pipeline()
 		}
 	}
 
-	for ( int z = 0; z < 3; ++z )
+	for ( int z = 0; z < DepthPipelineCount; ++z )
 	{
 		for ( int blend = 0; blend < 2; ++blend )
 		{
@@ -4080,7 +4101,7 @@ void FeSdl3GpuContext::release_builtin_shader( BuiltinShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		for ( int z = 0; z < 3; ++z )
+		for ( int z = 0; z < DepthPipelineCount; ++z )
 		{
 			if ( entry.blend_pipelines[z][i] )
 			{
@@ -4111,7 +4132,7 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 {
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
-		for ( int z = 0; z < 3; ++z )
+		for ( int z = 0; z < DepthPipelineCount; ++z )
 		{
 			if ( entry.blend_pipelines[ z ][ i ] )
 			{
@@ -4146,7 +4167,7 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 
 void FeSdl3GpuContext::release_pbr_custom_shader( PbrCustomShaderEntry &entry )
 {
-	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
+	for ( int depth_mode = 0; depth_mode < DepthPipelineCount; ++depth_mode )
 	{
 		for ( int blend_mode = 0; blend_mode < 2; ++blend_mode )
 		{
@@ -4394,10 +4415,16 @@ void FeSdl3GpuContext::release_depth_target()
 	m_depth_format = SDL_GPU_TEXTUREFORMAT_INVALID;
 }
 
-bool FeSdl3GpuContext::ensure_depth_target( int width, int height )
+bool FeSdl3GpuContext::ensure_depth_target( int width, int height, bool required )
 {
 	if ( !m_device || width <= 0 || height <= 0 )
 		return false;
+
+	if ( !required )
+	{
+		release_depth_target();
+		return true;
+	}
 
 	if ( m_depth_texture && m_depth_width == width && m_depth_height == height )
 		return true;
@@ -4755,7 +4782,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
 
-	for ( int z = 0; z < 3; ++z )
+	for ( int z = 0; z < DepthPipelineCount; ++z )
 	{
 		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
@@ -4898,7 +4925,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	pipeline_info.target_info.num_color_targets = 1;
 	pipeline_info.fragment_shader = entry.fragment_shader;
 
-	for ( int z = 0; z < 3; ++z )
+	for ( int z = 0; z < DepthPipelineCount; ++z )
 	{
 		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int blend_mode = FeBlend::Alpha; blend_mode <= FeBlend::None; ++blend_mode )
@@ -5017,7 +5044,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 	pipeline_info.target_info.num_color_targets = 1;
 	pipeline_info.fragment_shader = entry.fragment_shader;
 
-	for ( int z = 0; z < 3; ++z )
+	for ( int z = 0; z < DepthPipelineCount; ++z )
 	{
 		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
@@ -5188,7 +5215,7 @@ bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &i
 	pipeline_info.target_info.color_target_descriptions = &color_target;
 	pipeline_info.target_info.num_color_targets = 1;
 
-	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
+	for ( int depth_mode = 0; depth_mode < DepthPipelineCount; ++depth_mode )
 	{
 		configure_pipeline_depth_state( pipeline_info, depth_mode );
 		for ( int blend_mode = 0; blend_mode < 2; ++blend_mode )
@@ -5771,51 +5798,67 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 	if ( !m_device || surface.width <= 0 || surface.height <= 0 || !surface.surface_texture_id )
 		return false;
 
-	if ( entry.color_texture &&
-		entry.depth_texture &&
+	const bool color_ready = entry.color_texture &&
 		entry.width == surface.width &&
 		entry.height == surface.height &&
 		entry.mipmapped == surface.mipmapped &&
 		entry.sample_count == m_sample_count &&
-		( uses_multisampling() ? ( entry.msaa_color_texture != nullptr ) : ( entry.msaa_color_texture == nullptr ) ) )
-		return true;
-
-	release_surface_target( entry );
-
-	SDL_GPUTextureCreateInfo color_info = {};
-	color_info.type = SDL_GPU_TEXTURETYPE_2D;
-	color_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-	color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
-	color_info.width = static_cast<Uint32>( surface.width );
-	color_info.height = static_cast<Uint32>( surface.height );
-	color_info.layer_count_or_depth = 1;
-	color_info.num_levels = surface.mipmapped
-		? get_mip_level_count( color_info.width, color_info.height )
-		: 1;
-	color_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
-	color_info.props = 0;
-
-	entry.color_texture = SDL_CreateGPUTexture( m_device, &color_info );
-	if ( !entry.color_texture )
+		( uses_multisampling() ? ( entry.msaa_color_texture != nullptr ) : ( entry.msaa_color_texture == nullptr ) );
+	if ( !color_ready )
 	{
 		release_surface_target( entry );
-		return false;
-	}
 
-	if ( uses_multisampling() )
-	{
-		SDL_GPUTextureCreateInfo msaa_color_info = color_info;
-		msaa_color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-		msaa_color_info.num_levels = 1;
-		msaa_color_info.sample_count = m_sample_count;
+		SDL_GPUTextureCreateInfo color_info = {};
+		color_info.type = SDL_GPU_TEXTURETYPE_2D;
+		color_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+		color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+		color_info.width = static_cast<Uint32>( surface.width );
+		color_info.height = static_cast<Uint32>( surface.height );
+		color_info.layer_count_or_depth = 1;
+		color_info.num_levels = surface.mipmapped
+			? get_mip_level_count( color_info.width, color_info.height ) : 1;
+		color_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
 
-		entry.msaa_color_texture = SDL_CreateGPUTexture( m_device, &msaa_color_info );
-		if ( !entry.msaa_color_texture )
+		entry.color_texture = SDL_CreateGPUTexture( m_device, &color_info );
+		if ( !entry.color_texture )
 		{
 			release_surface_target( entry );
 			return false;
 		}
+
+		if ( uses_multisampling() )
+		{
+			SDL_GPUTextureCreateInfo msaa_color_info = color_info;
+			msaa_color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+			msaa_color_info.num_levels = 1;
+			msaa_color_info.sample_count = m_sample_count;
+			entry.msaa_color_texture = SDL_CreateGPUTexture( m_device, &msaa_color_info );
+			if ( !entry.msaa_color_texture )
+			{
+				release_surface_target( entry );
+				return false;
+			}
+		}
+
+		entry.width = surface.width;
+		entry.height = surface.height;
+		entry.mipmapped = surface.mipmapped;
+		entry.sample_count = m_sample_count;
+		entry.rendered_once = false;
+		entry.vertex_signature = 0;
+		entry.last_signature = 0;
 	}
+
+	// Keep accumulated color samples when only the depth requirement changes.
+	if ( !geometry_needs_depth( surface.geometry ) )
+	{
+		if ( entry.depth_texture )
+			SDL_ReleaseGPUTexture( m_device, entry.depth_texture );
+		entry.depth_texture = nullptr;
+		return true;
+	}
+	if ( entry.depth_texture )
+		return true;
 
 	SDL_GPUTextureCreateInfo depth_info = {};
 	depth_info.type = SDL_GPU_TEXTURETYPE_2D;
@@ -5826,23 +5869,8 @@ bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surfac
 	depth_info.layer_count_or_depth = 1;
 	depth_info.num_levels = 1;
 	depth_info.sample_count = m_sample_count;
-	depth_info.props = 0;
-
 	entry.depth_texture = SDL_CreateGPUTexture( m_device, &depth_info );
-	if ( !entry.depth_texture )
-	{
-		release_surface_target( entry );
-		return false;
-	}
-
-	entry.width = surface.width;
-	entry.height = surface.height;
-	entry.mipmapped = surface.mipmapped;
-	entry.sample_count = m_sample_count;
-	entry.rendered_once = false;
-	entry.vertex_signature = 0;
-	entry.last_signature = 0;
-	return true;
+	return entry.depth_texture != nullptr;
 }
 
 bool FeSdl3GpuContext::upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size )
@@ -6051,6 +6079,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	Uint32 *cached_vertex_buffer_size,
 	std::uint64_t *cached_vertex_signature,
 	bool use_preuploaded_pbr_instances,
+	bool has_depth_target,
 	bool encode_pbr_output_srgb,
 	std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 	bool &drew_anything )
@@ -6136,7 +6165,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		}
 	};
 
-	if ( m_alpha_prepass_pipeline )
+	if ( has_depth_target && m_alpha_prepass_pipeline )
 	{
 		SDL_BindGPUGraphicsPipeline( render_pass, m_alpha_prepass_pipeline );
 		bound_pipeline = m_alpha_prepass_pipeline;
@@ -6300,7 +6329,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		if ( !bind_vertex_buffer( draw_vertex_buffer ) )
 			return true;
 
-		const int depth_pipeline = get_depth_pipeline_index( prototype.zbuffer, prototype.translucent_depth );
+		const int depth_pipeline = get_depth_pipeline_index( prototype.zbuffer, prototype.translucent_depth, has_depth_target );
 		const int blend_index =
 			( prototype.geometry->pbr_material.alpha_mode == FeRenderPbrAlphaBlend ) ? 1 : 0;
 		const int double_sided_index = prototype.geometry->pbr_material.double_sided ? 1 : 0;
@@ -6585,7 +6614,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		}
 
 		const int blend_mode = clamp_blend_mode( image.blend_mode );
-		const int depth_pipeline = get_depth_pipeline_index( image.zbuffer, image.translucent_depth );
+		const int depth_pipeline = get_depth_pipeline_index( image.zbuffer, image.translucent_depth, has_depth_target );
 		SDL_GPUGraphicsPipeline *pipeline = nullptr;
 		if ( image.custom_shader )
 		{
@@ -6824,6 +6853,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	int viewport_height,
 	const std::vector<FeRenderGeometry> &geometry,
 	bool use_surface_targets,
+	bool has_depth_target,
 	bool encode_pbr_output_srgb,
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
@@ -6851,6 +6881,7 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		cached_vertex_buffer_size,
 		cached_vertex_signature,
 		false,
+		has_depth_target,
 		encode_pbr_output_srgb,
 		temporary_pbr_buffers,
 		drew_anything );
@@ -6951,7 +6982,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					command_buffer,
 					&color_target,
 					1,
-					&depth_target );
+					entry.depth_texture ? &depth_target : nullptr );
 				if ( !render_pass )
 					return false;
 
@@ -6964,6 +6995,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					surface.height,
 					surface.geometry,
 					true,
+					entry.depth_texture != nullptr,
 					true,
 					&entry.vertex_buffer,
 					&entry.vertex_buffer_size,
@@ -7047,7 +7079,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						command_buffer,
 						&color_target,
 						1,
-						&depth_target );
+						entry.depth_texture ? &depth_target : nullptr );
 					if ( !render_pass )
 						return false;
 
@@ -7060,6 +7092,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						surface.height,
 						surface.geometry,
 						true,
+						entry.depth_texture != nullptr,
 						true,
 						&entry.vertex_buffer,
 						&entry.vertex_buffer_size,
@@ -7410,7 +7443,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
-	for ( int z = 0; z < 3; ++z )
+	for ( int z = 0; z < DepthPipelineCount; ++z )
 	{
 		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
@@ -7616,7 +7649,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 		}
 	}
 
-	for ( int depth_mode = 0; depth_mode < 3; ++depth_mode )
+	for ( int depth_mode = 0; depth_mode < DepthPipelineCount; ++depth_mode )
 	{
 		configure_pipeline_depth_state( pipeline_info, depth_mode );
 		for ( int blend_index = 0; blend_index < 2; ++blend_index )
