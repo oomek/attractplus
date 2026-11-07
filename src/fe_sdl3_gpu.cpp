@@ -1296,6 +1296,9 @@ void FeSdl3GpuContext::clear_layout_resources()
 	clear_textures();
 	clear_geometry_buffers();
 	m_custom_shader_sources.clear();
+
+	if ( m_device && !SDL_WaitForGPUIdle( m_device ) )
+		FeLog() << "SDL: clear_layout_resources: SDL_WaitForGPUIdle failed: " << SDL_GetError() << std::endl;
 }
 
 bool FeSdl3GpuContext::present_blank_frame()
