@@ -51,6 +51,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstdint>
+#include <cmath>
 #include <fstream>
 #include <algorithm>
 #include <array>
@@ -230,8 +231,6 @@ namespace
 		case FeJoystick::Axis::R: return 3;
 		case FeJoystick::Axis::U: return 4;
 		case FeJoystick::Axis::V: return 5;
-		case FeJoystick::Axis::PovX: return 6;
-		case FeJoystick::Axis::PovY: return 7;
 		default: return -1;
 		}
 	}
@@ -475,8 +474,6 @@ namespace
 		case 3: return FeJoystick::Axis::R;
 		case 4: return FeJoystick::Axis::U;
 		case 5: return FeJoystick::Axis::V;
-		case 6: return FeJoystick::Axis::PovX;
-		case 7: return FeJoystick::Axis::PovY;
 		default: return FeJoystick::Axis::X;
 		}
 	}
@@ -652,7 +649,7 @@ namespace
 				return FeEvent::JoystickMoved{ static_cast<unsigned int>( joystick_id ),
 					axis, fe_joystick_get_axis_position( joystick_id, static_cast<FeJoystick::Axis>( axis ) ) };
 			}
-			if ( event.jaxis.axis > static_cast<Uint8>( FeJoystick::Axis::PovY ) )
+			if ( event.jaxis.axis > static_cast<Uint8>( FeJoystick::Axis::V ) )
 				return {};
 
 			return FeEvent::JoystickMoved{
@@ -751,6 +748,16 @@ float fe_joystick_get_axis_position( unsigned int joystick_id, FeJoystick::Axis 
 		return 0.0f;
 
 	const FeSdlJoystickSlot &slot = g_sdl_joystick_slots[joystick_id];
+	if ( axis == FeJoystick::Axis::PovX || axis == FeJoystick::Axis::PovY )
+	{
+		if ( SDL_GetNumJoystickHats( slot.joystick ) <= 0 )
+			return 0.0f;
+		Uint8 hat = SDL_GetJoystickHat( slot.joystick, 0 );
+		int x = ( ( hat & SDL_HAT_RIGHT ) != 0 ) - ( ( hat & SDL_HAT_LEFT ) != 0 );
+		int y = ( ( hat & SDL_HAT_UP ) != 0 ) - ( ( hat & SDL_HAT_DOWN ) != 0 );
+		float position = ( ( axis == FeJoystick::Axis::PovX ) ? x : y ) * 100.0f;
+		return ( x && y ) ? position / std::sqrt( 2.0f ) : position;
+	}
 	if ( slot.combined_triggers )
 	{
 		if ( axis == FeJoystick::Axis::Z )
@@ -1126,6 +1133,7 @@ void FeWindow::set_window_position( const FeWindowPosition &pos )
 
 void FeWindow::initial_create()
 {
+	m_pending_hat_id = 0;
 	// If re-initialising save its position first
 	if ( owns_sdl_window() )
 		save();
@@ -1763,6 +1771,7 @@ void FeWindow::save()
 
 void FeWindow::close()
 {
+	m_pending_hat_id = 0;
 	save();
 	m_gpu_context.release_window();
 }
@@ -1906,9 +1915,28 @@ std::optional<FeEvent> FeWindow::pollEvent()
 {
 	if ( SDL_Window *window = m_gpu_context.get_window() )
 	{
+		if ( m_pending_hat_id != 0 )
+		{
+			int id = fe_joystick_translate_sdl_instance_id( m_pending_hat_id );
+			m_pending_hat_id = 0;
+			if ( id >= 0 )
+				return FeEvent::JoystickMoved{ static_cast<unsigned int>( id ),
+					static_cast<int>( FeJoystick::Axis::PovY ), fe_joystick_get_axis_position( id, FeJoystick::Axis::PovY ) };
+		}
 		SDL_Event event;
 		while ( SDL_PollEvent( &event ) )
 		{
+			if ( event.type == SDL_EVENT_JOYSTICK_HAT_MOTION )
+			{
+				if ( event.jhat.hat != 0 )
+					continue;
+				int id = fe_joystick_translate_sdl_instance_id( event.jhat.which );
+				if ( id < 0 || SDL_GetNumJoystickHats( g_sdl_joystick_slots[id].joystick ) <= 0 )
+					continue;
+				m_pending_hat_id = event.jhat.which;
+				return FeEvent::JoystickMoved{ static_cast<unsigned int>( id ),
+					static_cast<int>( FeJoystick::Axis::PovX ), fe_joystick_get_axis_position( id, FeJoystick::Axis::PovX ) };
+			}
 			if ( const auto translated = translate_sdl_event( event, window, m_key_repeat_enabled ) )
 				return translated;
 		}
@@ -1916,5 +1944,6 @@ std::optional<FeEvent> FeWindow::pollEvent()
 		return {};
 	}
 
+	m_pending_hat_id = 0;
 	return {};
 }

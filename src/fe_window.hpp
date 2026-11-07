@@ -123,6 +123,7 @@ private:
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
 	bool m_key_repeat_enabled = false;
+	std::uint32_t m_pending_hat_id = 0;
 
 	const FeRenderRawTextureSource *cache_overlay_image( const SDL_Surface &image );
 	bool append_native_overlay_item( const FeOverlayDrawItem &item, const FeTransform &transform );

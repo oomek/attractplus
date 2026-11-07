@@ -1410,19 +1410,19 @@ FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const IntRect &mc_r
 	// Joystick has moved
 	else if ( e.is<FeEvent::JoystickMoved>() )
 	{
-		if ( !index.get_current_state( joy_thresh ) )
-		{
-			const auto* event = e.getIf<FeEvent::JoystickMoved>();
-			// Special - released joystick needs to check for held pos/neg keys, since index will be empty
-			FeEvent pos = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
-			FeInputSingle tt( pos, mc_rect, joy_thresh, has_focus );
-			released_itr = m_held_inputs.find( tt );
+		const auto* event = e.getIf<FeEvent::JoystickMoved>();
+		// Release the old direction even when the axis crosses directly to the opposite side.
+		FeEvent pos = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
+		FeInputSingle positive( pos, mc_rect, joy_thresh, has_focus );
+		if ( !positive.get_current_state( joy_thresh ) )
+			released_itr = m_held_inputs.find( positive );
 
-			if ( released_itr == m_held_inputs.end() ) {
-				FeEvent neg = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
-				FeInputSingle tt( neg, mc_rect, joy_thresh, has_focus );
-				released_itr = m_held_inputs.find( tt );
-			}
+		if ( released_itr == m_held_inputs.end() )
+		{
+			FeEvent neg = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
+			FeInputSingle negative( neg, mc_rect, joy_thresh, has_focus );
+			if ( !negative.get_current_state( joy_thresh ) )
+				released_itr = m_held_inputs.find( negative );
 		}
 	}
 
