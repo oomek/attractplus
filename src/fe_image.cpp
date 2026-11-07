@@ -162,6 +162,24 @@ bool FeBaseTextureContainer::get_mipmap() const
 	return false;
 }
 
+void FeBaseTextureContainer::set_msaa( bool )
+{
+}
+
+bool FeBaseTextureContainer::get_msaa() const
+{
+	return true;
+}
+
+void FeBaseTextureContainer::set_aniso( bool )
+{
+}
+
+bool FeBaseTextureContainer::get_aniso() const
+{
+	return true;
+}
+
 void FeBaseTextureContainer::set_clear( bool c )
 {
 }
@@ -1431,6 +1449,8 @@ FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
 	: m_clear( true ),
 	m_redraw( true ),
 	m_mipmap( false ),
+	m_msaa( true ),
+	m_aniso( true ),
 	m_repeat( false ),
 	m_smooth( false ),
 	m_texture_size(
@@ -1542,6 +1562,26 @@ void FeSurfaceTextureContainer::set_mipmap( bool m )
 bool FeSurfaceTextureContainer::get_mipmap() const
 {
 	return m_mipmap;
+}
+
+void FeSurfaceTextureContainer::set_msaa( bool m )
+{
+	m_msaa = m;
+}
+
+bool FeSurfaceTextureContainer::get_msaa() const
+{
+	return m_msaa;
+}
+
+void FeSurfaceTextureContainer::set_aniso( bool a )
+{
+	m_aniso = a;
+}
+
+bool FeSurfaceTextureContainer::get_aniso() const
+{
+	return m_aniso;
 }
 
 void FeSurfaceTextureContainer::set_clear( bool c )
@@ -1780,6 +1820,7 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.texture_repeated = m_tex->get_repeat();
 	geometry.texture_smooth = m_tex->get_smooth();
 	geometry.texture_mipmap = m_tex->get_mipmap();
+	geometry.texture_aniso = m_tex->get_aniso();
 	geometry.texture_width = static_cast<float>( texture_size.x );
 	geometry.texture_height = static_cast<float>( texture_size.y );
 	geometry.blend_mode = static_cast<int>( m_blend_mode );
@@ -2665,6 +2706,28 @@ void FeImage::set_mipmap( bool m )
 bool FeImage::get_mipmap() const
 {
 	return m_tex->get_mipmap();
+}
+
+void FeImage::set_msaa( bool m )
+{
+	m_tex->set_msaa( m );
+	FePresent::script_flag_redraw();
+}
+
+bool FeImage::get_msaa() const
+{
+	return m_tex->get_msaa();
+}
+
+void FeImage::set_aniso( bool a )
+{
+	m_tex->set_aniso( a );
+	FePresent::script_flag_redraw();
+}
+
+bool FeImage::get_aniso() const
+{
+	return m_tex->get_aniso();
 }
 
 void FeImage::set_clear( bool c )

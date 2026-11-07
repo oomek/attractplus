@@ -94,6 +94,7 @@ struct FeRenderTextureBinding
 	bool repeated;
 	bool smooth;
 	bool mipmap;
+	bool aniso;
 	bool dynamic;
 	bool blocking;
 	float width;
@@ -176,6 +177,7 @@ struct FeRenderGeometry
 	bool texture_repeated;
 	bool texture_smooth;
 	bool texture_mipmap;
+	bool texture_aniso;
 	float texture_width;
 	float texture_height;
 	bool clip_enabled;
@@ -221,6 +223,7 @@ struct FeRenderSurfaceFrame
 	int width;
 	int height;
 	bool mipmapped;
+	bool msaa;
 	bool clear;
 	bool redraw;
 	bool dynamic_content;

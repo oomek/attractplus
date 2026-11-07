@@ -87,6 +87,7 @@ void FeRenderTextureBinding::clear()
 	repeated = false;
 	smooth = true;
 	mipmap = false;
+	aniso = true;
 	dynamic = false;
 	blocking = false;
 	width = 0.0f;
@@ -180,6 +181,7 @@ FeRenderGeometry::FeRenderGeometry()
 	  texture_repeated( false ),
 	  texture_smooth( true ),
 	texture_mipmap( false ),
+	texture_aniso( true ),
 	texture_width( 0.0f ),
 	texture_height( 0.0f ),
 	clip_enabled( false ),
@@ -220,6 +222,7 @@ void FeRenderGeometry::clear()
 	texture_repeated = false;
 	texture_smooth = true;
 	texture_mipmap = false;
+	texture_aniso = true;
 	texture_width = 0.0f;
 	texture_height = 0.0f;
 	clip_enabled = false;
@@ -280,6 +283,7 @@ FeRenderSurfaceFrame::FeRenderSurfaceFrame()
 	width( 0 ),
 	height( 0 ),
 	mipmapped( false ),
+	msaa( true ),
 	clear( true ),
 	  redraw( true ),
 	  dynamic_content( false ),
@@ -300,6 +304,7 @@ void FeRenderSurfaceFrame::clear_frame()
 	width = 0;
 	height = 0;
 	mipmapped = false;
+	msaa = true;
 	clear = true;
 	redraw = true;
 	dynamic_content = false;

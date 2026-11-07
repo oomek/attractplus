@@ -1237,6 +1237,9 @@ FeSdl3GpuContext::FeSdl3GpuContext()
 	m_linear_mipmap_sampler = nullptr;
 	m_linear_mipmap_repeat_sampler = nullptr;
 	m_linear_mipmap_cubemap_sampler = nullptr;
+	m_isotropic_mipmap_sampler = nullptr;
+	m_isotropic_mipmap_repeat_sampler = nullptr;
+	m_isotropic_mipmap_cubemap_sampler = nullptr;
 	m_nearest_sampler = nullptr;
 	m_nearest_repeat_sampler = nullptr;
 	m_nearest_mipmap_sampler = nullptr;
@@ -1917,6 +1920,7 @@ bool FeSdl3GpuContext::can_instance_pbr_images( const PreparedImage &lhs, const 
 			&& a.repeated == b.repeated
 			&& a.smooth == b.smooth
 			&& a.mipmap == b.mipmap
+			&& a.aniso == b.aniso
 			&& a.width == b.width
 			&& a.height == b.height
 			&& a.content_version == b.content_version
@@ -2023,6 +2027,7 @@ std::uint64_t FeSdl3GpuContext::compute_pbr_instance_batch_hash( const PreparedI
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.aniso ? 1 : 0 ) );
 		hash = hash_float_bits( hash, binding.width );
 		hash = hash_float_bits( hash, binding.height );
 		hash = hash_combine( hash, binding.content_version );
@@ -2473,6 +2478,8 @@ bool FeSdl3GpuContext::capture_frame_rgba( std::vector<std::uint8_t> &pixels, in
 				&m_vertex_buffer_signature,
 				true,
 				m_depth_texture != nullptr,
+				target_format,
+				m_sample_count,
 				!is_srgb_texture_format( target_format ),
 				&temporary_pbr_buffers,
 				drew_anything ) )
@@ -2934,6 +2941,8 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				&m_vertex_buffer_signature,
 				true,
 				m_depth_texture != nullptr,
+				swapchain_format,
+				m_sample_count,
 				!is_srgb_texture_format( swapchain_format ),
 				&temporary_pbr_buffers,
 				m_frame_stats.draw_ready ) )
@@ -2956,6 +2965,8 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 				*overlay_geometry,
 				false,
 				m_depth_texture != nullptr,
+				swapchain_format,
+				m_sample_count,
 				!is_srgb_texture_format( swapchain_format ),
 				nullptr,
 				nullptr,
@@ -3955,13 +3966,71 @@ void FeSdl3GpuContext::release_pbr_instance_buffer()
 	m_pbr_instance_buffer_size = 0;
 }
 
+SDL_GPUGraphicsPipeline *FeSdl3GpuContext::create_pipeline( const SDL_GPUGraphicsPipelineCreateInfo &info )
+{
+	SDL_GPUGraphicsPipeline *pipeline = SDL_CreateGPUGraphicsPipeline( m_device, &info );
+	if ( !pipeline ) return nullptr;
+	PipelineEntry &entry = m_pipeline_entries[pipeline];
+	entry.info = info;
+	if ( info.vertex_input_state.num_vertex_buffers )
+		entry.buffers.assign( info.vertex_input_state.vertex_buffer_descriptions, info.vertex_input_state.vertex_buffer_descriptions + info.vertex_input_state.num_vertex_buffers );
+	if ( info.vertex_input_state.num_vertex_attributes )
+		entry.attributes.assign( info.vertex_input_state.vertex_attributes, info.vertex_input_state.vertex_attributes + info.vertex_input_state.num_vertex_attributes );
+	if ( info.target_info.num_color_targets )
+		entry.colors.assign( info.target_info.color_target_descriptions, info.target_info.color_target_descriptions + info.target_info.num_color_targets );
+	return pipeline;
+}
+
+SDL_GPUGraphicsPipeline *FeSdl3GpuContext::get_pipeline_variant( SDL_GPUGraphicsPipeline *pipeline,
+	SDL_GPUTextureFormat format, SDL_GPUSampleCount samples )
+{
+	if ( !pipeline ) return nullptr;
+	PipelineEntry &entry = m_pipeline_entries.at( pipeline );
+	if ( ( entry.colors.empty() || entry.colors[0].format == format ) && entry.info.multisample_state.sample_count == samples )
+		return pipeline;
+	const auto key = std::make_pair( format, samples );
+	auto found = entry.variants.find( key );
+	if ( found != entry.variants.end() ) return found->second;
+
+	SDL_GPUGraphicsPipelineCreateInfo info = entry.info;
+	std::vector<SDL_GPUColorTargetDescription> colors = entry.colors;
+	for ( auto &color : colors ) color.format = format;
+	info.target_info.color_target_descriptions = colors.data();
+	info.vertex_input_state.vertex_buffer_descriptions = entry.buffers.data();
+	info.vertex_input_state.vertex_attributes = entry.attributes.data();
+	info.multisample_state.sample_count = samples;
+	info.props = 0;
+	SDL_GPUGraphicsPipeline *variant = SDL_CreateGPUGraphicsPipeline( m_device, &info );
+	entry.variants.emplace( key, variant );
+	if ( !variant ) FeLog() << "SDL: Could not create render-target pipeline: " << SDL_GetError() << std::endl;
+	return variant;
+}
+
+void FeSdl3GpuContext::release_pipeline( SDL_GPUGraphicsPipeline *pipeline )
+{
+	auto found = m_pipeline_entries.find( pipeline );
+	if ( found != m_pipeline_entries.end() )
+	{
+		for ( auto &variant : found->second.variants )
+			if ( variant.second ) SDL_ReleaseGPUGraphicsPipeline( m_device, variant.second );
+		m_pipeline_entries.erase( found );
+	}
+	SDL_ReleaseGPUGraphicsPipeline( m_device, pipeline );
+}
+
 void FeSdl3GpuContext::release_image_pipeline()
 {
 	release_builtin_shaders();
+	for ( SDL_GPUSampler **sampler : { &m_isotropic_mipmap_sampler,
+		&m_isotropic_mipmap_repeat_sampler, &m_isotropic_mipmap_cubemap_sampler } )
+	{
+		if ( *sampler ) SDL_ReleaseGPUSampler( m_device, *sampler );
+		*sampler = nullptr;
+	}
 
 	if ( m_alpha_prepass_pipeline )
 	{
-		SDL_ReleaseGPUGraphicsPipeline( m_device, m_alpha_prepass_pipeline );
+		release_pipeline( m_alpha_prepass_pipeline );
 		m_alpha_prepass_pipeline = nullptr;
 	}
 
@@ -3971,7 +4040,7 @@ void FeSdl3GpuContext::release_image_pipeline()
 		{
 			if ( m_blend_pipelines[z][i] )
 			{
-				SDL_ReleaseGPUGraphicsPipeline( m_device, m_blend_pipelines[z][i] );
+				release_pipeline( m_blend_pipelines[z][i] );
 				m_blend_pipelines[z][i] = nullptr;
 			}
 		}
@@ -4073,7 +4142,7 @@ void FeSdl3GpuContext::release_pbr_pipeline()
 	{
 		if ( m_pbr_prepass_pipelines[sided] )
 		{
-			SDL_ReleaseGPUGraphicsPipeline( m_device, m_pbr_prepass_pipelines[sided] );
+			release_pipeline( m_pbr_prepass_pipelines[sided] );
 			m_pbr_prepass_pipelines[sided] = nullptr;
 		}
 	}
@@ -4086,7 +4155,7 @@ void FeSdl3GpuContext::release_pbr_pipeline()
 			{
 				if ( m_pbr_pipelines[z][blend][sided] )
 				{
-					SDL_ReleaseGPUGraphicsPipeline( m_device, m_pbr_pipelines[z][blend][sided] );
+					release_pipeline( m_pbr_pipelines[z][blend][sided] );
 					m_pbr_pipelines[z][blend][sided] = nullptr;
 				}
 			}
@@ -4120,7 +4189,7 @@ void FeSdl3GpuContext::release_builtin_shader( BuiltinShaderEntry &entry )
 		{
 			if ( entry.blend_pipelines[z][i] )
 			{
-				SDL_ReleaseGPUGraphicsPipeline( m_device, entry.blend_pipelines[z][i] );
+				release_pipeline( entry.blend_pipelines[z][i] );
 				entry.blend_pipelines[z][i] = nullptr;
 			}
 		}
@@ -4151,7 +4220,7 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 		{
 			if ( entry.blend_pipelines[ z ][ i ] )
 			{
-				SDL_ReleaseGPUGraphicsPipeline( m_device, entry.blend_pipelines[ z ][ i ] );
+				release_pipeline( entry.blend_pipelines[ z ][ i ] );
 				entry.blend_pipelines[ z ][ i ] = nullptr;
 			}
 		}
@@ -4190,7 +4259,7 @@ void FeSdl3GpuContext::release_pbr_custom_shader( PbrCustomShaderEntry &entry )
 			{
 				if ( entry.pbr_pipelines[depth_mode][blend_mode][sided] )
 				{
-					SDL_ReleaseGPUGraphicsPipeline( m_device, entry.pbr_pipelines[depth_mode][blend_mode][sided] );
+					release_pipeline( entry.pbr_pipelines[depth_mode][blend_mode][sided] );
 					entry.pbr_pipelines[depth_mode][blend_mode][sided] = nullptr;
 				}
 			}
@@ -4250,9 +4319,10 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	SDL_GPUSamplerMipmapMode mipmap_mode,
 	SDL_GPUSamplerAddressMode address_mode,
 	bool mipmapped,
-	bool smooth )
+	bool smooth,
+	bool aniso )
 {
-	return create_sampler( filter, mipmap_mode, address_mode, address_mode, mipmapped, smooth );
+	return create_sampler( filter, mipmap_mode, address_mode, address_mode, mipmapped, smooth, aniso );
 }
 
 SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
@@ -4261,7 +4331,8 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	SDL_GPUSamplerAddressMode address_mode_u,
 	SDL_GPUSamplerAddressMode address_mode_v,
 	bool mipmapped,
-	bool smooth )
+	bool smooth,
+	bool aniso )
 {
 	SDL_GPUSamplerCreateInfo sampler_info = {};
 	sampler_info.min_filter = filter;
@@ -4281,7 +4352,7 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	sampler_info.padding2 = 0;
 	sampler_info.props = 0;
 
-	if ( smooth && mipmapped && m_anisotropy > 1 )
+	if ( aniso && smooth && mipmapped && m_anisotropy > 1 )
 	{
 		for ( int anisotropy = m_anisotropy; anisotropy >= 2; anisotropy /= 2 )
 		{
@@ -4299,12 +4370,16 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	return SDL_CreateGPUSampler( m_device, &sampler_info );
 }
 
-SDL_GPUSampler *FeSdl3GpuContext::get_image_sampler( bool smooth, bool repeated, bool mipmapped ) const
+SDL_GPUSampler *FeSdl3GpuContext::get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso ) const
 {
 	if ( smooth )
 	{
 		if ( mipmapped )
+		{
+			if ( !aniso )
+				return repeated ? m_isotropic_mipmap_repeat_sampler : m_isotropic_mipmap_sampler;
 			return repeated ? m_linear_mipmap_repeat_sampler : m_linear_mipmap_sampler;
+		}
 
 		return repeated ? m_linear_repeat_sampler : m_linear_sampler;
 	}
@@ -4491,6 +4566,7 @@ void FeSdl3GpuContext::release_surface_target( SurfaceEntry &entry )
 	entry.height = 0;
 	entry.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	entry.rendered_once = false;
+	entry.restore_color = false;
 	entry.vertex_signature = 0;
 	entry.last_signature = 0;
 
@@ -4803,7 +4879,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( mode );
-			entry.blend_pipelines[z][mode] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			entry.blend_pipelines[z][mode] = create_pipeline( pipeline_info );
 			if ( !entry.blend_pipelines[z][mode] )
 			{
 				FeLog() << "SDL: builtin_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_id << std::endl;
@@ -4946,7 +5022,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		for ( int blend_mode = FeBlend::Alpha; blend_mode <= FeBlend::None; ++blend_mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( blend_mode );
-			entry.blend_pipelines[ z ][ blend_mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			entry.blend_pipelines[ z ][ blend_mode ] = create_pipeline( pipeline_info );
 			if ( !entry.blend_pipelines[ z ][ blend_mode ] )
 			{
 				FeLog() << "SDL: custom_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_path << std::endl;
@@ -5065,7 +5141,7 @@ bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const 
 		for ( int mode = FeBlend::Alpha; mode <= FeBlend::None; ++mode )
 		{
 			color_target.blend_state = make_gpu_blend_state( mode );
-			entry.blend_pipelines[ z ][ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			entry.blend_pipelines[ z ][ mode ] = create_pipeline( pipeline_info );
 			if ( !entry.blend_pipelines[ z ][ mode ] )
 			{
 				FeLog() << "SDL: custom_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_path << std::endl;
@@ -5241,7 +5317,7 @@ bool FeSdl3GpuContext::create_pbr_custom_shader_entry( const FeRenderGeometry &i
 				pipeline_info.rasterizer_state.cull_mode =
 					sided ? SDL_GPU_CULLMODE_NONE : SDL_GPU_CULLMODE_BACK;
 				entry.pbr_pipelines[depth_mode][blend_mode][sided] =
-					SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+					create_pipeline( pipeline_info );
 				if ( !entry.pbr_pipelines[depth_mode][blend_mode][sided] )
 				{
 					FeLog() << "SDL: pbr_custom_shader: SDL_CreateGPUGraphicsPipeline failed for " << entry.source_path << std::endl;
@@ -5810,82 +5886,111 @@ void FeSdl3GpuContext::build_custom_uniform_data(
 
 bool FeSdl3GpuContext::ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceEntry &entry )
 {
-	if ( !m_device || surface.width <= 0 || surface.height <= 0 || !surface.surface_texture_id )
-		return false;
-
-	const bool color_ready = entry.color_texture &&
-		entry.width == surface.width &&
-		entry.height == surface.height &&
-		entry.mipmapped == surface.mipmapped &&
-		entry.sample_count == m_sample_count &&
-		( uses_multisampling() ? ( entry.msaa_color_texture != nullptr ) : ( entry.msaa_color_texture == nullptr ) );
-	if ( !color_ready )
+	if ( !m_device || surface.width <= 0 || surface.height <= 0 || !surface.surface_texture_id ) return false;
+	if ( !entry.color_texture || entry.width != surface.width || entry.height != surface.height || entry.mipmapped != surface.mipmapped )
 	{
 		release_surface_target( entry );
-
-		SDL_GPUTextureCreateInfo color_info = {};
-		color_info.type = SDL_GPU_TEXTURETYPE_2D;
-		color_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-		color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
-		color_info.width = static_cast<Uint32>( surface.width );
-		color_info.height = static_cast<Uint32>( surface.height );
-		color_info.layer_count_or_depth = 1;
-		color_info.num_levels = surface.mipmapped
-			? get_mip_level_count( color_info.width, color_info.height ) : 1;
-		color_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
-
-		entry.color_texture = SDL_CreateGPUTexture( m_device, &color_info );
-		if ( !entry.color_texture )
-		{
-			release_surface_target( entry );
-			return false;
-		}
-
-		if ( uses_multisampling() )
-		{
-			SDL_GPUTextureCreateInfo msaa_color_info = color_info;
-			msaa_color_info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-			msaa_color_info.num_levels = 1;
-			msaa_color_info.sample_count = m_sample_count;
-			entry.msaa_color_texture = SDL_CreateGPUTexture( m_device, &msaa_color_info );
-			if ( !entry.msaa_color_texture )
-			{
-				release_surface_target( entry );
-				return false;
-			}
-		}
-
+		SDL_GPUTextureCreateInfo info = {};
+		info.type = SDL_GPU_TEXTURETYPE_2D;
+		info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+		info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+		info.width = static_cast<Uint32>( surface.width );
+		info.height = static_cast<Uint32>( surface.height );
+		info.layer_count_or_depth = 1;
+		info.num_levels = surface.mipmapped ? get_mip_level_count( info.width, info.height ) : 1;
+		info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+		entry.color_texture = SDL_CreateGPUTexture( m_device, &info );
+		if ( !entry.color_texture ) return false;
 		entry.width = surface.width;
 		entry.height = surface.height;
 		entry.mipmapped = surface.mipmapped;
-		entry.sample_count = m_sample_count;
-		entry.rendered_once = false;
-		entry.vertex_signature = 0;
+	}
+
+	const SDL_GPUSampleCount samples = surface.msaa ? m_sample_count : SDL_GPU_SAMPLECOUNT_1;
+	if ( samples != entry.sample_count )
+	{
+		SDL_GPUTexture *msaa = nullptr;
+		if ( samples != SDL_GPU_SAMPLECOUNT_1 )
+		{
+			SDL_GPUTextureCreateInfo info = {};
+			info.type = SDL_GPU_TEXTURETYPE_2D;
+			info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+			info.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+			info.width = static_cast<Uint32>( surface.width );
+			info.height = static_cast<Uint32>( surface.height );
+			info.layer_count_or_depth = 1;
+			info.num_levels = 1;
+			info.sample_count = samples;
+			msaa = SDL_CreateGPUTexture( m_device, &info );
+			if ( !msaa ) return false;
+		}
+		if ( entry.msaa_color_texture ) SDL_ReleaseGPUTexture( m_device, entry.msaa_color_texture );
+		if ( entry.depth_texture ) SDL_ReleaseGPUTexture( m_device, entry.depth_texture );
+		entry.msaa_color_texture = msaa;
+		entry.depth_texture = nullptr;
+		entry.sample_count = samples;
+		entry.restore_color = msaa && entry.rendered_once && !surface.clear;
 		entry.last_signature = 0;
 	}
 
-	// Keep accumulated color samples when only the depth requirement changes.
 	if ( !geometry_needs_depth( surface.geometry ) )
 	{
-		if ( entry.depth_texture )
-			SDL_ReleaseGPUTexture( m_device, entry.depth_texture );
+		if ( entry.depth_texture ) SDL_ReleaseGPUTexture( m_device, entry.depth_texture );
 		entry.depth_texture = nullptr;
 		return true;
 	}
-	if ( entry.depth_texture )
-		return true;
-
-	SDL_GPUTextureCreateInfo depth_info = {};
-	depth_info.type = SDL_GPU_TEXTURETYPE_2D;
-	depth_info.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-	depth_info.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
-	depth_info.width = static_cast<Uint32>( surface.width );
-	depth_info.height = static_cast<Uint32>( surface.height );
-	depth_info.layer_count_or_depth = 1;
-	depth_info.num_levels = 1;
-	depth_info.sample_count = m_sample_count;
-	entry.depth_texture = SDL_CreateGPUTexture( m_device, &depth_info );
+	if ( entry.depth_texture ) return true;
+	SDL_GPUTextureCreateInfo depth = {};
+	depth.type = SDL_GPU_TEXTURETYPE_2D;
+	depth.format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+	depth.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+	depth.width = static_cast<Uint32>( surface.width );
+	depth.height = static_cast<Uint32>( surface.height );
+	depth.layer_count_or_depth = 1;
+	depth.num_levels = 1;
+	depth.sample_count = entry.sample_count;
+	entry.depth_texture = SDL_CreateGPUTexture( m_device, &depth );
 	return entry.depth_texture != nullptr;
+}
+
+bool FeSdl3GpuContext::restore_surface_color( SDL_GPUCommandBuffer *command_buffer,
+	const FeRenderSurfaceFrame &surface, SurfaceEntry &entry )
+{
+	if ( !entry.restore_color ) return true;
+	SDL_GPUColorTargetInfo target = {};
+	target.texture = entry.msaa_color_texture;
+	target.load_op = SDL_GPU_LOADOP_DONT_CARE;
+	target.store_op = SDL_GPU_STOREOP_STORE;
+	SDL_GPURenderPass *pass = SDL_BeginGPURenderPass( command_buffer, &target, 1, nullptr );
+	if ( !pass ) return false;
+
+	FeRenderGeometry copy;
+	copy.texture_id = surface.surface_texture_id;
+	copy.texture_source_type = FeRenderTextureSourceContainer;
+	copy.textured = true;
+	copy.texture_smooth = false;
+	copy.texture_width = static_cast<float>( surface.width );
+	copy.texture_height = static_cast<float>( surface.height );
+	copy.blend_mode = FeBlend::None;
+	const float xy[6][2] = { {0,0}, {1,0}, {0,1}, {0,1}, {1,0}, {1,1} };
+	for ( const auto &point : xy )
+	{
+		FeRenderVertex vertex = {};
+		vertex.x = vertex.u = point[0] * surface.width;
+		vertex.y = vertex.v = point[1] * surface.height;
+		vertex.r = vertex.g = vertex.b = vertex.a = 255;
+		copy.vertices.push_back( vertex );
+	}
+	FePerspectiveCamera camera;
+	camera.update_projection( static_cast<float>( surface.width ), static_cast<float>( surface.height ) );
+	bool drew = false;
+	const bool ok = render_geometry_batch( pass, command_buffer, camera, surface.width, surface.height,
+		{ copy }, true, false, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM, entry.sample_count, true,
+		nullptr, nullptr, nullptr, nullptr, drew );
+	SDL_EndGPURenderPass( pass );
+	if ( !ok || !drew ) return false;
+	entry.restore_color = false;
+	return true;
 }
 
 bool FeSdl3GpuContext::upload_vertex_buffer( const std::vector<FeRenderVertex> &vertices, SDL_GPUBuffer *&buffer, Uint32 &buffer_size )
@@ -6095,6 +6200,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 	std::uint64_t *cached_vertex_signature,
 	bool use_preuploaded_pbr_instances,
 	bool has_depth_target,
+	SDL_GPUTextureFormat target_format,
+	SDL_GPUSampleCount sample_count,
 	bool encode_pbr_output_srgb,
 	std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 	bool &drew_anything )
@@ -6182,8 +6289,10 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 	if ( has_depth_target && m_alpha_prepass_pipeline )
 	{
-		SDL_BindGPUGraphicsPipeline( render_pass, m_alpha_prepass_pipeline );
-		bound_pipeline = m_alpha_prepass_pipeline;
+		SDL_GPUGraphicsPipeline *pipeline = get_pipeline_variant( m_alpha_prepass_pipeline, target_format, sample_count );
+		if ( !pipeline ) return false;
+		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
+		bound_pipeline = pipeline;
 
 		for ( const PreparedImage &image : prepared_images )
 		{
@@ -6192,7 +6301,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 			if ( !bind_vertex_buffer( inline_vertex_buffer ) )
 				continue;
@@ -6282,14 +6391,15 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 							: m_white_texture );
 				if ( binding_index == FE_RENDER_PBR_CUBEMAP_TEXTURE_INDEX )
 					sampler_bindings[binding_index].sampler = binding.mipmap
-						? m_linear_mipmap_cubemap_sampler
+						? ( binding.aniso ? m_linear_mipmap_cubemap_sampler : m_isotropic_mipmap_cubemap_sampler )
 						: m_linear_cubemap_sampler;
 				else
 					sampler_bindings[binding_index].sampler =
 						get_image_sampler(
 							binding.smooth,
 							binding.repeated,
-							binding.mipmap );
+							binding.mipmap,
+							binding.aniso );
 			}
 
 			for ( int light_index = 0; light_index < image.geometry->light_count; ++light_index )
@@ -6383,6 +6493,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				bool sampler_repeated = prototype.geometry->pbr_material.base_color_texture.repeated;
 				bool sampler_smooth = prototype.geometry->pbr_material.base_color_texture.smooth;
 				bool sampler_mipmap = prototype.geometry->pbr_material.base_color_texture.mipmap;
+				bool sampler_aniso = prototype.geometry->pbr_material.base_color_texture.aniso;
 				const FeShader *artwork_shader = prototype.geometry->pbr_material.artwork_shader;
 				const bool shader_uses_current_texture =
 					artwork_shader ? artwork_shader->uses_current_texture( sampler.name.c_str() ) : false;
@@ -6427,6 +6538,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 						sampler_repeated = container->get_repeat();
 						sampler_smooth = container->get_smooth();
 						sampler_mipmap = container->get_mipmap();
+						sampler_aniso = container->get_aniso();
 					}
 				}
 
@@ -6435,7 +6547,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 				SDL_GPUTextureSamplerBinding sampler_binding = {};
 				sampler_binding.texture = sampler_texture;
-				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap );
+				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap, sampler_aniso );
 				sampler_bindings[sampler.slot] = sampler_binding;
 			}
 		}
@@ -6527,6 +6639,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				custom_fragment_uniform_data.data(),
 				static_cast<Uint32>( custom_fragment_uniform_data.size() * sizeof( float ) ) );
 		}
+		pipeline = get_pipeline_variant( pipeline, target_format, sample_count );
+		if ( !pipeline ) return false;
 		const Uint32 sampler_count = depth_prepass
 			? 1u
 			: static_cast<Uint32>( sampler_bindings.size() );
@@ -6710,6 +6824,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			if ( !pipeline )
 				pipeline = m_blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 		}
+		pipeline = get_pipeline_variant( pipeline, target_format, sample_count );
+		if ( !pipeline ) return false;
 		if ( bound_pipeline != pipeline )
 		{
 			SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
@@ -6747,7 +6863,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		{
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
 		else if ( image.custom_shader && !image.custom_shader->fragment_samplers.empty() )
@@ -6760,6 +6876,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				bool sampler_repeated = image.texture_repeated;
 				bool sampler_smooth = image.texture_smooth;
 				bool sampler_mipmap = image.texture_mipmap;
+				bool sampler_aniso = image.geometry->texture_aniso;
 				const bool shader_uses_current_texture =
 					image.geometry && image.geometry->shader
 						? image.geometry->shader->uses_current_texture( sampler.name.c_str() )
@@ -6808,6 +6925,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 						sampler_repeated = container->get_repeat();
 						sampler_smooth = container->get_smooth();
 						sampler_mipmap = container->get_mipmap();
+						sampler_aniso = container->get_aniso();
 					}
 				}
 
@@ -6819,7 +6937,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 				SDL_GPUTextureSamplerBinding sampler_binding = {};
 				sampler_binding.texture = sampler_texture;
-				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap );
+				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap, sampler_aniso );
 				sampler_bindings[sampler.slot] = sampler_binding;
 			}
 
@@ -6836,7 +6954,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		{
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap );
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
 		set_scissor( image.geometry );
@@ -6869,6 +6987,8 @@ bool FeSdl3GpuContext::render_geometry_batch(
 	const std::vector<FeRenderGeometry> &geometry,
 	bool use_surface_targets,
 	bool has_depth_target,
+	SDL_GPUTextureFormat target_format,
+	SDL_GPUSampleCount sample_count,
 	bool encode_pbr_output_srgb,
 	SDL_GPUBuffer **cached_vertex_buffer,
 	Uint32 *cached_vertex_buffer_size,
@@ -6897,6 +7017,8 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		cached_vertex_signature,
 		false,
 		has_depth_target,
+		target_format,
+		sample_count,
 		encode_pbr_output_srgb,
 		temporary_pbr_buffers,
 		drew_anything );
@@ -6956,6 +7078,8 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 			entry.last_seen_frame = m_frame.frame_number;
 			if ( !ensure_surface_target( surface, entry ) )
 				return false;
+			if ( !restore_surface_color( command_buffer, surface, entry ) )
+				return false;
 
 			const bool needs_render =
 				!entry.rendered_once ||
@@ -7011,6 +7135,8 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					surface.geometry,
 					true,
 					entry.depth_texture != nullptr,
+					SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+					entry.sample_count,
 					true,
 					&entry.vertex_buffer,
 					&entry.vertex_buffer_size,
@@ -7052,6 +7178,8 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 				SurfaceEntry &entry = m_surfaces[ surface.surface_texture_id ];
 				entry.last_seen_frame = m_frame.frame_number;
 				if ( !ensure_surface_target( surface, entry ) )
+					return false;
+				if ( !restore_surface_color( command_buffer, surface, entry ) )
 					return false;
 
 				const bool needs_render =
@@ -7108,6 +7236,8 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						surface.geometry,
 						true,
 						entry.depth_texture != nullptr,
+						SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+						entry.sample_count,
 						true,
 						&entry.vertex_buffer,
 						&entry.vertex_buffer_size,
@@ -7337,6 +7467,29 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
+	m_isotropic_mipmap_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		true, true, false );
+	m_isotropic_mipmap_repeat_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+		true, true, false );
+	m_isotropic_mipmap_cubemap_sampler = create_sampler(
+		SDL_GPU_FILTER_LINEAR,
+		SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+		true, true, false );
+	if ( !m_isotropic_mipmap_sampler || !m_isotropic_mipmap_repeat_sampler || !m_isotropic_mipmap_cubemap_sampler )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for isotropic mipmap sampler" << std::endl;
+		release_image_pipeline();
+		return false;
+	}
+
 	m_nearest_sampler = create_sampler(
 		SDL_GPU_FILTER_NEAREST,
 		SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
@@ -7450,7 +7603,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	alpha_prepass_info.fragment_shader = m_alpha_prepass_shader;
 	alpha_prepass_info.target_info.color_target_descriptions = &alpha_prepass_target;
 	configure_pipeline_depth_state( alpha_prepass_info, DepthPipelineWrite );
-	m_alpha_prepass_pipeline = SDL_CreateGPUGraphicsPipeline( m_device, &alpha_prepass_info );
+	m_alpha_prepass_pipeline = create_pipeline( alpha_prepass_info );
 	if ( !m_alpha_prepass_pipeline )
 	{
 		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUGraphicsPipeline failed for alpha prepass" << std::endl;
@@ -7466,7 +7619,7 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 			color_target.blend_state = make_gpu_blend_state( mode );
 			pipeline_info.fragment_shader = m_fragment_shaders[ mode ];
 			pipeline_info.target_info.color_target_descriptions = &color_target;
-			m_blend_pipelines[ z ][ mode ] = SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+			m_blend_pipelines[ z ][ mode ] = create_pipeline( pipeline_info );
 			if ( !m_blend_pipelines[ z ][ mode ] )
 			{
 				std::ostringstream stream;
@@ -7655,7 +7808,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 		prepass_info.rasterizer_state.cull_mode =
 			double_sided ? SDL_GPU_CULLMODE_NONE : SDL_GPU_CULLMODE_BACK;
 		m_pbr_prepass_pipelines[ double_sided ] =
-			SDL_CreateGPUGraphicsPipeline( m_device, &prepass_info );
+			create_pipeline( prepass_info );
 		if ( !m_pbr_prepass_pipelines[ double_sided ] )
 		{
 			FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUGraphicsPipeline failed for pbr alpha prepass" << std::endl;
@@ -7676,7 +7829,7 @@ bool FeSdl3GpuContext::initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_f
 				pipeline_info.rasterizer_state.cull_mode =
 					double_sided ? SDL_GPU_CULLMODE_NONE : SDL_GPU_CULLMODE_BACK;
 				m_pbr_pipelines[ depth_mode ][ blend_index ][ double_sided ] =
-					SDL_CreateGPUGraphicsPipeline( m_device, &pipeline_info );
+					create_pipeline( pipeline_info );
 				if ( !m_pbr_pipelines[ depth_mode ][ blend_index ][ double_sided ] )
 				{
 					FeLog() << "SDL: initialize_pbr_pipeline: SDL_CreateGPUGraphicsPipeline failed" << std::endl;
