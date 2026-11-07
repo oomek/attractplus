@@ -90,9 +90,6 @@ namespace
 
 		SDL_SetJoystickEventsEnabled( true );
 
-		if ( SDL_InitSubSystem( SDL_INIT_GAMEPAD ) )
-			SDL_SetGamepadEventsEnabled( true );
-
 		g_sdl_joysticks_initialized = true;
 		return true;
 	}
@@ -109,6 +106,9 @@ namespace
 
 	int find_sdl_joystick_slot( SDL_JoystickID instance_id )
 	{
+		if ( instance_id == 0 )
+			return -1;
+
 		for ( std::size_t i = 0; i < g_sdl_joystick_slots.size(); ++i )
 		{
 			if ( g_sdl_joystick_slots[i].instance_id == instance_id )
@@ -193,20 +193,6 @@ namespace
 			return static_cast<float>( value ) * ( 100.0f / 32767.0f );
 
 		return static_cast<float>( value ) * ( 100.0f / 32768.0f );
-	}
-
-	FeJoystick::Axis sdl_gamepad_axis_to_fe( Uint8 axis )
-	{
-		switch ( axis )
-		{
-		case SDL_GAMEPAD_AXIS_LEFTX: return FeJoystick::Axis::X;
-		case SDL_GAMEPAD_AXIS_LEFTY: return FeJoystick::Axis::Y;
-		case SDL_GAMEPAD_AXIS_RIGHTX: return FeJoystick::Axis::Z;
-		case SDL_GAMEPAD_AXIS_RIGHTY: return FeJoystick::Axis::R;
-		case SDL_GAMEPAD_AXIS_LEFT_TRIGGER: return FeJoystick::Axis::U;
-		case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: return FeJoystick::Axis::V;
-		default: return FeJoystick::Axis::X;
-		}
 	}
 
 	bool get_sdl_desktop_geometry( bool do_multimon, FeVideoMode &mode, Vec2i &position )
@@ -587,8 +573,11 @@ namespace
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jaxis.which ) );
+			if ( joystick_id < 0 || event.jaxis.axis > static_cast<Uint8>( FeJoystick::Axis::PovY ) )
+				return {};
+
 			return FeEvent::JoystickMoved{
-				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
+				static_cast<unsigned int>( joystick_id ),
 				static_cast<int>( sdl_joystick_axis_to_fe( event.jaxis.axis ) ),
 				normalize_sdl_axis_value( event.jaxis.value )
 			};
@@ -597,8 +586,11 @@ namespace
 		case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jbutton.which ) );
+			if ( joystick_id < 0 || event.jbutton.button >= FeJoystick::ButtonCount )
+				return {};
+
 			return FeEvent::JoystickButtonPressed{
-				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
+				static_cast<unsigned int>( joystick_id ),
 				static_cast<unsigned int>( event.jbutton.button )
 			};
 		}
@@ -606,8 +598,11 @@ namespace
 		case SDL_EVENT_JOYSTICK_BUTTON_UP:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jbutton.which ) );
+			if ( joystick_id < 0 || event.jbutton.button >= FeJoystick::ButtonCount )
+				return {};
+
 			return FeEvent::JoystickButtonReleased{
-				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
+				static_cast<unsigned int>( joystick_id ),
 				static_cast<unsigned int>( event.jbutton.button )
 			};
 		}
@@ -619,46 +614,6 @@ namespace
 		case SDL_EVENT_JOYSTICK_REMOVED:
 			fe_joystick_refresh_devices();
 			return FeEvent::JoystickDisconnected{ 0u };
-
-		case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-		{
-			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gaxis.which ) );
-			return FeEvent::JoystickMoved{
-				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				static_cast<int>( sdl_gamepad_axis_to_fe( event.gaxis.axis ) ),
-				normalize_sdl_axis_value( event.gaxis.value )
-			};
-		}
-
-		case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
-		{
-			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gbutton.which ) );
-			return FeEvent::JoystickButtonPressed{
-				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				static_cast<unsigned int>( event.gbutton.button )
-			};
-		}
-
-		case SDL_EVENT_GAMEPAD_BUTTON_UP:
-		{
-			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.gbutton.which ) );
-			return FeEvent::JoystickButtonReleased{
-				static_cast<unsigned int>( ( joystick_id >= 0 ) ? joystick_id : 0 ),
-				static_cast<unsigned int>( event.gbutton.button )
-			};
-		}
-
-		case SDL_EVENT_GAMEPAD_ADDED:
-			fe_joystick_refresh_devices();
-			return FeEvent::JoystickConnected{ 0u };
-
-		case SDL_EVENT_GAMEPAD_REMOVED:
-			fe_joystick_refresh_devices();
-			return FeEvent::JoystickDisconnected{ 0u };
-
-		case SDL_EVENT_GAMEPAD_REMAPPED:
-			fe_joystick_refresh_devices();
-			return FeEvent::JoystickConnected{ 0u };
 
 		default:
 			return {};
@@ -739,10 +694,11 @@ std::string fe_joystick_get_name( unsigned int joystick_id )
 int fe_joystick_translate_sdl_instance_id( int instance_id )
 {
 	if ( !ensure_sdl_joystick_subsystems() )
-		return instance_id;
+		return -1;
 
 	sync_sdl_joystick_slots();
-	return find_sdl_joystick_slot( static_cast<SDL_JoystickID>( instance_id ) );
+	int slot = find_sdl_joystick_slot( static_cast<SDL_JoystickID>( instance_id ) );
+	return ( slot >= 0 && g_sdl_joystick_slots[slot].joystick ) ? slot : -1;
 }
 
 #ifdef SDL_PLATFORM_WINDOWS
