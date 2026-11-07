@@ -569,9 +569,7 @@ namespace
 			"layout(set = 2, binding = 0) uniform sampler2D image_texture;\n"
 			"void main()\n"
 			"{\n"
-			"\tivec2 tex_size = textureSize(image_texture, 0);\n"
-			"\tvec2 uv = tex_size.x > 0 && tex_size.y > 0 ? frag_texcoord / vec2(tex_size) : vec2(0.0);\n"
-			"\tvec4 pixel = texture(image_texture, uv);\n"
+			"\tvec4 pixel = texture(image_texture, frag_texcoord);\n"
 			"\tout_color = frag_color * pixel;\n"
 			"}\n";
 	}
@@ -586,9 +584,7 @@ namespace
 			"layout(set = 2, binding = 0) uniform sampler2D image_texture;\n"
 			"void main()\n"
 			"{\n"
-			"\tivec2 tex_size = textureSize(image_texture, 0);\n"
-			"\tvec2 uv = tex_size.x > 0 && tex_size.y > 0 ? frag_texcoord / vec2(tex_size) : vec2(0.0);\n"
-			"\tfloat alpha = (frag_color * texture(image_texture, uv)).a;\n"
+			"\tfloat alpha = (frag_color * texture(image_texture, frag_texcoord)).a;\n"
 			"\tif (alpha < 0.5) discard;\n"
 			"\tout_color = vec4(0.0);\n"
 			"}\n";
@@ -616,9 +612,7 @@ namespace
 			<< "\n"
 			<< "vec4 pixel_sample()\n"
 			<< "{\n"
-			<< "\tivec2 tex_size = textureSize(image_texture, 0);\n"
-			<< "\tvec2 uv = tex_size.x > 0 && tex_size.y > 0 ? frag_texcoord / vec2(tex_size) : vec2(0.0);\n"
-			<< "\treturn texture(image_texture, uv);\n"
+			<< "\treturn texture(image_texture, frag_texcoord);\n"
 			<< "}\n"
 			<< "\n"
 			<< source;
@@ -1739,6 +1733,8 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 			? static_cast<Uint32>( image.pbr_instances.size() )
 			: 1u;
 		prepared.pbr_instance_head = true;
+		float texture_width = 1.0f;
+		float texture_height = 1.0f;
 
 		if ( image.textured )
 		{
@@ -1746,13 +1742,22 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 			{
 				auto surface_it = m_surfaces.find( image.texture_id );
 				if ( surface_it != m_surfaces.end() )
+				{
 					prepared.gpu_texture = surface_it->second.color_texture;
+					texture_width = static_cast<float>( surface_it->second.width );
+					texture_height = static_cast<float>( surface_it->second.height );
+				}
 			}
 
 			if ( !prepared.gpu_texture )
 			{
 				auto it = m_textures.find( { image.texture_id, image.texture_mipmap, false } );
 				prepared.gpu_texture = ( it != m_textures.end() ) ? it->second.gpu_texture : nullptr;
+				if ( prepared.gpu_texture )
+				{
+					texture_width = static_cast<float>( it->second.texture_info.width );
+					texture_height = static_cast<float>( it->second.texture_info.height );
+				}
 			}
 		}
 		else
@@ -1824,13 +1829,20 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 		const FeRenderVertex *vertex_data = image.get_vertex_data();
 		const std::size_t vertex_count = image.get_vertex_count();
-		if ( prepared.custom_shader && image.textured && image.texture_width > 0.0f && image.texture_height > 0.0f )
+		if ( prepared.custom_shader )
+		{
+			texture_width = image.texture_width;
+			texture_height = image.texture_height;
+		}
+		// Normalize once per vertex, rather than once per fragment. Builtin
+		// shaders use the bound texture size, including a resized font atlas.
+		if ( !prepared.object_pbr && image.textured && texture_width > 0.0f && texture_height > 0.0f )
 		{
 			for ( std::size_t vertex_index = 0; vertex_index < vertex_count; ++vertex_index )
 			{
 				FeRenderVertex vertex = vertex_data[vertex_index];
-				vertex.u /= image.texture_width;
-				vertex.v /= image.texture_height;
+				vertex.u /= texture_width;
+				vertex.v /= texture_height;
 				vertex_stream.push_back( vertex );
 			}
 		}
