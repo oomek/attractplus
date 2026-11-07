@@ -509,16 +509,6 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 					m_code = ( event->position > 0 ) ? JoyDown : JoyUp;
 					break;
 
-#ifdef SDL_PLATFORM_LINUX
-				case FeJoystick::Axis::Z:
-				case FeJoystick::Axis::R:
-					if ( event->position < 0 )
-						return;
-
-					m_code = ( static_cast<FeJoystick::Axis>( event->axis ) == FeJoystick::Axis::Z )
-						? JoyZPos : JoyRPos;
-					break;
-#else
 				case FeJoystick::Axis::Z:
 					m_code = ( event->position > 0 ) ? JoyZPos : JoyZNeg;
 					break;
@@ -526,7 +516,6 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 				case FeJoystick::Axis::R:
 					m_code = ( event->position > 0 ) ? JoyRPos : JoyRNeg;
 					break;
-#endif
 
 				case FeJoystick::Axis::U:
 					m_code = ( event->position > 0 ) ? JoyUPos : JoyUNeg;
