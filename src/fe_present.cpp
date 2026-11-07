@@ -687,6 +687,7 @@ namespace
 			&& lhs.repeated == rhs.repeated
 			&& lhs.smooth == rhs.smooth
 			&& lhs.mipmap == rhs.mipmap
+			&& lhs.aniso == rhs.aniso
 			&& lhs.dynamic == rhs.dynamic
 			&& lhs.blocking == rhs.blocking
 			&& lhs.width == rhs.width
@@ -732,6 +733,7 @@ namespace
 			|| lhs.texture_repeated != rhs.texture_repeated
 			|| lhs.texture_smooth != rhs.texture_smooth
 			|| lhs.texture_mipmap != rhs.texture_mipmap
+			|| lhs.texture_aniso != rhs.texture_aniso
 			|| lhs.texture_dynamic != rhs.texture_dynamic
 			|| lhs.texture_blocking != rhs.texture_blocking
 			|| lhs.texture_content_version != rhs.texture_content_version
@@ -818,6 +820,7 @@ namespace
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.aniso ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( binding.blocking ? 1 : 0 ) );
 		hash = hash_float_bits( hash, binding.width );
@@ -843,6 +846,7 @@ namespace
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_repeated ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_smooth ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_mipmap ? 1 : 0 ) );
+		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_aniso ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_dynamic ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.texture_blocking ? 1 : 0 ) );
 		hash = hash_combine( hash, static_cast<std::uint64_t>( entry.translucent_depth_prepass ? 1 : 0 ) );
@@ -1208,6 +1212,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.repeated ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.smooth ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.mipmap ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.aniso ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.dynamic ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.blocking ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( binding.texcoord_set ) );
@@ -1227,6 +1232,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_repeated ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_smooth ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_mipmap ? 1 : 0 ) );
+		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_aniso ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_blocking ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.blend_mode ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.zbuffer ? 1 : 0 ) );
@@ -1398,6 +1404,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		frame.width = surface->get_width();
 		frame.height = surface->get_height();
 		frame.mipmapped = surface->get_mipmap();
+		frame.msaa = surface->get_msaa();
 		frame.clear = surface->get_clear();
 		frame.redraw = surface->get_redraw();
 		frame.camera = m_layout_camera;
@@ -1488,6 +1495,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		// Versioned textures invalidate content without forcing a render on
 		// every frontend tick. Nested surfaces contribute their state below.
 		frame.dynamic_content = !frame.clear && frame.redraw;
+		frame.content_signature = hash_combine( frame.content_signature, frame.msaa ? 1 : 0 );
 		for ( const FeRenderGeometry &geometry : frame.geometry )
 		{
 			frame.content_signature = hash_combine( frame.content_signature, geometry.texture_content_version );

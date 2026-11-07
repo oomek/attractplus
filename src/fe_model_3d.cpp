@@ -1145,6 +1145,7 @@ namespace
 			&& lhs.repeated == rhs.repeated
 			&& lhs.smooth == rhs.smooth
 			&& lhs.mipmap == rhs.mipmap
+			&& lhs.aniso == rhs.aniso
 			&& lhs.dynamic == rhs.dynamic
 			&& lhs.blocking == rhs.blocking
 			&& lhs.width == rhs.width
@@ -1179,6 +1180,7 @@ namespace
 		binding.repeated = repeated;
 		binding.smooth = smooth;
 		binding.mipmap = mipmap;
+		binding.aniso = container->get_aniso();
 		binding.dynamic = container->is_volatile_texture();
 		binding.blocking = container->is_texture_blocking();
 		binding.width = static_cast<float>( texture_size.x );
@@ -2977,6 +2979,7 @@ bool FeModel3D::geometry_cache_matches(
 			|| base_binding.repeated != container->get_repeat()
 			|| base_binding.smooth != container->get_smooth()
 			|| base_binding.mipmap != container->get_mipmap()
+			|| base_binding.aniso != container->get_aniso()
 			|| base_binding.dynamic != container->is_volatile_texture()
 			|| base_binding.blocking != container->is_texture_blocking()
 			|| base_binding.width != static_cast<float>( texture_size.x )
@@ -2998,6 +3001,7 @@ bool FeModel3D::geometry_cache_matches(
 				|| emissive_binding.repeated != container->get_repeat()
 				|| emissive_binding.smooth != container->get_smooth()
 				|| emissive_binding.mipmap != container->get_mipmap()
+				|| emissive_binding.aniso != container->get_aniso()
 				|| emissive_binding.dynamic != container->is_volatile_texture()
 				|| emissive_binding.blocking != container->is_texture_blocking()
 				|| emissive_binding.width != static_cast<float>( texture_size.x )

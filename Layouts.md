@@ -1855,6 +1855,8 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `repeat` 🔶 - Enables texture repeat when set to `true`. Default value is `false`. To see the effect `subimg_width/height` must be set larger than `texture_width/height`
 -  `border_scale` 🔶 - Get/set the scaling factor of the border defined by `set_border()`. Default value is `1.0`.
 -  `clear` 🔶 - _[surface only]_ When set to `false` surface is not cleared before the next frame. This can be used for various accumulative effects.
+-  `msaa` 🔶 - _[surface only]_ Get/set whether rendering into the surface uses the global anti-aliasing setting. Set to `false` to disable MSAA for this surface. Default value is `true`.
+-  `aniso` 🔶 - _[surface only]_ Get/set whether sampling the finished surface texture uses the global anisotropic filtering setting. Set to `false` to disable anisotropic filtering for this surface texture. This does not affect filtering of its contents. Default value is `true`.
 -  `redraw` 🔶 - _[surface only]_ When set to `false` surface's content is not redrawn which gives optimization opportunity for hidden surfaces. This in conjunction with `clear = false` can be used to freeze surface's content.
 -  `border_left` 🔶 - Get/set the left 9-slice region size in pixels. Default is `0`.
 -  `border_top` 🔶 - Get/set the top 9-slice region size in pixels. Default is `0`.

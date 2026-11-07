@@ -181,6 +181,15 @@ private:
 		float normal_matrix[3][4];
 	};
 
+	struct PipelineEntry
+	{
+		SDL_GPUGraphicsPipelineCreateInfo info;
+		std::vector<SDL_GPUVertexBufferDescription> buffers;
+		std::vector<SDL_GPUVertexAttribute> attributes;
+		std::vector<SDL_GPUColorTargetDescription> colors;
+		std::map<std::pair<SDL_GPUTextureFormat, SDL_GPUSampleCount>, SDL_GPUGraphicsPipeline *> variants;
+	};
+
 	struct SurfaceEntry
 	{
 		unsigned long long last_seen_frame;
@@ -188,6 +197,7 @@ private:
 		int height;
 		bool mipmapped;
 		bool rendered_once;
+		bool restore_color;
 		std::uint64_t vertex_signature;
 		std::uint64_t last_signature;
 		SDL_GPUTexture *color_texture;
@@ -338,9 +348,9 @@ private:
 	void build_pbr_instance_batches( std::vector<PreparedImage> &prepared_images, std::vector<PbrInstanceEntry> &instance_data ) const;
 	int get_requested_anisotropy() const;
 	bool update_anisotropy();
-	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth );
-	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth );
-	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped ) const;
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth, bool aniso = true );
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth, bool aniso = true );
+	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso ) const;
 	SDL_GPUSampleCount get_requested_sample_count() const;
 	SDL_GPUSampleCount pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const;
 	bool update_sample_count( SDL_GPUTextureFormat swapchain_format );
@@ -409,6 +419,8 @@ private:
 		std::uint64_t *cached_vertex_signature,
 		bool use_preuploaded_pbr_instances,
 		bool has_depth_target,
+		SDL_GPUTextureFormat target_format,
+		SDL_GPUSampleCount sample_count,
 		bool encode_pbr_output_srgb,
 		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
@@ -421,12 +433,20 @@ private:
 		const std::vector<FeRenderGeometry> &geometry,
 		bool use_surface_targets,
 		bool has_depth_target,
+		SDL_GPUTextureFormat target_format,
+		SDL_GPUSampleCount sample_count,
 		bool encode_pbr_output_srgb,
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
 		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
+	SDL_GPUGraphicsPipeline *create_pipeline( const SDL_GPUGraphicsPipelineCreateInfo &info );
+	SDL_GPUGraphicsPipeline *get_pipeline_variant( SDL_GPUGraphicsPipeline *pipeline,
+		SDL_GPUTextureFormat format, SDL_GPUSampleCount samples );
+	void release_pipeline( SDL_GPUGraphicsPipeline *pipeline );
+	bool restore_surface_color( SDL_GPUCommandBuffer *command_buffer,
+		const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );
 	void release_image_pipeline();
 	bool initialize_image_pipeline( SDL_GPUTextureFormat swapchain_format );
 	void release_pbr_pipeline();
@@ -443,6 +463,7 @@ private:
 	std::size_t m_spare_texture_bytes = 0;
 	std::unordered_map<const void *, GeometryBufferEntry> m_geometry_buffers;
 	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
+	std::unordered_map<SDL_GPUGraphicsPipeline *, PipelineEntry> m_pipeline_entries;
 	std::vector<PreparedImage> m_prepared_images;
 	std::vector<FeRenderVertex> m_vertex_stream;
 	std::unordered_map<std::string, CustomShaderEntry> m_custom_shaders;
@@ -482,6 +503,9 @@ private:
 	SDL_GPUSampler *m_linear_mipmap_sampler;
 	SDL_GPUSampler *m_linear_mipmap_repeat_sampler;
 	SDL_GPUSampler *m_linear_mipmap_cubemap_sampler;
+	SDL_GPUSampler *m_isotropic_mipmap_sampler;
+	SDL_GPUSampler *m_isotropic_mipmap_repeat_sampler;
+	SDL_GPUSampler *m_isotropic_mipmap_cubemap_sampler;
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_sampler;

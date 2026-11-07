@@ -104,6 +104,10 @@ public:
 
 	virtual void set_mipmap( bool )=0;
 	virtual bool get_mipmap() const=0;
+	virtual void set_msaa( bool );
+	virtual bool get_msaa() const;
+	virtual void set_aniso( bool );
+	virtual bool get_aniso() const;
 
 	virtual void set_clear( bool );
 	virtual bool get_clear() const;
@@ -323,6 +327,10 @@ public:
 
 	void set_mipmap( bool );
 	bool get_mipmap() const;
+	void set_msaa( bool ) override;
+	bool get_msaa() const override;
+	void set_aniso( bool ) override;
+	bool get_aniso() const override;
 
 	void set_clear( bool );
 	bool get_clear() const;
@@ -343,6 +351,8 @@ private:
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;
+	bool m_msaa;
+	bool m_aniso;
 	bool m_repeat;
 	bool m_smooth;
 	Vec2u m_texture_size;
@@ -560,6 +570,10 @@ public:
 
 	void set_mipmap( bool m );
 	bool get_mipmap() const;
+	void set_msaa( bool );
+	bool get_msaa() const;
+	void set_aniso( bool );
+	bool get_aniso() const;
 	void set_smooth( bool );
 	bool get_smooth() const;
 
