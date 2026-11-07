@@ -75,6 +75,9 @@ namespace
 		SDL_JoystickID instance_id = 0;
 		SDL_Joystick *joystick = nullptr;
 		std::string name;
+		bool combined_triggers = false;
+		std::array<int, 6> axes = { 0, 1, 2, 3, 4, 5 };
+		std::array<bool, 6> inverted = {};
 	};
 
 	std::array<FeSdlJoystickSlot, FeJoystick::Count> g_sdl_joystick_slots = {};
@@ -102,6 +105,7 @@ namespace
 		slot.instance_id = 0;
 		slot.joystick = nullptr;
 		slot.name.clear();
+		slot.combined_triggers = false;
 	}
 
 	int find_sdl_joystick_slot( SDL_JoystickID instance_id )
@@ -116,6 +120,47 @@ namespace
 		}
 
 		return -1;
+	}
+
+	void init_sdl_joystick_axes( FeSdlJoystickSlot &slot )
+	{
+		SDL_GamepadType type = SDL_GetGamepadTypeForID( slot.instance_id );
+		if ( type != SDL_GAMEPAD_TYPE_XBOX360 && type != SDL_GAMEPAD_TYPE_XBOXONE )
+			return;
+
+		char *mapping = SDL_GetGamepadMappingForID( slot.instance_id );
+		if ( !mapping )
+			return;
+		std::string map( mapping );
+		SDL_free( mapping );
+
+		const char *names[] = { "leftx", "lefty", "lefttrigger", "rightx", "righty", "righttrigger" };
+		std::array<int, 6> axes;
+		axes.fill( -1 );
+		std::array<bool, 6> inverted = {};
+		for ( std::size_t i = 0; i < axes.size(); ++i )
+		{
+			std::string name = std::string( "," ) + names[i] + ":a";
+			std::size_t pos = map.find( name );
+			if ( pos == std::string::npos )
+				continue;
+			const char *value = map.c_str() + pos + name.size();
+			char *end = nullptr;
+			long axis = std::strtol( value, &end, 10 );
+			if ( end == value || axis < 0 || axis > SDL_MAX_UINT8 )
+				continue;
+			inverted[i] = ( *end == '~' );
+			if ( inverted[i] )
+				++end;
+			if ( *end != ',' && *end != '\0' )
+				continue;
+			axes[i] = static_cast<int>( axis );
+		}
+		if ( axes[2] < 0 || axes[5] < 0 || axes[2] == axes[5] )
+			return;
+		slot.axes = axes;
+		slot.inverted = inverted;
+		slot.combined_triggers = true;
 	}
 
 	void sync_sdl_joystick_slots()
@@ -159,7 +204,11 @@ namespace
 
 			FeSdlJoystickSlot &slot = g_sdl_joystick_slots[slot_index];
 			if ( !slot.joystick )
+			{
 				slot.joystick = SDL_OpenJoystick( instance_id );
+				if ( slot.joystick )
+					init_sdl_joystick_axes( slot );
+			}
 
 			const char *name = slot.joystick
 				? SDL_GetJoystickName( slot.joystick )
@@ -193,6 +242,21 @@ namespace
 			return static_cast<float>( value ) * ( 100.0f / 32767.0f );
 
 		return static_cast<float>( value ) * ( 100.0f / 32768.0f );
+	}
+
+	float combined_sdl_trigger_position( Sint16 left, Sint16 right )
+	{
+		// Match the centred Z axis exposed by Windows DirectInput/SFML.
+		return ( static_cast<int>( left ) - static_cast<int>( right ) )
+			* ( 100.0f / ( SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN ) );
+	}
+
+	Sint16 sdl_joystick_axis_value( const FeSdlJoystickSlot &slot, std::size_t axis )
+	{
+		if ( slot.axes[axis] < 0 )
+			return 0;
+		Sint16 value = SDL_GetJoystickAxis( slot.joystick, slot.axes[axis] );
+		return slot.inverted[axis] ? static_cast<Sint16>( -1 - value ) : value;
 	}
 
 	bool get_sdl_desktop_geometry( bool do_multimon, FeVideoMode &mode, Vec2i &position )
@@ -573,7 +637,22 @@ namespace
 		case SDL_EVENT_JOYSTICK_AXIS_MOTION:
 		{
 			const int joystick_id = fe_joystick_translate_sdl_instance_id( static_cast<int>( event.jaxis.which ) );
-			if ( joystick_id < 0 || event.jaxis.axis > static_cast<Uint8>( FeJoystick::Axis::PovY ) )
+			if ( joystick_id < 0 )
+				return {};
+
+			const FeSdlJoystickSlot &slot = g_sdl_joystick_slots[joystick_id];
+			if ( slot.combined_triggers )
+			{
+				auto itr = std::find( slot.axes.begin(), slot.axes.end(), event.jaxis.axis );
+				if ( itr == slot.axes.end() )
+					return {};
+				int axis = static_cast<int>( itr - slot.axes.begin() );
+				if ( axis == 5 )
+					axis = static_cast<int>( FeJoystick::Axis::Z );
+				return FeEvent::JoystickMoved{ static_cast<unsigned int>( joystick_id ),
+					axis, fe_joystick_get_axis_position( joystick_id, static_cast<FeJoystick::Axis>( axis ) ) };
+			}
+			if ( event.jaxis.axis > static_cast<Uint8>( FeJoystick::Axis::PovY ) )
 				return {};
 
 			return FeEvent::JoystickMoved{
@@ -670,6 +749,18 @@ float fe_joystick_get_axis_position( unsigned int joystick_id, FeJoystick::Axis 
 	sync_sdl_joystick_slots();
 	if ( joystick_id >= g_sdl_joystick_slots.size() || !g_sdl_joystick_slots[joystick_id].joystick )
 		return 0.0f;
+
+	const FeSdlJoystickSlot &slot = g_sdl_joystick_slots[joystick_id];
+	if ( slot.combined_triggers )
+	{
+		if ( axis == FeJoystick::Axis::Z )
+			return combined_sdl_trigger_position( sdl_joystick_axis_value( slot, 2 ),
+				sdl_joystick_axis_value( slot, 5 ) );
+		if ( axis == FeJoystick::Axis::V )
+			return 0.0f;
+		if ( axis <= FeJoystick::Axis::U )
+			return normalize_sdl_axis_value( sdl_joystick_axis_value( slot, static_cast<std::size_t>( axis ) ) );
+	}
 
 	const int axis_index = sdl_axis_index_from_fe( axis );
 	if ( axis_index < 0 )
