@@ -2259,10 +2259,19 @@ void FeVM::advance_navigation( bool waiting_only )
 	m_advancing_navigation = false;
 }
 
-void FeVM::wait_for_frame()
+void FeVM::prepare_frame()
 {
 	auto &loader = FeImageLoader::get_ref();
 	auto &gpu = m_window.get_gpu_context();
+	const Uint64 allowance = m_refresh_rate > 0
+		? std::min<Uint64>( 8000000, static_cast<Uint64>( 500000000.0 / m_refresh_rate ) ) : 2000000;
+	if ( !navigation_busy() )
+	{
+		// Prepare the next frame while the GPU renders.
+		gpu.reset_texture_upload_budget();
+		gpu.set_texture_upload_deadline( SDL_GetTicksNS() + allowance );
+		return;
+	}
 	for ( ;; )
 	{
 		const auto version = loader.load_version();
@@ -2272,8 +2281,6 @@ void FeVM::wait_for_frame()
 		if ( status == FeSdl3GpuContext::FramePending ) gpu.reset_texture_upload_budget();
 		else if ( status == FeSdl3GpuContext::FrameReady )
 		{
-			const Uint64 allowance = m_refresh_rate > 0
-				? std::min<Uint64>( 8000000, static_cast<Uint64>( 500000000.0 / m_refresh_rate ) ) : 2000000;
 			gpu.set_texture_upload_deadline( SDL_GetTicksNS() + allowance );
 		}
 		else gpu.set_texture_upload_deadline( 0 );
