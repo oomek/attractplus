@@ -431,8 +431,7 @@ int main(int argc, char *argv[])
 			redraw=true;
 		}
 
-		// Sample input after waiting for presentation, so commands affect this frame.
-		feVM.wait_for_frame();
+		feVM.prepare_frame();
 		FeInputMouse::clear();
 		FeInputMap::Command c;
 		std::optional<FeEvent> ev;

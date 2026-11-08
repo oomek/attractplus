@@ -153,7 +153,7 @@ private:
 	static bool internal_do_nut(const std::string &, const std::string &);
 
 public:
-	void wait_for_frame();
+	void prepare_frame();
 	bool defer_command( FeInputMap::Command );
 	bool queue_navigation( FeNavigationRequest ) override;
 	bool navigation_busy() const override { return m_navigation || !m_navigation_queue.empty(); }
