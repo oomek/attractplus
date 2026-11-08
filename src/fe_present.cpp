@@ -1064,8 +1064,9 @@ void FePresent::sort_zorder()
 void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
 {
 	geometry.clear();
-	const int target_width = m_mon.empty() ? 0 : m_mon[0].size.x;
-	const int target_height = m_mon.empty() ? 0 : m_mon[0].size.y;
+	const Vec2u target_size = m_window.get_size();
+	const int target_width = static_cast<int>( target_size.x );
+	const int target_height = static_cast<int>( target_size.y );
 
 	if ( m_layout_crop && (( target_width <= 0 ) || ( target_height <= 0 )))
 		return;
@@ -2900,8 +2901,9 @@ void FePresent::submit_render_frame()
 {
 	FeRenderFrame frame = m_window.get_gpu_context().take_frame();
 	frame.camera = m_layout_camera;
-	frame.viewport_width = m_mon[0].size.x;
-	frame.viewport_height = m_mon[0].size.y;
+	const Vec2u target_size = m_window.get_size();
+	frame.viewport_width = static_cast<int>( target_size.x );
+	frame.viewport_height = static_cast<int>( target_size.y );
 	frame.antialiasing = m_feSettings->get_antialiasing();
 	frame.anisotropic = m_feSettings->get_anisotropic();
 	frame.frame_number = ++m_render_frame_serial;
@@ -3115,9 +3117,10 @@ FeSettings::RotationState FePresent::get_actual_rotation()
 void FePresent::set_transforms()
 {
 	m_layout_transform = m_mon[0].transform;
+	const Vec2u target_size = m_window.get_size();
 	m_layout_camera.update_projection(
-		static_cast<float>( m_mon[0].size.x ),
-		static_cast<float>( m_mon[0].size.y ) );
+		static_cast<float>( target_size.x ),
+		static_cast<float>( target_size.y ) );
 
 	FeSettings::RotationState actualRotation = get_actual_rotation();
 

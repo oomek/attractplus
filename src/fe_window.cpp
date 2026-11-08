@@ -960,7 +960,7 @@ bool FeWindow::append_native_overlay_item( const FeOverlayDrawItem &item, const 
 	return true;
 }
 
-void FeWindow::draw_overlay_image( const SDL_Surface &image, const FloatRect &bounds, bool smooth, const Color &color )
+void FeWindow::draw_overlay_image( const SDL_Surface &image, const FloatRect &bounds, const FeTransform &t, bool smooth, const Color &color )
 {
 	if ( !owns_sdl_window() )
 		return;
@@ -1011,8 +1011,9 @@ void FeWindow::draw_overlay_image( const SDL_Surface &image, const FloatRect &bo
 	for ( int i = 0; i < 6; ++i )
 	{
 		FeRenderVertex vertex = {};
-		vertex.x = positions[i].x;
-		vertex.y = positions[i].y;
+		const Vec2f position = t.transformPoint( positions[i] );
+		vertex.x = position.x;
+		vertex.y = position.y;
 		vertex.z = 0.0f;
 		vertex.u = texcoords[i].x;
 		vertex.v = texcoords[i].y;
