@@ -1036,10 +1036,10 @@ void FeWindow::display()
 	m_overlay_geometry.clear();
 	m_overlay_images.clear();
 
-	// The GPU swapchain provides frame pacing. Use DWM only as a fallback
-	// when no GPU frame was presented.
+	// Complete presentation before sampling input for the next frame.
 #ifdef SDL_PLATFORM_WINDOWS
-	if ( !used_sdl_gpu_present && ( m_win_mode != FeSettings::Fullscreen ) )
+	if ( ( used_sdl_gpu_present && !m_gpu_context.uses_present_wait() )
+		|| ( !used_sdl_gpu_present && ( m_win_mode != FeSettings::Fullscreen ) ) )
 		DwmFlush();
 	check_for_sleep();
 #endif

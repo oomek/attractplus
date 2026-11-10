@@ -3044,13 +3044,30 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 
 	const char *preferred_driver = get_default_driver_name( driver_name );
 	const SDL_GPUShaderFormat shader_formats = get_default_shader_formats();
-	m_device = SDL_CreateGPUDevice( shader_formats, debug_mode, preferred_driver );
+	const SDL_PropertiesID properties = SDL_CreateProperties();
+	if ( !properties )
+	{
+		FeLog() << "SDL: initialize: SDL_CreateProperties failed: " << SDL_GetError() << std::endl;
+		return false;
+	}
+	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_SPIRV_BOOLEAN, shader_formats & SDL_GPU_SHADERFORMAT_SPIRV );
+	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXIL_BOOLEAN, shader_formats & SDL_GPU_SHADERFORMAT_DXIL );
+	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_MSL_BOOLEAN, shader_formats & SDL_GPU_SHADERFORMAT_MSL );
+	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_METALLIB_BOOLEAN, shader_formats & SDL_GPU_SHADERFORMAT_METALLIB );
+	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debug_mode );
+	SDL_SetStringProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, preferred_driver );
+#if defined( SDL_PLATFORM_WINDOWS ) && defined( SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN )
+	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN, true );
+#endif
+	m_device = SDL_CreateGPUDeviceWithProperties( properties );
 	if ( !m_device && preferred_driver )
 	{
 		const std::string message = std::string( "initialize: preferred GPU driver failed: " ) + preferred_driver;
 		FeDebug() << "SDL: " << message << std::endl;
-		m_device = SDL_CreateGPUDevice( shader_formats, debug_mode, nullptr );
+		SDL_ClearProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING );
+		m_device = SDL_CreateGPUDeviceWithProperties( properties );
 	}
+	SDL_DestroyProperties( properties );
 	if ( !m_device )
 		FeLog() << "SDL: initialize: SDL_CreateGPUDevice failed" << std::endl;
 	else
@@ -3064,6 +3081,12 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 			return false;
 		}
 		FeDebug() << "SDL: allowed frames in flight: 1" << std::endl;
+#ifdef SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN
+		m_present_wait = SDL_GetBooleanProperty( SDL_GetGPUDeviceProperties( m_device ), SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN, false );
+#endif
+#ifdef SDL_PLATFORM_WINDOWS
+		FeDebug() << "SDL: native presentation wait: " << ( m_present_wait ? "enabled" : "unavailable, using DWM pacing" ) << std::endl;
+#endif
 		FeImageLoader::get_ref().set_gpu_device( m_device );
 		std::ostringstream stream;
 		stream << "initialize: SDL_CreateGPUDevice succeeded";
@@ -3073,6 +3096,19 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 		FeDebug() << "SDL: " << stream.str() << std::endl;
 	}
 	return ( m_device != nullptr );
+}
+
+bool FeSdl3GpuContext::uses_present_wait()
+{
+#ifdef SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN
+	if ( m_present_wait && !SDL_GetBooleanProperty( SDL_GetGPUDeviceProperties( m_device ), SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN, false ) )
+	{
+		m_present_wait = false;
+		FeDebug() << "SDL: native presentation wait disabled, using DWM pacing: "
+			<< SDL_GetStringProperty( SDL_GetGPUDeviceProperties( m_device ), SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_ERROR_STRING, "unavailable" ) << std::endl;
+	}
+#endif
+	return m_present_wait;
 }
 
 bool FeSdl3GpuContext::ensure_video_subsystem()
@@ -3142,6 +3178,7 @@ void FeSdl3GpuContext::shutdown()
 		SDL_DestroyGPUDevice( m_device );
 		m_device = nullptr;
 	}
+	m_present_wait = false;
 
 	if ( m_sdl_ready && m_owns_sdl_video )
 	{
