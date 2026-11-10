@@ -317,6 +317,7 @@ typedef NvAPI_Status (*NvAPI_DRS_CreateSession_t)(NvDRSSessionHandle *phSession)
 typedef NvAPI_Status (*NvAPI_DRS_LoadSettings_t)(NvDRSSessionHandle 	hSession);
 typedef NvAPI_Status (*NvAPI_DRS_CreateApplication_t)(NvDRSSessionHandle hSession, NvDRSProfileHandle  hProfile, NVDRS_APPLICATION *pApplication);
 typedef NvAPI_Status (*NvAPI_DRS_SetSetting_t)(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NVDRS_SETTING *pSetting);
+typedef NvAPI_Status (*NvAPI_DRS_DeleteProfileSetting_t)(NvDRSSessionHandle hSession, NvDRSProfileHandle hProfile, NvU32 settingId);
 typedef NvAPI_Status (*NvAPI_DRS_SaveSettings_t)(NvDRSSessionHandle hSession);
 typedef NvAPI_Status (*NvAPI_DRS_DestroySession_t)(NvDRSSessionHandle hSession);
 typedef NvAPI_Status (*NvAPI_DRS_FindProfileByName_t)(NvDRSSessionHandle hSession, NvAPI_UnicodeString profileName, NvDRSProfileHandle* phProfile);
@@ -335,6 +336,7 @@ NvAPI_DRS_CreateSession_t		NvAPI_DRS_CreateSession		= NULL;
 NvAPI_DRS_LoadSettings_t		NvAPI_DRS_LoadSettings		= NULL;
 NvAPI_DRS_CreateApplication_t	NvAPI_DRS_CreateApplication	= NULL;
 NvAPI_DRS_SetSetting_t			NvAPI_DRS_SetSetting 		= NULL;
+NvAPI_DRS_DeleteProfileSetting_t NvAPI_DRS_DeleteProfileSetting = NULL;
 NvAPI_DRS_SaveSettings_t		NvAPI_DRS_SaveSettings		= NULL;
 NvAPI_DRS_DestroySession_t		NvAPI_DRS_DestroySession	= NULL;
 NvAPI_DRS_FindProfileByName_t	NvAPI_DRS_FindProfileByName	= NULL;

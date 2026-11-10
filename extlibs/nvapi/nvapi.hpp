@@ -30,12 +30,25 @@ namespace {
 		}
 	}
 
+	void nvapi_reset_setting( NvDRSSessionHandle session, NvDRSProfileHandle profile, NvU32 id, const char *name )
+	{
+		if ( !NvAPI_DRS_DeleteProfileSetting )
+			return;
+
+		const NvAPI_Status status = NvAPI_DRS_DeleteProfileSetting( session, profile, id );
+		if ( status == NVAPI_OK || status == NVAPI_SETTING_NOT_FOUND )
+			FeDebug() << "NvAPI: " << name << " using defaults" << std::endl;
+		else
+			FeLog() << "NvAPI: Resetting " << name << " failed: " << nvapi_get_error_msg( status );
+	}
+
 	int nvapi_init()
 	{
-		const bool disableThreadedOptimizations             = true;
+		// False restores the corresponding profile settings to driver defaults.
+		const bool disableThreadedOptimizations             = false;
 		const bool setMaximumPerformance                    = true;
-		const bool disableTripleBuffering                   = true;
-		const bool setPrerenderedFrames                     = true;
+		const bool disableTripleBuffering                   = false;
+		const bool setPrerenderedFrames                     = false;
 		const bool disableAntialiasingGammaCorrection       = true;
 
 		const wchar_t* profileName                = L"Attract Mode";
@@ -72,12 +85,15 @@ namespace {
 		NvAPI_DRS_LoadSettings = (NvAPI_DRS_LoadSettings_t) (*NvAPI_QueryInterface)(0x375DBD6B);
 		NvAPI_DRS_CreateApplication = (NvAPI_DRS_CreateApplication_t) (*NvAPI_QueryInterface)(0x4347A9DE);
 		NvAPI_DRS_SetSetting = (NvAPI_DRS_SetSetting_t) (*NvAPI_QueryInterface)(0x577DD202);
+		NvAPI_DRS_DeleteProfileSetting = (NvAPI_DRS_DeleteProfileSetting_t) (*NvAPI_QueryInterface)(0xE4A26362);
 		NvAPI_DRS_SaveSettings = (NvAPI_DRS_SaveSettings_t) (*NvAPI_QueryInterface)(0xFCBC7E14);
 		NvAPI_DRS_DestroySession = (NvAPI_DRS_DestroySession_t) (*NvAPI_QueryInterface)(0x0DAD9CFF8);
 		NvAPI_DRS_FindProfileByName = (NvAPI_DRS_FindProfileByName_t) (*NvAPI_QueryInterface)(0x7E4A9A0B);
 		NvAPI_DRS_FindApplicationByName	= (NvAPI_DRS_FindApplicationByName_t) (*NvAPI_QueryInterface)(0xEEE566B2);
 		NvAPI_DRS_GetProfileInfo = (NvAPI_DRS_GetProfileInfo_t) (*NvAPI_QueryInterface)(0x61CD6FD6);
 		NvAPI_GetErrorMessage = (NvAPI_GetErrorMessage_t) (*NvAPI_QueryInterface)(0x6C2D048C);
+		if ( !NvAPI_DRS_DeleteProfileSetting )
+			FeDebug() << "NvAPI: Restoring profile defaults is unavailable" << std::endl;
 
 		NvDRSSessionHandle hSession;
 		NvAPI_Status status;
@@ -183,6 +199,8 @@ namespace {
 			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
 			FeDebug() << "NvAPI: Threaded Optimizations OFF: " << nvapi_get_error_msg( status );
 		}
+		else
+			nvapi_reset_setting( hSession, hProfile, OGL_THREAD_CONTROL_ID, "Threaded Optimizations" );
 
 		// Set Triple Buffering
 		if ( disableTripleBuffering )
@@ -199,6 +217,8 @@ namespace {
 			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
 			FeDebug() << "NvAPI: Triple Buffering OFF: " << nvapi_get_error_msg( status );
 		}
+		else
+			nvapi_reset_setting( hSession, hProfile, OGL_TRIPLE_BUFFER_ID, "Triple Buffering" );
 
 		// Set Prerendered Frames
 		if ( setPrerenderedFrames )
@@ -227,6 +247,11 @@ namespace {
 			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
 			FeDebug() << "NvAPI: Maximum frames allowed set to 4: " << nvapi_get_error_msg( status );
 		}
+		else
+		{
+			nvapi_reset_setting( hSession, hProfile, PRERENDERLIMIT_ID, "Prerendered Frames" );
+			nvapi_reset_setting( hSession, hProfile, OGL_MAX_FRAMES_ALLOWED_ID, "Maximum frames allowed" );
+		}
 
 		// Set Power State
 		if ( setMaximumPerformance )
@@ -243,6 +268,8 @@ namespace {
 			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
 			FeDebug() << "NvAPI: GPU Maximum Performance ON: " << nvapi_get_error_msg( status );
 		}
+		else
+			nvapi_reset_setting( hSession, hProfile, PREFERRED_PSTATE_ID, "GPU Maximum Performance" );
 
 		// Set Antialiasing Gamma Correction
 		if ( disableAntialiasingGammaCorrection )
@@ -259,6 +286,8 @@ namespace {
 			status = NvAPI_DRS_SetSetting( hSession, hProfile, &setting );
 			FeDebug() << "NvAPI: Antialiasing Gamma Correction OFF: " << nvapi_get_error_msg( status );
 		}
+		else
+			nvapi_reset_setting( hSession, hProfile, AA_MODE_GAMMACORRECTION_ID, "Antialiasing Gamma Correction" );
 
 		// Save changes
 		status = NvAPI_DRS_SaveSettings( hSession );

@@ -66,6 +66,7 @@ public:
 	FrameStatus acquire_frame( bool wait = false );
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
+	bool uses_present_wait();
 	bool prepare_shader( const FeShader * );
 	bool should_present() const;
 	bool has_submitted_frame() const;
@@ -475,6 +476,7 @@ private:
 	bool m_window_claimed;
 	SDL_Window *m_window;
 	SDL_GPUDevice *m_device;
+	bool m_present_wait = false;
 	SDL_GPUCommandBuffer *m_present_command_buffer = nullptr;
 	SDL_GPUTexture *m_swapchain_texture = nullptr;
 	Uint32 m_swapchain_width = 0;

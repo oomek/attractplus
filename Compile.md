@@ -2,6 +2,10 @@
 
 Build instructions are set out by operating system below.
 
+Windows builds require CMake, `patch` and the initialized SDL3 submodule. The
+build applies `extlibs/sdl3-present-wait.patch` to a private SDL3 copy in the
+build directory, leaving the submodule unchanged.
+
 ## Contents
 
 -  [Linux, FreeBSD](#linux-freebsd)
