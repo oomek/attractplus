@@ -73,8 +73,6 @@ public:
 	enum TextureStatus { TexturePending, TextureReady, TextureFailed };
 	TextureStatus texture_status( const FeRenderTextureBinding & ) const;
 	bool prepare_textures( const std::vector<FeRenderTextureBinding> &, unsigned long long frame_number );
-	void reset_texture_upload_budget() { m_texture_upload_time = 0; m_texture_upload_deadline = 0; }
-	void set_texture_upload_deadline( Uint64 deadline ) { m_texture_upload_deadline = deadline; }
 	bool capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool save_screenshot( const std::string &filename );
@@ -456,7 +454,6 @@ private:
 	FeRenderFrame m_frame;
 	unsigned long long m_texture_upload_frame = 0;
 	Uint64 m_texture_upload_time = 0;
-	Uint64 m_texture_upload_deadline = 0;
 	FrameStats m_frame_stats;
 	std::map<std::tuple<const void *, bool, bool>, TextureEntry> m_textures;
 	std::map<std::tuple<const void *, bool, bool>, unsigned long long> m_texture_failures;

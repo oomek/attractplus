@@ -431,7 +431,6 @@ int main(int argc, char *argv[])
 			redraw=true;
 		}
 
-		feVM.prepare_frame();
 		FeInputMouse::clear();
 		FeInputMap::Command c;
 		std::optional<FeEvent> ev;

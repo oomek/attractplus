@@ -134,8 +134,8 @@ private:
 	bool m_initial_navigation = true;
 	std::unique_ptr<Navigation> m_navigation;
 	bool m_advancing_navigation = false;
-	void advance_navigation( bool waiting_only = false );
-	void advance_transition_calls( bool waiting_only = false );
+	void advance_navigation();
+	void advance_transition_calls();
 	bool start_navigation();
 	void start_transition_calls( TransitionScript &, FeTransitionType, int );
 	void cancel_navigation();
@@ -153,7 +153,6 @@ private:
 	static bool internal_do_nut(const std::string &, const std::string &);
 
 public:
-	void prepare_frame();
 	bool defer_command( FeInputMap::Command );
 	bool queue_navigation( FeNavigationRequest ) override;
 	bool navigation_busy() const override { return m_navigation || !m_navigation_queue.empty(); }

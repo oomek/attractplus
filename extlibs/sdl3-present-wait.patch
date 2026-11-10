@@ -105,7 +105,7 @@
          presentInfo.pWaitSemaphores =
              &presentData->windowData->renderFinishedSemaphore[presentData->swapchainImageIndex];
          presentInfo.waitSemaphoreCount = 1;
-@@ -10820,6 +10841,23 @@
+@@ -10820,6 +10841,27 @@
          presentResult = renderer->vkQueuePresentKHR(
              renderer->unifiedQueue,
              &presentInfo);
@@ -115,9 +115,13 @@
 +            !(SDL_GetWindowFlags(presentData->windowData->window) & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED))) {
 +            // Bound the wait so an occluded or suspended presentation engine
 +            // cannot prevent the application from processing window events.
++            // Keep background uploads running while the display completes.
++            // Swapchain lifetime is owned by this window's presentation thread.
++            SDL_UnlockMutex(renderer->submitLock);
 +            const VkResult waited = renderer->vkWaitForPresentKHR(
 +                renderer->logicalDevice, presentData->windowData->swapchain,
 +                presentId, 100000000);
++            SDL_LockMutex(renderer->submitLock);
 +            if (waited == VK_SUBOPTIMAL_KHR || waited == VK_ERROR_OUT_OF_DATE_KHR || waited == VK_ERROR_SURFACE_LOST_KHR || waited == VK_ERROR_DEVICE_LOST) {
 +                presentResult = waited;
 +            } else if (waited != VK_SUCCESS) {
@@ -129,7 +133,7 @@
  
          if (presentResult == VK_SUCCESS || presentResult == VK_SUBOPTIMAL_KHR || presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
              // If presenting, the swapchain is using the in-flight fence
-@@ -11184,7 +11222,7 @@
+@@ -11184,7 +11226,7 @@
          supports->ext = 1;                   \
      }
          CHECK(KHR_swapchain)
@@ -138,7 +142,7 @@
  #undef CHECK
      }
  
-@@ -11200,7 +11238,9 @@
+@@ -11200,7 +11242,9 @@
          supports->KHR_driver_properties +
          supports->KHR_portability_subset +
          supports->MSFT_layered_driver +
@@ -149,7 +153,7 @@
  }
  
  static inline void CreateDeviceExtensionArray(
-@@ -11218,6 +11258,8 @@
+@@ -11218,6 +11262,8 @@
      CHECK(KHR_portability_subset)
      CHECK(MSFT_layered_driver)
      CHECK(EXT_texture_compression_astc_hdr)
@@ -158,7 +162,7 @@
  #undef CHECK
  }
  
-@@ -12400,6 +12442,8 @@
+@@ -12400,6 +12446,8 @@
      VkDeviceCreateInfo deviceCreateInfo;
      VkPhysicalDeviceFeatures haveDeviceFeatures;
      VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures;
@@ -167,7 +171,7 @@
      const char **deviceExtensions;
  
      VkDeviceQueueCreateInfo queueCreateInfo;
-@@ -12430,6 +12474,22 @@
+@@ -12430,6 +12478,22 @@
          features->desiredVulkan10DeviceFeatures.multiDrawIndirect = VK_TRUE;
          renderer->supportsMultiDrawIndirect = true;
      }
@@ -190,7 +194,7 @@
  
      // creating the logical device
  
-@@ -12530,6 +12590,11 @@
+@@ -12530,6 +12594,11 @@
          deviceCreateInfo.pEnabledFeatures = &features->desiredVulkan10DeviceFeatures;
      }
  
@@ -202,7 +206,7 @@
      vulkanResult = renderer->vkCreateDevice(
          renderer->physicalDevice,
          &deviceCreateInfo,
-@@ -12546,6 +12611,8 @@
+@@ -12546,6 +12615,8 @@
                               renderer->logicalDevice,   \
                               #func);
  #include "SDL_gpu_vulkan_vkfuncs.h"
@@ -211,7 +215,7 @@
  
      renderer->vkGetDeviceQueue(
          renderer->logicalDevice,
-@@ -12698,6 +12765,8 @@
+@@ -12698,6 +12769,8 @@
      renderer->debugMode = debugMode;
      renderer->preferLowPower = preferLowPower;
      renderer->allowedFramesInFlight = 2;
@@ -220,7 +224,7 @@
  
      if (!VULKAN_INTERNAL_PrepareVulkan(renderer, &features, props)) {
          SET_STRING_ERROR("Failed to initialize Vulkan!");
-@@ -12813,6 +12882,8 @@
+@@ -12813,6 +12886,8 @@
          return NULL;
      }
  

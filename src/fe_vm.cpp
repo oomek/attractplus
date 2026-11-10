@@ -2124,7 +2124,7 @@ bool FeVM::start_navigation()
 	return false;
 }
 
-void FeVM::advance_transition_calls( bool waiting_only )
+void FeVM::advance_transition_calls()
 {
 	const FeTime now = m_layout_time.getElapsedTime();
 	const auto frame = m_render_frame_serial;
@@ -2135,8 +2135,7 @@ void FeVM::advance_transition_calls( bool waiting_only )
 		auto script = std::find_if( m_navigation->scripts.begin(), m_navigation->scripts.end(),
 			[&call]( const TransitionScript &entry ) { return entry.id == call.callback.m_sid; } );
 		if ( script == m_navigation->scripts.end() ) continue;
-		// Start new phases while pacing; replay animations only on a new frame.
-		if ( script->started && ( waiting_only || script->frame == frame ) ) continue;
+		if ( script->started && script->frame == frame ) continue;
 		set_for_callback( call.callback );
 		m_preparing_script = script->version >= 4 && script->phase == TransitionScript::Prepare ? script->id : -2;
 		if ( call.type == ToNewList && script->id < 0 && !script->started ) m_feSettings->load_layout_params();
@@ -2157,14 +2156,14 @@ void FeVM::advance_transition_calls( bool waiting_only )
 	}
 	for ( auto &script : m_navigation->scripts )
 	{
-		if ( !script.started || ( !waiting_only && script.frame != frame ) ) script.frame = frame;
+		script.frame = frame;
 		script.started = true;
 	}
 	auto &calls = m_navigation->calls;
 	calls.erase( std::remove_if( calls.begin(), calls.end(), []( const TransitionCall &call ) { return call.finished; } ), calls.end() );
 }
 
-void FeVM::advance_navigation( bool waiting_only )
+void FeVM::advance_navigation()
 {
 	if ( m_advancing_navigation ) return;
 	m_advancing_navigation = true;
@@ -2175,7 +2174,7 @@ void FeVM::advance_navigation( bool waiting_only )
 	{
 		if ( !m_navigation->applied )
 		{
-			advance_transition_calls( waiting_only );
+			advance_transition_calls();
 			if ( !m_navigation->calls.empty() ) break;
 			auto &request = m_navigation->request;
 			bool reload = false;
@@ -2222,7 +2221,7 @@ void FeVM::advance_navigation( bool waiting_only )
 					preparation == ToNewSelection ? -request.value : request.value );
 			}
 		}
-		advance_transition_calls( waiting_only );
+		advance_transition_calls();
 		bool added = false, done = true;
 		for ( auto &script : m_navigation->scripts )
 		{
@@ -2257,44 +2256,6 @@ void FeVM::advance_navigation( bool waiting_only )
 		if ( !added ) break;
 	}
 	m_advancing_navigation = false;
-}
-
-void FeVM::prepare_frame()
-{
-	auto &loader = FeImageLoader::get_ref();
-	auto &gpu = m_window.get_gpu_context();
-	const Uint64 allowance = m_refresh_rate > 0
-		? std::min<Uint64>( 8000000, static_cast<Uint64>( 500000000.0 / m_refresh_rate ) ) : 2000000;
-	if ( !navigation_busy() )
-	{
-		// Prepare the next frame while the GPU renders.
-		gpu.reset_texture_upload_budget();
-		gpu.set_texture_upload_deadline( SDL_GetTicksNS() + allowance );
-		return;
-	}
-	for ( ;; )
-	{
-		const auto version = loader.load_version();
-		const auto status = gpu.acquire_frame();
-		// A pending presentation slot leaves room for another bounded upload
-		// slice. Stop renewing it as soon as the next frame can be drawn.
-		if ( status == FeSdl3GpuContext::FramePending ) gpu.reset_texture_upload_budget();
-		else if ( status == FeSdl3GpuContext::FrameReady )
-		{
-			gpu.set_texture_upload_deadline( SDL_GetTicksNS() + allowance );
-		}
-		else gpu.set_texture_upload_deadline( 0 );
-		advance_navigation( true );
-		if ( m_sort_zorder_triggered )
-		{
-			sort_zorder();
-			m_sort_zorder_triggered = false;
-		}
-		if ( status != FeSdl3GpuContext::FramePending ) return;
-		// Pump native input without removing events from the frontend queue.
-		SDL_PumpEvents();
-		loader.wait_for_load( version );
-	}
 }
 
 bool FeVM::on_tick()

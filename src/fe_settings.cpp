@@ -4666,7 +4666,6 @@ bool FeSettings::internal_get_best_artwork_file(
 	}
 
 	std::string layout_path;
-	get_path( Current, layout_path );
 
 	FeEmulatorInfo *emu_info = get_emulator( emu_name );
 	if ( emu_info )
@@ -4679,7 +4678,11 @@ bool FeSettings::internal_get_best_artwork_file(
 			art_paths.push_back(
 				emu_info->clean_path_with_wd( *itr, !is_supported_archive( *itr ) ) );
 
-			perform_substitution( art_paths.back(), "$LAYOUT", layout_path );
+			if ( art_paths.back().find( "$LAYOUT" ) != std::string::npos )
+			{
+				if ( layout_path.empty() ) get_path( Current, layout_path );
+				perform_substitution( art_paths.back(), "$LAYOUT", layout_path );
+			}
 		}
 	}
 
