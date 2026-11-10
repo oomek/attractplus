@@ -203,8 +203,9 @@ public:
 
 	std::shared_ptr<FeImageTexture> request( const std::shared_ptr<FeImageLoaderEntry> &image, bool mipmap, bool cube_map )
 	{
-		std::lock_guard<std::recursive_mutex> lock( g_mutex );
+		std::unique_lock<std::recursive_mutex> lock( g_mutex );
 		if ( !m_run || image->m_canceled ) return {};
+		bool queued = false;
 		auto &texture = image->m_textures[{ mipmap, cube_map }];
 		if ( !texture || texture->generation != m_generation )
 		{
@@ -236,6 +237,7 @@ public:
 			}
 			if ( image->m_prefetch ) m_jobs.push_back( std::move( job ) );
 			else m_jobs.push_front( std::move( job ) );
+			queued = true;
 		}
 		else if ( texture->prefetch && !image->m_prefetch )
 		{
@@ -244,11 +246,14 @@ public:
 				if ( it->texture == texture )
 				{
 					std::rotate( m_jobs.begin(), it, std::next( it ) );
+					queued = true;
 					break;
 				}
 		}
-		m_ready.notify_one();
-		return texture;
+		auto result = texture;
+		lock.unlock();
+		if ( queued ) m_ready.notify_one();
+		return result;
 	}
 
 	std::shared_ptr<FeImageTexture> video( std::shared_ptr<const unsigned char> pixels,
@@ -378,8 +383,8 @@ private:
 
 	void collect()
 	{
-		std::lock_guard<std::recursive_mutex> lock( g_mutex );
 		FeImageLoader::get_ref().prune_cache();
+		std::lock_guard<std::recursive_mutex> lock( g_mutex );
 		for ( auto it = m_textures.begin(); it != m_textures.end(); )
 		{
 			if ( it->use_count() == 1 )
@@ -1084,9 +1089,9 @@ bool FeImageLoader::load_image_from_file( const std::string &fn, std::shared_ptr
 		std::lock_guard<std::recursive_mutex> lock( g_mutex );
 		if ( !get_cached_image( file, e, legacy ) ) m_imp->m_bg_loader.request( file, e, false, mipmap, legacy );
 		(*e)->m_prefetch = false;
-		auto prepared = prepare_image( *e, mipmap, false );
-		if ( texture ) *texture = std::move( prepared );
 	}
+	auto prepared = prepare_image( *e, mipmap, false );
+	if ( texture ) *texture = std::move( prepared );
 	if ( !background && ( FePresent::script_get_fep() || !m_imp->m_load_images_in_bg ) && !(*e)->is_loaded() )
 	{
 		std::unique_lock<std::mutex> lock( (*e)->m_pixel_mutex );
@@ -1252,8 +1257,10 @@ void FeImageLoader::set_cache_size( size_t s )
 
 void FeImageLoader::prune_cache( bool unused )
 {
-	std::lock_guard<std::recursive_mutex> lock( g_mutex );
-	m_imp->m_cache->prune( unused );
+	{
+		std::lock_guard<std::recursive_mutex> lock( g_mutex );
+		m_imp->m_cache->prune( unused );
+	}
 	FeResourceCache::get().prune( unused );
 }
 
@@ -1315,23 +1322,24 @@ bool FeImageLoader::image_in_cache( const std::string &filename )
 
 void FeImageLoader::add_to_cache( const std::string &key, const std::shared_ptr<FeImageLoaderEntry> &entry )
 {
-	std::lock_guard<std::recursive_mutex> lock( g_mutex );
-	if ( !m_imp || !m_imp->m_cache || !entry )
-		return;
-
-	if ( !entry->is_loaded() || !entry->gpu_bytes() )
-		return;
-
-	if ( entry->m_legacy_cache ) m_imp->m_cache->put( key, entry );
-	else
+	std::size_t bytes;
 	{
-		std::weak_ptr<FeImageLoaderEntry> weak = entry;
-		FeResourceCache::get().put( FeResourceCache::Image, key, entry, entry->gpu_bytes(), [weak]
+		std::lock_guard<std::recursive_mutex> lock( g_mutex );
+		if ( !m_imp || !m_imp->m_cache || !entry || !entry->is_loaded() ) return;
+		bytes = entry->gpu_bytes();
+		if ( !bytes ) return;
+		if ( entry->m_legacy_cache )
 		{
-			auto image = weak.lock();
-			return image ? image->trim_textures() : std::size_t( 0 );
-		} );
+			m_imp->m_cache->put( key, entry );
+			return;
+		}
 	}
+	std::weak_ptr<FeImageLoaderEntry> weak = entry;
+	FeResourceCache::get().put( FeResourceCache::Image, key, entry, bytes, [weak]
+	{
+		auto image = weak.lock();
+		return image ? image->trim_textures() : std::size_t( 0 );
+	} );
 }
 
 bool FeImageLoader::get_cached_image( const std::string &key, std::shared_ptr<FeImageLoaderEntry> *entry, bool legacy )

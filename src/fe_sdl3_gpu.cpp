@@ -1431,12 +1431,13 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			if ( image_source || first_video )
 			{
 				auto &loader = FeImageLoader::get_ref();
-				if ( image_source )
+				// Reuse entry.image_texture once entry.gpu_texture is available.
+				if ( image_source && !entry.gpu_texture )
 				{
 					entry.image_source = const_cast<FeImageLoaderEntry *>( static_cast<const FeImageLoaderEntry *>( texture_id ) )->shared_from_this();
 					entry.image_texture = loader.prepare_image( entry.image_source, texture_mipmap, texture_cube_map, texture_blocking );
 				}
-				else if ( !entry.image_texture )
+				else if ( first_video && !entry.image_texture )
 				{
 					auto *media = const_cast<FeMedia *>( static_cast<const FeMedia *>( texture_id ) );
 					unsigned int width = 0, height = 0;
@@ -1481,8 +1482,7 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 				// Legacy blocking loads must appear together on this draw.
 				const bool new_artwork = !had_texture &&
 					( texture_source_type == FeRenderTextureSourceMedia || texture_source_type == FeRenderTextureSourceRawRgba );
-				if ( new_artwork && !texture_blocking &&
-					( m_texture_upload_deadline ? SDL_GetTicksNS() >= m_texture_upload_deadline : new_upload_time >= 2000000 ) )
+				if ( new_artwork && !texture_blocking && new_upload_time >= 2000000 )
 					return;
 				const Uint64 start = new_artwork ? SDL_GetTicksNS() : 0;
 				if ( !command_buffer )
@@ -2787,11 +2787,7 @@ bool FeSdl3GpuContext::execute_frame( const std::vector<FeRenderGeometry> *overl
 		return false;
 	}
 
-	const bool textures_synced = sync_textures( overlay_geometry );
-	// Blocking transitions and overlays can draw again without frame pacing.
-	// Their next draw must not inherit this frame's expired deadline.
-	m_texture_upload_deadline = 0;
-	if ( !textures_synced )
+	if ( !sync_textures( overlay_geometry ) )
 	{
 		release_frame();
 		return false;
