@@ -3052,7 +3052,7 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_METALLIB_BOOLEAN, shader_formats & SDL_GPU_SHADERFORMAT_METALLIB );
 	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_DEBUGMODE_BOOLEAN, debug_mode );
 	SDL_SetStringProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, preferred_driver );
-#if defined( SDL_PLATFORM_WINDOWS ) && defined( SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN )
+#ifdef SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN
 	SDL_SetBooleanProperty( properties, SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN, true );
 #endif
 	m_device = SDL_CreateGPUDeviceWithProperties( properties );
@@ -3080,9 +3080,7 @@ bool FeSdl3GpuContext::initialize( bool debug_mode, const char *driver_name )
 #ifdef SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN
 		m_present_wait = SDL_GetBooleanProperty( SDL_GetGPUDeviceProperties( m_device ), SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN, false );
 #endif
-#ifdef SDL_PLATFORM_WINDOWS
-		FeDebug() << "SDL: native presentation wait: " << ( m_present_wait ? "enabled" : "unavailable, using DWM pacing" ) << std::endl;
-#endif
+		FeDebug() << "SDL: native presentation wait: " << ( m_present_wait ? "enabled" : "unavailable" ) << std::endl;
 		FeImageLoader::get_ref().set_gpu_device( m_device );
 		std::ostringstream stream;
 		stream << "initialize: SDL_CreateGPUDevice succeeded";
@@ -3100,7 +3098,7 @@ bool FeSdl3GpuContext::uses_present_wait()
 	if ( m_present_wait && !SDL_GetBooleanProperty( SDL_GetGPUDeviceProperties( m_device ), SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN, false ) )
 	{
 		m_present_wait = false;
-		FeDebug() << "SDL: native presentation wait disabled, using DWM pacing: "
+		FeDebug() << "SDL: native presentation wait disabled: "
 			<< SDL_GetStringProperty( SDL_GetGPUDeviceProperties( m_device ), SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_ERROR_STRING, "unavailable" ) << std::endl;
 	}
 #endif
