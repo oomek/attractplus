@@ -71,7 +71,7 @@ public:
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	enum TextureStatus { TexturePending, TextureReady, TextureFailed };
-	TextureStatus texture_status( const FeRenderTextureBinding & ) const;
+	TextureStatus texture_status( const FeRenderTextureBinding &, bool current_content = true ) const;
 	bool prepare_textures( const std::vector<FeRenderTextureBinding> &, unsigned long long frame_number );
 	bool capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height );

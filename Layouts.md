@@ -1827,6 +1827,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `video_duration` - Get the video duration (in milliseconds).
 -  `video_time` - Get the current video playback time (in milliseconds). For videos with audio, this follows audio consumption. Muting the audio track keeps the playback clock running.
 -  `file_name` - _[image & artwork only]_ Get/set the name of the image/video file being shown. If you set this on an artwork or a dynamic image object it will get reset the next time the user changes the game selection. If file_name is contained in an archive, this string should be formatted: "<archive_name>|<filename>". Setting this in `ToNewList`, `ToNewSelection` or `ToEndNavigation` loads the next image or video. Reading `file_name`, `texture_width` or `texture_height` in those callbacks still returns the values for the image or video currently displayed.
+-  `loaded` - _[image & artwork only]_ Get the current image, or video loading status.
 -  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `trigger` - Get/set the transition that starts loading artwork/dynamic images. Default `Transition.ToNewSelection`; set `Transition.ToEndNavigation` to load when navigation stops. With `fe.cache.bg_load = false`, the new artwork is ready before the matching `NewSelection` or `EndNavigation` callbacks.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.

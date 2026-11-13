@@ -2597,6 +2597,12 @@ int FeImage::get_texture_height() const
 	return getTextureSize().y;
 }
 
+bool FeImage::get_loaded() const
+{
+	auto *present = FePresent::script_get_fep();
+	return present && present->texture_loaded( *m_tex );
+}
+
 float FeImage::get_subimg_x() const
 {
 	return getTextureRect().position.x;

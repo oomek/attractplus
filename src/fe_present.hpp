@@ -412,6 +412,7 @@ public:
 	void set_mouse_pointer( bool );
 	FeSdl3GpuContext &get_gpu_context() { return m_window.get_gpu_context(); }
 	const FeSdl3GpuContext &get_gpu_context() const { return m_window.get_gpu_context(); }
+	bool texture_loaded( const FeBaseTextureContainer & );
 
 	//
 	// Script static functions
