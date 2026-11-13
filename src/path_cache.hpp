@@ -34,6 +34,7 @@ public:
 	~FePathCache();
 
 	void clear();
+	bool directory_exists( const std::string &path );
 
 	bool get_filename_from_base(
 		std::vector<std::string> &in_list,
@@ -44,6 +45,8 @@ public:
 
 private:
 	std::map< std::string, std::vector<std::string> > m_cache;
+	std::map< std::string, std::vector<std::string> > m_subdirectories;
+	std::map< std::string, bool > m_directories;
 
 	FePathCache( FePathCache & );
 	FePathCache &operator=( FePathCache & );

@@ -115,6 +115,7 @@ public:
 	int get_blend_mode() const;
 	void set_blend_mode( int b );
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
+	std::uint64_t get_vertex_version() const { return m_vertex_version; }
 	void refresh_script_geometry() override;
 
 private:
@@ -147,7 +148,11 @@ private:
 	bool m_corner_auto;
 	float m_outline;
 	FeBlend::Mode m_blend_mode;
+	mutable std::vector<FeRenderVertex> m_vertices;
+	mutable bool m_vertices_dirty = true;
+	mutable std::uint64_t m_vertex_version = 0;
 
+	void update_geometry() const;
 	void scale();
 	void on_transform_update() override;
 	void update_corner_radius();

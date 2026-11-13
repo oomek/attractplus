@@ -87,7 +87,9 @@ void FeRenderTextureBinding::clear()
 	repeated = false;
 	smooth = true;
 	mipmap = false;
+	aniso = true;
 	dynamic = false;
+	blocking = false;
 	width = 0.0f;
 	height = 0.0f;
 	content_version = 0;
@@ -179,6 +181,7 @@ FeRenderGeometry::FeRenderGeometry()
 	  texture_repeated( false ),
 	  texture_smooth( true ),
 	texture_mipmap( false ),
+	texture_aniso( true ),
 	texture_width( 0.0f ),
 	texture_height( 0.0f ),
 	clip_enabled( false ),
@@ -194,6 +197,7 @@ FeRenderGeometry::FeRenderGeometry()
 	custom_shader( false ),
 	textured( false ),
 	texture_dynamic( false ),
+	texture_blocking( false ),
 	texture_content_version( 0 ),
 	light_count( 0 )
 {
@@ -218,6 +222,7 @@ void FeRenderGeometry::clear()
 	texture_repeated = false;
 	texture_smooth = true;
 	texture_mipmap = false;
+	texture_aniso = true;
 	texture_width = 0.0f;
 	texture_height = 0.0f;
 	clip_enabled = false;
@@ -233,6 +238,7 @@ void FeRenderGeometry::clear()
 	custom_shader = false;
 	textured = false;
 	texture_dynamic = false;
+	texture_blocking = false;
 	texture_content_version = 0;
 	pbr_material.clear();
 	light_count = 0;
@@ -277,6 +283,7 @@ FeRenderSurfaceFrame::FeRenderSurfaceFrame()
 	width( 0 ),
 	height( 0 ),
 	mipmapped( false ),
+	msaa( true ),
 	clear( true ),
 	  redraw( true ),
 	  dynamic_content( false ),
@@ -297,6 +304,7 @@ void FeRenderSurfaceFrame::clear_frame()
 	width = 0;
 	height = 0;
 	mipmapped = false;
+	msaa = true;
 	clear = true;
 	redraw = true;
 	dynamic_content = false;
@@ -319,6 +327,7 @@ void FeRenderFrame::clear()
 	camera = FePerspectiveCamera();
 	images.clear();
 	surfaces.clear();
+	preloads.clear();
 	viewport_width = 0;
 	viewport_height = 0;
 	antialiasing = 0;

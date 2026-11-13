@@ -30,8 +30,14 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <memory>
 #include <vector>
+#include <map>
+#include <tuple>
 class FeImage;
+class FeMedia;
+class FeImageLoaderEntry;
+struct FeImageTexture;
 
 class FeSdl3GpuContext
 {
@@ -52,14 +58,21 @@ public:
 	~FeSdl3GpuContext();
 
 	void submit_frame( FeRenderFrame frame );
+	FeRenderFrame take_frame();
 	const FeRenderFrame &get_frame() const;
 	std::size_t get_texture_count() const;
 	bool execute_frame( const std::vector<FeRenderGeometry> *overlay_geometry = nullptr );
+	enum FrameStatus { FrameReady, FramePending, FrameUnavailable };
+	FrameStatus acquire_frame( bool wait = false );
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
+	bool uses_present_wait();
+	bool prepare_shader( const FeShader * );
 	bool should_present() const;
 	bool has_submitted_frame() const;
-	bool has_frame_content() const;
+	enum TextureStatus { TexturePending, TextureReady, TextureFailed };
+	TextureStatus texture_status( const FeRenderTextureBinding &, bool current_content = true ) const;
+	bool prepare_textures( const std::vector<FeRenderTextureBinding> &, unsigned long long frame_number );
 	bool capture_frame_rgba( std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool capture_surface_rgba( const void *surface_texture_id, std::vector<std::uint8_t> &pixels, int &width, int &height );
 	bool save_screenshot( const std::string &filename );
@@ -76,6 +89,8 @@ public:
 	void *get_native_window_handle() const;
 
 private:
+	static constexpr int DepthPipelineCount = 4;
+	void release_frame();
 	struct CustomShaderEntry;
 	struct BuiltinShaderEntry;
 	struct PbrCustomShaderEntry;
@@ -90,7 +105,33 @@ private:
 		unsigned long long last_upload_frame;
 		unsigned long long last_upload_content_version;
 		SDL_GPUTexture *gpu_texture;
+		SDL_GPUTextureCreateInfo texture_info = {};
+		SDL_GPUTransferBuffer *transfer_buffer = nullptr;
+		Uint32 transfer_buffer_size = 0;
+		unsigned long long transfer_serial = 0;
+		unsigned long long media_id = 0;
+		bool upload_pending = false;
+		std::shared_ptr<FeImageLoaderEntry> image_source;
+		std::shared_ptr<FeImageTexture> image_texture;
 	};
+	struct VideoUpload
+	{
+		FeMedia *media;
+		TextureEntry *entry;
+		void *pixels;
+		std::size_t size;
+		unsigned int width;
+		unsigned int height;
+		SDL_GPUCommandBuffer *command_buffer;
+		bool copied = false;
+		void copy();
+	};
+	struct VideoUploadWorkers;
+	std::unique_ptr<VideoUploadWorkers> m_video_upload_workers;
+	std::vector<VideoUpload> m_video_uploads;
+	SDL_GPUFence *m_texture_upload_fence = nullptr;
+	unsigned long long m_texture_upload_serial = 0;
+	unsigned long long m_completed_texture_upload_serial = 0;
 
 	struct GeometryBufferEntry
 	{
@@ -139,6 +180,15 @@ private:
 		float normal_matrix[3][4];
 	};
 
+	struct PipelineEntry
+	{
+		SDL_GPUGraphicsPipelineCreateInfo info;
+		std::vector<SDL_GPUVertexBufferDescription> buffers;
+		std::vector<SDL_GPUVertexAttribute> attributes;
+		std::vector<SDL_GPUColorTargetDescription> colors;
+		std::map<std::pair<SDL_GPUTextureFormat, SDL_GPUSampleCount>, SDL_GPUGraphicsPipeline *> variants;
+	};
+
 	struct SurfaceEntry
 	{
 		unsigned long long last_seen_frame;
@@ -146,6 +196,7 @@ private:
 		int height;
 		bool mipmapped;
 		bool rendered_once;
+		bool restore_color;
 		std::uint64_t vertex_signature;
 		std::uint64_t last_signature;
 		SDL_GPUTexture *color_texture;
@@ -159,6 +210,7 @@ private:
 	struct CustomUniformBinding
 	{
 		std::string name;
+		std::string type;
 		std::string default_value;
 		int slot;
 		int components;
@@ -194,9 +246,11 @@ private:
 		bool has_custom_vertex;
 		bool fast_current_texture_only;
 		bool compile_failed;
+		bool compiling = false;
+		std::shared_ptr<void> fragment_compile, vertex_compile;
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 		std::vector<CustomUniformBinding> vertex_uniforms;
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
@@ -211,7 +265,7 @@ private:
 			  vertex_shader( nullptr ),
 			  fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 3; ++z )
+			for ( int z = 0; z < DepthPipelineCount; ++z )
 				for ( int i = 0; i <= FeBlend::None; ++i )
 					blend_pipelines[ z ][ i ] = nullptr;
 		}
@@ -222,8 +276,10 @@ private:
 		std::string source_path;
 		unsigned long long source_stamp;
 		bool compile_failed;
+		bool compiling = false;
+		std::shared_ptr<void> fragment_compile;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *pbr_pipelines[3][2][2];
+		SDL_GPUGraphicsPipeline *pbr_pipelines[DepthPipelineCount][2][2];
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
 
@@ -232,7 +288,7 @@ private:
 			  compile_failed( false ),
 			  fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 3; ++z )
+			for ( int z = 0; z < DepthPipelineCount; ++z )
 				for ( int blend = 0; blend < 2; ++blend )
 					for ( int sided = 0; sided < 2; ++sided )
 						pbr_pipelines[ z ][ blend ][ sided ] = nullptr;
@@ -243,18 +299,19 @@ private:
 	{
 		std::string source_id;
 		SDL_GPUShader *fragment_shader;
-		SDL_GPUGraphicsPipeline *blend_pipelines[3][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 
 		BuiltinShaderEntry()
 			: fragment_shader( nullptr )
 		{
-			for ( int z = 0; z < 3; ++z )
+			for ( int z = 0; z < DepthPipelineCount; ++z )
 				for ( int i = 0; i <= FeBlend::None; ++i )
 					blend_pipelines[z][i] = nullptr;
 		}
 	};
 
-	void sync_textures( const std::vector<FeRenderGeometry> *extra_geometry = nullptr );
+	bool sync_textures( const std::vector<FeRenderGeometry> *extra_geometry = nullptr,
+		const std::vector<FeRenderTextureBinding> *preloads = nullptr, unsigned long long frame_number = 0 );
 	void clear_textures();
 	void clear_geometry_buffers();
 	void build_prepared_images();
@@ -264,7 +321,13 @@ private:
 		std::vector<PreparedImage> &prepared_images,
 		std::vector<FeRenderVertex> &vertex_stream );
 	void release_texture( TextureEntry &entry );
-	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry );
+	void retire_texture( TextureEntry &entry );
+	bool use_image_texture( TextureEntry &entry, bool blocking );
+	bool upload_texture( const void *texture_id, int texture_source_type, TextureEntry &entry, SDL_GPUCommandBuffer *command_buffer = nullptr, bool blocking=false );
+	bool submit_texture_upload( TextureEntry &entry, unsigned int source_width, unsigned int source_height, SDL_GPUCommandBuffer *command_buffer );
+	bool flush_video_uploads();
+	bool submit_texture_commands( SDL_GPUCommandBuffer *command_buffer );
+	void reset_media_texture( const FeMedia *media, TextureEntry &entry );
 	void release_white_texture();
 	bool ensure_white_texture();
 	void release_white_cube_texture();
@@ -284,9 +347,9 @@ private:
 	void build_pbr_instance_batches( std::vector<PreparedImage> &prepared_images, std::vector<PbrInstanceEntry> &instance_data ) const;
 	int get_requested_anisotropy() const;
 	bool update_anisotropy();
-	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth );
-	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth );
-	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped ) const;
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth, bool aniso = true );
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth, bool aniso = true );
+	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso ) const;
 	SDL_GPUSampleCount get_requested_sample_count() const;
 	SDL_GPUSampleCount pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const;
 	bool update_sample_count( SDL_GPUTextureFormat swapchain_format );
@@ -294,7 +357,7 @@ private:
 	void release_color_target();
 	bool ensure_color_target( int width, int height );
 	void release_depth_target();
-	bool ensure_depth_target( int width, int height );
+	bool ensure_depth_target( int width, int height, bool required );
 	void release_surfaces();
 	void release_surface_target( SurfaceEntry &entry );
 	bool ensure_surface_target( const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );
@@ -304,7 +367,8 @@ private:
 	void release_pbr_custom_shader( PbrCustomShaderEntry &entry );
 	void release_builtin_shaders();
 	void release_builtin_shader( BuiltinShaderEntry &entry );
-	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image );
+	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image, bool *pending = nullptr );
+	void prepare_pipelines( SDL_GPUTextureFormat );
 	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
 	PbrCustomShaderEntry *get_pbr_custom_shader_entry( const FeRenderGeometry &image );
 	BuiltinShaderEntry *get_fast_builtin_shader_entry( int blend_mode );
@@ -353,6 +417,9 @@ private:
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
 		bool use_preuploaded_pbr_instances,
+		bool has_depth_target,
+		SDL_GPUTextureFormat target_format,
+		SDL_GPUSampleCount sample_count,
 		bool encode_pbr_output_srgb,
 		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
@@ -364,22 +431,37 @@ private:
 		int viewport_height,
 		const std::vector<FeRenderGeometry> &geometry,
 		bool use_surface_targets,
+		bool has_depth_target,
+		SDL_GPUTextureFormat target_format,
+		SDL_GPUSampleCount sample_count,
 		bool encode_pbr_output_srgb,
 		SDL_GPUBuffer **cached_vertex_buffer,
 		Uint32 *cached_vertex_buffer_size,
 		std::uint64_t *cached_vertex_signature,
 		std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers,
 		bool &drew_anything );
+	SDL_GPUGraphicsPipeline *create_pipeline( const SDL_GPUGraphicsPipelineCreateInfo &info );
+	SDL_GPUGraphicsPipeline *get_pipeline_variant( SDL_GPUGraphicsPipeline *pipeline,
+		SDL_GPUTextureFormat format, SDL_GPUSampleCount samples );
+	void release_pipeline( SDL_GPUGraphicsPipeline *pipeline );
+	bool restore_surface_color( SDL_GPUCommandBuffer *command_buffer,
+		const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );
 	void release_image_pipeline();
 	bool initialize_image_pipeline( SDL_GPUTextureFormat swapchain_format );
 	void release_pbr_pipeline();
 	bool initialize_pbr_pipeline( SDL_GPUTextureFormat swapchain_format );
 
 	FeRenderFrame m_frame;
+	unsigned long long m_texture_upload_frame = 0;
+	Uint64 m_texture_upload_time = 0;
 	FrameStats m_frame_stats;
-	std::unordered_map<const void *, TextureEntry> m_textures;
+	std::map<std::tuple<const void *, bool, bool>, TextureEntry> m_textures;
+	std::map<std::tuple<const void *, bool, bool>, unsigned long long> m_texture_failures;
+	std::vector<TextureEntry> m_spare_textures;
+	std::size_t m_spare_texture_bytes = 0;
 	std::unordered_map<const void *, GeometryBufferEntry> m_geometry_buffers;
 	std::unordered_map<const void *, SurfaceEntry> m_surfaces;
+	std::unordered_map<SDL_GPUGraphicsPipeline *, PipelineEntry> m_pipeline_entries;
 	std::vector<PreparedImage> m_prepared_images;
 	std::vector<FeRenderVertex> m_vertex_stream;
 	std::unordered_map<std::string, CustomShaderEntry> m_custom_shaders;
@@ -391,6 +473,11 @@ private:
 	bool m_window_claimed;
 	SDL_Window *m_window;
 	SDL_GPUDevice *m_device;
+	bool m_present_wait = false;
+	SDL_GPUCommandBuffer *m_present_command_buffer = nullptr;
+	SDL_GPUTexture *m_swapchain_texture = nullptr;
+	Uint32 m_swapchain_width = 0;
+	Uint32 m_swapchain_height = 0;
 	SDL_GPUBuffer *m_vertex_buffer;
 	SDL_GPUBuffer *m_pbr_instance_buffer;
 	SDL_GPUCommandBuffer *m_vertex_upload_command_buffer;
@@ -403,6 +490,7 @@ private:
 	Uint32 m_pbr_instance_buffer_size;
 	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
+	SDL_GPUShader *m_custom_vertex_shader;
 	SDL_GPUShader *m_alpha_prepass_shader;
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUShader *m_pbr_vertex_shader;
@@ -414,14 +502,17 @@ private:
 	SDL_GPUSampler *m_linear_mipmap_sampler;
 	SDL_GPUSampler *m_linear_mipmap_repeat_sampler;
 	SDL_GPUSampler *m_linear_mipmap_cubemap_sampler;
+	SDL_GPUSampler *m_isotropic_mipmap_sampler;
+	SDL_GPUSampler *m_isotropic_mipmap_repeat_sampler;
+	SDL_GPUSampler *m_isotropic_mipmap_cubemap_sampler;
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_repeat_sampler;
-	SDL_GPUGraphicsPipeline *m_blend_pipelines[3][FeBlend::None + 1];
+	SDL_GPUGraphicsPipeline *m_blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 	SDL_GPUGraphicsPipeline *m_alpha_prepass_pipeline;
 	SDL_GPUGraphicsPipeline *m_pbr_prepass_pipelines[2];
-	SDL_GPUGraphicsPipeline *m_pbr_pipelines[3][2][2];
+	SDL_GPUGraphicsPipeline *m_pbr_pipelines[DepthPipelineCount][2][2];
 	SDL_GPUTexture *m_white_texture;
 	SDL_GPUTexture *m_white_cube_texture;
 	SDL_GPUTexture *m_color_target_texture;
@@ -435,8 +526,6 @@ private:
 	SDL_GPUSampleCount m_sample_count;
 	SDL_GPUTextureFormat m_swapchain_format;
 	bool m_pipeline_attempted;
-	bool m_present_disabled;
-	unsigned int m_failed_present_frames;
 	bool m_has_submitted_frame;
 };
 

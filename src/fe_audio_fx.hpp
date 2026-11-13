@@ -61,6 +61,7 @@ class FeAudioEffectsManager
 public:
 	FeAudioEffectsManager();
 	~FeAudioEffectsManager();
+	static std::shared_ptr<FeAudioEffectsManager> create_media( float volume, bool normalise );
 
 	void add_effect( std::unique_ptr<FeAudioEffect> effect );
 	bool process_all( const float *input_frames, float *output_frames,
@@ -127,7 +128,7 @@ public:
 	static constexpr int FFT_BANDS_MAX = 128;
 
 	void set_fft_bands( int count );
-	int get_fft_bands() const { return m_fft_bands; }
+	int get_fft_bands() const;
 
 private:
 	static void initialise_window_lut();
@@ -155,6 +156,7 @@ private:
 	mutable FeTime m_vu_request_time;
 	mutable FeTime m_fft_request_time;
 	int m_fft_bands;
+	int m_fft_call_counter = 0;
 
 	// Rolling buffer and resampling for FFT
 	std::vector<float> m_rolling_buffer_mono;

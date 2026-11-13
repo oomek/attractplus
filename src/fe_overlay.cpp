@@ -445,7 +445,7 @@ void FeOverlay::splash_logo( const std::string &aux )
 			*logo_image,
 			layout_logo_bounds(
 				Vec2u( static_cast<unsigned int>( logo_image->w ), static_cast<unsigned int>( logo_image->h ) ),
-				LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ) );
+				LayoutStyle::Large | LayoutStyle::Middle | LayoutStyle::Centre ), t );
 	}
 	m_wnd.draw( extra, t );
 	m_wnd.display();
@@ -714,8 +714,7 @@ int FeOverlay::tags_dialog( int default_sel, FeInputMap::Command extra_exit )
 	{
 		// Update without reset if the list has not been changed
 		// - This will allow layout lists to display the changed tags
-		m_fePresent.update_to( ToNewList, list_changed );
-		m_fePresent.on_transition( ToNewList, 0 );
+		m_fePresent.refresh_list( 0, list_changed );
 		m_fePresent.on_transition( ChangedTag, FeRomInfo::Tags );
 	}
 
@@ -1330,7 +1329,7 @@ void FeOverlay::draw_native_logo_if_needed()
 		*m_native_logo_image,
 		layout_logo_bounds(
 			Vec2u( static_cast<unsigned int>( m_native_logo_image->w ), static_cast<unsigned int>( m_native_logo_image->h ) ),
-			m_native_logo_style ) );
+			m_native_logo_style ), m_fePresent.get_ui_transform() );
 }
 
 // Create a list index overlay for use with LayoutPreview lists

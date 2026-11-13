@@ -27,11 +27,13 @@
 #include "fe_present.hpp"
 #include <algorithm>
 #include <cmath>
+#include <atomic>
 
 namespace
 {
 	const float DELTA = 0.01; // Used to create non-zero rect size
 	const int MAX_CORNER_POINTS = 32; // Abitrary limit
+	std::atomic<std::uint64_t> rectangle_vertex_version( 0 );
 }
 
 FeRectangle::FeRectangle( FePresentableParent &p,
@@ -135,6 +137,7 @@ void FeRectangle::setColor( Color c )
 		return;
 
 	m_fill_color = c;
+	m_vertices_dirty = true;
 	FePresent::script_flag_redraw();
 }
 
@@ -144,6 +147,7 @@ void FeRectangle::setOutlineColor( Color c )
 		return;
 
 	m_outline_color = c;
+	m_vertices_dirty = true;
 	FePresent::script_flag_redraw();
 }
 
@@ -159,6 +163,7 @@ void FeRectangle::set_outline( float o )
 
 	m_outline = o;
 	m_outline_thickness = grid_height_to_pixels( m_outline );
+	m_vertices_dirty = true;
 	FePresent::script_flag_redraw();
 }
 
@@ -572,6 +577,7 @@ void FeRectangle::set_corner_point_count( int n )
 
 void FeRectangle::update_corner_points()
 {
+	m_vertices_dirty = true;
 	// Reduce to a single corner if x or y radius is zero
 	int n = ( m_corner_radius.x != 0 && m_corner_radius.y != 0 && m_corner_point_count > 0 ) ? m_corner_point_count : 1;
 	if ( n > MAX_CORNER_POINTS ) n = MAX_CORNER_POINTS;
@@ -677,16 +683,17 @@ Vec2f FeRectangle::get_shape_point( std::size_t index, const Vec2f &size, const 
 		-radius.y * std::sin( angle ) + center.y );
 }
 
-bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
+void FeRectangle::update_geometry() const
 {
-	geometry.clear();
-	geometry.zbuffer = get_zbuffer();
+	m_vertices.clear();
+	m_vertices_dirty = false;
+	m_vertex_version = ++rectangle_vertex_version;
 
 	const std::size_t point_count = get_shape_point_count();
 	if ( point_count < 3 )
-		return false;
+		return;
 
-	geometry.vertices.reserve( ( point_count - 2 ) * 3
+	m_vertices.reserve( ( point_count - 2 ) * 3
 		+ ( ( m_outline_thickness != 0.0f && m_outline_color.a > 0 ) ? point_count * 6 : 0 ) );
 
 	const FeTransform transform = FeTransform()
@@ -733,9 +740,9 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 		v2.u = uv2.x;
 		v2.v = uv2.y;
 
-		geometry.vertices.push_back( v0 );
-		geometry.vertices.push_back( v1 );
-		geometry.vertices.push_back( v2 );
+		m_vertices.push_back( v0 );
+		m_vertices.push_back( v1 );
+		m_vertices.push_back( v2 );
 	};
 
 	const Vec2f first_local = get_shape_point( 0 );
@@ -798,7 +805,15 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 				outline_color );
 		}
 	}
+}
 
+bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
+{
+	geometry.clear();
+	if ( m_vertices_dirty || ( !m_vertices.empty() && m_vertices.front().z != get_z() ) )
+		update_geometry();
+	geometry.vertices = m_vertices;
+	geometry.zbuffer = get_zbuffer();
 	geometry.texture_id = nullptr;
 	geometry.texture_width = 1.0f;
 	geometry.texture_height = 1.0f;

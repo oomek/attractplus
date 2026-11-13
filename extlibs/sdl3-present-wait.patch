@@ -1,0 +1,235 @@
+--- a/include/SDL3/SDL_gpu.h
++++ b/include/SDL3/SDL_gpu.h
+@@ -2380,6 +2380,8 @@
+ #define SDL_PROP_GPU_DEVICE_CREATE_D3D12_AGILITY_SDK_PATH_STRING                "SDL.gpu.device.create.d3d12.agility_sdk_path"
+ #define SDL_PROP_GPU_DEVICE_CREATE_VULKAN_REQUIRE_HARDWARE_ACCELERATION_BOOLEAN "SDL.gpu.device.create.vulkan.requirehardwareacceleration"
+ #define SDL_PROP_GPU_DEVICE_CREATE_VULKAN_OPTIONS_POINTER                       "SDL.gpu.device.create.vulkan.options"
++/* Attract-Mode Plus: optionally pace VSYNC frames by presentation completion. */
++#define SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN                  "SDL.gpu.device.create.vulkan.present_wait"
+ #define SDL_PROP_GPU_DEVICE_CREATE_METAL_ALLOW_MACFAMILY1_BOOLEAN               "SDL.gpu.device.create.metal.allowmacfamily1"
+ 
+ 
+@@ -2580,6 +2582,9 @@
+ #define SDL_PROP_GPU_DEVICE_DRIVER_NAME_STRING        "SDL.gpu.device.driver_name"
+ #define SDL_PROP_GPU_DEVICE_DRIVER_VERSION_STRING     "SDL.gpu.device.driver_version"
+ #define SDL_PROP_GPU_DEVICE_DRIVER_INFO_STRING        "SDL.gpu.device.driver_info"
++/* Attract-Mode Plus: active support and the reason for a recoverable fallback. */
++#define SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN "SDL.gpu.device.vulkan.present_wait"
++#define SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_ERROR_STRING "SDL.gpu.device.vulkan.present_wait_error"
+ 
+ 
+ /* State Creation */
+--- a/src/gpu/vulkan/SDL_gpu_vulkan_vkfuncs.h
++++ b/src/gpu/vulkan/SDL_gpu_vulkan_vkfuncs.h
+@@ -56,6 +56,7 @@
+ 
+ // VK_KHR_get_physical_device_properties2, needed for KHR_driver_properties
+ VULKAN_INSTANCE_FUNCTION(vkGetPhysicalDeviceProperties2KHR)
++VULKAN_INSTANCE_FUNCTION(vkGetPhysicalDeviceFeatures2KHR)
+ 
+ // VK_KHR_surface
+ VULKAN_INSTANCE_FUNCTION(vkDestroySurfaceKHR)
+@@ -170,6 +171,7 @@
+ VULKAN_DEVICE_FUNCTION(vkDestroySwapchainKHR)
+ VULKAN_DEVICE_FUNCTION(vkQueuePresentKHR)
+ VULKAN_DEVICE_FUNCTION(vkGetSwapchainImagesKHR)
++VULKAN_DEVICE_FUNCTION(vkWaitForPresentKHR)
+ 
+ /*
+  * Redefine these every time you include this header!
+--- a/src/gpu/vulkan/SDL_gpu_vulkan.c
++++ b/src/gpu/vulkan/SDL_gpu_vulkan.c
+@@ -61,6 +61,9 @@
+     Uint8 MSFT_layered_driver;
+     // Only required for decoding HDR ASTC textures
+     Uint8 EXT_texture_compression_astc_hdr;
++    // Attract-Mode Plus: optional presentation completion pacing.
++    Uint8 KHR_present_id;
++    Uint8 KHR_present_wait;
+ } VulkanExtensions;
+ 
+ // Defines
+@@ -700,6 +703,7 @@
+     SDL_GPUFence *inFlightFences[MAX_FRAMES_IN_FLIGHT];
+ 
+     Uint32 frameCounter;
++    Uint64 presentId;
+ } WindowData;
+ 
+ typedef struct SwapchainSupportDetails
+@@ -1127,6 +1131,8 @@
+     bool requireHardwareAcceleration;
+     SDL_PropertiesID props;
+     Uint32 allowedFramesInFlight;
++    bool presentWaitRequested;
++    bool presentWaitEnabled;
+ 
+     VulkanExtensions supports;
+     bool supportsDebugUtils;
+@@ -4734,6 +4740,8 @@
+         CHECK_VULKAN_ERROR_AND_RETURN(vulkanResult, vkCreateSwapchainKHR, false);
+     }
+ 
++    windowData->presentId = 0;
++
+     vulkanResult = renderer->vkGetSwapchainImagesKHR(
+         renderer->logicalDevice,
+         windowData->swapchain,
+@@ -10089,6 +10097,11 @@
+         SDL_VideoDevice *videoDevice = SDL_GetVideoDevice();
+         SDL_assert(videoDevice);
+         SDL_assert(videoDevice->Vulkan_CreateSurface);
++        // Retire the old swapchain before replacing its native surface.
++        if (!VULKAN_Wait((SDL_GPURenderer *)renderer)) {
++            return false;
++        }
++        VULKAN_INTERNAL_DestroySwapchain(renderer, windowData);
+         renderer->vkDestroySurfaceKHR(
+                 renderer->instance,
+                 windowData->surface,
+@@ -10807,8 +10820,16 @@
+     for (Uint32 j = 0; j < vulkanCommandBuffer->presentDataCount; j += 1) {
+         presentData = &vulkanCommandBuffer->presentDatas[j];
+ 
++        const bool waitForPresent = renderer->presentWaitEnabled &&
++            presentData->windowData->presentMode == SDL_GPU_PRESENTMODE_VSYNC;
++        const Uint64 presentId = waitForPresent ? ++presentData->windowData->presentId : 0;
++        VkPresentIdKHR presentIdInfo = { 0 };
++        presentIdInfo.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
++        presentIdInfo.swapchainCount = 1;
++        presentIdInfo.pPresentIds = &presentId;
++
+         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+-        presentInfo.pNext = NULL;
++        presentInfo.pNext = waitForPresent ? &presentIdInfo : NULL;
+         presentInfo.pWaitSemaphores =
+             &presentData->windowData->renderFinishedSemaphore[presentData->swapchainImageIndex];
+         presentInfo.waitSemaphoreCount = 1;
+@@ -10820,6 +10841,27 @@
+         presentResult = renderer->vkQueuePresentKHR(
+             renderer->unifiedQueue,
+             &presentInfo);
++
++        if (waitForPresent &&
++            (presentResult == VK_SUCCESS || presentResult == VK_SUBOPTIMAL_KHR) &&
++            !(SDL_GetWindowFlags(presentData->windowData->window) & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED))) {
++            // Bound the wait so an occluded or suspended presentation engine
++            // cannot prevent the application from processing window events.
++            // Keep background uploads running while the display completes.
++            // Swapchain lifetime is owned by this window's presentation thread.
++            SDL_UnlockMutex(renderer->submitLock);
++            const VkResult waited = renderer->vkWaitForPresentKHR(
++                renderer->logicalDevice, presentData->windowData->swapchain,
++                presentId, 100000000);
++            SDL_LockMutex(renderer->submitLock);
++            if (waited == VK_SUBOPTIMAL_KHR || waited == VK_ERROR_OUT_OF_DATE_KHR || waited == VK_ERROR_SURFACE_LOST_KHR || waited == VK_ERROR_DEVICE_LOST) {
++                presentResult = waited;
++            } else if (waited != VK_SUCCESS) {
++                renderer->presentWaitEnabled = false;
++                SDL_SetBooleanProperty(renderer->props, SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN, false);
++                SDL_SetStringProperty(renderer->props, SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_ERROR_STRING, VkErrorMessages(waited));
++            }
++        }
+ 
+         if (presentResult == VK_SUCCESS || presentResult == VK_SUBOPTIMAL_KHR || presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
+             // If presenting, the swapchain is using the in-flight fence
+@@ -11184,7 +11226,7 @@
+         supports->ext = 1;                   \
+     }
+         CHECK(KHR_swapchain)
+-        else CHECK(KHR_maintenance1) else CHECK(KHR_driver_properties) else CHECK(KHR_portability_subset) else CHECK(MSFT_layered_driver) else CHECK(EXT_texture_compression_astc_hdr)
++        else CHECK(KHR_maintenance1) else CHECK(KHR_driver_properties) else CHECK(KHR_portability_subset) else CHECK(MSFT_layered_driver) else CHECK(EXT_texture_compression_astc_hdr) else CHECK(KHR_present_id) else CHECK(KHR_present_wait)
+ #undef CHECK
+     }
+ 
+@@ -11200,7 +11242,9 @@
+         supports->KHR_driver_properties +
+         supports->KHR_portability_subset +
+         supports->MSFT_layered_driver +
+-        supports->EXT_texture_compression_astc_hdr);
++        supports->EXT_texture_compression_astc_hdr +
++        supports->KHR_present_id +
++        supports->KHR_present_wait);
+ }
+ 
+ static inline void CreateDeviceExtensionArray(
+@@ -11218,6 +11262,8 @@
+     CHECK(KHR_portability_subset)
+     CHECK(MSFT_layered_driver)
+     CHECK(EXT_texture_compression_astc_hdr)
++    CHECK(KHR_present_id)
++    CHECK(KHR_present_wait)
+ #undef CHECK
+ }
+ 
+@@ -12400,6 +12446,8 @@
+     VkDeviceCreateInfo deviceCreateInfo;
+     VkPhysicalDeviceFeatures haveDeviceFeatures;
+     VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures;
++    VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeatures = { 0 };
++    VkPhysicalDevicePresentIdFeaturesKHR presentIdFeatures = { 0 };
+     const char **deviceExtensions;
+ 
+     VkDeviceQueueCreateInfo queueCreateInfo;
+@@ -12430,6 +12478,22 @@
+         features->desiredVulkan10DeviceFeatures.multiDrawIndirect = VK_TRUE;
+         renderer->supportsMultiDrawIndirect = true;
+     }
++
++    // Attract-Mode Plus: extension presence alone does not guarantee features.
++    if (renderer->presentWaitRequested && renderer->supports.KHR_present_id &&
++        renderer->supports.KHR_present_wait && renderer->supportsPhysicalDeviceProperties2 &&
++        renderer->vkGetPhysicalDeviceFeatures2KHR) {
++        VkPhysicalDeviceFeatures2 supported = { 0 };
++        presentWaitFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
++        presentIdFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
++        presentWaitFeatures.pNext = &presentIdFeatures;
++        supported.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
++        supported.pNext = &presentWaitFeatures;
++        renderer->vkGetPhysicalDeviceFeatures2KHR(renderer->physicalDevice, &supported);
++        renderer->presentWaitEnabled = presentWaitFeatures.presentWait && presentIdFeatures.presentId;
++    }
++    renderer->supports.KHR_present_id = renderer->presentWaitEnabled;
++    renderer->supports.KHR_present_wait = renderer->presentWaitEnabled;
+ 
+     // creating the logical device
+ 
+@@ -12530,6 +12594,11 @@
+         deviceCreateInfo.pEnabledFeatures = &features->desiredVulkan10DeviceFeatures;
+     }
+ 
++    if (renderer->presentWaitEnabled) {
++        presentIdFeatures.pNext = (void *)deviceCreateInfo.pNext;
++        deviceCreateInfo.pNext = &presentWaitFeatures;
++    }
++
+     vulkanResult = renderer->vkCreateDevice(
+         renderer->physicalDevice,
+         &deviceCreateInfo,
+@@ -12546,6 +12615,8 @@
+                              renderer->logicalDevice,   \
+                              #func);
+ #include "SDL_gpu_vulkan_vkfuncs.h"
++
++    renderer->presentWaitEnabled = renderer->presentWaitEnabled && renderer->vkWaitForPresentKHR;
+ 
+     renderer->vkGetDeviceQueue(
+         renderer->logicalDevice,
+@@ -12698,6 +12769,8 @@
+     renderer->debugMode = debugMode;
+     renderer->preferLowPower = preferLowPower;
+     renderer->allowedFramesInFlight = 2;
++    renderer->presentWaitRequested = SDL_GetBooleanProperty(
++        props, SDL_PROP_GPU_DEVICE_CREATE_VULKAN_PRESENT_WAIT_BOOLEAN, false);
+ 
+     if (!VULKAN_INTERNAL_PrepareVulkan(renderer, &features, props)) {
+         SET_STRING_ERROR("Failed to initialize Vulkan!");
+@@ -12813,6 +12886,8 @@
+         return NULL;
+     }
+ 
++    SDL_SetBooleanProperty(renderer->props, SDL_PROP_GPU_DEVICE_VULKAN_PRESENT_WAIT_BOOLEAN, renderer->presentWaitEnabled);
++
+     // FIXME: just move this into this function
+     result = (SDL_GPUDevice *)SDL_calloc(1, sizeof(SDL_GPUDevice));
+     ASSIGN_DRIVER(VULKAN)

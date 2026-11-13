@@ -52,7 +52,9 @@ enum FeRenderTextureSourceType
 	FeRenderTextureSourceNone = 0,
 	FeRenderTextureSourceContainer,
 	FeRenderTextureSourceFontPage,
-	FeRenderTextureSourceRawRgba
+	FeRenderTextureSourceRawRgba,
+	FeRenderTextureSourceMedia,
+	FeRenderTextureSourceImage
 };
 
 constexpr int FE_RENDER_PBR_TEXTURE_COUNT = 6;
@@ -92,7 +94,9 @@ struct FeRenderTextureBinding
 	bool repeated;
 	bool smooth;
 	bool mipmap;
+	bool aniso;
 	bool dynamic;
+	bool blocking;
 	float width;
 	float height;
 	std::uint64_t content_version;
@@ -173,6 +177,7 @@ struct FeRenderGeometry
 	bool texture_repeated;
 	bool texture_smooth;
 	bool texture_mipmap;
+	bool texture_aniso;
 	float texture_width;
 	float texture_height;
 	bool clip_enabled;
@@ -188,6 +193,7 @@ struct FeRenderGeometry
 	bool custom_shader;
 	bool textured;
 	bool texture_dynamic;
+	bool texture_blocking;
 	std::uint64_t texture_content_version;
 	FeRenderPbrMaterial pbr_material;
 	int light_count;
@@ -217,6 +223,7 @@ struct FeRenderSurfaceFrame
 	int width;
 	int height;
 	bool mipmapped;
+	bool msaa;
 	bool clear;
 	bool redraw;
 	bool dynamic_content;
@@ -232,6 +239,7 @@ struct FeRenderFrame
 	FePerspectiveCamera camera;
 	std::vector<FeRenderGeometry> images;
 	std::vector<FeRenderSurfaceFrame> surfaces;
+	std::vector<FeRenderTextureBinding> preloads;
 	int viewport_width;
 	int viewport_height;
 	int antialiasing;

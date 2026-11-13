@@ -79,7 +79,7 @@ Group Clones;分组克隆
 Hide Game Title Brackets;隐藏比赛标题括号
 Format Game Title;格式化游戏标题
 Hide Console;隐藏控制台
-Image Cache Size;图像缓存大小
+Cache Size;缓存大小
 Insert Command Shortcut;插入命令快捷方式
 Insert Display Shortcut;插入显示快捷方式
 Insert Game Entry;插入游戏条目
@@ -515,7 +515,7 @@ _help_misc_group_clones;将同一游戏的所有克隆版本分组到一个列�
 _help_misc_hide_brackets;显示游戏标题时隐藏括号中的文本
 _help_misc_prefix_modes;将“The”和“Vs.”前缀移动到游戏标题的末尾
 _help_misc_hide_console;启动时隐藏控制台。请注意, 此功能仅在从 Windows 图形用户界面启动 Attract-Mode Plus 时有效。如果从现有控制台窗口(例如批处理文件)启动, 则该进程将始终“附加”到现有控制台并向其输出。
-_help_misc_image_cache_mbytes;配置Attract-Mode Plus内部图像缓存的最大大小(以兆字节为单位)
+_help_misc_cache_mbytes;设置图像、声音、字体和着色器缓存的最大大小（以兆字节为单位）
 _help_misc_language;选择 Attract-Mode Plus 用户界面中使用的语言
 _help_misc_layout_preview;立即显示布局配置更改
 _help_misc_multiple_monitors;启用 Attract-Mode Plus 的多显示器功能。将此项设置为“否”可能会减少启动游戏时的屏幕闪烁。

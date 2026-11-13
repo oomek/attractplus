@@ -32,7 +32,11 @@ extern "C"
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cstring>
+#include <vector>
 #include <SDL3/SDL.h>
+#include <vulkan/vulkan_core.h>
+#include <SDL3/SDL_vulkan.h>
 #include <mutex>
 #include "nowide/fstream.hpp"
 #include "nowide/iostream.hpp"
@@ -75,13 +79,86 @@ const std::uint32_t FE_CACHE_VERSION = FE_CACHE_VERSION_D;
 
 namespace {
 	nowide::ofstream g_logfile;
-#ifdef SDL_PLATFORM_WINDOWS
-	nowide::ofstream g_nullstream( "NUL" );
-#else
-	nowide::ofstream g_nullstream( "/dev/null" );
-#endif
+	// Worker threads must not share a mutable stream buffer, even for messages
+	// discarded at the current log level. A null buffer also avoids file I/O.
+	thread_local std::ostream g_nullstream( nullptr );
 	enum FeLogLevel g_log_level=FeLog_Info;
 	std::mutex g_log_mutex;
+
+	std::uint32_t get_vulkan_device_version( const char *device_name )
+	{
+		const auto get_instance_proc = reinterpret_cast<PFN_vkGetInstanceProcAddr>( SDL_Vulkan_GetVkGetInstanceProcAddr() );
+		if ( !get_instance_proc || !device_name[0] )
+			return 0;
+
+		const auto create_instance = reinterpret_cast<PFN_vkCreateInstance>(
+			get_instance_proc( VK_NULL_HANDLE, "vkCreateInstance" ) );
+		const auto enumerate_extensions = reinterpret_cast<PFN_vkEnumerateInstanceExtensionProperties>(
+			get_instance_proc( VK_NULL_HANDLE, "vkEnumerateInstanceExtensionProperties" ) );
+		if ( !create_instance || !enumerate_extensions )
+			return 0;
+
+		VkApplicationInfo app_info = {};
+		app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		app_info.apiVersion = VK_API_VERSION_1_0;
+		VkInstanceCreateInfo create_info = {};
+		create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		create_info.pApplicationInfo = &app_info;
+		const char *portability_extension = VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+		std::uint32_t extension_count = 0;
+		if ( enumerate_extensions( nullptr, &extension_count, nullptr ) == VK_SUCCESS && extension_count )
+		{
+			std::vector<VkExtensionProperties> extensions( extension_count );
+			if ( enumerate_extensions( nullptr, &extension_count, extensions.data() ) == VK_SUCCESS )
+			{
+				for ( const auto &extension : extensions )
+					if ( std::strcmp( extension.extensionName, portability_extension ) == 0 )
+					{
+						create_info.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+						create_info.enabledExtensionCount = 1;
+						create_info.ppEnabledExtensionNames = &portability_extension;
+						break;
+					}
+			}
+		}
+
+		VkInstance instance = VK_NULL_HANDLE;
+		if ( create_instance( &create_info, nullptr, &instance ) != VK_SUCCESS )
+			return 0;
+
+		const auto destroy_instance = reinterpret_cast<PFN_vkDestroyInstance>(
+			get_instance_proc( instance, "vkDestroyInstance" ) );
+		const auto enumerate_devices = reinterpret_cast<PFN_vkEnumeratePhysicalDevices>(
+			get_instance_proc( instance, "vkEnumeratePhysicalDevices" ) );
+		const auto get_properties = reinterpret_cast<PFN_vkGetPhysicalDeviceProperties>(
+			get_instance_proc( instance, "vkGetPhysicalDeviceProperties" ) );
+		std::uint32_t version = 0;
+		std::uint32_t device_count = 0;
+		if ( enumerate_devices && get_properties
+			&& enumerate_devices( instance, &device_count, nullptr ) == VK_SUCCESS && device_count )
+		{
+			std::vector<VkPhysicalDevice> devices( device_count );
+			if ( enumerate_devices( instance, &device_count, devices.data() ) == VK_SUCCESS )
+			{
+				for ( std::uint32_t i = 0; i < device_count; ++i )
+				{
+					VkPhysicalDeviceProperties properties = {};
+					get_properties( devices[i], &properties );
+					if ( std::strcmp( properties.deviceName, device_name ) != 0 )
+						continue;
+					// Identically named GPUs must agree before reporting their version.
+					if ( version && version != properties.apiVersion )
+					{
+						version = 0;
+						break;
+					}
+					version = properties.apiVersion;
+				}
+			}
+		}
+		destroy_instance( instance, nullptr );
+		return version;
+	}
 
 	void ffmpeg_log_callback( void *ptr, int level, const char *fmt, va_list vargs )
 	{
@@ -158,12 +235,13 @@ const char *fe_get_log_level_string()
 	}
 }
 
-void fe_print_version()
+void fe_print_version( SDL_GPUDevice *device )
 {
 	const int sdl_version = SDL_GetVersion();
+	std::ostringstream info;
 
-	FeLog() << "--------------------------------------------------------------------------------" << std::endl;
-	FeLog() << FE_NAME << " " << FE_VERSION << " " << FE_BUILD_NUMBER << "("
+	info << "--------------------------------------------------------------------------------\n";
+	info << FE_NAME << " " << FE_VERSION << " " << FE_BUILD_NUMBER << "("
 		<< get_OS_string()
 		<< ", SDL "
 		<< SDL_VERSIONNUM_MAJOR( sdl_version ) << '.'
@@ -173,17 +251,40 @@ void fe_print_version()
 	if (( SDL_WasInit( SDL_INIT_VIDEO ) & SDL_INIT_VIDEO ) != 0 )
 	{
 		if ( const char *driver = SDL_GetCurrentVideoDriver() )
-			FeLog() << " [" << driver << ']';
+			info << " [" << driver << ']';
 	}
 
-	FeLog()
+	info
 #ifdef USE_LIBARCHIVE
 		<< ", 7z"
 #endif
 #ifdef USE_LIBCURL
 		<< ", Curl"
 #endif
-		<< ")" << std::endl;
+		<< ")\n";
+
+	const char *gpu_driver = device ? SDL_GetGPUDeviceDriver( device ) : nullptr;
+	const char *device_name = device ? SDL_GetStringProperty(
+		SDL_GetGPUDeviceProperties( device ), SDL_PROP_GPU_DEVICE_NAME_STRING, "" ) : "";
+	if ( gpu_driver && std::strcmp( gpu_driver, "vulkan" ) == 0 )
+	{
+		const std::uint32_t version = get_vulkan_device_version( device_name );
+		info << "Vulkan ";
+		if ( version )
+			info << VK_API_VERSION_MAJOR( version ) << '.'
+				<< VK_API_VERSION_MINOR( version ) << '.' << VK_API_VERSION_PATCH( version );
+		else
+		{
+			FeDebug() << "SDL: Vulkan API version unavailable for device: " << device_name << std::endl;
+			info << "version unavailable";
+		}
+	}
+	else
+		info << "SDL GPU " << ( gpu_driver ? gpu_driver : "unavailable" );
+
+	if ( device_name[0] )
+		info << " [" << device_name << ']';
+	FeLog() << info.str() << std::endl;
 	print_ffmpeg_version_info();
 	FeLog() << std::endl;
 }

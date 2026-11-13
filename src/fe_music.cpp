@@ -27,10 +27,11 @@
 #include "fe_present.hpp"
 #include "fe_util.hpp"
 #include "fe_file.hpp"
+#include "fe_resource_cache.hpp"
 
 #include <algorithm>
 #include <fstream>
-#include <unordered_map>
+#include <filesystem>
 #include <cmath>
 #include <memory>
 
@@ -46,9 +47,19 @@ namespace
 	constexpr int FE_MUSIC_PROCESS_CHUNK_FRAMES = 480;
 }
 
+struct FeMusic::Pending
+{
+	std::unique_ptr<FeAudioFileDecoder> decoder;
+	std::vector<float> first;
+	std::map<std::string, std::string> metadata;
+	std::atomic<bool> ready{ false };
+	bool failed = false;
+	std::mutex mutex;
+	std::condition_variable loaded;
+};
+
 FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	: m_stream(),
-	m_decoder( std::make_unique<FeAudioFileDecoder>() ),
 	m_file_name( "" ),
 	m_rewind( true ),
 	m_loop( loop ),
@@ -79,6 +90,7 @@ FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 	FePresent *fep = FePresent::script_get_fep();
 	if ( fep )
 	{
+		m_script_id = fep->get_script_id();
 		auto* normaliser = m_audio_effects.get_effect<FeAudioNormaliser>();
 		if ( normaliser )
 			normaliser->set_enabled( fep->get_fes()->get_loudness() );
@@ -90,12 +102,18 @@ FeMusic::FeMusic( bool loop, FeSoundInfo::SoundType st )
 FeMusic::~FeMusic()
 {
 	release_audio( true );
+	FeResourceCache::get().retire( std::shared_ptr<FeAudioFileDecoder>( std::move( m_decoder ) ) );
+	FeResourceCache::get().retire( std::move( m_pending_decoder ) );
 }
 
 bool FeMusic::ensure_stream()
 {
-	if ( !m_stream.ensure_open() )
+	if ( !m_stream.prepare() )
+	{
+		if ( m_stream.failed() )
+			m_status = FePlaybackStatusStopped;
 		return false;
+	}
 
 	float vol = m_volume;
 	FePresent *fep = FePresent::script_get_fep();
@@ -162,6 +180,7 @@ bool FeMusic::queue_pending_audio( std::vector<float> &processed_samples )
 
 void FeMusic::sync_playback_position()
 {
+	if ( !m_decoder ) return;
 	const std::uint64_t total_frames = fe_audio_ms_to_frames( m_duration_ms );
 	if ( total_frames == 0 )
 	{
@@ -189,7 +208,7 @@ void FeMusic::restart_stream()
 		return;
 
 	sync_playback_position();
-	if ( !m_decoder || !m_decoder->seek_ms( fe_audio_frames_to_ms( m_current_frame ) ) )
+	if ( !seek_decoder() )
 	{
 		m_status = FePlaybackStatusStopped;
 		return;
@@ -202,7 +221,7 @@ void FeMusic::restart_stream()
 
 void FeMusic::pump_audio()
 {
-	if (( m_status != FePlaybackStatusPlaying ) || !m_decoder )
+	if ( m_status != FePlaybackStatusPlaying || !resolve_decoder() )
 		return;
 
 	if ( !ensure_stream() )
@@ -233,11 +252,13 @@ void FeMusic::pump_audio()
 				{
 					m_audio_effects.reset_all();
 					clear_pending_audio();
-					if ( !m_decoder->seek_ms( 0 ) )
+					m_current_frame = 0;
+					if ( !seek_decoder() )
 					{
 						m_status = FePlaybackStatusStopped;
 						return;
 					}
+					if ( !resolve_decoder() ) break;
 					continue;
 				}
 
@@ -270,32 +291,100 @@ void FeMusic::release_audio( bool state )
 	}
 }
 
+bool FeMusic::resolve_decoder()
+{
+	if ( m_file_name.empty() ) return false;
+	if ( m_decoder ) return true;
+	if ( !m_pending_decoder )
+	{
+		m_pending_decoder = std::make_shared<Pending>();
+		const auto pending = m_pending_decoder;
+		const auto filename = m_file_name;
+		const int position = fe_audio_frames_to_ms( m_current_frame );
+		FeResourceCache::get().submit( [pending, filename, position]
+		{
+			try
+			{
+				pending->decoder = std::make_unique<FeAudioFileDecoder>();
+				pending->failed = !pending->decoder->open( filename ) ||
+					( position > 0 && !pending->decoder->seek_ms( position ) );
+				bool end = false;
+				if ( !pending->failed ) pending->decoder->decode_frames( pending->first, FE_MUSIC_DECODE_CHUNK_FRAMES, end );
+				std::ifstream file( std::filesystem::u8path( filename ), std::ios::binary );
+				file.seekg( -128, std::ios::end );
+				char id3[128];
+				if ( file.read( id3, sizeof( id3 ) ) && std::memcmp( id3, "TAG", 3 ) == 0 )
+					pending->metadata = { { "title", std::string( id3 + 3, 30 ) }, { "artist", std::string( id3 + 33, 30 ) },
+						{ "album", std::string( id3 + 63, 30 ) }, { "year", std::string( id3 + 93, 4 ) }, { "comment", std::string( id3 + 97, 30 ) } };
+			}
+			catch ( const std::exception &error )
+			{
+				pending->failed = true;
+				FeLog() << "Error preparing music: " << filename << ": " << error.what() << std::endl;
+			}
+			{
+				std::lock_guard<std::mutex> lock( pending->mutex );
+				pending->ready.store( true, std::memory_order_release );
+			}
+			pending->loaded.notify_all();
+		} );
+	}
+	if ( !m_background )
+	{
+		std::unique_lock<std::mutex> lock( m_pending_decoder->mutex );
+		m_pending_decoder->loaded.wait( lock, [this]{ return m_pending_decoder->ready.load( std::memory_order_acquire ); } );
+	}
+	if ( !m_pending_decoder->ready.load( std::memory_order_acquire ) ) return false;
+	if ( m_pending_decoder->failed )
+	{
+		FeLog() << "Error loading music: " << m_file_name << std::endl;
+		m_file_name.clear();
+		m_status = FePlaybackStatusStopped;
+		return false;
+	}
+	m_decoder = std::move( m_pending_decoder->decoder );
+	m_duration_ms = m_decoder->duration_ms();
+	m_metadata = std::move( m_pending_decoder->metadata );
+	append_pending_audio( m_pending_decoder->first );
+	m_primed = true;
+	m_pending_decoder.reset();
+	return true;
+}
+
+bool FeMusic::seek_decoder()
+{
+	clear_pending_audio();
+	if ( m_background )
+	{
+		FeResourceCache::get().retire( std::shared_ptr<FeAudioFileDecoder>( std::move( m_decoder ) ) );
+		FeResourceCache::get().retire( std::move( m_pending_decoder ) );
+		m_primed = false;
+		resolve_decoder();
+		return true;
+	}
+	return m_decoder && m_decoder->seek_ms( fe_audio_frames_to_ms( m_current_frame ) );
+}
+
 void FeMusic::load( const std::string &fn )
 {
-	if ( !m_decoder )
-		m_decoder = std::make_unique<FeAudioFileDecoder>();
-
-	if ( !m_decoder->open( fn ) )
-	{
-		FeLog() << "Error loading audio file: " << fn << std::endl;
-		m_file_name = "";
-		m_status = FePlaybackStatusStopped;
-		m_duration_ms = 0;
-		m_current_frame = 0;
-		m_total_frames_written = 0;
-		clear_pending_audio();
-		m_stream.clear();
-		return;
-	}
-
+	if ( fn.empty() && m_file_name.empty() && !m_decoder && !m_pending_decoder ) return;
+	FeResourceCache::get().retire( std::shared_ptr<FeAudioFileDecoder>( std::move( m_decoder ) ) );
+	FeResourceCache::get().retire( std::move( m_pending_decoder ) );
+	const auto *present = FePresent::script_get_fep();
+	m_background = present && present->get_script_version( m_script_id ) >= 4;
 	m_file_name = fn;
 	m_status = FePlaybackStatusStopped;
-	m_duration_ms = m_decoder->duration_ms();
-	m_current_frame = 0;
-	m_total_frames_written = 0;
+	m_duration_ms = 0;
+	m_metadata.clear();
+	m_current_frame = m_total_frames_written = 0;
+	m_primed = false;
 	clear_pending_audio();
 	m_stream.clear();
 	m_audio_effects.reset_all();
+	if ( fn.empty() ) return;
+	resolve_decoder();
+	if ( m_stream.failed() ) m_stream.destroy();
+	m_stream.prepare();
 }
 
 void FeMusic::set_file_name( const char *n )
@@ -304,9 +393,7 @@ void FeMusic::set_file_name( const char *n )
 
 	if ( filename.empty() )
 	{
-		m_file_name = "";
-		m_status = FePlaybackStatusStopped;
-		m_stream.clear();
+		load( "" );
 		return;
 	}
 
@@ -357,6 +444,8 @@ void FeMusic::set_playing( bool state )
 {
 	if ( !state )
 	{
+		m_primed = false;
+		FeResourceCache::get().retire( std::move( m_pending_decoder ) );
 		if ( m_rewind )
 		{
 			m_stream.clear();
@@ -377,26 +466,23 @@ void FeMusic::set_playing( bool state )
 		return;
 	}
 
-	if ( m_file_name.empty() || !m_decoder )
+	if ( m_file_name.empty() )
 	{
 		m_status = FePlaybackStatusStopped;
 		return;
 	}
 
+	const bool ready = resolve_decoder();
+	if ( m_file_name.empty() ) return;
 	const std::uint64_t duration_frames = fe_audio_ms_to_frames( m_duration_ms );
-	if (( m_status == FePlaybackStatusEnded ) || ( m_current_frame >= duration_frames ))
+	if (( m_status == FePlaybackStatusEnded ) || ( duration_frames && m_current_frame >= duration_frames ))
 		m_current_frame = 0;
 
 	if ( m_status == FePlaybackStatusPlaying )
 		return;
 
-	if ( !ensure_stream() )
-	{
-		m_status = FePlaybackStatusStopped;
-		return;
-	}
-
-	if ( !m_decoder->seek_ms( fe_audio_frames_to_ms( m_current_frame ) ) )
+	if ( m_stream.failed() ) m_stream.destroy();
+	if ( ready && !m_primed && !seek_decoder() )
 	{
 		m_status = FePlaybackStatusStopped;
 		return;
@@ -404,7 +490,8 @@ void FeMusic::set_playing( bool state )
 
 	m_stream.clear();
 	m_total_frames_written = m_current_frame;
-	clear_pending_audio();
+	if ( !m_primed ) clear_pending_audio();
+	m_primed = false;
 	m_status = FePlaybackStatusPlaying;
 	pump_audio();
 }
@@ -495,6 +582,7 @@ void FeMusic::set_z( float v )
 
 int FeMusic::get_duration()
 {
+	resolve_decoder();
 	return m_duration_ms;
 }
 
@@ -506,16 +594,17 @@ int FeMusic::get_time()
 
 void FeMusic::set_time( int time )
 {
-	const int clamped_time = std::clamp( time, 0, get_duration() );
+	const int duration = get_duration();
+	const int clamped_time = duration > 0 ? std::clamp( time, 0, duration ) : std::max( time, 0 );
+	m_stream.clear();
 	m_current_frame = fe_audio_ms_to_frames( clamped_time );
 	m_total_frames_written = m_current_frame;
 	clear_pending_audio();
 
-	if ( m_decoder )
-		std::ignore = m_decoder->seek_ms( clamped_time );
+	std::ignore = seek_decoder();
 
 	if ( m_status == FePlaybackStatusPlaying )
-		restart_stream();
+		pump_audio();
 	else if (( get_duration() > 0 ) && ( clamped_time >= get_duration() ))
 		m_status = FePlaybackStatusEnded;
 	else if ( m_status != FePlaybackStatusPaused )
@@ -524,44 +613,19 @@ void FeMusic::set_time( int time )
 
 const char *FeMusic::get_metadata( const char* tag )
 {
-	if ( m_file_name.empty() || !tag )
-		return "";
-
-	std::ifstream file( m_file_name, std::ios::binary );
-
-	if ( !file.is_open() )
-		return "";
-
-	file.seekg( -128, std::ios::end );
-	char id3v1[128];
-	file.read( id3v1, 128 );
-	file.close();
-
-	if ( std::strncmp( id3v1, "TAG", 3 ) != 0 )
-		return "";
-
-	std::unordered_map< std::string, std::string > metadata =
-	{
-		{ "title", std::string( id3v1 + 3, 30 )},
-		{ "artist", std::string( id3v1 + 33, 30 )},
-		{ "album", std::string( id3v1 + 63, 30 )},
-		{ "year", std::string( id3v1 + 93, 4 )},
-		{ "comment", std::string( id3v1 + 97, 30 )}
-	};
-
-	std::unordered_map< std::string, std::string >::iterator it = metadata.find( tag );
-
-	return it != metadata.end() ? it->second.c_str() : "";
+	if ( !tag || !resolve_decoder() ) return "";
+	auto found = m_metadata.find( tag );
+	return found == m_metadata.end() ? "" : found->second.c_str();
 }
 
 void FeMusic::tick()
 {
+	if ( !resolve_decoder() ) return;
 	if ( m_stream.is_stale() )
 	{
 		sync_playback_position();
 		m_stream.destroy();
-		if ( m_decoder )
-			std::ignore = m_decoder->seek_ms( fe_audio_frames_to_ms( m_current_frame ) );
+		std::ignore = seek_decoder();
 		m_total_frames_written = m_current_frame;
 		clear_pending_audio();
 	}

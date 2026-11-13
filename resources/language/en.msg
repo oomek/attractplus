@@ -79,7 +79,7 @@ Group Clones;Group Clones
 Hide Game Title Brackets;Hide Game Title Brackets
 Format Game Title;Format Game Title
 Hide Console;Hide Console
-Image Cache Size;Image Cache Size
+Cache Size;Cache Size
 Insert Command Shortcut;Insert Command Shortcut
 Insert Display Shortcut;Insert Display Shortcut
 Insert Game Entry;Insert Game Entry
@@ -515,7 +515,7 @@ _help_misc_group_clones;Group all clones of a game under one single list entry
 _help_misc_hide_brackets;Hide text in brackets when showing game titles
 _help_misc_prefix_modes;Move "The" and "Vs." prefixes to the end of the game title
 _help_misc_hide_console;Hide console on startup. Note that this only works if starting Attract-Mode Plus from a Windows GUI. If started from an existing console window (e.g. a batch file) then the process will always "attach" to the existing console and output to it
-_help_misc_image_cache_mbytes;Configure the maximum size of Attract-Mode Plus's internal image cache (in megabytes)
+_help_misc_cache_mbytes;Configure the maximum cache size for images, sounds, fonts and shaders (in megabytes)
 _help_misc_language;Select the language to use in Attract-Mode Plus's user interface
 _help_misc_layout_preview;Show layout configuration changes immediately
 _help_misc_multiple_monitors;Enable the use of multiple monitors by Attract-Mode Plus.  Setting this to "No" may reduce screen flicker when launching games

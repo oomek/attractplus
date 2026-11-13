@@ -123,6 +123,7 @@ private:
 	FeWindowPosition m_win_pos;
 	FeSdl3GpuContext m_gpu_context;
 	bool m_key_repeat_enabled = false;
+	std::uint32_t m_pending_hat_id = 0;
 
 	const FeRenderRawTextureSource *cache_overlay_image( const SDL_Surface &image );
 	bool append_native_overlay_item( const FeOverlayDrawItem &item, const FeTransform &transform );
@@ -161,7 +162,7 @@ public:
 	void draw( const FeListBox &listbox, const FeTransform &t = FeTransform::identity() );
 	void draw( const FeText &text, const FeTransform &t = FeTransform::identity() );
 	void draw( const FeRectangle &rect, const FeTransform &t = FeTransform::identity() );
-	void draw_overlay_image( const SDL_Surface &image, const FloatRect &bounds, bool smooth = true, const Color &color = Color::White );
+	void draw_overlay_image( const SDL_Surface &image, const FloatRect &bounds, const FeTransform &t = FeTransform::identity(), bool smooth = true, const Color &color = Color::White );
 	std::optional<FeEvent> pollEvent();
 
 	FeSdl3GpuContext &get_gpu_context() { return m_gpu_context; }

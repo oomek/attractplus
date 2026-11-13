@@ -167,6 +167,35 @@ for str in ${attractlibs[@]}; do
 done
 #codesign --force -s - "$bundlecontent"/MacOS/attractplus
 
+echo STEP 6b - BUNDLE MOLTENVK
+
+# The SDL3 GPU backend renders through Vulkan, which macOS only provides via MoltenVK.
+# SDL looks for it at @executable_path/../Frameworks/libMoltenVK.dylib first.
+moltenvk=""
+for candidate in \
+	"$(brew --prefix molten-vk 2>/dev/null)/lib/libMoltenVK.dylib" \
+	/opt/homebrew/lib/libMoltenVK.dylib \
+	/usr/local/lib/libMoltenVK.dylib \
+	/opt/local/lib/libMoltenVK.dylib; do
+	if [[ -f "$candidate" ]]; then
+		moltenvk="$candidate"
+		break
+	fi
+done
+
+if [[ -n "$moltenvk" ]]; then
+	mkdir -p "$bundlecontent"/Frameworks
+	cp -L "$moltenvk" "$bundlecontent"/Frameworks/libMoltenVK.dylib
+	chmod u+w "$bundlecontent"/Frameworks/libMoltenVK.dylib
+	install_name_tool -id @executable_path/../Frameworks/libMoltenVK.dylib "$bundlecontent"/Frameworks/libMoltenVK.dylib
+	echo "Bundled $moltenvk"
+	if otool -L "$bundlecontent"/Frameworks/libMoltenVK.dylib | tail -n +2 | grep -E '/opt/homebrew|/usr/local|/opt/local'; then
+		echo "WARNING: libMoltenVK.dylib depends on the libraries listed above, which are not bundled"
+	fi
+else
+	echo "WARNING: libMoltenVK.dylib not found (brew install molten-vk) - the app will not be able to render"
+fi
+
 echo STEP 7 - RENAME ARTIFACT TO v${SHORTVERSION}
 
 newappname="$buildpath/Attract-Mode Plus v${SHORTVERSION}.app"
@@ -181,6 +210,7 @@ then
 	for str in ${libsarray[@]}; do
 		codesign --force -s - "$newappname/Contents/libs/$str"
 	done
+	[[ -f "$newappname/Contents/Frameworks/libMoltenVK.dylib" ]] && codesign --force -s - "$newappname/Contents/Frameworks/libMoltenVK.dylib"
 	codesign --force -s - "$newappname/Contents/MacOS/attractplus"
 	codesign --force -s - "$newappname"
 fi

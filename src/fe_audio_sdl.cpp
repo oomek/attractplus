@@ -21,6 +21,7 @@
  */
 
 #include "fe_audio_sdl.hpp"
+#include "fe_util.hpp"
 
 #include "fe_base.hpp"
 
@@ -34,8 +35,12 @@ extern "C"
 
 #include <algorithm>
 #include <cmath>
+#include <condition_variable>
 #include <cstring>
+#include <deque>
 #include <limits>
+#include <thread>
+#include <utility>
 
 #if ( LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT( 59, 0, 100 ))
 typedef const AVCodec FeAVCodec;
@@ -171,6 +176,56 @@ int FeAudioSampleBuffer::duration_ms() const
 	return fe_audio_frames_to_ms( frame_count() );
 }
 
+struct FeSdlAudioBackend::Worker
+{
+	FeSdlAudioBackend &backend;
+	std::mutex mutex;
+	std::condition_variable wake;
+	std::deque<std::shared_ptr<FeSdlAudioStream>> requests;
+	bool stop = false;
+	std::thread thread;
+
+	explicit Worker( FeSdlAudioBackend &owner )
+		: backend( owner ), thread( &Worker::run, this )
+	{
+	}
+
+	~Worker()
+	{
+		{
+			std::lock_guard<std::mutex> lock( mutex );
+			stop = true;
+			for ( auto &stream : requests )
+				if ( stream ) stream->m_ready.store( true, std::memory_order_release );
+			requests.clear();
+		}
+		wake.notify_one();
+		thread.join();
+	}
+
+	void run()
+	{
+		for ( ;; )
+		{
+			std::shared_ptr<FeSdlAudioStream> stream;
+			{
+				std::unique_lock<std::mutex> lock( mutex );
+				wake.wait( lock, [this] { return stop || !requests.empty(); } );
+				if ( stop ) return;
+				stream = std::move( requests.front() );
+				requests.pop_front();
+			}
+			if ( !stream )
+				backend.retain_device();
+			else if ( stream.use_count() > 1 )
+			{
+				stream->ensure_open();
+				stream->m_ready.store( true, std::memory_order_release );
+			}
+		}
+	}
+};
+
 FeSdlAudioBackend::FeSdlAudioBackend()
 	: m_mix_spec(),
 	m_generation( 1 )
@@ -186,11 +241,25 @@ FeSdlAudioBackend &FeSdlAudioBackend::get()
 	return backend;
 }
 
+FeSdlAudioBackend::~FeSdlAudioBackend()
+{
+	release_device();
+}
+
 bool FeSdlAudioBackend::ensure_audio()
 {
-	if ( SDL_WasInit( SDL_INIT_AUDIO ) & SDL_INIT_AUDIO )
+	if ( SDL_GetCurrentAudioDriver() )
 		return true;
 
+	// SDL subsystem initialization belongs to the main thread. Do it before
+	// layout animation; device and stream creation can then run on workers.
+	if ( !SDL_IsMainThread() )
+		return false;
+	std::lock_guard<std::mutex> lock( m_device_mutex );
+	if ( SDL_GetCurrentAudioDriver() )
+		return true;
+	// SDL subsystem teardown also closes the retained device.
+	m_device = 0;
 	if ( !SDL_InitSubSystem( SDL_INIT_AUDIO ) )
 	{
 		FeLog() << "ERROR: Failed to initialize SDL audio: " << SDL_GetError() << std::endl;
@@ -200,10 +269,51 @@ bool FeSdlAudioBackend::ensure_audio()
 	return true;
 }
 
+void FeSdlAudioBackend::prepare_device()
+{
+	if ( ensure_audio() )
+		prepare_stream( nullptr );
+}
+
+void FeSdlAudioBackend::prepare_stream( std::shared_ptr<FeSdlAudioStream> stream )
+{
+	if ( !m_worker )
+		m_worker = std::make_unique<Worker>( *this );
+	{
+		std::lock_guard<std::mutex> lock( m_worker->mutex );
+		m_worker->requests.push_back( std::move( stream ) );
+	}
+	m_worker->wake.notify_one();
+}
+
+bool FeSdlAudioBackend::retain_device()
+{
+	if ( !ensure_audio() ) return false;
+	std::lock_guard<std::mutex> lock( m_device_mutex );
+	if ( m_device ) return true;
+	// Retain the default device across silent clips and background retirement.
+	m_device = SDL_OpenAudioDevice( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &m_mix_spec );
+	if ( !m_device )
+		FeLog() << "ERROR: Failed to open SDL audio device: " << SDL_GetError() << std::endl;
+	else
+		FeDebug() << "SDL: retained default audio device" << std::endl;
+	return m_device != 0;
+}
+
+void FeSdlAudioBackend::release_device()
+{
+	// Join preparation before closing so a queued request cannot reopen it.
+	m_worker.reset();
+	std::lock_guard<std::mutex> lock( m_device_mutex );
+	if ( m_device && SDL_GetCurrentAudioDriver() )
+		SDL_CloseAudioDevice( m_device );
+	m_device = 0;
+}
+
 void FeSdlAudioBackend::note_system_resume()
 {
-	ensure_audio();
 	m_generation.fetch_add( 1, std::memory_order_release );
+	prepare_device();
 }
 
 FeSdlAudioStream::FeSdlAudioStream()
@@ -225,7 +335,7 @@ bool FeSdlAudioStream::ensure_open()
 	destroy();
 
 	FeSdlAudioBackend &backend = FeSdlAudioBackend::get();
-	if ( !backend.ensure_audio() )
+	if ( !backend.retain_device() )
 		return false;
 
 	m_stream = SDL_OpenAudioDeviceStream( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &backend.mix_spec(), nullptr, nullptr );
@@ -247,8 +357,34 @@ bool FeSdlAudioStream::ensure_open()
 	return true;
 }
 
+bool FeSdlAudioStream::prepare()
+{
+	if ( m_stream && !is_stale() )
+		return true;
+	if ( m_prepare_failed )
+		return false;
+	if ( m_prepared )
+	{
+		if ( !m_prepared->m_ready.load( std::memory_order_acquire ) )
+			return false;
+		m_stream = std::exchange( m_prepared->m_stream, nullptr );
+		m_generation = m_prepared->m_generation;
+		m_prepared.reset();
+		m_prepare_failed = !m_stream;
+		if ( !is_stale() )
+			return m_stream != nullptr;
+	}
+	destroy();
+	m_prepared = std::make_shared<FeSdlAudioStream>();
+	FeSdlAudioBackend::get().prepare_stream( m_prepared );
+	return false;
+}
+
 void FeSdlAudioStream::destroy()
 {
+	// The worker retains canceled preparations until SDL finishes opening.
+	m_prepared.reset();
+	m_prepare_failed = false;
 	if ( m_stream )
 	{
 		SDL_DestroyAudioStream( m_stream );

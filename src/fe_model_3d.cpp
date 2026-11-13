@@ -1145,7 +1145,9 @@ namespace
 			&& lhs.repeated == rhs.repeated
 			&& lhs.smooth == rhs.smooth
 			&& lhs.mipmap == rhs.mipmap
+			&& lhs.aniso == rhs.aniso
 			&& lhs.dynamic == rhs.dynamic
+			&& lhs.blocking == rhs.blocking
 			&& lhs.width == rhs.width
 			&& lhs.height == rhs.height
 			&& lhs.content_version == rhs.content_version
@@ -1178,7 +1180,9 @@ namespace
 		binding.repeated = repeated;
 		binding.smooth = smooth;
 		binding.mipmap = mipmap;
+		binding.aniso = container->get_aniso();
 		binding.dynamic = container->is_volatile_texture();
+		binding.blocking = container->is_texture_blocking();
 		binding.width = static_cast<float>( texture_size.x );
 		binding.height = static_cast<float>( texture_size.y );
 		binding.content_version = container->get_texture_content_version();
@@ -2975,7 +2979,9 @@ bool FeModel3D::geometry_cache_matches(
 			|| base_binding.repeated != container->get_repeat()
 			|| base_binding.smooth != container->get_smooth()
 			|| base_binding.mipmap != container->get_mipmap()
+			|| base_binding.aniso != container->get_aniso()
 			|| base_binding.dynamic != container->is_volatile_texture()
+			|| base_binding.blocking != container->is_texture_blocking()
 			|| base_binding.width != static_cast<float>( texture_size.x )
 			|| base_binding.height != static_cast<float>( texture_size.y )
 			|| base_binding.content_version != container->get_texture_content_version() )
@@ -2995,7 +3001,9 @@ bool FeModel3D::geometry_cache_matches(
 				|| emissive_binding.repeated != container->get_repeat()
 				|| emissive_binding.smooth != container->get_smooth()
 				|| emissive_binding.mipmap != container->get_mipmap()
+				|| emissive_binding.aniso != container->get_aniso()
 				|| emissive_binding.dynamic != container->is_volatile_texture()
+				|| emissive_binding.blocking != container->is_texture_blocking()
 				|| emissive_binding.width != static_cast<float>( texture_size.x )
 				|| emissive_binding.height != static_cast<float>( texture_size.y )
 				|| emissive_binding.content_version != container->get_texture_content_version() )
@@ -3102,6 +3110,7 @@ void FeModel3D::update_cached_material_state(
 	entry.texture_repeated = entry.pbr_material.base_color_texture.repeated;
 	entry.texture_smooth = entry.pbr_material.base_color_texture.smooth;
 	entry.texture_mipmap = entry.pbr_material.base_color_texture.mipmap;
+	entry.texture_blocking = entry.pbr_material.base_color_texture.blocking;
 	entry.texture_width = entry.pbr_material.base_color_texture.width;
 	entry.texture_height = entry.pbr_material.base_color_texture.height;
 	entry.texture_content_version = entry.pbr_material.base_color_texture.content_version;

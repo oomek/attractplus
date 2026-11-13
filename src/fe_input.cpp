@@ -152,21 +152,25 @@ namespace
 	std::optional<FeEvent> g_last_touch;
 	bool g_touch_moved=false;
 
-	static std::vector< int > g_joyfemap( FeJoystick::Count, 0 );
+	static std::vector< int > g_joyfemap( FeJoystick::Count, -1 );
 	int joymap2feid( int raw_id )
 	{
-		return g_joyfemap[ raw_id ];
+		return ( raw_id >= 0 && raw_id < static_cast<int>( FeJoystick::Count ) )
+			? g_joyfemap[ raw_id ] : -1;
 	}
 
 	int joymap2raw( int config_id )
 	{
+		if ( config_id < 0 || config_id >= static_cast<int>( FeJoystick::Count ) )
+			return -1;
+
 		for ( size_t i=0; i<FeJoystick::Count; i++ )
 		{
 			if ( g_joyfemap[i] == config_id )
 				return i;
 		}
 
-		return 0;
+		return -1;
 	}
 
 	void joy_raw_map_init( const std::vector < std::pair < int, std::string > > &joy_config )
@@ -177,14 +181,20 @@ namespace
 		std::array<bool, FeJoystick::Count> mapped = {};
 
 		// clear map structure
-		for ( i=0; i< FeJoystick::Count; i++ )
-		{
-			g_joyfemap[i] = static_cast<int>( FeJoystick::Count ) - 1;
-		}
+		std::fill( g_joyfemap.begin(), g_joyfemap.end(), -1 );
 
 		// initialize structure telling us whether a slot is already mapped by the user
-		for ( itr = wl.begin(); itr != wl.end(); ++itr )
-			mapped[ (*itr).first ] = true;
+		for ( itr = wl.begin(); itr != wl.end(); )
+		{
+			int id = (*itr).first;
+			if ( id < 0 || id >= static_cast<int>( FeJoystick::Count ) || mapped[id] )
+				itr = wl.erase( itr );
+			else
+			{
+				mapped[id] = true;
+				++itr;
+			}
+		}
 
 		fe_joystick_update();
 
@@ -211,7 +221,7 @@ namespace
 		// Put any remaining unmapped joysticks in the lowest available "Default" slot
 		for ( i=0; i< FeJoystick::Count; i++ )
 		{
-			if (( g_joyfemap[i] == static_cast<int>( FeJoystick::Count ) - 1 ) && ( fe_joystick_is_connected( i ) ))
+			if (( g_joyfemap[i] < 0 ) && ( fe_joystick_is_connected( i ) ))
 			{
 				for ( size_t j=0; j< FeJoystick::Count; j++ )
 				{
@@ -227,9 +237,17 @@ namespace
 
 		FeDebug() << "Joysticks after mapping: " << std::endl;
 		for ( i=0; i<FeJoystick::Count; i++ )
-			FeDebug() << "ID: " << i << " => Joy" << g_joyfemap[i] << "("
-				<< fe_joystick_get_name( i )
-				<< ")" << std::endl;
+		{
+			if ( !fe_joystick_is_connected( i ) )
+				continue;
+
+			FeDebug() << "ID: " << i << " => ";
+			if ( g_joyfemap[i] >= 0 )
+				FeDebug() << "Joy" << g_joyfemap[i];
+			else
+				FeDebug() << "Unmapped";
+			FeDebug() << "(" << fe_joystick_get_name( i ) << ")" << std::endl;
+		}
 	}
 
 	bool is_press_like_event( const FeEvent &e )
@@ -462,9 +480,12 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 	else if ( e.is<FeEvent::JoystickButtonPressed>() )
 	{
 		const auto* event = e.getIf<FeEvent::JoystickButtonPressed>();
-		if ( event )
+		if ( event && event->button < FeJoystick::ButtonCount )
 		{
-			m_type = static_cast<Type>( Joystick0 + joymap2feid( event->joystickId ));
+			int id = joymap2feid( event->joystickId );
+			if ( id < 0 )
+				return;
+			m_type = static_cast<Type>( Joystick0 + id );
 			m_code = JoyButton0 + static_cast<int>( event->button );
 		}
 	}
@@ -474,6 +495,10 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 		const auto* event = e.getIf<FeEvent::JoystickMoved>();
 		if ( event && std::abs( event->position ) > joy_thresh )
 		{
+			int id = joymap2feid( event->joystickId );
+			if ( id < 0 )
+				return;
+
 			switch ( static_cast<FeJoystick::Axis>( event->axis ) )
 			{
 				case FeJoystick::Axis::X:
@@ -484,16 +509,6 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 					m_code = ( event->position > 0 ) ? JoyDown : JoyUp;
 					break;
 
-#ifdef SDL_PLATFORM_LINUX
-				case FeJoystick::Axis::Z:
-				case FeJoystick::Axis::R:
-					if ( event->position < 0 )
-						return;
-
-					m_code = ( static_cast<FeJoystick::Axis>( event->axis ) == FeJoystick::Axis::Z )
-						? JoyZPos : JoyRPos;
-					break;
-#else
 				case FeJoystick::Axis::Z:
 					m_code = ( event->position > 0 ) ? JoyZPos : JoyZNeg;
 					break;
@@ -501,7 +516,6 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 				case FeJoystick::Axis::R:
 					m_code = ( event->position > 0 ) ? JoyRPos : JoyRNeg;
 					break;
-#endif
 
 				case FeJoystick::Axis::U:
 					m_code = ( event->position > 0 ) ? JoyUPos : JoyUNeg;
@@ -524,7 +538,7 @@ FeInputSingle::FeInputSingle( const FeEvent &e, const IntRect &mc_rect, const in
 					return;
 			}
 
-			m_type = static_cast<Type>(Joystick0 + joymap2feid( event->joystickId ));
+			m_type = static_cast<Type>(Joystick0 + id);
 		}
 	}
 
@@ -820,6 +834,8 @@ bool FeInputSingle::get_current_state( int joy_thresh ) const
 		fe_joystick_update();
 
 		int id = joymap2raw( m_type - Joystick0 );
+		if ( id < 0 )
+			return false;
 
 		if ( m_code < JoyButton0 )
 		{
@@ -867,6 +883,8 @@ int FeInputSingle::get_current_pos( FeWindow &wnd ) const
 
 		int temp = 0;
 		int id = joymap2raw( m_type - Joystick0 );
+		if ( id < 0 )
+			return 0;
 
 		switch ( m_code )
 		{
@@ -901,7 +919,7 @@ std::string FeInputSingle::get_joy_name() const
 	{
 		int raw_id = joymap2raw( m_type - Joystick0 );
 
-		if ( fe_joystick_is_connected( raw_id ) )
+		if ( raw_id >= 0 && fe_joystick_is_connected( raw_id ) )
 			return fe_joystick_get_name( raw_id );
 	}
 	return "";
@@ -1392,19 +1410,19 @@ FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const IntRect &mc_r
 	// Joystick has moved
 	else if ( e.is<FeEvent::JoystickMoved>() )
 	{
-		if ( !index.get_current_state( joy_thresh ) )
-		{
-			const auto* event = e.getIf<FeEvent::JoystickMoved>();
-			// Special - released joystick needs to check for held pos/neg keys, since index will be empty
-			FeEvent pos = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
-			FeInputSingle tt( pos, mc_rect, joy_thresh, has_focus );
-			released_itr = m_held_inputs.find( tt );
+		const auto* event = e.getIf<FeEvent::JoystickMoved>();
+		// Release the old direction even when the axis crosses directly to the opposite side.
+		FeEvent pos = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * 2 };
+		FeInputSingle positive( pos, mc_rect, joy_thresh, has_focus );
+		if ( !positive.get_current_state( joy_thresh ) )
+			released_itr = m_held_inputs.find( positive );
 
-			if ( released_itr == m_held_inputs.end() ) {
-				FeEvent neg = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
-				FeInputSingle tt( neg, mc_rect, joy_thresh, has_focus );
-				released_itr = m_held_inputs.find( tt );
-			}
+		if ( released_itr == m_held_inputs.end() )
+		{
+			FeEvent neg = FeEvent::JoystickMoved{ event->joystickId, event->axis, (float)joy_thresh * -2 };
+			FeInputSingle negative( neg, mc_rect, joy_thresh, has_focus );
+			if ( !negative.get_current_state( joy_thresh ) )
+				released_itr = m_held_inputs.find( negative );
 		}
 	}
 
@@ -1785,7 +1803,7 @@ int FeInputMap::process_setting( const std::string &setting,
 			std::string joy_name;
 			token_helper( value, pos, joy_name );
 
-			if (( num >= 0 ) && ( num <= static_cast<int>( FeJoystick::Count ) ))
+			if (( num >= 0 ) && ( num < static_cast<int>( FeJoystick::Count ) ))
 				m_joy_config.push_back( std::pair<int, std::string>( num, joy_name ) );
 		}
 

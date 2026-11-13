@@ -6,5 +6,8 @@
     <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">
         <dpiAwareness>PerMonitorV2, PerMonitor</dpiAwareness>
     </asmv3:windowsSettings>
+    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2020/WindowsSettings">
+      <heapType>SegmentHeap</heapType>
+    </asmv3:windowsSettings>
   </asmv3:application>
 </assembly>

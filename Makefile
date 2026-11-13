@@ -156,6 +156,7 @@ _DEP =\
 	fe_music.hpp \
 	fe_audio_fx.hpp \
 	fe_audio_sdl.hpp \
+	fe_resource_cache.hpp \
 	fe_shader.hpp \
 	fe_font.hpp \
 	fe_overlay.hpp \
@@ -210,6 +211,7 @@ _OBJ =\
 	fe_music.o \
 	fe_audio_fx.o \
 	fe_audio_sdl.o \
+	fe_resource_cache.o \
 	fe_shader.o \
 	fe_font.o \
 	fe_overlay.o \
@@ -297,6 +299,9 @@ SDL3_OBJ_DIR         = $(OBJ_DIR)/sdl3
 SDL3_LIB_DIR         = $(SDL3_OBJ_DIR)/install/lib
 SDL3_TOKEN           = $(SDL3_LIB_DIR)/libSDL3.a
 SDL3_PKG_CONFIG_PATH = $(SDL3_LIB_DIR)/pkgconfig
+SDL3_SOURCE_DIR      = $(SDL3_OBJ_DIR)/source
+SDL3_SOURCE_TOKEN    = $(SDL3_OBJ_DIR)/source-patched
+SDL3_PATCH           = $(EXTLIBS_DIR)/sdl3-present-wait.patch
 
 SDL3_IMAGE_OBJ_DIR         = $(OBJ_DIR)/sdl3-image
 SDL3_IMAGE_LIB_DIR         = $(SDL3_IMAGE_OBJ_DIR)/install/lib
@@ -351,8 +356,13 @@ endef
 #
 # SDL3
 #
+CFLAGS += -I$(EXTLIBS_DIR)/sdl3/src/video/khronos
 HAS_SDL3 := $(call pkg_exists,sdl3)
 HAS_SDL3_IMAGE := $(call pkg_exists,sdl3-image)
+# Windows presentation pacing requires AM+'s optional Vulkan backend patch.
+ifeq ($(FE_WINDOWS_COMPILE),1)
+  HAS_SDL3 := 0
+endif
 ifneq ($(HAS_SDL3_IMAGE),1)
   $(info sdl3-image will be built with AM+)
   HEADERINFO_DEPS += sdl3-image
@@ -561,6 +571,8 @@ else
   FE_FLAGS += -DFE_CACHE_VERSION_D=$(VER_MAJOR)$(VER_MINOR)$(VER_POINT)
 endif
 
+$(OBJ_DIR)/attractplus.res: $(SRC_DIR)/attractplus.exe.manifest
+
 $(OBJ_DIR)/%.res: $(SRC_DIR)/%.rc | $(OBJ_DIR)
 	$(CC_MSG)
 	$(SILENT)$(WINDRES) $(FE_FLAGS) $< -O coff -o $@
@@ -588,6 +600,10 @@ ifneq ($(FE_DEBUG),1)
 	$(SILENT)$(STRIP) $@
 endif
 
+ifneq ($(HAS_SDL3),1)
+$(EXE): $(SDL3_TOKEN)
+endif
+
 .PHONY: headerinfo
 .PHONY: clean
 .PHONY: install
@@ -606,19 +622,22 @@ endif
 
 glslang: glslangbuild
 
-sdl3build:
-ifneq ("$(wildcard $(SDL3_TOKEN))","")
-	$(info $@ is already built)
-else
-	$(info Building sdl3...)
+$(SDL3_SOURCE_TOKEN): $(SDL3_PATCH) $(EXTLIBS_DIR)/prepare-sdl3.cmake $(EXTLIBS_DIR)/sdl3/CMakeLists.txt $(EXTLIBS_DIR)/sdl3/src/gpu/vulkan/SDL_gpu_vulkan.c
 	$(SILENT)$(MD) $(SDL3_OBJ_DIR)
-	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3 -B $(SDL3_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_OBJ_DIR)/install -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF -DSDL_TEST_LIBRARY=OFF
-	+$(SILENT)$(CMAKE) --build $(SDL3_OBJ_DIR) --config Release --target install
-endif
+	$(SILENT)$(CMAKE) -DSOURCE="$(abspath $(EXTLIBS_DIR)/sdl3)" -DDEST="$(SDL3_SOURCE_DIR)" -P $(EXTLIBS_DIR)/prepare-sdl3.cmake
+	$(SILENT)cd "$(SDL3_SOURCE_DIR)" && patch -p1 < "$(abspath $(SDL3_PATCH))"
+	$(SILENT)touch $@
+
+$(SDL3_TOKEN): $(SDL3_SOURCE_TOKEN)
+	$(info Building sdl3...)
+	$(SILENT)$(CMAKE) -S $(SDL3_SOURCE_DIR) -B $(SDL3_OBJ_DIR)/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_OBJ_DIR)/install -DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF -DSDL_TEST_LIBRARY=OFF
+	+$(SILENT)$(CMAKE) --build $(SDL3_OBJ_DIR)/build --config Release --target install
+
+sdl3build: $(SDL3_TOKEN)
 
 sdl3: sdl3build
-	$(eval override CFLAGS += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $@) $(CFLAGS))
-	$(eval override LIBS   += $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $@) $(LIBS))
+	$(eval override CFLAGS := $(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --cflags $@) $(CFLAGS))
+	$(eval override LIBS := $(filter-out -lSDL3,$(LIBS)) $(subst -lSDL3,$(SDL3_TOKEN),$(shell PKG_CONFIG_PATH$(PKG_CONFIG_MXE)="$(SDL3_PKG_CONFIG_PATH):${PKG_CONFIG_PATH}" $(PKG_CONFIG) --libs $@)))
 
 $(SDL3_IMAGE_DOWNLOAD_TOKEN):
 	$(SILENT)$(EXTLIBS_DIR)/sdl3-image/external/download.sh
@@ -631,7 +650,7 @@ else
 	$(info Building sdl3-image...)
 	$(info $(SDL3_LIB_DIR)/cmake/SDL3)
 	$(SILENT)$(MD) $(SDL3_IMAGE_OBJ_DIR)
-	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3-image -B $(SDL3_IMAGE_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_IMAGE_OBJ_DIR)/install -DBUILD_SHARED_LIBS=OFF -DSDLIMAGE_TESTS=OFF -DSDLIMAGE_SAMPLES=OFF -DSDL3_DIR=$(SDL3_LIB_DIR)/cmake/SDL3 -DSDLIMAGE_VENDORED=$(SDL_IMAGE_VENDORED)
+	$(SILENT)$(CMAKE) -S $(EXTLIBS_DIR)/sdl3-image -B $(SDL3_IMAGE_OBJ_DIR) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(SDL3_IMAGE_OBJ_DIR)/install -DBUILD_SHARED_LIBS=OFF -DSDLIMAGE_TESTS=OFF -DSDLIMAGE_SAMPLES=OFF -DSDL3_DIR=$(SDL3_LIB_DIR)/cmake/SDL3 -DSDLIMAGE_VENDORED=$(SDL_IMAGE_VENDORED) $(SDL_IMAGE_CMAKE_FLAGS)
 	+$(SILENT)$(CMAKE) --build $(SDL3_IMAGE_OBJ_DIR) --config Release --target install
 endif
 

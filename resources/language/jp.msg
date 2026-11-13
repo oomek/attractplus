@@ -79,7 +79,7 @@ Group Clones;グループクローン
 Hide Game Title Brackets;ゲームタイトルの括弧を非表示にする
 Format Game Title;ゲームタイトルのフォーマット
 Hide Console;コンソールを非表示
-Image Cache Size;画像キャッシュサイズ
+Cache Size;キャッシュサイズ
 Insert Command Shortcut;コマンドショートカットを挿入
 Insert Display Shortcut;ディスプレイショートカットを挿入
 Insert Game Entry;ゲームエントリを挿入
@@ -515,7 +515,7 @@ _help_misc_group_clones;ゲームのクローンをすべて1つのリストエ�
 _help_misc_hide_brackets;ゲームのタイトルを表示する時, ブラケットに囲まれた部分は隠すかを設定します
 _help_misc_prefix_modes;「The」と「Vs.」を移動しますゲームタイトルの末尾にプレフィックスを付けます
 _help_misc_hide_console;起動時にコンソールを非表示にします。これは、Attract-Mode PlusをWindows GUIから起動した場合にのみ機能します。既存のコンソールウィンドウ (例：バッチファイル) から開始された場合、プロセスは常に既存のコンソールに「アタッチ」され、そこに出力されます。
-_help_misc_image_cache_mbytes;Attract-Mode Plus の内部イメージキャッシュの最大サイズ (MB単位) を設定します
+_help_misc_cache_mbytes;画像、サウンド、フォント、シェーダーのキャッシュの最大サイズ (MB単位) を設定します
 _help_misc_language;言語を設定します
 _help_misc_layout_preview;レイアウト設定の変更をすぐに表示します
 _help_misc_multiple_monitors;Attract-Mode Plus でマルチモニターの使用を有効にします。これを「いいえ」に設定すると、ゲーム起動時の画面のちらつきが軽減される可能性があります

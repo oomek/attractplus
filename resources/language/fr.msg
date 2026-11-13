@@ -79,7 +79,7 @@ Group Clones;Grouper les clones
 Hide Game Title Brackets;Masquer les parenthèses du titre du jeu
 Format Game Title;Format du titre du jeu
 Hide Console;Masquer la console
-Image Cache Size;Taille du cache d'images
+Cache Size;Taille du cache
 Insert Command Shortcut;Insérer un raccourci de commande
 Insert Display Shortcut;Insérer un raccourci d'affichage
 Insert Game Entry;Insérer une entrée de jeu
@@ -515,7 +515,7 @@ _help_misc_group_clones;Regrouper tous les clones d'un jeu sous une seule entré
 _help_misc_hide_brackets;Cacher le texte entre crochets lors de l'affichage du titre du jeu
 _help_misc_prefix_modes;Déplacer «The» et «Vs». Préfixe à la fin du titre du jeu
 _help_misc_hide_console;Masquer la console au démarrage. Notez que cela fonctionne uniquement si Attract-Mode Plus est lancé depuis une interface graphique Windows. Si le processus est lancé depuis une fenêtre de console existante (par exemple, un fichier batch), il s'y connectera et y affichera sa sortie.
-_help_misc_image_cache_mbytes;Configurer la taille maximale du cache d'images interne d'Attract-Mode Plus (en mégaoctets)
+_help_misc_cache_mbytes;Configurer la taille maximale du cache des images, sons, polices et shaders (en mégaoctets)
 _help_misc_language;Sélectionner la langue
 _help_misc_layout_preview;Afficher immédiatement les modifications de configuration de la disposition.
 _help_misc_multiple_monitors;Activer l'utilisation de plusieurs écrans avec Attract-Mode Plus. Désactiver cette option peut réduire le scintillement de l'écran lors du lancement de jeux.

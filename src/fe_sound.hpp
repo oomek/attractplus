@@ -32,13 +32,16 @@
 
 class FeSettings;
 
+struct FeAudioResource;
+
 class FeSound
 {
 private:
 	FeSound( const FeSound & );
 	FeSound &operator=( const FeSound & );
 
-	FeAudioSampleBuffer m_buffer;
+	std::shared_ptr<FeAudioResource> m_resource;
+	int m_script_id = -1;
 	FeSdlAudioStream m_stream;
 	std::string m_file_name;
 	bool m_rewind;
@@ -98,6 +101,7 @@ public:
 	void release_audio( bool );
 
 private:
+	bool resolve_resource();
 	bool ensure_stream();
 	void sync_playback_position();
 	void restart_stream();
