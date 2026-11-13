@@ -1622,7 +1622,7 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 	return success;
 }
 
-FeSdl3GpuContext::TextureStatus FeSdl3GpuContext::texture_status( const FeRenderTextureBinding &binding ) const
+FeSdl3GpuContext::TextureStatus FeSdl3GpuContext::texture_status( const FeRenderTextureBinding &binding, bool current_content ) const
 {
 	const auto key = std::make_tuple( binding.texture_id, binding.mipmap, false );
 	auto failure = m_texture_failures.find( key );
@@ -1630,8 +1630,8 @@ FeSdl3GpuContext::TextureStatus FeSdl3GpuContext::texture_status( const FeRender
 	auto found = m_textures.find( key );
 	if ( found == m_textures.end() ) return TexturePending;
 	const auto &entry = found->second;
-	return entry.gpu_texture && !entry.upload_pending && entry.width == binding.width && entry.height == binding.height &&
-		entry.last_upload_content_version == binding.content_version ? TextureReady : TexturePending;
+	return entry.gpu_texture && entry.width == binding.width && entry.height == binding.height &&
+		( !current_content || ( !entry.upload_pending && entry.last_upload_content_version == binding.content_version ) ) ? TextureReady : TexturePending;
 }
 
 void FeSdl3GpuContext::clear_textures()

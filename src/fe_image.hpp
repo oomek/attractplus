@@ -390,6 +390,7 @@ public:
 	const FeBaseTextureContainer *get_texture_container() const;
 	int get_texture_width() const;
 	int get_texture_height() const;
+	bool get_loaded() const;
 	void texture_changed( FeBaseTextureContainer *new_tex=NULL );
 
 	void transition_swap( FeImage * );

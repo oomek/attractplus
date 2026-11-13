@@ -2408,6 +2408,27 @@ void FePresent::collect_preloads( std::vector<FeRenderTextureBinding> &bindings 
 	}
 }
 
+bool FePresent::texture_loaded( const FeBaseTextureContainer &base )
+{
+	const auto *texture = dynamic_cast<const FeTextureContainer *>( &base );
+	if ( !texture || texture->m_pending_movie ) return false;
+	if ( texture->m_entry )
+		return texture->m_image_texture && texture->m_image_texture->status == FeImageTexture::Ready;
+	const auto size = base.get_texture_size();
+	if ( !size.x || !size.y ) return false;
+	FeRenderTextureBinding binding;
+	binding.texture_id = base.get_texture_source_id();
+	binding.texture_source_type = base.get_texture_source_type();
+	binding.width = size.x;
+	binding.height = size.y;
+	binding.mipmap = texture->get_mipmap();
+	binding.blocking = false;
+	binding.content_version = base.get_texture_content_version();
+	auto &gpu = m_window.get_gpu_context();
+	gpu.prepare_textures( { binding }, m_render_frame_serial + 1 );
+	return gpu.texture_status( binding, false ) == FeSdl3GpuContext::TextureReady;
+}
+
 bool FePresent::prepared_media_ready( int script )
 {
 	std::vector<FeRenderTextureBinding> bindings;
