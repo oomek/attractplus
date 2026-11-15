@@ -70,6 +70,22 @@ void process_args( int argc, char *argv[],
 			bool &window_topmost,
 			std::vector<int> &window_args );
 
+#if defined(SDL_PLATFORM_WINDOWS) && defined(WINDOWS_CONSOLE)
+static BOOL WINAPI console_ctrl_handler( DWORD type )
+{
+	if ( type != CTRL_CLOSE_EVENT )
+		return FALSE;
+
+	SDL_Event event = {};
+	event.type = SDL_EVENT_QUIT;
+	if ( !SDL_PushEvent( &event ) )
+		return FALSE;
+
+	Sleep( INFINITE );
+	return TRUE;
+}
+#endif
+
 
 int main(int argc, char *argv[])
 {
@@ -182,6 +198,9 @@ int main(int argc, char *argv[])
 	feSettings.reset_input();
 
 #ifdef WINDOWS_CONSOLE
+	if ( !SetConsoleCtrlHandler( console_ctrl_handler, TRUE ) )
+		FeLog() << "ERROR: Console shutdown setup failed: " << GetLastError() << std::endl;
+
 	if ( feSettings.get_hide_console() )
 		hide_console();
 #endif
