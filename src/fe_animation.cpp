@@ -280,7 +280,7 @@ namespace
 		animation.ease = get_ease_function( ease_id );
 		animation.ease_id = ease_id;
 		animation.use_callback = false;
-		animation.callback_script_id = -1;
+		animation.callback_script_id = LayoutScript;
 		animation.slot.clear();
 	}
 

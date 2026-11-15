@@ -57,7 +57,7 @@ public:
 		FeSettings &fes );
 	Sqrat::Function &get_fn();
 
-	int m_sid;		// -1 for layout, otherwise the plugin index
+	int m_sid;		// LayoutScript or the plugin index
 	Sqrat::Object m_env;	// callback function environment
 	std::string m_fn;	// callback function name
 

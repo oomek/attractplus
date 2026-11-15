@@ -23,6 +23,7 @@
 #ifndef FE_PRESENTABLE_HPP
 #define FE_PRESENTABLE_HPP
 
+#include "fe_base.hpp"
 #include "fe_types.hpp"
 #include "fe_grid.hpp"
 #include <string>
@@ -232,7 +233,7 @@ public:
 	virtual Vec2f snap_position_to_pixel( const Vec2f &p ) const;
 	virtual Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 	void refresh_script_geometry();
-	void update_elements( FeSettings *, bool new_list, int script=-2 );
+	void update_elements( FeSettings *, bool new_list, int script=NoScript );
 
 	FeImage *add_image(const char *,float, float, float, float);
 	FeImage *add_image(const char *, float, float);

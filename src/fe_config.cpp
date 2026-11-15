@@ -1875,7 +1875,7 @@ bool FeMiscMenu::save( FeConfigContext &ctx )
 
 FeScriptConfigMenu::FeScriptConfigMenu()
 	: m_state( FeSettings::Layout_Showing ),
-	m_script_id( -1 ),
+	m_script_id( LayoutScript ),
 	m_configurable( NULL ),
 	m_per_display( NULL )
 {

@@ -509,7 +509,7 @@ void FePresent::clear_layout()
 	FeImageLoader::get_ref().cancel_pending();
 	discard_prepared_media();
 	m_script_options.clear();
-	m_preparing_script = -2;
+	m_preparing_script = NoScript;
 	m_window.get_gpu_context().clear_layout_resources();
 	FeAnimation::clear();
 
@@ -2716,7 +2716,7 @@ void FePresent::update_to( FeTransitionType type, bool reset_display, int script
 	// backwards navigation must not close an image still needed by a later tile.
 	if ( type == ToNewSelection || type == EndNavigation )
 	{
-		for ( FeBaseTextureContainer *base : m_texturePool )
+		for ( auto *base : m_texturePool )
 		{
 			auto *texture = dynamic_cast<FeTextureContainer *>( base );
 			if ( !texture || texture->m_type != FeTextureContainer::IsArtwork ||
@@ -2728,35 +2728,32 @@ void FePresent::update_to( FeTransitionType type, bool reset_display, int script
 				reuse_artwork( texture, filter, rom );
 		}
 	}
-	std::vector<FeBaseTextureContainer *>::iterator itc;
-	std::vector<FeMonitor>::iterator itm;
-
 	switch ( type )
 	{
 		case ToNewList:
-			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			for ( auto *base : m_texturePool )
 			{
-				auto *texture = dynamic_cast<FeTextureContainer *>( *itc );
-				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : -2;
-				(*itc)->on_new_list( m_feSettings, reset_display );
+				auto *texture = dynamic_cast<FeTextureContainer *>( base );
+				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : NoScript;
+				base->on_new_list( m_feSettings, reset_display );
 			}
-			m_preparing_script = -2;
+			m_preparing_script = NoScript;
 
-			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
-				itm->update_elements( m_feSettings, true );
+			for ( auto &monitor : m_mon )
+				monitor.update_elements( m_feSettings, true );
 			// Fallthrough intended
 
 		case ToNewSelection:
-			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			for ( auto *base : m_texturePool )
 			{
-				auto *texture = dynamic_cast<FeTextureContainer *>( *itc );
-				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : -2;
-				(*itc)->on_new_selection( m_feSettings );
+				auto *texture = dynamic_cast<FeTextureContainer *>( base );
+				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : NoScript;
+				base->on_new_selection( m_feSettings );
 			}
-			m_preparing_script = -2;
+			m_preparing_script = NoScript;
 
-			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
-				itm->update_elements( m_feSettings, false );
+			for ( auto &monitor : m_mon )
+				monitor.update_elements( m_feSettings, false );
 			break;
 
 		case NewList:
@@ -2775,13 +2772,13 @@ void FePresent::update_to( FeTransitionType type, bool reset_display, int script
 			break;
 
 		case EndNavigation:
-			for ( itc = m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
+			for ( auto *base : m_texturePool )
 			{
-				auto *texture = dynamic_cast<FeTextureContainer *>( *itc );
-				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : -2;
-				(*itc)->on_end_navigation( m_feSettings );
+				auto *texture = dynamic_cast<FeTextureContainer *>( base );
+				m_preparing_script = texture && texture->is_v4_script() ? texture->m_script_id : NoScript;
+				base->on_end_navigation( m_feSettings );
 			}
-			m_preparing_script = -2;
+			m_preparing_script = NoScript;
 			break;
 
 		default:

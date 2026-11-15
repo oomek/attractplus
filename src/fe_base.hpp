@@ -58,6 +58,9 @@ extern const char *FE_EMULATOR_DEFAULT;
 
 extern const std::uint32_t FE_CACHE_VERSION;
 
+constexpr int LayoutScript = -1;
+constexpr int NoScript = -2;
+
 enum FeLogLevel
 {
 	FeLog_Silent,

@@ -32,6 +32,7 @@
 
 #include <sqrat.h>
 
+#include "fe_base.hpp"
 #include "fe_audio_fx.hpp"
 #include "fe_audio_sdl.hpp"
 #include "sqrat_array_wrapper.hpp"
@@ -56,7 +57,7 @@ private:
 	struct Pending;
 	std::shared_ptr<Pending> m_pending_decoder;
 	std::map<std::string, std::string> m_metadata;
-	int m_script_id = -1;
+	int m_script_id = LayoutScript;
 	bool m_background = false, m_primed = false;
 	std::string m_file_name;
 	bool m_rewind;

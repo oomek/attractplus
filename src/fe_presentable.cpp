@@ -146,7 +146,7 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 	m_zorder( 0 ),
 	m_script_pos( 0, 0 ),
 	m_script_size( 0, 0 ),
-	m_script_id( -1 ),
+	m_script_id( LayoutScript ),
 	m_script_geometry_set( false )
 {
 	FePresent *fep = FePresent::script_get_fep();
@@ -207,7 +207,7 @@ void FePresentableParent::update_elements( FeSettings *settings, bool new_list, 
 	for ( auto *element : elements )
 	{
 		const int owner = element->get_script_id();
-		if ( script == -2 ? fep && fep->get_script_version( owner ) >= 4 : owner != script )
+		if ( script == NoScript ? fep && fep->get_script_version( owner ) >= 4 : owner != script )
 			continue;
 		if ( new_list ) element->on_new_list( settings );
 		else element->on_new_selection( settings );
@@ -571,7 +571,7 @@ void FeBasePresentable::set_parent( FePresentableParent &p )
 {
 	m_parent = &p;
 	FePresent *fep = FePresent::script_get_fep();
-	m_script_id = fep ? fep->get_script_id() : -1;
+	m_script_id = fep ? fep->get_script_id() : LayoutScript;
 }
 
 void FeBasePresentable::set_script_geometry( float x, float y, float w, float h )

@@ -219,7 +219,7 @@ protected:
 		bool version_warned = false;
 	};
 	std::map<int, ScriptOptions> m_script_options;
-	int m_preparing_script = -2;
+	int m_preparing_script = NoScript;
 
 	FeListBox *m_listBox; // we only keep this ptr so we can get page sizes
 	Vec2i m_layoutSize;
@@ -338,7 +338,7 @@ public:
 	bool is_layout_loaded() const { return m_layout_loaded; };
 	void set_transforms();
 
-	void update_to( FeTransitionType type, bool reset_display=false, int script=-2 );
+	void update_to( FeTransitionType type, bool reset_display=false, int script=NoScript );
 	void redraw_surfaces();
 
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required

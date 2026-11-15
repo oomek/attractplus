@@ -328,7 +328,7 @@ FeTextureContainer::FeTextureContainer(
 	bool is_artwork,
 	const std::string &art_name,
 	bool preload )
-	: m_script_id( FePresent::script_get_fep() ? FePresent::script_get_fep()->get_script_id() : -1 ),
+	: m_script_id( FePresent::script_get_fep() ? FePresent::script_get_fep()->get_script_id() : LayoutScript ),
 	m_preload( preload ),
 	m_index_offset( 0 ),
 	m_filter_offset( 0 ),

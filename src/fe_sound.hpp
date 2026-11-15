@@ -23,6 +23,7 @@
 #ifndef FE_SOUND_HPP
 #define FE_SOUND_HPP
 
+#include "fe_base.hpp"
 #include "fe_music.hpp"
 #include "media.hpp"
 #include "fe_types.hpp"
@@ -41,7 +42,7 @@ private:
 	FeSound &operator=( const FeSound & );
 
 	std::shared_ptr<FeAudioResource> m_resource;
-	int m_script_id = -1;
+	int m_script_id = LayoutScript;
 	FeSdlAudioStream m_stream;
 	std::string m_file_name;
 	bool m_rewind;

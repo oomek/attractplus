@@ -450,7 +450,7 @@ FeVM::FeVM( FeSettings &fes, FeWindow &wnd, FeMusic &ambient_sound, bool console
 	m_sort_zorder_triggered( false ),
 	m_process_console_input( console_input ),
 	m_script_cfg( NULL ),
-	m_script_id( -1 )
+	m_script_id( LayoutScript )
 {
 	srand( time( NULL ) );
 	vm_init();
@@ -1927,8 +1927,8 @@ bool FeVM::on_new_layout()
 	fe.SetValue( _SC("script_dir"), path );
 	fe.SetValue( _SC("script_file"), filename );
 	m_script_cfg = &layout_params;
-	m_script_id = -1;
-	m_script_options[-1];
+	m_script_id = LayoutScript;
+	m_script_options[LayoutScript];
 
 	if ( filename.empty() )
 	{
@@ -2064,7 +2064,7 @@ void FeVM::cancel_navigation()
 	m_command_navigation.clear();
 	m_dispatching_command = false;
 	for ( auto &script : m_script_options ) script.second.transition_version = -1;
-	m_preparing_script = -2;
+	m_preparing_script = NoScript;
 	discard_prepared_media();
 }
 
@@ -2138,7 +2138,7 @@ void FeVM::advance_transition_calls()
 		if ( script == m_navigation->scripts.end() ) continue;
 		if ( script->started && script->frame == frame ) continue;
 		set_for_callback( call.callback );
-		m_preparing_script = script->version >= 4 && script->phase == TransitionScript::Prepare ? script->id : -2;
+		m_preparing_script = script->version >= 4 && script->phase == TransitionScript::Prepare ? script->id : NoScript;
 		if ( call.type == ToNewList && script->id < 0 && !script->started ) m_feSettings->load_layout_params();
 		bool keep = false;
 		try
@@ -2152,7 +2152,7 @@ void FeVM::advance_transition_calls()
 		{
 			FeLog() << "Script Error in transition function: " << call.callback.m_fn << " - " << error.Message() << std::endl;
 		}
-		m_preparing_script = -2;
+		m_preparing_script = NoScript;
 		if ( !keep ) { call.finished = true; --script->remaining; }
 	}
 	for ( auto &script : m_navigation->scripts )
