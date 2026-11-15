@@ -124,6 +124,7 @@ public:
 
 	virtual void on_new_selection( FeSettings * );
 	virtual void on_new_list( FeSettings * );
+	int get_script_id() const { return m_script_id; }
 	virtual void set_scale_factor( float, float );
 
 protected:
@@ -231,6 +232,7 @@ public:
 	virtual Vec2f snap_position_to_pixel( const Vec2f &p ) const;
 	virtual Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 	void refresh_script_geometry();
+	void update_elements( FeSettings *, bool new_list, int script=-2 );
 
 	FeImage *add_image(const char *,float, float, float, float);
 	FeImage *add_image(const char *, float, float);

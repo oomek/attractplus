@@ -2710,7 +2710,7 @@ bool FePresent::reuse_artwork( FeTextureContainer *target, int filter_index, int
 	return false;
 }
 
-void FePresent::update_to( FeTransitionType type, bool reset_display )
+void FePresent::update_to( FeTransitionType type, bool reset_display, int script )
 {
 	// Move every retained artwork before loading replacements. In particular,
 	// backwards navigation must not close an image still needed by a later tile.
@@ -2729,7 +2729,6 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 		}
 	}
 	std::vector<FeBaseTextureContainer *>::iterator itc;
-	std::vector<FeBasePresentable *>::iterator itl;
 	std::vector<FeMonitor>::iterator itm;
 
 	switch ( type )
@@ -2744,8 +2743,7 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 			m_preparing_script = -2;
 
 			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
-				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
-					(*itl)->on_new_list( m_feSettings );
+				itm->update_elements( m_feSettings, true );
 			// Fallthrough intended
 
 		case ToNewSelection:
@@ -2758,8 +2756,22 @@ void FePresent::update_to( FeTransitionType type, bool reset_display )
 			m_preparing_script = -2;
 
 			for ( itm = m_mon.begin(); itm != m_mon.end(); ++itm )
-				for ( itl = (*itm).elements.begin(); itl != (*itm).elements.end(); ++itl )
-					(*itl)->on_new_selection( m_feSettings );
+				itm->update_elements( m_feSettings, false );
+			break;
+
+		case NewList:
+		case NewSelection:
+			for ( auto *base : m_texturePool )
+				if ( auto *surface = dynamic_cast<FeSurfaceTextureContainer *>( base ) )
+				{
+					if ( type == NewList ) surface->update_elements( m_feSettings, true, script );
+					surface->update_elements( m_feSettings, false, script );
+				}
+			for ( auto &monitor : m_mon )
+			{
+				if ( type == NewList ) monitor.update_elements( m_feSettings, true, script );
+				monitor.update_elements( m_feSettings, false, script );
+			}
 			break;
 
 		case EndNavigation:

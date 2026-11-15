@@ -201,6 +201,19 @@ void FePresentableParent::refresh_script_geometry()
 		(*itr)->refresh_script_geometry();
 }
 
+void FePresentableParent::update_elements( FeSettings *settings, bool new_list, int script )
+{
+	FePresent *fep = FePresent::script_get_fep();
+	for ( auto *element : elements )
+	{
+		const int owner = element->get_script_id();
+		if ( script == -2 ? fep && fep->get_script_version( owner ) >= 4 : owner != script )
+			continue;
+		if ( new_list ) element->on_new_list( settings );
+		else element->on_new_selection( settings );
+	}
+}
+
 void FeBasePresentable::on_new_selection( FeSettings * )
 {
 }

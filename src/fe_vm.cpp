@@ -2241,6 +2241,13 @@ void FeVM::advance_navigation()
 				commit_prepared_media( script.id );
 				script.phase = TransitionScript::Complete;
 				const auto kind = m_navigation->request.kind;
+				if ( kind != FeNavigationRequest::End )
+				{
+					const int previous = m_script_id;
+					m_script_id = script.id;
+					update_to( kind == FeNavigationRequest::Selection ? NewSelection : NewList, false, script.id );
+					m_script_id = previous;
+				}
 				start_transition_calls( script, kind == FeNavigationRequest::Selection ? NewSelection :
 					kind == FeNavigationRequest::End ? EndNavigation : NewList, m_navigation->request.value );
 				added = true;

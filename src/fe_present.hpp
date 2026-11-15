@@ -338,7 +338,7 @@ public:
 	bool is_layout_loaded() const { return m_layout_loaded; };
 	void set_transforms();
 
-	void update_to( FeTransitionType type, bool reset_display=false );
+	void update_to( FeTransitionType type, bool reset_display=false, int script=-2 );
 	void redraw_surfaces();
 
 	bool tick(); // run vm on_tick and update videos.  return true if redraw required

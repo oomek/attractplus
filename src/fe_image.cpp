@@ -1516,9 +1516,7 @@ Vec2u FeSurfaceTextureContainer::get_texture_size() const
 
 void FeSurfaceTextureContainer::on_new_selection( FeSettings *s )
 {
-	for ( std::vector<FeBasePresentable *>::iterator itr = elements.begin();
-				itr != elements.end(); ++itr )
-		(*itr)->on_new_selection( s );
+	update_elements( s, false );
 }
 
 void FeSurfaceTextureContainer::on_end_navigation( FeSettings *feSettings )
@@ -1531,9 +1529,7 @@ void FeSurfaceTextureContainer::on_new_list( FeSettings *s, bool )
 	// We don't do any scaling of the objects when they are being drawn
 	// to the surface.
 	//
-	for ( std::vector<FeBasePresentable *>::iterator itr = elements.begin();
-				itr != elements.end(); ++itr )
-		(*itr)->on_new_list( s );
+	update_elements( s, true );
 }
 
 void FeSurfaceTextureContainer::on_redraw_surfaces()
