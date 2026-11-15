@@ -310,9 +310,10 @@ class FeSurfaceTextureContainer : public FeBaseTextureContainer, public FePresen
 {
 public:
 
-	FeSurfaceTextureContainer( int width, int height );
+	FeSurfaceTextureContainer( int width, int height, bool flip_y=false );
 	~FeSurfaceTextureContainer();
 	Vec2f get_grid_extent() const override;
+	bool get_flip_y() const { return m_flip_y; }
 
 	Vec2u get_texture_size() const override;
 
@@ -348,6 +349,7 @@ public:
 	int get_type() const;
 
 private:
+	bool m_flip_y;
 	bool m_clear;
 	bool m_redraw;
 	bool m_mipmap;

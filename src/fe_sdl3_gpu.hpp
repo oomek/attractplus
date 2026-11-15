@@ -186,7 +186,7 @@ private:
 		std::vector<SDL_GPUVertexBufferDescription> buffers;
 		std::vector<SDL_GPUVertexAttribute> attributes;
 		std::vector<SDL_GPUColorTargetDescription> colors;
-		std::map<std::pair<SDL_GPUTextureFormat, SDL_GPUSampleCount>, SDL_GPUGraphicsPipeline *> variants;
+		std::map<std::tuple<SDL_GPUTextureFormat, SDL_GPUSampleCount, bool>, SDL_GPUGraphicsPipeline *> variants;
 	};
 
 	struct SurfaceEntry
@@ -442,7 +442,7 @@ private:
 		bool &drew_anything );
 	SDL_GPUGraphicsPipeline *create_pipeline( const SDL_GPUGraphicsPipelineCreateInfo &info );
 	SDL_GPUGraphicsPipeline *get_pipeline_variant( SDL_GPUGraphicsPipeline *pipeline,
-		SDL_GPUTextureFormat format, SDL_GPUSampleCount samples );
+		SDL_GPUTextureFormat format, SDL_GPUSampleCount samples, bool flip_y=false );
 	void release_pipeline( SDL_GPUGraphicsPipeline *pipeline );
 	bool restore_surface_color( SDL_GPUCommandBuffer *command_buffer,
 		const FeRenderSurfaceFrame &surface, SurfaceEntry &entry );

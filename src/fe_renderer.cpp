@@ -65,6 +65,7 @@ FePerspectiveCamera::FePerspectiveCamera()
 	near_plane( 1.0f ),
 	far_plane( 10000.0f ),
 	default_plane_z( 0.0f ),
+	flip_y( false ),
 	projection( FeRenderMatrix4::identity() )
 {
 }
@@ -73,6 +74,8 @@ void FePerspectiveCamera::update_projection( float viewport_width, float viewpor
 {
 	const float aspect_ratio = ( viewport_height > 0.0f ) ? viewport_width / viewport_height : 1.0f;
 	projection = FeRenderMatrix4::perspective( fov_y_degrees, aspect_ratio, near_plane, far_plane );
+	if ( flip_y )
+		projection.m[5] = -projection.m[5];
 }
 
 FeRenderTextureBinding::FeRenderTextureBinding()

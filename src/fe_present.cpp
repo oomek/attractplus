@@ -1409,6 +1409,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		frame.clear = surface->get_clear();
 		frame.redraw = surface->get_redraw();
 		frame.camera = m_layout_camera;
+		frame.camera.flip_y = surface->get_flip_y();
 		frame.camera.update_projection( static_cast<float>( frame.width ), static_cast<float>( frame.height ) );
 		frame.geometry_signature = 1469598103934665603ULL;
 		frame.content_signature = 1469598103934665603ULL;
@@ -1741,7 +1742,7 @@ FeImage *FePresent::add_surface(
 	lock_layout_version();
 	FeSurfaceTextureContainer *new_surface = new FeSurfaceTextureContainer(
 		std::max( 0, texture_width ),
-		std::max( 0, texture_height ));
+		std::max( 0, texture_height ), get_layout_version() < 4 );
 	new_surface->set_smooth( m_feSettings->get_info_bool( FeSettings::SmoothImages ) );
 	new_surface->set_nesting_level( p.get_nesting_level() + 1 );
 

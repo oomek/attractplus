@@ -1445,8 +1445,9 @@ Vec2f FeSurfaceTextureContainer::get_grid_extent() const
 	return Vec2f( get_texture_size() );
 }
 
-FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height )
-	: m_clear( true ),
+FeSurfaceTextureContainer::FeSurfaceTextureContainer( int width, int height, bool flip_y )
+	: m_flip_y( flip_y ),
+	m_clear( true ),
 	m_redraw( true ),
 	m_mipmap( false ),
 	m_msaa( true ),
@@ -1472,6 +1473,13 @@ bool FeSurfaceTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pi
 			width = static_cast<unsigned int>( sdl_width );
 			height = static_cast<unsigned int>( sdl_height );
 			pixels.assign( sdl_pixels.begin(), sdl_pixels.end() );
+			if ( m_flip_y )
+			{
+				const std::size_t row = static_cast<std::size_t>( width ) * 4;
+				for ( unsigned int y = 0; y < height / 2; ++y )
+					std::swap_ranges( pixels.begin() + y * row, pixels.begin() + ( y + 1 ) * row,
+						pixels.begin() + ( height - 1 - y ) * row );
+			}
 			return true;
 		}
 	}
@@ -1480,27 +1488,15 @@ bool FeSurfaceTextureContainer::copy_pixels_rgba( std::vector<unsigned char> &pi
 
 bool FeSurfaceTextureContainer::copy_pixels_rgba_to( void *pixels, std::size_t pixel_count, unsigned int &width, unsigned int &height ) const
 {
-	FePresent *fep = FePresent::script_get_fep();
-	if ( fep )
-	{
-		std::vector<std::uint8_t> sdl_pixels;
-		int sdl_width = 0;
-		int sdl_height = 0;
-		if ( fep->get_gpu_context().capture_surface_rgba( this, sdl_pixels, sdl_width, sdl_height ) )
-		{
-			width = static_cast<unsigned int>( sdl_width );
-			height = static_cast<unsigned int>( sdl_height );
-			if ( !pixels )
-				return true;
-
-			if ( pixel_count < sdl_pixels.size() )
-				return false;
-
-			std::memcpy( pixels, sdl_pixels.data(), sdl_pixels.size() );
-			return true;
-		}
-	}
-	return false;
+	std::vector<unsigned char> rgba;
+	if ( !copy_pixels_rgba( rgba, width, height ) )
+		return false;
+	if ( !pixels )
+		return true;
+	if ( pixel_count < rgba.size() )
+		return false;
+	std::memcpy( pixels, rgba.data(), rgba.size() );
+	return true;
 }
 
 FeSurfaceTextureContainer::~FeSurfaceTextureContainer()
@@ -1811,6 +1807,11 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 
 	if ( m_render_vertices.empty() )
 		return false;
+	// Preserve bottom-left surface UVs for layout version 3.
+	const auto *surface = dynamic_cast<const FeSurfaceTextureContainer *>( m_tex );
+	if ( surface && surface->get_flip_y() )
+		for ( auto &vertex : m_render_vertices )
+			vertex.v = static_cast<float>( texture_size.y ) - vertex.v;
 	// The frontend consumes the frame before building these vertices again.
 	geometry.external_vertices = m_render_vertices.data();
 	geometry.external_vertex_count = m_render_vertices.size();

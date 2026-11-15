@@ -4013,17 +4013,20 @@ SDL_GPUGraphicsPipeline *FeSdl3GpuContext::create_pipeline( const SDL_GPUGraphic
 }
 
 SDL_GPUGraphicsPipeline *FeSdl3GpuContext::get_pipeline_variant( SDL_GPUGraphicsPipeline *pipeline,
-	SDL_GPUTextureFormat format, SDL_GPUSampleCount samples )
+	SDL_GPUTextureFormat format, SDL_GPUSampleCount samples, bool flip_y )
 {
 	if ( !pipeline ) return nullptr;
 	PipelineEntry &entry = m_pipeline_entries.at( pipeline );
-	if ( ( entry.colors.empty() || entry.colors[0].format == format ) && entry.info.multisample_state.sample_count == samples )
+	if ( !flip_y && ( entry.colors.empty() || entry.colors[0].format == format ) && entry.info.multisample_state.sample_count == samples )
 		return pipeline;
-	const auto key = std::make_pair( format, samples );
+	const auto key = std::make_tuple( format, samples, flip_y );
 	auto found = entry.variants.find( key );
 	if ( found != entry.variants.end() ) return found->second;
 
 	SDL_GPUGraphicsPipelineCreateInfo info = entry.info;
+	if ( flip_y )
+		info.rasterizer_state.front_face = info.rasterizer_state.front_face == SDL_GPU_FRONTFACE_CLOCKWISE
+			? SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE : SDL_GPU_FRONTFACE_CLOCKWISE;
 	std::vector<SDL_GPUColorTargetDescription> colors = entry.colors;
 	for ( auto &color : colors ) color.format = format;
 	info.target_info.color_target_descriptions = colors.data();
@@ -6309,6 +6312,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			scissor.y = geometry->clip_y;
 			scissor.w = geometry->clip_width;
 			scissor.h = geometry->clip_height;
+			if ( camera.flip_y )
+				scissor.y = viewport_height - scissor.y - scissor.h;
 		}
 		if ( scissor.x != bound_scissor.x || scissor.y != bound_scissor.y ||
 			scissor.w != bound_scissor.w || scissor.h != bound_scissor.h )
@@ -6320,7 +6325,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 	if ( has_depth_target && m_alpha_prepass_pipeline )
 	{
-		SDL_GPUGraphicsPipeline *pipeline = get_pipeline_variant( m_alpha_prepass_pipeline, target_format, sample_count );
+		SDL_GPUGraphicsPipeline *pipeline = get_pipeline_variant( m_alpha_prepass_pipeline, target_format, sample_count, camera.flip_y );
 		if ( !pipeline ) return false;
 		SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
 		bound_pipeline = pipeline;
@@ -6409,6 +6414,16 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 					fragment_uniforms.transforms_offset_scale[binding_index][1] = binding.offset_v;
 					fragment_uniforms.transforms_offset_scale[binding_index][2] = binding.scale_u;
 					fragment_uniforms.transforms_offset_scale[binding_index][3] = binding.scale_v;
+					if ( binding.texture_source_type == FeRenderTextureSourceContainer && binding.texture_id )
+					{
+						const auto *surface = dynamic_cast<const FeSurfaceTextureContainer *>(
+							static_cast<const FeBaseTextureContainer *>( binding.texture_id ) );
+						if ( surface && surface->get_flip_y() )
+						{
+							fragment_uniforms.transforms_offset_scale[binding_index][1] = 1.0f - binding.offset_v;
+							fragment_uniforms.transforms_offset_scale[binding_index][3] = -binding.scale_v;
+						}
+					}
 					fragment_uniforms.transforms_texcoord_fit[binding_index][0] = static_cast<float>( binding.texcoord_set );
 					fragment_uniforms.transforms_texcoord_fit[binding_index][1] = binding.fit_scale_u;
 					fragment_uniforms.transforms_texcoord_fit[binding_index][2] = binding.fit_scale_v;
@@ -6670,7 +6685,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 				custom_fragment_uniform_data.data(),
 				static_cast<Uint32>( custom_fragment_uniform_data.size() * sizeof( float ) ) );
 		}
-		pipeline = get_pipeline_variant( pipeline, target_format, sample_count );
+		pipeline = get_pipeline_variant( pipeline, target_format, sample_count, camera.flip_y );
 		if ( !pipeline ) return false;
 		const Uint32 sampler_count = depth_prepass
 			? 1u
@@ -6855,7 +6870,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			if ( !pipeline )
 				pipeline = m_blend_pipelines[ depth_pipeline ][ FeBlend::Alpha ];
 		}
-		pipeline = get_pipeline_variant( pipeline, target_format, sample_count );
+		pipeline = get_pipeline_variant( pipeline, target_format, sample_count, camera.flip_y );
 		if ( !pipeline ) return false;
 		if ( bound_pipeline != pipeline )
 		{
