@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
 				if ( ev->is<FeEvent::Closed>() )
 					exit_selected = true;
 
-				else if ( feSettings.test_mouse_wrap() )
+				else if ( ev->is<FeEvent::MouseMoved>() && feSettings.test_mouse_wrap() )
 				{
 					feSettings.wrap_mouse();
 				}
