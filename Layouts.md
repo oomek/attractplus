@@ -521,7 +521,7 @@ Shaders compile in the background. When `fe.cache.bg_load = false`, shaders adde
 
 **GLSL Shaders**
 
--  Shaders are implemented with AM+ shader support. See the current shader examples in the repo layouts and config assets.
+-  Texture coordinates start at the top-left corner **Legacy (`fe.layout.version = 3`, the default):** Surface coordinates start at the bottom-left corner. Image coordinates start at the top-left corner.
 -  The minimal vertex shader expected is as follows:
 
    ```glsl

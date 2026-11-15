@@ -19,6 +19,7 @@ struct FePerspectiveCamera
 	float near_plane;
 	float far_plane;
 	float default_plane_z;
+	bool flip_y;
 	FeRenderMatrix4 projection;
 
 	FePerspectiveCamera();
