@@ -1315,6 +1315,8 @@ void FeInputMap::suppress_pressed_inputs( int joy_thresh )
 {
 	clear_held_inputs();
 	m_suppressed_inputs.clear();
+	// Mouse movement and wheel deltas have no release events.
+	FeInputMouse::clear();
 
 	for ( const auto &entry : m_single_map )
 	{
@@ -1382,8 +1384,6 @@ FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const IntRect &mc_r
 
 			if ( m_suppressed_inputs.empty() )
 				m_suppress_pressed_inputs = false;
-
-			return LAST_COMMAND;
 		}
 
 		if ( is_press_like_event( e ) && index.get_type() != FeInputSingle::Unsupported )
@@ -1408,7 +1408,7 @@ FeInputMap::Command FeInputMap::map_input( const FeEvent &e, const IntRect &mc_r
 	}
 
 	// Joystick has moved
-	else if ( e.is<FeEvent::JoystickMoved>() )
+	if ( e.is<FeEvent::JoystickMoved>() )
 	{
 		const auto* event = e.getIf<FeEvent::JoystickMoved>();
 		// Release the old direction even when the axis crosses directly to the opposite side.
