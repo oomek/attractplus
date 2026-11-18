@@ -2,20 +2,20 @@
  * BasicPlus Layout
  *
  * @summary A minimalistic homage to the original Basic layout.
- * @version 1.8.0 2026-07-27
+ * @version 1.9.0 2026-11-18
  * @author Chadnaut
  * @url https://github.com/Chadnaut
  *
  * @requires
  * @artwork snap
  *
- * Showcases tricks and effects using native AM+ 3.2.0 features
+ * Showcases tricks and effects using native AM+ 3.2.3 features
  * - No modules, plugins, shaders, or additional files required
  * - All code is contained within this file for portability & discoverability
  * - Simply provide `snap` artwork and you're ready to go!
  *
  * Tips
- * - There are 16 @trick sections to be found within this file
+ * - There are 15 @trick sections to be found within this file
  * - Enable the Minimap (right-click the scrollbar in VSCode) to see region headings
  * - Enable Layout Preview in AM+ to easily see the effect of each layout option
  *
@@ -47,10 +47,9 @@ local pinch_options = "-100,-80,-60,-40,-20,0,20,40,60,80,100"
 local bright_options = "0,10,20,30,40,50,60,70,80,90,100"
 local info_options = "Category,Manufacturer,Score,Year,Year+Category,Year+Manufacturer,Year+Score"
 local native_perspective = false
+local debug_surface = false
 
-class UserConfig
-</ help="BasicPlus v1.8.0 by Chadnaut\nA minimalistic homage to the original Basic layout" />
-{
+class UserConfig </ help="BasicPlus v1.9.0 by Chadnaut\nA minimalistic homage to the original Basic layout" /> {
     </ label="Preset", help="Set the layout theme preset - overrides some settings while in use\nSet to None to create your own theme", options="None,Basic,Inversion,Glassic,Cyber,Toon", order=0 /> theme_preset = "None"
     </ label="—————— List ——————", help="List Settings", is_info=true, order=1 /> list_section = "————————————————"
     </ label="List Mode", help="Set the list scrolling mode", options="Static,Moving,Bounded,Paged", order=2 /> list_mode = "Bounded"
@@ -69,7 +68,7 @@ class UserConfig
     </ label="Scrollbar Size", help="Set the scrollbar thickness", options="Small,Medium,Large", order=14 /> scr_border = "Medium"
     </ label="Scrollbar Duration", help="Set the scrollbar display time", options="Short,Medium,Long,Always", order=15 /> scr_delay = "Short"
     </ label="Scrollbar NewList", help="Show scrollbar when changing lists", options="Yes,No", order=16 /> scr_newlist = "No"
-    </ label="Scrollbar Redundant", help="Show the scrollbar even when the list fits the page", options="Yes,No", order=17 /> scr_redundant = "No"
+    </ label="Scrollbar Always", help="Show the scrollbar even when the list fits the page", options="Yes,No", order=17 /> scr_redundant = "No"
     </ label="Scrollbar Letter", help="Enable the letter popup during prolonged list scrolling", options="Yes,No", order=18 /> scr_letter = "Yes"
 
     </ label="—————— Info ——————", help="Info Settings", is_info=true, order=19 /> info_section = "————————————————"
@@ -90,79 +89,80 @@ class UserConfig
     </ label="Card Gloss", help="Set the card gloss opacity", options="0,20,40,60,80,100", order=33 /> card_gloss = "20"
 
     </ label="—————— Background ——————", help="Background Settings", is_info=true, order=34 /> bg_section = "————————————————"
-    </ label="Background Artwork", help="Set the background artwork type", options="Title,Image,Video", order=35 /> bg_art = "Image"
-    </ label="Background Filter", help="Set the background filter effect", options="Mosaic,Blur,Reeded,Tile", order=36 /> bg_filter = "Mosaic"
-    </ label="Background Size", help="Set the background filter size", options="Smaller,Small,Medium,Large", order=37 /> bg_size = "Large"
-    </ label="Background Chromatic", help="Set the background chromatic effect", options="None,Small,Medium,Large,Diverging", order=38 /> bg_chromatic = "Small"
-    </ label="Background Cross-Fade", help="Enable the background cross-fade persistence effect", options="Yes,No", order=39 /> bg_persist = "Yes"
-    </ label="Background Rotate", help="Set the background rotation", options="-90,-85,-80,-75,-70,-65,-60,-55,-50,-45,-40,-35,-30,-25,-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90", order=40 /> bg_rotate = "-45"
-    </ label="Background Vignette", help="Set the background vignette size", options="None,Smaller,Small,Medium,Large,Larger", order=41 /> bg_vignette = "Medium"
+    </ label="Background Enable", help="Enable the background", options="Yes,No", order=35 /> bg_enable = "Yes"
+    </ label="Background Artwork", help="Set the background artwork type", options="Title,Image,Video", order=36 /> bg_art = "Image"
+    </ label="Background Filter", help="Set the background filter effect", options="Mosaic,Blur,Reeded,Tile", order=37 /> bg_filter = "Mosaic"
+    </ label="Background Size", help="Set the background filter size", options="Smaller,Small,Medium,Large", order=38 /> bg_size = "Large"
+    </ label="Background Chromatic", help="Set the background chromatic effect", options="None,Small,Medium,Large,Diverging", order=39 /> bg_chromatic = "Small"
+    </ label="Background Cross-Fade", help="Enable the background cross-fade persistence effect", options="Yes,No", order=40 /> bg_persist = "Yes"
+    </ label="Background Rotate", help="Set the background rotation", options="-90,-85,-80,-75,-70,-65,-60,-55,-50,-45,-40,-35,-30,-25,-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90", order=41 /> bg_rotate = "-45"
+    </ label="Background Vignette", help="Set the background vignette size", options="None,Smaller,Small,Medium,Large,Larger", order=42 /> bg_vignette = "Medium"
 
-    </ label="—————— Style ——————", help="Style Settings", is_info=true, order=42 /> style_section = "————————————————"
-    </ label="Outline Size", help="Set the outline thickness", options="None,Hairline,Small,Medium,Large", order=43 /> style_ol_size = "None"
-    </ label="Corner Style", help="Set the corner style", options="Square,Bevel,Round", order=44 /> style_corner = "Round"
-    </ label="Corner Radius X", help="Set the radius width", options="Smaller,Small,Medium,Large,Larger", order=45 /> style_radius_x = "Smaller"
-    </ label="Corner Radius Y", help="Set the radius heigh", options="Smaller,Small,Medium,Large,Larger", order=46 /> style_radius_y = "Smaller"
-    </ label="Corner Contour", help="Adjust the artwork corner size to preserve card padding", options="Yes,No", order=47 /> style_contour = "No"
-    </ label="Left Skew X", help="Set the left column horizontal skew effect", options=pinch_options, order=48 /> style_l_skew_x = "0"
-    </ label="Left Skew Y", help="Set the left column vertical skew effect", options=pinch_options, order=49 /> style_l_skew_y = "0"
-    </ label="Left Pinch X", help="Set the left column horizontal pinch effect", options=pinch_options, order=50 /> style_l_pinch_x = "0"
-    </ label="Left Pinch Y", help="Set the left column vertical pinch effect", options=pinch_options, order=51 /> style_l_pinch_y = "40"
-    </ label="Right Skew X", help="Set the right column horizontal skew effect", options=pinch_options, order=52 /> style_r_skew_x = "0"
-    </ label="Right Skew Y", help="Set the right column vertical skew effect", options=pinch_options, order=53 /> style_r_skew_y = "0"
-    </ label="Right Pinch X", help="Set the right column horizontal pinch effect", options=pinch_options, order=54 /> style_r_pinch_x = "0"
-    </ label="Right Pinch Y", help="Set the right column vertical pinch effect", options=pinch_options, order=55 /> style_r_pinch_y = "-40"
-    </ label="Safe-Margin", help="Set the safe area margin", options="Small,Medium,Large", order=56 /> style_safe_margin = "Small"
+    </ label="—————— Style ——————", help="Style Settings", is_info=true, order=43 /> style_section = "————————————————"
+    </ label="Outline Size", help="Set the outline thickness", options="None,Hairline,Small,Medium,Large", order=44 /> style_ol_size = "None"
+    </ label="Corner Style", help="Set the corner style", options="Square,Bevel,Round", order=45 /> style_corner = "Round"
+    </ label="Corner Radius X", help="Set the radius width", options="Smaller,Small,Medium,Large,Larger", order=46 /> style_radius_x = "Smaller"
+    </ label="Corner Radius Y", help="Set the radius heigh", options="Smaller,Small,Medium,Large,Larger", order=47 /> style_radius_y = "Smaller"
+    </ label="Corner Contour", help="Adjust the artwork corner size to preserve card padding", options="Yes,No", order=48 /> style_contour = "No"
+    </ label="Left Skew X", help="Set the left column horizontal skew effect", options=pinch_options, order=49 /> style_l_skew_x = "0"
+    </ label="Left Skew Y", help="Set the left column vertical skew effect", options=pinch_options, order=50 /> style_l_skew_y = "0"
+    </ label="Left Pinch X", help="Set the left column horizontal pinch effect", options=pinch_options, order=51 /> style_l_pinch_x = "0"
+    </ label="Left Pinch Y", help="Set the left column vertical pinch effect", options=pinch_options, order=52 /> style_l_pinch_y = "40"
+    </ label="Right Skew X", help="Set the right column horizontal skew effect", options=pinch_options, order=53 /> style_r_skew_x = "0"
+    </ label="Right Skew Y", help="Set the right column vertical skew effect", options=pinch_options, order=54 /> style_r_skew_y = "0"
+    </ label="Right Pinch X", help="Set the right column horizontal pinch effect", options=pinch_options, order=55 /> style_r_pinch_x = "0"
+    </ label="Right Pinch Y", help="Set the right column vertical pinch effect", options=pinch_options, order=56 /> style_r_pinch_y = "-40"
+    </ label="Safe-Margin", help="Set the safe area margin", options="Small,Medium,Large", order=57 /> style_safe_margin = "Small"
 
-    </ label="—————— Colour ——————", help="Colour Settings", is_info=true, order=57 /> col_section = "————————————————"
-    </ label="Heading Colour", help="Set the heading colour", options=col_options, order=58 /> col_heading = "Light"
-    </ label="List Colour", help="Set the list colour", options=col_options, order=59 /> col_list = "Light"
-    </ label="List Dim Opacity", help="Set the list dimming opacity", options=bright_options, order=60 /> col_dim_alpha = "50"
-    </ label="Info Color", help="Set the card information colour", options=col_options, order=61 /> col_info = "Dark"
-    </ label="Info Opacity", help="Set the card information opacity", options=bright_options, order=62 /> col_info_alpha = "70"
-    </ label="Card Color", help="Set the card colour", options=col_options, order=63 /> col_card = "Light"
-    </ label="Card Opacity", help="Set the card colour opacity", options=bright_options, order=64 /> col_card_alpha = "100"
-    </ label="Card Text Colour", help="Set the card foreground colour", options=col_options, order=65 /> col_fore = "Dark"
-    </ label="Outline Colour", help="Set the outline colour", options=col_options, order=66 /> col_ol = "Dark"
-    </ label="Outline Opacity", help="Set the outline opacity", options=bright_options, order=67 /> col_ol_alpha = "100"
-    </ label="BG Artwork Opacity", help="Set the background artwork opacity, revealing the background colour beneath it", options=bright_options, order=68 /> col_bg_alpha = "50"
-    </ label="BG Artwork Colourize", help="Set the background artwork colourize strength", options=bright_options, order=69 /> col_bg_colourize = "0"
-    </ label="BG Colour Brightness", help="Set the background colour brightness", options=bright_options, order=70 /> col_bg_bright = "0"
-    </ label="BG Colour Tint", help="Set the background colour tint strength", options=bright_options, order=71 /> col_bg_tint = "0"
-    </ label="Vignette Color", help="Set the vignette colour", options=col_options, order=72 /> col_vig = "Dark"
-    </ label="Vignette Opacity", help="Set the vignette opacity", options=bright_options, order=73 /> col_vig_alpha = "50"
-    </ label="Letterbox Colour", help="Set the letterbox colour, shown behind headings when card disabled", options=col_options, order=74 /> col_box = "Dark"
-    </ label="Letterbox Opacity", help="Set the letterbox opacity", options=bright_options, order=75 /> col_box_alpha = "80"
+    </ label="—————— Colour ——————", help="Colour Settings", is_info=true, order=58 /> col_section = "————————————————"
+    </ label="Heading Colour", help="Set the heading colour", options=col_options, order=59 /> col_heading = "Light"
+    </ label="List Colour", help="Set the list colour", options=col_options, order=60 /> col_list = "Light"
+    </ label="List Dim Opacity", help="Set the list dimming opacity", options=bright_options, order=61 /> col_dim_alpha = "50"
+    </ label="Info Color", help="Set the card information colour", options=col_options, order=62 /> col_info = "Dark"
+    </ label="Info Opacity", help="Set the card information opacity", options=bright_options, order=63 /> col_info_alpha = "70"
+    </ label="Card Color", help="Set the card colour", options=col_options, order=64 /> col_card = "Light"
+    </ label="Card Opacity", help="Set the card colour opacity", options=bright_options, order=65 /> col_card_alpha = "100"
+    </ label="Card Text Colour", help="Set the card foreground colour", options=col_options, order=66 /> col_fore = "Dark"
+    </ label="Outline Colour", help="Set the outline colour", options=col_options, order=67 /> col_ol = "Dark"
+    </ label="Outline Opacity", help="Set the outline opacity", options=bright_options, order=68 /> col_ol_alpha = "100"
+    </ label="BG Artwork Opacity", help="Set the background artwork opacity, revealing the background colour beneath it", options=bright_options, order=69 /> col_bg_alpha = "50"
+    </ label="BG Artwork Colourize", help="Set the background artwork colourize strength", options=bright_options, order=70 /> col_bg_colourize = "0"
+    </ label="BG Colour Brightness", help="Set the background colour brightness", options=bright_options, order=71 /> col_bg_bright = "0"
+    </ label="BG Colour Tint", help="Set the background colour tint strength", options=bright_options, order=72 /> col_bg_tint = "0"
+    </ label="Vignette Color", help="Set the vignette colour", options=col_options, order=73 /> col_vig = "Dark"
+    </ label="Vignette Opacity", help="Set the vignette opacity", options=bright_options, order=74 /> col_vig_alpha = "50"
+    </ label="Letterbox Colour", help="Set the letterbox colour, shown behind headings when card disabled", options=col_options, order=75 /> col_box = "Dark"
+    </ label="Letterbox Opacity", help="Set the letterbox opacity", options=bright_options, order=76 /> col_box_alpha = "80"
 
-    </ label="—————— Animation ——————", help="Animation Settings", is_info=true, order=76 /> anim_section = "————————————————"
-    </ label="List Pulsing", help="Enable the pulsing list selector animation", options="Yes,No", order=77 /> anim_list_pulse = "Yes"
-    </ label="List Scrolling", help="Enable the scrolling list selector animation during game select", options="Yes,No", order=78 /> anim_list_scroll = "Yes"
-    </ label="List Paging", help="Enable the scrolling list selector animation during Paged mode pagination", options="Yes,No", order=79 /> anim_list_page = "No"
-    </ label="List Bumping", help="Enable the list bump animation during pagination", options="Yes,No", order=80 /> anim_list_bump = "Yes"
-    </ label="List Wobbling", help="Enable the list wobble animation during random game select", options="Yes,No", order=81 /> anim_list_random = "Yes"
-    </ label="List Sliding", help="Enable the list slide animation during filter select", options="Yes,No", order=82 /> anim_list_slide = "Yes"
-    </ label="Card Floating", help="Enable the floating card animation", options="Yes,No", order=83 /> anim_card_float = "Yes"
-    </ label="Card Parallax", help="Enable the card artwork parallax animation when floating enabled", options="Yes,No", order=84 /> anim_card_parallax = "Yes"
-    </ label="Card Resizing", help="Enable the card resize animation during game select", options="Yes,No", order=85 /> anim_card_resize = "Yes"
-    </ label="Background Panning", help="Enable the panning background animation", options="Yes,No", order=86 /> anim_bg_pan = "Yes"
-    </ label="Display Wiping", help="Enable the wipe animation on display select", options="Yes,No", order=87 /> anim_display_wipe = "Yes"
-    </ label="Launch Irising", help="Enable the iris animation on game launch", options="Yes,No", order=88 /> anim_launch_iris = "Yes"
+    </ label="—————— Animation ——————", help="Animation Settings", is_info=true, order=77 /> anim_section = "————————————————"
+    </ label="List Pulsing", help="Enable the pulsing list selector animation", options="Yes,No", order=78 /> anim_list_pulse = "Yes"
+    </ label="List Scrolling", help="Enable the scrolling list selector animation during game select", options="Yes,No", order=79 /> anim_list_scroll = "Yes"
+    </ label="List Paging", help="Enable the scrolling list selector animation during Paged mode pagination", options="Yes,No", order=80 /> anim_list_page = "No"
+    </ label="List Bumping", help="Enable the list bump animation during pagination", options="Yes,No", order=81 /> anim_list_bump = "Yes"
+    </ label="List Wobbling", help="Enable the list wobble animation during random game select", options="Yes,No", order=82 /> anim_list_random = "Yes"
+    </ label="List Sliding", help="Enable the list slide animation during filter select", options="Yes,No", order=83 /> anim_list_slide = "Yes"
+    </ label="Card Floating", help="Enable the floating card animation", options="Yes,No", order=84 /> anim_card_float = "Yes"
+    </ label="Card Parallax", help="Enable the card artwork parallax animation when floating enabled", options="Yes,No", order=85 /> anim_card_parallax = "Yes"
+    </ label="Card Resizing", help="Enable the card resize animation during game select", options="Yes,No", order=86 /> anim_card_resize = "Yes"
+    </ label="Background Panning", help="Enable the panning background animation", options="Yes,No", order=87 /> anim_bg_pan = "Yes"
+    </ label="Display Wiping", help="Enable the wipe animation on display select", options="Yes,No", order=88 /> anim_display_wipe = "Yes"
+    </ label="Launch Irising", help="Enable the iris animation on game launch", options="Yes,No", order=89 /> anim_launch_iris = "Yes"
 
-    </ label="—————— Standby ——————", help="Standby Settings", is_info=true, order=89 /> sav_section = "————————————————"
-    </ label="Standby Delay", help="Set the time in seconds before entering standby mode, which hides the list to reduce burn-in. 0 to disable", order=90 /> sav_delay = "0"
-    </ label="Standby Change", help="Set the time in seconds between changing game in standby mode. 0 to disable", order=91 /> sav_change = "30"
+    </ label="—————— Standby ——————", help="Standby Settings", is_info=true, order=90 /> sav_section = "————————————————"
+    </ label="Standby Delay", help="Set the time in seconds before entering standby mode, which hides the list to reduce burn-in. 0 to disable", order=91 /> sav_delay = "0"
+    </ label="Standby Change", help="Set the time in seconds between changing game in standby mode. 0 to disable", order=92 /> sav_change = "30"
 
-    </ label="—————— Debug ——————", help="Debug Settings", is_info=true, order=92 /> debug_section = "————————————————"
-    </ label="Debug Background", help="Hide all foreground layers", options="Yes,No", order=93 /> debug_bg = "No"
-    </ label="Debug Perspective", help="Enable native pinch and skew", options="Yes,No", order=94 /> debug_perspective = "No"
-    </ label="Debug Popups", help="Force the scrollbar and letter to appear", options="Yes,No", order=95 /> debug_popup = "No"
-    </ label="Debug Elements", help="Enable the debug element outlines", options="Yes,No", order=96 /> debug_element = "No"
-    </ label="Debug Safe-Margin", help="Enable the debug safe area margin", options="Yes,No", order=97 /> debug_safe = "No"
-    </ label="Debug Time", help="Set the debug time dilation. 1.0 is default", options="0.01,0.1,0.25,0.5,1.0,1.5,2.0", order=98 /> debug_time = "1.0"
-    </ label="Debug Resolution", help="Set the debug internal resolution", options="320x240,240x320,640x480,480x640,4:3,3:4,Full", order=99 /> debug_res = "Full"
+    </ label="—————— Debug ——————", help="Debug Settings", is_info=true, order=93 /> debug_section = "————————————————"
+    </ label="Debug Background", help="Hide all foreground layers", options="Yes,No", order=94 /> debug_bg = "No"
+    </ label="Debug Perspective", help="Enable native pinch and skew", options="Yes,No", order=95 /> debug_perspective = "No"
+    </ label="Debug Popups", help="Force the scrollbar and letter to appear", options="Yes,No", order=96 /> debug_popup = "No"
+    </ label="Debug Elements", help="Enable the debug element outlines", options="Yes,No", order=97 /> debug_element = "No"
+    </ label="Debug Safe-Margin", help="Enable the debug safe area margin", options="Yes,No", order=98 /> debug_safe = "No"
+    </ label="Debug Time", help="Set the debug time dilation. 1.0 is default", options="0.01,0.1,0.25,0.5,1.0,1.5,2.0", order=99 /> debug_time = "1.0"
+    </ label="Debug Resolution", help="Set the debug internal resolution", options="320x240,240x320,640x480,480x640,1080p,1440p,4K,4:3,3:4,Quarter,Half,Full", order=100 /> debug_res = "Full"
 }
 
-if (FeVersionNum < 320) fe.log("Warning: BasicPlus requires Attract-Mode Plus v3.2.0 or higher")
+if (FeVersionNum < 323) fe.log("Warning: BasicPlus requires Attract-Mode Plus v3.2.3 or higher")
 
 // endregion
 // region Presets ----------------------------------------------------------------------
@@ -299,6 +299,16 @@ p240 <- @(x) round((x * min(fe.layout.width, fe.layout.height)) / 240.0)
 /** Return string to float conversion, or default if not numeric */
 to_float <- @(v, d = 0.0) regexp("^-?[\\d\\.]+$").match(v.tostring()) ? v.tofloat() : d
 
+/** Add surface with specific texture size, and debug logging */
+add_surface <- function (parent, x, y, w, h, tw = 0, th = 0, msaa = true, msg = "") {
+    if (FeVersionNum < 400) msaa = true
+    if (debug_surface) fe.log(format("   - add_surface(%5d,%5d ) %4s %s", tw || w, th || h, msaa ? "MSAA" : "", msg))
+    local surf = parent.add_surface(tw || w, th || h)
+    surf.set_pos(x, y, w, h)
+    if (FeVersionNum >= 400) surf.msaa = msaa
+    return surf
+}
+
 /**
  * @trick Aspect-Ratio - Corrected ratio for CRT raster images
  * - The returned ratio is used to resize snaps to their intended CRT size
@@ -309,10 +319,10 @@ to_float <- @(v, d = 0.0) regexp("^-?[\\d\\.]+$").match(v.tostring()) ? v.tofloa
 get_ratio <- function (art, force) {
     if (
         force &&
-        fe.game_info(Info.DisplayType).tolower() == "raster" &&
-        fe.game_info(Info.DisplayCount) == "1"
+        fe.get_game_info(Info.DisplayType).tolower() == "raster" &&
+        fe.get_game_info(Info.DisplayCount) == "1"
     ) {
-        local r = fe.game_info(Info.Rotation)
+        local r = fe.get_game_info(Info.Rotation)
         return r == "90" || r == "270" ? 3.0 / 4.0 : 4.0 / 3.0
     }
     local w = art.texture_width.tofloat()
@@ -406,8 +416,13 @@ class Settings extends UserConfig {
             [240, 320],
             [640, 480],
             [480, 640],
+            [1920, 1080],
+            [2560, 1440],
+            [3840, 2160],
             w / h > 3.0 / 4.0 ? [(h * 4) / 3, h] : [w, (w * 3) / 4],
             w / h > 3.0 / 4.0 ? [(h * 3) / 4, h] : [w, (w * 4) / 3],
+            [w / 4.0, h / 4.0],
+            [w / 2.0, h / 2.0],
             [w, h]
         ]
 
@@ -484,6 +499,7 @@ class Settings extends UserConfig {
         debug_time = to_float(debug_time, 1.0)
         frame_time = (1000.0 / ScreenRefreshRate) * debug_time
         native_perspective = debug_perspective
+        debug_surface = debug_element
 
         /**
          * @trick Time Dilation - Speed-up or slow-down time
@@ -565,23 +581,20 @@ class Settings extends UserConfig {
      * Update derived config values based on the given surface dimensions
      * @param {fe.Surface} parent Surface to resize settings for
      */
-    function update(parent) {
-        local w = parent.texture_width
-        local h = parent.texture_height
-
+    function update(parent, w, h) {
         // Override p240 to match the current surface
         ::p240 <- @(x) round((x * min(w, h)) / 240.0)
 
-        ol_size = style_ol_size < 0 ? 1 : p240(style_ol_size)
+        ol_size = style_ol_size < 0 ? max(1, p240(0.25)) : p240(style_ol_size)
         char_size = p240(list_size)
         card_pad_size = p240(card_pad)
         scr_width = p240(scr_border * 2.0)
         radius_x = p240(style_radius_x)
         radius_y = p240(style_radius_y)
         local rm = style_corner == 2 ? 0.5 : 1.0
-        inner_radius_x = max(0, radius_x - card_pad_size * rm * min(1.0, radius_x / radius_y))
-        inner_radius_y = max(0, radius_y - card_pad_size * rm * min(1.0, radius_y / radius_x))
-        bg_mosaic = bg_filter == "Mosaic" && bg_size == 80 ? hypot(w, h) : bg_size
+        inner_radius_x = radius_x ? max(0, radius_x - card_pad_size * rm * min(1.0, radius_x / radius_y)) : 0.0
+        inner_radius_y = radius_y ? max(0, radius_y - card_pad_size * rm * min(1.0, radius_y / radius_x)) : 0.0
+        bg_mosaic = bg_size
         safe_margin = p240(style_safe_margin)
         clm_pad = p240(10)
         local col_scale = min(1.0, (1.0 - list_width) * 2.0)
@@ -604,13 +617,7 @@ class Layout {
     /** @type {fe.Rectangle} */
     mask = null
     /** @type {fe.Surface} */
-    cont = null
-    /** @type {fe.Surface} */
     body = null
-    /** @type {fe.Surface} */
-    cont = null
-    /** @type {fe.Surface} */
-    surf = null
     /** @type {fe.Rectangle} */
     bg = null
 
@@ -642,38 +649,48 @@ class Layout {
      * @param {Settings} cfg Layout settings
      */
     constructor(parent, cfg) {
-        cfg.update(parent)
+        /**
+         * @trick Resolution - Debug the entire layout at a different screen size
+         * - All elements base their dimensions on their parent containers
+         * - Create a top-level surface at a low-res, then up-scale to fit the window
+         * - Accurately handles small fonts (adjusting fe.layout dimensions does not)
+         */
+        local res = cfg.debug_res
+        local flw = parent.texture_width
+        local flh = parent.texture_height
+        local scale = min(flw / res[0], flh / res[1])
+        if (floor(scale)) scale = floor(scale)
+        local w = ceil2(res[0])
+        local h = ceil2(res[1])
+
+        cfg.update(parent, w, h)
         this.cfg = cfg
-        local w = parent.texture_width
-        local h = parent.texture_height
-        mask_size = w + h
+        mask_size = flw + flh
+
+        // Body holds the entire layout
+        local ws = ceil2(w * scale)
+        local hs = ceil2(h * scale)
+        body = add_surface(parent, floor(flw * 0.5), floor(flh * 0.5), ws, hs, w, h, false, "Layout")
+        body.rotation_origin = Origin.Centre
+        body.anchor = Anchor.Centre
+        body.smooth = false
 
         /**
          * @trick Iris-Wipe - The game-launch transition effect
-         * - The mask rectangle combines with the body BlendMode.Multiply to reveal it
+         * - The mask is effectivly a huge outline that uses BlendMode.Subtract to remove the body
          * - Animating the mask size changes the portion of the body that is shown
          */
-        mask = parent.add_rectangle(w * 0.5, h * 0.5, mask_size, mask_size)
+        mask = parent.add_rectangle(flw * 0.5, flh * 0.5, mask_size, mask_size)
         mask.anchor = Anchor.Centre
-        mask.corner_ratio_x = min(1.0, cfg.radius_x / cfg.radius_y) * 0.5
-        mask.corner_ratio_y = min(1.0, cfg.radius_y / cfg.radius_x) * 0.5
+        mask.corner_ratio_x = cfg.radius_x ? min(1.0, cfg.radius_x / cfg.radius_y) * 0.5 : 0.0
+        mask.corner_ratio_y = cfg.radius_y ? min(1.0, cfg.radius_y / cfg.radius_x) * 0.5 : 0.0
         mask.corner_points = cfg.style_corner
+        mask.blend_mode = BlendMode.Subtract
+        mask.set_rgb(0, 0, 0)
+        mask.set_outline_rgb(255, 255, 255)
+        mask.outline = mask_size * 0.5
 
-        // Body holds the entire layout
-        body = parent.add_surface(w, h)
-        body.blend_mode = BlendMode.Multiply
-        body.rotation_origin = Origin.Centre
-        body.anchor = Anchor.Centre
-        body.set_pos(w * 0.5, h * 0.5)
-
-        // Background rectangle prevents flash-of-white on first load
-        bg = body.add_rectangle(0, 0, w, h)
-        bg.set_rgb(0, 0, 0)
-        background = Background(body, cfg)
-
-        // Extra surfaces used for screensaver effect
-        cont = body.add_surface(w, h)
-        surf = cont.add_surface(w, h)
+        background = cfg.bg_enable ? Background(body, cfg) : null
 
         if (cfg.debug_safe) {
             local m = cfg.safe_margin
@@ -683,10 +700,13 @@ class Layout {
             safe.set_outline_rgb(255, 0, 0)
         }
 
+        // BUGFIX - distortion shader in AM3 behaves badly under certain conditions, adding extra geometry "fixes" it...
+        if (FeVersionNum < 400) body.add_text(".", 0, 0, 0, 0)
+
         // Create the layout elements - each one will handle its own child elements
-        scrollbar = Scrollbar(surf, cfg)
-        columns = Columns(surf, cfg)
-        letter = Letter(surf, cfg, background)
+        scrollbar = Scrollbar(body, cfg)
+        columns = Columns(body, cfg)
+        letter = Letter(body, cfg, background)
         if (cfg.sav_delay) screensaver = Screensaver(this, cfg)
 
         fe.add_ticks_callback(this, "on_tick")
@@ -720,7 +740,7 @@ class Layout {
     function on_tick(ttime) {
         ttime = tt()
         mask_draw(ttime)
-        background.draw(ttime)
+        if (background) background.draw(ttime)
         scrollbar.draw(ttime)
         columns.draw(ttime)
         letter.draw(ttime)
@@ -752,7 +772,7 @@ class Layout {
             case Transition.FromOldSelection:
                 if (next_random) columns.next_random(ttime, fe.list.index - last_index)
                 if (next_page || abs(var) > 1) columns.next_page(ttime, var)
-                background.reset(ttime)
+                if (background) background.reset(ttime)
                 columns.next_selection(ttime, var, fe.list.index, fe.list.size)
                 letter.request(ttime)
                 scrollbar.update(ttime, fe.list.index, fe.list.size)
@@ -762,7 +782,7 @@ class Layout {
             case Transition.ToNewList:
                 if (display_var) columns.next_display(ttime, display_var)
                 display_var = 0
-                background.reset(ttime)
+                if (background) background.reset(ttime)
                 columns.next_list(ttime, var, fe.list.index, fe.list.size)
                 scrollbar.update(ttime, fe.list.index, fe.list.size, true)
                 break
@@ -792,8 +812,6 @@ class Background {
     /** @type {fe.Surface} */
     surf = null
     /** @type {fe.Surface} */
-    rgb_surf = null
-    /** @type {fe.Surface} */
     rgb = null
     /** @type {fe.Surface} */
     rgb_cont = null
@@ -821,8 +839,12 @@ class Background {
      */
     constructor(parent, cfg) {
         this.cfg = cfg
-        local w = parent.texture_width
-        local h = parent.texture_height
+        local pw = parent.texture_width
+        local ph = parent.texture_height
+        local px = 512.0
+        local bgs = px / max(px, max(pw, ph))
+        local w = floor(pw * bgs)
+        local h = floor(ph * bgs)
         local s = hypot(w, h)
 
         local reeded = cfg.bg_filter == "Reeded"
@@ -831,7 +853,8 @@ class Background {
         local scale = blur || reeded || tile ? (cfg.bg_mosaic / s) * 0.5 : 1.0
         local s2 = s * scale
 
-        surf = parent.add_surface(w, h)
+        // Required for Letter to use as cutout
+        surf = add_surface(parent, 0, 0, pw, ph, w, h, false, "BG")
 
         // Underlay colour shows beneath transparent artwork
         local underlay = surf.add_rectangle(0, 0, w, h)
@@ -841,7 +864,7 @@ class Background {
             (mix(255, cfg.tint_col[2], cfg.col_bg_tint / 100.0) * cfg.col_bg_bright) / 100.0
         )
 
-        rgb_surf = surf.add_surface(w, h)
+        local rgb_surf = add_surface(surf, 0, 0, w, h, 0, 0, false, "BG RGB_Surf")
         rgb_surf.blend_mode = BlendMode.Add
         rgb_surf.alpha = (cfg.col_bg_alpha / 100.0) * 255.0
         rgb_surf.set_rgb(
@@ -861,21 +884,17 @@ class Background {
             local rw = reeded ? s : tile ? s3 : s4
             local rh = reeded ? s3 : tile ? s3 : s4
 
-            rgb = rgb_surf.add_surface(w, h)
-            local rgb1 = rgb.add_surface(rw, rh)
-            local rgb2 = rgb1.add_surface(s3, s3)
-            local rgb3 = rgb2.add_surface(s2, s2)
-            rgb1.set_pos(0, 0, rgb.texture_width, rgb.texture_height)
-            rgb2.set_pos(0, 0, rgb1.texture_width, rgb1.texture_height)
-            rgb3.set_pos(0, 0, rgb2.texture_width, rgb2.texture_height)
+            rgb = add_surface(rgb_surf, w * 0.5, h * 0.5, s, s, w, h, false, "BG RGB")
+            local rgb1 = add_surface(rgb, 0, 0, w, h, rw, rh, false, "BG RGB1")
+            local rgb2 = add_surface(rgb1, 0, 0, rw, rh, s3, s3, false, "BG RGB2")
+            local rgb3 = add_surface(rgb2, 0, 0, s3, s3, s2, s2, false, "BG RGB3")
             rgb1.smooth = blur
             rgb_cont = rgb3
         } else {
-            rgb = rgb_surf.add_surface(s2, s2)
+            rgb = add_surface(rgb_surf, w * 0.5, h * 0.5, s, s, s2, s2, false, "BG RGB")
             rgb_cont = rgb
         }
 
-        rgb.set_pos(w * 0.5, h * 0.5, s, s)
         rgb.anchor = Anchor.Centre
         rgb.rotation_origin = Origin.Centre
         rgb.rotation = cfg.bg_rotate
@@ -897,20 +916,20 @@ class Background {
          * - While a controversial effect in modern games, it adds depth and colour to otherwise monotone backgrounds
          */
         local chroma = !!cfg.bg_chromatic
-        red = rgb_cont.add_surface(s2 * 0.5, s2 * 0.5, s2, s2)
+        red = add_surface(rgb_cont, s2 * 0.5, s2 * 0.5, s2, s2, 0, 0, false, "BG Red")
         red.anchor = Anchor.Centre
         red.repeat = true
-        if (chroma) red.set_rgb(255, 0, 0)
-
-        green = rgb_cont.add_clone(red)
-        green.blend_mode = BlendMode.Add
-        green.set_rgb(0, 255, 0)
-        green.visible = chroma
-
-        blue = rgb_cont.add_clone(green)
-        blue.set_rgb(0, 0, 255)
 
         if (chroma) {
+            red.set_rgb(255, 0, 0)
+
+            green = rgb_cont.add_clone(red)
+            green.blend_mode = BlendMode.Add
+            green.set_rgb(0, 255, 0)
+
+            blue = rgb_cont.add_clone(green)
+            blue.set_rgb(0, 0, 255)
+
             bg_angle_offset = cfg.bg_chromatic < 0 ? (PI * 2.0) / 3.0 : 0
 
             local channel_offset = 0.04 * abs(cfg.bg_chromatic)
@@ -921,7 +940,7 @@ class Background {
 
         local msg = "[Title] [Title] [Title] [Title] [Title] [Title]"
         local m_size = cfg.bg_mosaic
-        local art_pos = m_size * 0.5
+        local a_pos = m_size * 0.5
         art_size = m_size * 2.0 // overlap to crop "score" area
 
         /**
@@ -929,14 +948,13 @@ class Background {
          * - A surface's texture size is locked upon creation, and does not change thereafter
          * - When created small then enlarged without smoothing, it results in big blocky pixels
          */
-        content = red.add_surface(m_size, m_size)
+        content = add_surface(red, 0, 0, m_size, m_size, 0, 0, false, "BG Content")
         content.width = content.height = s2
         content.smooth = false
 
         // Placeholder text is seen when there's no background artwork
         local p_size = 240 // force low-res to match game art
-        local place_cont = content.add_surface(p_size, p_size)
-        place_cont.set_pos(-art_pos, -art_pos, art_size, art_size)
+        local place_cont = add_surface(content, -a_pos, -a_pos, art_size, art_size, p_size, p_size, false, "BG Text")
         place_cont.smooth = false
         placeholder = place_cont.add_text(msg, 0, 0, p_size, p_size)
         placeholder.char_size = p_size * 0.15
@@ -947,21 +965,21 @@ class Background {
 
         // Artwork gets displayed in each channel surface clone
         local resource = cfg.bg_flags == -1 ? "-" : "snap"
-        art = content.add_artwork(resource, art_pos, art_pos, art_size, art_size)
+        art = content.add_artwork(resource, a_pos, a_pos, art_size, art_size)
         art.anchor = Anchor.Centre
         art.video_flags = cfg.bg_flags
         art.smooth = false
 
-        if (tile) add_tile_overlay(w, h, s)
+        if (tile) add_tile_overlay(w, h, s, bgs)
         if (reeded) add_reeded_overlay(w, h, s)
         if (cfg.bg_vignette) add_vignette_overlay(w, h)
     }
 
     /** Add the tile overlay **/
-    function add_tile_overlay(w, h, s) {
-        local ss = ceil2(s / cfg.bg_mosaic)
-        local se = max(2.0, p240(2) * 0.65)
-        local sm1 = p240(1) * 0.25
+    function add_tile_overlay(w, h, s, bgs) {
+        local ss = ceil2(s / cfg.bg_mosaic / bgs)
+        local se = ceil(ss * 0.2) // gloss
+        local sm1 = ceil(ss * 0.035) // grout
         local sz1 = ss - sm1 * 2.0
         local sm2 = sm1 + se
         local sz2 = sz1 - se
@@ -971,16 +989,14 @@ class Background {
          * - Create a pattern on a small surface texture
          * - The surface is enlarged, subimg adjusted, and "repeat" enabled to create a tiled pattern
          */
-        local slot = surf.add_surface(ss, ss)
+        local slot = add_surface(surf, w * 0.5, h * 0.5, s, s, ss, ss, false, "BG Tile")
         local slot_rect = slot.add_rectangle(0, 0, ss, ss)
         local slot_high = slot.add_rectangle(sm1, sm1, sz1, sz1)
         local slot_mask = slot.add_rectangle(sm2, sm2, sz2, sz2)
         slot_rect.set_rgb(0, 0, 0)
-        slot_high.corner_ratio = slot_mask.corner_ratio = 0.1 // 0.05
-        slot_high.set_rgb(255, 255, 255)
-        slot_high.alpha = 200
+        slot_high.corner_ratio = slot_mask.corner_ratio = 0.2
+        slot_high.corner_points = slot_mask.corner_points = cfg.style_corner
         slot_mask.blend_mode = BlendMode.Subtract
-        slot.set_pos(w * 0.5, h * 0.5, s, s)
         slot.anchor = Anchor.Centre
         slot.rotation_origin = Origin.Centre
         slot.rotation = cfg.bg_rotate
@@ -994,10 +1010,9 @@ class Background {
     /** Add the reeded overlay **/
     function add_reeded_overlay(w, h, s) {
         local ss = ceil2(s / cfg.bg_mosaic)
-        local slot = surf.add_surface(ss, ss)
+        local slot = add_surface(surf, w * 0.5, h * 0.5, s, s, ss, ss, false, "BG Reeded")
         local slot_rect = slot.add_rectangle(0, 0, ss, ss * 0.1)
         slot.repeat = true
-        slot.set_pos(w * 0.5, h * 0.5, s, s)
         slot.anchor = Anchor.Centre
         slot.rotation_origin = Origin.Centre
         slot.rotation = cfg.bg_rotate
@@ -1010,17 +1025,15 @@ class Background {
     /** Add the vignette effect */
     function add_vignette_overlay(w, h) {
         // Uses the Blur-blur-blur trick to smoothly upscale a small black outline
-        local v_surf1 = surf.add_surface(cfg.bg_vignette * 4, cfg.bg_vignette * 4)
-        local v_surf2 = v_surf1.add_surface(cfg.bg_vignette * 2, cfg.bg_vignette * 2)
-        local v_surf3 = v_surf2.add_surface(cfg.bg_vignette, cfg.bg_vignette)
-        local v_rect = v_surf3.add_rectangle(0, 0, cfg.bg_vignette, cfg.bg_vignette)
+        local v = cfg.bg_vignette
+        local v_over = 1.0 + 1.0 / v
+        local v_surf1 = add_surface(surf, w * 0.5, h * 0.5, w * v_over, h * v_over, v * 4, v * 4, false, "BG Vignette")
+        local v_surf2 = add_surface(v_surf1, 0, 0, v * 4, v * 4, v * 2, v * 2, false, "BG Vignette2")
+        local v_surf3 = add_surface(v_surf2, 0, 0, v * 2, v * 2, v, v, false, "BG Vignette3")
+        local v_rect = v_surf3.add_rectangle(0, 0, v, v)
 
-        local v_over = 1.0 + 1.0 / cfg.bg_vignette
         v_surf1.anchor = Anchor.Centre
         v_surf1.alpha = cfg.col_vig_alpha
-        v_surf1.set_pos(w * 0.5, h * 0.5, w * v_over, h * v_over)
-        v_surf2.set_pos(0, 0, v_surf1.texture_width, v_surf1.texture_height)
-        v_surf3.set_pos(0, 0, v_surf2.texture_width, v_surf2.texture_height)
 
         v_rect.set_outline_rgb(cfg.col_vig[0], cfg.col_vig[1], cfg.col_vig[2])
         v_rect.outline = -1
@@ -1036,10 +1049,12 @@ class Background {
         local b = g + bg_angle_offset
         red.subimg_x = cos(r) * red.texture_width
         red.subimg_y = sin(r) * red.texture_height
-        green.subimg_x = cos(g) * green.texture_width
-        green.subimg_y = sin(g) * green.texture_height
-        blue.subimg_x = cos(b) * blue.texture_width
-        blue.subimg_y = sin(b) * blue.texture_height
+        if (!!cfg.bg_chromatic) {
+            green.subimg_x = cos(g) * green.texture_width
+            green.subimg_y = sin(g) * green.texture_height
+            blue.subimg_x = cos(b) * blue.texture_width
+            blue.subimg_y = sin(b) * blue.texture_height
+        }
     }
 
     /** Reset the background when the game changes */
@@ -1092,13 +1107,13 @@ class Scrollbar {
      */
     constructor(parent, cfg) {
         this.cfg = cfg
-        if (!cfg.debug_popup && !cfg.scr_enable) return
+        if (cfg.debug_bg || (!cfg.debug_popup && !cfg.scr_enable)) return
         show_dur = cfg.show_duration * cfg.scr_delay
         dur = cfg.anim_list_scroll ? 150.0 : 1.0
         height_max = parent.texture_height.tofloat()
 
         local x = cfg.scr_side == "Left" ? 0 : parent.texture_width
-        surf = parent.add_surface(x, 0, cfg.scr_width + cfg.ol_size * 2.0, height_max)
+        surf = add_surface(parent, x, 0, cfg.scr_width + cfg.ol_size * 2.0, height_max, 0, 0, true, "Scrollbar")
         surf.anchor = Anchor.Top
         surf.alpha = show_dur ? 0 : 255
 
@@ -1191,7 +1206,7 @@ function add_distortion(obj, px = 0, py = 0, sx = 0, sy = 0) {
         obj.shader = fe.compile_shader(
             Shader.VertexAndFragment,
             (legacy ? "#version 120\n#extension GL_EXT_gpu_shader4 : require\n" : "#version 130\n") +
-            @"uniform float width = 0.0; uniform float height = 0.0; uniform float rotation = 0.0;
+                @"uniform float width = 0.0; uniform float height = 0.0; uniform float rotation = 0.0;
             uniform float offset_tl_x = 0.0; uniform float offset_tl_y = 0.0; uniform float offset_bl_x = 0.0; uniform float offset_bl_y = 0.0;
             uniform float offset_tr_x = 0.0; uniform float offset_tr_y = 0.0; uniform float offset_br_x = 0.0; uniform float offset_br_y = 0.0;
             int mod_int(int x, int y) { return int(mod(float(x), float(y))); }
@@ -1218,7 +1233,7 @@ function add_distortion(obj, px = 0, py = 0, sx = 0, sy = 0) {
                 gl_FrontColor = gl_Color;
             }",
             (legacy ? "#version 120\n" : "#version 130\n") +
-            @"uniform sampler2D texture;
+                @"uniform sampler2D texture;
             void main() { gl_FragColor = gl_Color * texture2D(texture, gl_TexCoord[0].xy / gl_TexCoord[0].w); }"
         )
     }
@@ -1244,10 +1259,12 @@ function add_distortion(obj, px = 0, py = 0, sx = 0, sy = 0) {
 class Columns {
     /** @type {Settings} */
     cfg = null
+    /** @type {fe.Surace} */
+    parent = null
     /** @type {fe.Surface} */
-    surf = null
+    list_mask = null
     /** @type {fe.Surface} */
-    mask = null
+    card_mask = null
     /** @type {fe.Surface} */
     list_clm = null
     /** @type {fe.Surface} */
@@ -1259,6 +1276,9 @@ class Columns {
     heading = null
     /** @type {Card} */
     card = null
+
+    list_x = 0.0
+    card_x = 0.0
 
     list_sky = 0.0
     x = 0.0
@@ -1281,12 +1301,13 @@ class Columns {
      * @param {Settings} cfg Layout settings
      */
     constructor(parent, cfg) {
+        this.parent = parent
         this.cfg = cfg
         local w = parent.texture_width
         local h = parent.texture_height
         width = ceil2(min(h * 1.5, w) - cfg.safe_margin * 2.0)
 
-        mask_dur = cfg.anim_display_wipe ? 800.0 : 1.0
+        mask_dur = cfg.anim_display_wipe ? 1280.0 : 1.0
         rand_dur = cfg.anim_list_random ? 640.0 : 0.0
         page_dur = cfg.anim_list_bump ? 320.0 : 0.0
         rand_time = -rand_dur
@@ -1306,21 +1327,18 @@ class Columns {
         local right_x = w * 0.5 + width * 0.5 - right_w * 0.5
         if (!cfg.card_enable) right_x = w * 0.5
 
-        height = ceil2(h + (left_w * 0.2 + cfg.char_size) * 2.0)
+        local pin = min(w, h) * 0.1
+        local pymax = ceil2(pin * max(fabs(cfg.style_l_pinch_y), fabs(cfg.style_r_pinch_y)))
+        height = ceil2(h + pymax * 2.0)
         local skx = height * 0.1
         local sky = left_w * 0.1
-        local pin = min(w, h) * 0.1
 
         // Holds the columns
         x = w * 0.5
         y = h * 0.5
-        surf = parent.add_surface(x, y, w, height)
-        surf.anchor = Anchor.Centre
-        surf.rotation_origin = Origin.Centre
-        if (cfg.debug_bg) surf.visible = false
 
         // Left column, holds list/card
-        local l_clm = surf.add_surface(left_x, height * 0.5, left_w, height)
+        local l_clm = add_surface(parent, left_x, h * 0.5, left_w, height, 0, 0, true, "Columns Left")
         l_clm.anchor = Anchor.Centre
 
         local lpx = ceil2(pin * cfg.style_l_pinch_x)
@@ -1335,7 +1353,7 @@ class Columns {
         add_distortion(l_clm, lpx, lpy, lsx, lsy)
 
         // Right column, holds card/list
-        local r_clm = surf.add_surface(right_x, height * 0.5, right_w, height)
+        local r_clm = add_surface(parent, right_x, h * 0.5, right_w, height, 0, 0, true, "Columns Right")
         r_clm.anchor = Anchor.Centre
 
         if (cfg.card_enable) {
@@ -1366,21 +1384,11 @@ class Columns {
             rr.set_outline_rgb(255, 255, 0)
         }
 
-        /**
-         * @trick Horizontal-Wipe - The display transition effect
-         * - The mask uses an up-scaled surface to create a soft gradient
-         * - BlendMode.Subtract hides the surfaces below, and subimg positioning controls movement
-         */
-        mask = surf.add_surface(4, 1)
-        mask.add_rectangle(1, 0, 2, 1)
-        mask.set_pos(w * 0.5, height * 0.5, w * 4.0, height)
-        mask.blend_mode = BlendMode.Subtract
-        mask.anchor = Anchor.Centre
-        mask.repeat = true
-
         list_clm = cfg.card_left ? r_clm : l_clm
         card_clm = cfg.card_left ? l_clm : r_clm
         list_sky = ceil2(sky * (cfg.card_left ? cfg.style_r_skew_y : cfg.style_l_skew_y))
+        list_x = list_clm.x
+        card_x = card_clm.x
 
         local card_w = card_clm.width - cfg.ol_size * 2.0
         local card_h1 = cfg.safe_h - cfg.head_h * 2.0
@@ -1396,26 +1404,47 @@ class Columns {
             r.outline_alpha = 150
             r.outline = -p240(1)
             r.alpha = 0
-            r.zorder = 1
         }
 
         // Create column elements
         list = List(list_clm, cfg)
         heading = Heading(card_clm, cfg)
         if (cfg.card_enable) card = Card(card_clm, cfg)
+        if (cfg.debug_bg) list_clm.visible = card_clm.visible = false
+
+        /**
+         * @trick Horizontal-Wipe - The display transition effect
+         * - The mask uses an up-scaled surface to create a soft gradient
+         * - BlendMode.Subtract hides the surfaces below, and subimg positioning controls movement
+         */
+        local c = list_clm
+        list_mask = add_surface(c, c.width * 0.5, height * 0.5, c.width * 4.0, height, 4, 1, false, "List Mask")
+        list_mask.add_rectangle(1, 0, 2, 1)
+        list_mask.blend_mode = BlendMode.Subtract
+        list_mask.anchor = Anchor.Centre
+        list_mask.repeat = true
+
+        local c = card_clm
+        card_mask = add_surface(c, c.width * 0.5, height * 0.5, c.width * 4.0, height, 4, 1, false, "Card Mask")
+        card_mask.add_rectangle(1, 0, 2, 1)
+        card_mask.blend_mode = BlendMode.Subtract
+        card_mask.anchor = Anchor.Centre
+        card_mask.repeat = true
     }
 
     /** Draw the elements */
     function draw(ttime) {
         if (mask_dur) {
             local mask_x = ease_out(ttime - mask_time, mask_dir, -mask_dir, mask_dur)
-            mask.subimg_x = 2.0 + mask_x
+            list_mask.subimg_x = 2.0 + mask_x
+            card_mask.subimg_x = 2.0 + mask_x
 
             local move_x = ease_out(ttime - mask_time, mask_dir, -mask_dir, mask_dur * 0.5)
-            surf.x = x + -move_x * min(width, height) * 0.025
+            list_clm.x = list_x + -move_x * min(width, height) * 0.025
+            card_clm.x = card_x + -move_x * min(width, height) * 0.025
         }
 
-        local y = 0.5 * (height - list_sky)
+        local y = 0.5 * (parent.texture_height - list_sky)
         if (rand_dur && ttime <= rand_time + rand_dur) {
             local t = ttime - rand_time
             local str = ease_out(t, 1.0, -1.0, rand_dur) * rand_dir * cfg.char_size
@@ -1517,7 +1546,7 @@ class List {
         // Show extra rows outside the safe area
         local over = 0
         if (cfg.list_overflow) {
-            over = ceil((parent.texture_height - cfg.safe_h) / row_h)
+            over = ceil((parent.texture_height - cfg.safe_h) / row_h / 2)
             rows += over * 2
         }
 
@@ -1533,8 +1562,7 @@ class List {
          * - The same effect is also applied to the filter text
          */
         local y = floor((parent.texture_height - height) * 0.5)
-        local list_cont = parent.add_surface(0, y, width, height)
-        local list_surf = list_cont.add_surface(width, height)
+        local list_surf = add_surface(parent, 0, y, width, height, 0, 0, false, "List Surf")
         list1 = list_surf.add_listbox(0, 0, width, height)
         list2 = list_surf.add_listbox(0, 0, width, height)
         list1.set_rgb(255, 255, 255)
@@ -1555,7 +1583,7 @@ class List {
         list1.format_string = list2.format_string = "[Title]"
         list2.filter_offset = 1
         list2.x = list1.x + width
-        list_cont.set_rgb(cfg.col_list[0], cfg.col_list[1], cfg.col_list[2])
+        list_surf.set_rgb(cfg.col_list[0], cfg.col_list[1], cfg.col_list[2])
 
         list1.sel_mode = list2.sel_mode = cfg.list_mode
         list1.sel_margin = list2.sel_margin = cfg.list_margin + over
@@ -1563,7 +1591,7 @@ class List {
         fe.layout.page_size = list1.rows - list1.sel_margin * 2
 
         if (cfg.debug_element) {
-            local r = parent.add_rectangle(0, y, list_cont.width, list_cont.height)
+            local r = parent.add_rectangle(0, y, width, height)
             r.set_outline_rgb(0, 255, 255)
             r.outline_alpha = 150
             r.outline = -p240(1)
@@ -1572,25 +1600,17 @@ class List {
         }
 
         // Custom list selection box that is animated independent of the list
-        // - sel_cont is taller to accommodate the sel_over's ol_size outline
         sel_offset = y
-        local sel_cont = parent.add_surface(0, 0, width, parent.texture_height)
-        local sel_text = parent.add_surface(0, y, width, height)
-        local sel_surf = parent.add_surface(width, height)
+        local sel_text_surf = add_surface(parent, 0, y, width, height, 0, 0, false, "Sel Text Surf")
+        sel_text_surf.zorder = 1
 
         sel_e = (row_h - list1.glyph_size) % 2 != 0 ? 1 : 0
         sel_h = row_h + sel_e
         local sel_y = get_sel_y()
 
-        sel_mask = sel_surf.add_rectangle(sel_w * 0.5 + cfg.ol_size, sel_y, sel_w, sel_h)
-        sel_over = sel_cont.add_rectangle(sel_mask.x, 0, sel_mask.width, sel_mask.height)
-        sel_mask.anchor = sel_over.anchor = Anchor.Centre
-        sel_mask.corner_points = sel_over.corner_points = cfg.style_corner
-        draw_sel(sel_w, sel_h)
-
-        local margin = max(cfg.char_size * 0.5 + sel_mask.corner_radius_x, sel_h * 0.5)
-        list1.margin = list2.margin = margin
-
+        sel_over = parent.add_rectangle(sel_w * 0.5 + cfg.ol_size, 0, sel_w, sel_h)
+        sel_over.anchor = Anchor.Centre
+        sel_over.corner_points = cfg.style_corner
         sel_over.set_rgb(cfg.col_card[0], cfg.col_card[1], cfg.col_card[2])
         sel_over.alpha = cfg.col_card_alpha
         sel_over.outline = cfg.ol_size
@@ -1602,24 +1622,27 @@ class List {
          * - Use the selection surface hide the list portion it overlaps
          * - Then use an inverse of it to show the overlapped text in a different colour
          */
-        local sel_cut = list_cont.add_clone(sel_surf)
-        sel_cut.blend_mode = BlendMode.Subtract
-        local sel_text_list = sel_text.add_clone(list_surf)
-        local sel_text_mask = sel_text.add_surface(width, height)
+        local sel_text_list = sel_text_surf.add_clone(list_surf)
+        sel_text_list.y = 0
+        local sel_text_mask = add_surface(sel_text_surf, 0, 0, width, height, 0, 0, false, "Sel Text Mask")
         local sel_text_rect = sel_text_mask.add_rectangle(0, 0, width, height)
-        local sel_text_sel = sel_text_mask.add_clone(sel_surf)
-        sel_text_sel.blend_mode = BlendMode.Subtract
         sel_text_mask.blend_mode = BlendMode.Subtract
         sel_text_list.set_rgb(cfg.col_fore[0], cfg.col_fore[1], cfg.col_fore[2])
-        sel_surf.visible = false // Hide *after* we've cloned it
+        sel_mask = sel_text_mask.add_rectangle(sel_w * 0.5 + cfg.ol_size, sel_y, sel_w, sel_h)
+        sel_mask.anchor = sel_over.anchor
+        sel_mask.corner_points = sel_over.corner_points
+        sel_mask.blend_mode = BlendMode.Subtract
+
+        draw_sel(sel_w, sel_h)
+        local margin = max(cfg.char_size * 0.5 + sel_mask.corner_radius_x, sel_h * 0.5)
+        list1.margin = list2.margin = margin
 
         local dim = cfg.list_edge
         local dim_alpha = dim == "Dimmed" ? cfg.col_dim_alpha : dim == "Hide" ? 0 : 255
         local dim_h = list1.sel_margin * 2
 
         if (dim_alpha < 255 && dim_h) {
-            local dim_surf = list_cont.add_surface(1, rows)
-            dim_surf.set_pos(0, 0, width, height)
+            local dim_surf = add_surface(parent, 0, y, width, height, 1, rows, false, "Sel Dim")
             dim_surf.add_rectangle(0, 0, 1, dim_h)
             dim_surf.repeat = true
             dim_surf.subimg_y = dim_h * 0.5
@@ -1869,6 +1892,8 @@ class Card {
     /** @type {Image} */
     img = null
 
+    x = 0
+    y = 0
     width = 0
     height = 0
     fav_top = ""
@@ -1881,10 +1906,12 @@ class Card {
     constructor(parent, cfg) {
         this.cfg = cfg
         width = parent.texture_width
-        height = parent.texture_height
+        height = cfg.card_h
 
         // Hold card elements, also gets animated for the float effect
-        surf = parent.add_surface(width * 0.5, height * 0.5, width, height)
+        x = parent.texture_width * 0.5
+        y = parent.texture_height * 0.5
+        surf = add_surface(parent, x, y, width, height, 0, 0, false, "Card")
         surf.anchor = Anchor.Centre
 
         // Solid colour base defining the card object
@@ -1941,7 +1968,7 @@ class Card {
             local gx = (cos(ttime * 0.0011) + 1.0) * 0.5
             local gy = cos(ttime * 0.001) * 0.5
             local gp = dir * gx
-            surf.y = height * (0.5 + 0.01 * gy)
+            surf.y = y + height * (0.02 * gy)
             surf.width = width * (1.0 - 0.02 * (2.0 * gx))
             surf.height = height * (1.0 - 0.02 * gp)
             add_distortion(surf, 0, height * -0.02 * gp, 0, 0)
@@ -1950,7 +1977,7 @@ class Card {
     }
 
     function get_msg() {
-        return to_float(fe.game_info(Info.Votes)) ? cfg.auto_score_msg : cfg.auto_msg
+        return to_float(fe.get_game_info(Info.Votes)) ? cfg.auto_score_msg : cfg.auto_msg
     }
 
     /** Reset the card when the game has changed */
@@ -1959,7 +1986,7 @@ class Card {
         label_top.visible = label_bottom.visible = cfg.info_enable && fe.list.size > 0
 
         if (cfg.info_score != "None") {
-            local v = to_float(fe.game_info(Info.Votes))
+            local v = to_float(fe.get_game_info(Info.Votes))
             if (cfg.info_score == "Top") {
                 label_top.msg = fav_top + (v ? cfg.score_msg : cfg.info_top_msg)
             } else {
@@ -1975,8 +2002,6 @@ class Card {
 class Image {
     /** @type {Settings} */
     cfg = null
-    /** @type {fe.Surface} */
-    surf = null
     /** @type {fe.Surface} */
     mask = null
     /** @type {fe.Surface} */
@@ -2014,25 +2039,7 @@ class Image {
         local z = hypot(width, height)
 
         // Holds the image and content
-        surf = parent.add_surface(x, y, width, height)
-
-        /**
-         * @trick Content Crop - The artwork cropped-corner effect
-         * - The mask rectangle combines with the content BlendMode.Multiply to reveal it
-         * - This mask is resized to fit the dimensions of the content artwork
-         * - The artwork must be 1 pixel larger to prevent the mask bleeding through edge-aligned subpixels
-         */
-        local rc = cfg.style_contour ? 1.0 : 0.0
-        local ry = max(0, cfg.inner_radius_y - rc * (cfg.label_h - cfg.card_pad_size))
-        local rx = ry ? max(0, (cfg.inner_radius_x * ry) / cfg.inner_radius_y) : 0
-        mask = surf.add_rectangle(0, 0, 0, 0)
-        mask.corner_radius_x = rx
-        mask.corner_radius_y = ry
-        mask.corner_points = cfg.style_corner
-
-        // Holds all the content that gets masked by the cornered surface above
-        content = surf.add_surface(width, height)
-        content.blend_mode = BlendMode.Multiply
+        content = add_surface(parent, x, y, width, height, 0, 0, false, "Image Content")
 
         // Fallback text is visible when there is no artwork covering it
         placeholder = content.add_text("[Title]", 0, 0, width, height)
@@ -2049,15 +2056,32 @@ class Image {
         art.video_flags = cfg.card_flags
 
         // Gloss overlay effect over the image content, up-scaled to create a smooth gradient
-        gloss = content.add_surface(8, 8)
+        gloss = add_surface(content, width * 0.5, height * 0.5, z, z, 8, 8, false, "Image Gloss")
         gloss.add_rectangle(0, 0, 8, 2)
-        gloss.set_pos(width * 0.5, height * 0.5, z, z)
         gloss.anchor = Anchor.Centre
         gloss.rotation_origin = Origin.Centre
         gloss.blend_mode = BlendMode.Add
         gloss.repeat = true
         gloss.rotation = -45
         gloss.alpha = cfg.card_gloss
+
+        /**
+         * @trick Content Crop - The artwork cropped-corner effect
+         * - The mask rectangle uses BlendMode.Subtract to hide anything covered its huge outline
+         * - This mask is resized to fit the dimensions of the content artwork
+         * - The artwork must be 1 pixel larger to prevent the mask bleeding through edge-aligned subpixels
+         */
+        local rc = cfg.style_contour ? 1.0 : 0.0
+        local ry = max(0, cfg.inner_radius_y - rc * (cfg.label_h - cfg.card_pad_size))
+        local rx = ry ? max(0, (cfg.inner_radius_x * ry) / cfg.inner_radius_y) : 0
+        mask = content.add_rectangle(0, 0, 0, 0)
+        mask.corner_radius_x = rx
+        mask.corner_radius_y = ry
+        mask.corner_points = cfg.style_corner
+        mask.set_rgb(0, 0, 0)
+        mask.alpha = 0
+        mask.outline = z * 0.5
+        mask.blend_mode = BlendMode.Subtract
     }
 
     /** Draw the elements */
@@ -2143,16 +2167,17 @@ class Letter {
         local w = parent.texture_width
         local h = parent.texture_height
         local size = cfg.letter_size
-        local x = (w - size) * 0.5
-        local y = (h - size) * 0.5
+        local lw = size * 2.0
+        local lh = size * 2.0
+        local x = size * 0.5
+        local y = size * 0.5
 
-        surf = parent.add_surface(w, h)
+        surf = add_surface(parent, (w - lw) * 0.5, (h - lh) * 0.5, lw, lh, 0, 0, true, "Letter")
         surf.alpha = 0
 
         // Up-scale a tiny surface to create a soft shadow beneath the letter elements
         local s = 5
-        shadow_surf = surf.add_surface(s, s)
-        shadow_surf.set_pos(x - size * 0.5, y - size * 0.5, size * 2.0, size * 2.0)
+        shadow_surf = add_surface(surf, 0, 0, lw, lh, s, s, false, "Letter Shadow")
         shadow = shadow_surf.add_rectangle(1, 1, s - 2, s - 2)
         shadow.set_rgb(cfg.col_fore[0], cfg.col_fore[1], cfg.col_fore[2])
         shadow.corner_radius = s / 5.0
@@ -2164,11 +2189,22 @@ class Letter {
          * - The background surface is passed to this class upon creation
          * - Mask it to match the letter overlay, so it appears to "see through" the foreground
          */
-        local cut = surf.add_surface(w, h)
-        local cut_bg = cut.add_clone(bg.surf)
-        local cut_mask = cut.add_surface(w, h)
-        local cut_rect = cut_mask.add_rectangle(0, 0, w, h)
-        local cut_shape = cut_mask.add_rectangle(x, y, size, size)
+        local cut = add_surface(surf, x, y, size, size, 0, 0, false, "Letter Cut")
+        if (bg) {
+            local cut_bg = cut.add_clone(bg.surf)
+            cut_bg.set_pos(-surf.x - x, -surf.y - y)
+        } else {
+            local cut_bg = cut.add_rectangle(0, 0, size, size)
+            cut_bg.set_rgb(0, 0, 0)
+        }
+
+        local cut_over = cut.add_rectangle(0, 0, size, size)
+        cut_over.set_rgb(cfg.col_card[0], cfg.col_card[1], cfg.col_card[2])
+        cut_over.alpha = cfg.col_card_alpha
+
+        local cut_mask = add_surface(cut, 0, 0, size, size, 0, 0, true, "Letter Mask")
+        local cut_rect = cut_mask.add_rectangle(0, 0, size, size)
+        local cut_shape = cut_mask.add_rectangle(0, 0, size, size)
         cut_shape.corner_radius_x = cfg.radius_x
         cut_shape.corner_radius_y = cfg.radius_y
         cut_shape.corner_points = cfg.style_corner
@@ -2177,15 +2213,15 @@ class Letter {
         cut_mask.set_rgb(0, 0, 0)
         cut.blend_mode = BlendMode.Alpha
 
+        // just the outline
         over = surf.add_rectangle(x, y, size, size)
         over.corner_radius_x = cfg.radius_x
         over.corner_radius_y = cfg.radius_y
         over.corner_points = cfg.style_corner
-        over.set_rgb(cfg.col_card[0], cfg.col_card[1], cfg.col_card[2])
         over.outline = cfg.ol_size
         over.outline_alpha = cfg.col_ol_alpha
         over.set_outline_rgb(cfg.col_ol[0], cfg.col_ol[1], cfg.col_ol[2])
-        over.alpha = cfg.col_card_alpha
+        over.alpha = 0
 
         text = surf.add_text("[TitleLetter]", x, y, size, size)
         text.char_size = cfg.letter_char
@@ -2230,14 +2266,9 @@ class Letter {
 class Screensaver {
     /** @type {Settings} */
     cfg = null
-    /** @type {fe.Surface} */
-    cont = null
-    /** @type {fe.Surface} */
-    surf = null
+    /** @type {Layout} */
+    layout = null
 
-    width = 0
-    height = 0
-    size = 0.0
     hide_time = 0
     show_time = 0
     alpha_from = 0
@@ -2249,26 +2280,15 @@ class Screensaver {
      * @param {Settings} cfg Layout settings
      */
     constructor(layout, cfg) {
+        this.layout = layout
         this.cfg = cfg
-        cont = layout.cont
-        surf = layout.surf
-        width = cont.width
-        height = cont.height
         fade_delay = cfg.sav_delay * 1000
-        size = min(width, height) * 0.015
-
-        cont.smooth = false
-        if (cont.anchor != Anchor.Centre) {
-            cont.anchor = Anchor.Centre
-            cont.set_pos(cont.width * 0.5, cont.height * 0.5)
-        }
-
         reset(0)
     }
 
     /** Return true if saver is active */
     function get_active() {
-        return cont.alpha == 0
+        return layout.columns.card_clm.alpha == 0
     }
 
     /** Restart the screensaver delay */
@@ -2276,7 +2296,7 @@ class Screensaver {
         if (!fade_delay) return
         hide_time = ttime + fade_delay - cfg.frame_time
         show_time = ttime - cfg.frame_time
-        alpha_from = cont.alpha
+        alpha_from = layout.columns.card_clm.alpha
         return get_active()
     }
 
@@ -2288,45 +2308,19 @@ class Screensaver {
             ? ease_out(ttime - hide_time, alpha_from, -alpha_from, fade_dur)
             : ease_out(ttime - show_time, alpha_from, 255.0 - alpha_from, fade_dur)
         if (!hide) alpha_from = s
-
-        /**
-         * @trick Mosaic - The SNES-like growing-pixel transition used during the Layout standby effect
-         * - Decrease the subimg size while increasing its container size
-         * - Results in the resolution lowering while remaining the same visual size
-         */
-        local m = (1.0 - s / 255.0) * size
-        local n = 1.0 + 2.0 * m
-        surf.subimg_x = surf.width * -m
-        surf.subimg_y = surf.height * -m
-        surf.subimg_width = surf.width * n
-        surf.subimg_height = surf.height * n
-        cont.width = width * n
-        cont.height = height * n
-        cont.alpha = s
+        layout.columns.card_clm.alpha = layout.columns.list_clm.alpha = s
+        layout.columns.card_clm.red = layout.columns.list_clm.red = s
+        layout.columns.card_clm.green = layout.columns.list_clm.green = s
+        layout.columns.card_clm.blue = layout.columns.list_clm.blue = s
     }
 }
 
 // endregion
 // region Main -------------------------------------------------------------------------
 
-// Get the user settings
 local config = Settings()
-local res = config.debug_res
-local flw = fe.layout.width
-local flh = fe.layout.height
-
-/**
- * @trick Resolution - Debug the entire layout at a different screen size
- * - All elements base their dimensions on their parent containers
- * - Create a top-level surface at a low-res, then up-scale to fit the window
- * - Accurately handles small fonts (adjusting fe.layout dimensions does not)
- */
-local scale = min(flw / res[0], flh / res[1])
-if (floor(scale)) scale = floor(scale)
-local surf = fe.add_surface(ceil2(res[0]), ceil2(res[1]))
-surf.set_pos(floor(flw * 0.5), floor(flh * 0.5), ceil2(res[0]) * scale, ceil2(res[1]) * scale)
-surf.anchor = Anchor.Centre
-surf.smooth = false
-Layout(surf, config)
+fe.texture_width <- fe.layout.width
+fe.texture_height <- fe.layout.height
+Layout(fe, config)
 
 // endregion
