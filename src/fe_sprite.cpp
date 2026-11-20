@@ -184,12 +184,12 @@ void FeSprite::setBorder( const IntEdges &border )
 	}
 }
 
-const IntEdges &FeSprite::getPadding() const
+const FloatEdges &FeSprite::getPadding() const
 {
 	return m_padding;
 }
 
-void FeSprite::setPadding( const IntEdges &padding )
+void FeSprite::setPadding( const FloatEdges &padding )
 {
 	if ( padding != m_padding )
 	{
@@ -438,10 +438,10 @@ void FeSprite::updateGeometry()
 		tex_size.y * scale_abs.y
 	));
 	const FloatEdges scaled_padding(
-		static_cast<float>( m_padding.left ) * padding_scale / scale_abs.x,
-		static_cast<float>( m_padding.top ) * padding_scale / scale_abs.y,
-		static_cast<float>( m_padding.right ) * padding_scale / scale_abs.x,
-		static_cast<float>( m_padding.bottom ) * padding_scale / scale_abs.y );
+		m_padding.left * padding_scale / scale_abs.x,
+		m_padding.top * padding_scale / scale_abs.y,
+		m_padding.right * padding_scale / scale_abs.x,
+		m_padding.bottom * padding_scale / scale_abs.y );
 	pos.left -= scaled_padding.left;
 	pos.top -= scaled_padding.top;
 	pos.right = std::max( pos.left, pos.right + scaled_padding.right );

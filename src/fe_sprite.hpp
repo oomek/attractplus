@@ -109,8 +109,8 @@ public:
 	const IntEdges &getBorder() const;
 	void setBorder( const IntEdges &border );
 
-	const IntEdges &getPadding() const;
-	void setPadding( const IntEdges &padding );
+	const FloatEdges &getPadding() const;
+	void setPadding( const FloatEdges &padding );
 
 	void setScale( const Vec2f &scale );
 	const Vec2f &getScale() const;
@@ -146,7 +146,7 @@ private:
 	FloatRect m_textureRect;
 	FloatEdges m_crop;
 	IntEdges m_border;
-	IntEdges m_padding;
+	FloatEdges m_padding;
 	Vec2f m_scale;
 	Vec2f m_position;
 	Vec3f m_origin;

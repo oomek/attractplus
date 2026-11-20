@@ -61,7 +61,7 @@ void FeSpriteLegacy::append_render_vertices( const FeSprite &sprite,
 	const float padding_scale = sprite.getPaddingScale( Vec2f(
 		( pos.right - pos.left ) * scale.x,
 		( pos.bottom - pos.top ) * scale.y ) );
-	const IntEdges &p = sprite.getPadding();
+	const FloatEdges &p = sprite.getPadding();
 	const FloatEdges padding( p.left * padding_scale / scale.x,
 		p.top * padding_scale / scale.y, p.right * padding_scale / scale.x,
 		p.bottom * padding_scale / scale.y );

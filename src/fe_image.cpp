@@ -1843,7 +1843,7 @@ bool FeImage::supports_cutout() const
 {
 	return m_subimg_set == 0 && m_blend_mode == FeBlend::Alpha
 		&& !m_tex->get_repeat() && !m_sprite_legacy.is_active()
-		&& m_sprite.getCrop() == FloatEdges() && m_sprite.getPadding() == IntEdges();
+		&& m_sprite.getCrop() == FloatEdges() && m_sprite.getPadding() == FloatEdges();
 }
 
 bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane &mask_plane ) const
@@ -2205,7 +2205,7 @@ void FeImage::scale()
 	);
 
 	// Populate the fit_rect so users can get the resulting image dimensions
-	const IntEdges& padding = m_sprite.getPadding();
+	const FloatEdges& padding = m_sprite.getPadding();
 	float padding_scale = m_sprite.getPaddingScale( Vec2f(
 		std::abs( tex_size.x * scale.x ),
 		std::abs( tex_size.y * scale.y )
@@ -3455,15 +3455,15 @@ void FeImage::build_mask_geometry( FeRenderGeometry &geometry, const std::vector
 	}
 	float scale = ( m_mask_border.left || m_mask_border.top || m_mask_border.right || m_mask_border.bottom )
 		? m_mask_border_scale : 1.f;
-	const float x = border[0] + border[2] - static_cast<float>( m_mask_padding.left ) - m_mask_padding.right;
-	const float y = border[1] + border[3] - static_cast<float>( m_mask_padding.top ) - m_mask_padding.bottom;
+	const float x = border[0] + border[2] - m_mask_padding.left - m_mask_padding.right;
+	const float y = border[1] + border[3] - m_mask_padding.top - m_mask_padding.bottom;
 	if ( x > 0.f ) scale = std::min( scale, rect.size.x / x );
 	if ( y > 0.f ) scale = std::min( scale, rect.size.y / y );
 	geometry.mask_scale = scale;
 	geometry.mask_rect[0] = rect.position.x - m_mask_padding.left * scale;
 	geometry.mask_rect[1] = rect.position.y - m_mask_padding.top * scale;
-	geometry.mask_rect[2] = std::max( 0.f, rect.size.x + ( static_cast<float>( m_mask_padding.left ) + m_mask_padding.right ) * scale );
-	geometry.mask_rect[3] = std::max( 0.f, rect.size.y + ( static_cast<float>( m_mask_padding.top ) + m_mask_padding.bottom ) * scale );
+	geometry.mask_rect[2] = std::max( 0.f, rect.size.x + ( m_mask_padding.left + m_mask_padding.right ) * scale );
+	geometry.mask_rect[3] = std::max( 0.f, rect.size.y + ( m_mask_padding.top + m_mask_padding.bottom ) * scale );
 }
 
 bool FeImage::get_mask_fit() const { return m_mask_fit; }
@@ -3483,9 +3483,9 @@ void FeImage::set_mask_border( int l, int t, int r, int b )
 	FePresent::script_flag_redraw();
 }
 
-void FeImage::set_mask_padding( int l, int t, int r, int b )
+void FeImage::set_mask_padding( float l, float t, float r, float b )
 {
-	const IntEdges padding( l, t, r, b );
+	const FloatEdges padding( l, t, r, b );
 	if ( padding == m_mask_padding ) return;
 	m_mask_padding = padding;
 	FePresent::script_flag_redraw();
@@ -3508,14 +3508,14 @@ void FeImage::set_mask_border_left( int l ) { set_mask_border( l, m_mask_border.
 void FeImage::set_mask_border_top( int t ) { set_mask_border( m_mask_border.left, t, m_mask_border.right, m_mask_border.bottom ); }
 void FeImage::set_mask_border_right( int r ) { set_mask_border( m_mask_border.left, m_mask_border.top, r, m_mask_border.bottom ); }
 void FeImage::set_mask_border_bottom( int b ) { set_mask_border( m_mask_border.left, m_mask_border.top, m_mask_border.right, b ); }
-int FeImage::get_mask_padding_left() const { return m_mask_padding.left; }
-int FeImage::get_mask_padding_top() const { return m_mask_padding.top; }
-int FeImage::get_mask_padding_right() const { return m_mask_padding.right; }
-int FeImage::get_mask_padding_bottom() const { return m_mask_padding.bottom; }
-void FeImage::set_mask_padding_left( int l ) { set_mask_padding( l, m_mask_padding.top, m_mask_padding.right, m_mask_padding.bottom ); }
-void FeImage::set_mask_padding_top( int t ) { set_mask_padding( m_mask_padding.left, t, m_mask_padding.right, m_mask_padding.bottom ); }
-void FeImage::set_mask_padding_right( int r ) { set_mask_padding( m_mask_padding.left, m_mask_padding.top, r, m_mask_padding.bottom ); }
-void FeImage::set_mask_padding_bottom( int b ) { set_mask_padding( m_mask_padding.left, m_mask_padding.top, m_mask_padding.right, b ); }
+float FeImage::get_mask_padding_left() const { return m_mask_padding.left; }
+float FeImage::get_mask_padding_top() const { return m_mask_padding.top; }
+float FeImage::get_mask_padding_right() const { return m_mask_padding.right; }
+float FeImage::get_mask_padding_bottom() const { return m_mask_padding.bottom; }
+void FeImage::set_mask_padding_left( float l ) { set_mask_padding( l, m_mask_padding.top, m_mask_padding.right, m_mask_padding.bottom ); }
+void FeImage::set_mask_padding_top( float t ) { set_mask_padding( m_mask_padding.left, t, m_mask_padding.right, m_mask_padding.bottom ); }
+void FeImage::set_mask_padding_right( float r ) { set_mask_padding( m_mask_padding.left, m_mask_padding.top, r, m_mask_padding.bottom ); }
+void FeImage::set_mask_padding_bottom( float b ) { set_mask_padding( m_mask_padding.left, m_mask_padding.top, m_mask_padding.right, b ); }
 
 void FeImage::set_border( int l, int t, int r, int b )
 {
@@ -3528,9 +3528,9 @@ void FeImage::set_border( int l, int t, int r, int b )
 	}
 }
 
-void FeImage::set_padding( int l, int t, int r, int b )
+void FeImage::set_padding( float l, float t, float r, float b )
 {
-	IntEdges padding( l, t, r, b );
+	FloatEdges padding( l, t, r, b );
 	if ( padding != m_sprite.getPadding() )
 	{
 		m_sprite.setPadding( padding );
@@ -3549,47 +3549,47 @@ void FeImage::set_border_scale( float s )
 	}
 }
 
-int FeImage::get_padding_left() const
+float FeImage::get_padding_left() const
 {
 	return m_sprite.getPadding().left;
 }
 
-int FeImage::get_padding_top() const
+float FeImage::get_padding_top() const
 {
 	return m_sprite.getPadding().top;
 }
 
-int FeImage::get_padding_right() const
+float FeImage::get_padding_right() const
 {
 	return m_sprite.getPadding().right;
 }
 
-int FeImage::get_padding_bottom() const
+float FeImage::get_padding_bottom() const
 {
 	return m_sprite.getPadding().bottom;
 }
 
-void FeImage::set_padding_left( int l )
+void FeImage::set_padding_left( float l )
 {
-	IntEdges padding = m_sprite.getPadding();
+	FloatEdges padding = m_sprite.getPadding();
 	set_padding( l, padding.top, padding.right, padding.bottom );
 }
 
-void FeImage::set_padding_top( int t )
+void FeImage::set_padding_top( float t )
 {
-	IntEdges padding = m_sprite.getPadding();
+	FloatEdges padding = m_sprite.getPadding();
 	set_padding( padding.left, t, padding.right, padding.bottom );
 }
 
-void FeImage::set_padding_right( int r )
+void FeImage::set_padding_right( float r )
 {
-	IntEdges padding = m_sprite.getPadding();
+	FloatEdges padding = m_sprite.getPadding();
 	set_padding( padding.left, padding.top, r, padding.bottom );
 }
 
-void FeImage::set_padding_bottom( int b )
+void FeImage::set_padding_bottom( float b )
 {
-	IntEdges padding = m_sprite.getPadding();
+	FloatEdges padding = m_sprite.getPadding();
 	set_padding( padding.left, padding.top, padding.right, b );
 }
 
