@@ -124,12 +124,17 @@ float fe_coverage_slice(float p, float first, float last, float src_first, float
 	if (p > 1.0 - last && last > 0.0) return 1.0 - (1.0 - p) * src_last / last;
 	return first + last < 1.0 ? src_first + (p - first) * (1.0 - src_first - src_last) / (1.0 - first - last) : src_first;
 }
-vec2 fe_coverage_uv(vec2 pixel, int index)
+vec2 fe_coverage_local(vec2 pixel, int index)
 {
 	fe_coverage_Plane plane = fe_coverage.planes[index];
 	vec3 p = vec3(pixel, 1.0);
 	precise vec3 q = vec3(dot(plane.row0.xyz, p), dot(plane.row1.xyz, p), dot(plane.row2.xyz, p));
-	vec2 local = q.xy / q.z;
+	return q.xy / q.z;
+}
+vec2 fe_coverage_uv(vec2 pixel, int index)
+{
+	fe_coverage_Plane plane = fe_coverage.planes[index];
+	vec2 local = fe_coverage_local(pixel, index);
 	vec4 src = plane.source_border, dst = plane.dest_border;
 	return vec2(fe_coverage_slice(local.x, dst.x, dst.z, src.x, src.z), fe_coverage_slice(local.y, dst.y, dst.w, src.y, src.w));
 }
@@ -169,6 +174,11 @@ float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int inde
 	if (enabled == 0.0) return alpha;
 	float coverage = fe_coverage_alpha(mask, fe_coverage_uv(pixel, index + 2), smooth_filter, 2);
 	int mode = int(fe_coverage.masks[index + 2]);
+	if (mode == 8)
+	{
+		vec2 local = fe_coverage_local(pixel, index);
+		if (any(lessThan(local, vec2(0.0))) || any(greaterThanEqual(local, vec2(1.0)))) return 0.0;
+	}
 	bool outside = ((mode & 1) != 0 && (uv.x < 0.0 || uv.x >= 1.0)) || ((mode & 2) != 0 && (uv.y < 0.0 || uv.y >= 1.0));
 	float opacity = fe_coverage_alpha(image, uv, smooth_filter, 1);
 	if ((mode & 3) != 0) return coverage * (outside ? 1.0 : opacity);
@@ -283,7 +293,7 @@ float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int inde
 			if ( masks[i]->texture.texture_id )
 			{
 				result.masks[i] = masks[i]->empty ? -1.f : 1.f;
-				result.masks[i + 2] = masks[i]->fill ? static_cast<float>( masks[i]->fill ) : masks[i]->clip ? 4.f : 0.f;
+				result.masks[i + 2] = static_cast<float>( masks[i]->fill ? masks[i]->fill : masks[i]->clip );
 				if ( !masks[i]->empty ) valid = build_alpha_coverage_plane( *masks[i], camera, width, height, plane_distance, result.planes[i + 2] ) && valid;
 			}
 		if ( !valid ) result.control[3] = -1.0f;

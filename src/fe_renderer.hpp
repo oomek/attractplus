@@ -178,7 +178,7 @@ struct FeRenderImagePlane
 	float source_border[4] = {};
 	float dest_border[4] = {};
 	int fill = 0; // Unused fit areas: bit 0 for X, bit 1 for Y.
-	bool clip = false;
+	int clip = 0; // 4: shared alpha edge, 8: image rectangle.
 	bool empty = false;
 };
 

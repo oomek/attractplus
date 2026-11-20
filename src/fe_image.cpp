@@ -1843,7 +1843,7 @@ bool FeImage::supports_cutout() const
 {
 	return m_subimg_set == 0 && m_blend_mode == FeBlend::Alpha
 		&& !m_tex->get_repeat() && !m_sprite_legacy.is_active()
-		&& m_sprite.getCrop() == FloatEdges() && m_sprite.getPadding() == FloatEdges();
+		&& m_sprite.getCrop() == FloatEdges();
 }
 
 bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane &mask_plane ) const
@@ -1860,13 +1860,17 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane
 	result.texture.dynamic = m_tex->is_volatile_texture();
 	result.texture.blocking = m_tex->is_texture_blocking();
 	result.texture.content_version = m_tex->get_texture_content_version();
-	FeSprite plane = m_sprite;
-	plane.setBorder( IntEdges( 0, 0, 0, 0 ) );
 	std::vector<FeRenderVertex> vertices;
-	plane.append_render_vertices( vertices, get_z() - m_anchor.z, Vec2f(), !m_mask.empty() );
+	m_sprite.append_render_vertices( vertices, get_z() - m_anchor.z, Vec2f(), true );
 	if ( vertices.size() < 3 )
 		return false;
-	const int corners[] = { 0, 2, 1 };
+	// Use the actual padded mesh, including its clamped border scale.
+	std::size_t corners[] = { 0, 0, 0 };
+	for ( std::size_t i = 1; i < vertices.size(); ++i )
+	{
+		if ( vertices[i].u1 > vertices[corners[1]].u1 ) corners[1] = i;
+		if ( vertices[i].v1 > vertices[corners[2]].v1 ) corners[2] = i;
+	}
 	for ( int i = 0; i < 3; ++i )
 	{
 		const FeRenderVertex &point = vertices[corners[i]];
@@ -1876,9 +1880,10 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane
 	}
 	const IntEdges &border = m_sprite.getBorder();
 	const Vec2f scale = m_sprite.getScale();
-	const float width = std::abs( scale.x * texture_size.x );
-	const float height = std::abs( scale.y * texture_size.y );
-	const float padding_scale = m_sprite.getPaddingScale( Vec2f( width, height ) );
+	const float padding_scale = m_sprite.getPaddingScale( Vec2f(
+		std::abs( scale.x * texture_size.x ), std::abs( scale.y * texture_size.y ) ) );
+	const float width = vertices[corners[1]].u1 - vertices[0].u1;
+	const float height = vertices[corners[2]].v1 - vertices[0].v1;
 	const int borders[] = { border.left, border.top, border.right, border.bottom };
 	for ( int i = 0; i < 4; ++i )
 	{
@@ -1893,18 +1898,22 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane
 		mask_plane.texture = mask.mask_texture;
 		if ( !mask_plane.texture.texture_id ) return false;
 		mask_plane.fill = m_mask_fit ? 0 : m_mask_fill;
-		mask_plane.clip = m_mask_fit && ( m_mask_padding.left > 0 || m_mask_padding.top > 0 || m_mask_padding.right > 0 || m_mask_padding.bottom > 0 );
+		mask_plane.clip = m_mask_fit
+			? ( m_mask_padding.left > 0 || m_mask_padding.top > 0 || m_mask_padding.right > 0 || m_mask_padding.bottom > 0 ? 4 : 0 )
+			: ( mask_plane.fill == 0 && m_sprite.getPadding() != FloatEdges() ? 8 : 0 );
 		mask_plane.empty = mask.mask_rect[2] <= 0.f || mask.mask_rect[3] <= 0.f;
 		if ( !mask_plane.empty )
 		{
 			const float *points = m_mask_fit ? result.points : mask.mask_points;
 			const float extent[] = { m_mask_fit ? width : mask.mask_size[0], m_mask_fit ? height : mask.mask_size[1] };
 			if ( extent[0] <= 0.f || extent[1] <= 0.f ) return false;
+			const float left = mask.mask_rect[0] - ( m_mask_fit ? vertices[0].u1 : 0.f );
+			const float top = mask.mask_rect[1] - ( m_mask_fit ? vertices[0].v1 : 0.f );
 			for ( int i = 0; i < 3; ++i )
 				for ( int axis = 0; axis < 3; ++axis )
 					mask_plane.points[i * 3 + axis] = points[axis]
-						+ ( points[3 + axis] - points[axis] ) * ( mask.mask_rect[0] + ( i == 1 ? mask.mask_rect[2] : 0.f ) ) / extent[0]
-						+ ( points[6 + axis] - points[axis] ) * ( mask.mask_rect[1] + ( i == 2 ? mask.mask_rect[3] : 0.f ) ) / extent[1];
+						+ ( points[3 + axis] - points[axis] ) * ( left + ( i == 1 ? mask.mask_rect[2] : 0.f ) ) / extent[0]
+						+ ( points[6 + axis] - points[axis] ) * ( top + ( i == 2 ? mask.mask_rect[3] : 0.f ) ) / extent[1];
 			for ( int i = 0; i < 4; ++i )
 			{
 				mask_plane.source_border[i] = mask.mask_border[i] / ( i % 2 == 0 ? mask.mask_texture.width : mask.mask_texture.height );

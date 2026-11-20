@@ -1267,7 +1267,7 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			{
 				seed = hash_texture_binding( plane->texture, seed );
 				seed = hash_combine( seed, static_cast<std::uint64_t>( plane->fill ) );
-				seed = hash_combine( seed, plane->clip ? 1 : 0 );
+				seed = hash_combine( seed, static_cast<std::uint64_t>( plane->clip ) );
 				seed = hash_combine( seed, plane->empty ? 1 : 0 );
 				for ( float value : plane->points ) seed = hash_float_bits( seed, value );
 				for ( float value : plane->source_border ) seed = hash_float_bits( seed, value );
