@@ -143,6 +143,7 @@ _DEP =\
 	fe_animation.hpp \
 	fe_grid.hpp \
 	fe_presentable.hpp \
+	fe_group.hpp \
 	fe_transform.hpp \
 	fe_renderer.hpp \
 	fe_present.hpp \
@@ -199,6 +200,7 @@ _OBJ =\
 	fe_config.o \
 	fe_animation.o \
 	fe_presentable.o \
+	fe_group.o \
 	fe_renderer.o \
 	fe_present.o \
 	fe_model_3d.o \

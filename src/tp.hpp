@@ -72,6 +72,7 @@ public:
 	void setCharacterSpacing( float );
 	void setLineSpacing( float );
 	void setAlignment( FeAlign );
+	void setAlignmentSnap( bool );
 	void setCase( Case );
 	void setPosition( int x, int y ) { return setPosition( Vec2f( static_cast<float>( x ), static_cast<float>( y ) ) ); };
 	void setPosition( const Vec2f & );
@@ -149,6 +150,7 @@ private:
 	float m_outline;
 	float m_line_spacing;
 	bool m_word_wrap;
+	bool m_alignment_snap = true;
 
 	mutable bool m_needs_pos_set;
 

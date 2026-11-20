@@ -131,6 +131,7 @@ public:
 	virtual FePresentableParent *get_presentable_parent();
 
 	void register_image( FeImage * );
+	void unregister_image( FeImage * );
 
 	virtual void release_audio( bool );
 	virtual void on_redraw_surfaces();
@@ -155,6 +156,7 @@ private:
 	std::vector< FeImage * > m_images;
 
 	friend class FeTextureContainer;
+	friend class FeImage;
 };
 
 class FeTextureContainer : public FeBaseTextureContainer
@@ -425,6 +427,9 @@ public:
 
 	void setFilterOffset( int );
 	void rawset_filter_offset( int fo );
+	void on_group_update( bool update=true ) override;
+	int get_effective_index_offset() const override;
+	int get_effective_filter_offset() const override;
 	int getFilterOffset() const;
 
 	void setTextureRect( const FloatRect &, unsigned int fields = SubimgAll );
@@ -642,6 +647,9 @@ public:
 	FeImage *add_surface( float, float, float, float );
 	FeImage *add_surface( float, float, float, float, int, int );
 	FeImage *add_surface( float, float );
+	FeGroup *add_group();
+	FeGroup *add_group( float, float );
+	FeGroup *add_group( float, float, float, float );
 	FeImage *add_clone( FeImage * );
 	FeText *add_text( const char *, float, float, float, float );
 	FeListBox *add_listbox( float, float, float, float );
@@ -685,6 +693,7 @@ protected:
 	float resolveAspectRatio() const;
 
 private:
+	FeImage *selection_source() const;
 	FeImage *m_cutout;
 	Sqrat::Object m_cutout_object;
 	std::vector<FeImage *> m_cutout_users;

@@ -160,6 +160,7 @@ private:
 class FePresent
 {
 	friend class FeImage;
+	friend class FeGroup;
 	friend class FePresentableParent;
 	friend class FeVM;
 

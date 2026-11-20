@@ -276,6 +276,11 @@ void FeBaseTextureContainer::register_image( FeImage *img )
 	m_images.push_back( img );
 }
 
+void FeBaseTextureContainer::unregister_image( FeImage *img )
+{
+	m_images.erase( std::remove( m_images.begin(), m_images.end(), img ), m_images.end() );
+}
+
 void FeBaseTextureContainer::notify_texture_change()
 {
 	for ( std::vector<FeImage *>::iterator itr=m_images.begin();
@@ -1351,7 +1356,7 @@ float FeTextureContainer::get_sample_aspect_ratio() const
 {
 	if ( m_movie )
 		return m_movie->get_aspect_ratio();
-		return 1.0;
+	return 1.f;
 }
 
 bool FeTextureContainer::is_volatile_texture() const
@@ -1689,7 +1694,7 @@ FeImage::FeImage(
 }
 
 FeImage::FeImage( FeImage *o, FePresentableParent &p ):
-	FeBasePresentable( *o ),
+	FeBasePresentable( o, p ),
 	m_tex( o->m_tex ),
 	m_sprite( o->m_sprite ),
 	m_sprite_legacy( o->m_sprite_legacy ),
@@ -1717,8 +1722,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
 {
-	set_parent( p );
-	if ( o->m_cutout && o->m_cutout->m_parent == m_parent )
+	if ( o->m_cutout && o->m_cutout->get_draw_target() == get_draw_target() )
 	{
 		set_cutout( o->m_cutout );
 		m_cutout_object = o->m_cutout_object;
@@ -1752,6 +1756,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 
 FeImage::~FeImage()
 {
+	m_tex->unregister_image( this );
 	set_cutout( nullptr );
 	if ( !m_cutout_users.empty() )
 		FePresent::script_flag_redraw();
@@ -1804,34 +1809,72 @@ void FeImage::on_transform_update()
 	scale();
 }
 
-int FeImage::getIndexOffset() const
+FeImage *FeImage::selection_source() const
 {
-	return m_tex->get_index_offset();
+	// The original image registers before its clones.
+	return m_tex->m_images.front();
 }
 
-void FeImage::setIndexOffset( int io )
+int FeImage::getIndexOffset() const
 {
-	m_tex->set_index_offset( io );
+	return selection_source()->m_index_offset;
 }
 
 int FeImage::getFilterOffset() const
 {
-	return m_tex->get_filter_offset();
+	return selection_source()->m_filter_offset;
+}
+
+int FeImage::get_effective_index_offset() const
+{
+	return selection_source()->FeBasePresentable::get_effective_index_offset();
+}
+
+int FeImage::get_effective_filter_offset() const
+{
+	return selection_source()->FeBasePresentable::get_effective_filter_offset();
+}
+
+void FeImage::setIndexOffset( int io )
+{
+	auto *source = selection_source();
+	source->m_index_offset = io;
+	source->on_group_update();
 }
 
 void FeImage::setFilterOffset( int fo )
 {
-	m_tex->set_filter_offset( fo );
+	auto *source = selection_source();
+	source->m_filter_offset = fo;
+	source->on_group_update();
 }
 
 void FeImage::rawset_index_offset( int io )
 {
-	m_tex->set_index_offset( io, false );
+	auto *source = selection_source();
+	source->m_index_offset = io;
+	source->on_group_update( false );
 }
 
 void FeImage::rawset_filter_offset( int fo )
 {
-	m_tex->set_filter_offset( fo, false );
+	auto *source = selection_source();
+	source->m_filter_offset = fo;
+	source->on_group_update( false );
+}
+
+void FeImage::on_group_update( bool update )
+{
+	if ( this != selection_source() ) return;
+	auto *texture = m_tex->get_derived_texture_container();
+	if ( !texture ) return; // A surface's contents have their own selection context.
+	const int index = get_effective_index_offset();
+	const int filter = get_effective_filter_offset();
+	const bool changed = index != texture->get_index_offset() || filter != texture->get_filter_offset();
+	texture->set_index_offset( index, false );
+	texture->set_filter_offset( filter, false );
+	if ( update && ( changed || !texture->get_file_name()[0] ) )
+		FePresent::script_do_update( texture, true );
 }
 
 bool FeImage::fix_masked_image()
@@ -1921,6 +1964,15 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane
 			}
 		}
 	}
+	const auto transform = get_draw_transform();
+	for ( auto *plane : { &result, &mask_plane } )
+		if ( plane->texture.texture_id )
+			for ( int i = 0; i < 3; ++i )
+			{
+				float *point = plane->points + i * 3;
+				Vec3f p = transform.transform_point( Vec3f( point[0], point[1], point[2] ) );
+				point[0] = p.x; point[1] = p.y; point[2] = p.z;
+			}
 	return result.texture.texture_id != nullptr;
 }
 
@@ -3166,7 +3218,7 @@ void FeImage::set_cutout( FeImage *image )
 {
 	if ( image == m_cutout )
 		return;
-	if ( image && image->m_parent != m_parent )
+	if ( image && image->get_draw_target() != get_draw_target() )
 	{
 		Sqrat::Error::Instance().Throw( Sqrat::DefaultVM::Get(), "cutout requires an image in the same draw target" );
 		return;
@@ -3330,6 +3382,23 @@ FeGridView FeImage::get_grid_view()
 		return FeGridView( NULL, NULL );
 	}
 	return parent->get_grid_view();
+}
+
+FeGroup *FeImage::add_group()
+{
+	auto *parent = get_presentable_parent();
+	return parent ? parent->add_group() : nullptr;
+}
+
+FeGroup *FeImage::add_group( float w, float h )
+{
+	return add_group( 0, 0, w, h );
+}
+
+FeGroup *FeImage::add_group( float x, float y, float w, float h )
+{
+	auto *parent = get_presentable_parent();
+	return parent ? parent->add_group( x, y, w, h ) : nullptr;
 }
 
 FePresentableParent *FeImage::get_presentable_parent()

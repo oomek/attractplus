@@ -131,6 +131,7 @@ void FeTextPrimitive::setFrom( const FeTextPrimitive &c )
 	m_outline = c.m_outline;
 	m_line_spacing = c.m_line_spacing;
 	m_word_wrap = c.m_word_wrap;
+	m_alignment_snap = c.m_alignment_snap;
 	m_needs_pos_set = c.m_needs_pos_set;
 }
 
@@ -495,11 +496,14 @@ void FeTextPrimitive::set_positions() const
 				textPos.x = rectTopLeft.x - outline + margin;
 				break;
 			case FeAlign::Right:
-				textPos.x = rectTopLeft.x + floorf( rectSize.size.x ) - textSize.size.x + outline - margin;
+				textPos.x = rectTopLeft.x + ( m_alignment_snap ? floorf( rectSize.size.x ) : rectSize.size.x ) - textSize.size.x + outline - margin;
 				break;
 			default:
-				textPos.x = rectTopLeft.x + floorf(( rectSize.size.x - textSize.size.x ) / 2.0 );
+			{
+				const float offset = ( rectSize.size.x - textSize.size.x ) / 2.f;
+				textPos.x = rectTopLeft.x + ( m_alignment_snap ? floorf( offset ) : offset );
 				break;
+			}
 		}
 
 		textPos.x -= textSize.position.x;
@@ -508,14 +512,23 @@ void FeTextPrimitive::set_positions() const
 		switch ( vertical_align )
 		{
 			case FeAlign::Top:
-				textPos.y = rectTopLeft.y + ceilf( spacing * i - charSize + glyphSize ) + margin;
+			{
+				const float offset = spacing * i - charSize + glyphSize;
+				textPos.y = rectTopLeft.y + ( m_alignment_snap ? ceilf( offset ) : offset ) + margin;
 				break;
+			}
 			case FeAlign::Bottom:
-				textPos.y = rectTopLeft.y + floorf( rectSize.size.y  - charSize - spacing * ( m_texts.size() - i - 1 )) - margin;
+			{
+				const float offset = rectSize.size.y - charSize - spacing * ( m_texts.size() - i - 1 );
+				textPos.y = rectTopLeft.y + ( m_alignment_snap ? floorf( offset ) : offset ) - margin;
 				break;
+			}
 			default:
-				textPos.y = rectTopLeft.y + floorf( spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5 ) / 2.0 );
+			{
+				const float offset = spacing * i + ( rectSize.size.y + glyphSize - charSize * 2 - spacing * ( m_texts.size() - 1 ) + 0.5f ) / 2.f;
+				textPos.y = rectTopLeft.y + ( m_alignment_snap ? floorf( offset ) : offset );
 				break;
+			}
 		}
 
 		const Vec2f transformed = rotate_point_around( textPos, rectPos, m_bg_rotation );
@@ -809,6 +822,13 @@ void FeTextPrimitive::setOrigin( const Vec2f &o )
 void FeTextPrimitive::setAlignment( FeAlign a )
 {
 	m_align = a;
+	m_needs_pos_set = true;
+}
+
+void FeTextPrimitive::setAlignmentSnap( bool snap )
+{
+	if ( m_alignment_snap == snap ) return;
+	m_alignment_snap = snap;
 	m_needs_pos_set = true;
 }
 

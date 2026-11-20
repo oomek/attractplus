@@ -21,6 +21,7 @@
  */
 
 #include "fe_present.hpp"
+#include "fe_group.hpp"
 #include "fe_resource_cache.hpp"
 #include "fe_animation.hpp"
 #include "fe_util.hpp"
@@ -545,6 +546,15 @@ void FePresent::clear_layout()
 		}
 	}
 
+	// Surface children must unregister while all their media containers live.
+	for ( auto *texture : m_texturePool )
+		if ( auto *parent = texture->get_presentable_parent() )
+			while ( !parent->elements.empty() )
+			{
+				auto *item = parent->elements.back();
+				parent->elements.pop_back();
+				delete item;
+			}
 	while ( !m_texturePool.empty() )
 	{
 		FeBaseTextureContainer *t = m_texturePool.back();
@@ -620,6 +630,13 @@ namespace
 			return false;
 
 		return ( one->get_z() < two->get_z() );
+	}
+
+	void sort_elements( FePresentableParent &parent )
+	{
+		std::stable_sort( parent.elements.begin(), parent.elements.end(), zcompare );
+		for ( auto *item : parent.elements )
+			if ( auto *group = dynamic_cast<FeGroup *>( item ) ) sort_elements( *group );
 	}
 
 	bool build_normal_matrix3_from_model( const float *model_matrix, float *out_normal_matrix )
@@ -1065,6 +1082,50 @@ namespace
 		}
 	}
 
+	template <typename OnGeometry>
+	void append_render_geometry( const FePresentableParent &parent, std::vector<FeRenderGeometry> &geometry,
+		const OnGeometry &on_geometry )
+	{
+		for ( const auto *item : parent.elements )
+		{
+			if ( !item || !item->get_visible() ) continue;
+			if ( const auto *group = dynamic_cast<const FeGroup *>( item ) )
+			{
+				append_render_geometry( *group, geometry, on_geometry );
+				continue;
+			}
+
+			const std::size_t begin = geometry.size();
+			if ( const auto *image = dynamic_cast<const FeImage *>( item ) )
+			{
+				FeRenderGeometry foreground;
+				if ( image->build_render_geometry( foreground ) )
+				{
+					FeRenderGeometry background;
+					if ( image->build_mask_background( background, foreground ) )
+					{
+						image->apply_group_geometry( background );
+						geometry.push_back( std::move( background ) );
+					}
+					image->apply_group_geometry( foreground );
+					geometry.push_back( std::move( foreground ) );
+				}
+			}
+			else if ( const auto *rectangle = dynamic_cast<const FeRectangle *>( item ) )
+			{
+				FeRenderGeometry entry;
+				if ( rectangle->build_render_geometry( entry ) ) geometry.push_back( std::move( entry ) );
+			}
+			else if ( const auto *model = dynamic_cast<const FeModel3D *>( item ) )
+				model->build_render_geometry( geometry );
+			else if ( const auto *text = dynamic_cast<const FeText *>( item ) )
+				text->build_render_geometry( geometry );
+			else if ( const auto *listbox = dynamic_cast<const FeListBox *>( item ) )
+				listbox->build_render_geometry( geometry );
+			if ( begin != geometry.size() ) on_geometry( *item, begin );
+		}
+	}
+
 };
 
 void FePresent::sort_zorder()
@@ -1074,10 +1135,10 @@ void FePresent::sort_zorder()
 
 	for ( itc=m_texturePool.begin(); itc != m_texturePool.end(); ++itc )
 		if ( (*itc)->get_presentable_parent() )
-			std::stable_sort( (*itc)->get_presentable_parent()->elements.begin(), (*itc)->get_presentable_parent()->elements.end(), zcompare );
+			sort_elements( *(*itc)->get_presentable_parent() );
 
 	for ( itm=m_mon.begin(); itm != m_mon.end(); ++itm )
-		std::stable_sort( (*itm).elements.begin(), (*itm).elements.end(), zcompare );
+		sort_elements( *itm );
 }
 
 void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const
@@ -1149,52 +1210,7 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 				continue;
 		}
 
-		for ( const FeBasePresentable *presentable : monitor.elements )
-		{
-			if ( !presentable || !presentable->get_visible() )
-				continue;
-
-			const FeImage *image = dynamic_cast<const FeImage *>( presentable );
-			if ( image )
-			{
-				FeRenderGeometry image_geometry;
-				if ( image->build_render_geometry( image_geometry ) )
-				{
-					FeRenderGeometry background;
-					if ( image->build_mask_background( background, image_geometry ) )
-						monitor_geometry.push_back( std::move( background ) );
-					monitor_geometry.push_back( std::move( image_geometry ) );
-				}
-				continue;
-			}
-
-			const FeRectangle *rectangle = dynamic_cast<const FeRectangle *>( presentable );
-			if ( rectangle )
-			{
-				FeRenderGeometry rectangle_geometry;
-				if ( rectangle->build_render_geometry( rectangle_geometry ) )
-					monitor_geometry.push_back( std::move( rectangle_geometry ) );
-				continue;
-			}
-
-			const FeModel3D *object = dynamic_cast<const FeModel3D *>( presentable );
-			if ( object )
-			{
-				object->build_render_geometry( monitor_geometry );
-				continue;
-			}
-
-			const FeText *text = dynamic_cast<const FeText *>( presentable );
-			if ( text )
-			{
-				text->build_render_geometry( monitor_geometry );
-				continue;
-			}
-
-			const FeListBox *listbox = dynamic_cast<const FeListBox *>( presentable );
-			if ( listbox )
-				listbox->build_render_geometry( monitor_geometry );
-		}
+		append_render_geometry( monitor, monitor_geometry, []( const FeBasePresentable &, std::size_t ) {} );
 
 		const FeTransform &transform = ( monitor_index == 0 ) ? m_layout_transform : monitor.transform;
 		apply_geometry_transform( monitor_geometry, transform );
@@ -1474,90 +1490,21 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		frame.geometry.reserve( surface->elements.size() );
 		std::vector<const void *> dependencies;
 
-		for ( const FeBasePresentable *presentable : surface->elements )
-		{
-			if ( !presentable || !presentable->get_visible() )
-				continue;
-
-			const FeImage *image = dynamic_cast<const FeImage *>( presentable );
-			if ( image )
+		append_render_geometry( *surface, frame.geometry,
+			[&]( const FeBasePresentable &item, std::size_t begin )
 			{
-				FeRenderGeometry image_geometry;
-				if ( image->build_render_geometry( image_geometry ) )
+				std::uint64_t vertex_version = 0;
+				if ( const auto *rectangle = dynamic_cast<const FeRectangle *>( &item ) )
+					if ( rectangle->get_draw_transform().is_identity() && rectangle->get_inherited_color() == Color::White )
+						vertex_version = rectangle->get_vertex_version();
+				for ( std::size_t i = begin; i < frame.geometry.size(); ++i )
 				{
-					FeRenderGeometry background;
-					if ( image->build_mask_background( background, image_geometry ) )
-					{
-						append_surface_dependencies( background, surface, dependencies );
-						frame.geometry_signature = hash_geometry( background, frame.geometry_signature );
-						frame.geometry.push_back( std::move( background ) );
-					}
-					append_surface_dependencies( image_geometry, surface, dependencies );
-					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
-					frame.content_signature = frame.geometry_signature;
-					frame.geometry.push_back( std::move( image_geometry ) );
+					const auto &entry = frame.geometry[i];
+					append_surface_dependencies( entry, surface, dependencies );
+					frame.geometry_signature = hash_geometry( entry, frame.geometry_signature, vertex_version );
 				}
-				continue;
-			}
-
-			const FeRectangle *rectangle = dynamic_cast<const FeRectangle *>( presentable );
-			if ( rectangle )
-			{
-				FeRenderGeometry rectangle_geometry;
-				if ( rectangle->build_render_geometry( rectangle_geometry ) )
-				{
-					append_surface_dependencies( rectangle_geometry, surface, dependencies );
-					frame.geometry_signature = hash_geometry( rectangle_geometry, frame.geometry_signature, rectangle->get_vertex_version() );
-					frame.content_signature = frame.geometry_signature;
-					frame.geometry.push_back( std::move( rectangle_geometry ) );
-				}
-				continue;
-			}
-
-			const FeModel3D *object = dynamic_cast<const FeModel3D *>( presentable );
-			if ( object )
-			{
-				const std::size_t old_size = frame.geometry.size();
-				object->build_render_geometry( frame.geometry );
-				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
-				{
-					const FeRenderGeometry &object_geometry = frame.geometry[i];
-					append_surface_dependencies( object_geometry, surface, dependencies );
-					frame.geometry_signature = hash_geometry( object_geometry, frame.geometry_signature );
-					frame.content_signature = frame.geometry_signature;
-				}
-				continue;
-			}
-
-			const FeText *text = dynamic_cast<const FeText *>( presentable );
-			if ( text )
-			{
-				const std::size_t old_size = frame.geometry.size();
-				text->build_render_geometry( frame.geometry );
-				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
-				{
-					const FeRenderGeometry &text_geometry = frame.geometry[i];
-					append_surface_dependencies( text_geometry, surface, dependencies );
-					frame.geometry_signature = hash_geometry( text_geometry, frame.geometry_signature );
-					frame.content_signature = frame.geometry_signature;
-				}
-				continue;
-			}
-
-			const FeListBox *listbox = dynamic_cast<const FeListBox *>( presentable );
-			if ( listbox )
-			{
-				const std::size_t old_size = frame.geometry.size();
-				listbox->build_render_geometry( frame.geometry );
-				for ( std::size_t i = old_size; i < frame.geometry.size(); ++i )
-				{
-					const FeRenderGeometry &list_geometry = frame.geometry[i];
-					append_surface_dependencies( list_geometry, surface, dependencies );
-					frame.geometry_signature = hash_geometry( list_geometry, frame.geometry_signature );
-					frame.content_signature = frame.geometry_signature;
-				}
-			}
-		}
+			} );
+		frame.content_signature = frame.geometry_signature;
 
 		// Versioned textures invalidate content without forcing a render on
 		// every frontend tick. Nested surfaces contribute their state below.
@@ -1701,6 +1648,7 @@ FeImage *FePresent::add_image( bool is_artwork,
 	m_texturePool.push_back( new_tex );
 	p.elements.push_back( new_image );
 	flag_sort_zorder();
+	if ( new_image->get_group() ) new_image->on_group_update();
 
 	return new_image;
 }

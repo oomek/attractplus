@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "fe_types.hpp"
 class FeShader;
 
 struct FeRenderMatrix4
@@ -11,6 +12,13 @@ struct FeRenderMatrix4
 
 	static FeRenderMatrix4 identity();
 	static FeRenderMatrix4 perspective( float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane );
+	FeRenderMatrix4 operator*( const FeRenderMatrix4 &other ) const;
+	FeRenderMatrix4 &translate( const Vec3f &offset );
+	FeRenderMatrix4 &scale( const Vec3f &factors );
+	FeRenderMatrix4 &rotate( float x, float y, float z, int order );
+	Vec3f transform_point( const Vec3f &point ) const;
+	bool normal_matrix( float *out ) const;
+	bool is_identity() const;
 };
 
 struct FePerspectiveCamera

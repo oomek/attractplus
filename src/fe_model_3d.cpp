@@ -646,20 +646,11 @@ namespace
 
 	void multiply_matrix4( const float *lhs, const float *rhs, float *out )
 	{
-		float result[16] = {};
-		for ( int column = 0; column < 4; ++column )
-		{
-			for ( int row = 0; row < 4; ++row )
-			{
-				float value = 0.0f;
-				for ( int k = 0; k < 4; ++k )
-					value += lhs[ k * 4 + row ] * rhs[ column * 4 + k ];
-
-				result[ column * 4 + row ] = value;
-			}
-		}
-
-		std::memcpy( out, result, sizeof( result ) );
+		FeRenderMatrix4 a, b;
+		std::memcpy( a.m, lhs, sizeof( a.m ) );
+		std::memcpy( b.m, rhs, sizeof( b.m ) );
+		const auto result = a * b;
+		std::memcpy( out, result.m, sizeof( result.m ) );
 	}
 
 	void multiply_matrix4_inplace( float *lhs, const float *rhs )
@@ -1536,7 +1527,7 @@ void FeModel3DMaterialArtwork::set_index_offset( int io )
 	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
 	entry->index_offset = io;
 	if ( entry->container )
-		entry->container->set_index_offset( io, true );
+		entry->container->set_index_offset( io + m_model->get_effective_index_offset(), true );
 }
 
 int FeModel3DMaterialArtwork::get_filter_offset() const
@@ -1554,7 +1545,7 @@ void FeModel3DMaterialArtwork::set_filter_offset( int fo )
 	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
 	entry->filter_offset = fo;
 	if ( entry->container )
-		entry->container->set_filter_offset( fo, true );
+		entry->container->set_filter_offset( fo + m_model->get_effective_filter_offset(), true );
 }
 
 void FeModel3DMaterialArtwork::rawset_index_offset( int io )
@@ -1565,7 +1556,7 @@ void FeModel3DMaterialArtwork::rawset_index_offset( int io )
 	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
 	entry->index_offset = io;
 	if ( entry->container )
-		entry->container->set_index_offset( io, false );
+		entry->container->set_index_offset( io + m_model->get_effective_index_offset(), false );
 }
 
 void FeModel3DMaterialArtwork::rawset_filter_offset( int fo )
@@ -1576,7 +1567,7 @@ void FeModel3DMaterialArtwork::rawset_filter_offset( int fo )
 	FeModel3D::MaterialOverride *entry = m_model->find_or_create_override( m_material_name );
 	entry->filter_offset = fo;
 	if ( entry->container )
-		entry->container->set_filter_offset( fo, false );
+		entry->container->set_filter_offset( fo + m_model->get_effective_filter_offset(), false );
 }
 
 int FeModel3DMaterialArtwork::get_video_flags() const
@@ -1900,7 +1891,7 @@ FeModel3D::FeModel3D( FePresentableParent &p, const std::string &filename )
 }
 
 FeModel3D::FeModel3D( FeModel3D *o, FePresentableParent &p )
-	: FeBasePresentable( p ),
+	: FeBasePresentable( o, p ),
 	  m_file_name( o ? o->m_file_name : "" ),
 	  m_pos( o ? o->m_pos : Vec2f( 0.0f, 0.0f ) ),
 	  m_size( o ? o->m_size : Vec2f( 1.0f, 1.0f ) ),
@@ -2285,8 +2276,8 @@ void FeModel3D::apply_override_settings( MaterialOverride &entry, bool do_update
 	entry.container->set_smooth( entry.smooth );
 	entry.container->set_mipmap( entry.mipmap );
 	entry.container->set_repeat( entry.repeat );
-	entry.container->set_index_offset( entry.index_offset, false );
-	entry.container->set_filter_offset( entry.filter_offset, false );
+	entry.container->set_index_offset( entry.index_offset + get_effective_index_offset(), false );
+	entry.container->set_filter_offset( entry.filter_offset + get_effective_filter_offset(), false );
 	entry.container->set_video_flags( static_cast<FeVideoFlags>( entry.video_flags ) );
 	entry.container->set_trigger( entry.trigger );
 	entry.container->set_volume( entry.volume );
@@ -3637,6 +3628,24 @@ bool FeModel3D::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 	if ( m_geometry_cache.empty() )
 		return false;
 
+	const std::size_t begin = geometry.size();
 	geometry.insert( geometry.end(), m_geometry_cache.begin(), m_geometry_cache.end() );
+	for ( std::size_t i = begin; i < geometry.size(); ++i )
+	{
+		if ( get_inherited_color().a < 255 && m_occlusion ) geometry[i].translucent_depth_prepass = true;
+		apply_group_geometry( geometry[i] );
+	}
 	return true;
+}
+
+void FeModel3D::on_group_update( bool update )
+{
+	for ( const auto &entry : m_overrides )
+		if ( entry->container )
+		{
+			entry->container->set_index_offset( entry->index_offset + get_effective_index_offset(), false );
+			entry->container->set_filter_offset( entry->filter_offset + get_effective_filter_offset(), false );
+			if ( update ) FePresent::script_do_update( entry->container, true );
+		}
+	FePresent::script_flag_redraw();
 }
