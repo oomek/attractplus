@@ -104,6 +104,144 @@ namespace
 		return name;
 	}
 
+	std::string add_alpha_coverage_shader( const std::string &source, const std::string &name, int sampler_slot )
+	{
+		std::string result = std::regex_replace( source, std::regex( "\\bvoid\\s+main\\s*\\(" ),
+			"void " + name + "_main(" );
+		replace_all( result, ") in ", ") sample in " );
+		std::ostringstream helpers;
+		helpers << "\nlayout(set = 3, binding = 1, std140) uniform " << name << "_uniforms\n{\n"
+			<< "\tvec4 control; vec4 row0; vec4 row1; vec4 row2; vec4 source_border; vec4 dest_border;\n"
+			<< "\tvec4 own_row0; vec4 own_row1; vec4 own_row2; vec4 own_source_border; vec4 own_dest_border;\n} " << name << ";\n"
+			<< "float " << name << "_slice(float p, float first, float last, float src_first, float src_last)\n{\n"
+			<< "\tif (p < first && first > 0.0) return p * src_first / first;\n"
+			<< "\tif (p > 1.0 - last && last > 0.0) return 1.0 - (1.0 - p) * src_last / last;\n"
+			<< "\treturn first + last < 1.0 ? src_first + (p - first) * (1.0 - src_first - src_last) / (1.0 - first - last) : src_first;\n}\n"
+			<< "vec2 " << name << "_uv(vec2 pixel, bool own)\n{\n"
+			<< "\tvec3 p = vec3(pixel, 1.0);\n"
+			<< "\tvec4 row0 = own ? " << name << ".own_row0 : " << name << ".row0;\n"
+			<< "\tvec4 row1 = own ? " << name << ".own_row1 : " << name << ".row1;\n"
+			<< "\tvec4 row2 = own ? " << name << ".own_row2 : " << name << ".row2;\n"
+			<< "\tprecise vec3 q = vec3(dot(row0.xyz, p), dot(row1.xyz, p), dot(row2.xyz, p));\n"
+			<< "\tvec2 local = q.xy / q.z;\n"
+			<< "\tvec4 src = own ? " << name << ".own_source_border : " << name << ".source_border;\n"
+			<< "\tvec4 dst = own ? " << name << ".own_dest_border : " << name << ".dest_border;\n"
+			<< "\treturn vec2(" << name << "_slice(local.x, dst.x, dst.z, src.x, src.z), " << name << "_slice(local.y, dst.y, dst.w, src.y, src.w));\n}\n"
+			<< "float " << name << "_texel(sampler2D image, ivec2 p)\n{\n"
+			<< "\tivec2 size = textureSize(image, 0);\n"
+			<< "\tif (any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, size))) return 0.0;\n"
+			<< "\treturn texelFetch(image, p, 0).a;\n}\n"
+			<< "float " << name << "_alpha(sampler2D image, vec2 uv, float smooth_filter)\n{\n"
+			<< "\tif (smooth_filter == 0.0) return any(lessThan(uv, vec2(0.0))) || any(greaterThanEqual(uv, vec2(1.0))) ? 0.0 : textureLod(image, uv, 0.0).a;\n"
+			<< "\tvec2 p = uv * vec2(textureSize(image, 0)) - 0.5;\n"
+			<< "\tivec2 base = ivec2(floor(p));\n"
+			<< "\tvec2 weight = fract(p);\n"
+			<< "\tprecise float alpha = mix(mix(" << name << "_texel(image, base), " << name << "_texel(image, base + ivec2(1,0)), weight.x),\n"
+			<< "\t\tmix(" << name << "_texel(image, base + ivec2(0,1)), " << name << "_texel(image, base + ivec2(1,1)), weight.x), weight.y);\n"
+			<< "\treturn alpha;\n}\n";
+		result.insert( result.find( '\n' ) + 1, helpers.str() );
+		std::ostringstream wrapper;
+		wrapper << "\nvoid main()\n{\n"
+			<< "\t" << name << "_main();\n"
+			<< "\tgl_SampleMask[0] = 1 << gl_SampleID;\n"
+			<< "\tif (" << name << ".control.w < 0.0) return;\n"
+			<< "\tfloat opacity = frag_color.a;\n"
+			<< "\tvec2 pixel = floor(gl_FragCoord.xy) + gl_SamplePosition;\n"
+			<< "\tbool source = (int(" << name << ".control.x) & 1) != 0;\n"
+			<< "\tbool cutout = (int(" << name << ".control.x) & 2) != 0;\n"
+			<< "\tvec2 own_uv = " << name << "_uv(pixel, true);\n"
+			<< "\tfloat own_alpha = " << name << "_alpha(external_texture" << sampler_slot + 1 << ", own_uv, " << name << ".control.z);\n"
+			<< "\tif (source && own_alpha < 0.5) discard;\n"
+			<< "\tfloat reference = 0.0;\n"
+			<< "\tfloat support = 0.0;\n"
+			<< "\tif (cutout)\n"
+			<< "\t{\n\t\tvec2 uv = " << name << "_uv(pixel, false);\n"
+			<< "\t\treference = " << name << "_alpha(external_texture" << sampler_slot << ", uv, " << name << ".control.y);\n"
+			<< "\t\tif (reference >= 0.5) discard;\n"
+			<< "\t\tsupport = " << name << ".control.y > 0.0 ? reference : " << name << "_alpha(external_texture" << sampler_slot << ", uv, 1.0);\n\t}\n"
+			<< "\tif (!source)\n\t{\n"
+			<< "\t\tif (cutout && support > 0.0)\n\t\t{\n"
+			// Remove the shared contour's antialiasing coverage, retaining intrinsic opacity.
+			<< "\t\t\tfloat alpha = " << name << "_alpha(external_texture" << sampler_slot + 1 << ", own_uv, 1.0);\n"
+			<< "\t\t\topacity *= support < 1.0 ? clamp(alpha / (1.0 - support), 0.0, 1.0) : 0.0;\n"
+			<< "\t\t}\n\t\telse opacity *= own_alpha;\n"
+			<< "\t}\n"
+			<< "\tif (opacity <= 0.0) discard;\n"
+			<< "\tout_color.a = opacity;\n}\n";
+		std::string body = wrapper.str();
+		for ( const char *variable : { "opacity", "pixel", "source", "cutout", "own_uv", "own_alpha", "reference", "support", "uv", "alpha" } )
+			body = std::regex_replace( body, std::regex( std::string( "\\b" ) + variable + "\\b" ), name + "_" + variable );
+		return result + body;
+	}
+
+	struct FeSdl3GpuCoveragePlane
+	{
+		float inverse[3][4];
+		float source_border[4];
+		float dest_border[4];
+	};
+
+	struct FeSdl3GpuCoverageUniforms
+	{
+		float control[4];
+		FeSdl3GpuCoveragePlane plane;
+		FeSdl3GpuCoveragePlane own_plane;
+	};
+
+	bool build_alpha_coverage_plane( const FeRenderImagePlane &source, const FePerspectiveCamera &camera,
+		int width, int height, float plane_distance, FeSdl3GpuCoveragePlane &result )
+	{
+		result = {};
+		double clip[3][4] = {};
+		for ( int p = 0; p < 3; ++p )
+		{
+			const double view[] = { source.points[p * 3] - width * 0.5,
+				height * 0.5 - source.points[p * 3 + 1], source.points[p * 3 + 2] - plane_distance, 1.0 };
+			for ( int row = 0; row < 4; ++row )
+				for ( int col = 0; col < 4; ++col )
+					clip[p][row] += camera.projection.m[col * 4 + row] * view[col];
+		}
+		double matrix[3][3];
+		for ( int col = 0; col < 3; ++col )
+		{
+			double point[4];
+			for ( int i = 0; i < 4; ++i )
+				point[i] = col < 2 ? clip[col + 1][i] - clip[0][i] : clip[0][i];
+			matrix[0][col] = width * 0.5 * ( point[0] + point[3] );
+			matrix[1][col] = height * 0.5 * ( point[3] - point[1] );
+			matrix[2][col] = point[3];
+		}
+		const double determinant = matrix[0][0] * ( matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1] )
+			- matrix[0][1] * ( matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0] )
+			+ matrix[0][2] * ( matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0] );
+		if ( determinant == 0.0 || !std::isfinite( determinant ) )
+			return false;
+		for ( int row = 0; row < 3; ++row )
+			for ( int col = 0; col < 3; ++col )
+				result.inverse[row][col] = static_cast<float>(
+					( matrix[( col + 1 ) % 3][( row + 1 ) % 3] * matrix[( col + 2 ) % 3][( row + 2 ) % 3]
+					- matrix[( col + 1 ) % 3][( row + 2 ) % 3] * matrix[( col + 2 ) % 3][( row + 1 ) % 3] ) / determinant );
+		std::copy( source.source_border, source.source_border + 4, result.source_border );
+		std::copy( source.dest_border, source.dest_border + 4, result.dest_border );
+		return true;
+	}
+
+	FeSdl3GpuCoverageUniforms build_alpha_coverage_uniforms( const FeRenderGeometry &image,
+		const FePerspectiveCamera &camera,
+		int width, int height, float plane_distance )
+	{
+		FeSdl3GpuCoverageUniforms result = {};
+		result.control[0] = static_cast<float>( image.cutout_mode );
+		const auto &source = ( image.cutout_mode & FeRenderCutoutApply ) ? image.cutout_plane : image.image_plane;
+		result.control[1] = source.texture.smooth ? 1.0f : 0.0f;
+		result.control[2] = image.texture_smooth ? 1.0f : 0.0f;
+		bool valid = build_alpha_coverage_plane( source, camera, width, height, plane_distance, result.plane );
+		if ( !( image.cutout_mode & FeRenderCutoutApply ) ) result.own_plane = result.plane;
+		else valid = build_alpha_coverage_plane( image.image_plane, camera, width, height, plane_distance, result.own_plane ) && valid;
+		if ( !valid ) result.control[3] = -1.0f;
+		return result;
+	}
+
 
 	const char *get_builtin_image_fragment_shader_name( int mode )
 	{
@@ -1515,6 +1653,9 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			image.texture_dynamic,
 			image.texture_content_version,
 			image.texture_blocking );
+		const auto &cutout = image.cutout_plane.texture;
+		sync_binding( cutout.texture_id, cutout.texture_source_type, cutout.width, cutout.height,
+			cutout.mipmap, cutout.dynamic, cutout.content_version, cutout.blocking );
 
 		const FeShader *shaders[] = { image.shader,
 			image.geometry_kind == FeRenderGeometryObjectPbr ? image.pbr_material.artwork_shader : nullptr };
@@ -1769,6 +1910,24 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 		else
 			prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
 
+		prepared.cutout_texture = prepared.gpu_texture;
+		if ( image.cutout_mode & FeRenderCutoutApply )
+		{
+			const auto &binding = image.cutout_plane.texture;
+			prepared.cutout_texture = nullptr;
+			if ( use_surface_targets )
+			{
+				auto surface = m_surfaces.find( binding.texture_id );
+				if ( surface != m_surfaces.end() ) prepared.cutout_texture = surface->second.color_texture;
+			}
+			if ( !prepared.cutout_texture )
+			{
+				auto texture = m_textures.find( { binding.texture_id, binding.mipmap, false } );
+				if ( texture != m_textures.end() ) prepared.cutout_texture = texture->second.gpu_texture;
+			}
+			if ( !prepared.cutout_texture ) continue;
+		}
+
 		if ( prepared.object_pbr )
 		{
 			const FeRenderTextureBinding *bindings[] =
@@ -1815,6 +1974,8 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 		if ( !prepared.object_pbr && image.custom_shader )
 			prepared.custom_shader = get_custom_shader_entry( image );
+		else if ( !prepared.object_pbr && image.cutout_mode != 0 )
+			prepared.custom_shader = get_builtin_blend_shader_entry( image.blend_mode, image );
 		else if ( !prepared.object_pbr && image.textured &&
 			( image.blend_mode == FeBlend::Screen ||
 				image.blend_mode == FeBlend::Multiply ||
@@ -4277,6 +4438,7 @@ void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 	entry.fragment_samplers.clear();
 	entry.uses_current_texture = false;
 	entry.has_custom_vertex = false;
+	entry.uses_cutout = false;
 	entry.fast_current_texture_only = false;
 	entry.compile_failed = false;
 	entry.source_stamp = 0;
@@ -4645,7 +4807,7 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 			? ( vertex_source_code.empty()
 				? std::string()
 				: std::string( "mem:" ) + std::to_string( std::hash<std::string>{}( vertex_source_code ) ) )
-			: vertex_source_path );
+			: vertex_source_path ) + ( image.cutout_mode != 0 ? "|coverage" : "" );
 
 	auto source_cache_it = m_custom_shader_sources.find( source_identity_key );
 	if ( source_cache_it != m_custom_shader_sources.end() )
@@ -4666,9 +4828,9 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 			? ( vertex_source_code.empty() ? std::string() : std::string( "memory-vertex|" ) + std::to_string( std::hash<std::string>{}( vertex_source_code ) ) )
 			: absolute_path( vertex_source_path );
 	const std::string cache_key =
-		absolute_vertex_source.empty()
+		( absolute_vertex_source.empty()
 			? absolute_fragment_source
-			: absolute_vertex_source + "|" + absolute_fragment_source;
+			: absolute_vertex_source + "|" + absolute_fragment_source ) + ( image.cutout_mode != 0 ? "|coverage" : "" );
 	const unsigned long long fragment_source_stamp =
 		fragment_source_path.empty()
 			? static_cast<unsigned long long>( std::hash<std::string>{}( fragment_source_code ) )
@@ -4728,25 +4890,29 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_builtin_blend_shader_
 	if ( !m_device || !m_vertex_shader || !image.textured )
 		return nullptr;
 
-	if ( blend_mode != FeBlend::Multiply )
+	if ( blend_mode != FeBlend::Multiply && image.cutout_mode == 0 )
 		return nullptr;
 
 	const char *raw_source = FeBlend::get_default_shader_source( blend_mode );
 	if ( !raw_source || !raw_source[0] )
 		return nullptr;
 
-	const std::string cache_key = "__builtin_blend_" + std::to_string( blend_mode ) + "__";
+	const std::string cache_key = "__builtin_blend_" + std::to_string( blend_mode )
+		+ ( image.cutout_mode != 0 ? "_coverage__" : "__" );
 	const unsigned long long source_stamp = 1ULL;
 
 	CustomShaderEntry &entry = m_custom_shaders[ cache_key ];
 	if ( entry.fragment_shader && entry.source_stamp == source_stamp )
 		return &entry;
+	if ( entry.compile_failed && entry.source_stamp == source_stamp )
+		return nullptr;
 
 	release_custom_shader( entry );
 	entry.source_path = cache_key;
 	if ( !create_builtin_blend_shader_entry( blend_mode, image, entry ) )
 	{
-		m_custom_shaders.erase( cache_key );
+		entry.compile_failed = true;
+		entry.source_stamp = source_stamp;
 		return nullptr;
 	}
 
@@ -4929,7 +5095,7 @@ bool FeSdl3GpuContext::create_fast_builtin_shader_entry( int blend_mode, Builtin
 bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry )
 {
 	entry.compiling = false;
-	const bool background = image.shader->background_loading();
+	const bool background = image.shader && image.shader->background_loading();
 	std::string fragment_source_code;
 	std::vector<CustomUniformBinding> fragment_uniforms;
 	std::vector<CustomSamplerBinding> fragment_samplers;
@@ -4937,7 +5103,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		return false;
 
 	const std::string fragment_source_id =
-		!image.shader->get_fragment_source_path().empty()
+		image.shader && !image.shader->get_fragment_source_path().empty()
 			? image.shader->get_fragment_source_path()
 			: entry.source_path + "|fragment";
 	ShaderBlob fragment_blob = {};
@@ -4948,7 +5114,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	SDL_GPUShader *vertex_shader = m_custom_vertex_shader;
 	std::vector<CustomUniformBinding> vertex_uniforms;
 	const bool has_custom_vertex =
-		( image.shader->get_type() == FeShader::VertexAndFragment ) &&
+		image.shader && ( image.shader->get_type() == FeShader::VertexAndFragment ) &&
 		( !image.shader->get_vertex_source_path().empty() || !image.shader->get_vertex_source_code().empty() );
 	if ( has_custom_vertex )
 	{
@@ -4957,7 +5123,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 			return false;
 
 		const std::string vertex_source_id =
-			!image.shader->get_vertex_source_path().empty()
+			image.shader && !image.shader->get_vertex_source_path().empty()
 				? image.shader->get_vertex_source_path()
 				: entry.source_path + "|vertex";
 		ShaderBlob vertex_blob = {};
@@ -4988,7 +5154,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	fragment_info.entrypoint = fragment_blob.entrypoint;
 	fragment_info.format = fragment_blob.format;
 	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-	fragment_info.num_uniform_buffers = fragment_uniforms.empty() ? 0 : 1;
+	fragment_info.num_uniform_buffers = image.cutout_mode != 0 ? 2 : fragment_uniforms.empty() ? 0 : 1;
 	fragment_info.num_samplers = static_cast<Uint32>( fragment_samplers.size() );
 
 	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
@@ -5074,6 +5240,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		if ( sampler.name == "texture" )
 			entry.uses_current_texture = true;
 	entry.has_custom_vertex = has_custom_vertex;
+	entry.uses_cutout = image.cutout_mode != 0;
 	entry.fast_current_texture_only = false;
 	FeDebug() << "SDL: custom_shader: ready " << entry.source_path << std::endl;
 	return true;
@@ -5081,6 +5248,8 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 
 bool FeSdl3GpuContext::create_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image, CustomShaderEntry &entry )
 {
+	if ( image.cutout_mode != 0 )
+		return create_custom_shader_entry( image, entry );
 	const char *raw_source = FeBlend::get_default_shader_source( blend_mode );
 	if ( !raw_source || !raw_source[0] )
 		return false;
@@ -5421,6 +5590,18 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	}
 
 	const std::string texture_function = get_shader_identifier( raw_source, "fe_texture2D" );
+	const std::string coverage_name = get_shader_identifier( raw_source, "fe_coverage" );
+	if ( image.cutout_mode != 0 )
+	{
+		for ( int i = 1; i <= 2; ++i )
+		{
+			CustomSamplerBinding binding;
+			binding.name = coverage_name + "_texture" + std::to_string( i );
+			binding.slot = static_cast<int>( samplers.size() );
+			binding.coverage_texture = i;
+			samplers.push_back( binding );
+		}
+	}
 	stripped_source = std::regex_replace( stripped_source, std::regex( "\\btexture2D\\s*\\(" ), texture_function + "(" );
 	for ( int i = 0; i < 8; ++i )
 	{
@@ -5471,7 +5652,8 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 
 	shader << "\n" << stripped_source;
-	source_code = shader.str();
+	source_code = image.cutout_mode != 0
+		? add_alpha_coverage_shader( shader.str(), coverage_name, static_cast<int>( samplers.size() ) - 2 ) : shader.str();
 	return true;
 }
 
@@ -5485,7 +5667,11 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 	samplers.clear();
 
 	if ( !image.shader )
-		return false;
+	{
+		const char *source = FeBlend::get_default_shader_source( image.blend_mode );
+		return image.cutout_mode != 0 && source
+			&& build_custom_fragment_shader_from_source( image, "alpha-coverage", source, source_code, uniforms, samplers );
+	}
 
 	std::string raw_source;
 	const std::string &source_path = image.shader->get_fragment_source_path();
@@ -6877,6 +7063,12 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 			SDL_BindGPUGraphicsPipeline( render_pass, pipeline );
 			bound_pipeline = pipeline;
 		}
+		if ( image.custom_shader && image.custom_shader->uses_cutout )
+		{
+			const auto coverage = build_alpha_coverage_uniforms( *image.geometry,
+				camera, viewport_width, viewport_height, uniforms.plane_distance );
+			SDL_PushGPUFragmentUniformData( command_buffer, 1, &coverage, sizeof( coverage ) );
+		}
 		if ( !bind_vertex_buffer( inline_vertex_buffer ) )
 			continue;
 
@@ -6933,7 +7125,16 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 						: nullptr;
 				const bool use_current_texture = shader_uses_current_texture || !shader_image;
 
-				if ( use_current_texture )
+				if ( sampler.coverage_texture )
+				{
+					sampler_texture = sampler.coverage_texture == 1 ? image.cutout_texture : image.gpu_texture;
+					sampler_smooth = sampler.coverage_texture == 1 && ( image.geometry->cutout_mode & FeRenderCutoutApply )
+						? image.geometry->cutout_plane.texture.smooth : image.texture_smooth;
+					sampler_repeated = false;
+					sampler_mipmap = false;
+					sampler_aniso = false;
+				}
+				else if ( use_current_texture )
 				{
 					sampler_texture = image.gpu_texture;
 				}
@@ -7070,6 +7271,22 @@ bool FeSdl3GpuContext::render_geometry_batch(
 		drew_anything );
 }
 
+bool FeSdl3GpuContext::has_pending_cutout( const FeRenderSurfaceFrame &surface ) const
+{
+	for ( const auto &image : surface.geometry )
+	{
+		const auto &binding = image.cutout_plane.texture;
+		if ( !binding.texture_id ) continue;
+		auto source = m_surfaces.find( binding.texture_id );
+		if ( source != m_surfaces.end() )
+		{
+			if ( !source->second.rendered_once || source->second.last_signature == 0 ) return true;
+		}
+		else if ( texture_status( binding, true ) == TexturePending ) return true;
+	}
+	return false;
+}
+
 bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buffer, std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers )
 {
 	if ( !command_buffer || !m_blend_pipelines[0][ FeBlend::Alpha ] )
@@ -7198,7 +7415,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 					SDL_GenerateMipmapsForGPUTexture( command_buffer, entry.color_texture );
 
 				entry.rendered_once = true;
-				entry.last_signature = surface.content_signature;
+				entry.last_signature = has_pending_cutout( surface ) ? 0 : surface.content_signature;
 			}
 
 			rendered[surface_index] = true;
@@ -7299,7 +7516,7 @@ bool FeSdl3GpuContext::render_surface_frames( SDL_GPUCommandBuffer *command_buff
 						SDL_GenerateMipmapsForGPUTexture( command_buffer, entry.color_texture );
 
 					entry.rendered_once = true;
-					entry.last_signature = surface.content_signature;
+					entry.last_signature = has_pending_cutout( surface ) ? 0 : surface.content_signature;
 				}
 
 				rendered[surface_index] = true;

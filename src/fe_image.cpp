@@ -1677,6 +1677,7 @@ FeImage::FeImage(
 	m_blend_mode( FeBlend::Alpha ),
 	m_preserve_aspect_ratio( false ),
 	m_force_aspect_ratio( 0.0 ),
+	m_cutout( nullptr ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
@@ -1710,11 +1711,17 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_blend_mode( o->m_blend_mode ),
 	m_preserve_aspect_ratio( o->m_preserve_aspect_ratio ),
 	m_force_aspect_ratio( o->m_force_aspect_ratio ),
+	m_cutout( nullptr ),
 	m_fft_data_zero( FeAudioVisualiser::FFT_BANDS_MAX, 0.0f ),
 	m_fft_zero_wrapper( &m_fft_data_zero ),
 	m_fft_array_wrapper( &m_fft_data_zero )
 {
 	set_parent( p );
+	if ( o->m_cutout && o->m_cutout->m_parent == m_parent )
+	{
+		set_cutout( o->m_cutout );
+		m_cutout_object = o->m_cutout_object;
+	}
 	set_visible( o->get_visible() );
 	set_z( o->get_z() );
 	script_set_shader( o->get_shader() );
@@ -1727,7 +1734,17 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_tex->register_image( this );
 }
 
-FeImage::~FeImage() {}
+FeImage::~FeImage()
+{
+	set_cutout( nullptr );
+	if ( !m_cutout_users.empty() )
+		FePresent::script_flag_redraw();
+	for ( FeImage *image : m_cutout_users )
+	{
+		image->m_cutout = nullptr;
+		image->m_cutout_object = Sqrat::Object();
+	}
+}
 
 const FeBaseTextureContainer *FeImage::get_texture_container() const
 {
@@ -1803,6 +1820,56 @@ bool FeImage::fix_masked_image()
 	return m_tex->fix_masked_image();
 }
 
+bool FeImage::supports_cutout() const
+{
+	return m_subimg_set == 0 && m_blend_mode == FeBlend::Alpha
+		&& !m_tex->get_repeat() && !m_sprite_legacy.is_active()
+		&& m_sprite.getCrop() == FloatEdges() && m_sprite.getPadding() == IntEdges();
+}
+
+bool FeImage::build_cutout_plane( FeRenderImagePlane &result ) const
+{
+	const Vec2u texture_size = m_tex->get_texture_size();
+	if ( texture_size.x == 0 || texture_size.y == 0 )
+		return false;
+	result.texture.texture_id = m_tex->get_texture_source_id();
+	result.texture.texture_source_type = m_tex->get_texture_source_type();
+	result.texture.width = static_cast<float>( texture_size.x );
+	result.texture.height = static_cast<float>( texture_size.y );
+	result.texture.smooth = m_tex->get_smooth();
+	result.texture.mipmap = m_tex->get_mipmap();
+	result.texture.dynamic = m_tex->is_volatile_texture();
+	result.texture.blocking = m_tex->is_texture_blocking();
+	result.texture.content_version = m_tex->get_texture_content_version();
+	FeSprite plane = m_sprite;
+	plane.setBorder( IntEdges( 0, 0, 0, 0 ) );
+	std::vector<FeRenderVertex> vertices;
+	plane.append_render_vertices( vertices, get_z() - m_anchor.z );
+	if ( vertices.size() < 3 )
+		return false;
+	const int corners[] = { 0, 2, 1 };
+	for ( int i = 0; i < 3; ++i )
+	{
+		const FeRenderVertex &point = vertices[corners[i]];
+		result.points[i * 3] = point.x;
+		result.points[i * 3 + 1] = point.y;
+		result.points[i * 3 + 2] = point.z;
+	}
+	const IntEdges &border = m_sprite.getBorder();
+	const Vec2f scale = m_sprite.getScale();
+	const float width = std::abs( scale.x * texture_size.x );
+	const float height = std::abs( scale.y * texture_size.y );
+	const float padding_scale = m_sprite.getPaddingScale( Vec2f( width, height ) );
+	const int borders[] = { border.left, border.top, border.right, border.bottom };
+	for ( int i = 0; i < 4; ++i )
+	{
+		const float size = i % 2 == 0 ? width : height;
+		result.source_border[i] = static_cast<float>( borders[i] ) / ( i % 2 == 0 ? texture_size.x : texture_size.y );
+		result.dest_border[i] = size > 0.0f ? borders[i] * padding_scale / size : 0.0f;
+	}
+	return result.texture.texture_id != nullptr;
+}
+
 bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 {
 	geometry.clear();
@@ -1810,11 +1877,29 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	const Vec2u texture_size = m_tex->get_texture_size();
 	if ( texture_size.x == 0 || texture_size.y == 0 )
 		return false;
+	if ( ( m_cutout || !m_cutout_users.empty() ) && supports_cutout() )
+	{
+		if ( m_cutout && m_cutout->supports_cutout() )
+		{
+			if ( !m_cutout->build_cutout_plane( geometry.cutout_plane ) )
+				return false;
+			geometry.cutout_mode |= FeRenderCutoutApply;
+		}
+		for ( const FeImage *image : m_cutout_users )
+			if ( image->supports_cutout() )
+			{
+				geometry.cutout_mode |= FeRenderCutoutSource;
+				break;
+			}
+		if ( geometry.cutout_mode != 0 && !build_cutout_plane( geometry.image_plane ) )
+			return false;
+	}
 
 	if ( m_sprite_legacy.is_active() )
 		m_sprite_legacy.append_render_vertices( m_sprite, m_render_vertices, get_z() - m_anchor.z );
 	else
-		m_sprite.append_render_vertices( m_render_vertices, get_z() - m_anchor.z );
+		m_sprite.append_render_vertices( m_render_vertices, get_z() - m_anchor.z,
+			geometry.cutout_mode != 0 ? Vec2f( texture_size.x, texture_size.y ) : Vec2f() );
 
 	if ( m_render_vertices.empty() )
 		return false;
@@ -2904,6 +2989,59 @@ bool FeImage::get_smooth() const
 int FeImage::get_blend_mode() const
 {
 	return (FeBlend::Mode)m_blend_mode;
+}
+
+FeImage *FeImage::get_cutout() const
+{
+	return m_cutout;
+}
+
+void FeImage::set_cutout( FeImage *image )
+{
+	if ( image == m_cutout )
+		return;
+	if ( image && image->m_parent != m_parent )
+	{
+		Sqrat::Error::Instance().Throw( Sqrat::DefaultVM::Get(), "cutout requires an image in the same draw target" );
+		return;
+	}
+	for ( const FeImage *source = image; source; source = source->m_cutout )
+		if ( source == this )
+		{
+			Sqrat::Error::Instance().Throw( Sqrat::DefaultVM::Get(), "cutout cannot reference itself or form a cycle" );
+			return;
+		}
+	if ( m_cutout )
+	{
+		auto &users = m_cutout->m_cutout_users;
+		users.erase( std::remove( users.begin(), users.end(), this ), users.end() );
+	}
+	m_cutout = image;
+	m_cutout_object = Sqrat::Object();
+	if ( image ) image->m_cutout_users.push_back( this );
+	FePresent::script_flag_redraw();
+}
+
+Sqrat::Object FeImage::script_get_cutout( FeImage *image )
+{
+	if ( image->m_cutout && image->m_cutout_object.IsNull() )
+	{
+		Sqrat::Object object( image->m_cutout );
+		sq_pop( object.GetVM(), 1 );
+		image->m_cutout_object = object;
+	}
+	return image->m_cutout_object;
+}
+
+void FeImage::script_set_cutout( FeImage *image, Sqrat::Object value )
+{
+	FeImage *source = value.GetType() == OT_NULL ? nullptr : value.Cast<FeImage *>();
+	if ( !Sqrat::Error::Instance().Occurred( value.GetVM() ) )
+	{
+		image->set_cutout( source );
+		if ( !Sqrat::Error::Instance().Occurred( value.GetVM() ) )
+			image->m_cutout_object = value;
+	}
 }
 
 void FeImage::set_blend_mode( int b )

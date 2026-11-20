@@ -594,6 +594,10 @@ public:
 	bool get_redraw() const;
 	void set_blend_mode( int b );
 	int get_blend_mode() const;
+	void set_cutout( FeImage *image );
+	FeImage *get_cutout() const;
+	static Sqrat::Object script_get_cutout( FeImage *image );
+	static void script_set_cutout( FeImage *image, Sqrat::Object value );
 
 	bool get_visible() const;
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
@@ -655,6 +659,11 @@ protected:
 	float resolveAspectRatio() const;
 
 private:
+	FeImage *m_cutout;
+	Sqrat::Object m_cutout_object;
+	std::vector<FeImage *> m_cutout_users;
+	bool supports_cutout() const;
+	bool build_cutout_plane( FeRenderImagePlane &plane ) const;
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
 	mutable SqratArrayWrapper m_fft_array_wrapper;

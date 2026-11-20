@@ -299,7 +299,7 @@ float FeSprite::getPaddingScale( const Vec2f &size ) const
 	return padding_scale;
 }
 
-void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const
+void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder, const Vec2f &coverage_size ) const
 {
 	out.clear();
 	out.reserve( m_vertices.size() );
@@ -313,9 +313,27 @@ void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float z
 	const float sin_y = std::sin( radians_y );
 	const float cos_z = std::cos( radians_z );
 	const float sin_z = std::sin( radians_z );
-
-	for ( const FeRenderVertex &vertex : m_vertices )
+	Vec2f texel( 1.0f, 1.0f );
+	if ( coverage_size.x > 0.0f && ( m_border.left || m_border.top || m_border.right || m_border.bottom ) )
 	{
+		const Vec2f scale( fe_sprite_safe_abs( m_scale.x ), fe_sprite_safe_abs( m_scale.y ) );
+		const float padding_scale = getPaddingScale( Vec2f(
+			std::abs( m_textureRect.size.x ) * scale.x, std::abs( m_textureRect.size.y ) * scale.y ) );
+		texel = Vec2f( padding_scale / scale.x, padding_scale / scale.y );
+	}
+	if ( m_textureRect.size.x < 0.0f ) texel.x = -texel.x;
+	if ( m_textureRect.size.y < 0.0f ) texel.y = -texel.y;
+
+	for ( FeRenderVertex vertex : m_vertices )
+	{
+		// Let the cutout own boundary samples instead of clipping them at the quad edge.
+		if ( coverage_size.x > 0.0f && coverage_size.y > 0.0f )
+		{
+			if ( vertex.u == 0.0f ) { vertex.u -= 1.0f; vertex.x -= texel.x; }
+			else if ( vertex.u == coverage_size.x ) { vertex.u += 1.0f; vertex.x += texel.x; }
+			if ( vertex.v == 0.0f ) { vertex.v -= 1.0f; vertex.y -= texel.y; }
+			else if ( vertex.v == coverage_size.y ) { vertex.v += 1.0f; vertex.y += texel.y; }
+		}
 		const float local_x = ( vertex.x - m_origin.x ) * m_scale.x;
 		const float local_y = ( vertex.y - m_origin.y ) * m_scale.y;
 		const float local_z = vertex.z - m_origin.z;

@@ -193,6 +193,7 @@ FeRenderGeometry::FeRenderGeometry()
 	clip_width( 0 ),
 	clip_height( 0 ),
 	blend_mode( 0 ),
+	cutout_mode( 0 ),
 	zbuffer( false ),
 	translucent_depth_prepass( false ),
 	pbr_collapse_group( 0 ),
@@ -234,6 +235,9 @@ void FeRenderGeometry::clear()
 	clip_width = 0;
 	clip_height = 0;
 	blend_mode = 0;
+	cutout_mode = 0;
+	image_plane = {};
+	cutout_plane = {};
 	zbuffer = false;
 	translucent_depth_prepass = false;
 	pbr_collapse_group = 0;

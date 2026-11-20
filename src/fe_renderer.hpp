@@ -165,6 +165,20 @@ struct FeRenderPbrInstance
 	void clear();
 };
 
+enum FeRenderCutoutMode
+{
+	FeRenderCutoutSource = 1,
+	FeRenderCutoutApply = 2
+};
+
+struct FeRenderImagePlane
+{
+	FeRenderTextureBinding texture;
+	float points[9] = {};
+	float source_border[4] = {};
+	float dest_border[4] = {};
+};
+
 struct FeRenderGeometry
 {
 	std::vector<FeRenderVertex> vertices;
@@ -187,6 +201,9 @@ struct FeRenderGeometry
 	int clip_width;
 	int clip_height;
 	int blend_mode;
+	int cutout_mode;
+	FeRenderImagePlane image_plane;
+	FeRenderImagePlane cutout_plane;
 	bool zbuffer;
 	bool translucent_depth_prepass;
 	std::uintptr_t pbr_collapse_group;

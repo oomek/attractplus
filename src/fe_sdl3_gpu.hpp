@@ -152,6 +152,7 @@ private:
 	struct PreparedImage
 	{
 		const FeRenderGeometry *geometry;
+		SDL_GPUTexture *cutout_texture;
 		SDL_GPUTexture *gpu_texture;
 		SDL_GPUTexture *pbr_textures[FE_RENDER_PBR_TEXTURE_COUNT];
 		std::size_t first_vertex;
@@ -232,6 +233,7 @@ private:
 		std::string name;
 		int slot;
 		bool current_texture;
+		int coverage_texture = 0;
 		FeImage *image;
 
 		CustomSamplerBinding() : slot( 0 ), current_texture( false ), image( nullptr ) {}
@@ -244,6 +246,7 @@ private:
 		unsigned long long vertex_source_stamp;
 		bool uses_current_texture;
 		bool has_custom_vertex;
+		bool uses_cutout;
 		bool fast_current_texture_only;
 		bool compile_failed;
 		bool compiling = false;
@@ -260,6 +263,7 @@ private:
 			  vertex_source_stamp( 0 ),
 			  uses_current_texture( false ),
 			  has_custom_vertex( false ),
+			  uses_cutout( false ),
 			  fast_current_texture_only( false ),
 			  compile_failed( false ),
 			  vertex_shader( nullptr ),
@@ -404,6 +408,7 @@ private:
 		const std::vector<CustomUniformBinding> &uniforms,
 		std::vector<float> &data,
 		const FeShader *shader = nullptr ) const;
+	bool has_pending_cutout( const FeRenderSurfaceFrame &surface ) const;
 	bool render_surface_frames( SDL_GPUCommandBuffer *command_buffer, std::vector<SDL_GPUBuffer *> *temporary_pbr_buffers );
 	bool render_prepared_geometry_batch(
 		SDL_GPURenderPass *render_pass,
