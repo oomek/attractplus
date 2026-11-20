@@ -46,7 +46,7 @@ public:
 	}
 
 	void append_render_vertices( const FeSprite &sprite,
-		std::vector<FeRenderVertex> &out, float z ) const;
+		std::vector<FeRenderVertex> &out, float z, bool mask=false ) const;
 
 private:
 	Vec2f m_pinch;

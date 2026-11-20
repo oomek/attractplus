@@ -1683,6 +1683,7 @@ FeImage::FeImage(
 	m_fft_array_wrapper( &m_fft_data_zero )
 {
 	ASSERT( m_tex );
+	if ( auto *present = FePresent::script_get_fep() ) m_mask_script_id = present->get_script_id();
 	m_tex->register_image( this );
 	scale();
 }
@@ -1722,6 +1723,21 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 		set_cutout( o->m_cutout );
 		m_cutout_object = o->m_cutout_object;
 	}
+	m_mask = o->m_mask;
+	m_mask_entry = o->m_mask_entry;
+	m_mask_texture = o->m_mask_texture;
+	m_mask_border = o->m_mask_border;
+	m_mask_padding = o->m_mask_padding;
+	m_mask_border_scale = o->m_mask_border_scale;
+	m_mask_fit = o->m_mask_fit;
+	m_mask_rect = o->m_mask_rect;
+	m_mask_fill = o->m_mask_fill;
+	m_mask_sprite = o->m_mask_sprite;
+	if ( auto *present = FePresent::script_get_fep() )
+	{
+		m_mask_script_id = present->get_script_id();
+		if ( !m_mask.empty() ) present->m_masked_images.insert( this );
+	}
 	set_visible( o->get_visible() );
 	set_z( o->get_z() );
 	script_set_shader( o->get_shader() );
@@ -1744,6 +1760,9 @@ FeImage::~FeImage()
 		image->m_cutout = nullptr;
 		image->m_cutout_object = Sqrat::Object();
 	}
+	if ( auto *present = FePresent::script_get_fep() ) present->m_masked_images.erase( this );
+	FeImageLoader::get_ref().release_entry( &m_mask_entry );
+	FeImageLoader::get_ref().reap( std::move( m_mask_texture ) );
 }
 
 const FeBaseTextureContainer *FeImage::get_texture_container() const
@@ -1827,7 +1846,7 @@ bool FeImage::supports_cutout() const
 		&& m_sprite.getCrop() == FloatEdges() && m_sprite.getPadding() == IntEdges();
 }
 
-bool FeImage::build_cutout_plane( FeRenderImagePlane &result ) const
+bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane &mask_plane ) const
 {
 	const Vec2u texture_size = m_tex->get_texture_size();
 	if ( texture_size.x == 0 || texture_size.y == 0 )
@@ -1844,7 +1863,7 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result ) const
 	FeSprite plane = m_sprite;
 	plane.setBorder( IntEdges( 0, 0, 0, 0 ) );
 	std::vector<FeRenderVertex> vertices;
-	plane.append_render_vertices( vertices, get_z() - m_anchor.z );
+	plane.append_render_vertices( vertices, get_z() - m_anchor.z, Vec2f(), !m_mask.empty() );
 	if ( vertices.size() < 3 )
 		return false;
 	const int corners[] = { 0, 2, 1 };
@@ -1867,6 +1886,32 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result ) const
 		result.source_border[i] = static_cast<float>( borders[i] ) / ( i % 2 == 0 ? texture_size.x : texture_size.y );
 		result.dest_border[i] = size > 0.0f ? borders[i] * padding_scale / size : 0.0f;
 	}
+	if ( !m_mask.empty() )
+	{
+		FeRenderGeometry mask;
+		build_mask_geometry( mask, vertices );
+		mask_plane.texture = mask.mask_texture;
+		if ( !mask_plane.texture.texture_id ) return false;
+		mask_plane.fill = m_mask_fit ? 0 : m_mask_fill;
+		mask_plane.clip = m_mask_fit && ( m_mask_padding.left > 0 || m_mask_padding.top > 0 || m_mask_padding.right > 0 || m_mask_padding.bottom > 0 );
+		mask_plane.empty = mask.mask_rect[2] <= 0.f || mask.mask_rect[3] <= 0.f;
+		if ( !mask_plane.empty )
+		{
+			const float *points = m_mask_fit ? result.points : mask.mask_points;
+			const float extent[] = { m_mask_fit ? width : mask.mask_size[0], m_mask_fit ? height : mask.mask_size[1] };
+			if ( extent[0] <= 0.f || extent[1] <= 0.f ) return false;
+			for ( int i = 0; i < 3; ++i )
+				for ( int axis = 0; axis < 3; ++axis )
+					mask_plane.points[i * 3 + axis] = points[axis]
+						+ ( points[3 + axis] - points[axis] ) * ( mask.mask_rect[0] + ( i == 1 ? mask.mask_rect[2] : 0.f ) ) / extent[0]
+						+ ( points[6 + axis] - points[axis] ) * ( mask.mask_rect[1] + ( i == 2 ? mask.mask_rect[3] : 0.f ) ) / extent[1];
+			for ( int i = 0; i < 4; ++i )
+			{
+				mask_plane.source_border[i] = mask.mask_border[i] / ( i % 2 == 0 ? mask.mask_texture.width : mask.mask_texture.height );
+				mask_plane.dest_border[i] = mask.mask_border[i] * mask.mask_scale / mask.mask_rect[2 + i % 2];
+			}
+		}
+	}
 	return result.texture.texture_id != nullptr;
 }
 
@@ -1881,7 +1926,7 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	{
 		if ( m_cutout && m_cutout->supports_cutout() )
 		{
-			if ( !m_cutout->build_cutout_plane( geometry.cutout_plane ) )
+			if ( !m_cutout->build_cutout_plane( geometry.cutout_plane, geometry.cutout_mask_plane ) )
 				return false;
 			geometry.cutout_mode |= FeRenderCutoutApply;
 		}
@@ -1891,15 +1936,15 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 				geometry.cutout_mode |= FeRenderCutoutSource;
 				break;
 			}
-		if ( geometry.cutout_mode != 0 && !build_cutout_plane( geometry.image_plane ) )
+		if ( geometry.cutout_mode != 0 && !build_cutout_plane( geometry.image_plane, geometry.image_mask_plane ) )
 			return false;
 	}
 
 	if ( m_sprite_legacy.is_active() )
-		m_sprite_legacy.append_render_vertices( m_sprite, m_render_vertices, get_z() - m_anchor.z );
+		m_sprite_legacy.append_render_vertices( m_sprite, m_render_vertices, get_z() - m_anchor.z, !m_mask.empty() );
 	else
 		m_sprite.append_render_vertices( m_render_vertices, get_z() - m_anchor.z,
-			geometry.cutout_mode != 0 ? Vec2f( texture_size.x, texture_size.y ) : Vec2f() );
+			geometry.cutout_mode != 0 ? Vec2f( texture_size.x, texture_size.y ) : Vec2f(), !m_mask.empty() );
 
 	if ( m_render_vertices.empty() )
 		return false;
@@ -1928,7 +1973,96 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.texture_dynamic = m_tex->is_volatile_texture();
 	geometry.texture_blocking = m_tex->is_texture_blocking();
 	geometry.texture_content_version = m_tex->get_texture_content_version();
+	if ( !m_mask.empty() ) build_mask_geometry( geometry, m_render_vertices );
 	return true;
+}
+
+bool FeImage::build_mask_background( FeRenderGeometry &background, const FeRenderGeometry &image ) const
+{
+	if ( !image.mask_enabled || image.mask_fit || m_mask_vertices.size() < 6 || m_render_vertices.empty() )
+		return false;
+
+	background = image;
+	background.external_vertices = nullptr;
+	background.external_vertex_count = 0;
+	background.vertices.clear();
+	const int corners[] = { 0, 2, 5, 1, 0 };
+	float minimum[] = { m_render_vertices[0].u1, m_render_vertices[0].v1 };
+	float maximum[] = { minimum[0], minimum[1] };
+	for ( const auto &vertex : m_render_vertices )
+	{
+		minimum[0] = std::min( minimum[0], vertex.u1 );
+		minimum[1] = std::min( minimum[1], vertex.v1 );
+		maximum[0] = std::max( maximum[0], vertex.u1 );
+		maximum[1] = std::max( maximum[1], vertex.v1 );
+	}
+	if ( maximum[0] <= minimum[0] || maximum[1] <= minimum[1] )
+	{
+		background.vertices = m_mask_vertices;
+		for ( auto &vertex : background.vertices )
+		{
+			vertex.nx = vertex.ny = 1.f;
+			vertex.a = m_sprite.getColor().a;
+		}
+		return true;
+	}
+
+	// Stitch every perimeter segment, including the legacy strip subdivisions.
+	// Inner vertices are copied verbatim so rasterization uses identical edges.
+	for ( int side = 0; side < 4; ++side )
+	{
+		const bool vertical = side % 2;
+		std::vector<FeRenderVertex> edge;
+		for ( std::size_t i = 0; i < m_render_vertices.size(); ++i )
+		{
+			auto vertex = m_render_vertices[i];
+			if ( ( vertical ? vertex.u1 : vertex.v1 ) ==
+				( side == 0 || side == 3 ? minimum[!vertical] : maximum[!vertical] ) )
+			{
+				vertex.nz = static_cast<float>( i );
+				edge.push_back( vertex );
+			}
+		}
+		std::sort( edge.begin(), edge.end(), [vertical, side]( const FeRenderVertex &a, const FeRenderVertex &b )
+			{ return side < 2 ? ( vertical ? a.v1 < b.v1 : a.u1 < b.u1 ) :
+				( vertical ? a.v1 > b.v1 : a.u1 > b.u1 ); } );
+		edge.erase( std::unique( edge.begin(), edge.end(), [vertical]( const FeRenderVertex &a, const FeRenderVertex &b )
+			{ return vertical ? a.v1 == b.v1 : a.u1 == b.u1; } ), edge.end() );
+		const auto &first = m_mask_vertices[corners[side]];
+		const auto &last = m_mask_vertices[corners[side + 1]];
+		const auto &opposite = m_mask_vertices[corners[( side + 3 ) % 4]];
+		const float dx = opposite.x - first.x, dy = opposite.y - first.y, dz = opposite.z - first.z;
+		for ( std::size_t i = 1; i < edge.size(); ++i )
+		{
+			FeRenderVertex quad[4] = { edge[i - 1], edge[i], first, last };
+			float gap = 0.f;
+			for ( int j = 0; j < 2; ++j )
+			{
+				float t = ( ( vertical ? quad[j].v1 : quad[j].u1 ) - minimum[vertical] ) /
+					( maximum[vertical] - minimum[vertical] );
+				if ( side >= 2 ) t = 1.f - t;
+				if ( t == 1.f ) quad[j + 2] = last;
+				else if ( t != 0.f )
+				{
+					quad[j + 2].x = first.x + ( last.x - first.x ) * t;
+					quad[j + 2].y = first.y + ( last.y - first.y ) * t;
+					quad[j + 2].z = first.z + ( last.z - first.z ) * t;
+				}
+				gap = std::max( gap, ( quad[j].x - quad[j + 2].x ) * dx +
+					( quad[j].y - quad[j + 2].y ) * dy + ( quad[j].z - quad[j + 2].z ) * dz );
+				// Private mask flags: black fragment, and an independent outer vertex.
+				quad[j].nx = quad[j + 2].nx = 1.f;
+				quad[j + 2].ny = 1.f;
+				quad[j + 2].a = m_sprite.getColor().a;
+			}
+			// Projection and vertex shaders can expose edges that coincide locally.
+			if ( gap <= .0001f && get_rotation_x() == 0.f && get_rotation_y() == 0.f &&
+				!( image.shader && image.shader->get_type() == FeShader::VertexAndFragment ) ) continue;
+			const int triangles[] = { 0, 2, 1, 1, 2, 3 };
+			for ( int index : triangles ) background.vertices.push_back( quad[index] );
+		}
+	}
+	return !background.vertices.empty();
 }
 
 void FeImage::scale()
@@ -2015,6 +2149,27 @@ void FeImage::scale()
 		( render_size.x - size.x ) * m_fit_anchor.x,
 		( render_size.y - size.y ) * m_fit_anchor.y
 	);
+	m_mask_rect = FloatRect( Vec2f( 0.f, 0.f ),
+		Vec2f( std::abs( render_size.x ), std::abs( render_size.y ) ) );
+	m_mask_fill = ( std::abs( size.x ) < std::abs( render_size.x ) ? 1 : 0 ) |
+		( std::abs( size.y ) < std::abs( render_size.y ) ? 2 : 0 );
+	if ( !m_mask.empty() && !m_mask_fit )
+	{
+		// The mask is a separate Fill sprite; artwork fitting never changes its plane.
+		m_mask_sprite.setTextureRect( m_mask_rect );
+		m_mask_sprite.setScale( flip );
+		m_mask_sprite.setPosition( render_pos + Vec2f(
+			( m_rotation_origin.x - m_anchor.x ) * render_size.x,
+			( m_rotation_origin.y - m_anchor.y ) * render_size.y ) );
+		m_mask_sprite.setOrigin( Vec3f(
+			( m_origin.x + m_rotation_origin.x * render_size.x ) / flip.x,
+			( m_origin.y + m_rotation_origin.y * render_size.y ) / flip.y,
+			m_origin.z + m_rotation_origin.z ) );
+		m_mask_sprite.setRotation( m_rotation );
+		m_mask_sprite.setRotationX( get_rotation_x() );
+		m_mask_sprite.setRotationY( get_rotation_y() );
+		m_mask_sprite.setRotationOrder( get_rotation_order() );
+	}
 
 	// The crop property instructs the sprite to reduce size to hide the texture overlap
 	FloatEdges crop = !m_crop
@@ -2803,6 +2958,7 @@ void FeImage::set_preserve_aspect_ratio( bool p )
 
 void FeImage::set_mipmap( bool m )
 {
+	if ( m != get_mipmap() && !m_mask.empty() ) FePresent::script_flag_redraw();
 	m_tex->set_mipmap( m );
 }
 
@@ -2978,6 +3134,7 @@ void FeImage::transition_swap( FeImage *o )
 
 void FeImage::set_smooth( bool s )
 {
+	if ( s != get_smooth() && !m_mask.empty() ) FePresent::script_flag_redraw();
 	m_tex->set_smooth( s );
 }
 
@@ -3170,6 +3327,195 @@ FePresentableParent *FeImage::get_presentable_parent()
 {
 	return m_tex->get_presentable_parent();
 }
+
+const char *FeImage::get_mask() const { return m_mask.c_str(); }
+
+void FeImage::set_mask( const char *filename )
+{
+	const std::string name = filename ? filename : "";
+	if ( name == m_mask ) return;
+	auto &loader = FeImageLoader::get_ref();
+	loader.release_entry( &m_mask_entry );
+	loader.reap( std::move( m_mask_texture ) );
+	m_mask = name;
+	m_mask_failed = false;
+	m_mask_status = -1;
+	auto *present = FePresent::script_get_fep();
+	if ( present )
+	{
+		if ( name.empty() ) present->m_masked_images.erase( this );
+		else present->m_masked_images.insert( this );
+	}
+	if ( !name.empty() )
+	{
+		std::string path = clean_path( name );
+		if ( is_relative_path( path ) ) path = FePresent::script_get_base_path() + path;
+		const bool v4 = present && present->get_script_version( m_mask_script_id ) >= 4;
+		loader.load_image_from_file( path, &m_mask_entry,
+			v4 || ( present && present->get_script_background_loading( m_mask_script_id ) ),
+			get_mipmap(), &m_mask_texture, !v4 );
+		update_mask();
+	}
+	scale();
+	FePresent::script_flag_redraw();
+}
+
+bool FeImage::update_mask()
+{
+	if ( m_mask.empty() ) return false;
+	auto &loader = FeImageLoader::get_ref();
+	if ( m_mask_entry ) m_mask_texture = loader.prepare_image( m_mask_entry, get_mipmap(), false );
+	int status = 0;
+	if ( !m_mask_entry || m_mask_entry->failed() ||
+		( m_mask_texture && m_mask_texture->status == FeImageTexture::Failed ) ) status = 2;
+	else if ( m_mask_texture && m_mask_texture->status == FeImageTexture::Ready ) status = 1;
+	if ( status == 2 && !m_mask_failed )
+	{
+		// Decode failures already include the filename in the loader's error.
+		if ( !m_mask_entry || !m_mask_entry->failed() )
+			FeLog() << "Error uploading image mask: " << m_mask << std::endl;
+		m_mask_failed = true;
+	}
+	if ( status == 1 )
+	{
+		auto *present = FePresent::script_get_fep();
+		if ( present && !present->m_window.get_gpu_context().prepare_shader( get_shader(), true, get_blend_mode() ) ) status = 0;
+	}
+	const bool changed = status != m_mask_status;
+	m_mask_status = status;
+	return changed;
+}
+
+bool FeImage::mask_binding( FeRenderTextureBinding &binding ) const
+{
+	binding.clear();
+	if ( !m_mask_entry || !m_mask_entry->is_loaded() || m_mask_entry->failed() ) return false;
+	binding.texture_id = m_mask_entry.get();
+	binding.texture_source_type = FeRenderTextureSourceImage;
+	binding.width = static_cast<float>( m_mask_entry->get_width() );
+	binding.height = static_cast<float>( m_mask_entry->get_height() );
+	binding.smooth = get_smooth();
+	binding.mipmap = get_mipmap();
+	binding.content_version = m_mask_entry->get_version();
+	auto *present = FePresent::script_get_fep();
+	binding.blocking = present && present->get_script_version( m_mask_script_id ) < 4 &&
+		!present->get_script_background_loading( m_mask_script_id );
+	return true;
+}
+
+void FeImage::build_mask_geometry( FeRenderGeometry &geometry, const std::vector<FeRenderVertex> &vertices ) const
+{
+	geometry.mask_enabled = true;
+	geometry.mask_fit = m_mask_fit;
+	mask_binding( geometry.mask_texture );
+	FloatRect rect = m_mask_rect;
+	if ( m_mask_fit )
+	{
+		float left = vertices[0].u1, right = left;
+		float top = vertices[0].v1, bottom = top;
+		for ( const auto &vertex : vertices )
+		{
+			left = std::min( left, vertex.u1 ); right = std::max( right, vertex.u1 );
+			top = std::min( top, vertex.v1 ); bottom = std::max( bottom, vertex.v1 );
+		}
+		rect = FloatRect( Vec2f( left, top ), Vec2f( right - left, bottom - top ) );
+	}
+	else
+	{
+		m_mask_sprite.append_render_vertices( m_mask_vertices, get_z() - m_anchor.z );
+		if ( m_mask_vertices.size() >= 3 )
+		{
+			const int corners[] = { 0, 2, 1 };
+			for ( int i = 0; i < 3; ++i )
+			{
+				geometry.mask_points[i * 3] = m_mask_vertices[corners[i]].x;
+				geometry.mask_points[i * 3 + 1] = m_mask_vertices[corners[i]].y;
+				geometry.mask_points[i * 3 + 2] = m_mask_vertices[corners[i]].z;
+			}
+		}
+		geometry.mask_size[0] = rect.size.x;
+		geometry.mask_size[1] = rect.size.y;
+	}
+	float *border = geometry.mask_border;
+	border[0] = static_cast<float>( m_mask_border.left );
+	border[1] = static_cast<float>( m_mask_border.top );
+	border[2] = static_cast<float>( m_mask_border.right );
+	border[3] = static_cast<float>( m_mask_border.bottom );
+	const float source_width = geometry.mask_texture.width;
+	const float source_height = geometry.mask_texture.height;
+	if ( border[0] + border[2] > source_width )
+	{
+		const float ratio = source_width / ( border[0] + border[2] );
+		border[0] *= ratio; border[2] *= ratio;
+	}
+	if ( border[1] + border[3] > source_height )
+	{
+		const float ratio = source_height / ( border[1] + border[3] );
+		border[1] *= ratio; border[3] *= ratio;
+	}
+	float scale = ( m_mask_border.left || m_mask_border.top || m_mask_border.right || m_mask_border.bottom )
+		? m_mask_border_scale : 1.f;
+	const float x = border[0] + border[2] - static_cast<float>( m_mask_padding.left ) - m_mask_padding.right;
+	const float y = border[1] + border[3] - static_cast<float>( m_mask_padding.top ) - m_mask_padding.bottom;
+	if ( x > 0.f ) scale = std::min( scale, rect.size.x / x );
+	if ( y > 0.f ) scale = std::min( scale, rect.size.y / y );
+	geometry.mask_scale = scale;
+	geometry.mask_rect[0] = rect.position.x - m_mask_padding.left * scale;
+	geometry.mask_rect[1] = rect.position.y - m_mask_padding.top * scale;
+	geometry.mask_rect[2] = std::max( 0.f, rect.size.x + ( static_cast<float>( m_mask_padding.left ) + m_mask_padding.right ) * scale );
+	geometry.mask_rect[3] = std::max( 0.f, rect.size.y + ( static_cast<float>( m_mask_padding.top ) + m_mask_padding.bottom ) * scale );
+}
+
+bool FeImage::get_mask_fit() const { return m_mask_fit; }
+void FeImage::set_mask_fit( bool value )
+{
+	if ( value == m_mask_fit ) return;
+	m_mask_fit = value;
+	scale();
+	FePresent::script_flag_redraw();
+}
+
+void FeImage::set_mask_border( int l, int t, int r, int b )
+{
+	const IntEdges border( std::max( 0, l ), std::max( 0, t ), std::max( 0, r ), std::max( 0, b ) );
+	if ( border == m_mask_border ) return;
+	m_mask_border = border;
+	FePresent::script_flag_redraw();
+}
+
+void FeImage::set_mask_padding( int l, int t, int r, int b )
+{
+	const IntEdges padding( l, t, r, b );
+	if ( padding == m_mask_padding ) return;
+	m_mask_padding = padding;
+	FePresent::script_flag_redraw();
+}
+
+float FeImage::get_mask_border_scale() const { return m_mask_border_scale; }
+void FeImage::set_mask_border_scale( float scale )
+{
+	scale = std::isfinite( scale ) ? std::max( 0.f, scale ) : 0.f;
+	if ( scale == m_mask_border_scale ) return;
+	m_mask_border_scale = scale;
+	FePresent::script_flag_redraw();
+}
+
+int FeImage::get_mask_border_left() const { return m_mask_border.left; }
+int FeImage::get_mask_border_top() const { return m_mask_border.top; }
+int FeImage::get_mask_border_right() const { return m_mask_border.right; }
+int FeImage::get_mask_border_bottom() const { return m_mask_border.bottom; }
+void FeImage::set_mask_border_left( int l ) { set_mask_border( l, m_mask_border.top, m_mask_border.right, m_mask_border.bottom ); }
+void FeImage::set_mask_border_top( int t ) { set_mask_border( m_mask_border.left, t, m_mask_border.right, m_mask_border.bottom ); }
+void FeImage::set_mask_border_right( int r ) { set_mask_border( m_mask_border.left, m_mask_border.top, r, m_mask_border.bottom ); }
+void FeImage::set_mask_border_bottom( int b ) { set_mask_border( m_mask_border.left, m_mask_border.top, m_mask_border.right, b ); }
+int FeImage::get_mask_padding_left() const { return m_mask_padding.left; }
+int FeImage::get_mask_padding_top() const { return m_mask_padding.top; }
+int FeImage::get_mask_padding_right() const { return m_mask_padding.right; }
+int FeImage::get_mask_padding_bottom() const { return m_mask_padding.bottom; }
+void FeImage::set_mask_padding_left( int l ) { set_mask_padding( l, m_mask_padding.top, m_mask_padding.right, m_mask_padding.bottom ); }
+void FeImage::set_mask_padding_top( int t ) { set_mask_padding( m_mask_padding.left, t, m_mask_padding.right, m_mask_padding.bottom ); }
+void FeImage::set_mask_padding_right( int r ) { set_mask_padding( m_mask_padding.left, m_mask_padding.top, r, m_mask_padding.bottom ); }
+void FeImage::set_mask_padding_bottom( int b ) { set_mask_padding( m_mask_padding.left, m_mask_padding.top, m_mask_padding.right, b ); }
 
 void FeImage::set_border( int l, int t, int r, int b )
 {

@@ -104,42 +104,80 @@ namespace
 		return name;
 	}
 
-	std::string add_alpha_coverage_shader( const std::string &source, const std::string &name, int sampler_slot )
+	std::string add_alpha_coverage_shader( const std::string &source, const std::string &name, int sampler_slot, bool masked )
 	{
-		std::string result = std::regex_replace( source, std::regex( "\\bvoid\\s+main\\s*\\(" ),
-			"void " + name + "_main(" );
+		std::string result = source;
+		if ( masked ) result.replace( result.rfind( "void main()" ), 11, "void " + name + "_main()" );
+		else result = std::regex_replace( source, std::regex( "\\bvoid\\s+main\\s*\\(" ), "void " + name + "_main(" );
 		replace_all( result, ") in ", ") sample in " );
-		std::ostringstream helpers;
-		helpers << "\nlayout(set = 3, binding = 1, std140) uniform " << name << "_uniforms\n{\n"
-			<< "\tvec4 control; vec4 row0; vec4 row1; vec4 row2; vec4 source_border; vec4 dest_border;\n"
-			<< "\tvec4 own_row0; vec4 own_row1; vec4 own_row2; vec4 own_source_border; vec4 own_dest_border;\n} " << name << ";\n"
-			<< "float " << name << "_slice(float p, float first, float last, float src_first, float src_last)\n{\n"
-			<< "\tif (p < first && first > 0.0) return p * src_first / first;\n"
-			<< "\tif (p > 1.0 - last && last > 0.0) return 1.0 - (1.0 - p) * src_last / last;\n"
-			<< "\treturn first + last < 1.0 ? src_first + (p - first) * (1.0 - src_first - src_last) / (1.0 - first - last) : src_first;\n}\n"
-			<< "vec2 " << name << "_uv(vec2 pixel, bool own)\n{\n"
-			<< "\tvec3 p = vec3(pixel, 1.0);\n"
-			<< "\tvec4 row0 = own ? " << name << ".own_row0 : " << name << ".row0;\n"
-			<< "\tvec4 row1 = own ? " << name << ".own_row1 : " << name << ".row1;\n"
-			<< "\tvec4 row2 = own ? " << name << ".own_row2 : " << name << ".row2;\n"
-			<< "\tprecise vec3 q = vec3(dot(row0.xyz, p), dot(row1.xyz, p), dot(row2.xyz, p));\n"
-			<< "\tvec2 local = q.xy / q.z;\n"
-			<< "\tvec4 src = own ? " << name << ".own_source_border : " << name << ".source_border;\n"
-			<< "\tvec4 dst = own ? " << name << ".own_dest_border : " << name << ".dest_border;\n"
-			<< "\treturn vec2(" << name << "_slice(local.x, dst.x, dst.z, src.x, src.z), " << name << "_slice(local.y, dst.y, dst.w, src.y, src.w));\n}\n"
-			<< "float " << name << "_texel(sampler2D image, ivec2 p)\n{\n"
-			<< "\tivec2 size = textureSize(image, 0);\n"
-			<< "\tif (any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, size))) return 0.0;\n"
-			<< "\treturn texelFetch(image, p, 0).a;\n}\n"
-			<< "float " << name << "_alpha(sampler2D image, vec2 uv, float smooth_filter)\n{\n"
-			<< "\tif (smooth_filter == 0.0) return any(lessThan(uv, vec2(0.0))) || any(greaterThanEqual(uv, vec2(1.0))) ? 0.0 : textureLod(image, uv, 0.0).a;\n"
-			<< "\tvec2 p = uv * vec2(textureSize(image, 0)) - 0.5;\n"
-			<< "\tivec2 base = ivec2(floor(p));\n"
-			<< "\tvec2 weight = fract(p);\n"
-			<< "\tprecise float alpha = mix(mix(" << name << "_texel(image, base), " << name << "_texel(image, base + ivec2(1,0)), weight.x),\n"
-			<< "\t\tmix(" << name << "_texel(image, base + ivec2(0,1)), " << name << "_texel(image, base + ivec2(1,1)), weight.x), weight.y);\n"
-			<< "\treturn alpha;\n}\n";
-		result.insert( result.find( '\n' ) + 1, helpers.str() );
+		std::string helpers = R"(
+struct fe_coverage_Plane { vec4 row0; vec4 row1; vec4 row2; vec4 source_border; vec4 dest_border; };
+layout(set = 3, binding = 2, std140) uniform fe_coverage_Uniforms
+{
+	vec4 control;
+	vec4 masks;
+	fe_coverage_Plane planes[4];
+} fe_coverage;
+float fe_coverage_slice(float p, float first, float last, float src_first, float src_last)
+{
+	if (p < first && first > 0.0) return p * src_first / first;
+	if (p > 1.0 - last && last > 0.0) return 1.0 - (1.0 - p) * src_last / last;
+	return first + last < 1.0 ? src_first + (p - first) * (1.0 - src_first - src_last) / (1.0 - first - last) : src_first;
+}
+vec2 fe_coverage_uv(vec2 pixel, int index)
+{
+	fe_coverage_Plane plane = fe_coverage.planes[index];
+	vec3 p = vec3(pixel, 1.0);
+	precise vec3 q = vec3(dot(plane.row0.xyz, p), dot(plane.row1.xyz, p), dot(plane.row2.xyz, p));
+	vec2 local = q.xy / q.z;
+	vec4 src = plane.source_border, dst = plane.dest_border;
+	return vec2(fe_coverage_slice(local.x, dst.x, dst.z, src.x, src.z), fe_coverage_slice(local.y, dst.y, dst.w, src.y, src.w));
+}
+vec4 fe_coverage_texel(sampler2D image, ivec2 p, bool edge)
+{
+	ivec2 size = textureSize(image, 0);
+	vec4 value = texelFetch(image, clamp(p, ivec2(0), size - 1), 0);
+	if (!edge && (any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, size)))) value.a = 0.0;
+	return value;
+}
+float fe_coverage_alpha(sampler2D image, vec2 uv, float smooth_filter, int mode)
+{
+	bool edge = mode == 1;
+	vec4 value;
+	if (smooth_filter == 0.0)
+	{
+		if (!edge && (any(lessThan(uv, vec2(0.0))) || any(greaterThanEqual(uv, vec2(1.0))))) return 0.0;
+		value = texelFetch(image, clamp(ivec2(floor(uv * vec2(textureSize(image, 0)))), ivec2(0), textureSize(image, 0) - 1), 0);
+	}
+	else
+	{
+		vec2 p = uv * vec2(textureSize(image, 0)) - 0.5;
+		ivec2 base = ivec2(floor(p));
+		vec2 weight = fract(p);
+		precise vec4 alpha = mix(mix(fe_coverage_texel(image, base, edge), fe_coverage_texel(image, base + ivec2(1,0), edge), weight.x),
+			mix(fe_coverage_texel(image, base + ivec2(0,1), edge), fe_coverage_texel(image, base + ivec2(1,1), edge), weight.x), weight.y);
+		value = alpha;
+	}
+	return mode == 2 ? clamp(dot(value.rgb, vec3(0.2126, 0.7152, 0.0722)) * value.a, 0.0, 1.0) : value.a;
+}
+float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int index, float smooth_filter)
+{
+	vec2 uv = fe_coverage_uv(pixel, index);
+	float alpha = fe_coverage_alpha(image, uv, smooth_filter, 0);
+	float enabled = fe_coverage.masks[index];
+	if (enabled < 0.0) return 0.0;
+	if (enabled == 0.0) return alpha;
+	float coverage = fe_coverage_alpha(mask, fe_coverage_uv(pixel, index + 2), smooth_filter, 2);
+	int mode = int(fe_coverage.masks[index + 2]);
+	bool outside = ((mode & 1) != 0 && (uv.x < 0.0 || uv.x >= 1.0)) || ((mode & 2) != 0 && (uv.y < 0.0 || uv.y >= 1.0));
+	float opacity = fe_coverage_alpha(image, uv, smooth_filter, 1);
+	if ((mode & 3) != 0) return coverage * (outside ? 1.0 : opacity);
+	// Intersect shared rectangle coverage once; multiply native opacity by the mask.
+	return mode == 4 ? min(alpha, opacity * coverage) : opacity * coverage;
+}
+)";
+		replace_all( helpers, "fe_coverage", name );
+		result.insert( result.find( '\n' ) + 1, helpers );
 		std::ostringstream wrapper;
 		wrapper << "\nvoid main()\n{\n"
 			<< "\t" << name << "_main();\n"
@@ -149,20 +187,21 @@ namespace
 			<< "\tvec2 pixel = floor(gl_FragCoord.xy) + gl_SamplePosition;\n"
 			<< "\tbool source = (int(" << name << ".control.x) & 1) != 0;\n"
 			<< "\tbool cutout = (int(" << name << ".control.x) & 2) != 0;\n"
-			<< "\tvec2 own_uv = " << name << "_uv(pixel, true);\n"
-			<< "\tfloat own_alpha = " << name << "_alpha(external_texture" << sampler_slot + 1 << ", own_uv, " << name << ".control.z);\n"
+			<< "\tvec2 own_uv = " << name << "_uv(pixel, 1);\n"
+			<< "\tfloat own_alpha = " << name << "_combined(external_texture" << sampler_slot + 1 << ", external_texture" << sampler_slot + 3 << ", pixel, 1, " << name << ".control.z);\n"
+			<< "\tif (((int(" << name << ".masks.w) & 1) != 0 && (own_uv.x < 0.0 || own_uv.x >= 1.0)) || ((int(" << name << ".masks.w) & 2) != 0 && (own_uv.y < 0.0 || own_uv.y >= 1.0))) out_color.rgb = vec3(0.0);\n"
 			<< "\tif (source && own_alpha < 0.5) discard;\n"
 			<< "\tfloat reference = 0.0;\n"
 			<< "\tfloat support = 0.0;\n"
 			<< "\tif (cutout)\n"
-			<< "\t{\n\t\tvec2 uv = " << name << "_uv(pixel, false);\n"
-			<< "\t\treference = " << name << "_alpha(external_texture" << sampler_slot << ", uv, " << name << ".control.y);\n"
+			<< "\t{\n"
+			<< "\t\treference = " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", pixel, 0, " << name << ".control.y);\n"
 			<< "\t\tif (reference >= 0.5) discard;\n"
-			<< "\t\tsupport = " << name << ".control.y > 0.0 ? reference : " << name << "_alpha(external_texture" << sampler_slot << ", uv, 1.0);\n\t}\n"
+			<< "\t\tsupport = " << name << ".control.y > 0.0 ? reference : " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", pixel, 0, 1.0);\n\t}\n"
 			<< "\tif (!source)\n\t{\n"
 			<< "\t\tif (cutout && support > 0.0)\n\t\t{\n"
 			// Remove the shared contour's antialiasing coverage, retaining intrinsic opacity.
-			<< "\t\t\tfloat alpha = " << name << "_alpha(external_texture" << sampler_slot + 1 << ", own_uv, 1.0);\n"
+			<< "\t\t\tfloat alpha = " << name << "_combined(external_texture" << sampler_slot + 1 << ", external_texture" << sampler_slot + 3 << ", pixel, 1, 1.0);\n"
 			<< "\t\t\topacity *= support < 1.0 ? clamp(alpha / (1.0 - support), 0.0, 1.0) : 0.0;\n"
 			<< "\t\t}\n\t\telse opacity *= own_alpha;\n"
 			<< "\t}\n"
@@ -184,8 +223,9 @@ namespace
 	struct FeSdl3GpuCoverageUniforms
 	{
 		float control[4];
-		FeSdl3GpuCoveragePlane plane;
-		FeSdl3GpuCoveragePlane own_plane;
+		// Reference/own availability, then fill axes (1/2) or image clipping (4).
+		float masks[4];
+		FeSdl3GpuCoveragePlane planes[4];
 	};
 
 	bool build_alpha_coverage_plane( const FeRenderImagePlane &source, const FePerspectiveCamera &camera,
@@ -235,9 +275,17 @@ namespace
 		const auto &source = ( image.cutout_mode & FeRenderCutoutApply ) ? image.cutout_plane : image.image_plane;
 		result.control[1] = source.texture.smooth ? 1.0f : 0.0f;
 		result.control[2] = image.texture_smooth ? 1.0f : 0.0f;
-		bool valid = build_alpha_coverage_plane( source, camera, width, height, plane_distance, result.plane );
-		if ( !( image.cutout_mode & FeRenderCutoutApply ) ) result.own_plane = result.plane;
-		else valid = build_alpha_coverage_plane( image.image_plane, camera, width, height, plane_distance, result.own_plane ) && valid;
+		bool valid = build_alpha_coverage_plane( source, camera, width, height, plane_distance, result.planes[0] );
+		if ( !( image.cutout_mode & FeRenderCutoutApply ) ) result.planes[1] = result.planes[0];
+		else valid = build_alpha_coverage_plane( image.image_plane, camera, width, height, plane_distance, result.planes[1] ) && valid;
+		const FeRenderImagePlane *masks[] = { ( image.cutout_mode & FeRenderCutoutApply ) ? &image.cutout_mask_plane : &image.image_mask_plane, &image.image_mask_plane };
+		for ( int i = 0; i < 2; ++i )
+			if ( masks[i]->texture.texture_id )
+			{
+				result.masks[i] = masks[i]->empty ? -1.f : 1.f;
+				result.masks[i + 2] = masks[i]->fill ? static_cast<float>( masks[i]->fill ) : masks[i]->clip ? 4.f : 0.f;
+				if ( !masks[i]->empty ) valid = build_alpha_coverage_plane( *masks[i], camera, width, height, plane_distance, result.planes[i + 2] ) && valid;
+			}
 		if ( !valid ) result.control[3] = -1.0f;
 		return result;
 	}
@@ -618,6 +666,113 @@ namespace
 			levels++;
 		}
 		return levels;
+	}
+
+	void push_mask_uniforms( SDL_GPUCommandBuffer *command_buffer, const FeRenderGeometry &image,
+		float output_mode, const FePerspectiveCamera &camera, int width, int height )
+	{
+		float data[24] = {};
+		std::memcpy( data, image.mask_rect, sizeof( image.mask_rect ) );
+		std::memcpy( data + 4, image.mask_border, sizeof( image.mask_border ) );
+		data[8] = image.mask_texture.width;
+		data[9] = image.mask_texture.height;
+		data[10] = image.mask_scale;
+		data[11] = output_mode;
+		if ( !image.mask_fit )
+		{
+			FeRenderImagePlane plane;
+			std::copy( image.mask_points, image.mask_points + 9, plane.points );
+			FeSdl3GpuCoveragePlane mapping;
+			if ( build_alpha_coverage_plane( plane, camera, width, height, compute_plane_distance( camera, height ), mapping ) )
+				for ( int i = 0; i < 3; ++i )
+					for ( int j = 0; j < 3; ++j ) data[12 + i * 4 + j] = mapping.inverse[i][j] * ( i < 2 ? image.mask_size[i] : 1.f );
+			data[15] = 1.f;
+			data[19] = 1.f / camera.near_plane;
+			data[23] = 1.f / camera.far_plane;
+		}
+		SDL_PushGPUFragmentUniformData( command_buffer, 1, data, sizeof( data ) );
+	}
+
+	std::string add_mask_vertex_shader( std::string source, bool custom=false )
+	{
+		const std::string name = get_shader_identifier( source, "fe_mask" );
+		const std::string ubo = custom ? "custom_ubo" : "ubo";
+		if ( custom )
+			replace_all( source, "gl_VertexIndex", "(" + name + "_fill.x != 0.0 ? int(" + name +
+				"_fill.z) + int(custom_ubo.vertex_offset) : gl_VertexIndex)" );
+		const std::size_t start = source.find( '\n' ) + 1;
+		source.insert( start, "layout(location = 3) in vec2 " + name + "_point;\n"
+			"layout(location = 4) in vec3 " + name + "_fill;\n"
+			"layout(location = 9) centroid out vec3 " + name + "_coord;\n"
+			"layout(location = 10) centroid noperspective out vec2 " + name + "_screen;\n"
+			"layout(location = 11) out vec2 " + name + "_center;\n#define main " + name + "_main\n" );
+		source += "\n#undef main\nvoid main() { " + name + "_coord = vec3(" + name + "_point, " + name + "_fill.x);\n"
+			+ name + "_center = " + name + "_point;\n"
+			"if (" + name + "_fill.y == 0.0) " + name + "_main();\nelse {\n"
+			"vec3 view_position = vec3(in_position.x - " + ubo + ".viewport_width * 0.5, " +
+			ubo + ".viewport_height * 0.5 - in_position.y, in_position.z - " + ubo + ".plane_distance);\n"
+			"gl_Position = " + ubo + ".projection * vec4(" + ( custom ? "in_position" : "view_position" ) + ", 1.0);\n}\n"
+			"if (" + name + "_fill.x != 0.0) out_color = in_color;\n"
+			+ name + "_screen = (gl_Position.xy / gl_Position.w * vec2(0.5, -0.5) + 0.5) * vec2(" +
+			ubo + ".viewport_width, " + ubo + ".viewport_height);\n}\n";
+		return source;
+	}
+
+	std::string build_mask_fragment_shader( const std::string &name, int slot )
+	{
+		std::string source = R"(
+layout(location = 9) centroid in vec3 fe_mask_coord;
+layout(location = 10) centroid noperspective in vec2 fe_mask_screen;
+layout(location = 11) in vec2 fe_mask_center;
+layout(set = 2, binding = MASK_SLOT) uniform sampler2D fe_mask_texture;
+layout(set = 3, binding = 1, std140) uniform fe_mask_Uniforms
+{
+	vec4 rect;
+	vec4 border;
+	vec4 config;
+	vec4 mapping[3];
+} fe_mask_ubo;
+float fe_mask_axis(float point, float extent, float size, float left, float right)
+{
+	float scale = fe_mask_ubo.config.z;
+	float first = left * scale;
+	float last = right * scale;
+	if (point < first && first > 0.0) return point / scale;
+	if (point > extent - last && last > 0.0) return size - (extent - point) / scale;
+	float centre = extent - first - last;
+	return left + (centre > 0.0 ? (point - first) * max(0.0, size - left - right) / centre : 0.0);
+}
+float fe_mask_coverage()
+{
+	vec2 point = fe_mask_center;
+	vec2 covered_point = fe_mask_coord.xy;
+	if (fe_mask_ubo.mapping[0].w != 0.0)
+	{
+		mat3 mapping = transpose(mat3(fe_mask_ubo.mapping[0].xyz,
+			fe_mask_ubo.mapping[1].xyz, fe_mask_ubo.mapping[2].xyz));
+		vec3 local = mapping * vec3(gl_FragCoord.xy, 1.0);
+		vec3 covered_local = mapping * vec3(fe_mask_screen, 1.0);
+		if (covered_local.z < fe_mask_ubo.mapping[2].w || covered_local.z > fe_mask_ubo.mapping[1].w) return 0.0;
+		point = local.xy / local.z;
+		covered_point = covered_local.xy / covered_local.z;
+	}
+	point -= fe_mask_ubo.rect.xy;
+	covered_point -= fe_mask_ubo.rect.xy;
+	vec2 extent = fe_mask_ubo.rect.zw;
+	vec2 size = fe_mask_ubo.config.xy;
+	if (any(lessThanEqual(extent, vec2(0.0))) || any(lessThanEqual(size, vec2(0.0))) ||
+		any(lessThan(covered_point, vec2(0.0))) || any(greaterThan(covered_point, extent))) return 0.0;
+	vec2 pixel = vec2(
+		fe_mask_axis(point.x, extent.x, size.x, fe_mask_ubo.border.x, fe_mask_ubo.border.z),
+		fe_mask_axis(point.y, extent.y, size.y, fe_mask_ubo.border.y, fe_mask_ubo.border.w));
+	vec2 uv = clamp(pixel / size, vec2(0.5) / size, vec2(1.0) - vec2(0.5) / size);
+	vec4 mask = texture(fe_mask_texture, uv);
+	return clamp(dot(mask.rgb, vec3(0.2126, 0.7152, 0.0722)) * mask.a, 0.0, 1.0);
+}
+)";
+		replace_all( source, "MASK_SLOT", std::to_string( slot ) );
+		replace_all( source, "fe_mask", name );
+		return source;
 	}
 
 	std::string build_builtin_vertex_shader()
@@ -1653,9 +1808,12 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 			image.texture_dynamic,
 			image.texture_content_version,
 			image.texture_blocking );
-		const auto &cutout = image.cutout_plane.texture;
-		sync_binding( cutout.texture_id, cutout.texture_source_type, cutout.width, cutout.height,
-			cutout.mipmap, cutout.dynamic, cutout.content_version, cutout.blocking );
+		for ( const auto *plane : { &image.cutout_plane, &image.image_mask_plane, &image.cutout_mask_plane } )
+		{
+			const auto &binding = plane->texture;
+			sync_binding( binding.texture_id, binding.texture_source_type, binding.width, binding.height,
+				binding.mipmap, binding.dynamic, binding.content_version, binding.blocking );
+		}
 
 		const FeShader *shaders[] = { image.shader,
 			image.geometry_kind == FeRenderGeometryObjectPbr ? image.pbr_material.artwork_shader : nullptr };
@@ -1670,6 +1828,12 @@ bool FeSdl3GpuContext::sync_textures( const std::vector<FeRenderGeometry> *extra
 					sample->get_texture_width(), sample->get_texture_height(), sample->get_mipmap(),
 					container->is_volatile_texture(), container->get_texture_content_version(), container->is_texture_blocking() );
 			}
+		if ( image.mask_enabled )
+		{
+			const auto &binding = image.mask_texture;
+			sync_binding( binding.texture_id, binding.texture_source_type, binding.width, binding.height,
+				binding.mipmap, false, binding.content_version, binding.blocking );
+		}
 
 		if ( image.geometry_kind == FeRenderGeometryObjectPbr )
 		{
@@ -1911,6 +2075,10 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 			prepared.gpu_texture = ensure_white_texture() ? m_white_texture : nullptr;
 
 		prepared.cutout_texture = prepared.gpu_texture;
+		bool mask_pending = false;
+		for ( const auto *plane : { &image.image_mask_plane, &image.cutout_mask_plane } )
+			if ( plane->texture.texture_id && texture_status( plane->texture, true ) == TexturePending ) mask_pending = true;
+		if ( mask_pending ) continue;
 		if ( image.cutout_mode & FeRenderCutoutApply )
 		{
 			const auto &binding = image.cutout_plane.texture;
@@ -1974,9 +2142,11 @@ void FeSdl3GpuContext::prepare_geometry_batch(
 
 		if ( !prepared.object_pbr && image.custom_shader )
 			prepared.custom_shader = get_custom_shader_entry( image );
-		else if ( !prepared.object_pbr && image.cutout_mode != 0 )
+		if ( !prepared.object_pbr && image.mask_enabled && !prepared.custom_shader )
+			prepared.custom_shader = get_mask_shader_entry( image );
+		else if ( !prepared.object_pbr && !image.custom_shader && image.cutout_mode != 0 )
 			prepared.custom_shader = get_builtin_blend_shader_entry( image.blend_mode, image );
-		else if ( !prepared.object_pbr && image.textured &&
+		else if ( !prepared.object_pbr && !image.custom_shader && image.textured &&
 			( image.blend_mode == FeBlend::Screen ||
 				image.blend_mode == FeBlend::Multiply ||
 				image.blend_mode == FeBlend::Overlay ||
@@ -4321,6 +4491,11 @@ void FeSdl3GpuContext::release_image_pipeline()
 		SDL_ReleaseGPUShader( m_device, m_custom_vertex_shader );
 		m_custom_vertex_shader = nullptr;
 	}
+	if ( m_mask_vertex_shader )
+	{
+		SDL_ReleaseGPUShader( m_device, m_mask_vertex_shader );
+		m_mask_vertex_shader = nullptr;
+	}
 
 	if ( m_alpha_prepass_shader )
 	{
@@ -4409,6 +4584,11 @@ void FeSdl3GpuContext::release_builtin_shaders()
 
 void FeSdl3GpuContext::release_custom_shader( CustomShaderEntry &entry )
 {
+	if ( entry.mask_prepass_pipeline )
+	{
+		release_pipeline( entry.mask_prepass_pipeline );
+		entry.mask_prepass_pipeline = nullptr;
+	}
 	for ( int i = 0; i <= FeBlend::None; ++i )
 	{
 		for ( int z = 0; z < DepthPipelineCount; ++z )
@@ -4807,7 +4987,7 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 			? ( vertex_source_code.empty()
 				? std::string()
 				: std::string( "mem:" ) + std::to_string( std::hash<std::string>{}( vertex_source_code ) ) )
-			: vertex_source_path ) + ( image.cutout_mode != 0 ? "|coverage" : "" );
+			: vertex_source_path ) + ( image.cutout_mode != 0 ? "|coverage" : "" ) + ( image.mask_enabled ? "|mask" : "" );
 
 	auto source_cache_it = m_custom_shader_sources.find( source_identity_key );
 	if ( source_cache_it != m_custom_shader_sources.end() )
@@ -4830,7 +5010,8 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	const std::string cache_key =
 		( absolute_vertex_source.empty()
 			? absolute_fragment_source
-			: absolute_vertex_source + "|" + absolute_fragment_source ) + ( image.cutout_mode != 0 ? "|coverage" : "" );
+			: absolute_vertex_source + "|" + absolute_fragment_source );
+	const std::string variant_key = cache_key + ( image.cutout_mode != 0 ? "|coverage" : "" ) + ( image.mask_enabled ? "|mask" : "" );
 	const unsigned long long fragment_source_stamp =
 		fragment_source_path.empty()
 			? static_cast<unsigned long long>( std::hash<std::string>{}( fragment_source_code ) )
@@ -4840,7 +5021,7 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 			? ( vertex_source_code.empty() ? 0ULL : static_cast<unsigned long long>( std::hash<std::string>{}( vertex_source_code ) ) )
 			: static_cast<unsigned long long>( get_file_mtime( vertex_source_path ) );
 
-	CustomShaderEntry &entry = m_custom_shaders[ cache_key ];
+	CustomShaderEntry &entry = m_custom_shaders[ variant_key ];
 	if ( entry.source_stamp == fragment_source_stamp &&
 		entry.vertex_source_stamp == vertex_source_stamp )
 	{
@@ -4851,35 +5032,55 @@ FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_custom_shader_entry( 
 	}
 
 	release_custom_shader( entry );
-	entry.source_path = cache_key;
+	entry.source_path = variant_key;
 	if ( !create_custom_shader_entry( image, entry ) )
 	{
 		if ( pending ) *pending = entry.compiling;
 		entry.compile_failed = !entry.compiling;
 		entry.source_stamp = fragment_source_stamp;
 		entry.vertex_source_stamp = vertex_source_stamp;
-		m_custom_shader_sources[ source_identity_key ] = cache_key;
+		m_custom_shader_sources[ source_identity_key ] = variant_key;
 		return nullptr;
 	}
 
 	entry.compile_failed = false;
 	entry.source_stamp = fragment_source_stamp;
 	entry.vertex_source_stamp = vertex_source_stamp;
-	m_custom_shader_sources[ source_identity_key ] = cache_key;
+	m_custom_shader_sources[ source_identity_key ] = variant_key;
 	return &entry;
 }
 
-bool FeSdl3GpuContext::prepare_shader( const FeShader *shader )
+FeSdl3GpuContext::CustomShaderEntry *FeSdl3GpuContext::get_mask_shader_entry( const FeRenderGeometry &image )
 {
-	if ( !is_available() || !shader || ( shader->get_type() != FeShader::Fragment &&
-		shader->get_type() != FeShader::VertexAndFragment ) ) return true;
+	if ( !m_device || !m_mask_vertex_shader ) return nullptr;
+	const std::string key = "__mask_builtin_" + std::to_string( clamp_blend_mode( image.blend_mode ) )
+		+ ( image.cutout_mode != 0 ? "|coverage" : "" );
+	auto &entry = m_custom_shaders[key];
+	if ( !entry.fragment_shader && !entry.compile_failed )
+	{
+		entry.source_path = key;
+		FeRenderGeometry builtin = image;
+		builtin.shader = nullptr;
+		builtin.custom_shader = false;
+		if ( !create_custom_shader_entry( builtin, entry ) ) entry.compile_failed = true;
+	}
+	return entry.fragment_shader ? &entry : nullptr;
+}
+
+bool FeSdl3GpuContext::prepare_shader( const FeShader *shader, bool mask, int blend_mode )
+{
+	if ( !is_available() ) return true;
 	FeRenderGeometry image;
 	image.shader = shader;
-	image.custom_shader = true;
+	image.custom_shader = shader != nullptr;
 	image.textured = true;
+	image.mask_enabled = mask;
+	image.blend_mode = blend_mode;
 	// Preparation must also finish for an empty layout which has nothing to draw yet.
 	prepare_pipelines( SDL_GetGPUSwapchainTextureFormat( m_device, m_window ) );
 	if ( !m_vertex_shader ) return true;
+	if ( !shader ) { if ( mask ) get_mask_shader_entry( image ); return true; }
+	if ( shader->get_type() != FeShader::Fragment && shader->get_type() != FeShader::VertexAndFragment ) return true;
 	bool pending = false;
 	get_custom_shader_entry( image, &pending );
 	return !pending;
@@ -5111,7 +5312,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		background ? &entry.fragment_compile : nullptr, background ? &entry.compiling : nullptr ) )
 		return false;
 
-	SDL_GPUShader *vertex_shader = m_custom_vertex_shader;
+	SDL_GPUShader *vertex_shader = image.mask_enabled ? m_mask_vertex_shader : m_custom_vertex_shader;
 	std::vector<CustomUniformBinding> vertex_uniforms;
 	const bool has_custom_vertex =
 		image.shader && ( image.shader->get_type() == FeShader::VertexAndFragment ) &&
@@ -5154,7 +5355,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 	fragment_info.entrypoint = fragment_blob.entrypoint;
 	fragment_info.format = fragment_blob.format;
 	fragment_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-	fragment_info.num_uniform_buffers = image.cutout_mode != 0 ? 2 : fragment_uniforms.empty() ? 0 : 1;
+	fragment_info.num_uniform_buffers = image.cutout_mode != 0 ? 3 : image.mask_enabled ? 2 : fragment_uniforms.empty() ? 0 : 1;
 	fragment_info.num_samplers = static_cast<Uint32>( fragment_samplers.size() );
 
 	entry.fragment_shader = SDL_CreateGPUShader( m_device, &fragment_info );
@@ -5221,6 +5422,7 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		configure_pipeline_depth_state( pipeline_info, z );
 		for ( int blend_mode = FeBlend::Alpha; blend_mode <= FeBlend::None; ++blend_mode )
 		{
+			if ( !image.shader && blend_mode != clamp_blend_mode( image.blend_mode ) ) continue;
 			color_target.blend_state = make_gpu_blend_state( blend_mode );
 			entry.blend_pipelines[ z ][ blend_mode ] = create_pipeline( pipeline_info );
 			if ( !entry.blend_pipelines[ z ][ blend_mode ] )
@@ -5232,6 +5434,20 @@ bool FeSdl3GpuContext::create_custom_shader_entry( const FeRenderGeometry &image
 		}
 	}
 
+	if ( !image.shader && image.mask_enabled && image.cutout_mode == 0 &&
+		( image.blend_mode == FeBlend::Alpha || image.blend_mode == FeBlend::Premultiplied ) )
+	{
+		configure_pipeline_depth_state( pipeline_info, DepthPipelineWrite );
+		color_target.blend_state = make_gpu_blend_state( FeBlend::None );
+		color_target.blend_state.color_write_mask = 0;
+		entry.mask_prepass_pipeline = create_pipeline( pipeline_info );
+		if ( !entry.mask_prepass_pipeline )
+		{
+			FeLog() << "SDL: failed to create mask depth prepass pipeline" << std::endl;
+			release_custom_shader( entry );
+			return false;
+		}
+	}
 	entry.vertex_uniforms = vertex_uniforms;
 	entry.fragment_uniforms = fragment_uniforms;
 	entry.fragment_samplers = fragment_samplers;
@@ -5591,9 +5807,10 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 
 	const std::string texture_function = get_shader_identifier( raw_source, "fe_texture2D" );
 	const std::string coverage_name = get_shader_identifier( raw_source, "fe_coverage" );
+	const int coverage_slot = static_cast<int>( samplers.size() );
 	if ( image.cutout_mode != 0 )
 	{
-		for ( int i = 1; i <= 2; ++i )
+		for ( int i = 1; i <= 4; ++i )
 		{
 			CustomSamplerBinding binding;
 			binding.name = coverage_name + "_texture" + std::to_string( i );
@@ -5611,6 +5828,9 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	}
 	replace_all( stripped_source, "gl_Color", "frag_color" );
 	replace_all( stripped_source, "gl_FragColor", "out_color" );
+	const std::string mask_name = get_shader_identifier( raw_source, "fe_mask" );
+	if ( image.mask_enabled && !image.custom_shader )
+		replace_all( stripped_source, "frag_color", mask_name + "_color" );
 
 	std::ostringstream shader;
 	shader << "#version 450\n\n";
@@ -5624,7 +5844,7 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 	shader << "layout(location = 7) in vec4 frag_texcoord6;\n";
 	shader << "layout(location = 8) in vec4 frag_texcoord7;\n";
 	for ( std::size_t i = 0; i < parsed_varyings.size(); ++i )
-		shader << "layout(location = " << ( 9 + i ) << ") in " << parsed_varyings[ i ].type << " " << parsed_varyings[ i ].name << ";\n";
+		shader << "layout(location = " << ( ( image.mask_enabled ? 12 : 9 ) + i ) << ") in " << parsed_varyings[ i ].type << " " << parsed_varyings[ i ].name << ";\n";
 	shader << "layout(location = 0) out vec4 out_color;\n";
 	for ( const CustomSamplerBinding &sampler : samplers )
 	{
@@ -5651,9 +5871,51 @@ bool FeSdl3GpuContext::build_custom_fragment_shader_from_source(
 		shader << uniform.type << " " << uniform.name << " = " <<
 			build_custom_uniform_value( uniform.type, uniform.slot, uniform.components, uniform.default_value ) << ";\n";
 
+	if ( image.mask_enabled )
+	{
+		CustomSamplerBinding binding;
+		binding.name = mask_name + "_texture";
+		binding.slot = static_cast<int>( samplers.size() );
+		binding.mask_texture = true;
+		samplers.push_back( binding );
+		std::string mask_source = build_mask_fragment_shader( mask_name, binding.slot );
+		replace_all( mask_source, "texture(", texture_function + "(" );
+		shader << mask_source;
+		if ( !image.custom_shader ) shader << "vec4 " << mask_name << "_color;\n";
+		shader << "#define main " << mask_name << "_main\n";
+	}
 	shader << "\n" << stripped_source;
+	if ( image.mask_enabled )
+	{
+		const std::string coverage = mask_name + "_value";
+		shader << "\n#undef main\nvoid main()\n{\n";
+		if ( image.cutout_mode != 0 )
+		{
+			shader << "\tif (" << mask_name << "_coord.z != 0.0) { out_color = vec4(0.0, 0.0, 0.0, frag_color.a); return; }\n";
+			if ( !image.custom_shader ) shader << "\t" << mask_name << "_color = frag_color;\n";
+			shader << "\t" << mask_name << "_main();\n}\n";
+		}
+		else
+		{
+			shader << "\tfloat " << coverage << " = " << mask_name << "_coverage();\n"
+				<< "\tif (" << coverage << " <= 0.0) discard;\n";
+			shader << "\tif (" << mask_name << "_coord.z != 0.0) {\n"
+				<< "\t\tout_color = vec4(0.0, 0.0, 0.0, frag_color.a * " << coverage << ");\n"
+				<< "\t\tif (" << mask_name << "_ubo.config.w == 2.0) out_color = mix(vec4(0.5, 0.5, 0.5, 1.0), out_color, out_color.a);\n"
+				<< "\t\tif (" << mask_name << "_ubo.config.w < 0.0 && out_color.a < 0.5) discard;\n\t\treturn;\n\t}\n";
+			if ( !image.custom_shader )
+				shader << "\t" << mask_name << "_color = frag_color;\n\t" << mask_name << "_color.a *= " << coverage << ";\n";
+			shader << "\t" << mask_name << "_main();\n";
+			if ( image.custom_shader )
+				shader << "\tif (" << mask_name << "_ubo.config.w == 2.0) out_color = mix(vec4(0.5, 0.5, 0.5, 1.0), out_color, " << coverage << ");\n"
+					<< "\telse { out_color.a *= " << coverage << ";\n\tif (" << mask_name << "_ubo.config.w == 1.0) out_color.rgb *= " << coverage << "; }\n";
+			else
+				shader << "\tif (" << mask_name << "_ubo.config.w < 0.0 && out_color.a < 0.5) discard;\n";
+			shader << "}\n";
+		}
+	}
 	source_code = image.cutout_mode != 0
-		? add_alpha_coverage_shader( shader.str(), coverage_name, static_cast<int>( samplers.size() ) - 2 ) : shader.str();
+		? add_alpha_coverage_shader( shader.str(), coverage_name, coverage_slot, image.mask_enabled ) : shader.str();
 	return true;
 }
 
@@ -5668,9 +5930,10 @@ bool FeSdl3GpuContext::build_custom_fragment_shader(
 
 	if ( !image.shader )
 	{
-		const char *source = FeBlend::get_default_shader_source( image.blend_mode );
-		return image.cutout_mode != 0 && source
-			&& build_custom_fragment_shader_from_source( image, "alpha-coverage", source, source_code, uniforms, samplers );
+		if ( !image.mask_enabled && image.cutout_mode == 0 ) return false;
+		const char *raw_source = FeBlend::get_default_shader_source( image.blend_mode );
+		if ( !raw_source ) raw_source = FeBlend::get_default_shader_source( FeBlend::Alpha );
+		return build_custom_fragment_shader_from_source( image, "image-mask", raw_source, source_code, uniforms, samplers );
 	}
 
 	std::string raw_source;
@@ -6029,7 +6292,7 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	shader << "layout(location = 7) out vec4 out_texcoord6;\n";
 	shader << "layout(location = 8) out vec4 out_texcoord7;\n";
 	for ( std::size_t i = 0; i < parsed_varyings.size(); ++i )
-		shader << "layout(location = " << ( 9 + i ) << ") out " << parsed_varyings[ i ].type << " " << parsed_varyings[ i ].name << ";\n";
+		shader << "layout(location = " << ( ( image.mask_enabled ? 12 : 9 ) + i ) << ") out " << parsed_varyings[ i ].type << " " << parsed_varyings[ i ].name << ";\n";
 	shader << "layout(set = 1, binding = 0, std140) uniform CustomVertexUniforms\n";
 	shader << "{\n";
 	shader << "\tmat4 projection;\n";
@@ -6054,7 +6317,7 @@ bool FeSdl3GpuContext::build_custom_vertex_shader(
 	}
 	shader << "\n" << stripped_source;
 
-	source_code = shader.str();
+	source_code = image.mask_enabled ? add_mask_vertex_shader( shader.str(), true ) : shader.str();
 	return true;
 }
 
@@ -6518,13 +6781,33 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 		for ( const PreparedImage &image : prepared_images )
 		{
-			if ( image.object_pbr || !image.translucent_depth || !image.gpu_texture || image.vertex_count == 0 || image.custom_shader )
+			if ( image.object_pbr || !image.translucent_depth || !image.gpu_texture || image.vertex_count == 0 ||
+				( image.custom_shader && !image.custom_shader->mask_prepass_pipeline ) )
 				continue;
 
-			SDL_GPUTextureSamplerBinding sampler_binding = {};
-			sampler_binding.texture = image.gpu_texture;
-			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
-			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
+			SDL_GPUTextureSamplerBinding samplers[2] = {};
+			samplers[0].texture = image.gpu_texture;
+			samplers[0].sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
+			SDL_GPUGraphicsPipeline *prepass = m_alpha_prepass_pipeline;
+			if ( image.geometry->mask_enabled )
+			{
+				if ( !image.custom_shader || !image.custom_shader->mask_prepass_pipeline ) continue;
+				const auto &binding = image.geometry->mask_texture;
+				auto found = m_textures.find( { binding.texture_id, binding.mipmap, false } );
+				if ( found == m_textures.end() || !found->second.gpu_texture ) continue;
+				samplers[1].texture = found->second.gpu_texture;
+				samplers[1].sampler = get_image_sampler( binding.smooth, false, binding.mipmap, false );
+				prepass = image.custom_shader->mask_prepass_pipeline;
+				push_mask_uniforms( command_buffer, *image.geometry, -1.f, camera, viewport_width, viewport_height );
+			}
+			prepass = get_pipeline_variant( prepass, target_format, sample_count, camera.flip_y );
+			if ( !prepass ) return false;
+			if ( bound_pipeline != prepass )
+			{
+				SDL_BindGPUGraphicsPipeline( render_pass, prepass );
+				bound_pipeline = prepass;
+			}
+			SDL_BindGPUFragmentSamplers( render_pass, 0, samplers, image.geometry->mask_enabled ? 2 : 1 );
 			if ( !bind_vertex_buffer( inline_vertex_buffer ) )
 				continue;
 			set_scissor( image.geometry );
@@ -6941,6 +7224,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		const PreparedImage &image = prepared_images[image_index];
 		if ( !image.gpu_texture || image.vertex_count == 0 )
 			continue;
+		if ( image.geometry->mask_enabled && !image.custom_shader ) continue;
 
 		if ( image.object_pbr )
 		{
@@ -7067,7 +7351,14 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		{
 			const auto coverage = build_alpha_coverage_uniforms( *image.geometry,
 				camera, viewport_width, viewport_height, uniforms.plane_distance );
-			SDL_PushGPUFragmentUniformData( command_buffer, 1, &coverage, sizeof( coverage ) );
+			SDL_PushGPUFragmentUniformData( command_buffer, 2, &coverage, sizeof( coverage ) );
+		}
+		if ( image.geometry->mask_enabled )
+		{
+			push_mask_uniforms( command_buffer, *image.geometry,
+				blend_mode == FeBlend::Overlay ? 2.f :
+				( FeBlend::uses_default_shader( blend_mode ) && blend_mode != FeBlend::Alpha ? 1.f : 0.f ),
+				camera, viewport_width, viewport_height );
 		}
 		if ( !bind_vertex_buffer( inline_vertex_buffer ) )
 			continue;
@@ -7077,6 +7368,7 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		if ( image.custom_shader )
 		{
 			fast_current_texture_only =
+				!image.geometry->mask_enabled &&
 				!image.custom_shader->has_custom_vertex &&
 				image.custom_shader->vertex_uniforms.empty() &&
 				image.custom_shader->fragment_uniforms.empty() &&
@@ -7130,9 +7422,28 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 					sampler_texture = sampler.coverage_texture == 1 ? image.cutout_texture : image.gpu_texture;
 					sampler_smooth = sampler.coverage_texture == 1 && ( image.geometry->cutout_mode & FeRenderCutoutApply )
 						? image.geometry->cutout_plane.texture.smooth : image.texture_smooth;
+					if ( sampler.coverage_texture >= 3 )
+					{
+						const auto &binding = sampler.coverage_texture == 3 && ( image.geometry->cutout_mode & FeRenderCutoutApply )
+							? image.geometry->cutout_mask_plane.texture : image.geometry->image_mask_plane.texture;
+						if ( binding.texture_id )
+						{
+							auto found = m_textures.find( { binding.texture_id, binding.mipmap, false } );
+							sampler_texture = found != m_textures.end() ? found->second.gpu_texture : nullptr;
+						}
+					}
 					sampler_repeated = false;
 					sampler_mipmap = false;
 					sampler_aniso = false;
+				}
+				else if ( sampler.mask_texture )
+				{
+					const auto &binding = image.geometry->mask_texture;
+					auto found = m_textures.find( { binding.texture_id, binding.mipmap, false } );
+					sampler_texture = found != m_textures.end() ? found->second.gpu_texture : nullptr;
+					sampler_repeated = false;
+					sampler_smooth = binding.smooth;
+					sampler_mipmap = binding.mipmap;
 				}
 				else if ( use_current_texture )
 				{
@@ -7274,16 +7585,17 @@ bool FeSdl3GpuContext::render_geometry_batch(
 bool FeSdl3GpuContext::has_pending_cutout( const FeRenderSurfaceFrame &surface ) const
 {
 	for ( const auto &image : surface.geometry )
-	{
-		const auto &binding = image.cutout_plane.texture;
-		if ( !binding.texture_id ) continue;
-		auto source = m_surfaces.find( binding.texture_id );
-		if ( source != m_surfaces.end() )
+		for ( const auto *binding_pointer : { &image.cutout_plane.texture, &image.image_mask_plane.texture, &image.cutout_mask_plane.texture, &image.mask_texture } )
 		{
-			if ( !source->second.rendered_once || source->second.last_signature == 0 ) return true;
+			const auto &binding = *binding_pointer;
+			if ( !binding.texture_id ) continue;
+			auto source = m_surfaces.find( binding.texture_id );
+			if ( source != m_surfaces.end() )
+			{
+				if ( !source->second.rendered_once || source->second.last_signature == 0 ) return true;
+			}
+			else if ( texture_status( binding, true ) == TexturePending ) return true;
 		}
-		else if ( texture_status( binding, true ) == TexturePending ) return true;
-	}
 	return false;
 }
 
@@ -7613,6 +7925,20 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 	if ( !m_custom_vertex_shader )
 	{
 		FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUShader failed for custom vertex shader" << std::endl;
+		return false;
+	}
+	ShaderBlob mask_vertex_blob = {};
+	if ( !compile_shader_blob( "__mask_vertex__", add_mask_vertex_shader( build_builtin_custom_vertex_shader() ), true, mask_vertex_blob ) )
+		return false;
+	SDL_GPUShaderCreateInfo mask_vertex_info = custom_vertex_info;
+	mask_vertex_info.code_size = mask_vertex_blob.code.size();
+	mask_vertex_info.code = mask_vertex_blob.code.data();
+	mask_vertex_info.entrypoint = mask_vertex_blob.entrypoint;
+	mask_vertex_info.format = mask_vertex_blob.format;
+	m_mask_vertex_shader = SDL_CreateGPUShader( m_device, &mask_vertex_info );
+	if ( !m_mask_vertex_shader )
+	{
+		FeLog() << "SDL: initialize_image_pipeline: failed to create mask vertex shader" << std::endl;
 		return false;
 	}
 

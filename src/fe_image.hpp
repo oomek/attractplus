@@ -370,6 +370,7 @@ public:
 class FeImage : public FeBasePresentable
 {
 	friend class FeBaseTextureContainer;
+	friend class FePresent;
 	enum SubimgField { SubimgX = 1, SubimgY = 2, SubimgWidth = 4, SubimgHeight = 8, SubimgAll = 15 };
 public:
 	enum Fit
@@ -551,6 +552,30 @@ public:
 	int get_border_bottom() const;
 	void set_border_scale( float s );
 	float get_border_scale() const;
+	const char *get_mask() const;
+	void set_mask( const char * );
+	bool get_mask_fit() const;
+	void set_mask_fit( bool );
+	void set_mask_border( int l, int t, int r, int b );
+	void set_mask_border_left( int );
+	int get_mask_border_left() const;
+	void set_mask_border_top( int );
+	int get_mask_border_top() const;
+	void set_mask_border_right( int );
+	int get_mask_border_right() const;
+	void set_mask_border_bottom( int );
+	int get_mask_border_bottom() const;
+	void set_mask_border_scale( float );
+	float get_mask_border_scale() const;
+	void set_mask_padding( int l, int t, int r, int b );
+	void set_mask_padding_left( int );
+	int get_mask_padding_left() const;
+	void set_mask_padding_top( int );
+	int get_mask_padding_top() const;
+	void set_mask_padding_right( int );
+	int get_mask_padding_right() const;
+	void set_mask_padding_bottom( int );
+	int get_mask_padding_bottom() const;
 
 	void set_padding( int l, int t, int r, int b );
 	void set_padding_left( int l );
@@ -601,6 +626,7 @@ public:
 
 	bool get_visible() const;
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
+	bool build_mask_background( FeRenderGeometry &background, const FeRenderGeometry &image ) const;
 	void refresh_script_geometry() override;
 
 	//
@@ -663,7 +689,24 @@ private:
 	Sqrat::Object m_cutout_object;
 	std::vector<FeImage *> m_cutout_users;
 	bool supports_cutout() const;
-	bool build_cutout_plane( FeRenderImagePlane &plane ) const;
+	bool build_cutout_plane( FeRenderImagePlane &plane, FeRenderImagePlane &mask ) const;
+	std::string m_mask;
+	std::shared_ptr<FeImageLoaderEntry> m_mask_entry;
+	std::shared_ptr<FeImageTexture> m_mask_texture;
+	IntEdges m_mask_border;
+	IntEdges m_mask_padding;
+	float m_mask_border_scale = 1.f;
+	bool m_mask_fit = true;
+	bool m_mask_failed = false;
+	int m_mask_status = -1;
+	int m_mask_script_id = -1;
+	FloatRect m_mask_rect;
+	int m_mask_fill = 0;
+	FeSprite m_mask_sprite;
+	mutable std::vector<FeRenderVertex> m_mask_vertices;
+	bool update_mask();
+	bool mask_binding( FeRenderTextureBinding & ) const;
+	void build_mask_geometry( FeRenderGeometry &, const std::vector<FeRenderVertex> & ) const;
 	std::vector<float> m_fft_data_zero;
 	mutable SqratArrayWrapper m_fft_zero_wrapper;
 	mutable SqratArrayWrapper m_fft_array_wrapper;

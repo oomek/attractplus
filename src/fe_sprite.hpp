@@ -137,7 +137,7 @@ public:
 	float getBorderScale() const;
 	float getPaddingScale( const Vec2f &size ) const;
 
-	void append_render_vertices( std::vector<FeRenderVertex> &out, float zorder, const Vec2f &coverage_size = Vec2f() ) const;
+	void append_render_vertices( std::vector<FeRenderVertex> &out, float zorder, const Vec2f &coverage_size = Vec2f(), bool mask=false ) const;
 
 private:
 	void updateGeometry();

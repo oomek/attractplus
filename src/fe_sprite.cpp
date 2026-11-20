@@ -299,7 +299,7 @@ float FeSprite::getPaddingScale( const Vec2f &size ) const
 	return padding_scale;
 }
 
-void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder, const Vec2f &coverage_size ) const
+void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder, const Vec2f &coverage_size, bool mask ) const
 {
 	out.clear();
 	out.reserve( m_vertices.size() );
@@ -385,6 +385,11 @@ void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float z
 		render_vertex.z = zorder + rotated.z + m_origin.z;
 		render_vertex.u = vertex.u;
 		render_vertex.v = vertex.v;
+		if ( mask )
+		{
+			render_vertex.u1 = vertex.x * std::abs( m_scale.x );
+			render_vertex.v1 = vertex.y * std::abs( m_scale.y );
+		}
 		render_vertex.r = m_color.r;
 		render_vertex.g = m_color.g;
 		render_vertex.b = m_color.b;

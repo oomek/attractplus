@@ -67,7 +67,7 @@ public:
 	const FrameStats &get_frame_stats() const;
 	bool is_available() const;
 	bool uses_present_wait();
-	bool prepare_shader( const FeShader * );
+	bool prepare_shader( const FeShader *, bool mask=false, int blend_mode=FeBlend::Alpha );
 	bool should_present() const;
 	bool has_submitted_frame() const;
 	enum TextureStatus { TexturePending, TextureReady, TextureFailed };
@@ -234,6 +234,7 @@ private:
 		int slot;
 		bool current_texture;
 		int coverage_texture = 0;
+		bool mask_texture = false;
 		FeImage *image;
 
 		CustomSamplerBinding() : slot( 0 ), current_texture( false ), image( nullptr ) {}
@@ -254,6 +255,7 @@ private:
 		SDL_GPUShader *vertex_shader;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
+		SDL_GPUGraphicsPipeline *mask_prepass_pipeline = nullptr;
 		std::vector<CustomUniformBinding> vertex_uniforms;
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
@@ -372,6 +374,7 @@ private:
 	void release_builtin_shaders();
 	void release_builtin_shader( BuiltinShaderEntry &entry );
 	CustomShaderEntry *get_custom_shader_entry( const FeRenderGeometry &image, bool *pending = nullptr );
+	CustomShaderEntry *get_mask_shader_entry( const FeRenderGeometry &image );
 	void prepare_pipelines( SDL_GPUTextureFormat );
 	CustomShaderEntry *get_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image );
 	PbrCustomShaderEntry *get_pbr_custom_shader_entry( const FeRenderGeometry &image );
@@ -496,6 +499,7 @@ private:
 	std::uint64_t m_vertex_buffer_signature;
 	SDL_GPUShader *m_vertex_shader;
 	SDL_GPUShader *m_custom_vertex_shader;
+	SDL_GPUShader *m_mask_vertex_shader = nullptr;
 	SDL_GPUShader *m_alpha_prepass_shader;
 	SDL_GPUShader *m_fragment_shaders[FeBlend::None + 1];
 	SDL_GPUShader *m_pbr_vertex_shader;

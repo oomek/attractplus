@@ -238,6 +238,8 @@ void FeRenderGeometry::clear()
 	cutout_mode = 0;
 	image_plane = {};
 	cutout_plane = {};
+	image_mask_plane = {};
+	cutout_mask_plane = {};
 	zbuffer = false;
 	translucent_depth_prepass = false;
 	pbr_collapse_group = 0;
@@ -247,6 +249,13 @@ void FeRenderGeometry::clear()
 	texture_dynamic = false;
 	texture_blocking = false;
 	texture_content_version = 0;
+	mask_enabled = false;
+	mask_fit = true;
+	mask_texture.clear();
+	for ( int i = 0; i < 4; ++i ) mask_rect[i] = mask_border[i] = 0.f;
+	mask_scale = 1.f;
+	for ( float &value : mask_points ) value = 0.f;
+	for ( float &value : mask_size ) value = 0.f;
 	pbr_material.clear();
 	light_count = 0;
 	for ( FeRenderPbrLight &light : lights )

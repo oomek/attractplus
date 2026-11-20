@@ -551,6 +551,7 @@ void FePresent::clear_layout()
 		m_texturePool.pop_back();
 		delete t;
 	}
+	m_masked_images.clear();
 
 	while ( !m_sounds.empty() )
 	{
@@ -1044,7 +1045,7 @@ namespace
 				vertex.y = p.y;
 			}
 			if ( entry.cutout_mode != 0 )
-				for ( FeRenderImagePlane *plane : { &entry.image_plane, &entry.cutout_plane } )
+				for ( FeRenderImagePlane *plane : { &entry.image_plane, &entry.cutout_plane, &entry.image_mask_plane, &entry.cutout_mask_plane } )
 					if ( plane->texture.texture_id )
 						for ( int i = 0; i < 3; ++i )
 						{
@@ -1052,6 +1053,15 @@ namespace
 							plane->points[i * 3] = p.x;
 							plane->points[i * 3 + 1] = p.y;
 						}
+			if ( entry.mask_enabled && !entry.mask_fit )
+			{
+				for ( int i = 0; i < 3; ++i )
+				{
+					const Vec2f p = transform.transformPoint( { entry.mask_points[i * 3], entry.mask_points[i * 3 + 1] } );
+					entry.mask_points[i * 3] = p.x;
+					entry.mask_points[i * 3 + 1] = p.y;
+				}
+			}
 		}
 	}
 
@@ -1149,7 +1159,12 @@ void FePresent::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 			{
 				FeRenderGeometry image_geometry;
 				if ( image->build_render_geometry( image_geometry ) )
+				{
+					FeRenderGeometry background;
+					if ( image->build_mask_background( background, image_geometry ) )
+						monitor_geometry.push_back( std::move( background ) );
 					monitor_geometry.push_back( std::move( image_geometry ) );
+				}
 				continue;
 			}
 
@@ -1248,9 +1263,12 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.cutout_mode ) );
 		if ( geometry.cutout_mode != 0 )
 		{
-			for ( const FeRenderImagePlane *plane : { &geometry.image_plane, &geometry.cutout_plane } )
+			for ( const FeRenderImagePlane *plane : { &geometry.image_plane, &geometry.cutout_plane, &geometry.image_mask_plane, &geometry.cutout_mask_plane } )
 			{
 				seed = hash_texture_binding( plane->texture, seed );
+				seed = hash_combine( seed, static_cast<std::uint64_t>( plane->fill ) );
+				seed = hash_combine( seed, plane->clip ? 1 : 0 );
+				seed = hash_combine( seed, plane->empty ? 1 : 0 );
 				for ( float value : plane->points ) seed = hash_float_bits( seed, value );
 				for ( float value : plane->source_border ) seed = hash_float_bits( seed, value );
 				for ( float value : plane->dest_border ) seed = hash_float_bits( seed, value );
@@ -1260,6 +1278,23 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.translucent_depth_prepass ? 1 : 0 ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_collapse_group ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
+		seed = hash_combine( seed, geometry.mask_enabled ? 1 : 0 );
+		if ( geometry.mask_enabled )
+		{
+			seed = hash_combine( seed, geometry.mask_fit ? 1 : 0 );
+			if ( !geometry.mask_fit )
+			{
+				for ( float value : geometry.mask_points ) seed = hash_float_bits( seed, value );
+				for ( float value : geometry.mask_size ) seed = hash_float_bits( seed, value );
+			}
+			seed = hash_texture_binding( geometry.mask_texture, seed );
+			seed = hash_float_bits( seed, geometry.mask_scale );
+			for ( int i = 0; i < 4; ++i )
+			{
+				seed = hash_float_bits( seed, geometry.mask_rect[i] );
+				seed = hash_float_bits( seed, geometry.mask_border[i] );
+			}
+		}
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.get_vertex_count() ) );
 		if ( vertex_version != 0 )
 			seed = hash_combine( seed, vertex_version );
@@ -1371,6 +1406,8 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			}
 
 			add_binding_dependency( geometry.cutout_plane.texture, current_surface, dependencies );
+			add_binding_dependency( geometry.image_mask_plane.texture, current_surface, dependencies );
+			add_binding_dependency( geometry.cutout_mask_plane.texture, current_surface, dependencies );
 			if ( geometry.geometry_kind == FeRenderGeometryObjectPbr )
 			{
 				add_binding_dependency( geometry.pbr_material.base_color_texture, current_surface, dependencies );
@@ -1448,6 +1485,13 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 				FeRenderGeometry image_geometry;
 				if ( image->build_render_geometry( image_geometry ) )
 				{
+					FeRenderGeometry background;
+					if ( image->build_mask_background( background, image_geometry ) )
+					{
+						append_surface_dependencies( background, surface, dependencies );
+						frame.geometry_signature = hash_geometry( background, frame.geometry_signature );
+						frame.geometry.push_back( std::move( background ) );
+					}
 					append_surface_dependencies( image_geometry, surface, dependencies );
 					frame.geometry_signature = hash_geometry( image_geometry, frame.geometry_signature );
 					frame.content_signature = frame.geometry_signature;
@@ -1522,9 +1566,13 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		for ( const FeRenderGeometry &geometry : frame.geometry )
 		{
 			frame.content_signature = hash_combine( frame.content_signature, geometry.texture_content_version );
-			const auto &cutout = geometry.cutout_plane.texture;
-			frame.content_signature = hash_combine( frame.content_signature, cutout.content_version );
-			frame.dynamic_content = frame.dynamic_content || ( cutout.dynamic && cutout.content_version == 0 );
+			for ( const auto *plane : { &geometry.cutout_plane, &geometry.image_mask_plane, &geometry.cutout_mask_plane } )
+			{
+				frame.content_signature = hash_combine( frame.content_signature, plane->texture.content_version );
+				frame.dynamic_content = frame.dynamic_content || ( plane->texture.dynamic && plane->texture.content_version == 0 );
+			}
+			if ( geometry.mask_enabled )
+				frame.content_signature = hash_combine( frame.content_signature, geometry.mask_texture.content_version );
 			const bool surface_texture = geometry.texture_source_type == FeRenderTextureSourceContainer &&
 				dynamic_cast<const FeSurfaceTextureContainer *>( static_cast<const FeBaseTextureContainer *>( geometry.texture_id ) );
 			frame.dynamic_content = frame.dynamic_content || geometry.custom_shader || geometry.geometry_kind == FeRenderGeometryObjectPbr ||
@@ -2431,6 +2479,11 @@ void FePresent::collect_preloads( std::vector<FeRenderTextureBinding> &bindings 
 		FeRenderTextureBinding binding;
 		if ( texture && texture->prepared_binding( binding ) ) bindings.push_back( binding );
 	}
+	for ( auto *image : m_masked_images )
+	{
+		FeRenderTextureBinding binding;
+		if ( image->mask_binding( binding ) ) bindings.push_back( binding );
+	}
 }
 
 bool FePresent::texture_loaded( const FeBaseTextureContainer &base )
@@ -2457,6 +2510,16 @@ bool FePresent::texture_loaded( const FeBaseTextureContainer &base )
 bool FePresent::prepared_media_ready( int script )
 {
 	std::vector<FeRenderTextureBinding> bindings;
+	bool ready = true;
+	for ( auto *image : m_masked_images )
+	{
+		if ( image->m_mask_script_id != script ) continue;
+		image->update_mask();
+		FeRenderTextureBinding binding;
+		if ( image->mask_binding( binding ) ) bindings.push_back( binding );
+		if ( image->m_mask_status == 0 ) ready = false;
+		if ( !m_window.get_gpu_context().prepare_shader( image->get_shader(), true, image->get_blend_mode() ) ) ready = false;
+	}
 	for ( auto *base : m_texturePool )
 	{
 		auto *texture = dynamic_cast<FeTextureContainer *>( base );
@@ -2468,7 +2531,6 @@ bool FePresent::prepared_media_ready( int script )
 	}
 	// Submit hidden uploads now, sharing the upcoming draw's preparation budget.
 	m_window.get_gpu_context().prepare_textures( bindings, m_render_frame_serial + 1 );
-	bool ready = true;
 	for ( auto it = m_preparedShaders.begin(); it != m_preparedShaders.end(); )
 	{
 		if ( it->second != script ) { ++it; continue; }
@@ -2917,6 +2979,8 @@ bool FePresent::tick()
 bool FePresent::video_tick()
 {
 	bool ret_val=false;
+	for ( auto *image : m_masked_images )
+		if ( image->update_mask() ) ret_val = true;
 
 	for ( std::vector<FeBaseTextureContainer *>::iterator itm=m_texturePool.begin();
 			itm != m_texturePool.end(); ++itm )

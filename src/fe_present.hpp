@@ -35,6 +35,7 @@
 #include "fe_types.hpp"
 #include "fe_window.hpp"
 #include <map>
+#include <set>
 
 class FeImage;
 class FeModel3D;
@@ -158,6 +159,7 @@ private:
 
 class FePresent
 {
+	friend class FeImage;
 	friend class FePresentableParent;
 	friend class FeVM;
 
@@ -195,6 +197,7 @@ protected:
 	FeTextureContainer *m_3d_cubemap_texture;
 
 	std::vector<FeBaseTextureContainer *> m_texturePool;
+	std::set<FeImage *> m_masked_images;
 	bool reuse_artwork( FeTextureContainer *, int filter_index, int rom_index );
 	std::vector<FeSound *> m_sounds;
 	std::vector<FeMusic *> m_musics;
