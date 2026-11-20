@@ -184,12 +184,12 @@ void FeSprite::setBorder( const IntEdges &border )
 	}
 }
 
-const IntEdges &FeSprite::getPadding() const
+const FloatEdges &FeSprite::getPadding() const
 {
 	return m_padding;
 }
 
-void FeSprite::setPadding( const IntEdges &padding )
+void FeSprite::setPadding( const FloatEdges &padding )
 {
 	if ( padding != m_padding )
 	{
@@ -299,7 +299,7 @@ float FeSprite::getPaddingScale( const Vec2f &size ) const
 	return padding_scale;
 }
 
-void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder ) const
+void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float zorder, const Vec2f &coverage_size, bool mask ) const
 {
 	out.clear();
 	out.reserve( m_vertices.size() );
@@ -313,9 +313,27 @@ void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float z
 	const float sin_y = std::sin( radians_y );
 	const float cos_z = std::cos( radians_z );
 	const float sin_z = std::sin( radians_z );
-
-	for ( const FeRenderVertex &vertex : m_vertices )
+	Vec2f texel( 1.0f, 1.0f );
+	if ( coverage_size.x > 0.0f && ( m_border.left || m_border.top || m_border.right || m_border.bottom ) )
 	{
+		const Vec2f scale( fe_sprite_safe_abs( m_scale.x ), fe_sprite_safe_abs( m_scale.y ) );
+		const float padding_scale = getPaddingScale( Vec2f(
+			std::abs( m_textureRect.size.x ) * scale.x, std::abs( m_textureRect.size.y ) * scale.y ) );
+		texel = Vec2f( padding_scale / scale.x, padding_scale / scale.y );
+	}
+	if ( m_textureRect.size.x < 0.0f ) texel.x = -texel.x;
+	if ( m_textureRect.size.y < 0.0f ) texel.y = -texel.y;
+
+	for ( FeRenderVertex vertex : m_vertices )
+	{
+		// Let the cutout own boundary samples instead of clipping them at the quad edge.
+		if ( coverage_size.x > 0.0f && coverage_size.y > 0.0f )
+		{
+			if ( vertex.u == 0.0f ) { vertex.u -= 1.0f; vertex.x -= texel.x; }
+			else if ( vertex.u == coverage_size.x ) { vertex.u += 1.0f; vertex.x += texel.x; }
+			if ( vertex.v == 0.0f ) { vertex.v -= 1.0f; vertex.y -= texel.y; }
+			else if ( vertex.v == coverage_size.y ) { vertex.v += 1.0f; vertex.y += texel.y; }
+		}
 		const float local_x = ( vertex.x - m_origin.x ) * m_scale.x;
 		const float local_y = ( vertex.y - m_origin.y ) * m_scale.y;
 		const float local_z = vertex.z - m_origin.z;
@@ -367,6 +385,11 @@ void FeSprite::append_render_vertices( std::vector<FeRenderVertex> &out, float z
 		render_vertex.z = zorder + rotated.z + m_origin.z;
 		render_vertex.u = vertex.u;
 		render_vertex.v = vertex.v;
+		if ( mask )
+		{
+			render_vertex.u1 = vertex.x * std::abs( m_scale.x );
+			render_vertex.v1 = vertex.y * std::abs( m_scale.y );
+		}
 		render_vertex.r = m_color.r;
 		render_vertex.g = m_color.g;
 		render_vertex.b = m_color.b;
@@ -415,10 +438,10 @@ void FeSprite::updateGeometry()
 		tex_size.y * scale_abs.y
 	));
 	const FloatEdges scaled_padding(
-		static_cast<float>( m_padding.left ) * padding_scale / scale_abs.x,
-		static_cast<float>( m_padding.top ) * padding_scale / scale_abs.y,
-		static_cast<float>( m_padding.right ) * padding_scale / scale_abs.x,
-		static_cast<float>( m_padding.bottom ) * padding_scale / scale_abs.y );
+		m_padding.left * padding_scale / scale_abs.x,
+		m_padding.top * padding_scale / scale_abs.y,
+		m_padding.right * padding_scale / scale_abs.x,
+		m_padding.bottom * padding_scale / scale_abs.y );
 	pos.left -= scaled_padding.left;
 	pos.top -= scaled_padding.top;
 	pos.right = std::max( pos.left, pos.right + scaled_padding.right );

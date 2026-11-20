@@ -23,6 +23,7 @@
    -  [`fe.add_image()`](#feadd_image)
    -  [`fe.add_artwork()`](#feadd_artwork)
    -  [`fe.add_surface()`](#feadd_surface)
+   -  [`fe.add_group()`](#feadd_group)
    -  [`fe.add_clone()`](#feadd_clone)
    -  [`fe.add_text()`](#feadd_text)
    -  [`fe.add_listbox()`](#feadd_listbox)
@@ -79,6 +80,7 @@
    -  [`fe.Display`](#fedisplay)
    -  [`fe.Filter`](#fefilter)
    -  [`fe.Monitor`](#femonitor)
+   -  [`fe.Group`](#fegroup)
    -  [`fe.Image`](#feimage)
    -  [`fe.Text`](#fetext)
    -  [`fe.ListBox`](#felistbox)
@@ -324,7 +326,7 @@ function callback( config )
 
 ## Functions
 
-Drawable positions and sizes use [grid coordinates](#grid-coordinates). Layout drawables use the layout grid; plugin drawables use their plugin's grid; drawables added to a surface use that surface's grid. With the default grid, these values are pixels.
+Drawable positions and sizes use [grid coordinates](#grid-coordinates). Layout drawables use the layout grid. Plugin drawables use their plugin's grid. Drawables added to a group, or surface use that parent's grid. With the default grid, these values are pixels.
 
 ### `fe.add_image()`
 
@@ -408,13 +410,37 @@ The surface's position and displayed size use the grid in which it is added. Its
 
 ---
 
+### `fe.add_group()`
+
+```squirrel
+fe.add_group()
+fe.add_group( w, h )
+fe.add_group( x, y, w, h )
+```
+
+Add a [`Group`](#fegroup) to the end of the draw list. A group transforms its children directly, without creating a surface texture. Groups can contain images, artwork, text, listboxes, rectangles, surfaces and other groups. Monitors, surfaces and groups also support `add_group()`.
+
+`w` and `h` set the group's bounds in the parent's grid coordinates. Both must be positive. Without arguments, width and height use the parent's current coordinate dimensions. Position defaults to `( 0, 0 )`. Each group has its own grid, which defaults to pixels.
+
+```squirrel
+local group = fe.add_group( 400, 200 )
+local img = group.add_image( "image.png", 10, 20, 80, 40 )
+group.x = 100
+group.grid.set_size( 400, 200 )
+group.width = 800 // img.x remains 10. Its effective x is 120
+```
+
+Changing `width` or `height` leaves child pixel coordinates and sizes unchanged. Use `group.grid.set_size( w, h )` to map a coordinate range into the current group bounds. Children resolve their positions and sizes through that grid before drawing, so text retains its glyph proportions, images use their fit settings, and nine-patch borders retain their thickness. `group.grid.set_size( 0 )` restores pixels. Unlike in surfaces children can draw outside the group bounds.
+
+---
+
 ### `fe.add_clone()`
 
 ```squirrel
 fe.add_clone( img )
 ```
 
-Clone an image, artwork or surface object and add the clone to the back of the draw list. The texture pixel data of the original and clone is shared as a result.
+Clone an image, artwork or surface object and add the clone to the back of the draw list. The texture pixel data of the original and clone is shared as a result. Mask settings are copied. Each object's mask can then be changed separately.
 
 **Parameters**
 
@@ -1521,7 +1547,7 @@ local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
 
 Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Text and listbox character sizes, margins and outlines, and rectangle outlines, use vertical grid units. Automatic character sizing and margins retain their existing meaning; negative rectangle outlines draw inward. Text measurements and listbox row heights are returned in grid coordinates. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
 
-Use `fe.grid.set_size()`, `surface.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A surface's grid controls its children using its texture dimensions. The surface's own position and displayed size use the grid in which it was added. Each surface has independent grid settings, initially in pixels:
+Use `fe.grid.set_size()`, `surface.grid.set_size()`, `group.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A group's grid uses its current bounds; a surface's grid uses its texture dimensions. Their own position and displayed size use the grid in which they were added. Each group and surface has independent grid settings, initially in pixels.
 
 ```squirrel
 fe.grid.set_size(100)
@@ -1559,7 +1585,7 @@ Access a grid through `fe.grid`, `surface.grid`, `fe.monitors[n].grid` or `fe.pl
 -  `width`, `height` - Read-only visible dimensions in grid coordinates: `right - left` and `bottom - top`.
 -  `uniform` - Get/set equal horizontal and vertical grid-unit sizes. Default is `false`.
 -  `centered` - Get/set centering of the specified uniform grid range. Inactive in pixels or with nonuniform scaling. Default is `false`.
--  `pixel_snap` - Get/set snapping of rendered geometry. Position and size properties retain fractional grid coordinates. Default is `false`.
+-  `pixel_snap` - Get/set snapping of rendered geometry, including text and listbox alignment. Position and size properties retain fractional grid coordinates. Default is `false`.
 
 **Member Functions**
 
@@ -1729,6 +1755,73 @@ This class represents a monitor in Attract-Mode Plus, and provides the interface
 
 ---
 
+### `fe.Group`
+
+The class representing a group of drawables in Attract-Mode Plus. Instances of this class are returned by [`fe.add_group()`](#feadd_group) and the corresponding `add_group()` functions on monitors, surfaces and groups. This class cannot be otherwise instantiated in a script.
+
+**Properties**
+
+-  `x` - Get/set the x position of the group (in the parent's grid coordinates).
+-  `y` - Get/set the y position of the group (in the parent's grid coordinates).
+-  `width` - Get/set the width of the group (in the parent's grid coordinates).
+-  `height` - Get/set the height of the group (in the parent's grid coordinates).
+-  `grid` - Read-only access to the group's [`fe.Grid`](#fegrid-1). It controls the coordinates of its children and defaults to pixels.
+-  `visible` - Get/set whether the group is visible (boolean). Default value is `true`. Hiding the group hides its children without changing their `visible` values.
+-  `type` - Get the group object type. Returns `Type.Group`.
+-  `rotation` - Get/set rotation around the z axis in degrees. Default value is `0`.
+-  `rotation_order` - Get/set the order in which the axes are rotated. Default value is `Rotation.XYZ`.
+-  `red` - Get/set the red colour level applied to each child. Range is `[0...255]`. Default value is `255`.
+-  `green` - Get/set the green colour level applied to each child. Range is `[0...255]`. Default value is `255`.
+-  `blue` - Get/set the blue colour level applied to each child. Range is `[0...255]`. Default value is `255`.
+-  `alpha` - Get/set the alpha level applied to each child. Range is `[0...255]`. Default value is `255`.
+-  `index_offset` - Get/set the offset added to each child's `index_offset`. Default value is `0`. See Notes below.
+-  `filter_offset` - Get/set the offset added to each child's `filter_offset`. Default value is `0`. See Notes below.
+-  `anchor` - Get/set the anchor for position and size. Uses the same `Anchor` modes as [`fe.Image`](#feimage). Default value is `Anchor.TopLeft`.
+-  `anchor_x` - Get/set the x position of the anchor as a fraction of the width. Default value is `0.0`.
+-  `anchor_y` - Get/set the y position of the anchor as a fraction of the height. Default value is `0.0`.
+-  `rotation_origin` - Get/set the midpoint for rotation. Uses the same `Origin` modes as [`fe.Image`](#feimage). Default value is `Origin.TopLeft`.
+-  `rotation_origin_x` - Get/set the x position of the rotation origin as a fraction of the width. Default value is `0.0`.
+-  `rotation_origin_y` - Get/set the y position of the rotation origin as a fraction of the height. Default value is `0.0`.
+-  `transform_origin` - Get/set the shared midpoint for position, size and rotation. Setting it updates both the anchor and rotation origin. Default value is `Origin.TopLeft`.
+-  `transform_origin_x` - Get/set the x component of the shared midpoint as a fraction of the width. Default value is `0.0`.
+-  `transform_origin_y` - Get/set the y component of the shared midpoint as a fraction of the height. Default value is `0.0`.
+-  `zorder` - Get/set the group's order as a single block in its parent's draw list. Default value is `0`. Children are ordered within the group.
+-  `group` - Get/set the parent group. Set to `null` to return to the containing monitor or surface. This property is available on all drawables.
+-  `items` - Get an array of the group's direct children in draw order. Editing the array does not change group membership.
+
+**Member Functions**
+
+-  `add_item( obj )` - Move an existing object into the group, retaining its local properties. Assigning `obj.group = group` has the same effect. Adding an existing member is harmless.
+-  `remove_item( obj )` - Remove a direct child from all ancestor groups, retaining its local values. Assigning `obj.group = null` has the same effect. The object returns to the containing monitor or surface.
+-  `detach_item( obj )` - Remove a direct child while preserving its current transform, tint, visibility and selection. `obj.detach()` is available on all drawable types and has the same effect.
+-  `detach()` - Remove this group from its parent group, following the same rules as `detach_item()`.
+-  `set_rgb( r, g, b, a? )` - Set the red, green, blue and optionally alpha colour values. Range is `[0...255]`.
+-  `set_pos( x, y )` - Set the group position (in the parent's grid coordinates).
+-  `set_pos( x, y, width, height )` - Set the group position and size (in the parent's grid coordinates).
+-  `set_anchor( x, y )` - Set the anchor for position and size. Use `0.5` for the centre of either axis in x and y.
+-  `set_rotation_origin( x, y )` - Set the midpoint for rotation. Use `0.5` for the centre of either axis in x and y.
+-  `set_transform_origin( x, y )` - Set the x and y coordinates of both the anchor and the rotation origin.
+-  `move( property )` - Get the animation object for a numeric property. See [Animation](#animation-) for the other forms.
+-  `add_image()` - Add an image to this group, see [`fe.add_image()`](#feadd_image).
+-  `add_artwork()` - Add artwork to this group, see [`fe.add_artwork()`](#feadd_artwork).
+-  `add_clone()` - Add a clone to this group, see [`fe.add_clone()`](#feadd_clone).
+-  `add_text()` - Add text to this group, see [`fe.add_text()`](#feadd_text).
+-  `add_listbox()` - Add a listbox to this group, see [`fe.add_listbox()`](#feadd_listbox).
+-  `add_rectangle()` - Add a rectangle to this group, see [`fe.add_rectangle()`](#feadd_rectangle-).
+-  `add_surface()` - Add a surface to this group, see [`fe.add_surface()`](#feadd_surface).
+-  `add_group()` - Add a nested group, see [`fe.add_group()`](#feadd_group).
+
+**Notes**
+
+-  An object can join a group on the same monitor or inside the same surface. A group cannot contain itself, even through nested groups.
+-  Moving an object to another group or removing it with `remove_item()` keeps its property values and running animations. For example, `x` and `y` keep their values, but the object can appear in a different place because those coordinates are relative to its new parent.
+-  The group's transforms apply to its children while their property values remain local. The group's width and height set the bounds used by its grid. If rotation takes the group out of alignment with the screen, its children keep their fractional positions and sizes even with `grid.pixel_snap` enabled.
+-  Group selection offsets apply to artwork, dynamic image filenames, text and listboxes. For example, a group with `index_offset = 45` and an image with `index_offset = 1` display index `46`. Clones follow the original image's selection. To offset objects inside a surface, put them in a group inside that surface.
+-  Detaching keeps the object's on-screen position, size and rotation, along with its inherited tint, visibility and selection offsets. `x` and `y` use the destination parent's coordinates after detaching. Position animations stop, and other animations continue.
+-  When removed or detached, an object is placed after the outermost group it belonged to and takes that group's `zorder`.
+
+---
+
 ### `fe.Image`
 
 The class representing an image in Attract-Mode Plus. Instances of this class are returned by the [`fe.add_image()`](#feadd_image), [`fe.add_artwork()`](#feadd_artwork), [`fe.add_surface()`](#feadd_surface) and [`fe.add_clone()`](#feadd_clone) functions and also appear in the [`fe.obj`](#feobj) array (the Attract-Mode Plus draw list). This class cannot be otherwise instantiated in a script.
@@ -1831,6 +1924,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `shader` - Get/set the GLSL shader for this image. This can only be set to an instance of the class [`fe.Shader`](#feshader).
 -  `trigger` - Get/set the transition that starts loading artwork/dynamic images. Default `Transition.ToNewSelection`; set `Transition.ToEndNavigation` to load when navigation stops. With `fe.cache.bg_load = false`, the new artwork is ready before the matching `NewSelection` or `EndNavigation` callbacks.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.
+-  `cutout` 🔶 - Get/set the image whose shape is removed from this image. Can be an instance of [`fe.Image`](#feimage), or `null` (default) to disable the cutout.
 -  `zorder` - Get/set the Image's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 -  `blend_mode` - Get/set the blend mode for this image. Can have one of the following values:
    -  `BlendMode.Alpha` (default for images and artwork)
@@ -1870,6 +1964,17 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `padding_top` 🔶 - Get/set the top padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `padding_right` 🔶 - Get/set the right padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `padding_bottom` 🔶 - Get/set the bottom padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
+-  `mask` 🔶 - Get/set the opacity mask image filename. White reveals the image, black hides it; brightness is multiplied by alpha. Relative paths use the layout/plugin directory. Default is `""`, which disables masking.
+-  `mask_fit` 🔶 - Get/set whether the mask follows the fitted artwork. When `true` the mask scales to the image texture, when `false` it scales to the image boundaries. Default is `true`.
+-  `mask_border_left` 🔶 - Get/set the left mask 9-slice region size in source pixels. Default is `0`.
+-  `mask_border_top` 🔶 - Get/set the top mask 9-slice region size in source pixels. Default is `0`.
+-  `mask_border_right` 🔶 - Get/set the right mask 9-slice region size in source pixels. Default is `0`.
+-  `mask_border_bottom` 🔶 - Get/set the bottom mask 9-slice region size in source pixels. Default is `0`.
+-  `mask_border_scale` 🔶 - Get/set the scaling factor of the borders defined by `set_mask_border()`. Default is `1.0`.
+-  `mask_padding_left` 🔶 - Get/set the left mask padding offset in pixels. Default is `0`.
+-  `mask_padding_top` 🔶 - Get/set the top mask padding offset in pixels. Default is `0`.
+-  `mask_padding_right` 🔶 - Get/set the right mask padding offset in pixels. Default is `0`.
+-  `mask_padding_bottom` 🔶 - Get/set the bottom mask padding offset in pixels. Default is `0`.
 
 **Member Functions**
 
@@ -1880,9 +1985,11 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `set_transform_origin( x, y )` 🔶 - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_anchor( x, y )` 🔶 - Set the midpoint for position and scale, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
 -  `set_rotation_origin( x, y )` 🔶 - Set the midpoint for rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`
--  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well.
+-  `swap( other_img )` - Swap the texture contents of this object (and all of its clones) with the contents of `other_img` (and all of its clones). If an image or artwork is swapped, its video attributes (`video_flags` and `video_playing`) will be swapped as well. Masks are not swapped.
 -  `set_border( left, top, right, bottom )` 🔶 - Set the border size in pixels for [9-slice scaling](https://en.wikipedia.org/wiki/9-slice_scaling). The borders define constrained regions at the edges of the image, while the centre region scales normally. Note that pinch has no effect when borders are set.
--  `set_padding( left, top, right, bottom )` 🔶 - Set the padding offsets in pixels that extend the texture beyond its original dimensions.
+-  `set_padding( left, top, right, bottom )` 🔶 - Set the padding offsets in pixels that extend the texture beyond its original dimensions. Offsets may be fractional.
+-  `set_mask_border( left, top, right, bottom )` 🔶 - Set the mask's 9-slice border sizes in source pixels.
+-  `set_mask_padding( left, top, right, bottom )` 🔶 - Set the mask padding offsets in pixels. Positive values expand the mask; negative values shrink it. Offsets may be fractional.
 -  `fix_masked_image()` - Makes all pixels matching the colour of the top left pixel transparent. This call waits for image pixels and may reload the image file.
 -  `add_image()` - _[surface only]_ Add an image to the end of this surface's draw list, see [`fe.add_image()`](#feadd_image).
 -  `add_artwork()` - _[surface only]_ Add an artwork to the end of this surface's draw list, see [`fe.add_artwork()`](#feadd_artwork).
@@ -1894,7 +2001,12 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 
 <a name="artwork-notes">**Notes**</a>
 
--  On a surface, `x`, `y`, `width` and `height` describe its displayed geometry in the grid where it was added. `surface.grid` provides the texture bounds in the grid used by its children.
+-  `cutout` uses the assigned image's texture alpha combined with its `mask`, including their geometry, padding and 9-slice borders. Its `visible`, `alpha`, colour, `shader` and own `cutout` are ignored.
+   ```squirrel
+   img.cutout = other_img
+   img.cutout = null // Disable the cutout
+   ```
+-  The image and its `cutout` must belong to the same monitor, or surface and use `BlendMode.Alpha`. Repeated textures, subimages, cropping and legacy pinch/skew are unsupported. Enable anti-aliasing for smooth edges.
 -  Using a negative `width` or `height` will flip the image about its anchor point. To flip an image in-place, set its `subimg` properties in a `NewList`, `NewSelection` or `EndNavigation` callback once it is ready:
    ```squirrel
    // flip img vertically
@@ -2110,7 +2222,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `green` - Get/set green colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `blue` - Get/set blue colour level for text. Range is `[0...255]`. Default value is `255`.
 -  `alpha` - Get/set alpha level for text. Range is `[0...255]`. Default value is `255`.
--  `index_offset` - Not used.
+-  `index_offset` - Offset from the current selection used as this listbox's virtual selection. This changes displayed rows and highlighting without changing the frontend selection. Group offsets are added. Default is `0`. Custom lists retain their own selection.
 -  `filter_offset` - Get/set filter offset from current filter for the text info to display. For example, set to `-1` to show info for the previous filter, or `1` for the next filter, etc. Default value is `0`.
 -  `bg_red` - Get/set red colour level for the background. Range is `[0...255]`. Default value is `0`.
 -  `bg_green` - Get/set green colour level for the background. Range is `[0...255]`. Default value is `0`.

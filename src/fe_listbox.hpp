@@ -233,6 +233,7 @@ public:
 	float get_row_height() const;
 	void build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
 	void refresh_script_geometry() override;
+	void on_group_update( bool update=true ) override;
 private:
 	void update_list_settings( FeSettings *s );
 	void refresh_selection();
@@ -266,7 +267,6 @@ private:
 	float m_userMargin;
 	float m_outline;
 	float m_sel_outline;
-	int m_filter_offset;
 	float m_rotation;
 	float m_scale_factor;
 	bool m_scripted; // True when the list is used in a layout, false when used in the builtin-menu

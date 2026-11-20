@@ -822,6 +822,7 @@ bool FeRectangle::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.custom_shader = ( geometry.shader != nullptr );
 	geometry.textured = false;
 	geometry.texture_dynamic = false;
+	apply_group_geometry( geometry );
 	return !geometry.vertices.empty();
 }
 

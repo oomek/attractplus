@@ -26,16 +26,20 @@
 #include "fe_base.hpp"
 #include "fe_types.hpp"
 #include "fe_grid.hpp"
+#include "fe_renderer.hpp"
 #include <string>
 #include <vector>
+#include <memory>
 
 class FeSettings;
 class FeShader;
 class FePresentableParent;
+class FeGroup;
 
 namespace Sqrat
 {
 	class Object;
+	class Array;
 }
 
 class FeGridView
@@ -70,7 +74,8 @@ enum FePresentableType
 	FePresentableTypeSurface = 1 << 2,
 	FePresentableTypeText = 1 << 3,
 	FePresentableTypeListbox = 1 << 4,
-	FePresentableTypeRectangle = 1 << 5
+	FePresentableTypeRectangle = 1 << 5,
+	FePresentableTypeGroup = 1 << 6
 };
 
 class FeBasePresentable
@@ -97,6 +102,33 @@ protected:
 	void snap_draw_geometry( Vec2f &pos, Vec2f &size, bool endpoint=false ) const;
 
 private:
+	friend class FeGroup;
+	friend class FeImage;
+	struct PixelSnap
+	{
+		const FePresentableParent &target;
+		const FeRenderMatrix4 *transform = nullptr;
+		float z = 0.f;
+		Vec2f position( const Vec2f &pos ) const;
+		Vec2f size( const Vec2f &size ) const;
+		bool is_axis_aligned() const;
+	};
+	void snap_draw_geometry( Vec2f &pos, Vec2f &size, bool endpoint, const PixelSnap &snap ) const;
+	FeRenderMatrix4 get_draw_transform( const FePresentableParent *target ) const;
+	bool refresh_script_snap();
+	void change_group( FeGroup *group, bool preserve );
+	int m_index_offset = 0;
+	int m_filter_offset = 0;
+	bool m_detached = false;
+	bool m_detached_pixel_snap = false;
+	Vec2f snap_parent_position( const Vec2f &pos ) const;
+	Vec2f snap_parent_size( const Vec2f &size ) const;
+	FeGridTransform m_detached_grid;
+	FeRenderMatrix4 m_detached_transform = FeRenderMatrix4::identity();
+	Vec3f m_detached_source;
+	Vec3f m_detached_target;
+	Color m_detached_color = Color::White;
+	std::shared_ptr<Sqrat::Object> m_script_object;
 	FeShader *m_shader;
 	bool m_visible;
 	bool m_zbuffer;
@@ -121,6 +153,7 @@ protected:
 
 public:
 	FeBasePresentable( FePresentableParent &p );
+	FeBasePresentable( const FeBasePresentable *source, FePresentableParent &p );
 	virtual ~FeBasePresentable();
 
 	virtual void on_new_selection( FeSettings * );
@@ -148,6 +181,20 @@ public:
 	virtual void setIndexOffset( int io );
 	virtual int getFilterOffset() const;
 	virtual void setFilterOffset( int io );
+	virtual int get_effective_index_offset() const;
+	virtual int get_effective_filter_offset() const;
+	virtual void on_group_update( bool update=true );
+	FeGroup *get_group() const;
+	void set_group( FeGroup *group );
+	void detach();
+	FePresentableParent *get_draw_target() const;
+	FeRenderMatrix4 get_draw_transform() const { return get_draw_transform( nullptr ); }
+	Color get_inherited_color() const;
+	void apply_group_geometry( FeRenderGeometry &geometry ) const;
+	void remember_script_object( const Sqrat::Object &object );
+	Sqrat::Object get_script_object();
+	static Sqrat::Object script_get_group( FeBasePresentable *item );
+	static void script_set_group( FeBasePresentable *item, Sqrat::Object value );
 
 	//
 	// Accessor functions used in scripting implementation
@@ -234,6 +281,9 @@ public:
 	virtual Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 	void refresh_script_geometry();
 	void update_elements( FeSettings *, bool new_list, int script=NoScript );
+	FeGroup *add_group();
+	FeGroup *add_group( float, float );
+	FeGroup *add_group( float, float, float, float );
 
 	FeImage *add_image(const char *,float, float, float, float);
 	FeImage *add_image(const char *, float, float);
@@ -244,6 +294,7 @@ public:
 	FeModel3D *add_model_3d(const char *);
 	FeImage *add_clone(FeImage *);
 	FeModel3D *add_clone(FeModel3D *);
+	Sqrat::Object script_add_clone( FeBasePresentable * );
 	FeText *add_text(const char *,float, float, float, float);
 	FeListBox *add_listbox(float, float, float, float);
 	FeRectangle *add_rectangle(float, float, float, float);
