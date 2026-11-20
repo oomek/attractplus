@@ -82,7 +82,7 @@ int FeMenuOpt::get_vindex() const
 // Return standardized "yes" or "no" string depending on list index
 const char* FeMenuOpt::get_bool()
 {
-	return ( m_list_index == 0 ) ? FE_CFG_YES_STR : FE_CFG_NO_STR;
+	return bool_to_config_str( m_list_index == 0 );
 }
 
 void FeMenuOpt::set_value( const std::string &s )
@@ -927,14 +927,15 @@ void FeFilterEditMenu::get_options( FeConfigContext &ctx )
 		if ( m_index >= 0 ) // don't add the following options for the global filter
 		{
             FeRomInfo::Index sort_by = f->get_sort_by();
-			bool reverse_order = f->get_reverse_order();
-			if ( FeRomInfo::isNumeric( sort_by ) ) reverse_order = !reverse_order;
-            std::vector<std::string> sort_opts = _( FeRomInfo::indexStrings );
+			std::vector<std::string> sort_opts = _( FeRomInfo::indexStrings );
 			sort_opts.push_back( _( "No Sort" ) );
 			std::string sort_str = value_at( sort_opts, sort_by );
 
+			std::vector<std::string> order_opts = {_( "Ascending" ), _( "Descending" )};
+			std::string order_str = f->get_ascending_order() ? order_opts[0] : order_opts[1];
+
 			ctx.add_opt( Opt::LIST, _( "Sort By" ), sort_str, _( "_help_filter_sort_by" ) )->append_vlist( sort_opts );
-			ctx.add_opt( Opt::TOGGLE, _( "Reverse Order" ), reverse_order, _( "_help_filter_reverse_order" ) );
+			ctx.add_opt( Opt::LIST, _( "Sort Order" ), order_str, _( "_help_filter_sort_order" ) )->append_vlist( order_opts );
 			ctx.add_opt( Opt::EDIT, _( "List Limit" ), as_str( f->get_list_limit() ), _( "_help_filter_list_limit" ) );
 			ctx.add_opt( Opt::EXIT, _( "Delete this Filter" ), "", _( "_help_filter_delete" ), 3);
 		}
@@ -1002,13 +1003,8 @@ bool FeFilterEditMenu::save( FeConfigContext &ctx )
 		FeRomInfo::Index sort_by = (FeRomInfo::Index)ctx.opt_list[ sort_pos ].get_vindex();
 		f->set_sort_by( sort_by );
 
-		// NOTE: reverse_order is *displayed* opposite for numerically sorted fields (stats)
-		// Users expect numeric fields to display descending by default
-		// - False (Default) = A-Z, Large-Small
-		// - True (Reversed) = Z-A, Small-Large
-		bool reverse_order = ctx.opt_list[ sort_pos + 1 ].get_vindex() == 0;
-		if ( FeRomInfo::isNumeric( sort_by ) ) reverse_order = !reverse_order;
-		f->set_reverse_order( reverse_order );
+		bool asc_order = ctx.opt_list[ sort_pos + 1 ].get_vindex() == 0;
+		f->set_ascending_order( asc_order );
 
 		std::string limit_str = ctx.opt_list[ sort_pos + 2 ].get_value();
 		int list_limit = as_int( limit_str );

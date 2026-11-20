@@ -686,7 +686,8 @@ const char *FeFilter::indexStrings[] =
 	"rule",
 	"exception",
 	"sort_by",
-	"reverse_order",
+	"ascending_order",
+	"reverse_order", // Deprecated 3.2.3+
 	"list_limit",
 	NULL
 };
@@ -697,6 +698,8 @@ FeFilter::FeFilter( const std::string &name )
 	m_list_limit( 0 ),
 	m_size( 0 ),
 	m_sort_by( FeRomInfo::LAST_INDEX ),
+	m_asc_order( true ),
+	m_asc_order_exists( false ),
 	m_reverse_order( false )
 {
 }
@@ -706,6 +709,56 @@ void FeFilter::init()
 	for ( std::vector<FeRule>::iterator itr=m_rules.begin();
 			itr != m_rules.end(); ++itr )
 		(*itr).init();
+}
+
+FeRomInfo::Index FeFilter::get_sort_by() const
+{
+	return m_sort_by;
+}
+
+bool FeFilter::get_ascending_order() const
+{
+	return m_asc_order_exists
+		? m_asc_order
+		: ( FeRomInfo::isNumeric( m_sort_by ) ? m_reverse_order : !m_reverse_order );
+}
+
+//
+// Reverse is a special case - Deprecated 3.2.3+
+// - String A-Z is default, Z-A is reverse
+// - Numeric 9-0 is default, 0-9 is reverse (more likely to want higher total first)
+//
+bool FeFilter::get_reverse_order() const
+{
+	return !m_asc_order_exists
+		? m_reverse_order
+		: ( FeRomInfo::isNumeric( m_sort_by ) ? m_asc_order : !m_asc_order );
+}
+
+int FeFilter::get_list_limit() const
+{
+	return m_list_limit;
+}
+
+void FeFilter::set_sort_by( FeRomInfo::Index i )
+{
+	m_sort_by = i;
+}
+
+void FeFilter::set_ascending_order( bool a )
+{
+	m_asc_order = a;
+	m_asc_order_exists = true;
+}
+
+void FeFilter::set_reverse_order( bool r )
+{
+	m_reverse_order = r;
+}
+
+void FeFilter::set_list_limit( int p )
+{
+	m_list_limit = p;
 }
 
 bool FeFilter::apply_filter( const FeRomInfo &rom ) const
@@ -744,7 +797,11 @@ int FeFilter::process_setting( const std::string &setting,
 			}
 		}
 	}
-	else if ( setting.compare( indexStrings[ReverseOrder] ) == 0 ) // reverse_order
+	else if ( setting.compare( indexStrings[AscendingOrder] ) == 0 ) // asc_order
+	{
+		set_ascending_order( config_str_to_bool( value, true ) );
+	}
+	else if ( setting.compare( indexStrings[ReverseOrder] ) == 0 ) // Deprecated 3.2.3+
 	{
 		set_reverse_order( config_str_to_bool( value, true ) );
 	}
@@ -768,8 +825,7 @@ void FeFilter::save( nowide::ofstream &f, const char *filter_tag, const int inde
 	if ( m_sort_by != FeRomInfo::LAST_INDEX )
 		write_pair( f, indexStrings[SortBy], FeRomInfo::indexStrings[ m_sort_by ], indent + 1 );
 
-	if ( m_reverse_order != false )
-		write_pair( f, indexStrings[ReverseOrder], "yes", indent + 1 );
+	write_pair( f, indexStrings[AscendingOrder], bool_to_config_str( m_asc_order ), indent + 1 );
 
 	if ( m_list_limit != 0 )
 		write_pair( f, indexStrings[ListLimit], as_str( m_list_limit ), indent + 1 );
@@ -800,6 +856,8 @@ void FeFilter::clear()
 	m_list_limit=0;
 	m_size=0;
 	m_sort_by=FeRomInfo::LAST_INDEX;
+	m_asc_order=true;
+	m_asc_order_exists=false;
 	m_reverse_order=false;
 }
 
@@ -827,8 +885,8 @@ FeDisplayInfo::FeDisplayInfo( const std::string &n )
 	m_global_filter( "" )
 {
 	m_info[ Name ] = n;
-	m_info[ InCycle ] = "yes";
-	m_info[ InMenu ] = "yes";
+	m_info[ InCycle ] = FE_CFG_YES_STR;
+	m_info[ InMenu ] = FE_CFG_YES_STR;
 }
 
 const std::string &FeDisplayInfo::get_info( int i ) const
@@ -1575,7 +1633,7 @@ int FePlugInfo::process_setting( const std::string &setting,
 void FePlugInfo::save( nowide::ofstream &f ) const
 {
 	write_section( f, "plugin", m_name );
-	write_pair( f, indexStrings[0], m_enabled ? "yes" : "no", 1 );
+	write_pair( f, indexStrings[0], bool_to_config_str( m_enabled ), 1 );
 	FeScriptConfigurable::save( f, 1 );
 	f << std::endl;
 }

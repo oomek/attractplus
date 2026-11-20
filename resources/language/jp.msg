@@ -100,7 +100,9 @@ Overview;概要
 Plugins;プラグイン
 Power Saving;省電力
 Remove Input;キー削除
-Reverse Order;逆順
+Sort Order;並べ替え順序
+Ascending;上昇
+Descending;下降
 Rule;ルール
 Scrape Artwork;ファンアートーワークをダウンロード
 Scrape Fanart;ファンアートをスクレイピング
@@ -476,7 +478,7 @@ _help_filter_delete;このフィルターを削除します
 _help_filter_exception;このフィルター例外を構成します。ゲームが例外に一致する場合、フィルターにリストされます。ルールと例外は、リストされている順序で適用されます。
 _help_filter_list_limit;リストのサイズに制限を付けます. プラスで上からの××個, マイナスで下からの××個を設定します. 0 は無限です.
 _help_filter_name;フィルターの名前
-_help_filter_reverse_order;ソートされたコレクション/ROMリストの順序を反転します。デフォルトの順序は、情報の場合は「AからZ」、統計情報の場合は「最大から最小」、または「ソートなし」の場合はソースリストの順序です。
+_help_filter_sort_order;コレクション／ROMリストの並べ替え順序。昇順は、情報表示では「AからZ」、統計情報表示では「小さい順から大きい順」、並べ替えなしの場合は元の順序となります。降順は、これらの順序の逆になります。
 _help_filter_rule;フィルターのルールを設定します
 _help_filter_sort_by;リストの並び方を設定します. "並び替えない" で元の順番で並べます.
 _help_game_custom_args;このゲームのデフォルトのコマンドライン引数をオーバーライドするには、これを設定します。パラメータなしでオーバーライドする場合は、[nothing] に設定します。以下の項目は適切に置換されます: [name], [romext], [rompath], [emulator], [romfilename], [system], [systemn]

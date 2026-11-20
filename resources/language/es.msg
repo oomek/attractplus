@@ -100,7 +100,9 @@ Overview;Resumen
 Plugins;Complementos
 Power Saving;Ahorro de energía
 Remove Input;Eliminar control
-Reverse Order;Orden inverso
+Sort Order;Orden de clasificación
+Ascending;Ascendente
+Descending;Descendente
 Rule;Regla
 Scrape Artwork;Escrapear Artes
 Scrape Fanart;Escrapear Fanart
@@ -476,7 +478,7 @@ _help_filter_delete;Borrar este filtro
 _help_filter_exception;Configura esta excepción de filtro. Si un juego coincide con una excepción, aparecerá en el filtro. Las reglas y excepciones se aplican en el orden en que aparecen.
 _help_filter_list_limit;Configurar esto a cero si desea limitar el tamaño de una lista ordenada. Use un valor positivo para las X primeras entradas (por ej. "10" entrega las primeras 10 entradas), un valor negativo para las últimas X entradas (por ej. "-25" entrega las últimas 25 entradas), o "0" para ilimitado
 _help_filter_name;Nombra este filtro
-_help_filter_reverse_order;Invierte el orden de la colección/lista de ROMs. El orden predeterminado es de la A a la Z para información, de mayor a menor para estadísticas o el orden de la lista de origen para "Sin ordenar".
+_help_filter_sort_order;El orden de clasificación de la colección/lista de ROMs. Ascendente: de la A a la Z para la información, de menor a mayor para las estadísticas y el orden de origen para "Sin clasificación". Descendente: el orden inverso.
 _help_filter_rule;Configura regla para el filtro
 _help_filter_sort_by;Atriburo del juego a partir del cual desea que la colección/lista de roms sea ordenada. Configure a "No ordenar" para mantener el orden de la colección/lista de ROMs
 _help_game_custom_args;Establece esto para anular los argumentos de línea de comandos predeterminados para este juego. Déjalo en blanco si quieres anularlos sin parámetros. Se sustituyen los siguientes elementos según corresponda: [nombre], [romext], [ruta_rom], [emulador], [nombre_archivo_rom], [sistema], [sisteman]
