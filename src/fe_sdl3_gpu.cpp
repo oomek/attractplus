@@ -109,7 +109,7 @@ namespace
 		std::string result = source;
 		if ( masked ) result.replace( result.rfind( "void main()" ), 11, "void " + name + "_main()" );
 		else result = std::regex_replace( source, std::regex( "\\bvoid\\s+main\\s*\\(" ), "void " + name + "_main(" );
-		replace_all( result, ") in ", ") sample in " );
+		// Keep colour interpolation at the pixel centre; only shared coverage uses samples.
 		std::string helpers = R"(
 struct fe_coverage_Plane { vec4 row0; vec4 row1; vec4 row2; vec4 source_border; vec4 dest_border; };
 layout(set = 3, binding = 2, std140) uniform fe_coverage_Uniforms
@@ -131,10 +131,9 @@ vec2 fe_coverage_local(vec2 pixel, int index)
 	precise vec3 q = vec3(dot(plane.row0.xyz, p), dot(plane.row1.xyz, p), dot(plane.row2.xyz, p));
 	return q.xy / q.z;
 }
-vec2 fe_coverage_uv(vec2 pixel, int index)
+vec2 fe_coverage_uv(vec2 local, int index)
 {
 	fe_coverage_Plane plane = fe_coverage.planes[index];
-	vec2 local = fe_coverage_local(pixel, index);
 	vec4 src = plane.source_border, dst = plane.dest_border;
 	return vec2(fe_coverage_slice(local.x, dst.x, dst.z, src.x, src.z), fe_coverage_slice(local.y, dst.y, dst.w, src.y, src.w));
 }
@@ -165,25 +164,32 @@ float fe_coverage_alpha(sampler2D image, vec2 uv, float smooth_filter, int mode)
 	}
 	return mode == 2 ? clamp(dot(value.rgb, vec3(0.2126, 0.7152, 0.0722)) * value.a, 0.0, 1.0) : value.a;
 }
-float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int index, float smooth_filter)
+float fe_coverage_filtered_alpha(sampler2D image, vec2 uv)
 {
-	vec2 uv = fe_coverage_uv(pixel, index);
-	float alpha = fe_coverage_alpha(image, uv, smooth_filter, 0);
+	return texture(image, uv).a;
+}
+float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int index, float smooth_filter, float image_opacity)
+{
 	float enabled = fe_coverage.masks[index];
 	if (enabled < 0.0) return 0.0;
-	if (enabled == 0.0) return alpha;
-	float coverage = fe_coverage_alpha(mask, fe_coverage_uv(pixel, index + 2), smooth_filter, 2);
-	int mode = int(fe_coverage.masks[index + 2]);
-	if (mode == 8)
-	{
-		vec2 local = fe_coverage_local(pixel, index);
-		if (any(lessThan(local, vec2(0.0))) || any(greaterThanEqual(local, vec2(1.0)))) return 0.0;
-	}
+	int mode = enabled > 0.0 ? int(fe_coverage.masks[index + 2]) : 0;
+	bool sampled = image_opacity >= 0.0;
+	vec2 local = fe_coverage_local(pixel, index);
+	if (sampled && (((mode & 1) == 0 && (local.x < 0.0 || local.x >= 1.0)) ||
+		((mode & 2) == 0 && (local.y < 0.0 || local.y >= 1.0)))) return 0.0;
+	if (mode == 8 && (any(lessThan(local, vec2(0.0))) || any(greaterThanEqual(local, vec2(1.0))))) return 0.0;
+	vec2 uv = fe_coverage_uv(local, index);
+	if (enabled == 0.0) return sampled ? image_opacity : fe_coverage_alpha(image, uv, smooth_filter, 0);
+	float coverage = fe_coverage_alpha(mask, fe_coverage_uv(fe_coverage_local(pixel, index + 2), index + 2), smooth_filter, 2);
 	bool outside = ((mode & 1) != 0 && (uv.x < 0.0 || uv.x >= 1.0)) || ((mode & 2) != 0 && (uv.y < 0.0 || uv.y >= 1.0));
-	float opacity = fe_coverage_alpha(image, uv, smooth_filter, 1);
-	if ((mode & 3) != 0) return coverage * (outside ? 1.0 : opacity);
+	if (outside) return coverage;
+	float opacity = sampled ? image_opacity : fe_coverage_alpha(image, uv, smooth_filter, 1);
 	// Intersect shared rectangle coverage once; multiply native opacity by the mask.
-	return mode == 4 ? min(alpha, opacity * coverage) : opacity * coverage;
+	return mode == 4 ? min(sampled ? image_opacity : fe_coverage_alpha(image, uv, smooth_filter, 0), opacity * coverage) : opacity * coverage;
+}
+float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int index, float smooth_filter)
+{
+	return fe_coverage_combined(image, mask, pixel, index, smooth_filter, -1.0);
 }
 )";
 		replace_all( helpers, "fe_coverage", name );
@@ -197,28 +203,29 @@ float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int inde
 			<< "\tvec2 pixel = floor(gl_FragCoord.xy) + gl_SamplePosition;\n"
 			<< "\tbool source = (int(" << name << ".control.x) & 1) != 0;\n"
 			<< "\tbool cutout = (int(" << name << ".control.x) & 2) != 0;\n"
-			<< "\tvec2 own_uv = " << name << "_uv(pixel, 1);\n"
-			<< "\tfloat own_alpha = " << name << "_combined(external_texture" << sampler_slot + 1 << ", external_texture" << sampler_slot + 3 << ", pixel, 1, " << name << ".control.z);\n"
-			<< "\tif (((int(" << name << ".masks.w) & 1) != 0 && (own_uv.x < 0.0 || own_uv.x >= 1.0)) || ((int(" << name << ".masks.w) & 2) != 0 && (own_uv.y < 0.0 || own_uv.y >= 1.0))) out_color.rgb = vec3(0.0);\n"
-			<< "\tif (source && own_alpha < 0.5) discard;\n"
-			<< "\tfloat reference = 0.0;\n"
+			<< "\tfloat image_opacity = source ? 0.0 : " << name << "_filtered_alpha(external_texture" << sampler_slot + 1 << ", frag_texcoord0.xy);\n"
+			<< "\tint fill = int(" << name << ".masks.w) & 3;\n"
+			<< "\tif (fill != 0)\n\t{\n"
+			<< "\t\tvec2 own_uv = " << name << "_uv(" << name << "_local(pixel, 1), 1);\n"
+			<< "\t\tif (((fill & 1) != 0 && (own_uv.x < 0.0 || own_uv.x >= 1.0)) || ((fill & 2) != 0 && (own_uv.y < 0.0 || own_uv.y >= 1.0))) out_color.rgb = vec3(0.0);\n\t}\n"
+			<< "\tif (source && " << name << "_combined(external_texture" << sampler_slot + 1 << ", external_texture" << sampler_slot + 3 << ", pixel, 1, " << name << ".control.z) < 0.5) discard;\n"
 			<< "\tfloat support = 0.0;\n"
 			<< "\tif (cutout)\n"
 			<< "\t{\n"
-			<< "\t\treference = " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", pixel, 0, " << name << ".control.y);\n"
+			<< "\t\tfloat reference = " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", pixel, 0, " << name << ".control.y);\n"
 			<< "\t\tif (reference >= 0.5) discard;\n"
-			<< "\t\tsupport = " << name << ".control.y > 0.0 ? reference : " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", pixel, 0, 1.0);\n\t}\n"
+			<< "\t\tif (!source) support = " << name << ".control.y > 0.0 ? reference : " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", pixel, 0, 1.0);\n\t}\n"
 			<< "\tif (!source)\n\t{\n"
-			<< "\t\tif (cutout && support > 0.0)\n\t\t{\n"
+			<< "\t\tif (cutout && (support > 0.0 || " << name << "_combined(external_texture" << sampler_slot << ", external_texture" << sampler_slot + 2 << ", floor(gl_FragCoord.xy) + vec2(0.5), 0, 1.0) > 0.0))\n\t\t{\n"
 			// Remove the shared contour's antialiasing coverage, retaining intrinsic opacity.
 			<< "\t\t\tfloat alpha = " << name << "_combined(external_texture" << sampler_slot + 1 << ", external_texture" << sampler_slot + 3 << ", pixel, 1, 1.0);\n"
 			<< "\t\t\topacity *= support < 1.0 ? clamp(alpha / (1.0 - support), 0.0, 1.0) : 0.0;\n"
-			<< "\t\t}\n\t\telse opacity *= own_alpha;\n"
+			<< "\t\t}\n\t\telse opacity *= " << name << "_combined(external_texture" << sampler_slot + 1 << ", external_texture" << sampler_slot + 3 << ", pixel, 1, " << name << ".control.z, image_opacity);\n"
 			<< "\t}\n"
 			<< "\tif (opacity <= 0.0) discard;\n"
 			<< "\tout_color.a = opacity;\n}\n";
 		std::string body = wrapper.str();
-		for ( const char *variable : { "opacity", "pixel", "source", "cutout", "own_uv", "own_alpha", "reference", "support", "uv", "alpha" } )
+		for ( const char *variable : { "opacity", "pixel", "source", "cutout", "image_opacity", "fill", "own_uv", "reference", "support", "alpha" } )
 			body = std::regex_replace( body, std::regex( std::string( "\\b" ) + variable + "\\b" ), name + "_" + variable );
 		return result + body;
 	}
@@ -233,7 +240,7 @@ float fe_coverage_combined(sampler2D image, sampler2D mask, vec2 pixel, int inde
 	struct FeSdl3GpuCoverageUniforms
 	{
 		float control[4];
-		// Reference/own availability, then fill axes (1/2) or image clipping (4).
+		// Reference/own availability, then fill axes (1/2) or clip mode (4/8).
 		float masks[4];
 		FeSdl3GpuCoveragePlane planes[4];
 	};
@@ -7443,8 +7450,11 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 						}
 					}
 					sampler_repeated = false;
-					sampler_mipmap = false;
-					sampler_aniso = false;
+					if ( sampler.coverage_texture != 2 )
+					{
+						sampler_mipmap = false;
+						sampler_aniso = false;
+					}
 				}
 				else if ( sampler.mask_texture )
 				{
