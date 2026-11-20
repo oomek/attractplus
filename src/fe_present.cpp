@@ -2840,7 +2840,7 @@ bool FePresent::load_intro()
 	if ( !on_new_layout() )
 		return false;
 
-	refresh_list( 0, true, false );
+	refresh_list( 0, false, false );
 	m_layout_time.start();
 	return ( !m_mon[0].elements.empty() );
 }
@@ -2862,7 +2862,7 @@ void FePresent::load_screensaver()
 	// if there is no screen saver script then do a blank screen
 	//
 	on_transition( StartLayout, FromToNoValue );
-	refresh_list( 0, true, false );
+	refresh_list( 0, false, false );
 	m_layout_time.start();
 }
 
@@ -2903,7 +2903,7 @@ void FePresent::load_layout( bool initial_load )
 	}
 
 	on_transition( StartLayout, var );
-	refresh_list( 0, true );
+	refresh_list();
 	m_layout_time.start();
 }
 
