@@ -1911,7 +1911,7 @@ class Card {
         // Hold card elements, also gets animated for the float effect
         x = parent.texture_width * 0.5
         y = parent.texture_height * 0.5
-        surf = add_surface(parent, x, y, width, height, 0, 0, false, "Card")
+        surf = add_surface(parent, x, y, width, height, 0, 0, true, "Card")
         surf.anchor = Anchor.Centre
 
         // Solid colour base defining the card object
@@ -2039,7 +2039,7 @@ class Image {
         local z = hypot(width, height)
 
         // Holds the image and content
-        content = add_surface(parent, x, y, width, height, 0, 0, false, "Image Content")
+        content = add_surface(parent, x, y, width, height, 0, 0, true, "Image Content")
 
         // Fallback text is visible when there is no artwork covering it
         placeholder = content.add_text("[Title]", 0, 0, width, height)
