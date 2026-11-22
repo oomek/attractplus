@@ -112,6 +112,7 @@ public:
 	FeModel3DObject *object( const char *name );
 
 	bool build_render_geometry( std::vector<FeRenderGeometry> &geometry ) const;
+	void on_group_update( bool update=true ) override;
 
 private:
 	struct ModelData;

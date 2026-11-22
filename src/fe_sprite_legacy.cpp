@@ -26,7 +26,7 @@
 #include <cmath>
 
 void FeSpriteLegacy::append_render_vertices( const FeSprite &sprite,
-	std::vector<FeRenderVertex> &out, float z ) const
+	std::vector<FeRenderVertex> &out, float z, bool mask ) const
 {
 	out.clear();
 	const FloatRect &rect = sprite.getTextureRect();
@@ -61,7 +61,7 @@ void FeSpriteLegacy::append_render_vertices( const FeSprite &sprite,
 	const float padding_scale = sprite.getPaddingScale( Vec2f(
 		( pos.right - pos.left ) * scale.x,
 		( pos.bottom - pos.top ) * scale.y ) );
-	const IntEdges &p = sprite.getPadding();
+	const FloatEdges &p = sprite.getPadding();
 	const FloatEdges padding( p.left * padding_scale / scale.x,
 		p.top * padding_scale / scale.y, p.right * padding_scale / scale.x,
 		p.bottom * padding_scale / scale.y );
@@ -108,6 +108,11 @@ void FeSpriteLegacy::append_render_vertices( const FeSprite &sprite,
 			strip[i].y = py[y] + sy[x];
 			strip[i].u = tx[x];
 			strip[i].v = ty[y];
+			if ( mask )
+			{
+				strip[i].u1 = px[x] * scale.x;
+				strip[i].v1 = py[y] * scale.y;
+			}
 		}
 	}
 	else if ( m_pinch.x != 0.f || m_pinch.y != 0.f )
@@ -127,6 +132,11 @@ void FeSpriteLegacy::append_render_vertices( const FeSprite &sprite,
 			strip[i].y = i % 2 ? pos.bottom - ( pys - sys ) * j : pos.top + ( pys + sys ) * j;
 			strip[i].u = tex.left + tws * j;
 			strip[i].v = i % 2 ? tex.bottom : tex.top;
+			if ( mask )
+			{
+				strip[i].u1 = ( pos.left + bws * j ) * scale.x;
+				strip[i].v1 = ( i % 2 ? pos.bottom : pos.top ) * scale.y;
+			}
 		}
 	}
 	else
@@ -144,6 +154,11 @@ void FeSpriteLegacy::append_render_vertices( const FeSprite &sprite,
 		{
 			strip[i].u = i < 2 ? tex.left : tex.right;
 			strip[i].v = i % 2 ? tex.bottom : tex.top;
+			if ( mask )
+			{
+				strip[i].u1 = ( i < 2 ? pos.left : pos.right ) * scale.x;
+				strip[i].v1 = ( i % 2 ? pos.bottom : pos.top ) * scale.y;
+			}
 		}
 	}
 

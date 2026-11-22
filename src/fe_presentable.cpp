@@ -21,6 +21,7 @@
  */
 
 #include "fe_presentable.hpp"
+#include "fe_group.hpp"
 #include "fe_animation.hpp"
 #include "fe_present.hpp"
 #include "fe_model_3d.hpp"
@@ -154,6 +155,13 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 		m_script_id = fep->get_script_id();
 }
 
+FeBasePresentable::FeBasePresentable( const FeBasePresentable *source, FePresentableParent &p )
+	: FeBasePresentable( p )
+{
+	if ( source ) *this = *source;
+	set_parent( p );
+}
+
 FeBasePresentable::~FeBasePresentable()
 {
 	FeAnimation::remove( this );
@@ -206,6 +214,11 @@ void FePresentableParent::update_elements( FeSettings *settings, bool new_list, 
 	FePresent *fep = FePresent::script_get_fep();
 	for ( auto *element : elements )
 	{
+		if ( auto *group = dynamic_cast<FeGroup *>( element ) )
+		{
+			group->update_elements( settings, new_list, script );
+			continue;
+		}
 		const int owner = element->get_script_id();
 		if ( script == NoScript ? fep && fep->get_script_version( owner ) >= 4 : owner != script )
 			continue;
@@ -232,6 +245,7 @@ void FeBasePresentable::on_transform_update()
 
 FeGridTransform FeBasePresentable::grid_transform() const
 {
+	if ( m_detached ) return m_detached_grid;
 	return m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_extent() );
 }
 
@@ -252,13 +266,13 @@ float FeBasePresentable::pixels_to_grid_width( float value ) const
 
 Vec2f FeBasePresentable::snap_position( const Vec2f &value, bool snap ) const
 {
-	Vec2f p = grid_transform().position( value );
+	Vec2f p = ( m_detached ? m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_extent() ) : grid_transform() ).position( value );
 	// 2D drawables snap position and size together after applying their anchors.
 	if ( get_type() != 0 ) return p;
 	if ( !snap || !get_pixel_snap() || !m_parent )
 		return p;
 
-	Vec2f result = m_parent->snap_position_to_pixel( p );
+	Vec2f result = snap_parent_position( p );
 	if ( !m_snap_x || m_snap_width ) result.x = p.x;
 	if ( !m_snap_y || m_snap_height ) result.y = p.y;
 	return result;
@@ -269,7 +283,7 @@ Vec2f FeBasePresentable::snap_size( const Vec2f &value, bool snap ) const
 	Vec2f s = grid_transform().size( value );
 	if ( get_type() != 0 ) return s;
 	if ( !snap || !get_pixel_snap() ) return s;
-	Vec2f result = m_parent->snap_size_to_pixel( s );
+	Vec2f result = snap_parent_size( s );
 	if ( !m_snap_width ) result.x = s.x;
 	if ( !m_snap_height ) result.y = s.y;
 	return result;
@@ -282,22 +296,60 @@ Vec2f FeBasePresentable::snap_draw_position( const Vec2f &pos ) const
 		return pos;
 
 	Vec2f edge = getPosition() + m_snap_offset;
-	Vec2f snapped = m_parent->snap_position_to_pixel( edge );
+	Vec2f snapped = snap_parent_position( edge );
 	Vec2f adjusted = pos;
 	if ( m_snap_x && m_snap_width ) adjusted.x += snapped.x - edge.x;
 	if ( m_snap_y && m_snap_height ) adjusted.y += snapped.y - edge.y;
 	return adjusted;
 }
 
+bool FeBasePresentable::PixelSnap::is_axis_aligned() const
+{
+	// A rotated or collapsed plane has no independent pixel-aligned X/Y edges.
+	const float *m = transform->m;
+	return m[1] == 0 && m[4] == 0 && m[2] == 0 && m[6] == 0 && m[0] != 0 && m[5] != 0;
+}
+
+Vec2f FeBasePresentable::PixelSnap::position( const Vec2f &pos ) const
+{
+	if ( !transform ) return target.snap_position_to_pixel( pos );
+	if ( !is_axis_aligned() ) return pos;
+	const Vec3f p = transform->transform_point( Vec3f( pos.x, pos.y, z ) );
+	const Vec2f snapped = target.snap_position_to_pixel( Vec2f( p.x, p.y ) );
+	return Vec2f( pos.x + ( snapped.x - p.x ) / transform->m[0],
+		pos.y + ( snapped.y - p.y ) / transform->m[5] );
+}
+
+Vec2f FeBasePresentable::PixelSnap::size( const Vec2f &size ) const
+{
+	if ( !transform ) return target.snap_size_to_pixel( size );
+	if ( !is_axis_aligned() ) return size;
+	const Vec2f snapped = target.snap_size_to_pixel( Vec2f( size.x * transform->m[0], size.y * transform->m[5] ) );
+	return Vec2f( snapped.x / transform->m[0], snapped.y / transform->m[5] );
+}
+
 void FeBasePresentable::snap_draw_geometry( Vec2f &pos, Vec2f &size, bool endpoint ) const
 {
 	if ( !get_pixel_snap() || !m_parent ) return;
+	auto *group = get_group();
+	if ( !group && !m_detached )
+		snap_draw_geometry( pos, size, endpoint, PixelSnap{ *m_parent } );
+	else
+	{
+		const auto &target = *get_draw_target();
+		const auto matrix = m_detached ? get_draw_transform( &target ) : group->get_items_transform( target );
+		snap_draw_geometry( pos, size, endpoint, PixelSnap{ target, &matrix, m_detached ? get_z() : 0.f } );
+	}
+}
+
+void FeBasePresentable::snap_draw_geometry( Vec2f &pos, Vec2f &size, bool endpoint, const PixelSnap &snap ) const
+{
 	bool snap_x = endpoint || m_snap_x;
 	bool snap_y = endpoint || m_snap_y;
 	bool snap_width = endpoint || m_snap_width;
 	bool snap_height = endpoint || m_snap_height;
-	Vec2f snapped_pos = m_parent->snap_position_to_pixel( pos );
-	Vec2f snapped_size = m_parent->snap_size_to_pixel( size );
+	Vec2f snapped_pos = snap.position( pos );
+	Vec2f snapped_size = snap.size( size );
 
 	// Rotated drawables retain independent size snapping.
 	if ( getRotation() != 0.0f || get_type() == 0 )
@@ -313,8 +365,8 @@ void FeBasePresentable::snap_draw_geometry( Vec2f &pos, Vec2f &size, bool endpoi
 	Vec2f origin( get_origin_x(), get_origin_y() );
 	Vec2f edge( pos.x - anchor.x * size.x - origin.x,
 		pos.y - anchor.y * size.y - origin.y );
-	Vec2f first = m_parent->snap_position_to_pixel( edge );
-	Vec2f last = m_parent->snap_position_to_pixel( edge + size );
+	Vec2f first = snap.position( edge );
+	Vec2f last = snap.position( edge + size );
 	if ( snap_x && snap_width )
 	{
 		size.x = last.x - first.x;
@@ -359,20 +411,26 @@ float FeBasePresentable::get_origin_y() const
 
 int FeBasePresentable::getIndexOffset() const
 {
-	return 0;
+	return m_index_offset;
 }
 
 void FeBasePresentable::setIndexOffset( int io )
 {
+	if ( io == m_index_offset ) return;
+	m_index_offset = io;
+	on_group_update();
 }
 
 int FeBasePresentable::getFilterOffset() const
 {
-	return 0;
+	return m_filter_offset;
 }
 
 void FeBasePresentable::setFilterOffset( int io )
 {
+	if ( io == m_filter_offset ) return;
+	m_filter_offset = io;
+	on_group_update();
 }
 
 float FeBasePresentable::get_x() const
@@ -564,12 +622,14 @@ float FeBasePresentable::snap_destination_to_pixels( const std::string &name, fl
 
 bool FeBasePresentable::get_pixel_snap() const
 {
+	if ( m_detached ) return m_detached_pixel_snap;
 	return m_parent->get_grid( m_script_id ).pixel_snap;
 }
 
 void FeBasePresentable::set_parent( FePresentableParent &p )
 {
 	m_parent = &p;
+	m_script_object.reset();
 	FePresent *fep = FePresent::script_get_fep();
 	m_script_id = fep ? fep->get_script_id() : LayoutScript;
 }
@@ -582,15 +642,21 @@ void FeBasePresentable::set_script_geometry( float x, float y, float w, float h 
 	refresh_script_geometry();
 }
 
-void FeBasePresentable::refresh_script_geometry()
+bool FeBasePresentable::refresh_script_snap()
 {
 	if ( !m_script_geometry_set )
-		return;
+		return false;
 
 	m_snap_x = get_pixel_snap() && !FeAnimation::is_running( this, "x" );
 	m_snap_y = get_pixel_snap() && !FeAnimation::is_running( this, "y" );
 	m_snap_width = get_pixel_snap() && !FeAnimation::is_running( this, "width" );
 	m_snap_height = get_pixel_snap() && !FeAnimation::is_running( this, "height" );
+	return true;
+}
+
+void FeBasePresentable::refresh_script_geometry()
+{
+	if ( !refresh_script_snap() ) return;
 	setPosition( snap_position( m_script_pos ));
 	setSize( snap_size( m_script_size ));
 }

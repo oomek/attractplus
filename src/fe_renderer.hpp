@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "fe_types.hpp"
 class FeShader;
 
 struct FeRenderMatrix4
@@ -11,6 +12,13 @@ struct FeRenderMatrix4
 
 	static FeRenderMatrix4 identity();
 	static FeRenderMatrix4 perspective( float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane );
+	FeRenderMatrix4 operator*( const FeRenderMatrix4 &other ) const;
+	FeRenderMatrix4 &translate( const Vec3f &offset );
+	FeRenderMatrix4 &scale( const Vec3f &factors );
+	FeRenderMatrix4 &rotate( float x, float y, float z, int order );
+	Vec3f transform_point( const Vec3f &point ) const;
+	bool normal_matrix( float *out ) const;
+	bool is_identity() const;
 };
 
 struct FePerspectiveCamera
@@ -165,6 +173,23 @@ struct FeRenderPbrInstance
 	void clear();
 };
 
+enum FeRenderCutoutMode
+{
+	FeRenderCutoutSource = 1,
+	FeRenderCutoutApply = 2
+};
+
+struct FeRenderImagePlane
+{
+	FeRenderTextureBinding texture;
+	float points[9] = {};
+	float source_border[4] = {};
+	float dest_border[4] = {};
+	int fill = 0; // Unused fit areas: bit 0 for X, bit 1 for Y.
+	int clip = 0; // 4: shared alpha edge, 8: image rectangle.
+	bool empty = false;
+};
+
 struct FeRenderGeometry
 {
 	std::vector<FeRenderVertex> vertices;
@@ -187,6 +212,11 @@ struct FeRenderGeometry
 	int clip_width;
 	int clip_height;
 	int blend_mode;
+	int cutout_mode;
+	FeRenderImagePlane image_plane;
+	FeRenderImagePlane cutout_plane;
+	FeRenderImagePlane image_mask_plane;
+	FeRenderImagePlane cutout_mask_plane;
 	bool zbuffer;
 	bool translucent_depth_prepass;
 	std::uintptr_t pbr_collapse_group;
@@ -196,6 +226,16 @@ struct FeRenderGeometry
 	bool texture_dynamic;
 	bool texture_blocking;
 	std::uint64_t texture_content_version;
+	bool mask_enabled = false;
+	bool mask_fit = true;
+	FeRenderTextureBinding mask_texture;
+	// Local pixel rectangle, source slice edges and destination slice scale.
+	float mask_rect[4] = {};
+	float mask_border[4] = {};
+	float mask_scale = 1.f;
+	// Unfitted mask plane: top-left, top-right and bottom-left world positions.
+	float mask_points[9] = {};
+	float mask_size[2] = {};
 	FeRenderPbrMaterial pbr_material;
 	int light_count;
 	FeRenderPbrLight lights[4];

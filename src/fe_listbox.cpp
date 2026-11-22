@@ -52,7 +52,6 @@ FeListBox::FeListBox( FePresentableParent &p, float x, float y, float w, float h
 	m_userMargin( -1 ),
 	m_outline( 0 ),
 	m_sel_outline( 0 ),
-	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
 	m_scripted( true ),
@@ -99,7 +98,6 @@ FeListBox::FeListBox(
 	m_userMargin( -1 ),
 	m_outline( 0 ),
 	m_sel_outline( 0 ),
-	m_filter_offset( 0 ),
 	m_rotation( 0.0 ),
 	m_scale_factor( 1.0 ),
 	m_scripted( false ),
@@ -474,6 +472,7 @@ void FeListBox::update_row_geometry()
 	int actual_spacing = (int)size.y / row_count;
 
 	m_base_text.setPosition( top_left );
+	m_base_text.setAlignmentSnap( !m_scripted || get_pixel_snap() );
 	m_base_text.setSize( size );
 	m_base_text.setOrigin( Vec2f( 0.f, 0.f ));
 
@@ -482,6 +481,7 @@ void FeListBox::update_row_geometry()
 
 	for ( int i=0; i< row_count; i++ )
 	{
+		m_texts[i].setAlignmentSnap( !m_scripted || get_pixel_snap() );
 		m_texts[i].setOrigin( Vec2f( 0.f, 0.f ));
 		m_texts[i].setPosition( rotater.transformPoint({ top_left.x, top_left.y + ( i * actual_spacing )}));
 		m_texts[i].setSize( size.x, actual_spacing );
@@ -752,8 +752,8 @@ void FeListBox::refresh_selection()
 			text_string = format_string;
 			FePresent::script_process_magic_strings(
 				text_string,
-				m_filter_offset,
-				i - m_selected_row
+				get_effective_filter_offset(),
+				i - m_selected_row + get_effective_index_offset()
 			);
 			m_feSettings->do_text_substitutions_absolute(
 				text_string,
@@ -786,9 +786,9 @@ void FeListBox::update_list_settings( FeSettings *s )
 	m_feSettings = s;
 	if ( !m_has_custom_list )
 	{
-		m_display_filter_index = s->get_filter_index_from_offset( m_filter_offset );
+		m_display_filter_index = s->get_filter_index_from_offset( get_effective_filter_offset() );
 		m_display_filter_size = s->get_filter_size( m_display_filter_index );
-		m_display_rom_index = s->get_rom_index( m_display_filter_index, 0 );
+		m_display_rom_index = s->get_rom_index( m_display_filter_index, get_effective_index_offset() );
 	}
 }
 
@@ -910,6 +910,7 @@ void FeListBox::build_render_geometry( std::vector<FeRenderGeometry> &geometry )
 		for ( std::size_t i = begin; i < geometry.size(); ++i )
 			geometry[i].zbuffer = get_zbuffer();
 	}
+	for ( std::size_t i = begin; i < geometry.size(); ++i ) apply_group_geometry( geometry[i] );
 }
 
 void FeListBox::clear()
@@ -924,27 +925,27 @@ int FeListBox::getRowCount() const
 
 void FeListBox::setIndexOffset( int io )
 {
+	FeBasePresentable::setIndexOffset( io );
 }
 
 int FeListBox::getIndexOffset() const
 {
-	return 0;
+	return FeBasePresentable::getIndexOffset();
 }
 
 void FeListBox::setFilterOffset( int fo )
 {
-	if (fo == m_filter_offset)
-		return;
-
-	m_filter_offset = fo;
-
-	if ( m_scripted )
-		FePresent::script_do_update( this );
+	FeBasePresentable::setFilterOffset( fo );
 }
 
 int FeListBox::getFilterOffset() const
 {
-	return m_filter_offset;
+	return FeBasePresentable::getFilterOffset();
+}
+
+void FeListBox::on_group_update( bool update )
+{
+	if ( m_scripted && update ) FePresent::script_do_update( this );
 }
 
 int FeListBox::get_bg_red()

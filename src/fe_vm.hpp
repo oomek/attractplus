@@ -254,6 +254,9 @@ public:
 	static FeImage *cb_add_surface(float, float, float, float);
 	static FeImage *cb_add_surface(float, float, float, float, int, int);
 	static FeImage *cb_add_surface(float, float);
+	static FeGroup *cb_add_group();
+	static FeGroup *cb_add_group(float, float);
+	static FeGroup *cb_add_group(float, float, float, float);
 	static FeSound *cb_add_sound(const char *, bool);
 	static FeSound *cb_add_sound(const char *);
 	static FeMusic *cb_add_music(const char *);

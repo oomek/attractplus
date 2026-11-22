@@ -44,6 +44,75 @@ FeRenderMatrix4 FeRenderMatrix4::identity()
 	return matrix;
 }
 
+FeRenderMatrix4 FeRenderMatrix4::operator*( const FeRenderMatrix4 &other ) const
+{
+	FeRenderMatrix4 result = {};
+	for ( int column = 0; column < 4; ++column )
+		for ( int row = 0; row < 4; ++row )
+			for ( int k = 0; k < 4; ++k )
+				result.m[column * 4 + row] += m[k * 4 + row] * other.m[column * 4 + k];
+	return result;
+}
+
+FeRenderMatrix4 &FeRenderMatrix4::translate( const Vec3f &offset )
+{
+	auto value = identity();
+	value.m[12] = offset.x; value.m[13] = offset.y; value.m[14] = offset.z;
+	return *this = *this * value;
+}
+
+FeRenderMatrix4 &FeRenderMatrix4::scale( const Vec3f &factors )
+{
+	auto value = identity();
+	value.m[0] = factors.x; value.m[5] = factors.y; value.m[10] = factors.z;
+	return *this = *this * value;
+}
+
+FeRenderMatrix4 &FeRenderMatrix4::rotate( float x, float y, float z, int order )
+{
+	// Match FeSprite: the named axes are applied in the listed order.
+	static const int axes[6][3] = { {0,1,2}, {0,2,1}, {1,0,2}, {1,2,0}, {2,0,1}, {2,1,0} };
+	const float angles[] = { x, y, z };
+	auto rotation = identity();
+	for ( int axis : axes[order >= 0 && order < 6 ? order : 0] )
+	{
+		auto value = identity();
+		float angle = angles[axis] * FE_PI / 180.f;
+		float c = std::cos( angle ), s = std::sin( angle );
+		int a = ( axis + 1 ) % 3, b = ( axis + 2 ) % 3;
+		value.m[a * 4 + a] = value.m[b * 4 + b] = c;
+		value.m[b * 4 + a] = -s; value.m[a * 4 + b] = s;
+		rotation = value * rotation;
+	}
+	return *this = *this * rotation;
+}
+
+Vec3f FeRenderMatrix4::transform_point( const Vec3f &p ) const
+{
+	return Vec3f( m[0]*p.x + m[4]*p.y + m[8]*p.z + m[12],
+		m[1]*p.x + m[5]*p.y + m[9]*p.z + m[13],
+		m[2]*p.x + m[6]*p.y + m[10]*p.z + m[14] );
+}
+
+bool FeRenderMatrix4::normal_matrix( float *out ) const
+{
+	float cofactors[] = {
+		m[5]*m[10]-m[9]*m[6], m[8]*m[6]-m[4]*m[10], m[4]*m[9]-m[8]*m[5],
+		m[9]*m[2]-m[1]*m[10], m[0]*m[10]-m[8]*m[2], m[8]*m[1]-m[0]*m[9],
+		m[1]*m[6]-m[5]*m[2], m[4]*m[2]-m[0]*m[6], m[0]*m[5]-m[4]*m[1] };
+	float determinant = m[0]*cofactors[0] + m[4]*cofactors[3] + m[8]*cofactors[6];
+	if ( std::abs( determinant ) < 1.e-12f ) return false;
+	for ( int i = 0; i < 9; ++i ) out[i] = cofactors[i] / determinant;
+	return true;
+}
+
+bool FeRenderMatrix4::is_identity() const
+{
+	const auto value = identity();
+	for ( int i = 0; i < 16; ++i ) if ( m[i] != value.m[i] ) return false;
+	return true;
+}
+
 FeRenderMatrix4 FeRenderMatrix4::perspective( float fov_y_degrees, float aspect_ratio, float near_plane, float far_plane )
 {
 	FeRenderMatrix4 matrix = {};
@@ -193,6 +262,7 @@ FeRenderGeometry::FeRenderGeometry()
 	clip_width( 0 ),
 	clip_height( 0 ),
 	blend_mode( 0 ),
+	cutout_mode( 0 ),
 	zbuffer( false ),
 	translucent_depth_prepass( false ),
 	pbr_collapse_group( 0 ),
@@ -234,6 +304,11 @@ void FeRenderGeometry::clear()
 	clip_width = 0;
 	clip_height = 0;
 	blend_mode = 0;
+	cutout_mode = 0;
+	image_plane = {};
+	cutout_plane = {};
+	image_mask_plane = {};
+	cutout_mask_plane = {};
 	zbuffer = false;
 	translucent_depth_prepass = false;
 	pbr_collapse_group = 0;
@@ -243,6 +318,13 @@ void FeRenderGeometry::clear()
 	texture_dynamic = false;
 	texture_blocking = false;
 	texture_content_version = 0;
+	mask_enabled = false;
+	mask_fit = true;
+	mask_texture.clear();
+	for ( int i = 0; i < 4; ++i ) mask_rect[i] = mask_border[i] = 0.f;
+	mask_scale = 1.f;
+	for ( float &value : mask_points ) value = 0.f;
+	for ( float &value : mask_size ) value = 0.f;
 	pbr_material.clear();
 	light_count = 0;
 	for ( FeRenderPbrLight &light : lights )

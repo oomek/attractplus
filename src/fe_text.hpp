@@ -177,8 +177,6 @@ private:
 	std::string m_string;
 	std::string m_string_wrapped;
 	std::string m_font_name;
-	int m_index_offset;
-	int m_filter_offset;
 	float m_user_charsize;	 	// -1 if no charsize specified
 	float m_user_margin;	 	// -1 if automatic margin is used
 	float m_outline;

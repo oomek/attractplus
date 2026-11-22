@@ -34,8 +34,6 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 	: FeBasePresentable( p ),
 	m_string( str ),
 	m_string_wrapped( str ),
-	m_index_offset( 0 ),
-	m_filter_offset( 0 ),
 	m_user_charsize( -1 ),
 	m_user_margin( -1 ),
 	m_outline( 0 ),
@@ -268,30 +266,22 @@ Color FeText::getColor() const
 
 void FeText::setIndexOffset( int io )
 {
-	if ( m_index_offset != io )
-	{
-		m_index_offset=io;
-		FePresent::script_do_update( this );
-	}
+	FeBasePresentable::setIndexOffset( io );
 }
 
 int FeText::getIndexOffset() const
 {
-	return m_index_offset;
+	return FeBasePresentable::getIndexOffset();
 }
 
 void FeText::setFilterOffset( int fo )
 {
-	if ( m_filter_offset != fo )
-	{
-		m_filter_offset=fo;
-		FePresent::script_do_update( this );
-	}
+	FeBasePresentable::setFilterOffset( fo );
 }
 
 int FeText::getFilterOffset() const
 {
-	return m_filter_offset;
+	return FeBasePresentable::getFilterOffset();
 }
 
 void FeText::on_new_list( FeSettings *s )
@@ -356,6 +346,7 @@ void FeText::update_transform()
 	);
 
 	m_draw_text.setSize( size );
+	m_draw_text.setAlignmentSnap( get_pixel_snap() );
 	m_draw_text.setOrigin( origin );
 	m_draw_text.setPosition( pos );
 	m_draw_text.setRotation( m_rotation );
@@ -366,10 +357,10 @@ void FeText::on_new_selection( FeSettings *feSettings )
 	std::string str = m_string;
 
 	m_magic = FePresent::script_process_magic_strings( str,
-			m_filter_offset,
-			m_index_offset );
+			get_effective_filter_offset(),
+			get_effective_index_offset() );
 
-	m_magic = feSettings->do_text_substitutions( str, m_filter_offset, m_index_offset ) || m_magic;
+	m_magic = feSettings->do_text_substitutions( str, get_effective_filter_offset(), get_effective_index_offset() ) || m_magic;
 
 	m_draw_text.setString( str );
 }
@@ -417,6 +408,7 @@ void FeText::build_render_geometry( std::vector<FeRenderGeometry> &geometry ) co
 		for ( std::size_t i = begin; i < geometry.size(); ++i )
 			geometry[i].zbuffer = get_zbuffer();
 	}
+	for ( std::size_t i = begin; i < geometry.size(); ++i ) apply_group_geometry( geometry[i] );
 }
 
 void FeText::set_word_wrap( bool w )

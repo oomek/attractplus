@@ -28,6 +28,7 @@
 #include "fe_animation.hpp"
 #include "fe_settings.hpp"
 #include "fe_present.hpp"
+#include "fe_group.hpp"
 #include "fe_text.hpp"
 #include "fe_listbox.hpp"
 #include "fe_rectangle.hpp"
@@ -74,6 +75,29 @@
 
 namespace
 {
+	SQInteger script_presentable_factory( HSQUIRRELVM vm )
+	{
+		// Retain the instance returned by the original Sqrat factory. Returning
+		// the same native pointer through Sqrat otherwise creates a new wrapper.
+		const SQInteger count = sq_gettop( vm ) - 1;
+		sq_push( vm, -1 );
+		for ( SQInteger i = 1; i <= count; ++i ) sq_push( vm, i );
+		if ( SQ_FAILED( sq_call( vm, count, SQTrue, SQTrue ) ) ) return SQ_ERROR;
+		if ( Sqrat::Error::Instance().Occurred( vm ) )
+			return sq_throwerror( vm, Sqrat::Error::Instance().Message( vm ).c_str() );
+		if ( sq_gettype( vm, -1 ) == OT_INSTANCE )
+		{
+			auto *item = Sqrat::ClassType<FeBasePresentable>::GetInstance( vm, -1 );
+			if ( item )
+			{
+				HSQOBJECT result;
+				sq_getstackobj( vm, -1, &result );
+				item->remember_script_object( Sqrat::Object( result, vm ) );
+			}
+		}
+		return 1;
+	}
+
 	SQInteger script_grid_set_size( HSQUIRRELVM vm )
 	{
 		FeGridView *grid = Sqrat::ClassType<FeGridView>::GetInstance( vm, 1 );
@@ -1093,6 +1117,7 @@ bool FeVM::on_new_layout()
 			.Const( _SC("Text"), FePresentableTypeText )
 			.Const( _SC("Listbox"), FePresentableTypeListbox )
 			.Const( _SC("Rectangle"), FePresentableTypeRectangle )
+			.Const( _SC("Group"), FePresentableTypeGroup )
 			)
 		.Enum( _SC("Direction"), Enumeration()
 			.Const( _SC("Normal"), FeDirection::Normal )
@@ -1187,6 +1212,8 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("zorder"), &FeBasePresentable::get_zorder, &FeBasePresentable::set_zorder )
 		.Prop(_SC("magic"), &FeBasePresentable::get_magic )
 		.Prop(_SC("type"), &FeBasePresentable::get_type )
+		.GlobalProp(_SC("group"), &FeBasePresentable::script_get_group, &FeBasePresentable::script_set_group )
+		.Func(_SC("detach"), &FeBasePresentable::detach )
 		.Overload<void (FeBasePresentable::*)(int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(int, int, int, int)>(_SC("set_rgb"), &FeBasePresentable::set_rgb)
 		.Overload<void (FeBasePresentable::*)(float, float)>(_SC("set_pos"), &FeBasePresentable::set_pos)
@@ -1249,6 +1276,7 @@ bool FeVM::on_new_layout()
 		.Prop(_SC("trigger"), &FeImage::getTrigger, &FeImage::setTrigger )
 		.Prop(_SC("smooth"), &FeImage::get_smooth, &FeImage::set_smooth )
 		.Prop(_SC("blend_mode"), &FeImage::get_blend_mode, &FeImage::set_blend_mode )
+		.GlobalProp(_SC("cutout"), &FeImage::script_get_cutout, &FeImage::script_set_cutout )
 		.Prop(_SC("mipmap"), &FeImage::get_mipmap, &FeImage::set_mipmap )
 		.Prop(_SC("msaa"), &FeImage::get_msaa, &FeImage::set_msaa )
 		.Prop(_SC("aniso"), &FeImage::get_aniso, &FeImage::set_aniso )
@@ -1273,6 +1301,17 @@ bool FeVM::on_new_layout()
 		ANIM_PROP( _SC("border_top"), &FeImage::get_border_top, &FeImage::set_border_top )
 		ANIM_PROP( _SC("border_bottom"), &FeImage::get_border_bottom, &FeImage::set_border_bottom )
 		ANIM_PROP( _SC("border_scale"), &FeImage::get_border_scale, &FeImage::set_border_scale )
+		.Prop(_SC("mask"), &FeImage::get_mask, &FeImage::set_mask )
+		.Prop(_SC("mask_fit"), &FeImage::get_mask_fit, &FeImage::set_mask_fit )
+		ANIM_PROP( _SC("mask_padding_left"), &FeImage::get_mask_padding_left, &FeImage::set_mask_padding_left )
+		ANIM_PROP( _SC("mask_padding_right"), &FeImage::get_mask_padding_right, &FeImage::set_mask_padding_right )
+		ANIM_PROP( _SC("mask_padding_top"), &FeImage::get_mask_padding_top, &FeImage::set_mask_padding_top )
+		ANIM_PROP( _SC("mask_padding_bottom"), &FeImage::get_mask_padding_bottom, &FeImage::set_mask_padding_bottom )
+		ANIM_PROP( _SC("mask_border_left"), &FeImage::get_mask_border_left, &FeImage::set_mask_border_left )
+		ANIM_PROP( _SC("mask_border_right"), &FeImage::get_mask_border_right, &FeImage::set_mask_border_right )
+		ANIM_PROP( _SC("mask_border_top"), &FeImage::get_mask_border_top, &FeImage::set_mask_border_top )
+		ANIM_PROP( _SC("mask_border_bottom"), &FeImage::get_mask_border_bottom, &FeImage::set_mask_border_bottom )
+		ANIM_PROP( _SC("mask_border_scale"), &FeImage::get_mask_border_scale, &FeImage::set_mask_border_scale )
 		.Overload<void (FeImage::*)(float, float)>(_SC("set_anchor"), &FeImage::set_anchor )
 		.Overload<void (FeImage::*)(float, float, float)>(_SC("set_anchor"), &FeImage::set_anchor )
 		.Func(_SC("set_fit_anchor"), &FeImage::set_fit_anchor )
@@ -1284,6 +1323,8 @@ bool FeVM::on_new_layout()
 		.Overload<void (FeImage::*)(float, float, float)>(_SC("set_rotation_origin"), &FeImage::set_rotation_origin )
 		.Func(_SC("set_border"), &FeImage::set_border )
 		.Func(_SC("set_padding"), &FeImage::set_padding )
+		.Func(_SC("set_mask_border"), &FeImage::set_mask_border )
+		.Func(_SC("set_mask_padding"), &FeImage::set_mask_padding )
 		.Func(_SC("swap"), &FeImage::transition_swap )
 		.Func(_SC("rawset_index_offset"), &FeImage::rawset_index_offset )
 		.Func(_SC("rawset_filter_offset"), &FeImage::rawset_filter_offset )
@@ -1310,6 +1351,50 @@ bool FeVM::on_new_layout()
 		.Overload<FeImage * (FeImage::*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeImage::add_surface)
 		.Overload<FeImage * (FeImage::*)(float, float, float, float)>(_SC("add_surface"), &FeImage::add_surface)
 		.Overload<FeImage * (FeImage::*)(float, float)>(_SC("add_surface"), &FeImage::add_surface)
+		.Overload<FeGroup * (FeImage::*)()>(_SC("add_group"), &FeImage::add_group)
+		.Overload<FeGroup * (FeImage::*)(float, float)>(_SC("add_group"), &FeImage::add_group)
+		.Overload<FeGroup * (FeImage::*)(float, float, float, float)>(_SC("add_group"), &FeImage::add_group)
+	);
+
+	fe.Bind( _SC("Group"), DerivedClass<FeGroup, FeBasePresentable, NoConstructor>()
+		.Prop(_SC("grid"), &FeGroup::get_grid_view)
+		.Prop(_SC("items"), &FeGroup::get_items)
+		.GlobalFunc(_SC("add_item"), &FeGroup::script_add_item)
+		.Func(_SC("remove_item"), &FeGroup::remove_item)
+		.Func(_SC("detach_item"), &FeGroup::detach_item)
+		.Prop(_SC("anchor"), &FeGroup::get_anchor_type, &FeGroup::set_anchor_type)
+		ANIM_PROP(_SC("anchor_x"), &FeGroup::get_anchor_x, &FeGroup::set_anchor_x)
+		ANIM_PROP(_SC("anchor_y"), &FeGroup::get_anchor_y, &FeGroup::set_anchor_y)
+		ANIM_PROP(_SC("anchor_z"), &FeGroup::get_anchor_z, &FeGroup::set_anchor_z)
+		.Prop(_SC("rotation_origin"), &FeGroup::get_rotation_origin_type, &FeGroup::set_rotation_origin_type)
+		ANIM_PROP(_SC("rotation_origin_x"), &FeGroup::get_rotation_origin_x, &FeGroup::set_rotation_origin_x)
+		ANIM_PROP(_SC("rotation_origin_y"), &FeGroup::get_rotation_origin_y, &FeGroup::set_rotation_origin_y)
+		ANIM_PROP(_SC("rotation_origin_z"), &FeGroup::get_rotation_origin_z, &FeGroup::set_rotation_origin_z)
+		.Prop(_SC("transform_origin"), &FeGroup::get_transform_origin_type, &FeGroup::set_transform_origin_type)
+		ANIM_PROP(_SC("transform_origin_x"), &FeGroup::get_transform_origin_x, &FeGroup::set_transform_origin_x)
+		ANIM_PROP(_SC("transform_origin_y"), &FeGroup::get_transform_origin_y, &FeGroup::set_transform_origin_y)
+		.Overload<void (FeGroup::*)(float, float)>(_SC("set_anchor"), &FeGroup::set_anchor)
+		.Overload<void (FeGroup::*)(float, float, float)>(_SC("set_anchor"), &FeGroup::set_anchor)
+		.Overload<void (FeGroup::*)(float, float)>(_SC("set_rotation_origin"), &FeGroup::set_rotation_origin)
+		.Overload<void (FeGroup::*)(float, float, float)>(_SC("set_rotation_origin"), &FeGroup::set_rotation_origin)
+		.Func(_SC("set_transform_origin"), &FeGroup::set_transform_origin)
+		.Overload<FeGroup * (FeGroup::*)()>(_SC("add_group"), &FeGroup::add_group)
+		.Overload<FeGroup * (FeGroup::*)(float, float)>(_SC("add_group"), &FeGroup::add_group)
+		.Overload<FeGroup * (FeGroup::*)(float, float, float, float)>(_SC("add_group"), &FeGroup::add_group)
+		.Overload<FeImage * (FeGroup::*)(const char *)>(_SC("add_image"), &FeGroup::add_image)
+		.Overload<FeImage * (FeGroup::*)(const char *, float, float)>(_SC("add_image"), &FeGroup::add_image)
+		.Overload<FeImage * (FeGroup::*)(const char *, float, float, float, float)>(_SC("add_image"), &FeGroup::add_image)
+		.Overload<FeImage * (FeGroup::*)(const char *)>(_SC("add_artwork"), &FeGroup::add_artwork)
+		.Overload<FeImage * (FeGroup::*)(const char *, float, float)>(_SC("add_artwork"), &FeGroup::add_artwork)
+		.Overload<FeImage * (FeGroup::*)(const char *, float, float, float, float)>(_SC("add_artwork"), &FeGroup::add_artwork)
+		.Overload<FeText * (FeGroup::*)(const char *, float, float, float, float)>(_SC("add_text"), &FeGroup::add_text)
+		.Overload<FeListBox * (FeGroup::*)(float, float, float, float)>(_SC("add_listbox"), &FeGroup::add_listbox)
+		.Overload<FeRectangle * (FeGroup::*)(float, float, float, float)>(_SC("add_rectangle"), &FeGroup::add_rectangle)
+		.Overload<FeModel3D * (FeGroup::*)(const char *)>(_SC("add_model_3d"), &FeGroup::add_model_3d)
+		.Overload<Sqrat::Object (FeGroup::*)(FeBasePresentable *)>(_SC("add_clone"), &FeGroup::script_add_clone)
+		.Overload<FeImage * (FeGroup::*)(float, float)>(_SC("add_surface"), &FeGroup::add_surface)
+		.Overload<FeImage * (FeGroup::*)(float, float, float, float)>(_SC("add_surface"), &FeGroup::add_surface)
+		.Overload<FeImage * (FeGroup::*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeGroup::add_surface)
 	);
 
 	fe.Bind( _SC("Model3DObject"),
@@ -1682,6 +1767,9 @@ bool FeVM::on_new_layout()
 
 	fe.Bind( _SC("PresentableParent"), Class <FePresentableParent, NoConstructor>()
 		.Prop( _SC("grid"), &FePresentableParent::get_grid_view )
+		.Overload<FeGroup * (FePresentableParent::*)()>(_SC("add_group"), &FePresentableParent::add_group)
+		.Overload<FeGroup * (FePresentableParent::*)(float, float)>(_SC("add_group"), &FePresentableParent::add_group)
+		.Overload<FeGroup * (FePresentableParent::*)(float, float, float, float)>(_SC("add_group"), &FePresentableParent::add_group)
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float, float, float)>(_SC("add_image"), &FePresentableParent::add_image)
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_image"), &FePresentableParent::add_image)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_image"), &FePresentableParent::add_image)
@@ -1689,8 +1777,7 @@ bool FeVM::on_new_layout()
 		.Overload<FeImage * (FePresentableParent::*)(const char *, float, float)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Overload<FeImage * (FePresentableParent::*)(const char *)>(_SC("add_artwork"), &FePresentableParent::add_artwork)
 		.Func( _SC("add_model_3d"), &FePresentableParent::add_model_3d )
-		.Overload<FeImage * (FePresentableParent::*)(FeImage *)>( _SC("add_clone"), &FePresentableParent::add_clone )
-		.Overload<FeModel3D * (FePresentableParent::*)(FeModel3D *)>( _SC("add_clone"), &FePresentableParent::add_clone )
+		.Func( _SC("add_clone"), &FePresentableParent::script_add_clone )
 		.Func( _SC("add_text"), &FePresentableParent::add_text )
 		.Func( _SC("add_listbox"), &FePresentableParent::add_listbox )
 		.Func( _SC("add_rectangle"), &FePresentableParent::add_rectangle )
@@ -1763,6 +1850,25 @@ bool FeVM::on_new_layout()
 	fe.Overload<FeImage* (*)(float, float, float, float, int, int)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float, float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
 	fe.Overload<FeImage* (*)(float, float)>(_SC("add_surface"), &FeVM::cb_add_surface);
+	fe.Overload<FeGroup* (*)()>(_SC("add_group"), &FeVM::cb_add_group);
+	fe.Overload<FeGroup* (*)(float, float)>(_SC("add_group"), &FeVM::cb_add_group);
+	fe.Overload<FeGroup* (*)(float, float, float, float)>(_SC("add_group"), &FeVM::cb_add_group);
+	for ( HSQOBJECT table : { fe.GetObject(), ClassType<FeGroup>::ClassObject(vm),
+		ClassType<FeImage>::ClassObject(vm), ClassType<FePresentableParent>::ClassObject(vm) } )
+		for ( const char *name : { "add_group", "add_image", "add_artwork", "add_clone",
+			"add_text", "add_listbox", "add_rectangle", "add_surface", "add_model_3d", "add_item" } )
+		{
+			sq_pushobject( vm, table );
+			sq_pushstring( vm, name, -1 );
+			sq_pushstring( vm, name, -1 );
+			if ( SQ_SUCCEEDED( sq_get( vm, -3 ) ) )
+			{
+				sq_newclosure( vm, script_presentable_factory, 1 );
+				sq_newslot( vm, -3, SQFalse );
+				sq_pop( vm, 1 );
+			}
+			else sq_pop( vm, 2 );
+		}
 	fe.Overload<FeSound* (*)(const char *, bool)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeSound* (*)(const char *)>(_SC("add_sound"), &FeVM::cb_add_sound);
 	fe.Overload<FeMusic* (*)(const char *)>(_SC("add_music"), &FeVM::cb_add_music);
@@ -3376,6 +3482,24 @@ FeImage* FeVM::cb_add_surface( float x, float y, float w, float h, int texture_w
 	obj.Append( ret );
 
 	return ret;
+}
+
+FeGroup *FeVM::cb_add_group()
+{
+	auto *present = static_cast<FeVM *>( sq_getforeignptr( Sqrat::DefaultVM::Get() ) );
+	auto *group = present->m_mon[0].add_group();
+	Sqrat::Array( Sqrat::RootTable().GetSlot("fe").GetSlot("obj") ).Append( group );
+	return group;
+}
+
+FeGroup *FeVM::cb_add_group( float w, float h ) { return cb_add_group( 0, 0, w, h ); }
+
+FeGroup *FeVM::cb_add_group( float x, float y, float w, float h )
+{
+	auto *present = static_cast<FeVM *>( sq_getforeignptr( Sqrat::DefaultVM::Get() ) );
+	auto *group = present->m_mon[0].add_group( x, y, w, h );
+	if ( group ) Sqrat::Array( Sqrat::RootTable().GetSlot("fe").GetSlot("obj") ).Append( group );
+	return group;
 }
 
 FeSound* FeVM::cb_add_sound( const char *s, bool reuse )
