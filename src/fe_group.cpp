@@ -390,7 +390,7 @@ void FeBasePresentable::apply_group_geometry( FeRenderGeometry &geometry ) const
 		Color color = Color( vertex.r, vertex.g, vertex.b, vertex.a ) * tint;
 		vertex.r = color.r; vertex.g = color.g; vertex.b = color.b; vertex.a = color.a;
 	}
-	if ( geometry.mask_enabled && !geometry.mask_fit )
+	if ( geometry.mask_enabled && geometry.letterbox )
 		for ( int i = 0; i < 3; ++i )
 		{
 			float *point = geometry.mask_points + i * 3;

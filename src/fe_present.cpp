@@ -1063,14 +1063,14 @@ namespace
 			}
 			if ( entry.cutout_mode != 0 )
 				for ( FeRenderImagePlane *plane : { &entry.image_plane, &entry.cutout_plane, &entry.image_mask_plane, &entry.cutout_mask_plane } )
-					if ( plane->texture.texture_id )
+					if ( plane->texture.texture_id || plane->fill )
 						for ( int i = 0; i < 3; ++i )
 						{
 							const Vec2f p = transform.transformPoint( { plane->points[i * 3], plane->points[i * 3 + 1] } );
 							plane->points[i * 3] = p.x;
 							plane->points[i * 3 + 1] = p.y;
 						}
-			if ( entry.mask_enabled && !entry.mask_fit )
+			if ( entry.mask_enabled && entry.letterbox )
 			{
 				for ( int i = 0; i < 3; ++i )
 				{
@@ -1102,7 +1102,7 @@ namespace
 				if ( image->build_render_geometry( foreground ) )
 				{
 					FeRenderGeometry background;
-					if ( image->build_mask_background( background, foreground ) )
+					if ( image->build_letterbox( background, foreground ) )
 					{
 						image->apply_group_geometry( background );
 						geometry.push_back( std::move( background ) );
@@ -1295,10 +1295,10 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.pbr_collapse_group ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.custom_shader ? 1 : 0 ) );
 		seed = hash_combine( seed, geometry.mask_enabled ? 1 : 0 );
+		seed = hash_combine( seed, geometry.letterbox ? 1 : 0 );
 		if ( geometry.mask_enabled )
 		{
-			seed = hash_combine( seed, geometry.mask_fit ? 1 : 0 );
-			if ( !geometry.mask_fit )
+			if ( geometry.letterbox )
 			{
 				for ( float value : geometry.mask_points ) seed = hash_float_bits( seed, value );
 				for ( float value : geometry.mask_size ) seed = hash_float_bits( seed, value );
