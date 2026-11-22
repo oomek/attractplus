@@ -91,7 +91,7 @@ public:
 	bool getNoMargin();
 	void setMargin( int );
 	int getMargin();
-	void setOutlineThickness( float );
+	void setOutlineThickness( float, bool raster = false );
 	float getOutlineThickness();
 	void setTextScale( const Vec2f & );
 	void setFrom( const FeTextPrimitive &c );
@@ -103,10 +103,10 @@ public:
 	Color getOutlineColor() const;
 	Color getBgOutlineColor() const;
 	unsigned int getCharacterSize() const;
-	unsigned int getGlyphSize() const;
+	float getGlyphSize() const;
 	float getCharacterSpacing() const;
 	float getLineSpacing() const;
-	int getLineSpacingFactored( const FeFont *, int ) const;
+	float getLineSpacingFactored( const FeFont *, float ) const;
 	FeAlign getAlignment() const;
 	Case getCase() const;
 	Vec2f getPosition() const;

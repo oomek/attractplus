@@ -600,7 +600,7 @@ void FeJustifyText::justifySpacing(float &whitespaceWidth, float &letterSpacing,
         x += glyph.advance + letterSpacing;
     }
 
-    float gap = m_width - ( maxX - minX );
+    float gap = m_width - (m_font->isHinted() ? maxX - minX : x);
 
     if ( m_justify == Word && spaces > 0 )
     {
@@ -685,7 +685,7 @@ void FeJustifyText::ensureGeometryUpdate() const
         x += m_font->getKerning(prevChar, curChar, m_characterSize, isBold);
 
         // Justify may result is sub-pixel positions - round to prevent blur
-        px = is_justify ? std::round(x) : x; // AM+
+        px = is_justify && m_font->isHinted() ? std::round(x) : x; // AM+
 
         // If we're using the underlined style and there's a new line, draw a line
         if (isUnderlined && (curChar == U'\n' && prevChar != U'\n'))
@@ -775,7 +775,7 @@ void FeJustifyText::ensureGeometryUpdate() const
     }
 
     // Justify may result is sub-pixel positions - round to prevent blur
-    px = is_justify ? std::round(x) : x; // AM+
+    px = is_justify && m_font->isHinted() ? std::round(x) : x; // AM+
 
     // If we're using the underlined style, add the last line
     if (isUnderlined && (x > 0))
@@ -798,4 +798,9 @@ void FeJustifyText::ensureGeometryUpdate() const
     // Update the bounding rectangle
     m_bounds.position = Vec2f( minX, minY );
     m_bounds.size = Vec2f( maxX - minX, maxY - minY );
+    if (!m_font->isHinted())
+    {
+        m_bounds.position.x = 0.f;
+        m_bounds.size.x = x;
+    }
 }

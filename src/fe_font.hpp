@@ -53,6 +53,9 @@ public:
 
 	void setSmooth( bool smooth );
 	bool isSmooth() const;
+	bool isHinted() const { return m_hinted; }
+	const FeFont &getUnhinted() const;
+	float getCapHeight( unsigned int size ) const { return m_cap_height * size; }
 	std::size_t memory_bytes() const;
 
 private:
@@ -95,6 +98,9 @@ private:
 
 	std::shared_ptr<FontHandles> m_fontHandles;
 	bool m_isSmooth;
+	bool m_hinted{true};
+	float m_cap_height{};
+	mutable std::unique_ptr<FeFont> m_unhinted;
 	mutable PageTable m_pages;
 	mutable std::vector<std::uint8_t> m_pixelBuffer;
 	std::shared_ptr<FeInputStream> m_stream;

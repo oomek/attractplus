@@ -2109,6 +2109,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `bg_outline_blue` - Get/set blue colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_alpha` - Get/set alpha level for the text background outline. Range is `[0...255]`. Default value is `0` (transparent).
 -  `char_size` - Get/set the forced character size in vertical grid units. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
+-  `scale` - Get/set smooth text scaling with the parent grid. Default is `false`, keeping glyph size and outline fixed until `char_size` or `outline` is assigned. When `true`, unhinted power-of-two atlas sizes are prepared and sampled with mipmaps and a `-0.50` LOD bias. Resizing reuses cached fill and outline glyphs and preserves custom shaders. Prepared sizes span one quarter to four times the initial base power of two, using the nearest cached size outside that range.
 -  `glyph_size` - Get the height of the capital letter in vertical grid units. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
