@@ -2382,9 +2382,9 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `anchor_y` - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_y` - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `corner_radius` - Get/set the corner radius (in pixels). This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
--  `corner_radius_x` - Get/set the corner x radius (in pixels). Default value is `0.0`.
--  `corner_radius_y` - Get/set the corner y radius (in pixels). Default value is `0.0`.
+-  `corner_radius` - Get/set the corner radius in vertical grid units. This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
+-  `corner_radius_x` - Get/set the corner x radius in horizontal grid units. Default value is `0.0`.
+-  `corner_radius_y` - Get/set the corner y radius in vertical grid units. Default value is `0.0`.
 -  `corner_ratio` - Get/set the corner radius as a fraction of the smallest side. This property will adjust the radius to preserve corner roundness when set. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_x` - Get/set the corner x radius as a fraction of the width. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_y` - Get/set the corner y radius as a fraction of the height. Range is `[0.0...0.5]`. Default value is `0.0`.
@@ -2412,7 +2412,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `set_transform_origin( x, y )` - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
--  `set_corner_radius( x, y )` - Set the corner x and y radius (in pixels).
+-  `set_corner_radius( x, y )` - Set the corner x and y radius in horizontal and vertical grid units.
 -  `set_corner_ratio( x, y )` - Set the corner x and y radius as a fraction of the width and height. Range is `[0.0...0.5]`.
 
 ---

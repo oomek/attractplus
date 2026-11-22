@@ -435,12 +435,14 @@ void FeRectangle::refresh_script_geometry()
 
 float FeRectangle::get_corner_radius() const
 {
-	return m_corner_radius.x;
+	return m_corner_auto ? m_corner_radius.x
+		: pixels_to_grid_height( m_corner_radius.x * grid_transform().scale.x );
 }
 
 float FeRectangle::get_corner_radius_x() const
 {
-	return m_corner_radius.x;
+	return m_corner_auto ? pixels_to_grid_width( grid_height_to_pixels( m_corner_radius.x ) )
+		: m_corner_radius.x;
 }
 
 float FeRectangle::get_corner_radius_y() const
@@ -463,6 +465,7 @@ void FeRectangle::set_corner_radius_y( float ry )
 {
 	if ( m_corner_radius.y != ry || m_corner_ratio_y || m_corner_auto )
 	{
+		m_corner_radius.x = get_corner_radius_x();
 		m_corner_auto = false;
 		m_corner_ratio_y = false;
 		m_corner_radius.y = ry;
@@ -526,6 +529,7 @@ void FeRectangle::set_corner_ratio_y( float ry )
 {
 	if ( m_corner_ratio.y != ry || !m_corner_ratio_y || m_corner_auto )
 	{
+		m_corner_radius.x = get_corner_radius_x();
 		m_corner_auto = false;
 		m_corner_ratio_y = true;
 		m_corner_ratio.y = ry;
@@ -591,8 +595,10 @@ void FeRectangle::update_corner_radius()
 	float my = std::max( DELTA, std::fabs( m_size.y ) - DELTA );
 	float mx2 = mx / 2;
 	float my2 = my / 2;
-	float cx = std::fabs( m_corner_radius.x );
-	float cy = std::fabs( m_corner_radius.y );
+	const Vec2f radius = grid_transform().size( m_corner_radius );
+	// A single radius uses vertical grid units on both axes to stay round.
+	float cx = std::fabs( m_corner_auto ? radius.y : radius.x );
+	float cy = std::fabs( radius.y );
 	if ( m_corner_auto && cx > mx2 ) cy = mx2 / cx * cy;
 	if ( m_corner_auto && cy > my2 ) cx = my2 / cy * cx;
 	float rx = std::min( mx2, cx );
@@ -617,14 +623,14 @@ void FeRectangle::update_corner_ratio()
 		if ( m_corner_auto )
 		{
 			// If AUTO use the smallest side for the radius
-			float s = m_corner_ratio.x * std::min( mx, my );
+			float s = pixels_to_grid_height( m_corner_ratio.x * std::min( mx, my ) );
 			m_corner_radius = Vec2f( s, s );
 		}
 		else
 		{
 			// Otherwise calc ratios for each axis
-			if ( m_corner_ratio_x ) m_corner_radius.x = m_corner_ratio.x * mx;
-			if ( m_corner_ratio_y ) m_corner_radius.y = m_corner_ratio.y * my;
+			if ( m_corner_ratio_x ) m_corner_radius.x = pixels_to_grid_width( m_corner_ratio.x * mx );
+			if ( m_corner_ratio_y ) m_corner_radius.y = pixels_to_grid_height( m_corner_ratio.y * my );
 		}
 	}
 
