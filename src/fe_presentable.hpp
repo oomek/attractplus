@@ -35,6 +35,7 @@ class FeSettings;
 class FeShader;
 class FePresentableParent;
 class FeGroup;
+class FeImage;
 
 namespace Sqrat
 {
@@ -130,6 +131,7 @@ private:
 	Color m_detached_color = Color::White;
 	std::shared_ptr<Sqrat::Object> m_script_object;
 	FeShader *m_shader;
+	FeImage *m_clip = nullptr;
 	bool m_visible;
 	bool m_zbuffer;
 	float m_z;
@@ -153,6 +155,7 @@ protected:
 
 public:
 	FeBasePresentable( FePresentableParent &p );
+	FeBasePresentable( const FeBasePresentable &source );
 	FeBasePresentable( const FeBasePresentable *source, FePresentableParent &p );
 	virtual ~FeBasePresentable();
 
@@ -195,6 +198,11 @@ public:
 	Sqrat::Object get_script_object();
 	static Sqrat::Object script_get_group( FeBasePresentable *item );
 	static void script_set_group( FeBasePresentable *item, Sqrat::Object value );
+	FeImage *get_clip() const;
+	void set_clip( FeImage *image );
+	static Sqrat::Object script_get_clip( FeBasePresentable *item );
+	static void script_set_clip( FeBasePresentable *item, Sqrat::Object value );
+	void apply_clip( FeRenderGeometry &geometry ) const;
 
 	//
 	// Accessor functions used in scripting implementation

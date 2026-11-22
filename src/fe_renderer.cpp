@@ -284,6 +284,7 @@ FeRenderGeometry::FeRenderGeometry()
 
 void FeRenderGeometry::clear()
 {
+	clips.clear();
 	vertices.clear();
 	pbr_instances.clear();
 	external_vertices = nullptr;

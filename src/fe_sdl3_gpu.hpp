@@ -234,6 +234,7 @@ private:
 		int slot;
 		bool current_texture;
 		int coverage_texture = 0;
+		int clip_texture = 0;
 		bool mask_texture = false;
 		FeImage *image;
 
@@ -256,6 +257,7 @@ private:
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *blend_pipelines[DepthPipelineCount][FeBlend::None + 1];
 		SDL_GPUGraphicsPipeline *mask_prepass_pipeline = nullptr;
+		SDL_GPUShader *prepass_fragment_shader = nullptr;
 		std::vector<CustomUniformBinding> vertex_uniforms;
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
@@ -286,6 +288,8 @@ private:
 		std::shared_ptr<void> fragment_compile;
 		SDL_GPUShader *fragment_shader;
 		SDL_GPUGraphicsPipeline *pbr_pipelines[DepthPipelineCount][2][2];
+		SDL_GPUGraphicsPipeline *clip_prepass_pipelines[2] = {};
+		SDL_GPUShader *prepass_fragment_shader = nullptr;
 		std::vector<CustomUniformBinding> fragment_uniforms;
 		std::vector<CustomSamplerBinding> fragment_samplers;
 
@@ -382,6 +386,9 @@ private:
 	bool create_custom_shader_entry( const FeRenderGeometry &image, CustomShaderEntry &entry );
 	bool create_builtin_blend_shader_entry( int blend_mode, const FeRenderGeometry &image, CustomShaderEntry &entry );
 	bool create_pbr_custom_shader_entry( const FeRenderGeometry &image, PbrCustomShaderEntry &entry );
+	void add_clip_shader( const FeRenderGeometry &image, std::string &source,
+		std::vector<CustomSamplerBinding> &samplers, int first_slot = 0 );
+	bool get_clip_sampler( const FeRenderGeometry &image, int index, SDL_GPUTextureSamplerBinding &binding );
 	bool create_fast_builtin_shader_entry( int blend_mode, BuiltinShaderEntry &entry );
 	bool build_custom_fragment_shader_from_source(
 		const FeRenderGeometry &image,

@@ -1043,6 +1043,14 @@ namespace
 
 		for ( FeRenderGeometry &entry : geometry )
 		{
+			for ( auto &clip : entry.clips )
+				for ( auto *plane : { &clip.image, &clip.mask } )
+					for ( int i = 0; i < 3; ++i )
+					{
+						const Vec2f p = transform.transformPoint( { plane->points[i * 3], plane->points[i * 3 + 1] } );
+						plane->points[i * 3] = p.x;
+						plane->points[i * 3 + 1] = p.y;
+					}
 			if ( entry.geometry_kind == FeRenderGeometryObjectPbr )
 			{
 				apply_object_geometry_transform( entry, transform );
@@ -1122,7 +1130,12 @@ namespace
 				text->build_render_geometry( geometry );
 			else if ( const auto *listbox = dynamic_cast<const FeListBox *>( item ) )
 				listbox->build_render_geometry( geometry );
-			if ( begin != geometry.size() ) on_geometry( *item, begin );
+			if ( begin != geometry.size() )
+			{
+				item->apply_clip( geometry[begin] );
+				for ( std::size_t i = begin + 1; i < geometry.size(); ++i ) geometry[i].clips = geometry[begin].clips;
+				on_geometry( *item, begin );
+			}
 		}
 	}
 
@@ -1267,6 +1280,18 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 	};
 	auto hash_geometry = [&]( const FeRenderGeometry &geometry, std::uint64_t seed, std::uint64_t vertex_version = 0 ) -> std::uint64_t
 	{
+		seed = hash_combine( seed, geometry.clips.size() );
+		for ( const auto &clip : geometry.clips )
+			for ( const auto *plane : { &clip.image, &clip.mask } )
+			{
+				seed = hash_texture_binding( plane->texture, seed );
+				seed = hash_combine( seed, plane->fill );
+				seed = hash_combine( seed, plane->clip );
+				seed = hash_combine( seed, plane->empty ? 1 : 0 );
+				for ( float value : plane->points ) seed = hash_float_bits( seed, value );
+				for ( float value : plane->source_border ) seed = hash_float_bits( seed, value );
+				for ( float value : plane->dest_border ) seed = hash_float_bits( seed, value );
+			}
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.geometry_kind ) );
 		seed = hash_combine( seed, reinterpret_cast<std::uint64_t>( geometry.texture_id ) );
 		seed = hash_combine( seed, static_cast<std::uint64_t>( geometry.texture_source_type ) );
@@ -1424,6 +1449,9 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 			add_binding_dependency( geometry.cutout_plane.texture, current_surface, dependencies );
 			add_binding_dependency( geometry.image_mask_plane.texture, current_surface, dependencies );
 			add_binding_dependency( geometry.cutout_mask_plane.texture, current_surface, dependencies );
+			for ( const auto &clip : geometry.clips )
+				for ( const auto *plane : { &clip.image, &clip.mask } )
+					add_binding_dependency( plane->texture, current_surface, dependencies );
 			if ( geometry.geometry_kind == FeRenderGeometryObjectPbr )
 			{
 				add_binding_dependency( geometry.pbr_material.base_color_texture, current_surface, dependencies );
@@ -1513,6 +1541,12 @@ void FePresent::build_render_surface_frames( std::vector<FeRenderSurfaceFrame> &
 		for ( const FeRenderGeometry &geometry : frame.geometry )
 		{
 			frame.content_signature = hash_combine( frame.content_signature, geometry.texture_content_version );
+			for ( const auto &clip : geometry.clips )
+				for ( const auto *plane : { &clip.image, &clip.mask } )
+				{
+					frame.content_signature = hash_combine( frame.content_signature, plane->texture.content_version );
+					frame.dynamic_content = frame.dynamic_content || ( plane->texture.dynamic && plane->texture.content_version == 0 );
+				}
 			for ( const auto *plane : { &geometry.cutout_plane, &geometry.image_mask_plane, &geometry.cutout_mask_plane } )
 			{
 				frame.content_signature = hash_combine( frame.content_signature, plane->texture.content_version );

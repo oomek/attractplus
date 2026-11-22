@@ -1756,6 +1756,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 
 FeImage::~FeImage()
 {
+	while ( !m_clip_users.empty() ) m_clip_users.back()->set_clip( nullptr );
 	m_tex->unregister_image( this );
 	set_cutout( nullptr );
 	if ( !m_cutout_users.empty() )
