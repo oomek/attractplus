@@ -353,9 +353,9 @@ private:
 	void build_pbr_instance_batches( std::vector<PreparedImage> &prepared_images, std::vector<PbrInstanceEntry> &instance_data ) const;
 	int get_requested_anisotropy() const;
 	bool update_anisotropy();
-	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth, bool aniso = true );
-	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth, bool aniso = true );
-	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso ) const;
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode, bool mipmapped, bool smooth, bool aniso = true, float lod_bias = 0.f );
+	SDL_GPUSampler *create_sampler( SDL_GPUFilter filter, SDL_GPUSamplerMipmapMode mipmap_mode, SDL_GPUSamplerAddressMode address_mode_u, SDL_GPUSamplerAddressMode address_mode_v, bool mipmapped, bool smooth, bool aniso = true, float lod_bias = 0.f );
+	SDL_GPUSampler *get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso, bool font = false ) const;
 	SDL_GPUSampleCount get_requested_sample_count() const;
 	SDL_GPUSampleCount pick_sample_count( SDL_GPUTextureFormat swapchain_format ) const;
 	bool update_sample_count( SDL_GPUTextureFormat swapchain_format );
@@ -514,6 +514,7 @@ private:
 	SDL_GPUSampler *m_isotropic_mipmap_sampler;
 	SDL_GPUSampler *m_isotropic_mipmap_repeat_sampler;
 	SDL_GPUSampler *m_isotropic_mipmap_cubemap_sampler;
+	SDL_GPUSampler *m_font_mipmap_samplers[2]{};
 	SDL_GPUSampler *m_nearest_sampler;
 	SDL_GPUSampler *m_nearest_repeat_sampler;
 	SDL_GPUSampler *m_nearest_mipmap_sampler;

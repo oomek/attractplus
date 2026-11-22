@@ -27,6 +27,7 @@
 #include "fe_present.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <iostream>
 
 FeText::FeText( FePresentableParent &p, const std::string &str,
@@ -56,7 +57,9 @@ FeText::FeText( FePresentableParent &p, const std::string &str,
 
 void FeText::setFont( const FeFont &f )
 {
-	m_draw_text.setFont( f );
+	m_font = &f;
+	m_glyphs_dirty = true;
+	m_draw_text.setFont( m_text_scale ? f.getUnhinted() : f );
 }
 
 Vec2f FeText::getPosition() const
@@ -306,11 +309,61 @@ void FeText::update_font_size()
 	else if ( size.y > 12 )
 		char_size = size.y - 4;
 
-	unsigned int scaled_char_size = static_cast<unsigned int>(
-		std::round( std::max( 1.0f, char_size * m_scale_factor )));
+	if ( m_pixel_charsize < 0.f )
+		m_pixel_charsize = std::max( 1.f, char_size );
 
-	m_draw_text.setTextScale( Vec2f( 1.f / m_scale_factor, 1.f / m_scale_factor ) );
-	m_draw_text.setCharacterSize( scaled_char_size );
+	float scale = 1.f / m_scale_factor;
+	if ( m_text_scale )
+	{
+		const float desired = std::max( 1.f, char_size * m_scale_factor );
+		m_raster_size = m_first_size;
+		while ( m_raster_size < m_last_size && desired > m_raster_size )
+			m_raster_size *= 2;
+		scale *= desired / m_raster_size;
+	}
+	else
+		m_raster_size = static_cast<unsigned int>( std::round(
+			std::max( 1.f, m_pixel_charsize * m_scale_factor )));
+
+	m_draw_text.setTextScale( Vec2f( scale, scale ) );
+	m_draw_text.setCharacterSize( m_raster_size );
+	update_outline();
+}
+
+void FeText::prepare_glyphs( const std::string &str )
+{
+	if ( !m_text_scale || !m_font )
+		return;
+	if ( !m_glyphs_dirty && str == m_prepared_string )
+		return;
+
+	// Five doubled levels, prepared for all characters before any group resize.
+	const unsigned int base = 1u << static_cast<unsigned int>( std::clamp(
+		std::floor( std::log2( std::max( 1.f, m_pixel_charsize * m_scale_factor ))), 0.f, 10.f ));
+	m_first_size = std::max( 1u, base / 4 );
+	m_last_size = base * 4;
+	const FeFont &font = m_font->getUnhinted();
+	const bool bold = m_draw_text.getStyle() & FeJustifyText::Bold;
+	auto chars = utf8_to_utf32( str + " Xx" );
+	if ( m_draw_text.getCase() & FeTextPrimitive::Capitalize )
+	{
+		const auto count = chars.size();
+		for ( std::size_t i = 0; i < count; ++i )
+			chars += std::toupper( chars[i] );
+	}
+	for ( unsigned int size = m_first_size; size <= m_last_size; size *= 2 )
+		for ( auto c : chars )
+		{
+			if ( c == '\n' || c == '\r' )
+				continue;
+			if ( m_draw_text.getCase() & FeTextPrimitive::Uppercase ) c = std::toupper( c );
+			if ( m_draw_text.getCase() & FeTextPrimitive::Lowercase ) c = std::tolower( c );
+			font.getGlyph( c, size, bold );
+			if ( m_pixel_outline > 0.f )
+				font.getGlyph( c, size, bold, m_outline_ratio * size );
+		}
+	m_prepared_string = str;
+	m_glyphs_dirty = false;
 }
 
 void FeText::update_margin()
@@ -327,7 +380,10 @@ void FeText::update_margin()
 
 void FeText::update_outline()
 {
-	m_draw_text.setOutlineThickness( grid_height_to_pixels( m_outline ));
+	if ( m_text_scale )
+		m_draw_text.setOutlineThickness( m_outline_ratio * m_raster_size, true );
+	else
+		m_draw_text.setOutlineThickness( m_pixel_outline );
 	m_draw_text.setBgOutlineThickness( grid_height_to_pixels( m_bg_outline ));
 }
 
@@ -362,6 +418,8 @@ void FeText::on_new_selection( FeSettings *feSettings )
 
 	m_magic = feSettings->do_text_substitutions( str, get_effective_filter_offset(), get_effective_index_offset() ) || m_magic;
 
+	prepare_glyphs( str );
+	update_font_size();
 	m_draw_text.setString( str );
 }
 
@@ -384,6 +442,13 @@ void FeText::set_scale_factor( float scale_x, float scale_y )
 void FeText::refresh_script_geometry()
 {
 	FeBasePresentable::refresh_script_geometry();
+	if ( !m_geometry_initialized )
+	{
+		m_geometry_initialized = true;
+		m_pixel_charsize = -1.f;
+		update_font_size();
+		FePresent::script_do_update( this );
+	}
 	update_transform();
 	update_font_size();
 	update_margin();
@@ -453,10 +518,11 @@ float FeText::get_margin()
 void FeText::set_outline( float t )
 {
 	t = std::max( 0.0f, t );
-	if ( t == m_outline )
-		return;
-
 	m_outline = t;
+	m_pixel_outline = grid_height_to_pixels( t );
+	m_outline_ratio = m_user_charsize > 0.f ? t / m_user_charsize
+		: m_pixel_outline / std::max( 1.f, m_size.y > 12.f ? m_size.y - 4.f : 8.f );
+	m_glyphs_dirty = true;
 	update_outline();
 	FePresent::script_do_update( this );
 }
@@ -804,12 +870,24 @@ void FeText::set_outline_rgb( int r, int g, int b, int a )
 
 void FeText::set_charsize(float s)
 {
-	if ( s != m_user_charsize )
-	{
-		m_user_charsize = s;
-		update_font_size();
-		FePresent::script_do_update( this );
-	}
+	m_user_charsize = s;
+	m_glyphs_dirty = true;
+	m_pixel_charsize = -1.f;
+	update_font_size();
+	m_outline_ratio = s > 0.f ? m_outline / s
+		: grid_height_to_pixels( m_outline ) / m_pixel_charsize;
+	FePresent::script_do_update( this );
+}
+
+void FeText::set_scale( bool scale )
+{
+	if ( scale == m_text_scale )
+		return;
+	m_text_scale = scale;
+	m_glyphs_dirty = true;
+	if ( m_font )
+		m_draw_text.setFont( scale ? m_font->getUnhinted() : *m_font );
+	FePresent::script_do_update( this );
 }
 
 void FeText::set_spacing(float s)
@@ -832,7 +910,8 @@ void FeText::set_style(int s)
 	if ( s != m_draw_text.getStyle() )
 	{
 		m_draw_text.setStyle(s);
-		FePresent::script_flag_redraw();
+		m_glyphs_dirty = true;
+		FePresent::script_do_update( this );
 	}
 }
 
@@ -860,6 +939,7 @@ void FeText::set_case(int c)
 	if ( c != m_draw_text.getCase() )
 	{
 		m_draw_text.setCase( (FeTextPrimitive::Case)c );
+		m_glyphs_dirty = true;
 		FePresent::script_do_update( this );
 	}
 }

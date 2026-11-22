@@ -1475,6 +1475,7 @@ bool FeVM::on_new_layout()
 		// "charsize" deprecated, use the char_size property instead
 		.Prop(_SC("charsize"), &FeText::get_charsize, &FeText::set_charsize )
 		.Prop(_SC("char_size"), &FeText::get_charsize, &FeText::set_charsize )
+		.Prop(_SC("scale"), &FeText::get_scale, &FeText::set_scale )
 		.Prop(_SC("glyph_size"), &FeText::get_glyph_size )
 		ANIM_PROP( _SC("char_spacing"), &FeText::get_spacing, &FeText::set_spacing )
 		ANIM_PROP( _SC("line_spacing"), &FeText::get_line_spacing, &FeText::set_line_spacing )

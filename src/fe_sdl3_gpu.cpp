@@ -50,6 +50,7 @@
 namespace
 {
 	const int FE_MAX_CUSTOM_SHADER_UNIFORMS = 32;
+	const float FE_FONT_LOD_BIAS = -0.50f;
 
 	bool save_rgba_png( const std::string &filename, int width, int height, const std::uint8_t *pixels )
 	{
@@ -4019,6 +4020,8 @@ bool FeSdl3GpuContext::upload_texture( const void *texture_id, int texture_sourc
 	texture_info.height = upload_height;
 	texture_info.layer_count_or_depth = upload_layers;
 	texture_info.num_levels = entry.mipmapped ? get_mip_level_count( upload_width, upload_height ) : 1;
+	if ( direct_font_page && entry.mipmapped )
+		texture_info.num_levels = 2;
 	texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
 	texture_info.props = 0;
 
@@ -4403,6 +4406,11 @@ void FeSdl3GpuContext::release_pipeline( SDL_GPUGraphicsPipeline *pipeline )
 void FeSdl3GpuContext::release_image_pipeline()
 {
 	release_builtin_shaders();
+	for ( auto &sampler : m_font_mipmap_samplers )
+	{
+		if ( sampler ) SDL_ReleaseGPUSampler( m_device, sampler );
+		sampler = nullptr;
+	}
 	for ( SDL_GPUSampler **sampler : { &m_isotropic_mipmap_sampler,
 		&m_isotropic_mipmap_repeat_sampler, &m_isotropic_mipmap_cubemap_sampler } )
 	{
@@ -4713,9 +4721,10 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	SDL_GPUSamplerAddressMode address_mode,
 	bool mipmapped,
 	bool smooth,
-	bool aniso )
+	bool aniso,
+	float lod_bias )
 {
-	return create_sampler( filter, mipmap_mode, address_mode, address_mode, mipmapped, smooth, aniso );
+	return create_sampler( filter, mipmap_mode, address_mode, address_mode, mipmapped, smooth, aniso, lod_bias );
 }
 
 SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
@@ -4725,7 +4734,8 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	SDL_GPUSamplerAddressMode address_mode_v,
 	bool mipmapped,
 	bool smooth,
-	bool aniso )
+	bool aniso,
+	float lod_bias )
 {
 	SDL_GPUSamplerCreateInfo sampler_info = {};
 	sampler_info.min_filter = filter;
@@ -4734,7 +4744,7 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	sampler_info.address_mode_u = address_mode_u;
 	sampler_info.address_mode_v = address_mode_v;
 	sampler_info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-	sampler_info.mip_lod_bias = 0.0f;
+	sampler_info.mip_lod_bias = lod_bias;
 	sampler_info.max_anisotropy = 1.0f;
 	sampler_info.compare_op = SDL_GPU_COMPAREOP_ALWAYS;
 	sampler_info.min_lod = 0.0f;
@@ -4763,12 +4773,14 @@ SDL_GPUSampler *FeSdl3GpuContext::create_sampler(
 	return SDL_CreateGPUSampler( m_device, &sampler_info );
 }
 
-SDL_GPUSampler *FeSdl3GpuContext::get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso ) const
+SDL_GPUSampler *FeSdl3GpuContext::get_image_sampler( bool smooth, bool repeated, bool mipmapped, bool aniso, bool font ) const
 {
 	if ( smooth )
 	{
 		if ( mipmapped )
 		{
+			if ( font )
+				return m_font_mipmap_samplers[aniso ? 1 : 0];
 			if ( !aniso )
 				return repeated ? m_isotropic_mipmap_repeat_sampler : m_isotropic_mipmap_sampler;
 			return repeated ? m_linear_mipmap_repeat_sampler : m_linear_mipmap_sampler;
@@ -6804,7 +6816,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 			SDL_GPUTextureSamplerBinding samplers[2] = {};
 			samplers[0].texture = image.gpu_texture;
-			samplers[0].sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
+			samplers[0].sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso,
+				image.geometry->texture_source_type == FeRenderTextureSourceFontPage );
 			SDL_GPUGraphicsPipeline *prepass = m_alpha_prepass_pipeline;
 			if ( image.geometry->mask_enabled )
 			{
@@ -7410,7 +7423,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		{
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso,
+				image.geometry->texture_source_type == FeRenderTextureSourceFontPage );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
 		else if ( image.custom_shader && !image.custom_shader->fragment_samplers.empty() )
@@ -7515,7 +7529,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 
 				SDL_GPUTextureSamplerBinding sampler_binding = {};
 				sampler_binding.texture = sampler_texture;
-				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap, sampler_aniso );
+				sampler_binding.sampler = get_image_sampler( sampler_smooth, sampler_repeated, sampler_mipmap, sampler_aniso,
+					use_current_texture && image.geometry->texture_source_type == FeRenderTextureSourceFontPage );
 				sampler_bindings[sampler.slot] = sampler_binding;
 			}
 
@@ -7532,7 +7547,8 @@ bool FeSdl3GpuContext::render_prepared_geometry_batch(
 		{
 			SDL_GPUTextureSamplerBinding sampler_binding = {};
 			sampler_binding.texture = image.gpu_texture;
-			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso );
+			sampler_binding.sampler = get_image_sampler( image.texture_smooth, image.texture_repeated, image.texture_mipmap, image.geometry->texture_aniso,
+				image.geometry->texture_source_type == FeRenderTextureSourceFontPage );
 			SDL_BindGPUFragmentSamplers( render_pass, 0, &sampler_binding, 1 );
 		}
 		set_scissor( image.geometry );
@@ -8099,6 +8115,18 @@ bool FeSdl3GpuContext::initialize_image_pipeline( SDL_GPUTextureFormat swapchain
 		return false;
 	}
 
+	for ( int aniso = 0; aniso < 2; ++aniso )
+	{
+		m_font_mipmap_samplers[aniso] = create_sampler(
+			SDL_GPU_FILTER_LINEAR, SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+			SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE, true, true, aniso != 0, FE_FONT_LOD_BIAS );
+		if ( !m_font_mipmap_samplers[aniso] )
+		{
+			FeLog() << "SDL: initialize_image_pipeline: SDL_CreateGPUSampler failed for font mipmap sampler" << std::endl;
+			release_image_pipeline();
+			return false;
+		}
+	}
 	m_nearest_sampler = create_sampler(
 		SDL_GPU_FILTER_NEAREST,
 		SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,

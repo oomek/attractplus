@@ -203,12 +203,12 @@ void FeTextPrimitive::fit_string(
 
 	const FeFont *font = getFont();
 	unsigned int charsize = m_texts[0].getCharacterSize();
-	unsigned int spacing = charsize;
+	float spacing = charsize;
 	float width = m_bg_size.x / m_texts[0].getScale().x;
 
-	int running_total( 0 );
-	int running_width( 0 );
-	int kerning( 0 );
+	float running_total( 0 );
+	float running_width( 0 );
+	float kerning( 0 );
 
 	const FeGlyph *g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & FeJustifyText::Bold );
 
@@ -218,9 +218,9 @@ void FeTextPrimitive::fit_string(
 	if ( m_margin < 0 )
 		width -= spacing;
 	else
-		width -= m_margin * 2.0;
+		width -= m_margin * 2.f / m_texts[0].getScale().x;
 
-	if ( !edit_mode )
+	if ( !edit_mode && font->isHinted() )
 		running_total = -g->bounds.position.x;
 
 	// We need to adjust the width to make sure that at least one character is displayed per line
@@ -237,7 +237,8 @@ void FeTextPrimitive::fit_string(
 			}
 
 			g = &font->getGlyph( s[i], charsize, m_texts[0].getStyle() & FeJustifyText::Bold );
-			running_width = std::max( running_width, (int)( running_total + g->bounds.position.x + g->bounds.size.x ));
+			running_width = std::max( running_width, running_total + ( font->isHinted()
+				? g->bounds.position.x + g->bounds.size.x : g->advance ));
 			running_total += g->advance;
 
 			if ( s[i] == L' ' )
@@ -263,7 +264,8 @@ void FeTextPrimitive::fit_string(
 			kerning = font->getKerning( s[j], s[std::min( j + 1, (int)s.size() - 1 )], charsize );
 			running_total += kerning;
 			g = &font->getGlyph( s[j], charsize, m_texts[0].getStyle() & FeJustifyText::Bold );
-			running_width = std::max( running_width, (int)( running_total + g->bounds.position.x + g->bounds.size.x ));
+			running_width = std::max( running_width, running_total + ( font->isHinted()
+				? g->bounds.position.x + g->bounds.size.x : g->advance ));
 			running_total += g->advance;
 		}
 	}
@@ -366,9 +368,9 @@ Vec2f FeTextPrimitive::setString(
 	//
 	const FeFont *font = getFont();
 	const FeGlyph *glyph = &font->getGlyph( L'X', m_texts[0].getCharacterSize(), m_texts[0].getStyle() & FeJustifyText::Bold );
-	float glyphSize = glyph->bounds.size.y * m_texts[0].getScale().y;
+	float glyphSize = getGlyphSize();
 	FloatRect rectSize( m_bg_position.x, m_bg_position.y, m_bg_size.x, m_bg_size.y );
-	int spacing = getLineSpacingFactored( font, floorf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y ));
+	float spacing = getLineSpacingFactored( font, m_texts[0].getCharacterSize() * m_texts[0].getScale().y );
 
 	float margin = ( m_margin < 0 )
 		? font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y
@@ -412,7 +414,7 @@ Vec2f FeTextPrimitive::setString(
 		std::basic_string<std::uint32_t>(
 			t.data() + first_char,
 			t.data() + first_char + ( last_char - first_char + 1 ) ) );
-	m_texts[0].setWidth( fit_width );
+	m_texts[0].setWidth( fit_width / m_texts[0].getScale().x );
 	m_texts[0].setJustify(( !newlines.empty() && newlines[0] ) ? FeJustifyText::None : m_justify );
 
 	disp_cpos -= first_char;
@@ -435,7 +437,7 @@ Vec2f FeTextPrimitive::setString(
 				std::basic_string<std::uint32_t>(
 					t.data() + first_char,
 					t.data() + first_char + ( last_char - first_char + 1 ) ) );
-			m_texts.back().setWidth( fit_width );
+			m_texts.back().setWidth( fit_width / m_texts[0].getScale().x );
 			m_texts.back().setJustify( newlines[i] ? FeJustifyText::None : m_justify );
 			actual_line_count++;
 		}
@@ -464,10 +466,13 @@ void FeTextPrimitive::set_positions() const
 {
 	float charSize = m_texts[0].getCharacterSize() * m_texts[0].getScale().y;
 	float spacing = charSize;
-	int glyphSize = getGlyphSize();
+	float glyphSize = getGlyphSize();
 
 	const FeFont *font = getFont();
-	int margin = ( m_margin < 0 ) ? floorf( font->getLineSpacing( charSize ) / 2.0 ) : m_margin;
+	float margin = m_margin;
+	if ( margin < 0.f )
+		margin = font->isHinted() ? floorf( font->getLineSpacing( charSize ) / 2.f )
+			: font->getLineSpacing( m_texts[0].getCharacterSize() ) * m_texts[0].getScale().y / 2.f;
 	spacing = getLineSpacingFactored( font, spacing );
 
 	const Vec2f rectPos( m_bg_position );
@@ -487,7 +492,7 @@ void FeTextPrimitive::set_positions() const
 		textSize.position.x *= m_texts[i].getScale().x;
 
 		// outline compensation
-		float outline = ceilf( m_outline );
+		float outline = font->isHinted() ? ceilf( m_outline ) : m_outline;
 
 		// set position x
 		switch ( horizontal_align )
@@ -506,7 +511,8 @@ void FeTextPrimitive::set_positions() const
 			}
 		}
 
-		textPos.x -= textSize.position.x;
+		if ( font->isHinted() )
+			textPos.x -= textSize.position.x;
 
 		// set position y
 		switch ( vertical_align )
@@ -589,7 +595,7 @@ namespace
 		drawable.texture_source_type = texture ? FeRenderTextureSourceFontPage : FeRenderTextureSourceNone;
 		drawable.texture_repeated = false;
 		drawable.texture_smooth = texture ? texture_smooth : true;
-		drawable.texture_mipmap = false;
+		drawable.texture_mipmap = texture && !text.getFont().isHinted();
 		drawable.texture_width = texture ? static_cast<float>( texture_size.x ) : 1.0f;
 		drawable.texture_height = texture ? static_cast<float>( texture_size.y ) : 1.0f;
 		drawable.blend_mode = 0;
@@ -749,10 +755,12 @@ unsigned int FeTextPrimitive::getCharacterSize() const
 	return ceilf( m_texts[0].getCharacterSize() * m_texts[0].getScale().y );
 }
 
-unsigned int FeTextPrimitive::getGlyphSize() const
+float FeTextPrimitive::getGlyphSize() const
 {
 	const FeFont *font = getFont();
 	const int charSize = m_texts[0].getCharacterSize();
+	if ( !font->isHinted() )
+		return font->getCapHeight( charSize ) * m_texts[0].getScale().y;
 	const FeGlyph *glyph = &font->getGlyph( L'X', charSize, m_texts[0].getStyle() & FeJustifyText::Bold );
 	return floorf(glyph->bounds.size.y * m_texts[0].getScale().y);
 }
@@ -781,9 +789,12 @@ float FeTextPrimitive::getLineSpacing() const
 	return m_line_spacing;
 }
 
-int FeTextPrimitive::getLineSpacingFactored( const FeFont *font, int charsize ) const
+float FeTextPrimitive::getLineSpacingFactored( const FeFont *font, float charsize ) const
 {
-	return std::max( 1, (int)ceilf( font->getLineSpacing( charsize ) * m_line_spacing ));
+	if ( !font->isHinted() )
+		return std::max( 1.f, font->getLineSpacing( m_texts[0].getCharacterSize() ) *
+			m_texts[0].getScale().y * m_line_spacing );
+	return std::max( 1.f, ceilf( font->getLineSpacing( charsize ) * m_line_spacing ));
 }
 
 Vec2f FeTextPrimitive::getPosition() const
@@ -928,12 +939,12 @@ int FeTextPrimitive::getMargin()
 	return m_margin;
 }
 
-void FeTextPrimitive::setOutlineThickness( float t )
+void FeTextPrimitive::setOutlineThickness( float t, bool raster )
 {
 	if ( t < 0.0 ) t = 0.0;
-	m_outline = t;
+	m_outline = raster ? t * m_texts[0].getScale().x : t;
 	for ( unsigned int i=0; i < m_texts.size(); i++ )
-		m_texts[i].setOutlineThickness( m_outline / m_texts[0].getScale().x );
+		m_texts[i].setOutlineThickness( raster ? t : m_outline / m_texts[0].getScale().x );
 }
 
 float FeTextPrimitive::getOutlineThickness()

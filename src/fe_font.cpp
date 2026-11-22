@@ -37,17 +37,9 @@ void ft_close( FT_Stream )
 {
 }
 
-template <typename T, typename U>
-inline T reinterpret_bits( const U &input )
-{
-	T output;
-	std::memcpy( &output, &input, sizeof( U ) );
-	return output;
-}
-
 std::uint64_t combine_glyph_key( float outlineThickness, bool bold, std::uint32_t index )
 {
-	return ( std::uint64_t{ reinterpret_bits<std::uint32_t>( outlineThickness ) } << 32 ) |
+	return ( std::uint64_t{ static_cast<std::uint32_t>( static_cast<std::int32_t>( outlineThickness * 64.f )) } << 32 ) |
 		( std::uint64_t{ bold } << 31 ) |
 		index;
 }
@@ -120,7 +112,7 @@ FeFont::~FeFont()
 
 std::size_t FeFont::memory_bytes() const
 {
-	std::size_t bytes = m_pixelBuffer.capacity();
+	std::size_t bytes = m_pixelBuffer.capacity() + ( m_unhinted ? m_unhinted->memory_bytes() : 0 );
 	for ( const auto &page : m_pages )
 		bytes += page.second.pixels.capacity() + page.second.glyphs.size() * sizeof( FeGlyph );
 	return bytes;
@@ -230,6 +222,7 @@ bool FeFont::openFromStreamImpl( FeInputStream &stream, const std::string &type 
 
 void FeFont::cleanup()
 {
+	m_unhinted.reset();
 	m_fontHandles.reset();
 	m_pages.clear();
 	std::vector<std::uint8_t>().swap( m_pixelBuffer );
@@ -267,6 +260,12 @@ float FeFont::getKerning( std::uint32_t first, std::uint32_t second, unsigned in
 	{
 		const FT_UInt index1 = FT_Get_Char_Index( face, first );
 		const FT_UInt index2 = FT_Get_Char_Index( face, second );
+		if ( !m_hinted && FT_IS_SCALABLE( face ) )
+		{
+			FT_Vector kerning{};
+			FT_Get_Kerning( face, index1, index2, FT_KERNING_UNSCALED, &kerning );
+			return static_cast<float>( kerning.x ) * characterSize / face->units_per_EM;
+		}
 		const float first_rsb = static_cast<float>( getGlyph( first, characterSize, bold ).rsbDelta );
 		const float second_lsb = static_cast<float>( getGlyph( second, characterSize, bold ).lsbDelta );
 
@@ -287,7 +286,9 @@ float FeFont::getLineSpacing( unsigned int characterSize ) const
 {
 	FT_Face face = m_fontHandles ? m_fontHandles->face : nullptr;
 	if ( face && setCurrentSize( characterSize ) )
-		return static_cast<float>( face->size->metrics.height ) / float{ 1 << 6 };
+		return !m_hinted && FT_IS_SCALABLE( face )
+			? static_cast<float>( face->height ) * characterSize / face->units_per_EM
+			: static_cast<float>( face->size->metrics.height ) / float{ 1 << 6 };
 	return 0.0f;
 }
 
@@ -298,6 +299,8 @@ float FeFont::getUnderlinePosition( unsigned int characterSize ) const
 	{
 		if ( !FT_IS_SCALABLE( face ) )
 			return static_cast<float>( characterSize ) / 10.0f;
+		if ( !m_hinted )
+			return -static_cast<float>( face->underline_position ) * characterSize / face->units_per_EM;
 
 		return -static_cast<float>( FT_MulFix( face->underline_position, face->size->metrics.y_scale ) ) / float{ 1 << 6 };
 	}
@@ -311,6 +314,8 @@ float FeFont::getUnderlineThickness( unsigned int characterSize ) const
 	{
 		if ( !FT_IS_SCALABLE( face ) )
 			return static_cast<float>( characterSize ) / 14.0f;
+		if ( !m_hinted )
+			return static_cast<float>( face->underline_thickness ) * characterSize / face->units_per_EM;
 
 		return static_cast<float>( FT_MulFix( face->underline_thickness, face->size->metrics.y_scale ) ) / float{ 1 << 6 };
 	}
@@ -366,6 +371,27 @@ void FeFont::setSmooth( bool smooth )
 		return;
 
 	m_isSmooth = smooth;
+	if ( m_unhinted )
+		m_unhinted->setSmooth( smooth );
+}
+
+const FeFont &FeFont::getUnhinted() const
+{
+	if ( !m_hinted )
+		return *this;
+	if ( !m_unhinted )
+	{
+		m_unhinted = std::make_unique<FeFont>();
+		m_unhinted->m_fontHandles = m_fontHandles;
+		m_unhinted->m_stream = m_stream;
+		m_unhinted->m_isSmooth = m_isSmooth;
+		m_unhinted->m_hinted = false;
+		FT_Face face = m_fontHandles ? m_fontHandles->face : nullptr;
+		if ( face && FT_IS_SCALABLE( face ) &&
+			FT_Load_Char( face, 'X', FT_LOAD_NO_SCALE | FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP ) == 0 )
+			m_unhinted->m_cap_height = static_cast<float>( face->glyph->metrics.height ) / face->units_per_EM;
+	}
+	return *m_unhinted;
 }
 
 bool FeFont::isSmooth() const
@@ -388,7 +414,8 @@ FeGlyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, bool 
 	if ( !setCurrentSize( characterSize ) )
 		return glyph;
 
-	FT_Int32 flags = FT_LOAD_TARGET_NORMAL | FT_LOAD_FORCE_AUTOHINT;
+	FT_Int32 flags = FT_LOAD_TARGET_NORMAL |
+		( m_hinted ? FT_LOAD_FORCE_AUTOHINT : FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP );
 	if ( outlineThickness != 0 )
 		flags |= FT_LOAD_NO_BITMAP;
 	if ( FT_Load_Char( face, codePoint, flags ) != 0 )
@@ -398,7 +425,7 @@ FeGlyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, bool 
 	if ( FT_Get_Glyph( face->glyph, &glyph_desc ) != 0 )
 		return glyph;
 
-	const FT_Pos weight = 1 << 6;
+	const FT_Pos weight = m_hinted ? 1 << 6 : static_cast<FT_Pos>( characterSize * 64.f / 30.f );
 	const bool outline = ( glyph_desc->format == FT_GLYPH_FORMAT_OUTLINE );
 	if ( outline )
 	{
@@ -435,8 +462,10 @@ FeGlyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, bool 
 	}
 
 	glyph.advance = static_cast<float>( bitmap_glyph->root.advance.x >> 16 );
+	if ( !m_hinted )
+		glyph.advance = static_cast<float>( face->glyph->linearHoriAdvance ) / 65536.f;
 	if ( bold )
-		glyph.advance += static_cast<float>( weight ) / float{ 1 << 6 };
+		glyph.advance += m_hinted ? static_cast<float>( weight ) / float{ 1 << 6 } : characterSize / 30.f;
 
 	glyph.lsbDelta = static_cast<int>( face->glyph->lsb_delta );
 	glyph.rsbDelta = static_cast<int>( face->glyph->rsb_delta );
@@ -524,6 +553,8 @@ FeGlyph FeFont::loadGlyph( char32_t codePoint, unsigned int characterSize, bool 
 
 IntRect FeFont::findGlyphRect( Page &page, Vec2u size ) const
 {
+	if ( !m_hinted )
+		page.nextRow += page.nextRow & 1u;
 	Row *row = nullptr;
 	float best_ratio = 0.0f;
 	for ( std::vector<Row>::iterator it = page.rows.begin(); it != page.rows.end() && !row; ++it )
@@ -541,7 +572,9 @@ IntRect FeFont::findGlyphRect( Page &page, Vec2u size ) const
 
 	if ( !row )
 	{
-		const unsigned int row_height = size.y + size.y / 10;
+		unsigned int row_height = size.y + size.y / 10;
+		if ( !m_hinted )
+			row_height += row_height & 1u;
 		while ( ( page.nextRow + row_height >= page.height ) || ( size.x >= page.width ) )
 		{
 			const unsigned int max_size = FE_FONT_PAGE_MAX_SIZE;
@@ -571,6 +604,8 @@ IntRect FeFont::findGlyphRect( Page &page, Vec2u size ) const
 		static_cast<int>( size.x ),
 		static_cast<int>( size.y ) );
 	row->width += size.x;
+	if ( !m_hinted )
+		row->width += row->width & 1u;
 	return rect;
 }
 

@@ -155,6 +155,8 @@ public:
 	void set_outline_rgb( int, int, int );
 	void set_outline_rgb( int, int, int, int );
 	void set_charsize(float s);
+	bool get_scale() const { return m_text_scale; }
+	void set_scale( bool );
 	void set_spacing(float s);
 	void set_line_spacing(float s);
 	void set_style(int s);
@@ -169,6 +171,7 @@ private:
 	FeText &operator=( const FeText & );
 
 	void update_font_size();
+	void prepare_glyphs( const std::string & );
 	void update_margin();
 	void update_outline();
 	void update_transform();
@@ -191,6 +194,17 @@ private:
 	FeAlign m_rotation_origin_type;
 	float m_rotation;
 	float m_scale_factor;
+	const FeFont *m_font{};
+	bool m_text_scale{false};
+	bool m_geometry_initialized{false};
+	bool m_glyphs_dirty{true};
+	std::string m_prepared_string;
+	float m_pixel_charsize{-1.f};
+	float m_pixel_outline{};
+	float m_outline_ratio{};
+	unsigned int m_first_size{1};
+	unsigned int m_last_size{1};
+	unsigned int m_raster_size{1};
 	bool m_magic;
 	bool m_link_outline_alpha{true}; // legacy - outline_alpha linked to alpha
 	bool m_link_bg_outline_alpha{true}; // legacy - bg_outline_alpha linked to bg_alpha
