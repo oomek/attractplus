@@ -227,7 +227,7 @@ struct FeRenderGeometry
 	bool texture_blocking;
 	std::uint64_t texture_content_version;
 	bool mask_enabled = false;
-	bool mask_fit = true;
+	bool letterbox = false;
 	FeRenderTextureBinding mask_texture;
 	// Local pixel rectangle, source slice edges and destination slice scale.
 	float mask_rect[4] = {};
@@ -246,6 +246,7 @@ struct FeRenderGeometry
 
 	FeRenderGeometry();
 	void clear();
+	bool uses_mask_shader() const { return mask_enabled || letterbox; }
 	bool has_external_vertices() const;
 	bool has_pbr_instances() const;
 	const FeRenderVertex *get_vertex_data() const;

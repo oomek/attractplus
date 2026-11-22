@@ -1733,14 +1733,14 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_mask_border = o->m_mask_border;
 	m_mask_padding = o->m_mask_padding;
 	m_mask_border_scale = o->m_mask_border_scale;
-	m_mask_fit = o->m_mask_fit;
+	m_letterbox = o->m_letterbox;
 	m_mask_rect = o->m_mask_rect;
-	m_mask_fill = o->m_mask_fill;
-	m_mask_sprite = o->m_mask_sprite;
+	m_letterbox_fill = o->m_letterbox_fill;
+	m_letterbox_sprite = o->m_letterbox_sprite;
 	if ( auto *present = FePresent::script_get_fep() )
 	{
 		m_mask_script_id = present->get_script_id();
-		if ( !m_mask.empty() ) present->m_masked_images.insert( this );
+		if ( !m_mask.empty() || m_letterbox ) present->m_masked_images.insert( this );
 	}
 	set_visible( o->get_visible() );
 	set_z( o->get_z() );
@@ -1934,30 +1934,30 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane
 		result.source_border[i] = static_cast<float>( borders[i] ) / ( i % 2 == 0 ? texture_size.x : texture_size.y );
 		result.dest_border[i] = size > 0.0f ? borders[i] * padding_scale / size : 0.0f;
 	}
-	if ( !m_mask.empty() )
+	if ( !m_mask.empty() || m_letterbox )
 	{
 		FeRenderGeometry mask;
 		build_mask_geometry( mask, vertices );
 		mask_plane.texture = mask.mask_texture;
-		if ( !mask_plane.texture.texture_id ) return false;
-		mask_plane.fill = m_mask_fit ? 0 : m_mask_fill;
-		mask_plane.clip = m_mask_fit
+		if ( !m_mask.empty() && !mask_plane.texture.texture_id ) return false;
+		mask_plane.fill = m_letterbox ? m_letterbox_fill : 0;
+		mask_plane.clip = !m_letterbox
 			? ( m_mask_padding.left > 0 || m_mask_padding.top > 0 || m_mask_padding.right > 0 || m_mask_padding.bottom > 0 ? 4 : 0 )
 			: ( mask_plane.fill == 0 && m_sprite.getPadding() != FloatEdges() ? 8 : 0 );
 		mask_plane.empty = mask.mask_rect[2] <= 0.f || mask.mask_rect[3] <= 0.f;
 		if ( !mask_plane.empty )
 		{
-			const float *points = m_mask_fit ? result.points : mask.mask_points;
-			const float extent[] = { m_mask_fit ? width : mask.mask_size[0], m_mask_fit ? height : mask.mask_size[1] };
+			const float *points = m_letterbox ? mask.mask_points : result.points;
+			const float extent[] = { m_letterbox ? mask.mask_size[0] : width, m_letterbox ? mask.mask_size[1] : height };
 			if ( extent[0] <= 0.f || extent[1] <= 0.f ) return false;
-			const float left = mask.mask_rect[0] - ( m_mask_fit ? vertices[0].u1 : 0.f );
-			const float top = mask.mask_rect[1] - ( m_mask_fit ? vertices[0].v1 : 0.f );
+			const float left = mask.mask_rect[0] - ( m_letterbox ? 0.f : vertices[0].u1 );
+			const float top = mask.mask_rect[1] - ( m_letterbox ? 0.f : vertices[0].v1 );
 			for ( int i = 0; i < 3; ++i )
 				for ( int axis = 0; axis < 3; ++axis )
 					mask_plane.points[i * 3 + axis] = points[axis]
 						+ ( points[3 + axis] - points[axis] ) * ( left + ( i == 1 ? mask.mask_rect[2] : 0.f ) ) / extent[0]
 						+ ( points[6 + axis] - points[axis] ) * ( top + ( i == 2 ? mask.mask_rect[3] : 0.f ) ) / extent[1];
-			for ( int i = 0; i < 4; ++i )
+			if ( mask_plane.texture.texture_id ) for ( int i = 0; i < 4; ++i )
 			{
 				mask_plane.source_border[i] = mask.mask_border[i] / ( i % 2 == 0 ? mask.mask_texture.width : mask.mask_texture.height );
 				mask_plane.dest_border[i] = mask.mask_border[i] * mask.mask_scale / mask.mask_rect[2 + i % 2];
@@ -1966,7 +1966,7 @@ bool FeImage::build_cutout_plane( FeRenderImagePlane &result, FeRenderImagePlane
 	}
 	const auto transform = get_draw_transform();
 	for ( auto *plane : { &result, &mask_plane } )
-		if ( plane->texture.texture_id )
+		if ( plane->texture.texture_id || plane->fill )
 			for ( int i = 0; i < 3; ++i )
 			{
 				float *point = plane->points + i * 3;
@@ -2002,10 +2002,10 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	}
 
 	if ( m_sprite_legacy.is_active() )
-		m_sprite_legacy.append_render_vertices( m_sprite, m_render_vertices, get_z() - m_anchor.z, !m_mask.empty() );
+		m_sprite_legacy.append_render_vertices( m_sprite, m_render_vertices, get_z() - m_anchor.z, !m_mask.empty() || m_letterbox );
 	else
 		m_sprite.append_render_vertices( m_render_vertices, get_z() - m_anchor.z,
-			geometry.cutout_mode != 0 ? Vec2f( texture_size.x, texture_size.y ) : Vec2f(), !m_mask.empty() );
+			geometry.cutout_mode != 0 ? Vec2f( texture_size.x, texture_size.y ) : Vec2f(), !m_mask.empty() || m_letterbox );
 
 	if ( m_render_vertices.empty() )
 		return false;
@@ -2034,13 +2034,13 @@ bool FeImage::build_render_geometry( FeRenderGeometry &geometry ) const
 	geometry.texture_dynamic = m_tex->is_volatile_texture();
 	geometry.texture_blocking = m_tex->is_texture_blocking();
 	geometry.texture_content_version = m_tex->get_texture_content_version();
-	if ( !m_mask.empty() ) build_mask_geometry( geometry, m_render_vertices );
+	if ( !m_mask.empty() || m_letterbox ) build_mask_geometry( geometry, m_render_vertices );
 	return true;
 }
 
-bool FeImage::build_mask_background( FeRenderGeometry &background, const FeRenderGeometry &image ) const
+bool FeImage::build_letterbox( FeRenderGeometry &background, const FeRenderGeometry &image ) const
 {
-	if ( !image.mask_enabled || image.mask_fit || m_mask_vertices.size() < 6 || m_render_vertices.empty() )
+	if ( !m_letterbox || m_letterbox_vertices.size() < 6 || m_render_vertices.empty() )
 		return false;
 
 	background = image;
@@ -2059,7 +2059,7 @@ bool FeImage::build_mask_background( FeRenderGeometry &background, const FeRende
 	}
 	if ( maximum[0] <= minimum[0] || maximum[1] <= minimum[1] )
 	{
-		background.vertices = m_mask_vertices;
+		background.vertices = m_letterbox_vertices;
 		for ( auto &vertex : background.vertices )
 		{
 			vertex.nx = vertex.ny = 1.f;
@@ -2089,9 +2089,9 @@ bool FeImage::build_mask_background( FeRenderGeometry &background, const FeRende
 				( vertical ? a.v1 > b.v1 : a.u1 > b.u1 ); } );
 		edge.erase( std::unique( edge.begin(), edge.end(), [vertical]( const FeRenderVertex &a, const FeRenderVertex &b )
 			{ return vertical ? a.v1 == b.v1 : a.u1 == b.u1; } ), edge.end() );
-		const auto &first = m_mask_vertices[corners[side]];
-		const auto &last = m_mask_vertices[corners[side + 1]];
-		const auto &opposite = m_mask_vertices[corners[( side + 3 ) % 4]];
+		const auto &first = m_letterbox_vertices[corners[side]];
+		const auto &last = m_letterbox_vertices[corners[side + 1]];
+		const auto &opposite = m_letterbox_vertices[corners[( side + 3 ) % 4]];
 		const float dx = opposite.x - first.x, dy = opposite.y - first.y, dz = opposite.z - first.z;
 		for ( std::size_t i = 1; i < edge.size(); ++i )
 		{
@@ -2111,7 +2111,7 @@ bool FeImage::build_mask_background( FeRenderGeometry &background, const FeRende
 				}
 				gap = std::max( gap, ( quad[j].x - quad[j + 2].x ) * dx +
 					( quad[j].y - quad[j + 2].y ) * dy + ( quad[j].z - quad[j + 2].z ) * dz );
-				// Private mask flags: black fragment, and an independent outer vertex.
+				// Private fill flags: black fragment, and an independent outer vertex.
 				quad[j].nx = quad[j + 2].nx = 1.f;
 				quad[j + 2].ny = 1.f;
 				quad[j + 2].a = m_sprite.getColor().a;
@@ -2212,24 +2212,24 @@ void FeImage::scale()
 	);
 	m_mask_rect = FloatRect( Vec2f( 0.f, 0.f ),
 		Vec2f( std::abs( render_size.x ), std::abs( render_size.y ) ) );
-	m_mask_fill = ( std::abs( size.x ) < std::abs( render_size.x ) ? 1 : 0 ) |
+	m_letterbox_fill = ( std::abs( size.x ) < std::abs( render_size.x ) ? 1 : 0 ) |
 		( std::abs( size.y ) < std::abs( render_size.y ) ? 2 : 0 );
-	if ( !m_mask.empty() && !m_mask_fit )
+	if ( m_letterbox )
 	{
-		// The mask is a separate Fill sprite; artwork fitting never changes its plane.
-		m_mask_sprite.setTextureRect( m_mask_rect );
-		m_mask_sprite.setScale( flip );
-		m_mask_sprite.setPosition( render_pos + Vec2f(
+		// Letterboxing uses the image bounds independently of artwork fitting.
+		m_letterbox_sprite.setTextureRect( m_mask_rect );
+		m_letterbox_sprite.setScale( flip );
+		m_letterbox_sprite.setPosition( render_pos + Vec2f(
 			( m_rotation_origin.x - m_anchor.x ) * render_size.x,
 			( m_rotation_origin.y - m_anchor.y ) * render_size.y ) );
-		m_mask_sprite.setOrigin( Vec3f(
+		m_letterbox_sprite.setOrigin( Vec3f(
 			( m_origin.x + m_rotation_origin.x * render_size.x ) / flip.x,
 			( m_origin.y + m_rotation_origin.y * render_size.y ) / flip.y,
 			m_origin.z + m_rotation_origin.z ) );
-		m_mask_sprite.setRotation( m_rotation );
-		m_mask_sprite.setRotationX( get_rotation_x() );
-		m_mask_sprite.setRotationY( get_rotation_y() );
-		m_mask_sprite.setRotationOrder( get_rotation_order() );
+		m_letterbox_sprite.setRotation( m_rotation );
+		m_letterbox_sprite.setRotationX( get_rotation_x() );
+		m_letterbox_sprite.setRotationY( get_rotation_y() );
+		m_letterbox_sprite.setRotationOrder( get_rotation_order() );
 	}
 
 	// The crop property instructs the sprite to reduce size to hide the texture overlap
@@ -3421,7 +3421,7 @@ void FeImage::set_mask( const char *filename )
 	auto *present = FePresent::script_get_fep();
 	if ( present )
 	{
-		if ( name.empty() ) present->m_masked_images.erase( this );
+		if ( name.empty() && !m_letterbox ) present->m_masked_images.erase( this );
 		else present->m_masked_images.insert( this );
 	}
 	if ( !name.empty() )
@@ -3483,11 +3483,11 @@ bool FeImage::mask_binding( FeRenderTextureBinding &binding ) const
 
 void FeImage::build_mask_geometry( FeRenderGeometry &geometry, const std::vector<FeRenderVertex> &vertices ) const
 {
-	geometry.mask_enabled = true;
-	geometry.mask_fit = m_mask_fit;
+	geometry.mask_enabled = !m_mask.empty();
+	geometry.letterbox = m_letterbox;
 	mask_binding( geometry.mask_texture );
 	FloatRect rect = m_mask_rect;
-	if ( m_mask_fit )
+	if ( !m_letterbox )
 	{
 		float left = vertices[0].u1, right = left;
 		float top = vertices[0].v1, bottom = top;
@@ -3500,19 +3500,27 @@ void FeImage::build_mask_geometry( FeRenderGeometry &geometry, const std::vector
 	}
 	else
 	{
-		m_mask_sprite.append_render_vertices( m_mask_vertices, get_z() - m_anchor.z );
-		if ( m_mask_vertices.size() >= 3 )
+		m_letterbox_sprite.append_render_vertices( m_letterbox_vertices, get_z() - m_anchor.z );
+		if ( m_letterbox_vertices.size() >= 3 )
 		{
 			const int corners[] = { 0, 2, 1 };
 			for ( int i = 0; i < 3; ++i )
 			{
-				geometry.mask_points[i * 3] = m_mask_vertices[corners[i]].x;
-				geometry.mask_points[i * 3 + 1] = m_mask_vertices[corners[i]].y;
-				geometry.mask_points[i * 3 + 2] = m_mask_vertices[corners[i]].z;
+				geometry.mask_points[i * 3] = m_letterbox_vertices[corners[i]].x;
+				geometry.mask_points[i * 3 + 1] = m_letterbox_vertices[corners[i]].y;
+				geometry.mask_points[i * 3 + 2] = m_letterbox_vertices[corners[i]].z;
 			}
 		}
 		geometry.mask_size[0] = rect.size.x;
 		geometry.mask_size[1] = rect.size.y;
+	}
+	if ( !geometry.mask_enabled )
+	{
+		geometry.mask_rect[0] = rect.position.x;
+		geometry.mask_rect[1] = rect.position.y;
+		geometry.mask_rect[2] = rect.size.x;
+		geometry.mask_rect[3] = rect.size.y;
+		return;
 	}
 	float *border = geometry.mask_border;
 	border[0] = static_cast<float>( m_mask_border.left );
@@ -3544,11 +3552,16 @@ void FeImage::build_mask_geometry( FeRenderGeometry &geometry, const std::vector
 	geometry.mask_rect[3] = std::max( 0.f, rect.size.y + ( m_mask_padding.top + m_mask_padding.bottom ) * scale );
 }
 
-bool FeImage::get_mask_fit() const { return m_mask_fit; }
-void FeImage::set_mask_fit( bool value )
+bool FeImage::get_letterbox() const { return m_letterbox; }
+void FeImage::set_letterbox( bool value )
 {
-	if ( value == m_mask_fit ) return;
-	m_mask_fit = value;
+	if ( value == m_letterbox ) return;
+	m_letterbox = value;
+	if ( auto *present = FePresent::script_get_fep() )
+	{
+		if ( value || !m_mask.empty() ) present->m_masked_images.insert( this );
+		else present->m_masked_images.erase( this );
+	}
 	scale();
 	FePresent::script_flag_redraw();
 }

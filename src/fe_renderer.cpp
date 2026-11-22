@@ -319,7 +319,7 @@ void FeRenderGeometry::clear()
 	texture_blocking = false;
 	texture_content_version = 0;
 	mask_enabled = false;
-	mask_fit = true;
+	letterbox = false;
 	mask_texture.clear();
 	for ( int i = 0; i < 4; ++i ) mask_rect[i] = mask_border[i] = 0.f;
 	mask_scale = 1.f;

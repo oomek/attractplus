@@ -559,8 +559,8 @@ public:
 	float get_border_scale() const;
 	const char *get_mask() const;
 	void set_mask( const char * );
-	bool get_mask_fit() const;
-	void set_mask_fit( bool );
+	bool get_letterbox() const;
+	void set_letterbox( bool );
 	void set_mask_border( int l, int t, int r, int b );
 	void set_mask_border_left( int );
 	int get_mask_border_left() const;
@@ -631,7 +631,7 @@ public:
 
 	bool get_visible() const;
 	bool build_render_geometry( FeRenderGeometry &geometry ) const;
-	bool build_mask_background( FeRenderGeometry &background, const FeRenderGeometry &image ) const;
+	bool build_letterbox( FeRenderGeometry &background, const FeRenderGeometry &image ) const;
 	void refresh_script_geometry() override;
 
 	//
@@ -705,14 +705,14 @@ private:
 	IntEdges m_mask_border;
 	FloatEdges m_mask_padding;
 	float m_mask_border_scale = 1.f;
-	bool m_mask_fit = true;
+	bool m_letterbox = false;
 	bool m_mask_failed = false;
 	int m_mask_status = -1;
 	int m_mask_script_id = -1;
 	FloatRect m_mask_rect;
-	int m_mask_fill = 0;
-	FeSprite m_mask_sprite;
-	mutable std::vector<FeRenderVertex> m_mask_vertices;
+	int m_letterbox_fill = 0;
+	FeSprite m_letterbox_sprite;
+	mutable std::vector<FeRenderVertex> m_letterbox_vertices;
 	bool update_mask();
 	bool mask_binding( FeRenderTextureBinding & ) const;
 	void build_mask_geometry( FeRenderGeometry &, const std::vector<FeRenderVertex> & ) const;

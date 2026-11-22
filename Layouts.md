@@ -1868,6 +1868,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `fit_width` 🔶 - Get the rendered texture width in pixels.
 -  `fit_height` 🔶 - Get the rendered texture height in pixels.
 -  `crop` 🔶 - [boolean] Get/set whether textures using `Fit.Cover` have their overlap clipped. Default value is `true`.
+-  `letterbox` 🔶 - Get/set black letterboxing around the image when `preserve_aspect_ratio` is `true`. Default is `false` (transparent).
 -  `sample_aspect_ratio` - Get the [pixel aspect ratio](https://en.wikipedia.org/wiki/Pixel_aspect_ratio) of the texture, which is the width of a pixel divided by its height. Commonly found in CRT video sources, as they usually contain non-square pixels.
 -  `force_aspect_ratio` 🔶 - Get/set the aspect ratio to use for the texture. Forces a texture to display at the given aspect ratio. Default is `0`, which disables it.
 -  `preserve_aspect_ratio` - Get/set whether the `sample_aspect_ratio` or `forced_aspect_ratio` is to be preserved. Default value is `false`.
@@ -1965,7 +1966,6 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `padding_right` 🔶 - Get/set the right padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `padding_bottom` 🔶 - Get/set the bottom padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `mask` 🔶 - Get/set the opacity mask image filename. White reveals the image, black hides it; brightness is multiplied by alpha. Relative paths use the layout/plugin directory. Default is `""`, which disables masking.
--  `mask_fit` 🔶 - Get/set whether the mask follows the fitted artwork. When `true` the mask scales to the image texture, when `false` it scales to the image boundaries. Default is `true`.
 -  `mask_border_left` 🔶 - Get/set the left mask 9-slice region size in source pixels. Default is `0`.
 -  `mask_border_top` 🔶 - Get/set the top mask 9-slice region size in source pixels. Default is `0`.
 -  `mask_border_right` 🔶 - Get/set the right mask 9-slice region size in source pixels. Default is `0`.
