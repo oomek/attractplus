@@ -317,7 +317,7 @@ public:
 
 	FeSurfaceTextureContainer( int width, int height, bool flip_y=false );
 	~FeSurfaceTextureContainer();
-	Vec2f get_grid_extent() const override;
+	Vec2f get_grid_size() const override;
 	bool get_flip_y() const { return m_flip_y; }
 
 	Vec2u get_texture_size() const override;
@@ -547,6 +547,9 @@ public:
 	float get_pinch_y() const;
 
 	void set_border( int l, int t, int r, int b );
+	int get_scale_style() const { return m_scale_style; }
+	void set_scale_style( int mode );
+	void set_border_all( int value ) { set_border( value, value, value, value ); }
 	void set_border_left( int l );
 	int get_border_left() const;
 	void set_border_top( int t );
@@ -562,6 +565,7 @@ public:
 	bool get_letterbox() const;
 	void set_letterbox( bool );
 	void set_mask_border( int l, int t, int r, int b );
+	void set_mask_border_all( int value ) { set_mask_border( value, value, value, value ); }
 	void set_mask_border_left( int );
 	int get_mask_border_left() const;
 	void set_mask_border_top( int );
@@ -573,6 +577,7 @@ public:
 	void set_mask_border_scale( float );
 	float get_mask_border_scale() const;
 	void set_mask_padding( float l, float t, float r, float b );
+	void set_mask_padding_all( float value ) { set_mask_padding( value, value, value, value ); }
 	void set_mask_padding_left( float );
 	float get_mask_padding_left() const;
 	void set_mask_padding_top( float );
@@ -583,6 +588,7 @@ public:
 	float get_mask_padding_bottom() const;
 
 	void set_padding( float l, float t, float r, float b );
+	void set_padding_all( float value ) { set_padding( value, value, value, value ); }
 	void set_padding_left( float l );
 	float get_padding_left() const;
 	void set_padding_top( float t );
@@ -696,6 +702,7 @@ private:
 	friend class FeBasePresentable;
 	FeImage *selection_source() const;
 	FeImage *m_cutout;
+	int m_scale_style = ScaleParent;
 	Sqrat::Object m_cutout_object;
 	std::vector<FeImage *> m_cutout_users;
 	std::vector<FeBasePresentable *> m_clip_users;

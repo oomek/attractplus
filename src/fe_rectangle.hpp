@@ -54,6 +54,8 @@ public:
 	void setOutlineColor( Color );
 
 	float get_outline();
+	int get_scale_style() const { return m_scale_style; }
+	void set_scale_style( int mode );
 	void set_outline( float o );
 
 	float get_origin_x() const;
@@ -147,6 +149,7 @@ private:
 	bool m_corner_ratio_y;
 	bool m_corner_auto;
 	float m_outline;
+	int m_scale_style = ScaleParent;
 	FeBlend::Mode m_blend_mode;
 	mutable std::vector<FeRenderVertex> m_vertices;
 	mutable bool m_vertices_dirty = true;

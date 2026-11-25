@@ -36,21 +36,21 @@ struct FeGrid
 	bool center = false;
 	bool pixel_snap = false;
 
-	FeGridTransform transform( const Vec2f &extent ) const
+	FeGridTransform transform( const Vec2f &target_size ) const
 	{
 		FeGridTransform result = { Vec2f( 1, 1 ), Vec2f( 0, 0 ) };
-		if ( size.x > 0 && size.y > 0 && extent.x > 0 && extent.y > 0 )
+		if ( size.x > 0 && size.y > 0 && target_size.x > 0 && target_size.y > 0 )
 		{
-			result.scale = Vec2f( extent.x / size.x, extent.y / size.y );
+			result.scale = Vec2f( target_size.x / size.x, target_size.y / size.y );
 			if ( uniform )
 			{
 				// Keep half-pixel centers exact before converting to float geometry.
-				double unit = std::min( static_cast<double>( extent.x ) / size.x,
-					static_cast<double>( extent.y ) / size.y );
+				double unit = std::min( static_cast<double>( target_size.x ) / size.x,
+					static_cast<double>( target_size.y ) / size.y );
 				if ( center )
 					result.offset = Vec2f(
-						result.scale.x <= result.scale.y ? 0 : ( extent.x - size.x * unit ) / 2.0,
-						result.scale.y <= result.scale.x ? 0 : ( extent.y - size.y * unit ) / 2.0 );
+						result.scale.x <= result.scale.y ? 0 : ( target_size.x - size.x * unit ) / 2.0,
+						result.scale.y <= result.scale.x ? 0 : ( target_size.y - size.y * unit ) / 2.0 );
 				result.scale = Vec2f( unit, unit );
 			}
 		}

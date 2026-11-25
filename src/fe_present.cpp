@@ -152,16 +152,16 @@ void FeFontContainer::clear_font()
 }
 
 FeMonitor::FeMonitor( int n, int w, int h )
-	: num( n )
+	: size( w, h ), style_reference_size( w, h ), num( n )
 {
-	size.x = w;
-	size.y = h;
 }
 
 FeMonitor::FeMonitor( const FeMonitor &o )
 	: FePresentableParent( o ),
 	transform( o.transform ),
 	size( o.size ),
+	style_reference_size( o.style_reference_size ),
+	style_reference_rotated( o.style_reference_rotated ),
 	num( o.num )
 {
 }
@@ -172,6 +172,8 @@ FeMonitor &FeMonitor::operator=( const FeMonitor &o )
 	grid = o.grid;
 	transform = o.transform;
 	size = o.size;
+	style_reference_size = o.style_reference_size;
+	style_reference_rotated = o.style_reference_rotated;
 	num = o.num;
 
 	return *this;
@@ -192,9 +194,15 @@ int FeMonitor::get_num()
 	return num;
 }
 
-Vec2f FeMonitor::get_grid_extent() const
+Vec2f FeMonitor::get_grid_size() const
 {
-	return num == 0 ? FePresentableParent::get_grid_extent() : Vec2f( size );
+	return num == 0 ? FePresentableParent::get_grid_size() : Vec2f( size );
+}
+
+Vec2f FeMonitor::get_style_reference_size() const
+{
+	return style_reference_rotated ? Vec2f( style_reference_size.y, style_reference_size.x )
+		: Vec2f( style_reference_size );
 }
 
 const FeGrid &FeMonitor::get_grid( int script_id ) const
@@ -443,6 +451,9 @@ void FePresent::init_monitors()
 #endif
 	{
 		FeMonitor mc( 0, m_window.get_size().x, m_window.get_size().y );
+		if ( SDL_Window *window = m_window.get_gpu_context().get_window() )
+			if ( const SDL_DisplayMode *mode = SDL_GetDesktopDisplayMode( SDL_GetDisplayForWindow( window ) ) )
+				if ( mode->w > 0 && mode->h > 0 ) mc.style_reference_size = Vec2i( mode->w, mode->h );
 
 #ifdef SDL_PLATFORM_WINDOWS
 		//
@@ -596,7 +607,8 @@ void FePresent::clear_layout()
 	m_baseRotation = m_feSettings->get_screen_rotation();
 
 	FeSettings::RotationState actualRotation = get_actual_rotation();
-	if (( actualRotation == FeSettings::RotateLeft ) || ( actualRotation == FeSettings::RotateRight ))
+	m_mon[0].style_reference_rotated = actualRotation == FeSettings::RotateLeft || actualRotation == FeSettings::RotateRight;
+	if ( m_mon[0].style_reference_rotated )
 	{
 		m_layoutSize.x = m_mon[0].size.y;
 		m_layoutSize.y = m_mon[0].size.x;
@@ -1735,7 +1747,6 @@ FeText *FePresent::add_text( const std::string &n, float x, float y, float w, fl
 
 	new_text->setFont( *get_layout_font() );
 	new_text->set_scale_factor( m_layoutScale.x, m_layoutScale.y );
-	new_text->on_new_selection( m_feSettings );
 	new_text->set_script_geometry( x, y, w, h );
 
 	if ( get_script_id() < 0 )

@@ -112,7 +112,8 @@ public:
 	const FloatEdges &getPadding() const;
 	void setPadding( const FloatEdges &padding );
 
-	void setScale( const Vec2f &scale );
+	void setScale( const Vec2f &scale, float style_scale = 1.f );
+	float getStyleScale() const { return m_style_scale; }
 	const Vec2f &getScale() const;
 
 	void setPosition( const Vec2f &position );
@@ -156,6 +157,7 @@ private:
 	float m_rotation_z;
 	int m_rotation_order;
 	float m_border_scale;
+	float m_style_scale = 1.f;
 };
 
 #endif
