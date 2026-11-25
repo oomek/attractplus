@@ -19,6 +19,8 @@
 -  [Common Structures](#common-structures)
    -  [Magic Tokens](#magic-tokens)
    -  [User Config](#user-config)
+   -  [Grid coordinates](#grid-coordinates)
+   -  [Drawable clipping](#drawable-clipping)
 -  [Functions](#functions)
    -  [`fe.add_image()`](#feadd_image)
    -  [`fe.add_artwork()`](#feadd_artwork)
@@ -59,7 +61,6 @@
    -  [`fe.layout`](#felayout)
    -  [`fe.grid`](#fegrid)
    -  [`fe.plugin`](#feplugin)
-   -  [Grid coordinates](#grid-coordinates)
    -  [`fe.list`](#felist)
    -  [`fe.cache`](#fecache)
    -  [`fe.overlay`](#feoverlay)
@@ -162,6 +163,8 @@ Attract-Mode Plus Layouts are written in [Squirrel](http://www.squirrel-lang.org
 -  [AM+ Squirrel VSCode Extension][extension]
 
 ---
+
+## Common Structures
 
 ### Magic Tokens
 
@@ -320,6 +323,126 @@ function callback( config )
 	// The returned string is displayed in the help section
 	return "Success"
 }
+```
+
+---
+
+### Grid coordinates
+
+Use `fe.grid.set_size()` to define layout coordinates without overriding the layout's pixel dimensions. Drawable positions and sizes then use those coordinates.
+
+By default, coordinates are in pixels starting at `(0, 0)`, with uniform scaling, centering and snapping disabled. `set_size()` changes the coordinate range and starting point while preserving `uniform`, `centered` and `pixel_snap`. The one- and two-argument forms start at `(0, 0)`; the four-argument form sets the starting point as well as the width and height. Use `set_size(0)` to return to pixels starting at `(0, 0)`.
+
+With `uniform = false` (the default), the specified range covers the whole layout. Horizontal and vertical units can have different pixel sizes:
+
+```squirrel
+fe.grid.set_size(1)             // x: 0..1, y: 0..1
+fe.grid.set_size(200, 100)      // x: 0..200, y: 0..100
+fe.grid.set_size(-1, -2, 2, 4) // x: -1..1, y: -2..2
+```
+
+Set `uniform = true` for equally sized horizontal and vertical units. With `set_size(size)`, the shorter layout dimension spans `0..size`; the longer dimension extends beyond that range.
+
+```squirrel
+fe.grid.set_size(100)
+fe.grid.uniform = true
+fe.grid.pixel_snap = true
+local rec = fe.add_rectangle(10, 10, 10, 10)
+rec.x += 5
+fe.log(rec.x) // 15
+```
+
+In a native `1280 x 960` window, one unit in this example is `9.6` pixels and the rectangle is `96 x 96` pixels. Grid coordinates are ordinary Squirrel numbers. Reading an explicitly set position or size returns its grid value, including fractions. Pixel snapping affects the rendered result; small updates such as `rec.x -= 0.001` accumulate in grid units.
+
+For a rectangular uniform grid, AM+ uses a single pixel scale that fits the specified rectangle inside the layout. `centered = true` centers that rectangle. It has no effect when uniform scaling is disabled or coordinates are in pixels.
+
+```squirrel
+fe.grid.set_size(-1, -1, 2, 2)
+fe.grid.uniform = true
+fe.grid.centered = true
+```
+
+The shorter dimension now spans `-1..1`; the longer dimension extends equally on both sides. In a native `1280 x 960` window, the visible bounds are approximately `-1.333..1.333` horizontally and `-1..1` vertically. In portrait, the vertical range is the longer one.
+
+Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. `set_size()` leaves the layout's pixel dimensions unchanged.
+
+Use `fe.grid` for the layout's grid and `surface.grid` for a surface's internal grid. Both provide the full visible bounds and dimensions:
+
+```squirrel
+local background = fe.add_rectangle(fe.grid.left, fe.grid.top, fe.grid.width, fe.grid.height)
+
+local surface = fe.add_surface(10, 10, 80, 50)
+surface.grid.set_size(100)
+local surface_background = surface.add_rectangle(surface.grid.left, surface.grid.top, surface.grid.width, surface.grid.height)
+```
+
+`surface.width` and `surface.height` describe its displayed size in the enclosing grid. `surface.grid.width` and `surface.grid.height` describe its internal drawing area, including any space beyond a centered uniform grid. Grid dimensions are read-only; change the coordinate range with `set_size()`.
+
+For example, two panes can cover the full layout in landscape or portrait:
+
+```squirrel
+fe.grid.set_size(100)
+fe.grid.uniform = true
+fe.grid.centered = true
+
+local pane1 = fe.add_rectangle(fe.grid.left, fe.grid.top, 20, fe.grid.height)
+local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
+    fe.grid.width - 20, fe.grid.height)
+```
+
+Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Text and listbox character sizes, margins and outlines, and rectangle outlines, use vertical grid units. Automatic character sizing and margins retain their existing meaning; negative rectangle outlines draw inward. Text measurements and listbox row heights are returned in grid coordinates. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
+
+Use `fe.grid.set_size()`, `surface.grid.set_size()`, `group.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A group's grid uses its current bounds; a surface's grid uses its texture dimensions. Their own position and displayed size use the grid in which they were added. Each group and surface has independent grid settings, initially in pixels.
+
+```squirrel
+fe.grid.set_size(100)
+fe.grid.uniform = false
+local surface = fe.add_surface(10, 10, 80, 80)
+surface.grid.set_size(100)
+surface.add_rectangle(10, 10, 20, 20)
+```
+
+The surface occupies 80% of the layout on each axis, and its rectangle occupies 20% of the texture on each axis. Its texture is allocated from its displayed pixel size, using the snapped edges when the enclosing grid has `pixel_snap` enabled. Resizing the surface later leaves the texture dimensions and its children's grid unchanged. Use the six-argument `add_surface()` form when a specific texture resolution is needed.
+
+`fe.monitors[0]` shares the layout grid. Additional monitors have independent grids. In a plugin, configure `fe.plugin`:
+
+```squirrel
+// Inside a plugin:
+fe.plugin.grid.set_size(100)
+fe.plugin.grid.uniform = true
+fe.plugin.grid.centered = true
+local badge = fe.add_rectangle(0, 0, 10, 10)
+```
+
+Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` always refers to the layout grid; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. `fe.layout.width` and `fe.layout.height` always return the layout's pixel dimensions. Children added to a surface use the surface's grid.
+
+Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
+
+All `set_size()` arguments must be finite numbers. Width and height must be positive, except for `set_size(0)`. The three boolean properties require `true` or `false`.
+
+---
+
+### Drawable clipping
+
+All drawables support `clip`. Set it to an [`fe.Image`](#feimage) to keep drawing inside that image's shape, or `null` (default) to disable clipping.
+
+Clipping includes everything the drawable renders. For text and listboxes this includes glyphs, outlines and backgrounds. A group's clip applies to its children. Nested clips intersect.
+
+The shape follows the source's texture alpha, geometry, padding, 9-slice borders, `mask` and `letterbox`. Its `visible`, `alpha`, colour, `shader`, `cutout` and `clip` are ignored. The clipped drawable keeps its own colour, opacity and shader.
+
+Both objects must belong to the same monitor or surface. The source requires `BlendMode.Alpha`. Repeated source textures, subimages, cropping and legacy pinch/skew are unsupported. Enable anti-aliasing for smooth edges.
+
+Use a mask with a white rounded rectangle on a black background to trim the title background to the snap's rounded corners.
+
+```squirrel
+local snap = fe.add_artwork("snap", 100, 100, 400, 300)
+snap.preserve_aspect_ratio = true
+snap.letterbox = true
+snap.mask = "mask.png"
+
+local title = fe.add_text("[Title]", 100, 350, 400, 50)
+title.bg_alpha = 200
+title.clip = snap
 ```
 
 ---
@@ -1482,99 +1605,6 @@ This class is a container for global layout settings. The instance of this class
 
 ---
 
-### Grid coordinates
-
-Use `fe.grid.set_size()` to define layout coordinates without overriding the layout's pixel dimensions. Drawable positions and sizes then use those coordinates.
-
-By default, coordinates are in pixels starting at `(0, 0)`, with uniform scaling, centering and snapping disabled. `set_size()` changes the coordinate range and starting point while preserving `uniform`, `centered` and `pixel_snap`. The one- and two-argument forms start at `(0, 0)`; the four-argument form sets the starting point as well as the width and height. Use `set_size(0)` to return to pixels starting at `(0, 0)`.
-
-With `uniform = false` (the default), the specified range covers the whole layout. Horizontal and vertical units can have different pixel sizes:
-
-```squirrel
-fe.grid.set_size(1)             // x: 0..1, y: 0..1
-fe.grid.set_size(200, 100)      // x: 0..200, y: 0..100
-fe.grid.set_size(-1, -2, 2, 4) // x: -1..1, y: -2..2
-```
-
-Set `uniform = true` for equally sized horizontal and vertical units. With `set_size(size)`, the shorter layout dimension spans `0..size`; the longer dimension extends beyond that range.
-
-```squirrel
-fe.grid.set_size(100)
-fe.grid.uniform = true
-fe.grid.pixel_snap = true
-local rec = fe.add_rectangle(10, 10, 10, 10)
-rec.x += 5
-fe.log(rec.x) // 15
-```
-
-In a native `1280 x 960` window, one unit in this example is `9.6` pixels and the rectangle is `96 x 96` pixels. Grid coordinates are ordinary Squirrel numbers. Reading an explicitly set position or size returns its grid value, including fractions. Pixel snapping affects the rendered result; small updates such as `rec.x -= 0.001` accumulate in grid units.
-
-For a rectangular uniform grid, AM+ uses a single pixel scale that fits the specified rectangle inside the layout. `centered = true` centers that rectangle. It has no effect when uniform scaling is disabled or coordinates are in pixels.
-
-```squirrel
-fe.grid.set_size(-1, -1, 2, 2)
-fe.grid.uniform = true
-fe.grid.centered = true
-```
-
-The shorter dimension now spans `-1..1`; the longer dimension extends equally on both sides. In a native `1280 x 960` window, the visible bounds are approximately `-1.333..1.333` horizontally and `-1..1` vertically. In portrait, the vertical range is the longer one.
-
-Read `fe.grid.left`, `fe.grid.top`, `fe.grid.right` and `fe.grid.bottom` for the visible edges. `fe.grid.width` and `fe.grid.height` include any space beyond a uniform grid's specified range. `set_size()` leaves the layout's pixel dimensions unchanged.
-
-Use `fe.grid` for the layout's grid and `surface.grid` for a surface's internal grid. Both provide the full visible bounds and dimensions:
-
-```squirrel
-local background = fe.add_rectangle(fe.grid.left, fe.grid.top, fe.grid.width, fe.grid.height)
-
-local surface = fe.add_surface(10, 10, 80, 50)
-surface.grid.set_size(100)
-local surface_background = surface.add_rectangle(surface.grid.left, surface.grid.top, surface.grid.width, surface.grid.height)
-```
-
-`surface.width` and `surface.height` describe its displayed size in the enclosing grid. `surface.grid.width` and `surface.grid.height` describe its internal drawing area, including any space beyond a centered uniform grid. Grid dimensions are read-only; change the coordinate range with `set_size()`.
-
-For example, two panes can cover the full layout in landscape or portrait:
-
-```squirrel
-fe.grid.set_size(100)
-fe.grid.uniform = true
-fe.grid.centered = true
-
-local pane1 = fe.add_rectangle(fe.grid.left, fe.grid.top, 20, fe.grid.height)
-local pane2 = fe.add_rectangle(fe.grid.left + 20, fe.grid.top,
-    fe.grid.width - 20, fe.grid.height)
-```
-
-Grid coordinates apply to drawable creation, `x`, `y`, `width`, `height` and both `set_pos()` forms. Text and listbox character sizes, margins and outlines, and rectangle outlines, use vertical grid units. Automatic character sizing and margins retain their existing meaning; negative rectangle outlines draw inward. Text measurements and listbox row heights are returned in grid coordinates. Texture dimensions and texture sampling coordinates remain pixels. Other properties keep their documented units, such as degrees for rotation and `[0..255]` for colors.
-
-Use `fe.grid.set_size()`, `surface.grid.set_size()`, `group.grid.set_size()`, `monitor.grid.set_size()` or `fe.plugin.grid.set_size()` to define coordinates, and their `.grid` objects to control scaling, centering and snapping. A group's grid uses its current bounds; a surface's grid uses its texture dimensions. Their own position and displayed size use the grid in which they were added. Each group and surface has independent grid settings, initially in pixels.
-
-```squirrel
-fe.grid.set_size(100)
-fe.grid.uniform = false
-local surface = fe.add_surface(10, 10, 80, 80)
-surface.grid.set_size(100)
-surface.add_rectangle(10, 10, 20, 20)
-```
-
-The surface occupies 80% of the layout on each axis, and its rectangle occupies 20% of the texture on each axis. Its texture is allocated from its displayed pixel size, using the snapped edges when the enclosing grid has `pixel_snap` enabled. Resizing the surface later leaves the texture dimensions and its children's grid unchanged. Use the six-argument `add_surface()` form when a specific texture resolution is needed.
-
-`fe.monitors[0]` shares the layout grid. Additional monitors have independent grids. In a plugin, configure `fe.plugin`:
-
-```squirrel
-// Inside a plugin:
-fe.plugin.grid.set_size(100)
-fe.plugin.grid.uniform = true
-fe.plugin.grid.centered = true
-local badge = fe.add_rectangle(0, 0, 10, 10)
-```
-
-Plugin drawables added to a monitor use that plugin's grid and the monitor's dimensions. Plugin grids are independent of the layout and of other plugins, including in callbacks and animations. `fe.grid` always refers to the layout grid; `fe.plugin.grid` provides the plugin's bounds and dimensions using the layout's pixel dimensions. `fe.layout.width` and `fe.layout.height` always return the layout's pixel dimensions. Children added to a surface use the surface's grid.
-
-Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
-
-All `set_size()` arguments must be finite numbers. Width and height must be positive, except for `set_size(0)`. The three boolean properties require `true` or `false`.
-
 ### `fe.Grid`
 
 Access a grid through `fe.grid`, `surface.grid`, `fe.monitors[n].grid` or `fe.plugin.grid`. A stored grid reference stays current when its settings or pixel dimensions change. This class cannot be instantiated in a script.
@@ -1767,6 +1797,7 @@ The class representing a group of drawables in Attract-Mode Plus. Instances of t
 -  `height` - Get/set the height of the group (in the parent's grid coordinates).
 -  `grid` - Read-only access to the group's [`fe.Grid`](#fegrid-1). It controls the coordinates of its children and defaults to pixels.
 -  `visible` - Get/set whether the group is visible (boolean). Default value is `true`. Hiding the group hides its children without changing their `visible` values.
+-  `clip` - Get/set the image whose shape clips this group's children. See [Drawable clipping](#drawable-clipping).
 -  `type` - Get the group object type. Returns `Type.Group`.
 -  `rotation` - Get/set rotation around the z axis in degrees. Default value is `0`.
 -  `rotation_order` - Get/set the order in which the axes are rotated. Default value is `Rotation.XYZ`.
@@ -1926,6 +1957,7 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `trigger` - Get/set the transition that starts loading artwork/dynamic images. Default `Transition.ToNewSelection`; set `Transition.ToEndNavigation` to load when navigation stops. With `fe.cache.bg_load = false`, the new artwork is ready before the matching `NewSelection` or `EndNavigation` callbacks.
 -  `smooth` - Get/set whether the image is to be smoothed. Default value can be configured in `attract.cfg`.
 -  `cutout` 🔶 - Get/set the image whose shape is removed from this image. Can be an instance of [`fe.Image`](#feimage), or `null` (default) to disable the cutout.
+-  `clip` - Get/set the image whose shape clips this image. See [Drawable clipping](#drawable-clipping).
 -  `zorder` - Get/set the Image's order in the applicable draw list. Objects with a lower zorder are drawn first, so that when objects overlap, the one with the higher zorder is drawn on top. Default value is `0`.
 -  `blend_mode` - Get/set the blend mode for this image. Can have one of the following values:
    -  `BlendMode.Alpha` (default for images and artwork)
@@ -2050,6 +2082,7 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `width` - Get/set width of text (in grid coordinates).
 -  `height` - Get/set height of text (in grid coordinates).
 -  `visible` - Get/set whether text is visible (boolean). Default value is `true`.
+-  `clip` - Get/set the image whose shape clips the text, outline and background. See [Drawable clipping](#drawable-clipping).
 -  `type` - Get the text object type. Text returns `Type.Text`.
 -  `magic` - Get whether `msg` used a valid [_Magic Token_](#magic-tokens) during the last text update (boolean).
 -  `rotation` - Get/set rotation of text. Range is `[0...360]`. Default value is `0`.
@@ -2179,6 +2212,7 @@ The class representing the listbox in Attract-Mode Plus. Instances of this class
 -  `width` - Get/set width of listbox (in grid coordinates).
 -  `height` - Get/set height of listbox (in grid coordinates).
 -  `visible` - Get/set whether listbox is visible (boolean). Default value is `true`.
+-  `clip` - Get/set the image whose shape clips this listbox. See [Drawable clipping](#drawable-clipping).
 -  `type` - Get the listbox object type. Listboxes return `Type.Listbox`.
 -  `magic` - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Listboxes return `false`.
 -  `rotation` - Get/set rotation of listbox. Range is `[0...360]`. Default value is `0`.
@@ -2331,6 +2365,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `width` - Get/set the width of the rectangle (in grid coordinates).
 -  `height` - Get/set the height of the rectangle (in grid coordinates).
 -  `visible` - Get/set whether the rectangle is visible (boolean). Default value is `true`.
+-  `clip` - Get/set the image whose shape clips this rectangle. See [Drawable clipping](#drawable-clipping).
 -  `type` - Get the rectangle object type. Rectangles return `Type.Rectangle`.
 -  `magic` - Get whether the object uses [_Magic Tokens_](#magic-tokens) (boolean). Rectangles return `false`.
 -  `rotation` - Get/set rotation of the rectangle around its origin. Range is `[0...360]`. Default value is `0`.
@@ -2382,9 +2417,9 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `anchor_y` - Get/set the y position of the midpoint for position and scale. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_x` - Get/set the x position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
 -  `rotation_origin_y` - Get/set the y position of the midpoint for rotation. Range is `[0.0...1.0]`. Default value is `0.0`, centre is `0.5`
--  `corner_radius` - Get/set the corner radius (in pixels). This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
--  `corner_radius_x` - Get/set the corner x radius (in pixels). Default value is `0.0`.
--  `corner_radius_y` - Get/set the corner y radius (in pixels). Default value is `0.0`.
+-  `corner_radius` - Get/set the corner radius in vertical grid units. This property will adjust the radius to preserve corner roundness when set. Default value is `0.0`.
+-  `corner_radius_x` - Get/set the corner x radius in horizontal grid units. Default value is `0.0`.
+-  `corner_radius_y` - Get/set the corner y radius in vertical grid units. Default value is `0.0`.
 -  `corner_ratio` - Get/set the corner radius as a fraction of the smallest side. This property will adjust the radius to preserve corner roundness when set. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_x` - Get/set the corner x radius as a fraction of the width. Range is `[0.0...0.5]`. Default value is `0.0`.
 -  `corner_ratio_y` - Get/set the corner y radius as a fraction of the height. Range is `[0.0...0.5]`. Default value is `0.0`.
@@ -2412,7 +2447,7 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `set_transform_origin( x, y )` - Set the midpoint for position, scale, and rotation, x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_anchor( x, y )` - Set the midpoint for position and scale x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
 -  `set_rotation_origin( x, y )` - Set the midpoint for rotation x and y are in `[0.0...1.0]` range, centre is `( 0.5, 0.5 )`.
--  `set_corner_radius( x, y )` - Set the corner x and y radius (in pixels).
+-  `set_corner_radius( x, y )` - Set the corner x and y radius in horizontal and vertical grid units.
 -  `set_corner_ratio( x, y )` - Set the corner x and y radius as a fraction of the width and height. Range is `[0.0...0.5]`.
 
 ---

@@ -22,12 +22,14 @@
 
 #include "fe_presentable.hpp"
 #include "fe_group.hpp"
+#include "fe_image.hpp"
 #include "fe_animation.hpp"
 #include "fe_present.hpp"
 #include "fe_model_3d.hpp"
 #include "fe_color.hpp"
 
 #include <cmath>
+#include <algorithm>
 #include <sqrat.h>
 
 FeGridView::FeGridView( FePresentableParent *parent, FeGrid *settings )
@@ -155,16 +157,75 @@ FeBasePresentable::FeBasePresentable( FePresentableParent &p )
 		m_script_id = fep->get_script_id();
 }
 
+FeBasePresentable::FeBasePresentable( const FeBasePresentable &source )
+	: FeBasePresentable( *source.m_parent )
+{
+	*this = source;
+	m_clip = nullptr;
+	set_clip( source.m_clip );
+}
+
 FeBasePresentable::FeBasePresentable( const FeBasePresentable *source, FePresentableParent &p )
 	: FeBasePresentable( p )
 {
 	if ( source ) *this = *source;
+	m_clip = nullptr;
 	set_parent( p );
+	if ( source && source->m_clip && source->m_clip->get_draw_target() == get_draw_target() )
+		set_clip( source->m_clip );
 }
 
 FeBasePresentable::~FeBasePresentable()
 {
+	set_clip( nullptr );
 	FeAnimation::remove( this );
+}
+
+FeImage *FeBasePresentable::get_clip() const
+{
+	return m_clip;
+}
+
+void FeBasePresentable::set_clip( FeImage *image )
+{
+	if ( image == m_clip ) return;
+	if ( image && image->get_draw_target() != get_draw_target() )
+	{
+		Sqrat::Error::Instance().Throw( Sqrat::DefaultVM::Get(), "clip requires an image in the same draw target" );
+		return;
+	}
+	if ( m_clip )
+	{
+		auto &users = m_clip->m_clip_users;
+		users.erase( std::remove( users.begin(), users.end(), this ), users.end() );
+	}
+	m_clip = image;
+	if ( image ) image->m_clip_users.push_back( this );
+	FePresent::script_flag_redraw();
+}
+
+Sqrat::Object FeBasePresentable::script_get_clip( FeBasePresentable *item )
+{
+	return item->m_clip ? item->m_clip->get_script_object() : Sqrat::Object();
+}
+
+void FeBasePresentable::script_set_clip( FeBasePresentable *item, Sqrat::Object value )
+{
+	FeImage *source = value.GetType() == OT_NULL ? nullptr : value.Cast<FeImage *>();
+	if ( !Sqrat::Error::Instance().Occurred( value.GetVM() ) ) item->set_clip( source );
+}
+
+void FeBasePresentable::apply_clip( FeRenderGeometry &geometry ) const
+{
+	for ( const FeBasePresentable *item = this; item; item = item->get_group() )
+		if ( item->m_clip && item->m_clip != this )
+		{
+			FeRenderGeometry::Clip clip;
+			clip.source = item->m_clip;
+			if ( !item->m_clip->supports_cutout() || !item->m_clip->build_cutout_plane( clip.image, clip.mask ) )
+				clip.image.empty = true;
+			geometry.clips.push_back( std::move( clip ) );
+		}
 }
 
 FePresentableParent::FePresentableParent( )
@@ -629,6 +690,7 @@ bool FeBasePresentable::get_pixel_snap() const
 void FeBasePresentable::set_parent( FePresentableParent &p )
 {
 	m_parent = &p;
+	if ( m_clip && m_clip->get_draw_target() != get_draw_target() ) set_clip( nullptr );
 	m_script_object.reset();
 	FePresent *fep = FePresent::script_get_fep();
 	m_script_id = fep ? fep->get_script_id() : LayoutScript;

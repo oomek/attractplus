@@ -693,10 +693,12 @@ protected:
 	float resolveAspectRatio() const;
 
 private:
+	friend class FeBasePresentable;
 	FeImage *selection_source() const;
 	FeImage *m_cutout;
 	Sqrat::Object m_cutout_object;
 	std::vector<FeImage *> m_cutout_users;
+	std::vector<FeBasePresentable *> m_clip_users;
 	bool supports_cutout() const;
 	bool build_cutout_plane( FeRenderImagePlane &plane, FeRenderImagePlane &mask ) const;
 	std::string m_mask;

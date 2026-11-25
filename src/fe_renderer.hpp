@@ -192,6 +192,13 @@ struct FeRenderImagePlane
 
 struct FeRenderGeometry
 {
+	struct Clip
+	{
+		const void *source;
+		FeRenderImagePlane image;
+		FeRenderImagePlane mask;
+	};
+	std::vector<Clip> clips;
 	std::vector<FeRenderVertex> vertices;
 	std::vector<FeRenderPbrInstance> pbr_instances;
 	const FeRenderVertex *external_vertices;
