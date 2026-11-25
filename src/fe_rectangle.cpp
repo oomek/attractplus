@@ -26,6 +26,7 @@
 #include "fe_shader.hpp"
 #include "fe_present.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <atomic>
 
@@ -647,20 +648,6 @@ void FeRectangle::update_corner_ratio()
 	update_corner_radius();
 }
 
-std::size_t FeRectangle::get_shape_point_count() const
-{
-	return static_cast<std::size_t>( m_corner_point_actual ) * 4u;
-}
-
-Vec2f FeRectangle::get_shape_point( std::size_t index ) const
-{
-	return get_shape_point(
-		index,
-		m_render_size,
-		m_corner_radius_actual,
-		static_cast<unsigned int>( m_corner_point_actual ) );
-}
-
 Vec2f FeRectangle::get_shape_point( std::size_t index, const Vec2f &size, const Vec2f &radius, unsigned int corner_point_count )
 {
 	if ( corner_point_count <= 1u )
@@ -694,9 +681,12 @@ Vec2f FeRectangle::get_shape_point( std::size_t index, const Vec2f &size, const 
 		default: center = Vec2f( 0.0f, 0.0f ); break;
 	}
 
-	return Vec2f(
-		radius.x * std::cos( angle ) + center.x,
-		-radius.y * std::sin( angle ) + center.y );
+	static constexpr Vec2f endpoints[] = { { 1.f, 0.f }, { 0.f, -1.f }, { -1.f, 0.f }, { 0.f, 1.f } };
+	const auto sample = index % corner_point_count;
+	const Vec2f direction = sample == 0 ? endpoints[center_index]
+		: sample + 1 == corner_point_count ? endpoints[( center_index + 1 ) % 4]
+		: Vec2f( std::cos( angle ), -std::sin( angle ) );
+	return Vec2f( radius.x * direction.x + center.x, radius.y * direction.y + center.y );
 }
 
 void FeRectangle::update_geometry() const
@@ -705,11 +695,25 @@ void FeRectangle::update_geometry() const
 	m_vertices_dirty = false;
 	m_vertex_version = ++rectangle_vertex_version;
 
-	const std::size_t point_count = get_shape_point_count();
+	const Vec2f rect_size = m_render_size;
+	const Vec2f direction( std::copysign( 1.f, rect_size.x ), std::copysign( 1.f, rect_size.y ) );
+	const Vec2f radius(
+		std::min( std::abs( m_corner_radius_actual.x ), std::abs( rect_size.x ) * 0.5f ) * direction.x,
+		std::min( std::abs( m_corner_radius_actual.y ), std::abs( rect_size.y ) * 0.5f ) * direction.y );
+	const unsigned int corner_points = radius.x != 0.f && radius.y != 0.f ? m_corner_point_actual : 1;
+	std::array<Vec2f, MAX_CORNER_POINTS * 4> points;
+	std::size_t point_count = 0;
+	for ( std::size_t i = 0; i < corner_points * 4u; ++i )
+	{
+		const Vec2f point = get_shape_point( i, rect_size, radius, corner_points );
+		if ( corner_points == 1 || point_count == 0 || point != points[point_count - 1] )
+			points[point_count++] = point;
+	}
+	if ( corner_points > 1 && points[point_count - 1] == points[0] )
+		--point_count;
 	if ( point_count < 3 )
 		return;
 
-	const Vec2f rect_size = m_render_size;
 	// An inward outline can fill the rectangle, but its inset must not cross the centre.
 	const float inset_limit = 0.5f * std::min( std::abs( rect_size.x ), std::abs( rect_size.y ) );
 	const float outline = std::max( m_outline_thickness, -inset_limit );
@@ -720,109 +724,117 @@ void FeRectangle::update_geometry() const
 		.translate( m_render_position )
 		.rotate( m_rotation )
 		.translate( -m_render_origin );
-	const Color fill_color = m_fill_color;
-
-	auto normalized_uv = [&]( const Vec2f &point )
+	auto make_vertex = [&]( const Vec2f &point, const Color &color )
 	{
-		const float u = ( rect_size.x != 0.0f ) ? ( point.x / rect_size.x ) : 0.0f;
-		const float v = ( rect_size.y != 0.0f ) ? ( point.y / rect_size.y ) : 0.0f;
-		return Vec2f( u, v );
+		const Vec2f position = transform.transformPoint( point );
+		FeRenderVertex vertex = {};
+		vertex.x = position.x;
+		vertex.y = position.y;
+		vertex.z = get_z();
+		vertex.u = rect_size.x != 0.f ? point.x / rect_size.x : 0.f;
+		vertex.v = rect_size.y != 0.f ? point.y / rect_size.y : 0.f;
+		vertex.r = color.r;
+		vertex.g = color.g;
+		vertex.b = color.b;
+		vertex.a = color.a;
+		return vertex;
 	};
-	auto append_triangle = [&]( const Vec2f &p0,
-		const Vec2f &p1,
-		const Vec2f &p2,
-		const Vec2f &uv0,
-		const Vec2f &uv1,
-		const Vec2f &uv2,
-		const Color &color )
+	auto append_fan = [&]( const Vec2f *polygon, std::size_t count, const Color &color )
 	{
-		FeRenderVertex v0 = {};
-		v0.x = p0.x;
-		v0.y = p0.y;
-		v0.z = get_z();
-		v0.u = uv0.x;
-		v0.v = uv0.y;
-		v0.r = color.r;
-		v0.g = color.g;
-		v0.b = color.b;
-		v0.a = color.a;
-
-		FeRenderVertex v1 = v0;
-		v1.x = p1.x;
-		v1.y = p1.y;
-		v1.u = uv1.x;
-		v1.v = uv1.y;
-
-		FeRenderVertex v2 = v0;
-		v2.x = p2.x;
-		v2.y = p2.y;
-		v2.u = uv2.x;
-		v2.v = uv2.y;
-
-		m_vertices.push_back( v0 );
-		m_vertices.push_back( v1 );
-		m_vertices.push_back( v2 );
+		if ( count < 3 )
+			return;
+		const FeRenderVertex first = make_vertex( polygon[0], color );
+		FeRenderVertex second = make_vertex( polygon[1], color );
+		for ( std::size_t i = 2; i < count; ++i )
+		{
+			const FeRenderVertex third = make_vertex( polygon[i], color );
+			m_vertices.insert( m_vertices.end(), { first, second, third } );
+			second = third;
+		}
 	};
 
-	const Vec2f first_local = get_shape_point( 0 );
-	const Vec2f first = transform.transformPoint( first_local );
-	const Vec2f uv0 = normalized_uv( first_local );
-	const Vec2f second_local = get_shape_point( 1 );
-	Vec2f second = transform.transformPoint( second_local );
-	Vec2f uv1 = normalized_uv( second_local );
-
-	for ( std::size_t i = 1; i + 1 < point_count; ++i )
-	{
-		const Vec2f third_local = get_shape_point( i + 1 );
-		const Vec2f third = transform.transformPoint( third_local );
-		const Vec2f uv2 = normalized_uv( third_local );
-
-		append_triangle( first, second, third, uv0, uv1, uv2, fill_color );
-		second = third;
-		uv1 = uv2;
-	}
-
+	append_fan( points.data(), point_count, m_fill_color );
 	const Color outline_color = m_outline_color;
-	if ( outline != 0.0f && outline_color.a > 0 )
-	{
-		const unsigned int corner_points = static_cast<unsigned int>( m_corner_point_actual );
-		const Vec2f direction( std::copysign( 1.f, rect_size.x ), std::copysign( 1.f, rect_size.y ) );
-		const Vec2f outline_offset( outline * direction.x, outline * direction.y );
-		const Vec2f outer_size = rect_size + outline_offset * 2.f;
-		const Vec2f outer_radius(
-			std::max( 0.0f, std::abs( m_corner_radius_actual.x ) + outline ) * direction.x,
-			std::max( 0.0f, std::abs( m_corner_radius_actual.y ) + outline ) * direction.y );
+	if ( outline == 0.f || outline_color.a == 0 )
+		return;
 
+	std::array<Vec2f, MAX_CORNER_POINTS * 4> normals;
+	if ( corner_points == 1 )
+	{
+		// Square sides keep their directions even when a dimension is zero.
+		normals[0] = Vec2f( 0.f, -direction.y );
+		normals[1] = Vec2f( direction.x, 0.f );
+		normals[2] = Vec2f( 0.f, direction.y );
+		normals[3] = Vec2f( -direction.x, 0.f );
+	}
+	else
+	{
+		const float winding = direction.x * direction.y;
 		for ( std::size_t i = 0; i < point_count; ++i )
 		{
-			const std::size_t next = ( i + 1 ) % point_count;
-			const Vec2f inner_local_0 = get_shape_point( i );
-			const Vec2f inner_local_1 = get_shape_point( next );
-			const Vec2f outer_local_0 = get_shape_point( i, outer_size, outer_radius, corner_points ) - outline_offset;
-			const Vec2f outer_local_1 = get_shape_point( next, outer_size, outer_radius, corner_points ) - outline_offset;
-
-			const Vec2f inner_0 = transform.transformPoint( inner_local_0 );
-			const Vec2f inner_1 = transform.transformPoint( inner_local_1 );
-			const Vec2f outer_0 = transform.transformPoint( outer_local_0 );
-			const Vec2f outer_1 = transform.transformPoint( outer_local_1 );
-
-			append_triangle(
-				outer_0,
-				outer_1,
-				inner_0,
-				normalized_uv( outer_local_0 ),
-				normalized_uv( outer_local_1 ),
-				normalized_uv( inner_local_0 ),
-				outline_color );
-			append_triangle(
-				inner_0,
-				outer_1,
-				inner_1,
-				normalized_uv( inner_local_0 ),
-				normalized_uv( outer_local_1 ),
-				normalized_uv( inner_local_1 ),
-				outline_color );
+			const Vec2f edge = points[( i + 1 ) % point_count] - points[i];
+			normals[i] = Vec2f( -edge.y, edge.x ) * ( winding / std::hypot( double( edge.x ), double( edge.y ) ) );
 		}
+	}
+
+	if ( outline < 0.f && corner_points > 1 )
+	{
+		// Inset edges can disappear at tight corners. Clip against each shifted
+		// edge and draw the removed pieces once, even if the inset vanishes.
+		std::vector<Vec2f> remaining( points.begin(), points.begin() + point_count );
+		std::vector<Vec2f> inside, stroke;
+		for ( std::size_t i = 0; i < point_count && remaining.size() >= 3; ++i )
+		{
+			inside.clear();
+			stroke.clear();
+			const Vec2f normal = normals[i];
+			Vec2f previous = remaining.back();
+			Vec2f delta = previous - points[i];
+			float previous_distance = delta.x * normal.x + delta.y * normal.y - outline;
+			for ( const Vec2f &point : remaining )
+			{
+				delta = point - points[i];
+				const float distance = delta.x * normal.x + delta.y * normal.y - outline;
+				if ( ( previous_distance < 0.f && distance > 0.f )
+					|| ( previous_distance > 0.f && distance < 0.f ) )
+				{
+					const Vec2f crossing = previous + ( point - previous ) * ( previous_distance / ( previous_distance - distance ) );
+					inside.push_back( crossing );
+					stroke.push_back( crossing );
+				}
+				if ( distance <= 0.f )
+					inside.push_back( point );
+				if ( distance >= 0.f )
+					stroke.push_back( point );
+				previous = point;
+				previous_distance = distance;
+			}
+			append_fan( stroke.data(), stroke.size(), outline_color );
+			remaining.swap( inside );
+		}
+		return;
+	}
+
+	std::array<Vec2f, MAX_CORNER_POINTS * 4> offset_points;
+	for ( std::size_t i = 0; i < point_count; ++i )
+	{
+		const Vec2f previous = normals[( i + point_count - 1 ) % point_count];
+		const Vec2f next = normals[i];
+		// Intersect the two offset edges so the join is the same distance from both.
+		const float alignment = previous.x * next.x + previous.y * next.y;
+		offset_points[i] = points[i] + ( previous + next ) * ( outline / ( 1.f + alignment ) );
+	}
+
+	FeRenderVertex inner = make_vertex( points[0], outline_color );
+	FeRenderVertex outer = make_vertex( offset_points[0], outline_color );
+	for ( std::size_t i = 0; i < point_count; ++i )
+	{
+		const std::size_t next = ( i + 1 ) % point_count;
+		const FeRenderVertex next_inner = make_vertex( points[next], outline_color );
+		const FeRenderVertex next_outer = make_vertex( offset_points[next], outline_color );
+		m_vertices.insert( m_vertices.end(), { outer, next_outer, inner, inner, next_outer, next_inner } );
+		inner = next_inner;
+		outer = next_outer;
 	}
 }
 
