@@ -133,13 +133,16 @@ public:
 	int get_width();
 	int get_height();
 	int get_num();
-	Vec2f get_grid_extent() const override;
+	Vec2f get_grid_size() const override;
+	Vec2f get_style_reference_size() const override;
 	const FeGrid &get_grid( int script_id ) const override;
 	Vec2f snap_position_to_pixel( const Vec2f &p ) const;
 	Vec2f snap_size_to_pixel( const Vec2f &s ) const;
 
 	FeTransform transform;
 	Vec2i size;
+	Vec2i style_reference_size;
+	bool style_reference_rotated = false;
 	int num;
 };
 

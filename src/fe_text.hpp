@@ -155,8 +155,8 @@ public:
 	void set_outline_rgb( int, int, int );
 	void set_outline_rgb( int, int, int, int );
 	void set_charsize(float s);
-	bool get_scale() const { return m_text_scale; }
-	void set_scale( bool );
+	int get_scale_style() const { return m_scale_style; }
+	void set_scale_style( int mode );
 	void set_spacing(float s);
 	void set_line_spacing(float s);
 	void set_style(int s);
@@ -195,12 +195,12 @@ private:
 	float m_rotation;
 	float m_scale_factor;
 	const FeFont *m_font{};
-	bool m_text_scale{false};
+	int m_scale_style{ScaleParent};
 	bool m_geometry_initialized{false};
 	bool m_glyphs_dirty{true};
 	std::string m_prepared_string;
+	float m_grid_charsize{-1.f};
 	float m_pixel_charsize{-1.f};
-	float m_pixel_outline{};
 	float m_outline_ratio{};
 	unsigned int m_first_size{1};
 	unsigned int m_last_size{1};

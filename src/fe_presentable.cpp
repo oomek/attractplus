@@ -30,6 +30,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <limits>
 #include <sqrat.h>
 
 FeGridView::FeGridView( FePresentableParent *parent, FeGrid *settings )
@@ -55,36 +56,36 @@ void FeGridView::set_range( const Vec2f &offset, const Vec2f &size )
 
 float FeGridView::get_left() const
 {
-	return m_settings->transform( m_parent->get_grid_extent() ).inverse_position( Vec2f( 0, 0 ) ).x;
+	return m_settings->transform( m_parent->get_grid_size() ).inverse_position( Vec2f( 0, 0 ) ).x;
 }
 
 float FeGridView::get_top() const
 {
-	return m_settings->transform( m_parent->get_grid_extent() ).inverse_position( Vec2f( 0, 0 ) ).y;
+	return m_settings->transform( m_parent->get_grid_size() ).inverse_position( Vec2f( 0, 0 ) ).y;
 }
 
 float FeGridView::get_right() const
 {
-	Vec2f extent = m_parent->get_grid_extent();
-	return m_settings->transform( extent ).inverse_position( extent ).x;
+	Vec2f size = m_parent->get_grid_size();
+	return m_settings->transform( size ).inverse_position( size ).x;
 }
 
 float FeGridView::get_bottom() const
 {
-	Vec2f extent = m_parent->get_grid_extent();
-	return m_settings->transform( extent ).inverse_position( extent ).y;
+	Vec2f size = m_parent->get_grid_size();
+	return m_settings->transform( size ).inverse_position( size ).y;
 }
 
 float FeGridView::get_width() const
 {
-	Vec2f extent = m_parent->get_grid_extent();
-	return m_settings->transform( extent ).inverse_size( extent ).x;
+	Vec2f size = m_parent->get_grid_size();
+	return m_settings->transform( size ).inverse_size( size ).x;
 }
 
 float FeGridView::get_height() const
 {
-	Vec2f extent = m_parent->get_grid_extent();
-	return m_settings->transform( extent ).inverse_size( extent ).y;
+	Vec2f size = m_parent->get_grid_size();
+	return m_settings->transform( size ).inverse_size( size ).y;
 }
 
 void FeGridView::set_flag( bool &flag, Sqrat::Object value )
@@ -237,7 +238,7 @@ FePresentableParent::~FePresentableParent()
 {
 }
 
-Vec2f FePresentableParent::get_grid_extent() const
+Vec2f FePresentableParent::get_grid_size() const
 {
 	FePresent *fep = FePresent::script_get_fep();
 	return fep ? Vec2f( fep->get_layout_size() ) : Vec2f( 0, 0 );
@@ -307,7 +308,27 @@ void FeBasePresentable::on_transform_update()
 FeGridTransform FeBasePresentable::grid_transform() const
 {
 	if ( m_detached ) return m_detached_grid;
-	return m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_extent() );
+	return m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_size() );
+}
+
+Vec2f FeBasePresentable::style_grid_scale( int mode ) const
+{
+	const Vec2f units = ( mode & ScaleParent ) ? grid_transform().scale : m_style_grid;
+	if ( !( mode & ScaleSelf )) return units;
+
+	float factor = 1.f;
+	if ( m_style_size.x != 0.f ) factor = std::abs( get_width() / m_style_size.x );
+	if ( m_style_size.y != 0.f )
+	{
+		const float height = std::abs( get_height() / m_style_size.y );
+		factor = m_style_size.x != 0.f ? std::min( factor, height ) : height;
+	}
+	return units * std::max( factor, std::numeric_limits<float>::epsilon() );
+}
+
+float FeBasePresentable::style_scale_factor( int mode ) const
+{
+	return style_grid_scale( mode ).y / m_style_reference_unit;
 }
 
 float FeBasePresentable::grid_height_to_pixels( float value ) const
@@ -327,7 +348,7 @@ float FeBasePresentable::pixels_to_grid_width( float value ) const
 
 Vec2f FeBasePresentable::snap_position( const Vec2f &value, bool snap ) const
 {
-	Vec2f p = ( m_detached ? m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_extent() ) : grid_transform() ).position( value );
+	Vec2f p = ( m_detached ? m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_size() ) : grid_transform() ).position( value );
 	// 2D drawables snap position and size together after applying their anchors.
 	if ( get_type() != 0 ) return p;
 	if ( !snap || !get_pixel_snap() || !m_parent )
@@ -562,7 +583,7 @@ float FeBasePresentable::get_height() const
 
 void FeBasePresentable::set_width( float w )
 {
-	m_script_size.x = w;
+	set_script_size( Vec2f( w, m_script_size.y ) );
 	m_script_geometry_set = true;
 	set_snap( m_snap_width, get_pixel_snap() && m_parent );
 	Vec2f size = getSize();
@@ -573,7 +594,7 @@ void FeBasePresentable::set_width( float w )
 
 void FeBasePresentable::set_height( float h )
 {
-	m_script_size.y = h;
+	set_script_size( Vec2f( m_script_size.x, h ) );
 	m_script_geometry_set = true;
 	set_snap( m_snap_height, get_pixel_snap() && m_parent );
 	Vec2f size = getSize();
@@ -596,7 +617,7 @@ void FeBasePresentable::set_pos(float x, float y)
 void FeBasePresentable::set_pos(float x, float y, float w, float h)
 {
 	m_script_pos = Vec2f( x, y );
-	m_script_size = Vec2f( w, h );
+	set_script_size( Vec2f( w, h ) );
 	m_script_geometry_set = true;
 	set_snap( m_snap_x, get_pixel_snap() && m_parent );
 	set_snap( m_snap_y, m_snap_x );
@@ -634,7 +655,7 @@ bool FeBasePresentable::set_animated_property( const std::string &name, float va
 	}
 	else if ( name == "width" )
 	{
-		m_script_size.x = value;
+		set_script_size( Vec2f( value, m_script_size.y ) );
 		m_script_geometry_set = true;
 		set_snap( m_snap_width, snap && get_pixel_snap() && m_parent );
 		Vec2f size = getSize();
@@ -644,7 +665,7 @@ bool FeBasePresentable::set_animated_property( const std::string &name, float va
 	}
 	else if ( name == "height" )
 	{
-		m_script_size.y = value;
+		set_script_size( Vec2f( m_script_size.x, value ) );
 		m_script_geometry_set = true;
 		set_snap( m_snap_height, snap && get_pixel_snap() && m_parent );
 		Vec2f size = getSize();
@@ -669,15 +690,15 @@ float FeBasePresentable::snap_destination_to_pixels( const std::string &name, fl
 	bool x_axis = ( name == "x" ) || ( name == "width" );
 
 	Vec2f pos = m_script_pos;
-	Vec2f extent = m_script_size;
-	Vec2f &value = position ? pos : extent;
+	Vec2f box_size = m_script_size;
+	Vec2f &value = position ? pos : box_size;
 	if ( x_axis ) value.x = destination;
 	else value.y = destination;
 	FeGridTransform transform = grid_transform();
 	pos = transform.position( pos );
-	extent = transform.size( extent );
-	snap_draw_geometry( pos, extent, true );
-	Vec2f snapped = position ? transform.inverse_position( pos ) : transform.inverse_size( extent );
+	box_size = transform.size( box_size );
+	snap_draw_geometry( pos, box_size, true );
+	Vec2f snapped = position ? transform.inverse_position( pos ) : transform.inverse_size( box_size );
 	return x_axis ? snapped.x : snapped.y;
 }
 
@@ -696,10 +717,19 @@ void FeBasePresentable::set_parent( FePresentableParent &p )
 	m_script_id = fep ? fep->get_script_id() : LayoutScript;
 }
 
+void FeBasePresentable::set_script_size( const Vec2f &size )
+{
+	if ( m_style_size.x == 0.f ) m_style_size.x = size.x;
+	if ( m_style_size.y == 0.f ) m_style_size.y = size.y;
+	m_script_size = size;
+}
+
 void FeBasePresentable::set_script_geometry( float x, float y, float w, float h )
 {
+	m_style_grid = grid_transform().scale;
+	m_style_reference_unit = m_parent->get_grid( m_script_id ).transform( m_parent->get_style_reference_size() ).scale.y;
 	m_script_pos = Vec2f( x, y );
-	m_script_size = Vec2f( w, h );
+	set_script_size( Vec2f( w, h ) );
 	m_script_geometry_set = true;
 	refresh_script_geometry();
 }
@@ -1033,7 +1063,7 @@ FeImage *FePresentableParent::add_surface(float x, float y, float w, float h)
 	if ( fep )
 	{
 		const FeGrid &grid = get_grid( fep->get_script_id() );
-		FeGridTransform transform = grid.transform( get_grid_extent() );
+		FeGridTransform transform = grid.transform( get_grid_size() );
 		Vec2f size = transform.size( Vec2f( w, h ) );
 		if ( grid.pixel_snap )
 		{

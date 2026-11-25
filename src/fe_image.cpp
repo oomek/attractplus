@@ -1460,7 +1460,7 @@ const std::vector<float> *FeTextureContainer::get_fft_right_ptr() const
 	return &m_fft_right;
 }
 
-Vec2f FeSurfaceTextureContainer::get_grid_extent() const
+Vec2f FeSurfaceTextureContainer::get_grid_size() const
 {
 	return Vec2f( get_texture_size() );
 }
@@ -1733,6 +1733,7 @@ FeImage::FeImage( FeImage *o, FePresentableParent &p ):
 	m_mask_border = o->m_mask_border;
 	m_mask_padding = o->m_mask_padding;
 	m_mask_border_scale = o->m_mask_border_scale;
+	m_scale_style = o->m_scale_style;
 	m_letterbox = o->m_letterbox;
 	m_mask_rect = o->m_mask_rect;
 	m_letterbox_fill = o->m_letterbox_fill;
@@ -2266,6 +2267,9 @@ void FeImage::scale()
 		m_origin.z + m_rotation_origin.z
 	);
 
+	m_sprite.setCrop( crop );
+	m_sprite.setScale( scale, style_scale_factor( m_scale_style ) );
+
 	// Populate the fit_rect so users can get the resulting image dimensions
 	const FloatEdges& padding = m_sprite.getPadding();
 	float padding_scale = m_sprite.getPaddingScale( Vec2f(
@@ -2296,8 +2300,6 @@ void FeImage::scale()
 	pos = snapped_pos;
 
 	// Apply the transformations
-	m_sprite.setCrop( crop );
-	m_sprite.setScale( scale );
 	m_sprite.setPosition( pos );
 	m_sprite.setRotation( m_rotation );
 	m_sprite.setRotationX( get_rotation_x() );
@@ -3542,6 +3544,7 @@ void FeImage::build_mask_geometry( FeRenderGeometry &geometry, const std::vector
 	}
 	float scale = ( m_mask_border.left || m_mask_border.top || m_mask_border.right || m_mask_border.bottom )
 		? m_mask_border_scale : 1.f;
+	scale *= m_sprite.getStyleScale();
 	const float x = border[0] + border[2] - m_mask_padding.left - m_mask_padding.right;
 	const float y = border[1] + border[3] - m_mask_padding.top - m_mask_padding.bottom;
 	if ( x > 0.f ) scale = std::min( scale, rect.size.x / x );
@@ -3639,6 +3642,14 @@ void FeImage::set_border_scale( float s )
 		scale();
 		FePresent::script_flag_redraw();
 	}
+}
+
+void FeImage::set_scale_style( int mode )
+{
+	if ( mode < ScaleNone || mode > ScaleBoth || m_scale_style == mode ) return;
+	m_scale_style = mode;
+	scale();
+	FePresent::script_flag_redraw();
 }
 
 float FeImage::get_padding_left() const

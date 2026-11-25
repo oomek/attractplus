@@ -59,7 +59,7 @@ void FeText::setFont( const FeFont &f )
 {
 	m_font = &f;
 	m_glyphs_dirty = true;
-	m_draw_text.setFont( m_text_scale ? f.getUnhinted() : f );
+	m_draw_text.setFont( m_scale_style == ScaleNone ? f : f.getUnhinted() );
 }
 
 Vec2f FeText::getPosition() const
@@ -300,20 +300,27 @@ void FeText::on_new_list( FeSettings *s )
 
 void FeText::update_font_size()
 {
-	Vec2f pos = m_position;
-	Vec2f size = m_size;
-	snap_draw_geometry( pos, size );
-	float char_size = 8.0f;
-	if ( m_user_charsize > 0 )
-		char_size = grid_height_to_pixels( m_user_charsize );
-	else if ( size.y > 12 )
-		char_size = size.y - 4;
+	const float unit = style_grid_scale( m_scale_style ).y;
+	if ( !( m_grid_charsize > 0.f ))
+	{
+		Vec2f pos = m_position;
+		Vec2f size = m_size;
+		snap_draw_geometry( pos, size );
+		const float parent_unit = style_grid_scale( m_scale_style & ScaleParent ).y;
+		const float height = size.y * parent_unit / grid_transform().scale.y;
+		m_grid_charsize = ( height > 12.f ? height - 4.f : 8.f ) / unit;
+	}
 
+	const float char_size = m_grid_charsize * unit;
 	if ( m_pixel_charsize < 0.f )
+	{
 		m_pixel_charsize = std::max( 1.f, char_size );
+		m_outline_ratio = m_outline / m_grid_charsize;
+		m_glyphs_dirty = true;
+	}
 
 	float scale = 1.f / m_scale_factor;
-	if ( m_text_scale )
+	if ( m_scale_style != ScaleNone )
 	{
 		const float desired = std::max( 1.f, char_size * m_scale_factor );
 		m_raster_size = m_first_size;
@@ -332,7 +339,7 @@ void FeText::update_font_size()
 
 void FeText::prepare_glyphs( const std::string &str )
 {
-	if ( !m_text_scale || !m_font )
+	if ( m_scale_style == ScaleNone || !m_font )
 		return;
 	if ( !m_glyphs_dirty && str == m_prepared_string )
 		return;
@@ -359,7 +366,7 @@ void FeText::prepare_glyphs( const std::string &str )
 			if ( m_draw_text.getCase() & FeTextPrimitive::Uppercase ) c = std::toupper( c );
 			if ( m_draw_text.getCase() & FeTextPrimitive::Lowercase ) c = std::tolower( c );
 			font.getGlyph( c, size, bold );
-			if ( m_pixel_outline > 0.f )
+			if ( m_outline_ratio > 0.f )
 				font.getGlyph( c, size, bold, m_outline_ratio * size );
 		}
 	m_prepared_string = str;
@@ -380,11 +387,12 @@ void FeText::update_margin()
 
 void FeText::update_outline()
 {
-	if ( m_text_scale )
+	const float unit = style_grid_scale( m_scale_style ).y;
+	if ( m_scale_style != ScaleNone )
 		m_draw_text.setOutlineThickness( m_outline_ratio * m_raster_size, true );
 	else
-		m_draw_text.setOutlineThickness( m_pixel_outline );
-	m_draw_text.setBgOutlineThickness( grid_height_to_pixels( m_bg_outline ));
+		m_draw_text.setOutlineThickness( m_outline * unit );
+	m_draw_text.setBgOutlineThickness( m_bg_outline * unit );
 }
 
 void FeText::update_transform()
@@ -410,6 +418,9 @@ void FeText::update_transform()
 
 void FeText::on_new_selection( FeSettings *feSettings )
 {
+	// Prepare glyphs after the initial box has been resolved through the parent grid.
+	if ( !m_geometry_initialized ) return;
+
 	std::string str = m_string;
 
 	m_magic = FePresent::script_process_magic_strings( str,
@@ -445,6 +456,7 @@ void FeText::refresh_script_geometry()
 	if ( !m_geometry_initialized )
 	{
 		m_geometry_initialized = true;
+		m_grid_charsize = m_user_charsize;
 		m_pixel_charsize = -1.f;
 		update_font_size();
 		FePresent::script_do_update( this );
@@ -519,9 +531,7 @@ void FeText::set_outline( float t )
 {
 	t = std::max( 0.0f, t );
 	m_outline = t;
-	m_pixel_outline = grid_height_to_pixels( t );
-	m_outline_ratio = m_user_charsize > 0.f ? t / m_user_charsize
-		: m_pixel_outline / std::max( 1.f, m_size.y > 12.f ? m_size.y - 4.f : 8.f );
+	m_outline_ratio = t / m_grid_charsize;
 	m_glyphs_dirty = true;
 	update_outline();
 	FePresent::script_do_update( this );
@@ -870,23 +880,20 @@ void FeText::set_outline_rgb( int r, int g, int b, int a )
 
 void FeText::set_charsize(float s)
 {
-	m_user_charsize = s;
-	m_glyphs_dirty = true;
+	m_user_charsize = m_grid_charsize = s;
 	m_pixel_charsize = -1.f;
 	update_font_size();
-	m_outline_ratio = s > 0.f ? m_outline / s
-		: grid_height_to_pixels( m_outline ) / m_pixel_charsize;
 	FePresent::script_do_update( this );
 }
 
-void FeText::set_scale( bool scale )
+void FeText::set_scale_style( int mode )
 {
-	if ( scale == m_text_scale )
+	if ( mode < ScaleNone || mode > ScaleBoth || m_scale_style == mode )
 		return;
-	m_text_scale = scale;
-	m_glyphs_dirty = true;
-	if ( m_font )
-		m_draw_text.setFont( scale ? m_font->getUnhinted() : *m_font );
+	m_scale_style = mode;
+	if ( m_font ) setFont( *m_font );
+	m_pixel_charsize = -1.f;
+	update_font_size();
 	FePresent::script_do_update( this );
 }
 

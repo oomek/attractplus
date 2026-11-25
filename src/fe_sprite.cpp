@@ -198,13 +198,13 @@ void FeSprite::setPadding( const FloatEdges &padding )
 	}
 }
 
-void FeSprite::setScale( const Vec2f &scale )
+void FeSprite::setScale( const Vec2f &scale, float style_scale )
 {
-	if ( scale != m_scale )
-	{
-		m_scale = scale;
-		updateGeometry();
-	}
+	const bool rebuild = scale != m_scale || ( style_scale != m_style_scale &&
+		( m_border != IntEdges() || m_padding != FloatEdges() ));
+	m_scale = scale;
+	m_style_scale = style_scale;
+	if ( rebuild ) updateGeometry();
 }
 
 const Vec2f &FeSprite::getScale() const
@@ -289,9 +289,9 @@ float FeSprite::getBorderScale() const
 float FeSprite::getPaddingScale( const Vec2f &size ) const
 {
 	if ( !m_border.left && !m_border.top && !m_border.right && !m_border.bottom )
-		return 1.f;
+		return m_style_scale;
 
-	float padding_scale = m_border_scale;
+	float padding_scale = m_border_scale * m_style_scale;
 	float x = m_border.left + m_border.right - m_padding.left - m_padding.right;
 	float y = m_border.top + m_border.bottom - m_padding.top - m_padding.bottom;
 	if ( x > 0.f ) padding_scale = std::min( padding_scale, size.x / x );

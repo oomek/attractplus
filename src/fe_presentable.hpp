@@ -82,6 +82,14 @@ enum FePresentableType
 class FeBasePresentable
 {
 public:
+	enum StyleScale
+	{
+		ScaleNone = 0,
+		ScaleParent = 1,
+		ScaleSelf = 2,
+		ScaleBoth = ScaleParent | ScaleSelf
+	};
+
 	enum RotationOrder
 	{
 		XYZ = 0,
@@ -125,6 +133,9 @@ private:
 	Vec2f snap_parent_position( const Vec2f &pos ) const;
 	Vec2f snap_parent_size( const Vec2f &size ) const;
 	FeGridTransform m_detached_grid;
+	Vec2f m_style_grid{ 1.f, 1.f };
+	Vec2f m_style_size{ 0.f, 0.f };
+	float m_style_reference_unit = 1.f;
 	FeRenderMatrix4 m_detached_transform = FeRenderMatrix4::identity();
 	Vec3f m_detached_source;
 	Vec3f m_detached_target;
@@ -144,9 +155,12 @@ private:
 	int m_script_id;
 	bool m_script_geometry_set;
 	void set_snap( bool &property, bool value );
+	void set_script_size( const Vec2f &size );
 
 protected:
 	FeGridTransform grid_transform() const;
+	Vec2f style_grid_scale( int mode ) const;
+	float style_scale_factor( int mode ) const;
 	float grid_height_to_pixels( float value ) const;
 	float pixels_to_grid_height( float value ) const;
 	float pixels_to_grid_width( float value ) const;
@@ -279,7 +293,8 @@ public:
 	std::vector< FeBasePresentable * > elements;
 	FeGrid grid;
 	FeGridView get_grid_view();
-	virtual Vec2f get_grid_extent() const;
+	virtual Vec2f get_grid_size() const;
+	virtual Vec2f get_style_reference_size() const { return get_grid_size(); }
 	virtual const FeGrid &get_grid( int script_id ) const;
 
 	int m_nesting_level;

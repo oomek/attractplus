@@ -20,6 +20,7 @@
    -  [Magic Tokens](#magic-tokens)
    -  [User Config](#user-config)
    -  [Grid coordinates](#grid-coordinates)
+   -  [Drawable style scaling](#drawable-style-scaling)
    -  [Drawable clipping](#drawable-clipping)
 -  [Functions](#functions)
    -  [`fe.add_image()`](#feadd_image)
@@ -419,6 +420,25 @@ Plugin drawables added to a monitor use that plugin's grid and the monitor's dim
 Changing a grid repositions existing drawables from their stored coordinates. Animation destinations use the same units as the corresponding property; grid changes preserve animation progress. Clones keep their coordinates and use the grid where the clone is added. Surface clones share their texture and child grid.
 
 All `set_size()` arguments must be finite numbers. Width and height must be positive, except for `set_size(0)`. The three boolean properties require `true` or `false`.
+
+---
+
+### Drawable style scaling
+
+Use `scale_style` to choose what scales the style of an image, rectangle or text.
+
+| Mode | Drawable `width` and `height` | Parent grid |
+| --- | --- | --- |
+| `Scale.None` | No | No |
+| `Scale.Parent` | No | Yes |
+| `Scale.Self` | Yes | No |
+| `Scale.Both` | Yes | Yes |
+
+The parent grid at creation supplies the fixed style units for `Scale.None` and `Scale.Self`. Scaling with the drawable uses the smaller ratio between its current and initial dimensions. Each dimension uses its first nonzero value as the reference. The drawable's position and bounds always follow its parent grid.
+
+The setting affects image and mask border thickness and padding, rectangle outlines and fixed corner radii, and text size and outlines. Image and mask borders still select slices in source pixels. The displayed slices and fixed corner radii can shrink to fit small bounds. `corner_ratio` always uses the rectangle's current dimensions.
+
+For image and mask borders and padding, a resizable layout grid uses the monitor's desktop size as its reference. `Scale.Parent` and `Scale.Both` let the window resize scale the rendered borders and padding with the grid.
 
 ---
 
@@ -1985,24 +2005,29 @@ The class representing an image in Attract-Mode Plus. Instances of this class ar
 -  `fft_bands` 🔶 - _[video only]_ Get/set the Fast Fourier Transform band count. Range is `[2...128]` Default value is `32`.
 -  `repeat` 🔶 - Enables texture repeat when set to `true`. Default value is `false`. To see the effect `subimg_width/height` must be set larger than `texture_width/height`
 -  `border_scale` 🔶 - Get/set the scaling factor of the border defined by `set_border()`. Default value is `1.0`.
+-  `scale_style` 🔶 - Get/set how rendered image and mask borders and padding scale. Default is `Scale.Parent`. See [Drawable style scaling](#drawable-style-scaling).
 -  `clear` 🔶 - _[surface only]_ When set to `false` surface is not cleared before the next frame. This can be used for various accumulative effects.
 -  `msaa` 🔶 - _[surface only]_ Get/set whether rendering into the surface uses the global anti-aliasing setting. Set to `false` to disable MSAA for this surface. Default value is `true`.
 -  `aniso` 🔶 - _[surface only]_ Get/set whether sampling the finished surface texture uses the global anisotropic filtering setting. Set to `false` to disable anisotropic filtering for this surface texture. This does not affect filtering of its contents. Default value is `true`.
 -  `redraw` 🔶 - _[surface only]_ When set to `false` surface's content is not redrawn which gives optimization opportunity for hidden surfaces. This in conjunction with `clear = false` can be used to freeze surface's content.
+-  `border` 🔶 - Set all four 9-slice region sizes to the same value in pixels.
 -  `border_left` 🔶 - Get/set the left 9-slice region size in pixels. Default is `0`.
 -  `border_top` 🔶 - Get/set the top 9-slice region size in pixels. Default is `0`.
 -  `border_right` 🔶 - Get/set the right 9-slice region size in pixels. Default is `0`.
 -  `border_bottom` 🔶 - Get/set the bottom 9-slice region size in pixels. Default is `0`.
+-  `padding` 🔶 - Set all four padding offsets to the same value in pixels.
 -  `padding_left` 🔶 - Get/set the left padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `padding_top` 🔶 - Get/set the top padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `padding_right` 🔶 - Get/set the right padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `padding_bottom` 🔶 - Get/set the bottom padding offset in pixels. Extends the texture beyond the image boundary. Default is `0`.
 -  `mask` 🔶 - Get/set the opacity mask image filename. White reveals the image, black hides it; brightness is multiplied by alpha. Relative paths use the layout/plugin directory. Default is `""`, which disables masking.
+-  `mask_border` 🔶 - Set all four mask 9-slice region sizes to the same value in source pixels.
 -  `mask_border_left` 🔶 - Get/set the left mask 9-slice region size in source pixels. Default is `0`.
 -  `mask_border_top` 🔶 - Get/set the top mask 9-slice region size in source pixels. Default is `0`.
 -  `mask_border_right` 🔶 - Get/set the right mask 9-slice region size in source pixels. Default is `0`.
 -  `mask_border_bottom` 🔶 - Get/set the bottom mask 9-slice region size in source pixels. Default is `0`.
 -  `mask_border_scale` 🔶 - Get/set the scaling factor of the borders defined by `set_mask_border()`. Default is `1.0`.
+-  `mask_padding` 🔶 - Set all four mask padding offsets to the same value in pixels.
 -  `mask_padding_left` 🔶 - Get/set the left mask padding offset in pixels. Default is `0`.
 -  `mask_padding_top` 🔶 - Get/set the top mask padding offset in pixels. Default is `0`.
 -  `mask_padding_right` 🔶 - Get/set the right mask padding offset in pixels. Default is `0`.
@@ -2141,13 +2166,13 @@ The class representing a text label in Attract-Mode Plus. Instances of this clas
 -  `bg_outline_green` - Get/set green colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_blue` - Get/set blue colour level for the text background outline. Range is `[0...255]`. Default value is `0`.
 -  `bg_outline_alpha` - Get/set alpha level for the text background outline. Range is `[0...255]`. Default value is `0` (transparent).
--  `char_size` - Get/set the forced character size in vertical grid units. If this is `<= 0` then Attract-Mode Plus will auto-size based on `height`. Default value is `-1`.
--  `scale` - Get/set smooth text scaling with the parent grid. Default is `false`, keeping glyph size and outline fixed until `char_size` or `outline` is assigned. When `true`, unhinted power-of-two atlas sizes are prepared and sampled with mipmaps and a `-0.50` LOD bias. Resizing reuses cached fill and outline glyphs and preserves custom shaders. Prepared sizes span one quarter to four times the initial base power of two, using the nearest cached size outside that range.
+-  `char_size` - Get/set the forced character size in vertical grid units. Set to `0` or a negative value to choose the character size from the current `height`. The default of `-1` uses the initial `height`.
+-  `scale_style` - Get/set how text size and outlines scale. Default is `Scale.Parent`. See [Drawable style scaling](#drawable-style-scaling). Text scaling reuses unhinted power-of-two atlases with mipmaps and a `-0.50` LOD bias. Prepared sizes span one quarter to four times the initial base power of two, using the nearest cached size outside that range.
 -  `glyph_size` - Get the height of the capital letter in vertical grid units. Useful if you want to set the textbox height to match the letter height.
 -  `char_spacing` - Get/set the spacing factor between letters. Default value is `1.0`.
 -  `line_spacing` - Get/set the spacing factor between lines. Default value is `1.0` At values `0.75` or lower letters start to overlap. For uppercase texts it's around `0.5` It's advised to use this property with the new align modes.
 -  `outline` 🔶 - Get/set the thickness of the outline applied to the text, in vertical grid units. Default value is `0.0`.
--  `bg_outline` 🔶 - Get/set the thickness of the outline applied to the background, in vertical grid units. Default value is `0.0`.
+-  `bg_outline` 🔶 - Get/set the thickness of the background outline in vertical grid units. Negative values draw inward and are limited to half the shorter side. Default value is `0.0`.
 -  `style` - Get/set the text style. Can be a combination of one or more of the following (i.e. `Style.Bold | Style.Italic`):
    -  `Style.Regular` (default)
    -  `Style.Bold`
@@ -2373,7 +2398,8 @@ The class representing a rectangle in Attract-Mode Plus. Instances of this class
 -  `green` - Get/set green colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `blue` - Get/set blue colour level for the rectangle. Range is `[0...255]`. Default value is `255`.
 -  `alpha` - Get/set alpha level for the rectangle. Range is `[0...255]`. Default value is `255`.
--  `outline` - Get/set the thickness of the outline applied to the rectangle, in vertical grid units. Negative values draw the outline inward. Default value is `0.0`.
+-  `outline` - Get/set the thickness of the outline applied to the rectangle, in vertical grid units. Negative values draw inward and are limited to half the shorter side. Default value is `0.0`.
+-  `scale_style` 🔶 - Get/set how `outline` and `corner_radius` scale. Default is `Scale.Parent`. See [Drawable style scaling](#drawable-style-scaling).
 -  `outline_red` - Get/set red colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `outline_green` - Get/set green colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.
 -  `outline_blue` - Get/set blue colour level for the rectangle's outline. Range is `[0...255]`. Default value is `255`.

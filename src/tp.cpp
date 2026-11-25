@@ -665,27 +665,25 @@ void FeTextPrimitive::append_render_geometry( std::vector<FeRenderGeometry> &geo
 
 		if ( m_bg_outline_thickness != 0.0f && m_bg_outline_color.a > 0 )
 		{
-			const float outline = std::abs( m_bg_outline_thickness );
-			if ( outline > 0.0f )
+			const float inset_limit = 0.5f * std::min( std::abs( m_bg_size.x ), std::abs( m_bg_size.y ) );
+			const float outline = std::max( m_bg_outline_thickness, -inset_limit );
+			if ( outline != 0.0f )
 			{
-				const bool outward = ( m_bg_outline_thickness > 0.0f );
-				const Vec2f outer_pos = outward ? Vec2f( -outline, -outline ) : Vec2f( 0.0f, 0.0f );
-				const Vec2f outer_size = outward
-					? Vec2f( m_bg_size.x + outline * 2.0f, m_bg_size.y + outline * 2.0f )
-					: m_bg_size;
-				const Vec2f inner_pos = outward ? Vec2f( 0.0f, 0.0f ) : Vec2f( outline, outline );
-				const Vec2f inner_size = outward
-					? m_bg_size
-					: Vec2f( std::max( 0.0f, m_bg_size.x - outline * 2.0f ), std::max( 0.0f, m_bg_size.y - outline * 2.0f ) );
+				const bool outward = outline > 0.0f;
+				const Vec2f offset( std::copysign( outline, m_bg_size.x ), std::copysign( outline, m_bg_size.y ) );
+				const Vec2f outer_pos = outward ? -offset : Vec2f( 0.0f, 0.0f );
+				const Vec2f outer_size = outward ? m_bg_size + offset * 2.0f : m_bg_size;
+				const Vec2f inner_pos = outward ? Vec2f( 0.0f, 0.0f ) : offset;
+				const Vec2f inner_size = outward ? m_bg_size : m_bg_size - offset * 2.0f;
 
-			const Vec2f o0 = transform_bg_point( m_bg_position, m_bg_rotation, outer_pos - m_bg_origin );
-			const Vec2f o1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( outer_pos.x + outer_size.x, outer_pos.y ) - m_bg_origin );
-			const Vec2f o2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( outer_pos.x, outer_pos.y + outer_size.y ) - m_bg_origin );
-			const Vec2f o3 = transform_bg_point( m_bg_position, m_bg_rotation, outer_pos + outer_size - m_bg_origin );
-			const Vec2f i0 = transform_bg_point( m_bg_position, m_bg_rotation, inner_pos - m_bg_origin );
-			const Vec2f i1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( inner_pos.x + inner_size.x, inner_pos.y ) - m_bg_origin );
-			const Vec2f i2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( inner_pos.x, inner_pos.y + inner_size.y ) - m_bg_origin );
-			const Vec2f i3 = transform_bg_point( m_bg_position, m_bg_rotation, inner_pos + inner_size - m_bg_origin );
+				const Vec2f o0 = transform_bg_point( m_bg_position, m_bg_rotation, outer_pos - m_bg_origin );
+				const Vec2f o1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( outer_pos.x + outer_size.x, outer_pos.y ) - m_bg_origin );
+				const Vec2f o2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( outer_pos.x, outer_pos.y + outer_size.y ) - m_bg_origin );
+				const Vec2f o3 = transform_bg_point( m_bg_position, m_bg_rotation, outer_pos + outer_size - m_bg_origin );
+				const Vec2f i0 = transform_bg_point( m_bg_position, m_bg_rotation, inner_pos - m_bg_origin );
+				const Vec2f i1 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( inner_pos.x + inner_size.x, inner_pos.y ) - m_bg_origin );
+				const Vec2f i2 = transform_bg_point( m_bg_position, m_bg_rotation, Vec2f( inner_pos.x, inner_pos.y + inner_size.y ) - m_bg_origin );
+				const Vec2f i3 = transform_bg_point( m_bg_position, m_bg_rotation, inner_pos + inner_size - m_bg_origin );
 
 				background.vertices.reserve( background.vertices.size() + 24 );
 				append_quad( o0, o1, i0, i1, m_bg_outline_color );

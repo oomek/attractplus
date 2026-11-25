@@ -162,7 +162,7 @@ void FeRectangle::set_outline( float o )
 		return;
 
 	m_outline = o;
-	m_outline_thickness = grid_height_to_pixels( m_outline );
+	m_outline_thickness = m_outline * style_grid_scale( m_scale_style ).y;
 	m_vertices_dirty = true;
 	FePresent::script_flag_redraw();
 }
@@ -429,20 +429,28 @@ void FeRectangle::set_blend_mode( int b )
 void FeRectangle::refresh_script_geometry()
 {
 	FeBasePresentable::refresh_script_geometry();
-	m_outline_thickness = grid_height_to_pixels( m_outline );
 	scale();
+}
+
+void FeRectangle::set_scale_style( int mode )
+{
+	if ( mode < ScaleNone || mode > ScaleBoth || m_scale_style == mode ) return;
+	m_scale_style = mode;
+	scale();
+	FePresent::script_flag_redraw();
 }
 
 float FeRectangle::get_corner_radius() const
 {
+	const auto units = style_grid_scale( m_scale_style );
 	return m_corner_auto ? m_corner_radius.x
-		: pixels_to_grid_height( m_corner_radius.x * grid_transform().scale.x );
+		: m_corner_radius.x * units.x / units.y;
 }
 
 float FeRectangle::get_corner_radius_x() const
 {
-	return m_corner_auto ? pixels_to_grid_width( grid_height_to_pixels( m_corner_radius.x ) )
-		: m_corner_radius.x;
+	const auto units = style_grid_scale( m_scale_style );
+	return m_corner_auto ? m_corner_radius.x * units.y / units.x : m_corner_radius.x;
 }
 
 float FeRectangle::get_corner_radius_y() const
@@ -595,7 +603,8 @@ void FeRectangle::update_corner_radius()
 	float my = std::max( DELTA, std::fabs( m_size.y ) - DELTA );
 	float mx2 = mx / 2;
 	float my2 = my / 2;
-	const Vec2f radius = grid_transform().size( m_corner_radius );
+	const auto units = style_grid_scale( m_scale_style );
+	const Vec2f radius( m_corner_radius.x * units.x, m_corner_radius.y * units.y );
 	// A single radius uses vertical grid units on both axes to stay round.
 	float cx = std::fabs( m_corner_auto ? radius.y : radius.x );
 	float cy = std::fabs( radius.y );
@@ -616,6 +625,7 @@ void FeRectangle::update_corner_ratio()
 {
 	if ( m_corner_ratio_x || m_corner_ratio_y )
 	{
+		const auto units = style_grid_scale( m_scale_style );
 		// Ensure ratio corners have a non-zero size to use, otherwise a zero result creates square outlines
 		float mx = std::max( DELTA, std::fabs( m_size.x ) );
 		float my = std::max( DELTA, std::fabs( m_size.y ) );
@@ -623,14 +633,14 @@ void FeRectangle::update_corner_ratio()
 		if ( m_corner_auto )
 		{
 			// If AUTO use the smallest side for the radius
-			float s = pixels_to_grid_height( m_corner_ratio.x * std::min( mx, my ) );
+			float s = m_corner_ratio.x * std::min( mx, my ) / units.y;
 			m_corner_radius = Vec2f( s, s );
 		}
 		else
 		{
 			// Otherwise calc ratios for each axis
-			if ( m_corner_ratio_x ) m_corner_radius.x = pixels_to_grid_width( m_corner_ratio.x * mx );
-			if ( m_corner_ratio_y ) m_corner_radius.y = pixels_to_grid_height( m_corner_ratio.y * my );
+			if ( m_corner_ratio_x ) m_corner_radius.x = m_corner_ratio.x * mx / units.x;
+			if ( m_corner_ratio_y ) m_corner_radius.y = m_corner_ratio.y * my / units.y;
 		}
 	}
 
@@ -699,15 +709,18 @@ void FeRectangle::update_geometry() const
 	if ( point_count < 3 )
 		return;
 
+	const Vec2f rect_size = m_render_size;
+	// An inward outline can fill the rectangle, but its inset must not cross the centre.
+	const float inset_limit = 0.5f * std::min( std::abs( rect_size.x ), std::abs( rect_size.y ) );
+	const float outline = std::max( m_outline_thickness, -inset_limit );
 	m_vertices.reserve( ( point_count - 2 ) * 3
-		+ ( ( m_outline_thickness != 0.0f && m_outline_color.a > 0 ) ? point_count * 6 : 0 ) );
+		+ ( ( outline != 0.0f && m_outline_color.a > 0 ) ? point_count * 6 : 0 ) );
 
 	const FeTransform transform = FeTransform()
 		.translate( m_render_position )
 		.rotate( m_rotation )
 		.translate( -m_render_origin );
 	const Color fill_color = m_fill_color;
-	const Vec2f rect_size = m_render_size;
 
 	auto normalized_uv = [&]( const Vec2f &point )
 	{
@@ -769,16 +782,16 @@ void FeRectangle::update_geometry() const
 		uv1 = uv2;
 	}
 
-	const float outline = m_outline_thickness;
 	const Color outline_color = m_outline_color;
 	if ( outline != 0.0f && outline_color.a > 0 )
 	{
 		const unsigned int corner_points = static_cast<unsigned int>( m_corner_point_actual );
-		const Vec2f outer_size( rect_size.x + outline * 2.0f, rect_size.y + outline * 2.0f );
+		const Vec2f direction( std::copysign( 1.f, rect_size.x ), std::copysign( 1.f, rect_size.y ) );
+		const Vec2f outline_offset( outline * direction.x, outline * direction.y );
+		const Vec2f outer_size = rect_size + outline_offset * 2.f;
 		const Vec2f outer_radius(
-			std::max( 0.0f, m_corner_radius_actual.x + outline ),
-			std::max( 0.0f, m_corner_radius_actual.y + outline ) );
-		const Vec2f outline_offset( outline, outline );
+			std::max( 0.0f, std::abs( m_corner_radius_actual.x ) + outline ) * direction.x,
+			std::max( 0.0f, std::abs( m_corner_radius_actual.y ) + outline ) * direction.y );
 
 		for ( std::size_t i = 0; i < point_count; ++i )
 		{
@@ -839,6 +852,7 @@ void FeRectangle::on_transform_update()
 
 void FeRectangle::scale()
 {
+	m_outline_thickness = m_outline * style_grid_scale( m_scale_style ).y;
 	Vec2f pos = m_position;
 	Vec2f size = m_size;
 

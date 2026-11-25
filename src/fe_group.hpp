@@ -19,7 +19,8 @@ public:
 	Color getColor() const override { return m_color; }
 	void setColor( Color color ) override;
 	int get_type() const override { return FePresentableTypeGroup; }
-	Vec2f get_grid_extent() const override;
+	Vec2f get_grid_size() const override;
+	Vec2f get_style_reference_size() const override;
 	FeGridView get_grid_view() { return FePresentableParent::get_grid_view(); }
 	Vec2f snap_position_to_pixel( const Vec2f &pos ) const override;
 	Vec2f snap_size_to_pixel( const Vec2f &size ) const override;

@@ -85,18 +85,25 @@ void FeGroup::on_group_update( bool update )
 	FePresent::script_flag_redraw();
 }
 
-static Vec2f group_grid_extent( const Vec2f &size )
+static Vec2f group_grid_size( const Vec2f &size )
 {
 	// A collapsed axis is handled by the draw transform; keep layout finite.
 	return Vec2f( size.x == 0 ? 1.f : std::abs( size.x ),
 		size.y == 0 ? 1.f : std::abs( size.y ) );
 }
 
-Vec2f FeGroup::get_grid_extent() const
+Vec2f FeGroup::get_grid_size() const
 {
 	Vec2f pos = m_pos, size = m_size;
 	snap_draw_geometry( pos, size );
-	return group_grid_extent( size );
+	return group_grid_size( size );
+}
+
+Vec2f FeGroup::get_style_reference_size() const
+{
+	if ( m_detached ) return get_grid_size();
+	const auto parent = m_parent->get_grid( m_script_id ).transform( m_parent->get_style_reference_size() );
+	return group_grid_size( parent.size( Vec2f( get_width(), get_height() ) ) );
 }
 
 FeRenderMatrix4 FeGroup::get_items_transform() const
@@ -113,7 +120,7 @@ FeRenderMatrix4 FeGroup::get_items_transform( const FePresentableParent &target 
 		const bool mapped = m_detached || m_parent != &target;
 		snap_draw_geometry( pos, size, false, PixelSnap{ target, mapped ? &inherited : nullptr, m_detached ? get_z() : 0.f } );
 	}
-	const Vec2f extent = group_grid_extent( size );
+	const Vec2f grid_size = group_grid_size( size );
 	auto matrix = FeRenderMatrix4::identity();
 	matrix.translate( Vec3f( pos.x + ( m_rotation_origin.x - m_anchor.x ) * size.x,
 		pos.y + ( m_rotation_origin.y - m_anchor.y ) * size.y,
@@ -122,8 +129,8 @@ FeRenderMatrix4 FeGroup::get_items_transform( const FePresentableParent &target 
 	// Size is resolved by the child grid before geometry is built.
 	matrix.scale( Vec3f( size.x < 0 ? -1.f : size.x > 0 ? 1.f : 0.f,
 		size.y < 0 ? -1.f : size.y > 0 ? 1.f : 0.f, 1.f ) );
-	matrix.translate( Vec3f( -m_rotation_origin.x * extent.x,
-		-m_rotation_origin.y * extent.y, -m_rotation_origin.z ) );
+	matrix.translate( Vec3f( -m_rotation_origin.x * grid_size.x,
+		-m_rotation_origin.y * grid_size.y, -m_rotation_origin.z ) );
 	return inherited * matrix;
 }
 
@@ -293,7 +300,7 @@ void FeBasePresentable::change_group( FeGroup *group, bool preserve )
 	Vec3f destination;
 	if ( preserve )
 	{
-		if ( !m_script_geometry_set ) m_script_size = Vec2f( get_width(), get_height() );
+		if ( !m_script_geometry_set ) set_script_size( Vec2f( get_width(), get_height() ) );
 		const Vec2f pos = getPosition();
 		const Vec3f source( pos.x, pos.y, get_z() );
 		const auto transform = get_draw_transform();
@@ -324,7 +331,7 @@ void FeBasePresentable::change_group( FeGroup *group, bool preserve )
 	else items.push_back( this );
 	if ( preserve )
 	{
-		const auto grid = m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_extent() );
+		const auto grid = m_parent->get_grid( m_script_id ).transform( m_parent->get_grid_size() );
 		Vec2f pos = grid.inverse_position( Vec2f( destination.x, destination.y ) );
 		m_script_pos = pos;
 		m_script_geometry_set = true;
@@ -417,8 +424,8 @@ Vec2f FeBasePresentable::snap_parent_size( const Vec2f &size ) const
 
 FeGroup *FePresentableParent::add_group()
 {
-	const auto transform = get_grid( FePresent::script_get_fep()->get_script_id() ).transform( get_grid_extent() );
-	Vec2f size = transform.inverse_size( get_grid_extent() );
+	const auto transform = get_grid( FePresent::script_get_fep()->get_script_id() ).transform( get_grid_size() );
+	Vec2f size = transform.inverse_size( get_grid_size() );
 	return add_group( 0, 0, size.x, size.y );
 }
 
